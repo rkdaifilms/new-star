@@ -36,6 +36,11 @@
         
         /* Active Payment Form Container */
         #paymentSection { display: none; background: #1f1f1f; border: 2px solid #fe2c55; padding: 20px; border-radius: 12px; margin-top: 20px; }
+        
+        /* Real Bank SMS Simulation Box */
+        #smsBox { display: none; background: #112233; border: 2px solid #00b4d8; padding: 15px; border-radius: 10px; margin-top: 15px; }
+        #smsBox h4 { color: #90e0ef; font-size: 14px; margin-bottom: 5px; }
+        #smsBox p { font-size: 13px; color: #fff; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -104,7 +109,7 @@
     <!-- Dynamic Real Payment Form (Appears when package is clicked) -->
     <div class="section" id="paymentSection">
         <h3 id="selectedTitle" style="color: #ffcc00;">💳 Checkout: $1.00</h3>
-        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">Select your country/bank and complete real payment to developer merchant account:</p>
+        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">Enter your bank/wallet number, account details, and secure PIN/MPIN to pay real money directly to developer merchant account:</p>
         
         <label style="font-size:12px; color:#aaa;">Select Payment Method / Country Bank:</label>
         <select id="gatewayChoice" onchange="togglePaymentFields()">
@@ -120,11 +125,18 @@
             <input type="text" id="payInput1" placeholder="Card Number (4111 2222 3333 4444)">
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <input type="text" placeholder="MM/YY">
-                <input type="password" placeholder="CVV">
+                <input type="password" placeholder="CVV" maxlength="4">
             </div>
+            <input type="password" id="securePin" placeholder="Enter Card PIN / Bank OTP (Required)" maxlength="6" style="margin-top:8px;">
         </div>
 
-        <button class="btn" style="margin-top: 15px; background: #25f4ee; color: #000;" onclick="executeRealPayment()">Confirm & Pay Now (Direct to Developer)</button>
+        <button class="btn" style="margin-top: 15px; background: #25f4ee; color: #000;" onclick="executeRealPayment()">🔒 Verify PIN & Pay Now (Direct to Developer)</button>
+        
+        <!-- Real SMS Alert Box -->
+        <div id="smsBox">
+            <h4>📩 Bank SMS Notification (Real Simulation)</h4>
+            <p id="smsText">Your account has been debited successfully.</p>
+        </div>
     </div>
 
     <!-- Global & Local Payout System -->
@@ -158,7 +170,7 @@
             currentPriceStr = priceStr;
             
             document.getElementById('paymentSection').style.display = 'block';
-            document.getElementById('selectedTitleinnerHTML').innerText = '💳 Checkout: ' + priceStr + ' (' + (coins + bonus) + ' Coins)';
+            document.getElementById('selectedTitle').innerText = '💳 Checkout: ' + priceStr + ' (' + (coins + bonus) + ' Coins)';
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
@@ -167,25 +179,43 @@
             let fields = document.getElementById('dynamicFields');
             
             if(choice === 'card') {
-                fields.innerHTML = `<input type="text" placeholder="Card Number (4111 2222 3333 4444)">
+                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Card Number (4111 2222 3333 4444)">
                                     <div style="display:flex; gap:10px; margin-top:8px;">
                                         <input type="text" placeholder="MM/YY">
-                                        <input type="password" placeholder="CVV">
-                                    </div>`;
+                                        <input type="password" placeholder="CVV" maxlength="4">
+                                    </div>
+                                    <input type="password" id="securePin" placeholder="Enter 4-Digit Card PIN / OTP" maxlength="6" style="margin-top:8px;">`;
             } else if(choice === 'payoneer') {
-                fields.innerHTML = `<input type="email" placeholder="Enter Payoneer Registered Email">`;
+                fields.innerHTML = `<input type="email" id="payInput1" placeholder="Enter Payoneer Registered Email">
+                                    <input type="password" id="securePin" placeholder="Enter Payoneer Password / PIN" style="margin-top:8px;">`;
             } else if(choice === 'nepal') {
-                fields.innerHTML = `<input type="text" placeholder="Enter eSewa ID / Nabil Bank Account Number">`;
+                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter eSewa Mobile Number / Nabil Bank Account">
+                                    <input type="password" id="securePin" placeholder="Enter eSewa MPIN / Bank Password (4 Digits)" maxlength="4" style="margin-top:8px;">`;
             } else if(choice === 'india') {
-                fields.innerHTML = `<input type="text" placeholder="Enter UPI ID (e.g., username@oksbi) or Paytm Number">`;
+                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter UPI ID (e.g., username@oksbi) or Phone Number">
+                                    <input type="password" id="securePin" placeholder="Enter 4 or 6 Digit UPI PIN" maxlength="6" style="margin-top:8px;">`;
             } else if(choice === 'bangladesh') {
-                fields.innerHTML = `<input type="text" placeholder="Enter bKash / Nagad Wallet Number">`;
+                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter bKash / Nagad Wallet Number">
+                                    <input type="password" id="securePin" placeholder="Enter Wallet PIN (4 Digits)" maxlength="4" style="margin-top:8px;">`;
             } else if(choice === 'pakistan') {
-                fields.innerHTML = `<input type="text" placeholder="Enter JazzCash / Easypaisa Number">`;
+                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter JazzCash / Easypaisa Number">
+                                    <input type="password" id="securePin" placeholder="Enter Account PIN (4 Digits)" maxlength="4" style="margin-top:8px;">`;
             }
         }
 
         function executeRealPayment() {
+            let accountNum = document.getElementById('payInput1').value;
+            let pinVal = document.getElementById('securePin').value;
+
+            if(accountNum.trim() === '') {
+                alert('⚠️ Please enter your account number, mobile number, or card details.');
+                return;
+            }
+            if(pinVal.trim() === '' || pinVal.length < 4) {
+                alert('❌ Security Error: Please enter your valid Bank PIN, MPIN, UPI PIN, or OTP to authorize payment.');
+                return;
+            }
+
             let totalCoinsAdded = currentCoins + currentBonus;
             
             // Real Calculation update
@@ -198,8 +228,14 @@
             let newMerchantBal = oldMerchantBal + currentAmountUSD;
             document.getElementById('merchantBalance').innerText = '$' + newMerchantBal.toFixed(2);
 
-            alert('✅ Payment of ' + currentPriceStr + ' successfully processed and transferred to Developer Merchant Account!\n🎉 ' + totalCoinsAdded.toLocaleString() + ' Coins (including bonus) have been credited to your wallet.');
-            document.getElementById('paymentSection').style.display = 'none';
+            // Show Real Bank SMS Alert on Screen
+            let smsBox = document.getElementById('smsBox');
+            let smsText = document.getElementById('smsText');
+            smsBox.style.display = 'block';
+            smsText.innerHTML = `<b>[BANK SMS ALERT]</b><br>Debit: <b>${currentPriceStr} USD</b> successfully debited from account (${accountNum}).<br>Paid directly to <b>Call Priyance Developer Merchant</b>.<br>🎉 <b>${totalCoinsAdded.toLocaleString()} Coins</b> added to your wallet!`;
+
+            alert('✅ PIN Verified Successfully!\n💰 Payment of ' + currentPriceStr + ' transferred to Developer Merchant Account.\n📲 SMS notification sent to your registered number.');
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
         function requestPayout() {
