@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings and Privacy</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #0f0f0f; color: #fff; padding-bottom: 40px; }
+        .header { background: #1a1a1a; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; }
+        .header h2 { font-size: 16px; }
+        .back-btn { color: #fff; text-decoration: none; font-size: 16px; }
+        
+        .menu-group { margin-top: 20px; padding: 0 15px; }
+        .menu-title { font-size: 12px; color: #777; margin-bottom: 8px; text-transform: uppercase; padding-left: 5px; }
+        .menu-item { background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid #282828; }
+        .menu-item span { font-size: 14px; }
+        .menu-item .arrow { color: #666; }
+        
+        .logout-btn { display: block; width: calc(100% - 30px); margin: 30px 15px 0; background: #fe2c55; color: #fff; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="profile.html" class="back-btn">← Back</a>
+        <h2>Settings and privacy</h2>
+        <div>⚙️</div>
+    </div>
+
+    <div class="menu-group">
+        <div class="menu-title">Account & Security</div>
+        <div class="menu-item" onclick="alert('Gmail: ram060039@gmail.com')"><span>Account Information (Gmail)</span><span class="arrow">›</span></div>
+        <div class="menu-item" onclick="alert('Password & Security settings')"><span>Password & Security</span><span class="arrow">›</span></div>
+        <div class="menu-item" onclick="window.location.href='wallet.html'"><span>Cards & Coin Balance</span><span class="arrow">›</span></div>
+    </div>
+
+    <div class="menu-group">
+        <div class="menu-title">Preferences</div>
+        <div class="menu-item" onclick="alert('Nagarik App ID: Verified ✅')"><span>Nagarik App Verification Status</span><span class="arrow">Verified ✅</span></div>
+        <div class="menu-item" onclick="alert('Language: Hindi/Nepali')"><span>App Language</span><span class="arrow">›</span></div>
+        <div class="menu-item" onclick="alert('Dark Theme On')"><span>Dark Mode Theme</span><span class="arrow">On</span></div>
+    </div>
+
+    <a href="index.html" class="logout-btn">Log Out</a>
+</body>
+</html>
