@@ -34,17 +34,19 @@
         .action-tag-btn { background: #fe2c55; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .action-tag-btn.following { background: #222; border: 1px solid #444; color: #ccc; }
 
-        /* Real Messenger Chat Window */
+        /* Real Messenger Chat Window (FIXED DISPLAY & FLEX) */
         #chatBoxWindow { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #000; z-index: 200; flex-direction: column; }
         .chat-box-header { display: flex; align-items: center; gap: 15px; padding: 15px; background: #111; border-bottom: 1px solid #222; }
         .chat-box-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; cursor: pointer; }
         .chat-box-header h3 { font-size: 16px; cursor: pointer; }
+        
         .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #080808; }
         .message { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-break: break-word; }
         .message.incoming { background: #222; color: #fff; align-self: flex-start; border-bottom-left-radius: 2px; }
         .message.outgoing { background: #fe2c55; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
         .message img, .message video { max-width: 100%; border-radius: 8px; margin-top: 5px; display: block; }
         
+        /* Chat Input Area with Plus (+) and Mic (🎙️) */
         .chat-input-area { display: flex; padding: 12px; background: #111; border-top: 1px solid #222; gap: 8px; align-items: center; }
         .chat-input-area input { flex: 1; padding: 10px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
         
@@ -160,16 +162,18 @@
             <img id="activeChatAvatar" src="" alt="" onclick="showProfileFromChat()">
             <h3 id="activeChatName" onclick="showProfileFromChat()">Creator Name</h3>
         </div>
+        
         <div class="chat-messages" id="chatMessagesArea"></div>
+        
         <div class="chat-input-area">
-            <!-- Plus / Gallery Button for Photos & Videos -->
-            <label for="mediaFile" class="chat-icon-btn" title="Send Photo or Video">➕</label>
+            <!-- Plus (+) Button for Gallery Photos/Videos -->
+            <label for="mediaFile" class="chat-icon-btn" title="Send Photo/Video">➕</label>
             <input type="file" id="mediaFile" accept="image/*,video/*" style="display:none;" onchange="sendMediaFile(event)">
             
             <!-- Voice Recording Mic Button -->
             <div class="chat-icon-btn" onclick="startVoiceRecording()" id="micBtn" title="Voice to Text">🎙️</div>
             
-            <!-- Text Message Input -->
+            <!-- Text Input Box -->
             <input type="text" id="messageInput" placeholder="Type a message or voice note..." onkeypress="handleKeyPress(event)">
             
             <!-- Send Button -->
