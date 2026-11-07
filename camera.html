@@ -18,38 +18,45 @@
         .tab-btn.active { background: #fe2c55; color: #fff; border-color: #fe2c55; }
 
         /* Clean Studio Box */
-        .studio-box { width: 100%; max-width: 450px; margin-top: 20px; background: #141414; border: 1px solid #333; border-radius: 20px; padding: 30px 20px; text-align: center; position: relative; }
+        .studio-box { width: 100%; max-width: 450px; margin-top: 20px; background: #141414; border: 1px solid #333; border-radius: 20px; padding: 25px 20px; text-align: left; position: relative; }
         
-        /* Clean Upload Icon Centerpiece */
-        .big-upload-icon { width: 95px; height: 95px; background: #1f1f1f; border: 2px dashed #fe2c55; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 40px; margin: 10px auto 15px auto; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(254,44,85,0.2); }
-        .big-upload-icon:hover { transform: scale(1.05); border-color: #25f4ee; }
+        .section-title { font-size: 17px; color: #25f4ee; margin-bottom: 4px; font-weight: bold; }
+        .section-desc { font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4; }
 
-        .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 15px; border: none; cursor: pointer; }
+        .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 15px; border: none; cursor: pointer; }
         .btn-live { background: linear-gradient(135deg, #fe2c55, #ff6b8b); }
         .btn-voice { background: linear-gradient(135deg, #00b4d8, #0077b6); color: #fff; }
         .btn-game { background: linear-gradient(135deg, #00b4d8, #25f4ee); color: #000; }
 
-        input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; margin-top: 6px; font-size: 13px; outline: none; text-align: left; }
+        input, select { width: 100%; padding: 11px; background: #111; border: 1px solid #444; color: #fff; border-radius: 10px; margin-top: 6px; font-size: 13px; outline: none; }
 
         /* SETTINGS GEAR ICON BUTTON */
         .settings-gear-btn { position: absolute; top: 20px; right: 20px; background: #222; border: 1px solid #444; width: 38px; height: 38px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; transition: 0.2s; }
         .settings-gear-btn:hover { background: #fe2c55; border-color: #fe2c55; }
 
-        /* SETTINGS DRAWER WITH ICONS */
-        #settingsDrawer { display: none; background: #1a1a1a; border: 1px solid #444; border-radius: 14px; padding: 15px; margin-top: 15px; text-align: left; box-shadow: inset 0 2px 10px rgba(0,0,0,0.6); }
+        /* CLEAN SETTINGS DRAWER */
+        #settingsDrawer { display: none; background: #1a1a1a; border: 1px solid #444; border-radius: 14px; padding: 15px; margin-top: 15px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.6); }
         .setting-group { margin-bottom: 12px; }
         .setting-label { font-size: 11px; color: #ffcc00; display: block; margin-bottom: 3px; font-weight: bold; }
         .setting-desc-hint { font-size: 10px; color: #888; margin-bottom: 4px; display: block; }
 
-        /* Voice Room & Video Room Grids */
+        /* UPLOAD ICON */
+        .big-upload-icon { width: 90px; height: 90px; background: #1f1f1f; border: 2px dashed #fe2c55; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 38px; margin: 10px auto 15px auto; cursor: pointer; }
+
+        /* Voice Room (10 Seats) & Video Room Grids */
         .voice-seats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
         .voice-seat { background: #1f1f1f; border: 1px dashed #555; height: 65px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #ccc; cursor: pointer; position: relative; }
         .voice-seat.active { border: 2px solid #25f4ee; background: #102a2a; color: #25f4ee; font-weight: bold; }
         .seat-number { position: absolute; top: 2px; right: 8px; font-size: 9px; color: #ffcc00; }
 
-        .video-seats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 15px 0; width: 100%; }
-        .video-seat-box { background: #1a1a1a; border: 1px solid #333; height: 110px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #aaa; position: relative; cursor: pointer; }
-        .video-seat-box.active { border: 2px solid #fe2c55; background: #221015; color: #fe2c55; font-weight: bold; }
+        /* 6 Seats & 10 Seats Video Hosting / Battle Grid */
+        .video-hosting-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+        .video-hosting-seat { background: #1a1a1a; border: 1px solid #333; height: 85px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #aaa; position: relative; cursor: pointer; transition: 0.2s; }
+        .video-hosting-seat.active { border: 2px solid #fe2c55; background: #221015; color: #fe2c55; font-weight: bold; }
+
+        /* MODAL POPUP FOR SEAT INVITATION (Replaces ugly browser prompt) */
+        #seatInviteModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; }
+        .invite-modal-box { background: #181818; border: 1px solid #fe2c55; width: 90%; max-width: 320px; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 5px 25px rgba(0,0,0,0.9); }
 
         /* ACTIVE LIVE BROADCAST ROOM */
         #activeLiveView { display: none; width: 100%; max-width: 450px; background: #111; border: 2px solid #fe2c55; padding: 15px; border-radius: 16px; margin-top: 15px; text-align: center; position: relative; }
@@ -62,7 +69,7 @@
         .live-gift-btn { background: linear-gradient(135deg, #fe2c55, #ffcc00); border: none; }
 
         /* Success Banner */
-        .success-banner { background: #113322; border: 1px solid #25f4ee; color: #25f4ee; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 13px; font-weight: bold; display: none; text-align: center; }
+        .success-banner { background: #113322; border: 1px solid #25f4ee; color: #25f4ee; padding: 12px; border-radius: 10px; margin-top: 12px; font-size: 13px; font-weight: bold; display: none; text-align: center; }
 
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
@@ -98,7 +105,7 @@
 
         <p id="liveStatusText" style="font-size: 13px; color: #ccc; margin-bottom: 10px;"></p>
         
-        <div id="activeLiveDynamicArea" style="margin-bottom: 15px; min-height: 220px; display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%;"></div>
+        <div id="activeLiveDynamicArea" style="margin-bottom: 15px; min-height: 200px; display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%;"></div>
 
         <!-- Floating Side Actions: Like, Gift, Share -->
         <div class="live-side-actions">
@@ -108,12 +115,25 @@
         </div>
 
         <!-- Live Chat / Comments Box -->
-        <div style="background:#1a1a1a; border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:12px; text-align:left; max-height:100px; overflow-y:auto; width:100%;">
+        <div style="background:#1a1a1a; border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:12px; text-align:left; max-height:90px; overflow-y:auto; width:100%;">
             <p style="font-size:11px; color:#aaa;">💬 <b>Rohit Painter:</b> Room mast chal raha hai bhai! 🔥</p>
             <p style="font-size:11px; color:#aaa;">💬 <b>Priyance Official:</b> Sent a Lion Gift 🦁 (1000 Coins)!</p>
         </div>
 
         <button class="btn" style="background: #333; color: #fff; margin-top:5px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room & Exit</button>
+    </div>
+
+    <!-- IN-APP MODAL FOR SEAT INVITATION (Replaces ugly browser prompt) -->
+    <div id="seatInviteModal">
+        <div class="invite-modal-box">
+            <h4 style="color: #25f4ee; font-size: 15px; margin-bottom: 8px;" id="modalSeatTitle">Invite to Seat</h4>
+            <p style="font-size: 11px; color: #aaa; margin-bottom: 12px;">Enter Friend's Username or ID to invite on stage:</p>
+            <input type="text" id="inviteInputUser" placeholder="e.g. Priyance_99" style="margin-bottom: 12px; text-align: center;">
+            <div style="display: flex; gap: 8px;">
+                <button class="btn" style="background: #333; margin-top:0;" onclick="closeInviteModal()">Cancel</button>
+                <button class="btn btn-live" style="margin-top:0;" onclick="confirmInviteUser()">Invite</button>
+            </div>
+        </div>
     </div>
 
     <!-- Bottom Navigation Bar -->
@@ -143,41 +163,36 @@
                     <div class="studio-box">
                         <div class="settings-gear-btn" onclick="toggleSettingsDrawer()" title="⚙️ Creator Settings">⚙️</div>
 
-                        <div class="big-upload-icon" onclick="document.getElementById('hiddenVideoInput').click()" title="📹 Choose Video from Device">📹</div>
+                        <div class="big-upload-icon" onclick="document.getElementById('hiddenVideoInput').click()" title="📹 Choose Video">📹</div>
                         <input type="file" id="hiddenVideoInput" accept="video/*" style="display:none;" onchange="alert('✅ Video file selected successfully!')">
                         
-                        <div style="font-size:12px; color:#aaa; margin-bottom:15px;">Tap the video icon above to upload or record video.</div>
+                        <div style="font-size:12px; color:#aaa; margin-bottom:15px; text-align:center;">Tap the video icon above to upload or record video.</div>
 
                         <label style="font-size:11px; color:#aaa; display:block;">Video Caption & Hashtags:</label>
                         <input type="text" id="vidCaption" placeholder="e.g. Amazing Dance #Viral #CallPriyance" style="margin-bottom:12px;">
 
                         <div id="settingsDrawer">
                             <h4 style="color: #25f4ee; font-size: 13px; margin-bottom: 10px;">⚙️ Pro Creator Settings</h4>
-                            
                             <div class="setting-group">
                                 <span class="setting-label">🎨 Video Color Theme / Filter:</span>
-                                <span class="setting-desc-hint">इस्तेमाल: वीडियो का कलर टोन और सिनेमैटिक लुक बदलने के लिए।</span>
+                                <span class="setting-desc-hint">इस्तेमाल: वीडियो का कलर टोन बदलने के लिए।</span>
                                 <select><option>✨ Normal</option><option>🔥 Cinematic Vibrant</option><option>🖤 B&W</option></select>
                             </div>
-
                             <div class="setting-group">
-                                <span class="setting-label">📐 Video Aspect Ratio / Size:</span>
+                                <span class="setting-label">📐 Video Size / Aspect Ratio:</span>
                                 <span class="setting-desc-hint">इस्तेमाल: TikTok, Reels या YouTube के हिसाब से साइज सेट करें।</span>
                                 <select><option>📱 9:16 Vertical</option><option>⬛ 1:1 Square</option></select>
                             </div>
-
                             <div class="setting-group">
                                 <span class="setting-label">💡 Brightness Control:</span>
                                 <span class="setting-desc-hint">इस्तेमाल: वीडियो की लाइट कम-बेसी करने के लिए।</span>
                                 <input type="range" min="50" max="150" value="100" style="width:100%; margin:4px 0;">
                             </div>
-
                             <div class="setting-group">
                                 <span class="setting-label">🛒 Bio Product / Selling Link:</span>
                                 <span class="setting-desc-hint">इस्तेमाल: अपने सामान या एफिलिएट स्टोर का लिंक बायो में लगाएं।</span>
                                 <input type="text" placeholder="https://store.com/product-link">
                             </div>
-
                             <div class="setting-group">
                                 <span class="setting-label">🎙️ Voiceover Studio:</span>
                                 <span class="setting-desc-hint">इस्तेमाल: वीडियो के ऊपर अपनी खुद की आवाज रिकॉर्ड करें।</span>
@@ -196,16 +211,20 @@
             } else if(mode === 'live') {
                 panel.innerHTML = `
                     <div class="studio-box">
-                        <div class="section-title">🔴 Video LIVE Stream & PK Battle</div>
-                        <div class="section-desc">Go live with multi-creators on split screen & collect coin gifts.</div>
-                        <label style="font-size:11px; color:#aaa;">Live Stream Title:</label>
-                        <input type="text" id="liveTitleInput" value="Night Dance Party 🎉" style="margin-bottom:10px;">
+                        <div class="section-title">🔴 Video LIVE & PK Battle Room</div>
+                        <div class="section-desc">Select room capacity & hosting mode for video stream:</div>
                         
-                        <div class="video-seats-grid" style="margin: 15px 0;">
-                            <div class="video-seat-box active">👑 Main Host<br><span style="font-size:9px; color:#25f4ee;">Camera Active</span></div>
-                            <div class="video-seat-box" onclick="inviteSeat(2)">+ Add Guest 2</div>
-                            <div class="video-seat-box" onclick="inviteSeat(3)">+ PK Battle 3</div>
-                            <div class="video-seat-box" onclick="inviteSeat(4)">+ Add Guest 4</div>
+                        <label style="font-size:11px; color:#aaa; display:block; margin-top:8px;">Live Room Title:</label>
+                        <input type="text" id="liveTitleInput" value="Night Dance Party 🎉" style="margin-bottom:10px;">
+
+                        <label style="font-size:11px; color:#aaa; display:block;">Hosting Grid Setup (Up to 6-10 Seats):</label>
+                        <div class="video-hosting-grid" style="margin: 10px 0;">
+                            <div class="video-hosting-seat active">👑 Host 1<br><span style="font-size:8px; color:#25f4ee;">Main Camera</span></div>
+                            <div class="video-hosting-seat" onclick="openInviteModal(2)">+ Seat 2</div>
+                            <div class="video-hosting-seat" onclick="openInviteModal(3)">+ Seat 3 (PK)</div>
+                            <div class="video-hosting-seat" onclick="openInviteModal(4)">+ Seat 4</div>
+                            <div class="video-hosting-seat" onclick="openInviteModal(5)">+ Seat 5</div>
+                            <div class="video-hosting-seat" onclick="openInviteModal(6)">+ Seat 6</div>
                         </div>
 
                         <button class="btn btn-live" onclick="startLiveRoom('videoLive')">🔴 Start Video LIVE Room Now</button>
@@ -218,15 +237,15 @@
                         <div class="section-desc">Open audio room, invite up to 10 friends on stage to talk & gift.</div>
                         <div class="voice-seats-grid">
                             <div class="voice-seat active"><span class="seat-number">1</span>👑 Host</div>
-                            <div class="voice-seat" onclick="inviteSeat(2)"><span class="seat-number">2</span>+ Add</div>
-                            <div class="voice-seat" onclick="inviteSeat(3)"><span class="seat-number">3</span>+ Add</div>
-                            <div class="voice-seat" onclick="inviteSeat(4)"><span class="seat-number">4</span>+ Add</div>
-                            <div class="voice-seat" onclick="inviteSeat(5)"><span class="seat-number">5</span>+ Add</div>
-                            <div class="voice-seat" onclick="inviteSeat(6)"><span class="seat-number">6</span>+ Add</div>
-                            <div class="voice-seat" onclick="inviteSeat(7)"><span class="seat-number">7</span>+ Add</div>
-                            <div class="voice-seat" onclick="inviteSeat(8)"><span class="seat-number">8</span>+ Add</div>
-                            <div class="voice-seat" onclick="inviteSeat(9)"><span class="seat-number">9</span>+ Add</div>
-                            <div class="voice-seat" onclick="inviteSeat(10)"><span class="seat-number">10</span>+ Add</div>
+                            <div class="voice-seat" onclick="openInviteModal(2)"><span class="seat-number">2</span>+ Add</div>
+                            <div class="voice-seat" onclick="openInviteModal(3)"><span class="seat-number">3</span>+ Add</div>
+                            <div class="voice-seat" onclick="openInviteModal(4)"><span class="seat-number">4</span>+ Add</div>
+                            <div class="voice-seat" onclick="openInviteModal(5)"><span class="seat-number">5</span>+ Add</div>
+                            <div class="voice-seat" onclick="openInviteModal(6)"><span class="seat-number">6</span>+ Add</div>
+                            <div class="voice-seat" onclick="openInviteModal(7)"><span class="seat-number">7</span>+ Add</div>
+                            <div class="voice-seat" onclick="openInviteModal(8)"><span class="seat-number">8</span>+ Add</div>
+                            <div class="voice-seat" onclick="openInviteModal(9)"><span class="seat-number">9</span>+ Add</div>
+                            <div class="voice-seat" onclick="openInviteModal(10)"><span class="seat-number">10</span>+ Add</div>
                         </div>
                         <button class="btn btn-voice" onclick="startLiveRoom('voiceRoom')">🟢 Go LIVE Audio Room</button>
                     </div>
@@ -234,9 +253,10 @@
             } else if(mode === 'gaming') {
                 panel.innerHTML = `
                     <div class="studio-box">
-                        <div class="section-title">🎮 Live Gaming Stream & App Launcher</div>
-                        <div class="section-desc">Launch and broadcast mobile gameplay live (Free Fire, PUBG, Ludo).</div>
-                        <label style="font-size:11px; color:#aaa;">Select Game to Launch & Stream:</label>
+                        <div class="section-title">🎮 Live Gaming Stream & Battle Room</div>
+                        <div class="section-desc">Launch mobile game & set co-streamer hosting seats:</div>
+                        
+                        <label style="font-size:11px; color:#aaa; display:block; margin-top:8px;">Select Game:</label>
                         <select id="selectedGameName" style="margin-bottom:10px;">
                             <option value="Free Fire">🔥 Free Fire Mobile</option>
                             <option value="PUBG Mobile">🎯 PUBG Mobile</option>
@@ -244,9 +264,11 @@
                             <option value="Subway Surfers">🛹 Subway Surfers</option>
                         </select>
 
-                        <div class="video-seats-grid" style="margin: 15px 0;">
-                            <div class="video-seat-box active">🎮 Gameplay<br><span style="font-size:9px; color:#25f4ee;">60FPS Active</span></div>
-                            <div class="video-seat-box" onclick="inviteSeat(2)">+ Facecam Guest</div>
+                        <label style="font-size:11px; color:#aaa; display:block;">Co-Streamer / Battle Seats:</label>
+                        <div class="video-hosting-grid" style="margin: 10px 0;">
+                            <div class="video-hosting-seat active">🎮 Gameplay<br><span style="font-size:8px; color:#25f4ee;">60FPS</span></div>
+                            <div class="video-hosting-seat" onclick="openInviteModal(2)">+ Facecam 2</div>
+                            <div class="video-hosting-seat" onclick="openInviteModal(3)">+ Battle 3</div>
                         </div>
 
                         <button class="btn btn-game" onclick="startLiveRoom('gamingLive')">🚀 Launch Game & Start Live Room</button>
@@ -258,6 +280,28 @@
         function toggleSettingsDrawer() {
             let drawer = document.getElementById('settingsDrawer');
             drawer.style.display = (drawer.style.display === 'block') ? 'none' : 'block';
+        }
+
+        let currentSeatTarget = 1;
+        function openInviteModal(seatNo) {
+            currentSeatTarget = seatNo;
+            document.getElementById('modalSeatTitle').innerText = 'Invite to Seat #' + seatNo;
+            document.getElementById('seatInviteModal').style.display = 'flex';
+        }
+
+        function closeInviteModal() {
+            document.getElementById('seatInviteModal').style.display = 'none';
+        }
+
+        function confirmInviteUser() {
+            let username = document.getElementById('inviteInputUser').value.trim();
+            if(username) {
+                alert('✅ Successfully invited ' + username + ' to Seat #' + currentSeatTarget + '!');
+                document.getElementById('inviteInputUser').value = '';
+                closeInviteModal();
+            } else {
+                alert('⚠️ Please enter a valid username or ID.');
+            }
         }
 
         let isRecordingVoice = false;
@@ -293,48 +337,44 @@
                     <p style="font-size:11px; color:#aaa; margin-bottom:6px;">1 Host + 9 Co-Hosts Stage:</p>
                     <div class="voice-seats-grid" style="margin:0 auto; width:100%;">
                         <div class="voice-seat active"><span class="seat-number">1</span>👑 Host</div>
-                        <div class="voice-seat" onclick="inviteSeat(2)"><span class="seat-number">2</span>+ Add</div>
-                        <div class="voice-seat" onclick="inviteSeat(3)"><span class="seat-number">3</span>+ Add</div>
-                        <div class="voice-seat" onclick="inviteSeat(4)"><span class="seat-number">4</span>+ Add</div>
-                        <div class="voice-seat" onclick="inviteSeat(5)"><span class="seat-number">5</span>+ Add</div>
-                        <div class="voice-seat" onclick="inviteSeat(6)"><span class="seat-number">6</span>+ Add</div>
-                        <div class="voice-seat" onclick="inviteSeat(7)"><span class="seat-number">7</span>+ Add</div>
-                        <div class="voice-seat" onclick="inviteSeat(8)"><span class="seat-number">8</span>+ Add</div>
-                        <div class="voice-seat" onclick="inviteSeat(9)"><span class="seat-number">9</span>+ Add</div>
-                        <div class="voice-seat" onclick="inviteSeat(10)"><span class="seat-number">10</span>+ Add</div>
+                        <div class="voice-seat" onclick="openInviteModal(2)"><span class="seat-number">2</span>+ Add</div>
+                        <div class="voice-seat" onclick="openInviteModal(3)"><span class="seat-number">3</span>+ Add</div>
+                        <div class="voice-seat" onclick="openInviteModal(4)"><span class="seat-number">4</span>+ Add</div>
+                        <div class="voice-seat" onclick="openInviteModal(5)"><span class="seat-number">5</span>+ Add</div>
+                        <div class="voice-seat" onclick="openInviteModal(6)"><span class="seat-number">6</span>+ Add</div>
+                        <div class="voice-seat" onclick="openInviteModal(7)"><span class="seat-number">7</span>+ Add</div>
+                        <div class="voice-seat" onclick="openInviteModal(8)"><span class="seat-number">8</span>+ Add</div>
+                        <div class="voice-seat" onclick="openInviteModal(9)"><span class="seat-number">9</span>+ Add</div>
+                        <div class="voice-seat" onclick="openInviteModal(10)"><span class="seat-number">10</span>+ Add</div>
                     </div>
                 `;
             } else if(roomType === 'videoLive') {
                 statusText.innerText = '🔴 Video LIVE Stream & PK Battle Room Active';
                 dynamicArea.innerHTML = `
-                    <p style="font-size:11px; color:#aaa; margin-bottom:6px;">Multi-Host Video Split Screen Grid:</p>
-                    <div class="video-seats-grid" style="width:100%;">
-                        <div class="video-seat-box active">👑 Main Host<br><span style="font-size:9px; color:#25f4ee;">Camera Active</span></div>
-                        <div class="video-seat-box" onclick="inviteSeat(2)">+ Add Guest (Seat 2)</div>
-                        <div class="video-seat-box" onclick="inviteSeat(3)">+ PK Battle (Seat 3)</div>
-                        <div class="video-seat-box" onclick="inviteSeat(4)">+ Add Guest (Seat 4)</div>
+                    <p style="font-size:11px; color:#aaa; margin-bottom:6px;">Multi-Host Video & PK Battle Grid (Up to 6 Seats):</p>
+                    <div class="video-hosting-grid" style="width:100%;">
+                        <div class="video-hosting-seat active">👑 Host 1<br><span style="font-size:8px; color:#25f4ee;">Camera Active</span></div>
+                        <div class="video-hosting-seat" onclick="openInviteModal(2)">+ Seat 2</div>
+                        <div class="video-hosting-seat" onclick="openInviteModal(3)">+ Seat 3 (PK)</div>
+                        <div class="video-hosting-seat" onclick="openInviteModal(4)">+ Seat 4</div>
+                        <div class="video-hosting-seat" onclick="openInviteModal(5)">+ Seat 5</div>
+                        <div class="video-hosting-seat" onclick="openInviteModal(6)">+ Seat 6</div>
                     </div>
                 `;
             } else if(roomType === 'gamingLive') {
                 let gameName = document.getElementById('selectedGameName').value;
                 statusText.innerText = '🎮 Gaming Live Stream Room Active: ' + gameName;
                 dynamicArea.innerHTML = `
-                    <p style="font-size:11px; color:#aaa; margin-bottom:6px;">Gameplay Broadcast & Co-Streamers:</p>
-                    <div class="video-seats-grid" style="width:100%;">
-                        <div class="video-seat-box active">🎮 ${gameName}<br><span style="font-size:9px; color:#25f4ee;">60FPS Gameplay</span></div>
-                        <div class="video-seat-box" onclick="inviteSeat(2)">+ Co-Streamer Facecam</div>
+                    <p style="font-size:11px; color:#aaa; margin-bottom:6px;">Gameplay Broadcast & Battle Seats:</p>
+                    <div class="video-hosting-grid" style="width:100%;">
+                        <div class="video-hosting-seat active">🎮 Gameplay<br><span style="font-size:8px; color:#25f4ee;">60FPS</span></div>
+                        <div class="video-hosting-seat" onclick="openInviteModal(2)">+ Facecam 2</div>
+                        <div class="video-hosting-seat" onclick="openInviteModal(3)">+ Battle 3</div>
                     </div>
                 `;
             }
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function inviteSeat(seatNo) {
-            let friendId = prompt("Enter Friend's Username or ID to invite to Seat #" + seatNo + ":");
-            if(friendId) {
-                alert('✅ Invitation successfully sent to ' + friendId + ' for Seat #' + seatNo + '!');
-            }
         }
 
         function openLiveGiftModal() {
