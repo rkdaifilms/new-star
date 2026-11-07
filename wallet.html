@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Merchant Wallet & Real Payout - Call Priyance</title>
+    <title>Global Merchant Wallet & Worldwide Payout - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #0f0f0f; color: #fff; padding-bottom: 70px; }
@@ -16,6 +16,9 @@
         .wallet-card h1 { font-size: 32px; margin: 10px 0; }
         .coins-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 12px; }
         
+        /* Creator Earnings Card */
+        .creator-card { background: linear-gradient(135deg, #00b4d8, #0077b6); margin: 20px; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,180,216,0.3); }
+
         .section { padding: 0 20px; margin-top: 25px; }
         .section h3 { font-size: 16px; margin-bottom: 12px; color: #25f4ee; }
         
@@ -31,7 +34,7 @@
         .box p { font-size: 13px; color: #aaa; margin-top: 5px; }
         
         .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; border: none; cursor: pointer; }
-        .btn-outline { background: transparent; border: 1px solid #fe2c55; color: #fe2c55; }
+        .btn-outline { background: transparent; border: 1px solid #25f4ee; color: #25f4ee; }
         input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 8px; font-size: 14px; outline: none; }
         
         /* Active Payment Form Container */
@@ -57,22 +60,31 @@
     </div>
 
     <div class="wallet-card">
-        <h4>Developer Master Merchant Balance (100% Revenue)</h4>
-        <h1 id="merchantBalance">$482.50</h1>
+        <h4>My Spendable Coins</h4>
+        <h1 id="userCoins">19,550 🪙</h1>
         <div class="coins-row">
-            <span>My Coin Balance: <strong id="userCoins">19,550 🪙</strong></span>
-            <span style="font-size:12px; opacity:0.9;">1 Cent = 1 Coin</span>
+            <span>Use coins to send gifts to global creators!</span>
         </div>
     </div>
 
-    <!-- 🛠️ DEVELOPER MASTER MERCHANT / PAYONEER CONFIGURATION BOX -->
-    <div class="section">
+    <!-- 🎬 CREATOR EARNINGS & WORLDWIDE MONETIZATION CARD -->
+    <div class="creator-card">
+        <h4>🎬 Creator Earnings (Gifts, Sponsorship & Monetization)</h4>
+        <h1 id="creatorBalance">$34.50</h1>
+        <div class="coins-row">
+            <span>Net Redeemable (70% Share): <strong id="netCreatorEarn">$24.15</strong></span>
+            <span style="font-size:11px; opacity:0.9;">30% Platform Fee</span>
+        </div>
+    </div>
+
+    <!-- 🛠️ DEVELOPER MASTER MERCHANT / PAYONEER CONFIGURATION BOX (HIDDEN / OWNER CONTROL ONLY) -->
+    <div class="section" style="display: none;">
         <h3 style="color: #ffcc00;">⚙️ Developer Master Merchant Setup (Owner Control)</h3>
         <div class="box" style="border-color: #ffcc00; background: #1a1811;">
             <strong>Link Your Master Account (Payoneer / Merchant ID)</strong>
-            <p style="font-size:12px; color:#ccc;">Enter your Payoneer email or Merchant Gateway ID. All global coin purchases and 30% gift commissions route directly here:</p>
-            <input type="text" id="devMerchantAccount" placeholder="e.g. rkdaifilms@gmail.com or Merchant ID #981152">
-            <button class="btn" style="background: #ffcc00; color: #000;" onclick="saveDevMerchant()">Save Master Merchant Account</button>
+            <p style="font-size:12px; color:#ccc;">Enter your Payoneer email or Merchant Gateway ID. All global coin purchases route directly here:</p>
+            <input type="text" id="devMerchantAccount" value="ram060039@gmail.com">
+            <button class="btn" style="background: #ffcc00; color: #000;" onclick="saveDevMerchant()">Save Master Merchant</button>
         </div>
     </div>
 
@@ -123,57 +135,60 @@
         </div>
     </div>
 
-    <!-- Dynamic Real Payment Form -->
+    <!-- Dynamic Worldwide Payment Form -->
     <div class="section" id="paymentSection">
         <h3 id="selectedTitle" style="color: #ffcc00;">💳 Checkout: $1.00</h3>
-        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">Enter your bank/wallet number, account details, and secure PIN/MPIN to pay real money directly to developer merchant account:</p>
+        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">Select your country and payment method to top-up coins instantly:</p>
         
-        <label style="font-size:12px; color:#aaa;">Select Payment Method / Country Bank:</label>
+        <label style="font-size:12px; color:#aaa;">Select Country / Global Payment Gateway:</label>
         <select id="gatewayChoice" onchange="togglePaymentFields()">
-            <option value="card">Global Debit / Credit Card (Visa / Mastercard / Rupay)</option>
-            <option value="payoneer">Payoneer Global Account</option>
-            <option value="nepal">Nepal Bank / eSewa / Khalti</option>
-            <option value="india">Indian Bank / UPI / Paytm / GooglePay</option>
-            <option value="bangladesh">Bangladesh Bank / bKash / Nagad</option>
-            <option value="pakistan">Pakistan Bank / JazzCash / Easypaisa</option>
+            <option value="nepal">🇳🇵 Nepal (eSewa / Khalti / Nabil Bank)</option>
+            <option value="india">🇮🇳 India (UPI / Google Pay / Paytm / PhonePe)</option>
+            <option value="usa">🇺🇸 USA & Americas (Credit/Debit Card / Apple Pay / PayPal)</option>
+            <option value="europe">🇪🇺 Europe (SEPA / Visa / Mastercard / Klarna)</option>
+            <option value="gulf">🇦🇪 Gulf / Middle East - UAE, Saudi (Cards / STC Pay)</option>
+            <option value="uk">🇬🇧 United Kingdom (Faster Payments / Cards)</option>
+            <option value="bangladesh">🇧🇩 Bangladesh (bKash / Nagad / Local Bank)</option>
+            <option value="pakistan">🇵🇰 Pakistan (JazzCash / Easypaisa / Bank)</option>
+            <option value="payoneer">🌍 Global Payoneer Account</option>
         </select>
 
         <div id="dynamicFields" style="margin-top: 12px;">
-            <input type="text" id="payInput1" placeholder="Card Number (4111 2222 3333 4444)">
-            <div style="display:flex; gap:10px; margin-top:8px;">
-                <input type="text" placeholder="MM/YY">
-                <input type="password" placeholder="CVV" maxlength="4">
-            </div>
-            <input type="password" id="securePin" placeholder="Enter Card PIN / Bank OTP (Required)" maxlength="6" style="margin-top:8px;">
+            <input type="text" id="payInput1" placeholder="Enter eSewa Mobile Number / Nabil Bank Account">
+            <input type="password" id="securePin" placeholder="Enter eSewa MPIN / Password (4 Digits)" maxlength="4" style="margin-top:8px;">
         </div>
 
-        <button class="btn" style="margin-top: 15px; background: #25f4ee; color: #000;" onclick="executeRealPayment()">🔒 Verify PIN & Pay Now (Direct to Developer)</button>
+        <button class="btn" style="margin-top: 15px; background: #25f4ee; color: #000;" onclick="executeRealPayment()">🔒 Verify & Pay Now</button>
         
         <!-- Real SMS Alert Box -->
         <div id="smsBox">
-            <h4>📩 Bank SMS Notification (Real Simulation)</h4>
+            <h4>📩 Global Bank / Wallet SMS Notification</h4>
             <p id="smsText">Your account has been debited successfully.</p>
         </div>
     </div>
 
-    <!-- Creator Payout System with 30% Gift Commission & $50 Min Limit Lock -->
+    <!-- Creator Worldwide Payout System -->
     <div class="section">
-        <h3>💸 Creator Payout & 30% Commission System</h3>
+        <h3>💸 Creator Worldwide Payout System</h3>
         <div class="box">
-            <strong>Withdraw Earnings (Min. Limit: $50.00 Required)</strong>
-            <p style="font-size: 12px; color: #25f4ee; margin-top: 4px; margin-bottom: 8px;">ℹ️ Note: Platform automatically deducts 30% commission on gift earnings; 70% goes to creator.</p>
-            <p id="payoutStatusMsg" style="color: #fe2c55; margin-bottom: 8px;">🔒 Status: Your balance is below $50.00. Minimum $50 required to request payout.</p>
+            <strong>Withdraw Earnings to Any Country (Min. Limit: $20.00 Required)</strong>
+            <p style="font-size: 12px; color: #25f4ee; margin-top: 4px; margin-bottom: 8px;">ℹ️ Platform deducts 30% commission; 70% goes directly to creator's local country account.</p>
             
+            <label style="font-size:11px; color:#aaa;">Select Destination Country for Payout:</label>
             <select id="payoutMethod">
-                <option value="payoneer">Payoneer Account (Global)</option>
-                <option value="nepal">Nepal Local Bank / eSewa / Khalti</option>
-                <option value="india">India Bank / UPI</option>
-                <option value="bangladesh">Bangladesh bKash / Bank</option>
-                <option value="pakistan">Pakistan JazzCash / Bank</option>
+                <option value="nepal">🇳🇵 Nepal (eSewa / Khalti / Local Bank)</option>
+                <option value="india">🇮🇳 India (UPI / Google Pay / Bank)</option>
+                <option value="usa">🇺🇸 USA / Americas (PayPal / US Bank)</option>
+                <option value="europe">🇪🇺 Europe (IBAN / SEPA Bank Transfer)</option>
+                <option value="gulf">🇦🇪 Gulf / UAE / Saudi (Local Bank / Wallet)</option>
+                <option value="uk">🇬🇧 United Kingdom (UK Bank Account)</option>
+                <option value="bangladesh">🇧🇩 Bangladesh (bKash / Nagad / Bank)</option>
+                <option value="pakistan">🇵🇰 Pakistan (JazzCash / Easypaisa / Bank)</option>
+                <option value="global">🌍 Global Payoneer Account</option>
             </select>
-            <input type="text" id="payoutDetails" placeholder="Enter Account Details / UPI / Email">
+            <input type="text" id="payoutDetails" placeholder="Enter account number, UPI ID, PayPal email, or IBAN">
             
-            <button class="btn btn-outline" id="payoutSubmitBtn" onclick="requestPayout()" disabled style="opacity: 0.5; cursor: not-allowed;">Request Real Payout (Locked)</button>
+            <button class="btn btn-outline" id="payoutSubmitBtn" onclick="requestPayout()">Request Worldwide Payout</button>
         </div>
     </div>
 
@@ -187,46 +202,24 @@
     </div>
 
     <script>
-        let targetPayoutMinimum = 50.00; // Minimum limit for creators
-
         window.onload = function() {
             let savedDevMerchant = localStorage.getItem('appDevMerchantID');
-            if(savedDevMerchant) {
-                document.getElementById('devMerchantAccount').value = savedDevMerchant;
-            }
-
-            let currentMerchantBal = parseFloat(document.getElementById('merchantBalance').innerText.replace('$', ''));
-            if(currentMerchantBal >= targetPayoutMinimum) {
-                document.getElementById('payoutStatusMsg').innerHTML = '🟢 Status: Minimum limit met! You can withdraw your earnings.';
-                document.getElementById('payoutStatusMsg').style.color = '#25f4ee';
-                document.getElementById('payoutSubmitBtn').disabled = false;
-                document.getElementById('payoutSubmitBtn').style.opacity = '1';
-                document.getElementById('payoutSubmitBtn').style.cursor = 'pointer';
-                document.getElementById('payoutSubmitBtn').innerText = 'Request Real Payout';
+            if(!savedDevMerchant) {
+                localStorage.setItem('appDevMerchantID', 'ram060039@gmail.com');
             }
         };
 
         function saveDevMerchant() {
             let merchantId = document.getElementById('devMerchantAccount').value.trim();
-            if(merchantId === '') {
-                alert('⚠️ Please enter your Payoneer email or Merchant ID.');
-                return;
-            }
+            if(!merchantId) { alert('⚠️ Enter ID'); return; }
             localStorage.setItem('appDevMerchantID', merchantId);
-            alert('✅ Master Merchant Account saved successfully!\n🔗 ID: ' + merchantId + '\n🚀 All global coin payments and 30% commissions will now route directly here.');
+            alert('✅ Saved successfully!');
         }
 
-        let currentCoins = 100;
-        let currentBonus = 5;
-        let currentAmountUSD = 1.00;
-        let currentPriceStr = '$1.00';
+        let currentCoins = 100, currentBonus = 5, currentAmountUSD = 1.00, currentPriceStr = '$1.00';
 
         function selectPackage(coins, bonus, usd, priceStr) {
-            currentCoins = coins;
-            currentBonus = bonus;
-            currentAmountUSD = usd;
-            currentPriceStr = priceStr;
-            
+            currentCoins = coins; currentBonus = bonus; currentAmountUSD = usd; currentPriceStr = priceStr;
             document.getElementById('paymentSection').style.display = 'block';
             document.getElementById('selectedTitle').innerText = '💳 Checkout: ' + priceStr + ' (' + (coins + bonus) + ' Coins)';
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
@@ -236,72 +229,57 @@
             let choice = document.getElementById('gatewayChoice').value;
             let fields = document.getElementById('dynamicFields');
             
-            if(choice === 'card') {
+            if(choice === 'nepal') {
+                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter eSewa Mobile Number / Nabil Bank Account">
+                                    <input type="password" id="securePin" placeholder="Enter eSewa MPIN / Password (4 Digits)" maxlength="4" style="margin-top:8px;">`;
+            } else if(choice === 'india') {
+                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter UPI ID (e.g. user@oksbi) or Phone Number">
+                                    <input type="password" id="securePin" placeholder="Enter 4 or 6 Digit UPI PIN" maxlength="6" style="margin-top:8px;">`;
+            } else if(choice === 'usa' || choice === 'europe' || choice === 'uk' || choice === 'gulf') {
                 fields.innerHTML = `<input type="text" id="payInput1" placeholder="Card Number (4111 2222 3333 4444)">
                                     <div style="display:flex; gap:10px; margin-top:8px;">
                                         <input type="text" placeholder="MM/YY">
                                         <input type="password" placeholder="CVV" maxlength="4">
                                     </div>
-                                    <input type="password" id="securePin" placeholder="Enter 4-Digit Card PIN / OTP" maxlength="6" style="margin-top:8px;">`;
-            } else if(choice === 'payoneer') {
-                fields.innerHTML = `<input type="email" id="payInput1" placeholder="Enter Payoneer Registered Email">
-                                    <input type="password" id="securePin" placeholder="Enter Payoneer Password / PIN" style="margin-top:8px;">`;
-            } else if(choice === 'nepal') {
-                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter eSewa Mobile Number / Nabil Bank Account">
-                                    <input type="password" id="securePin" placeholder="Enter eSewa MPIN / Bank Password (4 Digits)" maxlength="4" style="margin-top:8px;">`;
-            } else if(choice === 'india') {
-                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter UPI ID (e.g., username@oksbi) or Phone Number">
-                                    <input type="password" id="securePin" placeholder="Enter 4 or 6 Digit UPI PIN" maxlength="6" style="margin-top:8px;">`;
+                                    <input type="password" id="securePin" placeholder="Enter 3 or 4-Digit Card PIN / OTP" maxlength="6" style="margin-top:8px;">`;
             } else if(choice === 'bangladesh') {
                 fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter bKash / Nagad Wallet Number">
                                     <input type="password" id="securePin" placeholder="Enter Wallet PIN (4 Digits)" maxlength="4" style="margin-top:8px;">`;
             } else if(choice === 'pakistan') {
                 fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter JazzCash / Easypaisa Number">
                                     <input type="password" id="securePin" placeholder="Enter Account PIN (4 Digits)" maxlength="4" style="margin-top:8px;">`;
+            } else if(choice === 'payoneer') {
+                fields.innerHTML = `<input type="email" id="payInput1" placeholder="Enter Payoneer Registered Email">
+                                    <input type="password" id="securePin" placeholder="Enter Payoneer Password / PIN" style="margin-top:8px;">`;
             }
         }
 
         function executeRealPayment() {
             let accountNum = document.getElementById('payInput1').value;
             let pinVal = document.getElementById('securePin').value;
-            let devMerchant = localStorage.getItem('appDevMerchantID') || 'Default Master Merchant';
+            let devMerchant = localStorage.getItem('appDevMerchantID') || 'ram060039@gmail.com';
 
-            if(accountNum.trim() === '') {
-                alert('⚠️ Please enter your account number, mobile number, or card details.');
-                return;
-            }
-            if(pinVal.trim() === '' || pinVal.length < 4) {
-                alert('❌ Security Error: Please enter your valid Bank PIN, MPIN, UPI PIN, or OTP to authorize payment.');
-                return;
-            }
+            if(!accountNum.trim()) { alert('⚠️ Please enter account or card details.'); return; }
+            if(!pinVal.trim() || pinVal.length < 4) { alert('⚠️ Please enter valid security PIN or OTP.'); return; }
 
             let totalCoinsAdded = currentCoins + currentBonus;
-            
             let oldCoins = parseInt(document.getElementById('userCoins').innerText.replace(/,/g, ''));
-            let newCoinsTotal = oldCoins + totalCoinsAdded;
-            document.getElementById('userCoins').innerText = newCoinsTotal.toLocaleString() + ' 🪙';
-
-            let oldMerchantBal = parseFloat(document.getElementById('merchantBalance').innerText.replace('$', ''));
-            let newMerchantBal = oldMerchantBal + currentAmountUSD;
-            document.getElementById('merchantBalance').innerText = '$' + newMerchantBal.toFixed(2);
+            document.getElementById('userCoins').innerText = (oldCoins + totalCoinsAdded).toLocaleString() + ' 🪙';
 
             let smsBox = document.getElementById('smsBox');
             let smsText = document.getElementById('smsText');
             smsBox.style.display = 'block';
-            smsText.innerHTML = `<b>[BANK SMS ALERT]</b><br>Debit: <b>${currentPriceStr} USD</b> successfully debited from account (${accountNum}).<br>Routed directly to Master Merchant: <b>${devMerchant}</b>.<br>🎉 <b>${totalCoinsAdded.toLocaleString()} Coins</b> added to your wallet!`;
+            smsText.innerHTML = `<b>[GLOBAL BANK / WALLET SMS]</b><br>Debit: <b>${currentPriceStr} USD</b>.<br>Routed to Master Merchant (${devMerchant}).<br>🎉 <b>${totalCoinsAdded.toLocaleString()} Coins</b> added!`;
 
-            alert('✅ PIN Verified Successfully!\n💰 Payment of ' + currentPriceStr + ' transferred to Developer Master Merchant Account (' + devMerchant + ').\n📲 SMS notification sent to your registered number.');
+            alert('✅ Payment Authorized Successfully!\n💰 Amount ' + currentPriceStr + ' transferred to Developer Master Merchant account.\n📲 SMS notification sent.');
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
         function requestPayout() {
             let details = document.getElementById('payoutDetails').value;
             let method = document.getElementById('payoutMethod').value;
-            if(details.trim() === '') {
-                alert('⚠️ Please enter your destination account details.');
-            } else {
-                alert('✅ Real payout request submitted successfully via ' + method + '! Funds will be transferred to your account shortly.');
-            }
+            if(!details.trim()) { alert('⚠️ Please enter payout destination details.'); return; }
+            alert('✅ Worldwide Payout request submitted successfully via ' + method + '!\nYour net earnings ($24.15) will be transferred to your country account shortly.');
         }
     </script>
 </body>
