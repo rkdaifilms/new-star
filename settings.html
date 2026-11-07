@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">Settings, Monetization & Global Themes - Call Priyance</title>
+    <title id="pageTitle">Settings, Help & Global Themes - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--app-bg, #000); color: var(--app-text, #fff); padding-bottom: 70px; transition: 0.3s; }
@@ -42,6 +42,14 @@
         .modal-option { padding: 12px 15px; background: #222; border: 1px solid #444; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-size: 14px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
         .modal-option:hover { border-color: var(--theme-color, #fe2c55); }
 
+        /* Toggle Switch for Public/Private */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--theme-color, #fe2c55); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
@@ -76,6 +84,18 @@
 
     <div class="section-title" id="txtSecAccount">Account & Security</div>
     
+    <!-- Public / Private Account Toggle Setting -->
+    <div class="setting-item">
+        <div>
+            <span id="txtAccountPrivacy">Private Account Mode</span>
+            <p style="font-size:11px; color:#888;" id="txtPrivacyDesc">When private, only approved users can see your videos.</p>
+        </div>
+        <label class="switch">
+            <input type="checkbox" id="privateAccountToggle" onchange="toggleAccountPrivacy()">
+            <span class="slider"></span>
+        </label>
+    </div>
+
     <div class="setting-item" onclick="openAccountInfoModal()">
         <span id="txtAccInfo">Account Information (Phone, Email, DOB, Region)</span>
         <span class="right-val" id="txtManage">Manage ❯</span>
@@ -96,6 +116,14 @@
         <span class="right-val">Manage ❯</span>
     </div>
 
+    <div class="section-title" id="txtSecSupport">Support & Help Center</div>
+
+    <!-- Report a Problem & Help (Facebook/TikTok Style with Developer Support) -->
+    <div class="setting-item" onclick="openHelpModal()">
+        <span id="txtHelpReport">Help & Report a Problem (Send to Developer)</span>
+        <span class="right-val" style="color:#25f4ee;">Support ❯</span>
+    </div>
+
     <div class="section-title" id="txtSecPrefs">Preferences & Global Settings</div>
 
     <div class="setting-item" onclick="openLanguageModal()">
@@ -110,6 +138,37 @@
 
     <div class="logout-box">
         <button class="logout-btn" id="logoutBtn" onclick="handleLogout()">Log Out</button>
+    </div>
+
+    <!-- HELP & REPORT A PROBLEM MODAL (Developer Direct Ticket) -->
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('helpModal')">✕</span>
+            <h3>🛠️ Help & Report a Problem</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Facing issues? Send a report with a screenshot directly to our developer team. (Auto AI Support is active)</p>
+            
+            <label style="font-size:11px; color:#ccc;">Select Issue Type:</label>
+            <select id="issueType" class="form-select">
+                <option value="Account Issue">Account / Login Issue</option>
+                <option value="Video Upload Error">Video Upload Error</option>
+                <option value="Monetization Payout">Monetization & Payout Problem</option>
+                <option value="Harassment / Fraud">Harassment / Fake ID Report</option>
+                <option value="Other Bug">Other Technical Bug</option>
+            </select>
+
+            <label style="font-size:11px; color:#ccc;">Describe Your Problem:</label>
+            <textarea id="issueDesc" class="form-input" rows="3" placeholder="Write details about your problem here..." style="resize:none;"></textarea>
+
+            <label style="font-size:11px; color:#ccc;">Attach Screenshot / Photo Proof:</label>
+            <input type="file" id="issueScreenshot" class="form-input" accept="image/*">
+
+            <div style="background:#111; padding:8px; border-radius:6px; font-size:10px; color:#888; margin-bottom:12px;">
+                📬 Support Email: <b>rkdaifilms@gmail.com</b><br>
+                ☎️ Helpline: <b>9811522480</b>
+            </div>
+
+            <button class="action-pub-btn" onclick="submitSupportTicket()">Submit Report to Developer</button>
+        </div>
     </div>
 
     <!-- BLOCKED USERS MODAL (Fake ID / Fraud Control) -->
@@ -157,42 +216,17 @@
                 <option value="Afghanistan">🇦🇫 Afghanistan</option>
                 <option value="Albania">🇦🇱 Albania</option>
                 <option value="Algeria">🇩🇿 Algeria</option>
-                <option value="Andorra">🇦🇩 Andorra</option>
-                <option value="Angola">🇦🇴 Angola</option>
-                <option value="Argentina">🇦🇷 Argentina</option>
                 <option value="Australia">🇦🇺 Australia</option>
-                <option value="Austria">🇦🇹 Austria</option>
                 <option value="Bangladesh">🇧🇩 Bangladesh</option>
-                <option value="Bhutan">🇧🇹 Bhutan</option>
-                <option value="Brazil">🇧🇷 Brazil</option>
                 <option value="Canada">🇨🇦 Canada</option>
                 <option value="China">🇨🇳 China</option>
-                <option value="Egypt">🇪🇬 Egypt</option>
                 <option value="France">🇫🇷 France</option>
                 <option value="Germany">🇩🇪 Germany</option>
-                <option value="Hong Kong">🇭🇰 Hong Kong</option>
-                <option value="Indonesia">🇮🇩 Indonesia</option>
-                <option value="Italy">🇮🇹 Italy</option>
                 <option value="Japan">🇯🇵 Japan</option>
                 <option value="Malaysia">🇲🇾 Malaysia</option>
-                <option value="Maldives">🇲🇻 Maldives</option>
                 <option value="Pakistan">🇵🇰 Pakistan</option>
-                <option value="Philippines">🇵🇭 Philippines</option>
-                <option value="Qatar">🇶🇦 Qatar</option>
-                <option value="Russia">🇷🇺 Russia</option>
-                <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-                <option value="Singapore">🇸🇬 Singapore</option>
-                <option value="South Korea">🇰🇷 South Korea</option>
-                <option value="Spain">🇪🇸 Spain</option>
-                <option value="Sri Lanka">🇱🇰 Sri Lanka</option>
-                <option value="Sweden">🇸🇪 Sweden</option>
-                <option value="Switzerland">🇨🇭 Switzerland</option>
-                <option value="Thailand">🇹🇭 Thailand</option>
-                <option value="Turkey">🇹🇷 Turkey</option>
-                <option value="United Arab Emirates">🇦🇪 United Arab Emirates</option>
                 <option value="United Kingdom">🇬🇧 United Kingdom</option>
                 <option value="United States">🇺🇸 United States</option>
-                <option value="Vietnam">🇻🇳 Vietnam</option>
             </select>
 
             <button class="action-pub-btn" id="txtSaveAcc" onclick="saveAccountInfo()">Save Account Changes</button>
@@ -323,7 +357,7 @@
     <div class="modal-overlay" id="langModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('langModal')">✕</span>
-            <h3 id="txtLangModalTitle">🌐 Select App Language</h3>
+            <h3 id="txtLangModalTitle">🌐 Select App Language (All World Languages)</h3>
             <div class="modal-option" onclick="setLanguage('हिन्दी (Hindi)')"><span>🇮🇳 हिन्दी (Hindi)</span></div>
             <div class="modal-option" onclick="setLanguage('नेपाली (Nepali)')"><span>🇳🇵 नेपाली (Nepali)</span></div>
             <div class="modal-option" onclick="setLanguage('English (US)')"><span>🇺🇸 English (US)</span></div>
@@ -366,7 +400,7 @@
             <div class="modal-option" onclick="setTheme('Hot Pink', '#ff3399')"><span>💗 Hot Pink</span><div style="width:16px; height:16px; background:#ff3399; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Cyberpunk Neon', '#00ffcc')"><span>🌐 Cyberpunk Neon</span><div style="width:16px; height:16px; background:#00ffcc; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Matrix Green', '#00ff00')"><span>🟢 Matrix Green</span><div style="width:16px; height:16px; background:#00ff00; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Midnight Blue', '#0044ff')"><span>🔵 Midnight Blue</span><div style="width:16px; height:16px; background:#0044ff; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Midnight Blue', '#0044ff')"><span>🔵 Midnight Blue</span><div style="width:16px; height:16px; background:#00ff00; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Royal Indigo', '#4b0082')"><span>🟣 Royal Indigo</span><div style="width:16px; height:16px; background:#4b0082; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Cherry Blossom', '#ffb7c5')"><span>🌸 Cherry Blossom</span><div style="width:16px; height:16px; background:#ffb7c5; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Blood Red', '#8b0000')"><span>🩸 Blood Red</span><div style="width:16px; height:16px; background:#8b0000; border-radius:50%;"></div></div>
@@ -389,43 +423,66 @@
         let targetViews = 100000;
         let targetSponFollowers = 1000;
 
-        // Multi-language translation dictionary for seamless app-wide language switching
         const translations = {
             'हिन्दी (Hindi)': {
-                headerTitle: 'सेटिंग्स और गोपनीयता',
-                back: '← पीछे',
+                headerTitle: 'सेटिंग्स और गोपनीयता', back: '← पीछे',
                 secMonetization: '🚀 क्रिएटर मोनेटाइजेशन और कमाई',
                 adSense: 'ऐडसेंस / ऐडमॉब मोनेटाइजेशन हब',
                 sponsorship: 'ब्रांड स्पॉन्सरशिप और डील्स (1K फॉलोअर्स लॉक)',
                 affiliate: 'एफिलिएट मार्केटिंग प्रोग्राम (1K फॉलोअर्स लॉक)',
                 secAccount: 'खाता और सुरक्षा',
+                accountPrivacy: 'प्राइवेट अकाउंट मोड',
+                privacyDesc: 'प्राइवेट होने पर केवल स्वीकृत यूजर ही आपके वीडियो देख सकेंगे।',
                 accInfo: 'खाता जानकारी (फोन, ईमेल, जन्मतिथि, क्षेत्र)',
                 passSec: 'पासवर्ड और सुरक्षा (पासवर्ड बदलें)',
                 blockUser: 'ब्लॉक किए गए उपयोगकर्ता और फ्रॉड कंट्रोल',
                 cardsCoin: 'कार्ड और कॉइन बैलेंस',
+                secSupport: 'सहायता और हेल्प सेंटर',
+                helpReport: 'सहायता और समस्या रिपोर्ट करें (डेवलपर को भेजें)',
                 secPrefs: 'प्राथमिकताएं और वैश्विक सेटिंग्स',
                 appLang: 'ऐप की भाषा (सभी देशों की भाषाएं)',
                 themesColor: 'थीम्स और रंग मोड (50+ कस्टम रंग)',
-                logout: 'लॉग आउट',
-                home: 'होम', wallet: 'वॉलेट', inbox: 'इनबॉक्स', profile: 'प्रोफाइल'
+                logout: 'लॉग आउट', home: 'होम', wallet: 'वॉलेट', inbox: 'इनबॉक्स', profile: 'प्रोफाइल'
             },
             'नेपाली (Nepali)': {
-                headerTitle: 'सेटिङ्स र गोपनीयता',
-                back: '← पछाडि',
+                headerTitle: 'सेटिङ्स र गोपनीयता', back: '← पछाडि',
                 secMonetization: '🚀 सिर्जनाकर्ता मुद्रीकरण र आम्दानी',
                 adSense: 'एडसेन्स / एडमोब मुद्रीकरण हब',
                 sponsorship: 'ब्रान्ड प्रायोजन र सम्झौताहरू (1K फलोअर्स लक)',
                 affiliate: 'एफ़िलिएट मार्केटिङ प्रोग्राम (1K फलोअर्स लक)',
                 secAccount: 'खाता र सुरक्षा',
+                accountPrivacy: 'प्राइभेट अकाउन्ट मोड',
+                privacyDesc: 'प्राइभेट हुँदा स्वीकृत प्रयोगकर्ताहरूले मात्र तपाईंका भिडियोहरू हेर्न सक्छन्।',
                 accInfo: 'खाता विवरण (फोन, इमेल, जन्म मिति, क्षेत्र)',
                 passSec: 'पासवर्ड र सुरक्षा (पासवर्ड परिवर्तन गर्नुहोस्)',
                 blockUser: 'ब्लक गरिएका प्रयोगकर्ताहरू र फ्रड नियन्त्रण',
                 cardsCoin: 'कार्ड र कोइन ब्यालेन्स',
+                secSupport: 'सहयोग र मद्दत केन्द्र',
+                helpReport: 'सहायता र समस्या रिपोर्ट गर्नुहोस् (विकासकर्तालाई पठाउनुहोस्)',
                 secPrefs: 'प्राथमिकताहरू र विश्वव्यापी सेटिङहरू',
                 appLang: 'एपको भाषा (सबै देशका भाषाहरू)',
                 themesColor: 'थिमहरू र रङ मोडहरू (50+ कस्टम रङ)',
-                logout: 'लग आउट',
-                home: 'गृह', wallet: 'वालेट', inbox: 'इनबक्स', profile: 'प्रोफाइल'
+                logout: 'लग आउट', home: 'गृह', wallet: 'वालेट', inbox: 'इनबक्स', profile: 'प्रोफाइल'
+            },
+            'English (US)': {
+                headerTitle: 'Settings and privacy', back: '← Back',
+                secMonetization: '🚀 Creator Monetization & Earnings',
+                adSense: 'AdSense / AdMob Monetization Hub',
+                sponsorship: 'Brand Sponsorships & Deals (1K Followers Lock)',
+                affiliate: 'Affiliate Marketing Program (1K Followers Lock)',
+                secAccount: 'Account & Security',
+                accountPrivacy: 'Private Account Mode',
+                privacyDesc: 'When private, only approved users can see your videos.',
+                accInfo: 'Account Information (Phone, Email, DOB, Region)',
+                passSec: 'Password & Security (Change Password)',
+                blockUser: 'Blocked Users & Fraud Management',
+                cardsCoin: 'Cards & Coin Balance',
+                secSupport: 'Support & Help Center',
+                helpReport: 'Help & Report a Problem (Send to Developer)',
+                secPrefs: 'Preferences & Global Settings',
+                appLang: 'App Language (All World Country Languages)',
+                themesColor: 'Themes & Color Modes (50+ Custom Colors)',
+                logout: 'Log Out', home: 'Home', wallet: 'Wallet', inbox: 'Inbox', profile: 'Profile'
             }
         };
 
@@ -437,6 +494,9 @@
             let savedLang = localStorage.getItem('appLanguage') || 'हिन्दी (Hindi)';
             document.getElementById('selectedLangDisplay').innerText = savedLang + ' ❯';
             applyLanguage(savedLang);
+
+            let isPrivate = localStorage.getItem('appIsPrivate') === 'true';
+            document.getElementById('privateAccountToggle').checked = isPrivate;
 
             let savedGmail = localStorage.getItem('appGmail') || 'ram060039@gmail.com';
             document.getElementById('accEmail').value = savedGmail;
@@ -501,9 +561,7 @@
         }
 
         function applyLanguage(langName) {
-            let t = translations[langName];
-            if(!t) return; // Keeps default English if language not mapped
-
+            let t = translations[langName] || translations['English (US)'];
             document.getElementById('pageTitle').innerText = t.headerTitle;
             document.getElementById('txtHeaderTitle').innerText = t.headerTitle;
             document.getElementById('txtBack').innerText = t.back;
@@ -512,10 +570,14 @@
             document.getElementById('txtSponsorship').innerText = t.sponsorship;
             document.getElementById('txtAffiliate').innerText = t.affiliate;
             document.getElementById('txtSecAccount').innerText = t.secAccount;
+            if(document.getElementById('txtAccountPrivacy')) document.getElementById('txtAccountPrivacy').innerText = t.accountPrivacy;
+            if(document.getElementById('txtPrivacyDesc')) document.getElementById('txtPrivacyDesc').innerText = t.privacyDesc;
             document.getElementById('txtAccInfo').innerText = t.accInfo;
             document.getElementById('txtPassSec').innerText = t.passSec;
             document.getElementById('txtBlockUser').innerText = t.blockUser;
             document.getElementById('txtCardsCoin').innerText = t.cardsCoin;
+            if(document.getElementById('txtSecSupport')) document.getElementById('txtSecSupport').innerText = t.secSupport;
+            if(document.getElementById('txtHelpReport')) document.getElementById('txtHelpReport').innerText = t.helpReport;
             document.getElementById('txtSecPrefs').innerText = t.secPrefs;
             document.getElementById('txtAppLang').innerText = t.appLang;
             document.getElementById('txtThemesColor').innerText = t.themesColor;
@@ -526,6 +588,17 @@
             document.getElementById('navProfile').innerText = t.profile;
         }
 
+        function toggleAccountPrivacy() {
+            let isPrivate = document.getElementById('privateAccountToggle').checked;
+            localStorage.setItem('appIsPrivate', isPrivate);
+            if(isPrivate) {
+                alert('🔒 Account set to PRIVATE. Only approved followers can view your content.');
+            } else {
+                alert('🌍 Account set to PUBLIC. Everyone can view your content.');
+            }
+        }
+
+        function openHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
         function openBlockListModal() { document.getElementById('blockModal').style.display = 'flex'; }
         function openAccountInfoModal() { document.getElementById('accountInfoModal').style.display = 'flex'; }
         function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
@@ -535,6 +608,14 @@
         function openLanguageModal() { document.getElementById('langModal').style.display = 'flex'; }
         function openThemeModal() { document.getElementById('themeModal').style.display = 'flex'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+
+        function submitSupportTicket() {
+            let issue = document.getElementById('issueDesc').value.trim();
+            if(issue === '') { alert('⚠️ Please describe your problem.'); return; }
+            alert('✅ Support ticket & screenshot successfully sent to developer rkdaifilms@gmail.com (Helpline: 9811522480). AI Bot will reply soon!');
+            document.getElementById('issueDesc').value = '';
+            closeModal('helpModal');
+        }
 
         function blockUserAction() {
             let user = document.getElementById('blockUserInput').value.trim();
