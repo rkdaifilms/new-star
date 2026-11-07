@@ -12,7 +12,7 @@
         .menu-icon { font-size: 22px; cursor: pointer; text-decoration: none; color: #fff; }
 
         .profile-box { text-align: center; padding: 25px 20px 15px; }
-        .avatar { width: 85px; height: 85px; border-radius: 50%; border: 2px solid #fe2c55; object-fit: cover; margin-bottom: 10px; cursor: pointer; }
+        .avatar { width: 85px; height: 85px; border-radius: 50%; border: 2px solid #fe2c55; object-fit: cover; margin-bottom: 10px; }
         .profile-box h2 { font-size: 18px; margin-bottom: 4px; }
         .profile-box p { font-size: 13px; color: #aaa; margin-bottom: 15px; }
 
@@ -31,9 +31,7 @@
         .form-group label { font-size: 12px; color: #aaa; display: block; margin-bottom: 4px; }
         .form-group input, .form-group textarea { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 14px; }
         
-        /* Real File Upload Button Style */
         .file-upload-btn { display: block; width: 100%; background: #222; border: 1px dashed #fe2c55; color: #25f4ee; padding: 12px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; margin-top: 5px; }
-        .file-upload-btn:hover { background: #2a2a2a; }
 
         .grid-videos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
         .grid-item { background: #222; aspect-ratio: 9/16; position: relative; display: flex; align-items: flex-end; padding: 8px; font-size: 11px; font-weight: bold; }
@@ -47,7 +45,7 @@
 <body>
     <div class="header">
         <a href="wallet.html" style="color:#fff; text-decoration:none; font-size:14px;">🪙 Wallet</a>
-        <h2 id="displayName">Ramkumar Dhobi</h2>
+        <h2 id="headerName">Ramkumar Dhobi</h2>
         <a href="settings.html" class="menu-icon">☰</a>
     </div>
 
@@ -68,13 +66,12 @@
         </div>
     </div>
 
-    <!-- Edit Profile Form with Real File Manager Photo Picker -->
+    <!-- Edit Profile Form -->
     <div id="editProfileModal">
         <h3>✏️ Edit Profile Details</h3>
         
         <div class="form-group">
-            <label>Change Profile Picture (From Gallery / Camera):</label>
-            <!-- Hidden file input triggered by custom button -->
+            <label>Change Profile Picture (From Gallery / File Manager):</label>
             <input type="file" id="inputFile" accept="image/*" style="display:none;" onchange="previewLocalImage(event)">
             <label for="inputFile" class="file-upload-btn">📁 Open Gallery / File Manager</label>
         </div>
@@ -88,20 +85,8 @@
             <input type="text" id="inputHandle" value="@ramram981152">
         </div>
         <div class="form-group">
-            <label>Bio / What you do (Profession):</label>
+            <label>Bio / Profession:</label>
             <textarea id="inputBio" rows="2">Painter & Call Priyance Creator Hub</textarea>
-        </div>
-        <div class="form-group">
-            <label>Gmail Address:</label>
-            <input type="email" id="inputGmail" value="ram060039@gmail.com">
-        </div>
-        <div class="form-group">
-            <label>Phone Number:</label>
-            <input type="text" id="inputPhone" value="+977 98XXXXXXXX">
-        </div>
-        <div class="form-group">
-            <label>Website / Social Link:</label>
-            <input type="text" id="inputLink" value="https://github.com/new-star">
         </div>
         <button class="p-btn active" style="width:100%; margin-top:10px; padding:12px;" onclick="saveProfileChanges()">Save Profile Changes</button>
     </div>
@@ -116,32 +101,53 @@
         <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
         <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
         <a href="camera.html" class="nav-item"><div class="upload-plus-btn">+</div></a>
-        <a href="profile.html" class="nav-item"><i>👤</i><span>Inbox</span></a>
+        <a href="inbox.html" class="nav-item"><i>💬</i><span>Inbox</span></a>
         <a href="profile.html" class="nav-item active"><i>⭐</i><span>Profile</span></a>
     </div>
 
     <script>
-        let newUploadedImageSrc = '';
+        // Load saved profile data on page load across the app
+        window.onload = function() {
+            let savedName = localStorage.getItem('appName');
+            let savedHandle = localStorage.getItem('appHandle');
+            let savedBio = localStorage.getItem('appBio');
+            let savedPic = localStorage.getItem('appPic');
+
+            if(savedName) {
+                document.getElementById('headerName').innerText = savedName;
+                document.getElementById('profileNameText').innerText = savedName;
+                document.getElementById('inputName').value = savedName;
+            }
+            if(savedHandle) {
+                document.getElementById('inputHandle').value = savedHandle;
+            }
+            if(savedBio) {
+                document.getElementById('inputBio').value = savedBio;
+            }
+            if(savedName && savedHandle && savedBio) {
+                document.getElementById('profileHandleText').innerText = savedHandle + ' | ' + savedBio;
+            }
+            if(savedPic) {
+                document.getElementById('profilePicPreview').src = savedPic;
+            }
+        };
+
+        let tempImageSrc = '';
 
         function toggleEditProfile() {
             let modal = document.getElementById('editProfileModal');
-            if(modal.style.display === 'block') {
-                modal.style.display = 'none';
-            } else {
-                modal.style.display = 'block';
-                window.scrollTo({ top: 100, behavior: 'smooth' });
-            }
+            modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+            window.scrollTo({ top: 100, behavior: 'smooth' });
         }
 
-        // Function to handle local image selection from File Manager / Gallery
         function previewLocalImage(event) {
             let file = event.target.files[0];
             if (file) {
                 let reader = new FileReader();
                 reader.onload = function(e) {
-                    newUploadedImageSrc = e.target.result;
-                    document.getElementById('profilePicPreview').src = newUploadedImageSrc;
-                    alert('✅ Photo selected successfully from your device!');
+                    tempImageSrc = e.target.result;
+                    document.getElementById('profilePicPreview').src = tempImageSrc;
+                    alert('✅ Photo loaded from device! Click "Save Profile Changes" to apply everywhere.');
                 }
                 reader.readAsDataURL(file);
             }
@@ -152,12 +158,20 @@
             let newHandle = document.getElementById('inputHandle').value;
             let newBio = document.getElementById('inputBio').value;
 
-            document.getElementById('displayName').innerText = newName;
+            // Save to LocalStorage so Inbox, Profile and all pages update instantly
+            localStorage.setItem('appName', newName);
+            localStorage.setItem('appHandle', newHandle);
+            localStorage.setItem('appBio', newBio);
+            if(tempImageSrc !== '') {
+                localStorage.setItem('appPic', tempImageSrc);
+            }
+
+            document.getElementById('headerName').innerText = newName;
             document.getElementById('profileNameText').innerText = newName;
             document.getElementById('profileHandleText').innerText = newHandle + ' | ' + newBio;
 
             document.getElementById('editProfileModal').style.display = 'none';
-            alert('✅ Profile details and photo updated successfully!');
+            alert('🎉 Profile updated and synced across the entire app successfully!');
         }
     </script>
 </body>
