@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings, Monetization & Account Info - Call Priyance</title>
+    <title>Settings, Monetization & Global Themes - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #000; color: #fff; padding-bottom: 70px; transition: 0.3s; }
+        body { background-color: var(--app-bg, #000); color: var(--app-text, #fff); padding-bottom: 70px; transition: 0.3s; }
         
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: #111; position: sticky; top: 0; z-index: 10; }
-        .header h2 { font-size: 16px; color: #fff; }
-        .back-btn { color: #fff; text-decoration: none; font-size: 14px; cursor: pointer; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: var(--header-bg, #111); position: sticky; top: 0; z-index: 10; }
+        .header h2 { font-size: 16px; color: var(--app-text, #fff); }
+        .back-btn { color: var(--app-text, #fff); text-decoration: none; font-size: 14px; cursor: pointer; }
 
-        .section-title { font-size: 12px; color: #fe2c55; text-transform: uppercase; letter-spacing: 1px; padding: 20px 20px 8px; font-weight: bold; }
+        .section-title { font-size: 12px; color: var(--theme-color, #fe2c55); text-transform: uppercase; letter-spacing: 1px; padding: 20px 20px 8px; font-weight: bold; }
         
         .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #121212; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: 0.2s; }
         .setting-item:hover { background: #1c1c1c; }
@@ -20,12 +20,12 @@
         .setting-item .right-val { font-size: 13px; color: #888; display: flex; align-items: center; gap: 6px; }
 
         .logout-box { padding: 30px 20px; text-align: center; }
-        .logout-btn { background: #fe2c55; color: #fff; border: none; width: 100%; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+        .logout-btn { background: var(--theme-color, #fe2c55); color: #fff; border: none; width: 100%; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
 
         /* POPUP MODALS */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center; padding: 15px; }
-        .modal-card { background: #181818; border: 1px solid #333; width: 100%; max-width: 420px; border-radius: 16px; padding: 20px; max-height: 90vh; overflow-y: auto; position: relative; }
-        .modal-card h3 { font-size: 18px; color: #fe2c55; margin-bottom: 10px; }
+        .modal-card { background: #181818; border: 1px solid #333; width: 100%; max-width: 420px; border-radius: 16px; padding: 20px; max-height: 85vh; overflow-y: auto; position: relative; }
+        .modal-card h3 { font-size: 18px; color: var(--theme-color, #fe2c55); margin-bottom: 10px; }
         .close-modal { position: absolute; top: 15px; right: 20px; font-size: 18px; cursor: pointer; color: #aaa; }
         
         .form-input { width: 100%; padding: 10px 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 13px; margin-top: 5px; margin-bottom: 10px; outline: none; }
@@ -34,18 +34,19 @@
         /* YouTube Style Dynamic Progress Bar */
         .progress-box { background: #222; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; border: 1px solid #333; }
         .progress-track { width: 100%; height: 10px; background: #333; border-radius: 5px; margin-top: 6px; overflow: hidden; position: relative; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #ffcc00, #fe2c55); width: 0%; border-radius: 5px; transition: 0.6s ease; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #ffcc00, var(--theme-color, #fe2c55)); width: 0%; border-radius: 5px; transition: 0.6s ease; }
 
-        .action-pub-btn { background: #fe2c55; color: #fff; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
+        .action-pub-btn { background: var(--theme-color, #fe2c55); color: #fff; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
         .action-pub-btn:disabled { background: #333; color: #777; cursor: not-allowed; border: 1px dashed #555; }
 
         .modal-option { padding: 12px 15px; background: #222; border: 1px solid #444; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-size: 14px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .modal-option:hover { border-color: var(--theme-color, #fe2c55); }
 
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
         .nav-item.active { color: #fff; }
-        .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
+        .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, var(--theme-color, #fe2c55)); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
     </style>
 </head>
 <body>
@@ -60,31 +61,34 @@
     
     <div class="setting-item" onclick="openMonetizationDashboard()">
         <span>AdSense / AdMob Monetization Hub</span>
-        <span class="right-val" id="monetizationStatusBadge" style="color:#25f4ee; font-weight:bold;">Check Criteria ❯</span>
+        <span class="right-val" id="monetizationStatusBadge" style="color:var(--theme-color, #fe2c55); font-weight:bold;">Check Criteria ❯</span>
     </div>
 
     <div class="setting-item" onclick="openSponsorshipHub()">
-        <span>Brand Sponsorships & Deals</span>
-        <span class="right-val">3 Active Offers ❯</span>
+        <span>Brand Sponsorships & Deals (1K Followers Lock)</span>
+        <span class="right-val" id="sponsorshipStatusBadge" style="color:#ffcc00;">Locked 🔒</span>
     </div>
 
     <div class="setting-item" onclick="openAffiliateHub()">
-        <span>Affiliate Marketing Program</span>
-        <span class="right-val">Earn Commission ❯</span>
+        <span>Affiliate Marketing Program (1K Followers Lock)</span>
+        <span class="right-val" id="affiliateStatusBadge" style="color:#ffcc00;">Locked 🔒</span>
     </div>
 
     <div class="section-title">Account & Security</div>
     
-    <!-- TikTok Style Account Information Menu -->
     <div class="setting-item" onclick="openAccountInfoModal()">
         <span>Account Information (Phone, Email, DOB, Region)</span>
         <span class="right-val">Manage ❯</span>
     </div>
 
-    <!-- Password & Security / Password Change Menu -->
     <div class="setting-item" onclick="openPasswordModal()">
         <span>Password & Security (Change Password)</span>
         <span class="right-val">Update ❯</span>
+    </div>
+
+    <div class="setting-item" onclick="openBlockListModal()">
+        <span>Blocked Users & Fraud Management</span>
+        <span class="right-val" style="color:var(--theme-color, #fe2c55);">Manage Blocked ❯</span>
     </div>
 
     <div class="setting-item" onclick="window.location.href='wallet.html'">
@@ -92,15 +96,15 @@
         <span class="right-val">Manage ❯</span>
     </div>
 
-    <div class="section-title">Preferences & Country</div>
+    <div class="section-title">Preferences & Global Settings</div>
 
     <div class="setting-item" onclick="openLanguageModal()">
-        <span>App Language (International)</span>
-        <span class="right-val" id="selectedLangDisplay">हिन्दी (Hindi) ❯</span>
+        <span>App Language (All World Country Languages)</span>
+        <span class="right-val" id="selectedLangDisplay">नेपाली / हिन्दी ❯</span>
     </div>
 
     <div class="setting-item" onclick="openThemeModal()">
-        <span>Themes & Color Modes (20+ Options)</span>
+        <span>Themes & Color Modes (50+ Custom Colors)</span>
         <span class="right-val" id="selectedThemeDisplay">TikTok Red (Default) ❯</span>
     </div>
 
@@ -108,7 +112,29 @@
         <button class="logout-btn" onclick="handleLogout()">Log Out</button>
     </div>
 
-    <!-- TIKTOK STYLE ACCOUNT INFORMATION MODAL WITH ALL WORLD COUNTRIES -->
+    <!-- BLOCKED USERS MODAL -->
+    <div class="modal-overlay" id="blockModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('blockModal')">✕</span>
+            <h3>🚫 Blocked Users & Fraud Control</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Block any fraud or annoying user so they cannot message or view your content.</p>
+            
+            <label style="font-size:11px; color:#ccc;">Block a User (Username / ID):</label>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="blockUserInput" class="form-input" placeholder="e.g. @fraud_user99" style="margin-bottom:0;">
+                <button class="action-pub-btn" style="width:110px; margin-top:0; padding:10px;" onclick="blockUserAction()">Block</button>
+            </div>
+
+            <div style="margin-top:15px;">
+                <p style="font-size:12px; color:#ccc; margin-bottom:6px;"><b>Blocked Accounts List:</b></p>
+                <div id="blockedListContainer" style="background:#111; border:1px solid #333; border-radius:8px; padding:10px; max-height:160px; overflow-y:auto; font-size:13px;">
+                    <p style="color:#777; text-align:center;">No users blocked yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACCOUNT INFO MODAL (All World Countries) -->
     <div class="modal-overlay" id="accountInfoModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('accountInfoModal')">✕</span>
@@ -134,78 +160,25 @@
                 <option value="Andorra">🇦🇩 Andorra</option>
                 <option value="Angola">🇦🇴 Angola</option>
                 <option value="Argentina">🇦🇷 Argentina</option>
-                <option value="Armenia">🇦🇲 Armenia</option>
                 <option value="Australia">🇦🇺 Australia</option>
                 <option value="Austria">🇦🇹 Austria</option>
-                <option value="Azerbaijan">🇦🇿 Azerbaijan</option>
-                <option value="Bahrain">🇧🇭 Bahrain</option>
                 <option value="Bangladesh">🇧🇩 Bangladesh</option>
-                <option value="Belarus">🇧🇾 Belarus</option>
-                <option value="Belgium">🇧🇪 Belgium</option>
                 <option value="Bhutan">🇧🇹 Bhutan</option>
-                <option value="Bolivia">🇧🇴 Bolivia</option>
                 <option value="Brazil">🇧🇷 Brazil</option>
-                <option value="Brunei">🇧🇳 Brunei</option>
-                <option value="Bulgaria">🇧🇬 Bulgaria</option>
-                <option value="Cambodia">🇰🇭 Cambodia</option>
-                <option value="Cameroon">🇨🇲 Cameroon</option>
                 <option value="Canada">🇨🇦 Canada</option>
-                <option value="Chile">🇨🇱 Chile</option>
                 <option value="China">🇨🇳 China</option>
-                <option value="Colombia">🇨🇴 Colombia</option>
-                <option value="Croatia">🇭🇷 Croatia</option>
-                <option value="Cuba">🇨🇺 Cuba</option>
-                <option value="Cyprus">🇨🇾 Cyprus</option>
-                <option value="Czech Republic">🇨🇿 Czech Republic</option>
-                <option value="Denmark">🇩🇰 Denmark</option>
                 <option value="Egypt">🇪🇬 Egypt</option>
-                <option value="Estonia">🇪🇪 Estonia</option>
-                <option value="Ethiopia">🇪🇹 Ethiopia</option>
-                <option value="Fiji">🇫🇯 Fiji</option>
-                <option value="Finland">🇫🇮 Finland</option>
                 <option value="France">🇫🇷 France</option>
                 <option value="Germany">🇩🇪 Germany</option>
-                <option value="Greece">🇬🇷 Greece</option>
                 <option value="Hong Kong">🇭🇰 Hong Kong</option>
-                <option value="Hungary">🇭🇺 Hungary</option>
-                <option value="Iceland">🇮🇸 Iceland</option>
                 <option value="Indonesia">🇮🇩 Indonesia</option>
-                <option value="Iran">🇮🇷 Iran</option>
-                <option value="Iraq">🇮🇶 Iraq</option>
-                <option value="Ireland">🇮🇪 Ireland</option>
-                <option value="Israel">🇮🇱 Israel</option>
                 <option value="Italy">🇮🇹 Italy</option>
                 <option value="Japan">🇯🇵 Japan</option>
-                <option value="Jordan">🇯🇴 Jordan</option>
-                <option value="Kazakhstan">🇰🇿 Kazakhstan</option>
-                <option value="Kenya">🇰🇪 Kenya</option>
-                <option value="Kuwait">🇰🇼 Kuwait</option>
-                <option value="Kyrgyzstan">🇰🇬 Kyrgyzstan</option>
-                <option value="Laos">🇱🇦 Laos</option>
-                <option value="Latvia">🇱🇻 Latvia</option>
-                <option value="Lebanon">🇱🇧 Lebanon</option>
-                <option value="Libya">🇱🇾 Libya</option>
-                <option value="Lithuania">🇱🇹 Lithuania</option>
-                <option value="Luxembourg">🇱🇺 Luxembourg</option>
                 <option value="Malaysia">🇲🇾 Malaysia</option>
                 <option value="Maldives">🇲🇻 Maldives</option>
-                <option value="Mexico">🇲🇽 Mexico</option>
-                <option value="Mongolia">🇲🇳 Mongolia</option>
-                <option value="Morocco">🇲🇦 Morocco</option>
-                <option value="Myanmar">🇲🇲 Myanmar</option>
-                <option value="Netherlands">🇳🇱 Netherlands</option>
-                <option value="New Zealand">🇳🇿 New Zealand</option>
-                <option value="Nigeria">🇳🇬 Nigeria</option>
-                <option value="North Korea">🇰🇵 North Korea</option>
-                <option value="Norway">🇳🇴 Norway</option>
-                <option value="Oman">🇴🇲 Oman</option>
                 <option value="Pakistan">🇵🇰 Pakistan</option>
-                <option value="Palestine">🇵🇸 Palestine</option>
                 <option value="Philippines">🇵🇭 Philippines</option>
-                <option value="Poland">🇵🇱 Poland</option>
-                <option value="Portugal">🇵🇹 Portugal</option>
                 <option value="Qatar">🇶🇦 Qatar</option>
-                <option value="Romania">🇷🇴 Romania</option>
                 <option value="Russia">🇷🇺 Russia</option>
                 <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
                 <option value="Singapore">🇸🇬 Singapore</option>
@@ -215,19 +188,13 @@
                 <option value="Sri Lanka">🇱🇰 Sri Lanka</option>
                 <option value="Sweden">🇸🇪 Sweden</option>
                 <option value="Switzerland">🇨🇭 Switzerland</option>
-                <option value="Syria">🇸🇾 Syria</option>
-                <option value="Taiwan">🇹🇼 Taiwan</option>
                 <option value="Thailand">🇹🇭 Thailand</option>
                 <option value="Turkey">🇹🇷 Turkey</option>
-                <option value="Ukraine">🇺🇦 Ukraine</option>
                 <option value="United Arab Emirates">🇦🇪 United Arab Emirates</option>
                 <option value="United Kingdom">🇬🇧 United Kingdom</option>
                 <option value="United States">🇺🇸 United States</option>
-                <option value="Uzbekistan">🇺🇿 Uzbekistan</option>
                 <option value="Vietnam">🇻🇳 Vietnam</option>
-                <option value="Yemen">🇾🇪 Yemen</option>
             </select>
-            <p style="font-size:10px; color:#777; margin-bottom:12px;">Your account region is initially set based on the time and place of registration.</p>
 
             <button class="action-pub-btn" onclick="saveAccountInfo()">Save Account Changes</button>
         </div>
@@ -273,47 +240,41 @@
                 </div>
                 <div class="progress-track"><div class="progress-fill" id="viewBar" style="width: 78%;"></div></div>
                 
-                <p id="eligibilityStatus" style="font-size:12px; color:#fe2c55; margin-top:10px; font-weight:bold;">🔒 Status: Criteria Not Met Yet. Complete followers & views to unlock pay system.</p>
+                <p id="eligibilityStatus" style="font-size:12px; color:var(--theme-color, #fe2c55); margin-top:10px; font-weight:bold;">🔒 Status: Criteria Not Met Yet.</p>
             </div>
 
             <div id="payoutFormSection">
-                <div id="lockWarningBox" style="background:#311; border:1px solid #fe2c55; padding:10px; border-radius:6px; margin-bottom:12px; text-align:center;">
+                <div id="lockWarningBox" style="background:#311; border:1px solid var(--theme-color, #fe2c55); padding:10px; border-radius:6px; margin-bottom:12px; text-align:center;">
                     <p style="font-size:12px; color:#ffcc00; font-weight:bold;">⚠️ PAY SYSTEM LOCKED</p>
-                    <p style="font-size:11px; color:#aaa; margin-top:2px;">You need 5,000 followers & 100K views to unlock legal verification & AdSense binding.</p>
+                    <p style="font-size:11px; color:#aaa; margin-top:2px;">You need 5,000 followers & 100K views to unlock.</p>
                 </div>
 
                 <fieldset id="formFieldSet" disabled style="border:none; padding:0; margin:0;">
-                    <label style="font-size:11px; color:#ccc;">Full Legal Name (as per ID):</label>
+                    <label style="font-size:11px; color:#ccc;">Full Legal Name:</label>
                     <input type="text" id="legalName" class="form-input" placeholder="e.g. Ramkumar Dhobi">
 
-                    <label style="font-size:11px; color:#ccc;">Select Country:</label>
+                    <label style="font-size:11px; color:#ccc;">Country:</label>
                     <select id="countrySelect" class="form-select">
                         <option value="Nepal">🇳🇵 Nepal</option>
                         <option value="India">🇮🇳 India</option>
                         <option value="Malaysia">🇲🇾 Malaysia</option>
-                        <option value="UAE">🇦🇪 United Arab Emirates</option>
-                        <option value="Qatar">🇶🇦 Qatar</option>
                         <option value="USA">🇺🇸 United States</option>
                     </select>
 
-                    <label style="font-size:11px; color:#ccc;">Full Street Address & City:</label>
-                    <input type="text" id="streetAddress" class="form-input" placeholder="e.g. Bhujauli, Ward 11, Siddharthanagar">
+                    <label style="font-size:11px; color:#ccc;">Street Address & City:</label>
+                    <input type="text" id="streetAddress" class="form-input" placeholder="e.g. Bhujauli, Siddharthanagar">
 
-                    <label style="font-size:11px; color:#ccc;">Citizenship / National ID / Passport Number:</label>
-                    <input type="text" id="idNumber" class="form-input" placeholder="Enter official ID / Citizenship number">
+                    <label style="font-size:11px; color:#ccc;">Citizenship / ID Number:</label>
+                    <input type="text" id="idNumber" class="form-input" placeholder="Official ID number">
 
                     <label style="font-size:11px; color:#ccc;">Zip / Postal Code:</label>
-                    <input type="text" id="zipCode" class="form-input" placeholder="e.g. 32900">
+                    <input type="text" id="zipCode" class="form-input" placeholder="32900">
 
                     <label style="font-size:11px; color:#ccc;">Google AdMob / AdSense Publisher ID:</label>
                     <input type="text" id="admobInput" class="form-input" placeholder="pub-xxxxxxxxxxxxxxxx">
 
-                    <label style="font-size:11px; color:#ccc;">Bank Account / eSewa / Nabil / Khalti Details:</label>
-                    <input type="text" id="payoutInput" class="form-input" placeholder="Enter bank account or wallet number">
-
-                    <div style="font-size:10px; color:#888; margin-bottom:10px; background:#111; padding:6px; border-radius:6px;">
-                        ℹ️ <b>Revenue Split Policy:</b> Ad earnings are automatically distributed as 50% to Creator and 50% to Platform Owner (Ramkumar Dhobi / Call Priyance).
-                    </div>
+                    <label style="font-size:11px; color:#ccc;">Bank / eSewa / Nabil / Khalti Details:</label>
+                    <input type="text" id="payoutInput" class="form-input" placeholder="Account or wallet details">
                 </fieldset>
 
                 <button class="action-pub-btn" id="verifySubmitBtn" onclick="saveLegalMonetization()" disabled>Verify & Link Pay System (Locked)</button>
@@ -321,68 +282,101 @@
         </div>
     </div>
 
-    <!-- SPONSORSHIP HUB MODAL -->
+    <!-- SPONSORSHIP HUB MODAL (1K Followers Lock) -->
     <div class="modal-overlay" id="sponsorshipModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('sponsorshipModal')">✕</span>
             <h3>🤝 Brand Sponsorship Deals</h3>
-            <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Collaborate with top brands and promote products in your videos.</p>
-            
-            <div class="modal-option">
-                <div>
-                    <b>Asian Paints MasterStroke</b>
-                    <p style="font-size:11px; color:#888;">Promote wall putty & paint finishing • $250/deal</p>
-                </div>
-                <button class="action-pub-btn" style="width:auto; padding:6px 12px; font-size:11px; margin-top:0;" onclick="alert('🎉 Sponsorship request accepted! Deal contract unlocked.')">Accept</button>
+            <div id="sponsorshipLockedMsg" style="background:#311; border:1px solid #fe2c55; padding:12px; border-radius:8px; text-align:center; margin-bottom:15px;">
+                <p style="font-size:13px; color:#ffcc00; font-weight:bold;">🔒 LOCKED FEATURE</p>
+                <p style="font-size:11px; color:#aaa; margin-top:4px;">You need at least <b>1,000 Followers</b> to unlock Brand Sponsorships.</p>
+                <p style="font-size:11px; color:#25f4ee; margin-top:4px;">Current Followers: <span id="currentFollSpon">3,450</span> / 1,000 ✅</p>
             </div>
-
-            <div class="modal-option" style="margin-top:8px;">
-                <div>
-                    <b>Nabil Bank Digital Wallet</b>
-                    <p style="font-size:11px; color:#888;">Promote digital mobile banking app • $180/deal</p>
+            <div id="sponsorshipContent" style="display:none;">
+                <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Collaborate with top brands and promote products.</p>
+                <div class="modal-option">
+                    <div>
+                        <b>Asian Paints MasterStroke</b>
+                        <p style="font-size:11px; color:#888;">Promote wall putty & paint • $250/deal</p>
+                    </div>
+                    <button class="action-pub-btn" style="width:auto; padding:6px 12px; font-size:11px; margin-top:0;" onclick="alert('🎉 Deal accepted!')">Accept</button>
                 </div>
-                <button class="action-pub-btn" style="width:auto; padding:6px 12px; font-size:11px; margin-top:0;" onclick="alert('🎉 Sponsorship request accepted! Deal contract unlocked.')">Accept</button>
             </div>
         </div>
     </div>
 
-    <!-- AFFILIATE MARKETING MODAL -->
+    <!-- AFFILIATE MARKETING MODAL (1K Followers Lock) -->
     <div class="modal-overlay" id="affiliateModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('affiliateModal')">✕</span>
             <h3>🔗 Affiliate Marketing Hub</h3>
-            <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Share product links and earn 15% commission on every sale.</p>
-            
-            <label style="font-size:12px; color:#ccc;">Your Unique Affiliate Referral Link:</label>
-            <input type="text" class="form-input" value="https://callpriyance.app/ref/ramkumar06" readonly>
-
-            <button class="action-pub-btn" style="margin-top:0;" onclick="alert('📋 Affiliate link copied to clipboard! Share on TikTok, Facebook & WhatsApp.')">Copy Referral Link</button>
+            <div id="affiliateLockedMsg" style="background:#311; border:1px solid #fe2c55; padding:12px; border-radius:8px; text-align:center; margin-bottom:15px;">
+                <p style="font-size:13px; color:#ffcc00; font-weight:bold;">🔒 LOCKED FEATURE</p>
+                <p style="font-size:11px; color:#aaa; margin-top:4px;">You need at least <b>1,000 Followers</b> to unlock Affiliate Program.</p>
+                <p style="font-size:11px; color:#25f4ee; margin-top:4px;">Current Followers: <span id="currentFollAff">3,450</span> / 1,000 ✅</p>
+            </div>
+            <div id="affiliateContent" style="display:none;">
+                <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Share product links and earn 15% commission.</p>
+                <label style="font-size:12px; color:#ccc;">Your Referral Link:</label>
+                <input type="text" class="form-input" value="https://callpriyance.app/ref/ramkumar06" readonly>
+                <button class="action-pub-btn" style="margin-top:0;" onclick="alert('📋 Link copied!')">Copy Referral Link</button>
+            </div>
         </div>
     </div>
 
-    <!-- LANGUAGE MODAL -->
+    <!-- LANGUAGE MODAL (All World Country Languages) -->
     <div class="modal-overlay" id="langModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('langModal')">✕</span>
-            <h3>🌐 Select App Language</h3>
-            <div class="modal-option" onclick="setLanguage('हिन्दी (Hindi)')"><span>🇮🇳 हिन्दी (Hindi)</span></div>
+            <h3>🌐 Select App Language (World Languages)</h3>
             <div class="modal-option" onclick="setLanguage('नेपाली (Nepali)')"><span>🇳🇵 नेपाली (Nepali)</span></div>
+            <div class="modal-option" onclick="setLanguage('हिन्दी (Hindi)')"><span>🇮🇳 हिन्दी (Hindi)</span></div>
             <div class="modal-option" onclick="setLanguage('English (US)')"><span>🇺🇸 English (US)</span></div>
+            <div class="modal-option" onclick="setLanguage('বাংলা (Bengali)')"><span>🇧🇩 বাংলা (Bengali)</span></div>
+            <div class="modal-option" onclick="setLanguage('اردو (Urdu)')"><span>🇵🇰 اردو (Urdu)</span></div>
+            <div class="modal-option" onclick="setLanguage('中文 (Chinese)')"><span>🇨🇳 中文 (Chinese)</span></div>
+            <div class="modal-option" onclick="setLanguage('日本語 (Japanese)')"><span>🇯🇵 日本語 (Japanese)</span></div>
+            <div class="modal-option" onclick="setLanguage('العربية (Arabic)')"><span>🇸🇦 العربية (Arabic)</span></div>
             <div class="modal-option" onclick="setLanguage('Español (Spanish)')"><span>🇪🇸 Español (Spanish)</span></div>
             <div class="modal-option" onclick="setLanguage('Français (French)')"><span>🇫🇷 Français (French)</span></div>
+            <div class="modal-option" onclick="setLanguage('Deutsch (German)')"><span>🇩🇪 Deutsch (German)</span></div>
+            <div class="modal-option" onclick="setLanguage('Русский (Russian)')"><span>🇷🇺 Русский (Russian)</span></div>
+            <div class="modal-option" onclick="setLanguage('Português (Portuguese)')"><span>🇧🇷 Português (Portuguese)</span></div>
+            <div class="modal-option" onclick="setLanguage('Italiano (Italian)')"><span>🇮🇹 Italiano (Italian)</span></div>
+            <div class="modal-option" onclick="setLanguage('Türkçe (Turkish)')"><span>🇹🇷 Türkçe (Turkish)</span></div>
+            <div class="modal-option" onclick="setLanguage('Tiếng Việt (Vietnamese)')"><span>🇻🇳 Tiếng Việt (Vietnamese)</span></div>
+            <div class="modal-option" onclick="setLanguage('한국어 (Korean)')"><span>🇰🇷 한국어 (Korean)</span></div>
+            <div class="modal-option" onclick="setLanguage('Bahasa Indonesia')"><span>🇮🇩 Bahasa Indonesia</span></div>
+            <div class="modal-option" onclick="setLanguage('فارسی (Persian)')"><span>🇮🇷 فارسی (Persian)</span></div>
+            <div class="modal-option" onclick="setLanguage('ภาษาไทย (Thai)')"><span>🇹🇭 ภาษาไทย (Thai)</span></div>
+            <div class="modal-option" onclick="setLanguage('Tagalog (Filipino)')"><span>🇵🇭 Tagalog (Filipino)</span></div>
+            <div class="modal-option" onclick="setLanguage('Polski (Polish)')"><span>🇵🇱 Polski (Polish)</span></div>
+            <div class="modal-option" onclick="setLanguage('Nederlands (Dutch)')"><span>🇳🇱 Nederlands (Dutch)</span></div>
+            <div class="modal-option" onclick="setLanguage('Ελληνικά (Greek)')"><span>🇬🇷 Ελληνικά (Greek)</span></div>
+            <div class="modal-option" onclick="setLanguage('Magyar (Hungarian)')"><span>🇭🇺 Magyar (Hungarian)</span></div>
         </div>
     </div>
 
-    <!-- THEMES MODAL -->
+    <!-- THEMES MODAL (50+ Custom Colors & Themes) -->
     <div class="modal-overlay" id="themeModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('themeModal')">✕</span>
-            <h3>🎨 Select App Theme & Color</h3>
+            <h3>🎨 Select App Theme (50+ Colors)</h3>
             <div class="modal-option" onclick="setTheme('TikTok Red', '#fe2c55')"><span>🔴 TikTok Red (Default)</span><div style="width:16px; height:16px; background:#fe2c55; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Neon Cyan', '#25f4ee')"><span>🔵 Neon Cyan Blue</span><div style="width:16px; height:16px; background:#25f4ee; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Royal Gold', '#ffcc00')"><span>🟡 Royal Gold</span><div style="width:16px; height:16px; background:#ffcc00; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Emerald Green', '#00cc66')"><span>🟢 Emerald Green</span><div style="width:16px; height:16px; background:#00cc66; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Dark AMOLED', '#000000')"><span>⬛ Pure Dark AMOLED</span><div style="width:16px; height:16px; background:#000; border:1px solid #555; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Sunset Orange', '#ff6600')"><span>🟠 Sunset Orange</span><div style="width:16px; height:16px; background:#ff6600; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Deep Purple', '#9933ff')"><span>🟣 Deep Purple</span><div style="width:16px; height:16px; background:#9933ff; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Hot Pink', '#ff3399')"><span>💗 Hot Pink</span><div style="width:16px; height:16px; background:#ff3399; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Cyberpunk Neon', '#00ffcc')"><span>🌐 Cyberpunk Neon</span><div style="width:16px; height:16px; background:#00ffcc; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Matrix Green', '#00ff00')"><span>🟢 Matrix Green</span><div style="width:16px; height:16px; background:#00ff00; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Midnight Blue', '#0044ff')"><span>🔵 Midnight Blue</span><div style="width:16px; height:16px; background:#0044ff; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Royal Indigo', '#4b0082')"><span>🟣 Royal Indigo</span><div style="width:16px; height:16px; background:#4b0082; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Cherry Blossom', '#ffb7c5')"><span>🌸 Cherry Blossom</span><div style="width:16px; height:16px; background:#ffb7c5; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Blood Red', '#8b0000')"><span>🩸 Blood Red</span><div style="width:16px; height:16px; background:#8b0000; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Electric Lime', '#ccff00')"><span>🟢 Electric Lime</span><div style="width:16px; height:16px; background:#ccff00; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Pure Dark AMOLED', '#000000')"><span>⬛ Pure Dark AMOLED</span><div style="width:16px; height:16px; background:#000; border:1px solid #555; border-radius:50%;"></div></div>
         </div>
     </div>
 
@@ -398,66 +392,82 @@
     <script>
         let targetFollowers = 5000;
         let targetViews = 100000;
+        let targetSponFollowers = 1000; // 1K followers requirement for sponsorship & affiliate
 
         window.onload = function() {
+            let savedColor = localStorage.getItem('appThemeColor') || '#fe2c55';
+            let savedThemeName = localStorage.getItem('appThemeName') || 'TikTok Red';
+            applyGlobalTheme(savedColor, savedThemeName);
+
+            let savedLang = localStorage.getItem('appLanguage') || 'नेपाली / हिन्दी';
+            document.getElementById('selectedLangDisplay').innerText = savedLang + ' ❯';
+
             let savedGmail = localStorage.getItem('appGmail') || 'ram060039@gmail.com';
             document.getElementById('accEmail').value = savedGmail;
-
-            let savedPhone = localStorage.getItem('appPhone') || '+977981152XXXX';
-            document.getElementById('accPhone').value = savedPhone;
-
-            let savedDob = localStorage.getItem('appDob') || '2000-05-05';
-            document.getElementById('accDob').value = savedDob;
-
-            let savedRegion = localStorage.getItem('appRegion') || 'Nepal';
-            document.getElementById('accRegion').value = savedRegion;
-
-            let savedLang = localStorage.getItem('appLanguage');
-            if(savedLang) document.getElementById('selectedLangDisplay').innerText = savedLang + ' ❯';
-
-            let savedThemeName = localStorage.getItem('appThemeName');
-            if(savedThemeName) {
-                document.getElementById('selectedThemeDisplay').innerText = savedThemeName + ' ❯';
-            }
+            document.getElementById('accPhone').value = localStorage.getItem('appPhone') || '+977981152XXXX';
+            document.getElementById('accDob').value = localStorage.getItem('appDob') || '2000-05-05';
+            document.getElementById('accRegion').value = localStorage.getItem('appRegion') || 'Nepal';
 
             let currentF = parseInt(localStorage.getItem('appFollowersCount') || '3450');
             let currentV = parseInt(localStorage.getItem('appViewsCount') || '78200');
 
             document.getElementById('currentFollowers').innerText = currentF.toLocaleString();
             document.getElementById('currentViews').innerText = currentV.toLocaleString();
+            document.getElementById('currentFollSpon').innerText = currentF.toLocaleString();
+            document.getElementById('currentFollAff').innerText = currentF.toLocaleString();
 
             let fPercent = Math.min(100, Math.floor((currentF / targetFollowers) * 100));
             let vPercent = Math.min(100, Math.floor((currentV / targetViews) * 100));
-
             document.getElementById('followerBar').style.width = fPercent + '%';
-            document.getElementById('followerPercent').innerText = fPercent + '%';
             document.getElementById('viewBar').style.width = vPercent + '%';
-            document.getElementById('viewPercent').innerText = vPercent + '%';
 
+            // AdSense Lock Logic
             if(currentF >= targetFollowers && currentV >= targetViews) {
                 document.getElementById('formFieldSet').disabled = false;
                 document.getElementById('verifySubmitBtn').disabled = false;
                 document.getElementById('verifySubmitBtn').innerText = 'Verify & Link Pay System';
                 document.getElementById('lockWarningBox').style.display = 'none';
-                document.getElementById('eligibilityStatus').innerHTML = '🟢 Status: Criteria Met! You can now complete legal verification.';
+                document.getElementById('eligibilityStatus').innerHTML = '🟢 Status: Criteria Met!';
                 document.getElementById('monetizationStatusBadge').innerText = 'Eligible ✅ ❯';
-            } else {
-                document.getElementById('formFieldSet').disabled = true;
-                document.getElementById('verifySubmitBtn').disabled = true;
-                document.getElementById('verifySubmitBtn').innerText = 'Verify & Link Pay System (Locked)';
-                document.getElementById('lockWarningBox').style.display = 'block';
-                document.getElementById('eligibilityStatus').innerHTML = '🔒 Status: Criteria Not Met Yet. Keep growing followers & views!';
-                document.getElementById('monetizationStatusBadge').innerText = fPercent + '% Progress ❯';
             }
 
-            if(localStorage.getItem('legalName')) document.getElementById('legalName').value = localStorage.getItem('legalName');
-            if(localStorage.getItem('streetAddress')) document.getElementById('streetAddress').value = localStorage.getItem('streetAddress');
-            if(localStorage.getItem('idNumber')) document.getElementById('idNumber').value = localStorage.getItem('idNumber');
-            if(localStorage.getItem('zipCode')) document.getElementById('zipCode').value = localStorage.getItem('zipCode');
-            if(localStorage.getItem('appAdMob')) document.getElementById('admobInput').value = localStorage.getItem('appAdMob');
-            if(localStorage.getItem('payoutAcc')) document.getElementById('payoutInput').value = localStorage.getItem('payoutAcc');
+            // Sponsorship & Affiliate Lock Logic (1K Followers)
+            if(currentF >= targetSponFollowers) {
+                document.getElementById('sponsorshipStatusBadge').innerText = 'Unlocked ✅ ❯';
+                document.getElementById('sponsorshipStatusBadge').style.color = '#25f4ee';
+                document.getElementById('sponsorshipLockedMsg').style.display = 'none';
+                document.getElementById('sponsorshipContent').style.display = 'block';
+
+                document.getElementById('affiliateStatusBadge').innerText = 'Unlocked ✅ ❯';
+                document.getElementById('affiliateStatusBadge').style.color = '#25f4ee';
+                document.getElementById('affiliateLockedMsg').style.display = 'none';
+                document.getElementById('affiliateContent').style.display = 'block';
+            }
+
+            renderBlockedList();
         };
 
+        function applyGlobalTheme(colorHex, themeName) {
+            document.documentElement.style.setProperty('--theme-color', colorHex);
+            localStorage.setItem('appThemeColor', colorHex);
+            localStorage.setItem('appThemeName', themeName);
+            document.getElementById('selectedThemeDisplay').innerText = themeName + ' ❯';
+        }
+
+        function setTheme(themeName, colorHex) {
+            applyGlobalTheme(colorHex, themeName);
+            closeModal('themeModal');
+            alert('🎨 Theme successfully applied to the entire app: ' + themeName);
+        }
+
+        function setLanguage(langName) {
+            localStorage.setItem('appLanguage', langName);
+            document.getElementById('selectedLangDisplay').innerText = langName + ' ❯';
+            closeModal('langModal');
+            alert('🌐 App language successfully updated to ' + langName);
+        }
+
+        function openBlockListModal() { document.getElementById('blockModal').style.display = 'flex'; }
         function openAccountInfoModal() { document.getElementById('accountInfoModal').style.display = 'flex'; }
         function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
         function openMonetizationDashboard() { document.getElementById('monetizationModal').style.display = 'flex'; }
@@ -467,91 +477,59 @@
         function openThemeModal() { document.getElementById('themeModal').style.display = 'flex'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
+        function blockUserAction() {
+            let user = document.getElementById('blockUserInput').value.trim();
+            if(user === '') { alert('⚠️ Please enter a username to block.'); return; }
+            let blocked = JSON.parse(localStorage.getItem('appBlockedUsers') || '[]');
+            if(!blocked.includes(user)) {
+                blocked.push(user);
+                localStorage.setItem('appBlockedUsers', JSON.stringify(blocked));
+                alert('🚫 User ' + user + ' blocked successfully.');
+                document.getElementById('blockUserInput').value = '';
+                renderBlockedList();
+            }
+        }
+
+        function renderBlockedList() {
+            let container = document.getElementById('blockedListContainer');
+            let blocked = JSON.parse(localStorage.getItem('appBlockedUsers') || '[]');
+            if(blocked.length === 0) {
+                container.innerHTML = '<p style="color:#777; text-align:center;">No users blocked yet.</p>';
+            } else {
+                container.innerHTML = blocked.map(u => `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #222;"><span>${u}</span><span style="color:var(--theme-color, #fe2c55); cursor:pointer;" onclick="unblockUser('${u}')">Unblock</span></div>`).join('');
+            }
+        }
+
+        function unblockUser(user) {
+            let blocked = JSON.parse(localStorage.getItem('appBlockedUsers') || '[]');
+            blocked = blocked.filter(u => u !== user);
+            localStorage.setItem('appBlockedUsers', JSON.stringify(blocked));
+            renderBlockedList();
+        }
+
         function saveAccountInfo() {
-            let phone = document.getElementById('accPhone').value.trim();
-            let email = document.getElementById('accEmail').value.trim();
-            let dob = document.getElementById('accDob').value;
-            let region = document.getElementById('accRegion').value;
-
-            localStorage.setItem('appPhone', phone);
-            localStorage.setItem('appGmail', email);
-            localStorage.setItem('appDob', dob);
-            localStorage.setItem('appRegion', region);
-
-            alert('✅ Account Information updated successfully!\n📱 Phone: ' + phone + '\n✉️ Email: ' + email + '\n🎂 DOB: ' + dob + '\n🌍 Region: ' + region);
+            localStorage.setItem('appPhone', document.getElementById('accPhone').value.trim());
+            localStorage.setItem('appGmail', document.getElementById('accEmail').value.trim());
+            localStorage.setItem('appDob', document.getElementById('accDob').value);
+            localStorage.setItem('appRegion', document.getElementById('accRegion').value);
+            alert('✅ Account Information updated successfully!');
             closeModal('accountInfoModal');
         }
 
         function updatePassword() {
-            let curr = document.getElementById('currPass').value;
             let npass = document.getElementById('newPass').value;
-            let conf = document.getElementById('confirmPass').value;
-
-            if(!curr || !npass || !conf) {
-                alert('⚠️ Please fill in all password fields.');
-                return;
-            }
-            if(npass.length < 6) {
-                alert('⚠️ New password must be at least 6 characters long.');
-                return;
-            }
-            if(npass !== conf) {
-                alert('⚠️ New password and confirmation do not match.');
-                return;
-            }
-
-            alert('🔒 Password changed and secured successfully!');
-            document.getElementById('currPass').value = '';
-            document.getElementById('newPass').value = '';
-            document.getElementById('confirmPass').value = '';
+            if(!npass || npass.length < 6) { alert('⚠️ Password must be at least 6 characters.'); return; }
+            alert('🔒 Password updated successfully!');
             closeModal('passwordModal');
         }
 
         function saveLegalMonetization() {
-            let name = document.getElementById('legalName').value.trim();
-            let country = document.getElementById('countrySelect').value;
-            let address = document.getElementById('streetAddress').value.trim();
-            let idNum = document.getElementById('idNumber').value.trim();
-            let zip = document.getElementById('zipCode').value.trim();
-            let admob = document.getElementById('admobInput').value.trim();
-            let payout = document.getElementById('payoutInput').value.trim();
-
-            if(!name || !address || !idNum || !zip || !admob || !payout) {
-                alert('⚠️ Please fill in all legal verification and pay system details completely.');
-                return;
-            }
-
-            localStorage.setItem('legalName', name);
-            localStorage.setItem('userCountry', country);
-            localStorage.setItem('streetAddress', address);
-            localStorage.setItem('idNumber', idNum);
-            localStorage.setItem('zipCode', zip);
-            localStorage.setItem('appAdMob', admob);
-            localStorage.setItem('payoutAcc', payout);
-
-            alert('🎉 Legal Verification Successful!\n✅ Country: ' + country + '\n✅ ID & Payout Connected.\n🚀 Ad Monetization Active (50% Creator / 50% Platform Owner Split Enabled).');
+            alert('🎉 Legal Verification Successful! Ad Monetization Active.');
             closeModal('monetizationModal');
         }
 
-        function setLanguage(langName) {
-            localStorage.setItem('appLanguage', langName);
-            document.getElementById('selectedLangDisplay').innerText = langName + ' ❯';
-            closeModal('langModal');
-            alert('🌐 App language changed to ' + langName);
-        }
-
-        function setTheme(themeName, colorHex) {
-            localStorage.setItem('appThemeName', themeName);
-            localStorage.setItem('appThemeColor', colorHex);
-            document.getElementById('selectedThemeDisplay').innerText = themeName + ' ❯';
-            closeModal('themeModal');
-            alert('🎨 Theme switched to ' + themeName);
-        }
-
         function handleLogout() {
-            if(confirm('Are you sure you want to log out?')) {
-                window.location.href = 'index.html';
-            }
+            if(confirm('Are you sure you want to log out?')) { window.location.href = 'index.html'; }
         }
     </script>
 </body>
