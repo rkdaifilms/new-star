@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call Priyance - Shorts & 10 Min Videos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #000; color: #fff; overflow-x: hidden; height: 100vh; }
+        
+        .top-header { position: fixed; top: 0; left: 0; width: 100%; display: flex; justify-content: center; align-items: center; gap: 20px; padding: 15px 20px; z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        .top-header span { font-size: 16px; font-weight: 600; color: rgba(255,255,255,0.6); cursor: pointer; }
+        .top-header span.active { color: #fff; border-bottom: 2px solid #fe2c55; padding-bottom: 4px; }
+        .top-header .search-icon { position: absolute; right: 20px; font-size: 20px; cursor: pointer; }
+
+        .feed-container { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
+        .feed-container::-webkit-scrollbar { display: none; }
+        
+        .video-card { position: relative; width: 100%; height: 100vh; scroll-snap-align: start; background: #111; display: flex; justify-content: center; align-items: center; }
+        .video-card video { width: 100%; height: 100%; object-fit: cover; }
+        
+        .video-info { position: absolute; bottom: 70px; left: 15px; right: 80px; z-index: 10; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        .video-info h3 { font-size: 16px; margin-bottom: 8px; }
+        .video-info p { font-size: 14px; margin-bottom: 8px; opacity: 0.9; }
+        .video-badge { display: inline-block; background: rgba(254, 44, 85, 0.8); padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-bottom: 6px; }
+
+        .action-buttons { position: absolute; right: 15px; bottom: 80px; display: flex; flex-direction: column; align-items: center; gap: 18px; z-index: 10; }
+        .action-btn { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .action-btn .icon { width: 45px; height: 45px; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; margin-bottom: 3px; }
+        .action-btn span { font-size: 12px; font-weight: 500; }
+
+        /* TikTok Style Gift Modal Popup */
+        #giftModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; z-index: 1000; border-top: 1px solid #333; }
+        .gift-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
+        .gift-item { background: #262626; border: 1px solid #444; border-radius: 10px; padding: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .gift-item:active { border-color: #fe2c55; background: #333; }
+        .gift-item .emoji { font-size: 24px; margin-bottom: 4px; }
+        .gift-item .price { font-size: 11px; color: #ffcc00; font-weight: bold; }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
+        .nav-item.active { color: #fff; }
+        .nav-item i { font-size: 20px; margin-bottom: 2px; }
+        .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="top-header">
+        <span>Following</span>
+        <span class="active">For You</span>
+        <div class="search-icon" onclick="alert('Search Creators')">🔍</div>
+    </div>
+
+    <div class="feed-container">
+        <div class="video-card">
+            <video src="https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-in-a-party-41650-large.mp4" autoplay loop muted playsinline></video>
+            <div class="video-info">
+                <span class="video-badge">🔥 10 Min Special Creator Video</span>
+                <h3>@ramram981152</h3>
+                <p>गर्मी में ठंढा डांस और फुल एंटरटेनमेंट! #Dance #Viral #CallPriyance</p>
+            </div>
+            <div class="action-buttons">
+                <div class="action-btn" onclick="alert('❤️ Liked!')"><div class="icon">❤️</div><span>125K</span></div>
+                <div class="action-btn" onclick="alert('💬 Comments')"><div class="icon">💬</div><span>1,420</span></div>
+                <!-- Gift Button opens TikTok style coin gift popup -->
+                <div class="action-btn" onclick="openGiftModal()"><div class="icon">🎁</div><span>Gift</span></div>
+                <div class="action-btn" onclick="alert('↗️ Shared to WhatsApp & Facebook!')"><div class="icon">↗️</div><span>Share</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TikTok Gift Tray Modal -->
+    <div id="giftModal">
+        <div class="gift-header">
+            <h4>Send Gift to Creator 🎁</h4>
+            <span onclick="closeGiftModal()" style="font-size:20px; cursor:pointer;">✕</span>
+        </div>
+        <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Select coin amount to send gift:</p>
+        <div class="gift-grid">
+            <div class="gift-item" onclick="sendGift(1, 'Rose 🌹')"><div class="emoji">🌹</div><div class="price">1 Coin</div></div>
+            <div class="gift-item" onclick="sendGift(5, 'Thumbs Up 👍')"><div class="emoji">👍</div><div class="price">5 Coins</div></div>
+            <div class="gift-item" onclick="sendGift(10, 'Ice Cream 🍦')"><div class="emoji">🍦</div><div class="price">10 Coins</div></div>
+            <div class="gift-item" onclick="sendGift(50, 'Sunglasses 😎')"><div class="emoji">😎</div><div class="price">50 Coins</div></div>
+            <div class="gift-item" onclick="sendGift(100, 'Ring 💍')"><div class="emoji">💍</div><div class="price">100 Coins</div></div>
+            <div class="gift-item" onclick="sendGift(300, 'Sports Car 🏎️')"><div class="emoji">🏎️</div><div class="price">300 Coins</div></div>
+            <div class="gift-item" onclick="sendGift(500, 'Castle 🏰')"><div class="emoji">🏰</div><div class="price">500 Coins</div></div>
+            <div class="gift-item" onclick="sendGift(1000, 'Universe 🌌')"><div class="emoji">🌌</div><div class="price">1000+ Coins</div></div>
+        </div>
+        <button onclick="window.location.href='wallet.html'" style="width:100%; background:#fe2c55; border:none; padding:10px; color:#fff; font-weight:bold; border-radius:6px; cursor:pointer;">🪙 Buy More Coins (Recharge)</button>
+    </div>
+
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item active"><i>🏠</i><span>Home</span></a>
+        <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
+        <a href="camera.html" class="nav-item"><div class="upload-plus-btn">+</div></a>
+        <a href="profile.html" class="nav-item"><i>👤</i><span>Inbox</span></a>
+        <a href="profile.html" class="nav-item"><i>⭐</i><span>Profile</span></a>
+    </div>
+
+    <script>
+        function openGiftModal() { document.getElementById('giftModal').style.display = 'block'; }
+        function closeGiftModal() { document.getElementById('giftModal').style.display = 'none'; }
+        function sendGift(coins, name) {
+            alert('🎉 You successfully sent ' + name + ' (' + coins + ' Coins) to @ramram981152!');
+            closeGiftModal();
+        }
+    </script>
+</body>
+</html>
