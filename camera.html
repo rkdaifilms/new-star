@@ -17,11 +17,11 @@
         .tab-btn { background: #1a1a1a; color: #aaa; border: 1px solid #333; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; transition: 0.2s; }
         .tab-btn.active { background: #fe2c55; color: #fff; border-color: #fe2c55; }
 
-        /* Clean TikTok Style Studio Container */
+        /* Clean Studio Box */
         .studio-box { width: 100%; max-width: 450px; margin-top: 20px; background: #141414; border: 1px solid #333; border-radius: 20px; padding: 30px 20px; text-align: center; position: relative; }
         
-        /* Clean Upload Icon Centerpiece (No clutter) */
-        .big-upload-icon { width: 90px; height: 90px; background: #1f1f1f; border: 2px dashed #fe2c55; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 38px; margin: 10px auto 20px auto; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(254,44,85,0.2); }
+        /* Clean Upload Icon Centerpiece */
+        .big-upload-icon { width: 95px; height: 95px; background: #1f1f1f; border: 2px dashed #fe2c55; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 40px; margin: 10px auto 15px auto; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(254,44,85,0.2); }
         .big-upload-icon:hover { transform: scale(1.05); border-color: #25f4ee; }
 
         .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 15px; border: none; cursor: pointer; }
@@ -35,17 +35,21 @@
         .settings-gear-btn { position: absolute; top: 20px; right: 20px; background: #222; border: 1px solid #444; width: 38px; height: 38px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; transition: 0.2s; }
         .settings-gear-btn:hover { background: #fe2c55; border-color: #fe2c55; }
 
-        /* ADVANCED SETTINGS DRAWER WITH CLEAR INSTRUCTIONS */
+        /* SETTINGS DRAWER WITH ICONS */
         #settingsDrawer { display: none; background: #1a1a1a; border: 1px solid #444; border-radius: 14px; padding: 15px; margin-top: 15px; text-align: left; box-shadow: inset 0 2px 10px rgba(0,0,0,0.6); }
         .setting-group { margin-bottom: 12px; }
         .setting-label { font-size: 11px; color: #ffcc00; display: block; margin-bottom: 3px; font-weight: bold; }
         .setting-desc-hint { font-size: 10px; color: #888; margin-bottom: 4px; display: block; }
 
-        /* 9-10 Seats Voice Room Grid */
+        /* Voice Room & Video Room Grids */
         .voice-seats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
         .voice-seat { background: #1f1f1f; border: 1px dashed #555; height: 65px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #ccc; cursor: pointer; position: relative; }
         .voice-seat.active { border: 2px solid #25f4ee; background: #102a2a; color: #25f4ee; font-weight: bold; }
         .seat-number { position: absolute; top: 2px; right: 8px; font-size: 9px; color: #ffcc00; }
+
+        .video-seats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 15px 0; width: 100%; }
+        .video-seat-box { background: #1a1a1a; border: 1px solid #333; height: 110px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #aaa; position: relative; cursor: pointer; }
+        .video-seat-box.active { border: 2px solid #fe2c55; background: #221015; color: #fe2c55; font-weight: bold; }
 
         /* ACTIVE LIVE BROADCAST ROOM */
         #activeLiveView { display: none; width: 100%; max-width: 450px; background: #111; border: 2px solid #fe2c55; padding: 15px; border-radius: 16px; margin-top: 15px; text-align: center; position: relative; }
@@ -94,7 +98,7 @@
 
         <p id="liveStatusText" style="font-size: 13px; color: #ccc; margin-bottom: 10px;"></p>
         
-        <div id="activeLiveDynamicArea" style="margin-bottom: 15px; min-height: 220px; display:flex; flex-direction:column; justify-content:center; align-items:center;"></div>
+        <div id="activeLiveDynamicArea" style="margin-bottom: 15px; min-height: 220px; display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%;"></div>
 
         <!-- Floating Side Actions: Like, Gift, Share -->
         <div class="live-side-actions">
@@ -104,7 +108,7 @@
         </div>
 
         <!-- Live Chat / Comments Box -->
-        <div style="background:#1a1a1a; border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:12px; text-align:left; max-height:100px; overflow-y:auto;">
+        <div style="background:#1a1a1a; border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:12px; text-align:left; max-height:100px; overflow-y:auto; width:100%;">
             <p style="font-size:11px; color:#aaa;">💬 <b>Rohit Painter:</b> Room mast chal raha hai bhai! 🔥</p>
             <p style="font-size:11px; color:#aaa;">💬 <b>Priyance Official:</b> Sent a Lion Gift 🦁 (1000 Coins)!</p>
         </div>
@@ -137,87 +141,73 @@
             if(mode === 'video') {
                 panel.innerHTML = `
                     <div class="studio-box">
-                        <!-- SETTINGS GEAR ICON WITH TOOLTIP -->
-                        <div class="settings-gear-btn" onclick="toggleSettingsDrawer()" title="Click to open Advanced Creator Settings">⚙️</div>
+                        <div class="settings-gear-btn" onclick="toggleSettingsDrawer()" title="⚙️ Creator Settings">⚙️</div>
 
-                        <!-- CLEAN UPLOAD ICON (No clutter) -->
-                        <div class="big-upload-icon" onclick="document.getElementById('hiddenVideoInput').click()" title="Click to select or record video">📹</div>
+                        <div class="big-upload-icon" onclick="document.getElementById('hiddenVideoInput').click()" title="📹 Choose Video from Device">📹</div>
                         <input type="file" id="hiddenVideoInput" accept="video/*" style="display:none;" onchange="alert('✅ Video file selected successfully!')">
-
-                        <div style="font-size:13px; color:#aaa; margin-bottom:15px;">Tap the video icon above to select from file manager or record direct.</div>
                         
+                        <div style="font-size:12px; color:#aaa; margin-bottom:15px;">Tap the video icon above to upload or record video.</div>
+
                         <label style="font-size:11px; color:#aaa; display:block;">Video Caption & Hashtags:</label>
                         <input type="text" id="vidCaption" placeholder="e.g. Amazing Dance #Viral #CallPriyance" style="margin-bottom:12px;">
 
-                        <!-- CLEAN SETTINGS DRAWER WITH CLEAR INSTRUCTIONS -->
                         <div id="settingsDrawer">
-                            <h4 style="color: #25f4ee; font-size: 13px; margin-bottom: 10px;">⚙️ Creator Studio Pro Settings</h4>
+                            <h4 style="color: #25f4ee; font-size: 13px; margin-bottom: 10px;">⚙️ Pro Creator Settings</h4>
                             
                             <div class="setting-group">
                                 <span class="setting-label">🎨 Video Color Theme / Filter:</span>
-                                <span class="setting-desc-hint">Changes color tone & cinematic look of your video.</span>
-                                <select>
-                                    <option>✨ Normal / Original</option>
-                                    <option>🔥 Cinematic Vibrant</option>
-                                    <option>🖤 Black & White Artistic</option>
-                                    <option>🌅 Warm Golden Glow</option>
-                                </select>
+                                <span class="setting-desc-hint">इस्तेमाल: वीडियो का कलर टोन और सिनेमैटिक लुक बदलने के लिए।</span>
+                                <select><option>✨ Normal</option><option>🔥 Cinematic Vibrant</option><option>🖤 B&W</option></select>
                             </div>
 
                             <div class="setting-group">
                                 <span class="setting-label">📐 Video Aspect Ratio / Size:</span>
-                                <span class="setting-desc-hint">Sets video frame size for TikTok, Reels or YouTube.</span>
-                                <select>
-                                    <option>📱 9:16 Vertical (TikTok / Reels Style)</option>
-                                    <option>⬛ 1:1 Square</option>
-                                    <option>🖥️ 16:9 Landscape</option>
-                                </select>
+                                <span class="setting-desc-hint">इस्तेमाल: TikTok, Reels या YouTube के हिसाब से साइज सेट करें।</span>
+                                <select><option>📱 9:16 Vertical</option><option>⬛ 1:1 Square</option></select>
                             </div>
 
                             <div class="setting-group">
-                                <span class="setting-label">💡 Brightness & Lighting Control:</span>
-                                <span class="setting-desc-hint">Adjusts video exposure and brightness level.</span>
+                                <span class="setting-label">💡 Brightness Control:</span>
+                                <span class="setting-desc-hint">इस्तेमाल: वीडियो की लाइट कम-बेसी करने के लिए।</span>
                                 <input type="range" min="50" max="150" value="100" style="width:100%; margin:4px 0;">
                             </div>
 
                             <div class="setting-group">
-                                <span class="setting-label">🛒 Bio Product / Selling Link (Affiliate):</span>
-                                <span class="setting-desc-hint">Adds a clickable shopping/store link to your video bio.</span>
-                                <input type="text" id="bioProductLink" placeholder="https://store.com/product-link">
+                                <span class="setting-label">🛒 Bio Product / Selling Link:</span>
+                                <span class="setting-desc-hint">इस्तेमाल: अपने सामान या एफिलिएट स्टोर का लिंक बायो में लगाएं।</span>
+                                <input type="text" placeholder="https://store.com/product-link">
                             </div>
 
                             <div class="setting-group">
-                                <span class="setting-label">🎙️ Microphone Voiceover Studio:</span>
-                                <span class="setting-desc-hint">Records your voice over the video in real-time.</span>
-                                <button class="btn" style="margin-top:2px; padding:8px; background:#7928ca; color:#fff;" onclick="toggleVoiceRecording(this)">🎙️ Start Recording Overvoice</button>
-                                <p id="voiceStatus" style="font-size:11px; color:#aaa; margin-top:4px; display:none;">🔴 Recording audio... Click again to stop.</p>
+                                <span class="setting-label">🎙️ Voiceover Studio:</span>
+                                <span class="setting-desc-hint">इस्तेमाल: वीडियो के ऊपर अपनी खुद की आवाज रिकॉर्ड करें।</span>
+                                <button class="btn" style="margin-top:2px; padding:8px; background:#7928ca; color:#fff;" onclick="toggleVoiceRecording(this)">🎙️ Record Overvoice</button>
+                                <p id="voiceStatus" style="font-size:11px; color:#aaa; margin-top:4px; display:none;">🔴 Recording audio...</p>
                             </div>
                         </div>
 
                         <label style="font-size:11px; color:#aaa; margin-top:10px; display:block;">Privacy Control:</label>
-                        <select style="margin-bottom:12px;">
-                            <option>Public (Everyone can watch & gift)</option>
-                            <option>Friends Only</option>
-                            <option>Private</option>
-                        </select>
+                        <select style="margin-bottom:12px;"><option>Public</option><option>Friends Only</option><option>Private</option></select>
 
                         <button class="btn btn-live" onclick="publishVideo()">🚀 Publish Video Now</button>
-                        <div id="pubSuccess" class="success-banner">✅ Video published successfully with Pro Settings & Voiceover!</div>
+                        <div id="pubSuccess" class="success-banner">✅ Video published successfully!</div>
                     </div>
                 `;
             } else if(mode === 'live') {
                 panel.innerHTML = `
                     <div class="studio-box">
                         <div class="section-title">🔴 Video LIVE Stream & PK Battle</div>
-                        <div class="section-desc">Go live with multi-creators on split screen & collect real-time coin gifts (30% fee).</div>
+                        <div class="section-desc">Go live with multi-creators on split screen & collect coin gifts.</div>
                         <label style="font-size:11px; color:#aaa;">Live Stream Title:</label>
-                        <input type="text" id="liveTitleInput" value="Night Dance & Music Party 🎉" style="margin-bottom:10px;">
-                        <label style="font-size:11px; color:#aaa; display:block;">Hosting Mode:</label>
-                        <select id="videoLiveMode" style="margin-bottom:10px;">
-                            <option value="single">Single Creator Stream Room</option>
-                            <option value="pk">2-Way PK Battle Room (Split Screen)</option>
-                            <option value="multi">4-Way Multi-Host Grid Room</option>
-                        </select>
+                        <input type="text" id="liveTitleInput" value="Night Dance Party 🎉" style="margin-bottom:10px;">
+                        
+                        <div class="video-seats-grid" style="margin: 15px 0;">
+                            <div class="video-seat-box active">👑 Main Host<br><span style="font-size:9px; color:#25f4ee;">Camera Active</span></div>
+                            <div class="video-seat-box" onclick="inviteSeat(2)">+ Add Guest 2</div>
+                            <div class="video-seat-box" onclick="inviteSeat(3)">+ PK Battle 3</div>
+                            <div class="video-seat-box" onclick="inviteSeat(4)">+ Add Guest 4</div>
+                        </div>
+
                         <button class="btn btn-live" onclick="startLiveRoom('videoLive')">🔴 Start Video LIVE Room Now</button>
                     </div>
                 `;
@@ -225,18 +215,18 @@
                 panel.innerHTML = `
                     <div class="studio-box">
                         <div class="section-title">🎙️ Audio Voice Party Room (10 Seats)</div>
-                        <div class="section-desc">Open audio chat room, invite up to 10 friends on stage to talk & receive gifts.</div>
+                        <div class="section-desc">Open audio room, invite up to 10 friends on stage to talk & gift.</div>
                         <div class="voice-seats-grid">
                             <div class="voice-seat active"><span class="seat-number">1</span>👑 Host</div>
-                            <div class="voice-seat"><span class="seat-number">2</span>+ Add</div>
-                            <div class="voice-seat"><span class="seat-number">3</span>+ Add</div>
-                            <div class="voice-seat"><span class="seat-number">4</span>+ Add</div>
-                            <div class="voice-seat"><span class="seat-number">5</span>+ Add</div>
-                            <div class="voice-seat"><span class="seat-number">6</span>+ Add</div>
-                            <div class="voice-seat"><span class="seat-number">7</span>+ Add</div>
-                            <div class="voice-seat"><span class="seat-number">8</span>+ Add</div>
-                            <div class="voice-seat"><span class="seat-number">9</span>+ Add</div>
-                            <div class="voice-seat"><span class="seat-number">10</span>+ Add</div>
+                            <div class="voice-seat" onclick="inviteSeat(2)"><span class="seat-number">2</span>+ Add</div>
+                            <div class="voice-seat" onclick="inviteSeat(3)"><span class="seat-number">3</span>+ Add</div>
+                            <div class="voice-seat" onclick="inviteSeat(4)"><span class="seat-number">4</span>+ Add</div>
+                            <div class="voice-seat" onclick="inviteSeat(5)"><span class="seat-number">5</span>+ Add</div>
+                            <div class="voice-seat" onclick="inviteSeat(6)"><span class="seat-number">6</span>+ Add</div>
+                            <div class="voice-seat" onclick="inviteSeat(7)"><span class="seat-number">7</span>+ Add</div>
+                            <div class="voice-seat" onclick="inviteSeat(8)"><span class="seat-number">8</span>+ Add</div>
+                            <div class="voice-seat" onclick="inviteSeat(9)"><span class="seat-number">9</span>+ Add</div>
+                            <div class="voice-seat" onclick="inviteSeat(10)"><span class="seat-number">10</span>+ Add</div>
                         </div>
                         <button class="btn btn-voice" onclick="startLiveRoom('voiceRoom')">🟢 Go LIVE Audio Room</button>
                     </div>
@@ -245,14 +235,20 @@
                 panel.innerHTML = `
                     <div class="studio-box">
                         <div class="section-title">🎮 Live Gaming Stream & App Launcher</div>
-                        <div class="section-desc">Launch and broadcast mobile gameplay live (Free Fire, PUBG, Ludo) instantly.</div>
+                        <div class="section-desc">Launch and broadcast mobile gameplay live (Free Fire, PUBG, Ludo).</div>
                         <label style="font-size:11px; color:#aaa;">Select Game to Launch & Stream:</label>
                         <select id="selectedGameName" style="margin-bottom:10px;">
                             <option value="Free Fire">🔥 Free Fire Mobile</option>
-                            <option value="PUBG Mobile">🎯 PUBG Mobile / Battlegrounds</option>
+                            <option value="PUBG Mobile">🎯 PUBG Mobile</option>
                             <option value="Ludo King">🎲 Ludo King</option>
                             <option value="Subway Surfers">🛹 Subway Surfers</option>
                         </select>
+
+                        <div class="video-seats-grid" style="margin: 15px 0;">
+                            <div class="video-seat-box active">🎮 Gameplay<br><span style="font-size:9px; color:#25f4ee;">60FPS Active</span></div>
+                            <div class="video-seat-box" onclick="inviteSeat(2)">+ Facecam Guest</div>
+                        </div>
+
                         <button class="btn btn-game" onclick="startLiveRoom('gamingLive')">🚀 Launch Game & Start Live Room</button>
                     </div>
                 `;
@@ -270,12 +266,12 @@
             let status = document.getElementById('voiceStatus');
             if(isRecordingVoice) {
                 btn.style.background = '#fe2c55';
-                btn.innerText = '⏹️ Stop Recording Voiceover';
+                btn.innerText = '⏹️ Stop Recording';
                 status.style.display = 'block';
             } else {
                 btn.style.background = '#7928ca';
-                btn.innerText = '🎙️ Record Overvoice Again';
-                status.innerText = '✅ Voiceover attached successfully!';
+                btn.innerText = '🎙️ Record Overvoice';
+                status.innerText = '✅ Voiceover attached!';
             }
         }
 
@@ -311,18 +307,22 @@
             } else if(roomType === 'videoLive') {
                 statusText.innerText = '🔴 Video LIVE Stream & PK Battle Room Active';
                 dynamicArea.innerHTML = `
-                    <div style="background:#1a1a1a; border:1px solid #333; padding:20px; border-radius:12px; width:100%; text-align:center;">
-                        <h4 style="color:#25f4ee; margin-bottom:6px;">🎥 Video Camera & Split Screen Live</h4>
-                        <p style="font-size:12px; color:#aaa;">Broadcasting live video feed with real-time multi-host PK grid.</p>
+                    <p style="font-size:11px; color:#aaa; margin-bottom:6px;">Multi-Host Video Split Screen Grid:</p>
+                    <div class="video-seats-grid" style="width:100%;">
+                        <div class="video-seat-box active">👑 Main Host<br><span style="font-size:9px; color:#25f4ee;">Camera Active</span></div>
+                        <div class="video-seat-box" onclick="inviteSeat(2)">+ Add Guest (Seat 2)</div>
+                        <div class="video-seat-box" onclick="inviteSeat(3)">+ PK Battle (Seat 3)</div>
+                        <div class="video-seat-box" onclick="inviteSeat(4)">+ Add Guest (Seat 4)</div>
                     </div>
                 `;
             } else if(roomType === 'gamingLive') {
                 let gameName = document.getElementById('selectedGameName').value;
                 statusText.innerText = '🎮 Gaming Live Stream Room Active: ' + gameName;
                 dynamicArea.innerHTML = `
-                    <div style="background:#112233; border:1px solid #00b4d8; padding:15px; border-radius:10px; width:100%; text-align:left;">
-                        <h4 style="color:#25f4ee; font-size:14px; margin-bottom:5px;">⚡ Game Launcher: ${gameName}</h4>
-                        <p style="font-size:12px; color:#fff;">Game rendered at 60FPS. Screen capture & mic audio streaming live with gifting & chat.</p>
+                    <p style="font-size:11px; color:#aaa; margin-bottom:6px;">Gameplay Broadcast & Co-Streamers:</p>
+                    <div class="video-seats-grid" style="width:100%;">
+                        <div class="video-seat-box active">🎮 ${gameName}<br><span style="font-size:9px; color:#25f4ee;">60FPS Gameplay</span></div>
+                        <div class="video-seat-box" onclick="inviteSeat(2)">+ Co-Streamer Facecam</div>
                     </div>
                 `;
             }
