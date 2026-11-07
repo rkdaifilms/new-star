@@ -21,8 +21,15 @@
         .stat-label { font-size: 12px; color: #888; }
 
         .profile-btns { display: flex; justify-content: center; gap: 10px; padding: 0 20px; margin-bottom: 25px; }
-        .p-btn { background: #222; border: 1px solid #444; color: #fff; padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .p-btn { background: #222; border: 1px solid #444; color: #fff; padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; }
         .p-btn.active { background: #fe2c55; border-color: #fe2c55; }
+
+        /* Edit Profile Modal Form */
+        #editProfileModal { display: none; background: #181818; border: 1px solid #333; padding: 20px; margin: 15px; border-radius: 12px; text-align: left; }
+        #editProfileModal h3 { font-size: 16px; color: #fe2c55; margin-bottom: 15px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { font-size: 12px; color: #aaa; display: block; margin-bottom: 4px; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 14px; }
 
         .grid-videos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
         .grid-item { background: #222; aspect-ratio: 9/16; position: relative; display: flex; align-items: flex-end; padding: 8px; font-size: 11px; font-weight: bold; }
@@ -36,23 +43,60 @@
 <body>
     <div class="header">
         <a href="wallet.html" style="color:#fff; text-decoration:none; font-size:14px;">🪙 Wallet</a>
-        <h2>Ramkumar Dhobi</h2>
+        <h2 id="displayName">Ramkumar Dhobi</h2>
         <a href="settings.html" class="menu-icon">☰</a>
     </div>
 
     <div class="profile-box">
-        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="avatar" alt="Profile">
-        <h2>Ramkumar Dhobi</h2>
-        <p>@ramram981152 | Call Priyance Creator</p>
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="avatar" id="profilePicPreview" alt="Profile">
+        <h2 id="profileNameText">Ramkumar Dhobi</h2>
+        <p id="profileHandleText">@ramram981152 | Call Priyance Creator</p>
+        
         <div class="stats">
             <div><div class="stat-num">142</div><div class="stat-label">Following</div></div>
             <div><div class="stat-num">24.8K</div><div class="stat-label">Followers</div></div>
             <div><div class="stat-num">180.5K</div><div class="stat-label">Likes</div></div>
         </div>
+
         <div class="profile-btns">
-            <a href="settings.html" class="p-btn active">Edit profile</a>
+            <!-- Opens Edit Profile Form directly on the same page -->
+            <button class="p-btn active" onclick="toggleEditProfile()">Edit profile</button>
             <a href="wallet.html" class="p-btn">My Balance</a>
         </div>
+    </div>
+
+    <!-- TikTok & Facebook Style Edit Profile Form Popup -->
+    <div id="editProfileModal">
+        <h3>✏️ Edit Profile Details</h3>
+        <div class="form-group">
+            <label>Profile Picture Image URL:</label>
+            <input type="text" id="inputPicUrl" value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200">
+        </div>
+        <div class="form-group">
+            <label>Full Name:</label>
+            <input type="text" id="inputName" value="Ramkumar Dhobi">
+        </div>
+        <div class="form-group">
+            <label>Username (Handle):</label>
+            <input type="text" id="inputHandle" value="@ramram981152">
+        </div>
+        <div class="form-group">
+            <label>Bio / What you do (Profession):</label>
+            <textarea id="inputBio" rows="2">Painter & Call Priyance Creator Hub</textarea>
+        </div>
+        <div class="form-group">
+            <label>Gmail Address:</label>
+            <input type="email" id="inputGmail" value="ram060039@gmail.com">
+        </div>
+        <div class="form-group">
+            <label>Phone Number:</label>
+            <input type="text" id="inputPhone" value="+977 98XXXXXXXX">
+        </div>
+        <div class="form-group">
+            <label>Website / Social Link:</label>
+            <input type="text" id="inputLink" value="https://github.com/new-star">
+        </div>
+        <button class="p-btn active" style="width:100%; margin-top:10px; padding:12px;" onclick="saveProfileChanges()">Save Profile Changes</button>
     </div>
 
     <div class="grid-videos">
@@ -68,5 +112,32 @@
         <a href="profile.html" class="nav-item"><i>👤</i><span>Inbox</span></a>
         <a href="profile.html" class="nav-item active"><i>⭐</i><span>Profile</span></a>
     </div>
+
+    <script>
+        function toggleEditProfile() {
+            let modal = document.getElementById('editProfileModal');
+            if(modal.style.display === 'block') {
+                modal.style.display = 'none';
+            } else {
+                modal.style.display = 'block';
+                window.scrollTo({ top: 100, behavior: 'smooth' });
+            }
+        }
+
+        function saveProfileChanges() {
+            let newName = document.getElementById('inputName').value;
+            let newHandle = document.getElementById('inputHandle').value;
+            let newBio = document.getElementById('inputBio').value;
+            let newPic = document.getElementById('inputPicUrl').value;
+
+            document.getElementById('displayName').innerText = newName;
+            document.getElementById('profileNameText').innerText = newName;
+            document.getElementById('profileHandleText').innerText = newHandle + ' | ' + newBio;
+            document.getElementById('profilePicPreview').src = newPic;
+
+            document.getElementById('editProfileModal').style.display = 'none';
+            alert('✅ Profile updated successfully!');
+        }
+    </script>
 </body>
 </html>
