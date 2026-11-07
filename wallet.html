@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Merchant Wallet & Worldwide Payout - Call Priyance</title>
+    <title>Global Merchant Wallet & Creator Payout - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #0f0f0f; color: #fff; padding-bottom: 70px; }
@@ -16,8 +16,9 @@
         .wallet-card h1 { font-size: 32px; margin: 10px 0; }
         .coins-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 12px; }
         
-        /* Creator Earnings Card */
-        .creator-card { background: linear-gradient(135deg, #00b4d8, #0077b6); margin: 20px; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,180,216,0.3); }
+        /* Creator Earnings Clickable Card */
+        .creator-card { background: linear-gradient(135deg, #00b4d8, #0077b6); margin: 20px; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,180,216,0.3); cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
+        .creator-card:hover { border-color: #25f4ee; transform: scale(1.01); }
 
         .section { padding: 0 20px; margin-top: 25px; }
         .section h3 { font-size: 16px; margin-bottom: 12px; color: #25f4ee; }
@@ -34,12 +35,13 @@
         .box p { font-size: 13px; color: #aaa; margin-top: 5px; }
         
         .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; border: none; cursor: pointer; }
-        .btn-outline { background: transparent; border: 1px solid #25f4ee; color: #25f4ee; }
+        .btn-outline { background: #00b4d8; color: #000; border: none; font-weight: bold; }
         input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 8px; font-size: 14px; outline: none; }
         
-        /* Active Payment Form Container */
-        #paymentSection { display: none; background: #1f1f1f; border: 2px solid #fe2c55; padding: 20px; border-radius: 12px; margin-top: 20px; }
-        
+        /* Active Payment & Popup Creator Payout Container */
+        #paymentSection, #creatorPayoutSection { display: none; background: #1f1f1f; border: 2px solid #00b4d8; padding: 20px; border-radius: 12px; margin: 20px; }
+        #paymentSection { border-color: #fe2c55; }
+
         /* Real Bank SMS Simulation Box */
         #smsBox { display: none; background: #112233; border: 2px solid #00b4d8; padding: 15px; border-radius: 10px; margin-top: 15px; }
         #smsBox h4 { color: #90e0ef; font-size: 14px; margin-bottom: 5px; }
@@ -59,6 +61,7 @@
         <div>🪙</div>
     </div>
 
+    <!-- User Spendable Coins Card -->
     <div class="wallet-card">
         <h4>My Spendable Coins</h4>
         <h1 id="userCoins">19,550 🪙</h1>
@@ -67,14 +70,45 @@
         </div>
     </div>
 
-    <!-- 🎬 CREATOR EARNINGS & WORLDWIDE MONETIZATION CARD -->
-    <div class="creator-card">
-        <h4>🎬 Creator Earnings (Gifts, Sponsorship & Monetization)</h4>
-        <h1 id="creatorBalance">$34.50</h1>
+    <!-- 🎬 CLICKABLE CREATOR EARNINGS CARD (Gifts + Ads + Sponsorship Combined) -->
+    <div class="creator-card" onclick="toggleCreatorPayout()">
+        <h4>🎬 Creator Total Main Balance (Click to Withdraw) 👇</h4>
+        <h1 id="creatorTotalBalance">$1,250.00</h1>
         <div class="coins-row">
-            <span>Net Redeemable (70% Share): <strong id="netCreatorEarn">$24.15</strong></span>
-            <span style="font-size:11px; opacity:0.9;">30% Platform Fee</span>
+            <span>Net Redeemable Balance: <strong id="netCreatorEarn">$1,250.00</strong></span>
+            <span style="font-size:11px; opacity:0.9;">Gifts + Ads + Sponsorship</span>
         </div>
+    </div>
+
+    <!-- 💸 POPUP CREATOR WITHDRAWAL & PAYOUT SYSTEM (Opens dynamically on clicking card) -->
+    <div id="creatorPayoutSection">
+        <h3 style="color: #00b4d8; margin-bottom: 8px;">💸 Creator Worldwide Payout System</h3>
+        <p style="font-size: 13px; color: #ccc; margin-bottom: 12px; line-height: 1.4;">
+            Min. withdrawal limit: <b>$20.00</b> (No maximum limit! Withdraw your full balance anytime).<br>
+            ⚠️ <b>Special Rule:</b> Payouts above <b>$1,000.00</b> carry a <b>10% Developer Commission / Processing Fee</b>.<br>
+            Platform fee on standard gifts: 30% | You get: <b>70%</b>.
+        </p>
+
+        <label style="font-size:12px; color:#aaa;">Enter Withdrawal Amount (USD):</label>
+        <input type="number" id="withdrawAmount" value="1250.00" min="20" placeholder="Enter amount (Min $20, No max limit)">
+
+        <label style="font-size:12px; color:#aaa; margin-top:10px; display:block;">Select Your Country / Payout Method:</label>
+        <select id="creatorCountry">
+            <option value="nepal">🇳🇵 Nepal (eSewa / Khalti / Local Bank)</option>
+            <option value="india">🇮🇳 India (UPI / Google Pay / Paytm)</option>
+            <option value="usa">🇺🇸 USA / Americas (PayPal / Bank)</option>
+            <option value="europe">🇪🇺 Europe (IBAN / SEPA Transfer)</option>
+            <option value="gulf">🇦🇪 Gulf / UAE / Saudi (Local Bank)</option>
+            <option value="uk">🇬🇧 United Kingdom (UK Bank)</option>
+            <option value="bangladesh">🇧🇩 Bangladesh (bKash / Nagad)</option>
+            <option value="pakistan">🇵🇰 Pakistan (JazzCash / Easypaisa)</option>
+            <option value="global">🌍 Global Payoneer Account</option>
+        </select>
+
+        <label style="font-size:12px; color:#aaa; margin-top:10px; display:block;">Enter Your Account Details / UPI / eSewa Number:</label>
+        <input type="text" id="creatorAccountDetails" placeholder="e.g. eSewa No, UPI ID, or Bank Account">
+
+        <button class="btn btn-outline" onclick="submitCreatorPayout()" style="margin-top: 15px;">🚀 Confirm & Request Payout</button>
     </div>
 
     <!-- 🛠️ DEVELOPER MASTER MERCHANT / PAYONEER CONFIGURATION BOX (HIDDEN / OWNER CONTROL ONLY) -->
@@ -167,31 +201,6 @@
         </div>
     </div>
 
-    <!-- Creator Worldwide Payout System -->
-    <div class="section">
-        <h3>💸 Creator Worldwide Payout System</h3>
-        <div class="box">
-            <strong>Withdraw Earnings to Any Country (Min. Limit: $20.00 Required)</strong>
-            <p style="font-size: 12px; color: #25f4ee; margin-top: 4px; margin-bottom: 8px;">ℹ️ Platform deducts 30% commission; 70% goes directly to creator's local country account.</p>
-            
-            <label style="font-size:11px; color:#aaa;">Select Destination Country for Payout:</label>
-            <select id="payoutMethod">
-                <option value="nepal">🇳🇵 Nepal (eSewa / Khalti / Local Bank)</option>
-                <option value="india">🇮🇳 India (UPI / Google Pay / Bank)</option>
-                <option value="usa">🇺🇸 USA / Americas (PayPal / US Bank)</option>
-                <option value="europe">🇪🇺 Europe (IBAN / SEPA Bank Transfer)</option>
-                <option value="gulf">🇦🇪 Gulf / UAE / Saudi (Local Bank / Wallet)</option>
-                <option value="uk">🇬🇧 United Kingdom (UK Bank Account)</option>
-                <option value="bangladesh">🇧🇩 Bangladesh (bKash / Nagad / Bank)</option>
-                <option value="pakistan">🇵🇰 Pakistan (JazzCash / Easypaisa / Bank)</option>
-                <option value="global">🌍 Global Payoneer Account</option>
-            </select>
-            <input type="text" id="payoutDetails" placeholder="Enter account number, UPI ID, PayPal email, or IBAN">
-            
-            <button class="btn btn-outline" id="payoutSubmitBtn" onclick="requestPayout()">Request Worldwide Payout</button>
-        </div>
-    </div>
-
     <!-- Bottom Navigation Bar -->
     <div class="bottom-nav">
         <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
@@ -214,6 +223,45 @@
             if(!merchantId) { alert('⚠️ Enter ID'); return; }
             localStorage.setItem('appDevMerchantID', merchantId);
             alert('✅ Saved successfully!');
+        }
+
+        // Toggle Creator Payout Form on clicking the blue balance card
+        function toggleCreatorPayout() {
+            let pSec = document.getElementById('creatorPayoutSection');
+            if (pSec.style.display === 'block') {
+                pSec.style.display = 'none';
+            } else {
+                pSec.style.display = 'block';
+                pSec.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function submitCreatorPayout() {
+            let amount = parseFloat(document.getElementById('withdrawAmount').value);
+            let details = document.getElementById('creatorAccountDetails').value.trim();
+            let country = document.getElementById('creatorCountry').value;
+
+            if (isNaN(amount) || amount < 20.00) {
+                alert('❌ Minimum withdrawal limit is $20.00!');
+                return;
+            }
+            if (details === '') {
+                alert('⚠️ Please enter your account number, UPI ID, or eSewa number.');
+                return;
+            }
+
+            let finalPayout = amount;
+            let devFeeMsg = '';
+            
+            // If withdrawal is above $1000, apply 10% developer commission fee
+            if (amount > 1000.00) {
+                let devFee = amount * 0.10;
+                finalPayout = amount - devFee;
+                devFeeMsg = `\n⚙️ Large Payout Fee (10%): -$${devFee.toFixed(2)}\n💸 Final Transferred to Creator: $${finalPayout.toFixed(2)}`;
+            }
+
+            alert('✅ Payout Request Submitted Successfully!\n💰 Requested Amount: $' + amount.toFixed(2) + devFeeMsg + '\n🌍 Country/Method: ' + country.toUpperCase() + '\n📲 Funds will be transferred to your account shortly.');
+            document.getElementById('creatorPayoutSection').style.display = 'none';
         }
 
         let currentCoins = 100, currentBonus = 5, currentAmountUSD = 1.00, currentPriceStr = '$1.00';
@@ -273,13 +321,6 @@
 
             alert('✅ Payment Authorized Successfully!\n💰 Amount ' + currentPriceStr + ' transferred to Developer Master Merchant account.\n📲 SMS notification sent.');
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        }
-
-        function requestPayout() {
-            let details = document.getElementById('payoutDetails').value;
-            let method = document.getElementById('payoutMethod').value;
-            if(!details.trim()) { alert('⚠️ Please enter payout destination details.'); return; }
-            alert('✅ Worldwide Payout request submitted successfully via ' + method + '!\nYour net earnings ($24.15) will be transferred to your country account shortly.');
         }
     </script>
 </body>
