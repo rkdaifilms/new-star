@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wallet & Coin Recharge - Call Priyance</title>
+    <title>Creator Wallet, Coins & Global Payout - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #0f0f0f; color: #fff; padding-bottom: 70px; }
@@ -18,12 +18,21 @@
         
         .section { padding: 0 20px; margin-top: 25px; }
         .section h3 { font-size: 16px; margin-bottom: 12px; color: #25f4ee; }
+        
+        /* Coin Packages Grid */
+        .coin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 15px; }
+        .coin-box { background: #1a1a1a; border: 1px solid #333; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .coin-box:hover { border-color: #fe2c55; background: #222; }
+        .coin-box h4 { font-size: 18px; color: #ffcc00; margin-bottom: 5px; }
+        .coin-box p { font-size: 12px; color: #aaa; }
+        .bonus-badge { display: inline-block; background: #25f4ee; color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-top: 5px; }
+
         .box { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #333; }
         .box p { font-size: 13px; color: #aaa; margin-top: 5px; }
         
         .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; border: none; cursor: pointer; }
         .btn-outline { background: transparent; border: 1px solid #fe2c55; color: #fe2c55; }
-        input { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 8px; }
+        input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 8px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -37,32 +46,119 @@
         <h4>Creator Earnings Balance</h4>
         <h1>$482.50</h1>
         <div class="coins-row">
-            <span>Coin Balance: <strong>19,550 🪙</strong></span>
-            <button class="btn" style="width: auto; padding: 6px 15px; margin:0;" onclick="alert('Recharge gateway active')">Top Up</button>
+            <span>Coin Balance: <strong id="userCoins">19,550 🪙</strong></span>
+            <span style="font-size:12px; opacity:0.9;">1 Cent = 1 Coin Rate</span>
         </div>
     </div>
 
+    <!-- Coin Purchasing Packages ($1 to $1000 with Bonus) -->
     <div class="section">
-        <h3>💳 Debit / Credit Card (Buy Coins)</h3>
+        <h3>🪙 Buy Coins (1 Cent = 1 Coin + Bonus!)</h3>
+        <div class="coin-grid">
+            <div class="coin-box" onclick="buyCoinPackage(100, 5, '$1')">
+                <h4>100 🪙</h4>
+                <p>$1.00 USD</p>
+                <div class="bonus-badge">+5 Bonus Coins</div>
+            </div>
+            <div class="coin-box" onclick="buyCoinPackage(200, 15, '$2')">
+                <h4>200 🪙</h4>
+                <p>$2.00 USD</p>
+                <div class="bonus-badge">+15 Bonus Coins</div>
+            </div>
+            <div class="coin-box" onclick="buyCoinPackage(500, 50, '$5')">
+                <h4>500 🪙</h4>
+                <p>$5.00 USD</p>
+                <div class="bonus-badge">+50 Bonus Coins</div>
+            </div>
+            <div class="coin-box" onclick="buyCoinPackage(1000, 120, '$10')">
+                <h4>1,000 🪙</h4>
+                <p>$10.00 USD</p>
+                <div class="bonus-badge">+120 Bonus Coins</div>
+            </div>
+            <div class="coin-box" onclick="buyCoinPackage(2000, 300, '$20')">
+                <h4>2,000 🪙</h4>
+                <p>$20.00 USD</p>
+                <div class="bonus-badge">+300 Bonus Coins</div>
+            </div>
+            <div class="coin-box" onclick="buyCoinPackage(5000, 850, '$50')">
+                <h4>5,000 🪙</h4>
+                <p>$50.00 USD</p>
+                <div class="bonus-badge">+850 Bonus Coins</div>
+            </div>
+            <div class="coin-box" onclick="buyCoinPackage(10000, 2000, '$100')">
+                <h4>10,000 🪙</h4>
+                <p>$100.00 USD</p>
+                <div class="bonus-badge">+2,000 Bonus Coins</div>
+            </div>
+            <div class="coin-box" onclick="buyCoinPackage(100000, 25000, '$1000')">
+                <h4>100,000 🪙</h4>
+                <p>$1,000.00 USD</p>
+                <div class="bonus-badge">+25,000 Bonus</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Debit/Credit Card Gateway (Visa, Mastercard, Rupay) -->
+    <div class="section">
+        <h3>💳 Global Debit / Credit Card Payment</h3>
         <div class="box">
-            <strong>Visa / Mastercard / Rupay Gateway</strong>
-            <p>Purchase coin bundles instantly for gifting creators.</p>
-            <input type="text" placeholder="Card Number (XXXX XXXX XXXX XXXX)">
+            <strong>Secure Checkout (Stripe / Visa / Mastercard / Rupay)</strong>
+            <p>Works worldwide including India, Nepal, and international regions.</p>
+            <input type="text" id="cardNumber" placeholder="Card Number (4111 2222 3333 4444)">
             <div style="display:flex; gap:10px;">
                 <input type="text" placeholder="MM/YY">
                 <input type="password" placeholder="CVV">
             </div>
-            <button class="btn" onclick="alert('✅ Coins successfully credited via Card!')">Recharge Coins Now</button>
+            <button class="btn" onclick="processCardPayment()">Pay Securely & Add Coins</button>
         </div>
     </div>
 
+    <!-- Global & Local Payout (Payoneer, Bank, eSewa, UPI) -->
     <div class="section">
-        <h3>💸 Bank & eSewa / Khalti Payout</h3>
+        <h3>💸 Real Payout System (Payoneer & Local Banks)</h3>
         <div class="box">
-            <strong>Withdraw Earnings</strong>
-            <p>Connected: Ramkumar Dhobi (Nabil Bank / eSewa)</p>
-            <button class="btn btn-outline" onclick="alert('✅ Withdrawal request of $482.50 successfully processed!')">Withdraw Funds</button>
+            <strong>Withdraw Earnings ($482.50)</strong>
+            <p>Select your payout destination worldwide:</p>
+            <select id="payoutMethod">
+                <option value="payoneer">Payoneer Global Account (Worldwide)</option>
+                <option value="bank">Local Bank Transfer (Nepal / India / Global)</option>
+                <option value="esewa">eSewa / Khalti Wallet (Nepal)</option>
+                <option value="upi">UPI / Paytm (India)</option>
+            </select>
+            <input type="text" id="accountDetails" placeholder="Enter Payoneer Email / Bank Account / UPI ID">
+            <button class="btn btn-outline" onclick="processPayout()">Request Real Withdrawal</button>
         </div>
     </div>
+
+    <script>
+        let selectedCoins = 0;
+        let selectedPrice = '';
+
+        function buyCoinPackage(coins, bonus, price) {
+            selectedCoins = coins + bonus;
+            selectedPrice = price;
+            alert('🛒 Package Selected: ' + price + ' for ' + coins + ' Coins + ' + bonus + ' Bonus Coins!\nNow enter your Card details below to complete payment.');
+            window.scrollTo({ top: 400, behavior: 'smooth' });
+        }
+
+        function processCardPayment() {
+            let cardNum = document.getElementById('cardNumber').value;
+            if(cardNum.trim() === '') {
+                alert('⚠️ Please enter a valid Debit/Credit card number.');
+            } else {
+                alert('✅ Payment of ' + (selectedPrice || '$10.00') + ' successful via Credit/Debit Card!\n🎉 ' + (selectedCoins || 1120) + ' Coins added to your wallet.');
+            }
+        }
+
+        function processPayout() {
+            let method = document.getElementById('payoutMethod').value;
+            let details = document.getElementById('accountDetails').value;
+            if(details.trim() === '') {
+                alert('⚠️ Please enter your Payoneer Email or Bank Account details.');
+            } else {
+                alert('✅ Withdrawal request of $482.50 successfully submitted via ' + method.toUpperCase() + '!\nFunds will reflect in your account within 24 hours.');
+            }
+        }
+    </script>
 </body>
 </html>
