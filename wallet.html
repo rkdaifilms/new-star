@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet & Coin Recharge - Call Priyance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0f0f0f; color: #fff; padding-bottom: 70px; }
+        .header { background: #1a1a1a; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; }
+        .header h2 { font-size: 18px; }
+        .back-btn { color: #fff; text-decoration: none; font-size: 16px; }
+        
+        .wallet-card { background: linear-gradient(135deg, #fe2c55, #ff6b8b); margin: 20px; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(254,44,85,0.3); }
+        .wallet-card h4 { font-size: 14px; opacity: 0.9; }
+        .wallet-card h1 { font-size: 32px; margin: 10px 0; }
+        .coins-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 12px; }
+        
+        .section { padding: 0 20px; margin-top: 25px; }
+        .section h3 { font-size: 16px; margin-bottom: 12px; color: #25f4ee; }
+        .box { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #333; }
+        .box p { font-size: 13px; color: #aaa; margin-top: 5px; }
+        
+        .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; border: none; cursor: pointer; }
+        .btn-outline { background: transparent; border: 1px solid #fe2c55; color: #fe2c55; }
+        input { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-btn">← Back</a>
+        <h2>Wallet & Coin Recharge</h2>
+        <div>🪙</div>
+    </div>
+
+    <div class="wallet-card">
+        <h4>Creator Earnings Balance</h4>
+        <h1>$482.50</h1>
+        <div class="coins-row">
+            <span>Coin Balance: <strong>19,550 🪙</strong></span>
+            <button class="btn" style="width: auto; padding: 6px 15px; margin:0;" onclick="alert('Recharge gateway active')">Top Up</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>💳 Debit / Credit Card (Buy Coins)</h3>
+        <div class="box">
+            <strong>Visa / Mastercard / Rupay Gateway</strong>
+            <p>Purchase coin bundles instantly for gifting creators.</p>
+            <input type="text" placeholder="Card Number (XXXX XXXX XXXX XXXX)">
+            <div style="display:flex; gap:10px;">
+                <input type="text" placeholder="MM/YY">
+                <input type="password" placeholder="CVV">
+            </div>
+            <button class="btn" onclick="alert('✅ Coins successfully credited via Card!')">Recharge Coins Now</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>💸 Bank & eSewa / Khalti Payout</h3>
+        <div class="box">
+            <strong>Withdraw Earnings</strong>
+            <p>Connected: Ramkumar Dhobi (Nabil Bank / eSewa)</p>
+            <button class="btn btn-outline" onclick="alert('✅ Withdrawal request of $482.50 successfully processed!')">Withdraw Funds</button>
+        </div>
+    </div>
+</body>
+</html>
