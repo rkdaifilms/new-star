@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings, Monetization & Global Themes - Call Priyance</title>
+    <title id="pageTitle">Settings, Monetization & Global Themes - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--app-bg, #000); color: var(--app-text, #fff); padding-bottom: 70px; transition: 0.3s; }
@@ -52,83 +52,83 @@
 <body>
 
     <div class="header">
-        <a class="back-btn" onclick="history.back()">← Back</a>
-        <h2>Settings and privacy</h2>
+        <a class="back-btn" onclick="history.back()" id="txtBack">← Back</a>
+        <h2 id="txtHeaderTitle">Settings and privacy</h2>
         <span>⚙️</span>
     </div>
 
-    <div class="section-title">🚀 Creator Monetization & Earnings</div>
+    <div class="section-title" id="txtSecMonetization">🚀 Creator Monetization & Earnings</div>
     
     <div class="setting-item" onclick="openMonetizationDashboard()">
-        <span>AdSense / AdMob Monetization Hub</span>
+        <span id="txtAdSense">AdSense / AdMob Monetization Hub</span>
         <span class="right-val" id="monetizationStatusBadge" style="color:var(--theme-color, #fe2c55); font-weight:bold;">Check Criteria ❯</span>
     </div>
 
     <div class="setting-item" onclick="openSponsorshipHub()">
-        <span>Brand Sponsorships & Deals (1K Followers Lock)</span>
+        <span id="txtSponsorship">Brand Sponsorships & Deals (1K Followers Lock)</span>
         <span class="right-val" id="sponsorshipStatusBadge" style="color:#ffcc00;">Locked 🔒</span>
     </div>
 
     <div class="setting-item" onclick="openAffiliateHub()">
-        <span>Affiliate Marketing Program (1K Followers Lock)</span>
+        <span id="txtAffiliate">Affiliate Marketing Program (1K Followers Lock)</span>
         <span class="right-val" id="affiliateStatusBadge" style="color:#ffcc00;">Locked 🔒</span>
     </div>
 
-    <div class="section-title">Account & Security</div>
+    <div class="section-title" id="txtSecAccount">Account & Security</div>
     
     <div class="setting-item" onclick="openAccountInfoModal()">
-        <span>Account Information (Phone, Email, DOB, Region)</span>
-        <span class="right-val">Manage ❯</span>
+        <span id="txtAccInfo">Account Information (Phone, Email, DOB, Region)</span>
+        <span class="right-val" id="txtManage">Manage ❯</span>
     </div>
 
     <div class="setting-item" onclick="openPasswordModal()">
-        <span>Password & Security (Change Password)</span>
-        <span class="right-val">Update ❯</span>
+        <span id="txtPassSec">Password & Security (Change Password)</span>
+        <span class="right-val" id="txtUpdate">Update ❯</span>
     </div>
 
     <div class="setting-item" onclick="openBlockListModal()">
-        <span>Blocked Users & Fraud Management</span>
-        <span class="right-val" style="color:var(--theme-color, #fe2c55);">Manage Blocked ❯</span>
+        <span id="txtBlockUser">Blocked Users & Fraud Management</span>
+        <span class="right-val" id="txtManageBlock" style="color:var(--theme-color, #fe2c55);">Manage Blocked ❯</span>
     </div>
 
     <div class="setting-item" onclick="window.location.href='wallet.html'">
-        <span>Cards & Coin Balance</span>
+        <span id="txtCardsCoin">Cards & Coin Balance</span>
         <span class="right-val">Manage ❯</span>
     </div>
 
-    <div class="section-title">Preferences & Global Settings</div>
+    <div class="section-title" id="txtSecPrefs">Preferences & Global Settings</div>
 
     <div class="setting-item" onclick="openLanguageModal()">
-        <span>App Language (All World Country Languages)</span>
-        <span class="right-val" id="selectedLangDisplay">नेपाली / हिन्दी ❯</span>
+        <span id="txtAppLang">App Language (All World Country Languages)</span>
+        <span class="right-val" id="selectedLangDisplay">हिन्दी (Hindi) ❯</span>
     </div>
 
     <div class="setting-item" onclick="openThemeModal()">
-        <span>Themes & Color Modes (50+ Custom Colors)</span>
+        <span id="txtThemesColor">Themes & Color Modes (50+ Custom Colors)</span>
         <span class="right-val" id="selectedThemeDisplay">TikTok Red (Default) ❯</span>
     </div>
 
     <div class="logout-box">
-        <button class="logout-btn" onclick="handleLogout()">Log Out</button>
+        <button class="logout-btn" id="logoutBtn" onclick="handleLogout()">Log Out</button>
     </div>
 
-    <!-- BLOCKED USERS MODAL -->
+    <!-- BLOCKED USERS MODAL (Fake ID / Fraud Control) -->
     <div class="modal-overlay" id="blockModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('blockModal')">✕</span>
-            <h3>🚫 Blocked Users & Fraud Control</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Block any fraud or annoying user so they cannot message or view your content.</p>
+            <h3 id="txtBlockTitle">🚫 Blocked Users & Fraud Control</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;" id="txtBlockDesc">Block any fake ID, fraud or annoying user so they cannot message or view your content.</p>
             
-            <label style="font-size:11px; color:#ccc;">Block a User (Username / ID):</label>
+            <label style="font-size:11px; color:#ccc;" id="txtBlockLabel">Block a User (Username / ID):</label>
             <div style="display:flex; gap:8px;">
-                <input type="text" id="blockUserInput" class="form-input" placeholder="e.g. @fraud_user99" style="margin-bottom:0;">
-                <button class="action-pub-btn" style="width:110px; margin-top:0; padding:10px;" onclick="blockUserAction()">Block</button>
+                <input type="text" id="blockUserInput" class="form-input" placeholder="e.g. @fake_id_fraud" style="margin-bottom:0;">
+                <button class="action-pub-btn" id="txtBlockBtn" style="width:110px; margin-top:0; padding:10px;" onclick="blockUserAction()">Block</button>
             </div>
 
             <div style="margin-top:15px;">
-                <p style="font-size:12px; color:#ccc; margin-bottom:6px;"><b>Blocked Accounts List:</b></p>
+                <p style="font-size:12px; color:#ccc; margin-bottom:6px;"><b id="txtBlockedListTitle">Blocked Accounts List:</b></p>
                 <div id="blockedListContainer" style="background:#111; border:1px solid #333; border-radius:8px; padding:10px; max-height:160px; overflow-y:auto; font-size:13px;">
-                    <p style="color:#777; text-align:center;">No users blocked yet.</p>
+                    <p style="color:#777; text-align:center;" id="txtNoBlocked">No users blocked yet.</p>
                 </div>
             </div>
         </div>
@@ -138,19 +138,19 @@
     <div class="modal-overlay" id="accountInfoModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('accountInfoModal')">✕</span>
-            <h3>📱 Account Information</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Manage your personal account details and global region.</p>
+            <h3 id="txtAccModalTitle">📱 Account Information</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;" id="txtAccModalDesc">Manage your personal account details and global region.</p>
             
-            <label style="font-size:11px; color:#ccc;">Phone Number:</label>
+            <label style="font-size:11px; color:#ccc;" id="txtPhoneLabel">Phone Number:</label>
             <input type="text" id="accPhone" class="form-input" placeholder="+977XXXXXXXXX">
 
-            <label style="font-size:11px; color:#ccc;">Email Address:</label>
+            <label style="font-size:11px; color:#ccc;" id="txtEmailLabel">Email Address:</label>
             <input type="email" id="accEmail" class="form-input" placeholder="ram060039@gmail.com">
 
-            <label style="font-size:11px; color:#ccc;">Date of Birth:</label>
+            <label style="font-size:11px; color:#ccc;" id="txtDobLabel">Date of Birth:</label>
             <input type="date" id="accDob" class="form-input">
 
-            <label style="font-size:11px; color:#ccc;">Account Region / Country (All World Countries):</label>
+            <label style="font-size:11px; color:#ccc;" id="txtRegionLabel">Account Region / Country (All World Countries):</label>
             <select id="accRegion" class="form-select">
                 <option value="Nepal">🇳🇵 Nepal</option>
                 <option value="India">🇮🇳 India</option>
@@ -182,7 +182,6 @@
                 <option value="Russia">🇷🇺 Russia</option>
                 <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
                 <option value="Singapore">🇸🇬 Singapore</option>
-                <option value="South Africa">🇿🇦 South Africa</option>
                 <option value="South Korea">🇰🇷 South Korea</option>
                 <option value="Spain">🇪🇸 Spain</option>
                 <option value="Sri Lanka">🇱🇰 Sri Lanka</option>
@@ -196,7 +195,7 @@
                 <option value="Vietnam">🇻🇳 Vietnam</option>
             </select>
 
-            <button class="action-pub-btn" onclick="saveAccountInfo()">Save Account Changes</button>
+            <button class="action-pub-btn" id="txtSaveAcc" onclick="saveAccountInfo()">Save Account Changes</button>
         </div>
     </div>
 
@@ -204,19 +203,19 @@
     <div class="modal-overlay" id="passwordModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('passwordModal')">✕</span>
-            <h3>🔒 Change Password & Security</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Secure your account with a strong new password.</p>
+            <h3 id="txtPassModalTitle">🔒 Change Password & Security</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;" id="txtPassModalDesc">Secure your account with a strong new password.</p>
 
-            <label style="font-size:11px; color:#ccc;">Current Password:</label>
+            <label style="font-size:11px; color:#ccc;" id="txtCurrPassLabel">Current Password:</label>
             <input type="password" id="currPass" class="form-input" placeholder="Enter current password">
 
-            <label style="font-size:11px; color:#ccc;">New Password:</label>
+            <label style="font-size:11px; color:#ccc;" id="txtNewPassLabel">New Password:</label>
             <input type="password" id="newPass" class="form-input" placeholder="Enter new password (min 6 chars)">
 
-            <label style="font-size:11px; color:#ccc;">Confirm New Password:</label>
+            <label style="font-size:11px; color:#ccc;" id="txtConfPassLabel">Confirm New Password:</label>
             <input type="password" id="confirmPass" class="form-input" placeholder="Re-enter new password">
 
-            <button class="action-pub-btn" onclick="updatePassword()">Update Password</button>
+            <button class="action-pub-btn" id="txtUpdatePassBtn" onclick="updatePassword()">Update Password</button>
         </div>
     </div>
 
@@ -290,10 +289,8 @@
             <div id="sponsorshipLockedMsg" style="background:#311; border:1px solid #fe2c55; padding:12px; border-radius:8px; text-align:center; margin-bottom:15px;">
                 <p style="font-size:13px; color:#ffcc00; font-weight:bold;">🔒 LOCKED FEATURE</p>
                 <p style="font-size:11px; color:#aaa; margin-top:4px;">You need at least <b>1,000 Followers</b> to unlock Brand Sponsorships.</p>
-                <p style="font-size:11px; color:#25f4ee; margin-top:4px;">Current Followers: <span id="currentFollSpon">3,450</span> / 1,000 ✅</p>
             </div>
             <div id="sponsorshipContent" style="display:none;">
-                <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Collaborate with top brands and promote products.</p>
                 <div class="modal-option">
                     <div>
                         <b>Asian Paints MasterStroke</b>
@@ -313,10 +310,8 @@
             <div id="affiliateLockedMsg" style="background:#311; border:1px solid #fe2c55; padding:12px; border-radius:8px; text-align:center; margin-bottom:15px;">
                 <p style="font-size:13px; color:#ffcc00; font-weight:bold;">🔒 LOCKED FEATURE</p>
                 <p style="font-size:11px; color:#aaa; margin-top:4px;">You need at least <b>1,000 Followers</b> to unlock Affiliate Program.</p>
-                <p style="font-size:11px; color:#25f4ee; margin-top:4px;">Current Followers: <span id="currentFollAff">3,450</span> / 1,000 ✅</p>
             </div>
             <div id="affiliateContent" style="display:none;">
-                <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Share product links and earn 15% commission.</p>
                 <label style="font-size:12px; color:#ccc;">Your Referral Link:</label>
                 <input type="text" class="form-input" value="https://callpriyance.app/ref/ramkumar06" readonly>
                 <button class="action-pub-btn" style="margin-top:0;" onclick="alert('📋 Link copied!')">Copy Referral Link</button>
@@ -328,9 +323,9 @@
     <div class="modal-overlay" id="langModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('langModal')">✕</span>
-            <h3>🌐 Select App Language (World Languages)</h3>
-            <div class="modal-option" onclick="setLanguage('नेपाली (Nepali)')"><span>🇳🇵 नेपाली (Nepali)</span></div>
+            <h3 id="txtLangModalTitle">🌐 Select App Language</h3>
             <div class="modal-option" onclick="setLanguage('हिन्दी (Hindi)')"><span>🇮🇳 हिन्दी (Hindi)</span></div>
+            <div class="modal-option" onclick="setLanguage('नेपाली (Nepali)')"><span>🇳🇵 नेपाली (Nepali)</span></div>
             <div class="modal-option" onclick="setLanguage('English (US)')"><span>🇺🇸 English (US)</span></div>
             <div class="modal-option" onclick="setLanguage('বাংলা (Bengali)')"><span>🇧🇩 বাংলা (Bengali)</span></div>
             <div class="modal-option" onclick="setLanguage('اردو (Urdu)')"><span>🇵🇰 اردو (Urdu)</span></div>
@@ -361,7 +356,7 @@
     <div class="modal-overlay" id="themeModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('themeModal')">✕</span>
-            <h3>🎨 Select App Theme (50+ Colors)</h3>
+            <h3 id="txtThemeModalTitle">🎨 Select App Theme (50+ Colors)</h3>
             <div class="modal-option" onclick="setTheme('TikTok Red', '#fe2c55')"><span>🔴 TikTok Red (Default)</span><div style="width:16px; height:16px; background:#fe2c55; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Neon Cyan', '#25f4ee')"><span>🔵 Neon Cyan Blue</span><div style="width:16px; height:16px; background:#25f4ee; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Royal Gold', '#ffcc00')"><span>🟡 Royal Gold</span><div style="width:16px; height:16px; background:#ffcc00; border-radius:50%;"></div></div>
@@ -382,25 +377,66 @@
 
     <!-- Bottom Navigation Bar -->
     <div class="bottom-nav">
-        <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
-        <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
+        <a href="index.html" class="nav-item"><i>🏠</i><span id="navHome">Home</span></a>
+        <a href="wallet.html" class="nav-item"><i>🪙</i><span id="navWallet">Wallet</span></a>
         <a href="camera.html" class="nav-item"><div class="upload-plus-btn">+</div></a>
-        <a href="inbox.html" class="nav-item"><i>💬</i><span>Inbox</span></a>
-        <a href="profile.html" class="nav-item"><i>⭐</i><span>Profile</span></a>
+        <a href="inbox.html" class="nav-item"><i>💬</i><span id="navInbox">Inbox</span></a>
+        <a href="profile.html" class="nav-item"><i>⭐</i><span id="navProfile">Profile</span></a>
     </div>
 
     <script>
         let targetFollowers = 5000;
         let targetViews = 100000;
-        let targetSponFollowers = 1000; // 1K followers requirement for sponsorship & affiliate
+        let targetSponFollowers = 1000;
+
+        // Multi-language translation dictionary for seamless app-wide language switching
+        const translations = {
+            'हिन्दी (Hindi)': {
+                headerTitle: 'सेटिंग्स और गोपनीयता',
+                back: '← पीछे',
+                secMonetization: '🚀 क्रिएटर मोनेटाइजेशन और कमाई',
+                adSense: 'ऐडसेंस / ऐडमॉब मोनेटाइजेशन हब',
+                sponsorship: 'ब्रांड स्पॉन्सरशिप और डील्स (1K फॉलोअर्स लॉक)',
+                affiliate: 'एफिलिएट मार्केटिंग प्रोग्राम (1K फॉलोअर्स लॉक)',
+                secAccount: 'खाता और सुरक्षा',
+                accInfo: 'खाता जानकारी (फोन, ईमेल, जन्मतिथि, क्षेत्र)',
+                passSec: 'पासवर्ड और सुरक्षा (पासवर्ड बदलें)',
+                blockUser: 'ब्लॉक किए गए उपयोगकर्ता और फ्रॉड कंट्रोल',
+                cardsCoin: 'कार्ड और कॉइन बैलेंस',
+                secPrefs: 'प्राथमिकताएं और वैश्विक सेटिंग्स',
+                appLang: 'ऐप की भाषा (सभी देशों की भाषाएं)',
+                themesColor: 'थीम्स और रंग मोड (50+ कस्टम रंग)',
+                logout: 'लॉग आउट',
+                home: 'होम', wallet: 'वॉलेट', inbox: 'इनबॉक्स', profile: 'प्रोफाइल'
+            },
+            'नेपाली (Nepali)': {
+                headerTitle: 'सेटिङ्स र गोपनीयता',
+                back: '← पछाडि',
+                secMonetization: '🚀 सिर्जनाकर्ता मुद्रीकरण र आम्दानी',
+                adSense: 'एडसेन्स / एडमोब मुद्रीकरण हब',
+                sponsorship: 'ब्रान्ड प्रायोजन र सम्झौताहरू (1K फलोअर्स लक)',
+                affiliate: 'एफ़िलिएट मार्केटिङ प्रोग्राम (1K फलोअर्स लक)',
+                secAccount: 'खाता र सुरक्षा',
+                accInfo: 'खाता विवरण (फोन, इमेल, जन्म मिति, क्षेत्र)',
+                passSec: 'पासवर्ड र सुरक्षा (पासवर्ड परिवर्तन गर्नुहोस्)',
+                blockUser: 'ब्लक गरिएका प्रयोगकर्ताहरू र फ्रड नियन्त्रण',
+                cardsCoin: 'कार्ड र कोइन ब्यालेन्स',
+                secPrefs: 'प्राथमिकताहरू र विश्वव्यापी सेटिङहरू',
+                appLang: 'एपको भाषा (सबै देशका भाषाहरू)',
+                themesColor: 'थिमहरू र रङ मोडहरू (50+ कस्टम रङ)',
+                logout: 'लग आउट',
+                home: 'गृह', wallet: 'वालेट', inbox: 'इनबक्स', profile: 'प्रोफाइल'
+            }
+        };
 
         window.onload = function() {
             let savedColor = localStorage.getItem('appThemeColor') || '#fe2c55';
             let savedThemeName = localStorage.getItem('appThemeName') || 'TikTok Red';
             applyGlobalTheme(savedColor, savedThemeName);
 
-            let savedLang = localStorage.getItem('appLanguage') || 'नेपाली / हिन्दी';
+            let savedLang = localStorage.getItem('appLanguage') || 'हिन्दी (Hindi)';
             document.getElementById('selectedLangDisplay').innerText = savedLang + ' ❯';
+            applyLanguage(savedLang);
 
             let savedGmail = localStorage.getItem('appGmail') || 'ram060039@gmail.com';
             document.getElementById('accEmail').value = savedGmail;
@@ -413,15 +449,12 @@
 
             document.getElementById('currentFollowers').innerText = currentF.toLocaleString();
             document.getElementById('currentViews').innerText = currentV.toLocaleString();
-            document.getElementById('currentFollSpon').innerText = currentF.toLocaleString();
-            document.getElementById('currentFollAff').innerText = currentF.toLocaleString();
 
             let fPercent = Math.min(100, Math.floor((currentF / targetFollowers) * 100));
             let vPercent = Math.min(100, Math.floor((currentV / targetViews) * 100));
             document.getElementById('followerBar').style.width = fPercent + '%';
             document.getElementById('viewBar').style.width = vPercent + '%';
 
-            // AdSense Lock Logic
             if(currentF >= targetFollowers && currentV >= targetViews) {
                 document.getElementById('formFieldSet').disabled = false;
                 document.getElementById('verifySubmitBtn').disabled = false;
@@ -431,7 +464,6 @@
                 document.getElementById('monetizationStatusBadge').innerText = 'Eligible ✅ ❯';
             }
 
-            // Sponsorship & Affiliate Lock Logic (1K Followers)
             if(currentF >= targetSponFollowers) {
                 document.getElementById('sponsorshipStatusBadge').innerText = 'Unlocked ✅ ❯';
                 document.getElementById('sponsorshipStatusBadge').style.color = '#25f4ee';
@@ -463,8 +495,35 @@
         function setLanguage(langName) {
             localStorage.setItem('appLanguage', langName);
             document.getElementById('selectedLangDisplay').innerText = langName + ' ❯';
+            applyLanguage(langName);
             closeModal('langModal');
-            alert('🌐 App language successfully updated to ' + langName);
+            alert('🌐 App language updated to ' + langName);
+        }
+
+        function applyLanguage(langName) {
+            let t = translations[langName];
+            if(!t) return; // Keeps default English if language not mapped
+
+            document.getElementById('pageTitle').innerText = t.headerTitle;
+            document.getElementById('txtHeaderTitle').innerText = t.headerTitle;
+            document.getElementById('txtBack').innerText = t.back;
+            document.getElementById('txtSecMonetization').innerText = t.secMonetization;
+            document.getElementById('txtAdSense').innerText = t.adSense;
+            document.getElementById('txtSponsorship').innerText = t.sponsorship;
+            document.getElementById('txtAffiliate').innerText = t.affiliate;
+            document.getElementById('txtSecAccount').innerText = t.secAccount;
+            document.getElementById('txtAccInfo').innerText = t.accInfo;
+            document.getElementById('txtPassSec').innerText = t.passSec;
+            document.getElementById('txtBlockUser').innerText = t.blockUser;
+            document.getElementById('txtCardsCoin').innerText = t.cardsCoin;
+            document.getElementById('txtSecPrefs').innerText = t.secPrefs;
+            document.getElementById('txtAppLang').innerText = t.appLang;
+            document.getElementById('txtThemesColor').innerText = t.themesColor;
+            document.getElementById('logoutBtn').innerText = t.logout;
+            document.getElementById('navHome').innerText = t.home;
+            document.getElementById('navWallet').innerText = t.wallet;
+            document.getElementById('navInbox').innerText = t.inbox;
+            document.getElementById('navProfile').innerText = t.profile;
         }
 
         function openBlockListModal() { document.getElementById('blockModal').style.display = 'flex'; }
