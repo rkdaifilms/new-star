@@ -28,6 +28,21 @@
         .gift-icon-btn { background: linear-gradient(135deg, #fe2c55, #ffcc00); border: none; }
         .live-icon-btn { background: linear-gradient(135deg, #ff0055, #7928ca); border: none; }
 
+        /* TIKTOK STYLE COMMENT POPUP SHEET */
+        #commentModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; height: 60vh; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; z-index: 150; flex-direction: column; box-shadow: 0 -5px 20px rgba(0,0,0,0.9); }
+        .comment-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; }
+        .comment-header h3 { font-size: 15px; color: #fff; }
+        
+        .comment-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .comment-item { display: flex; gap: 10px; align-items: flex-start; }
+        .comment-avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; }
+        .comment-content h4 { font-size: 13px; color: #aaa; margin-bottom: 2px; }
+        .comment-content p { font-size: 13px; color: #fff; }
+
+        .comment-input-area { display: flex; padding: 12px 15px; background: #111; border-top: 1px solid #222; gap: 10px; align-items: center; flex-shrink: 0; }
+        .comment-input-area input { flex: 1; padding: 10px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
+        .comment-send-btn { background: #fe2c55; color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+
         /* TikTok Live Coin Gift Popup Panel */
         #giftModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 150; box-shadow: 0 -5px 20px rgba(0,0,0,0.8); }
         .gift-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -83,15 +98,16 @@
             <p>Garmi mein thanda girls dance - Call Priyance Creator Hub 🔥</p>
         </div>
 
-        <!-- Right Side Actions with Gift, Live & Share -->
+        <!-- Right Side Actions with Like, Comments, Gift, Live & Share -->
         <div class="side-actions">
-            <div class="action-btn" onclick="alert('Liked!')">
-                <div class="action-icon">❤️</div>
-                <span>180K</span>
+            <div class="action-btn" onclick="toggleLike(this)">
+                <div class="action-icon" id="likeIcon">❤️</div>
+                <span id="likeCount">180K</span>
             </div>
-            <div class="action-btn" onclick="alert('Comments')">
+            <!-- Comment Button opens Comment Modal -->
+            <div class="action-btn" onclick="toggleCommentModal()">
                 <div class="action-icon">💬</div>
-                <span>1,420</span>
+                <span id="commentCountBadge">1,420</span>
             </div>
             <!-- Gift Button -->
             <div class="action-btn" onclick="toggleGiftModal()">
@@ -108,6 +124,36 @@
                 <div class="action-icon">↗️</div>
                 <span>Share</span>
             </div>
+        </div>
+    </div>
+
+    <!-- TIKTOK STYLE COMMENT MODAL -->
+    <div id="commentModal">
+        <div class="comment-header">
+            <h3 id="commentHeaderTitle">1,420 comments</h3>
+            <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="toggleCommentModal()">✕</span>
+        </div>
+        
+        <div class="comment-list" id="commentListArea">
+            <div class="comment-item">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="comment-avatar">
+                <div class="comment-content">
+                    <h4>Priyance Official</h4>
+                    <p>Bhai video bahut mast banaya hai! 🔥</p>
+                </div>
+            </div>
+            <div class="comment-item">
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200" class="comment-avatar">
+                <div class="comment-content">
+                    <h4>Rohit Painter</h4>
+                    <p>Aapka dance aur editing dono ek number hai bhai! 👏</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="comment-input-area">
+            <input type="text" id="commentInput" placeholder="Add a comment..." onkeypress="handleCommentKey(event)">
+            <button class="comment-send-btn" onclick="postComment()">Post</button>
         </div>
     </div>
 
@@ -215,6 +261,59 @@
                 document.getElementById('feedUsername').innerText = savedHandle;
             }
         };
+
+        // Like Toggle & Count
+        let isLiked = false;
+        function toggleLike(el) {
+            isLiked = !isLiked;
+            let icon = document.getElementById('likeIcon');
+            let countSpan = document.getElementById('likeCount');
+            if(isLiked) {
+                icon.style.color = '#fe2c55';
+                countSpan.innerText = '180.5K';
+            } else {
+                icon.style.color = '#fff';
+                countSpan.innerText = '180K';
+            }
+        }
+
+        // Comment Modal Toggle
+        function toggleCommentModal() {
+            let modal = document.getElementById('commentModal');
+            modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        // Post New Comment
+        let commentTotalCount = 1420;
+        function postComment() {
+            let input = document.getElementById('commentInput');
+            let text = input.value.trim();
+            if(text === '') return;
+
+            let listArea = document.getElementById('commentListArea');
+            let myName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
+            let myPic = localStorage.getItem('appPic') || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
+
+            listArea.innerHTML += `
+                <div class="comment-item">
+                    <img src="${myPic}" class="comment-avatar">
+                    <div class="comment-content">
+                        <h4>${myName}</h4>
+                        <p>${text}</p>
+                    </div>
+                </div>
+            `;
+            input.value = '';
+            listArea.scrollTop = listArea.scrollHeight;
+
+            commentTotalCount += 1;
+            document.getElementById('commentHeaderTitle').innerText = commentTotalCount + ' comments';
+            document.getElementById('commentCountBadge').innerText = commentTotalCount;
+        }
+
+        function handleCommentKey(e) {
+            if(e.key === 'Enter') { postComment(); }
+        }
 
         function toggleGiftModal() {
             let modal = document.getElementById('giftModal');
