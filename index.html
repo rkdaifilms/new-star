@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Call Priyance - Home Feed, Live & Gifts</title>
+    <title>Call Priyance - Home Feed, Live Studio & Share</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; overflow: hidden; height: 100vh; }
@@ -12,16 +12,16 @@
         .feed-container { height: calc(100vh - 60px); width: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: #111; }
         .feed-video { width: 100%; height: 100%; object-fit: cover; }
         
-        /* Top Header Live Badge */
+        /* Top Live Badge */
         .top-live-badge { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.6); border: 1px solid #fe2c55; padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; z-index: 10; cursor: pointer; }
-        .live-dot { width: 8px; height: 8px; background: #fe2c55; border-radius: 50%; animation: pulse 1.2px infinite; }
+        .live-dot { width: 8px; height: 8px; background: #fe2c55; border-radius: 50%; animation: pulse 1.2s infinite; }
         .top-live-badge span { font-size: 12px; font-weight: bold; color: #fff; }
 
         .video-info { position: absolute; bottom: 20px; left: 15px; z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
         .video-info h3 { font-size: 16px; margin-bottom: 5px; color: #fff; }
         .video-info p { font-size: 13px; color: #ddd; }
 
-        /* Right Side Actions (Like, Comment, Gift, Live, Share) */
+        /* Right Side Actions */
         .side-actions { position: absolute; right: 15px; bottom: 80px; display: flex; flex-direction: column; align-items: center; gap: 16px; z-index: 10; }
         .action-btn { text-align: center; color: #fff; font-size: 12px; cursor: pointer; }
         .action-icon { width: 45px; height: 45px; background: rgba(0,0,0,0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.2); }
@@ -41,6 +41,24 @@
         .gift-card h4 { font-size: 12px; color: #fff; margin-bottom: 2px; }
         .gift-card p { font-size: 11px; color: #ffcc00; }
 
+        /* ADVANCED LIVE STUDIO MODAL (PK Battle, Gaming & Voice Live) */
+        #liveStudioModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.92); z-index: 200; padding: 20px; flex-direction: column; justify-content: center; align-items: center; }
+        .live-studio-box { background: #151515; border: 1px solid #333; width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; text-align: center; position: relative; }
+        .live-studio-box h2 { color: #fe2c55; font-size: 20px; margin-bottom: 15px; }
+        .live-option-btn { display: block; width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: left; }
+        .live-option-btn:hover { background: #2a2a2a; border-color: #fe2c55; }
+        .game-search-box { display: none; margin-top: 10px; text-align: left; }
+        .game-search-box input { width: 100%; padding: 10px; background: #111; border: 1px solid #555; color: #fff; border-radius: 6px; margin-top: 5px; font-size: 13px; }
+        .close-studio { position: absolute; top: 15px; right: 15px; font-size: 18px; cursor: pointer; color: #aaa; }
+
+        /* ADVANCED SOCIAL MEDIA SHARE SHEET */
+        #shareModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; background: #1c1c1e; border-top: 2px solid #333; border-radius: 20px 20px 0 0; padding: 20px; z-index: 150; box-shadow: 0 -5px 20px rgba(0,0,0,0.9); }
+        .share-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .share-header h3 { font-size: 16px; color: #fff; }
+        .share-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center; }
+        .share-app-icon { width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; margin: 0 auto 6px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .share-app-item span { font-size: 11px; color: #ccc; }
+
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
@@ -55,7 +73,7 @@
         <video class="feed-video" autoplay loop muted src="https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-in-a-party-41650-large.mp4"></video>
         
         <!-- Top Live Badge -->
-        <div class="top-live-badge" onclick="alert('🔴 Joining Creator Live Stream...')">
+        <div class="top-live-badge" onclick="openLiveStudio()">
             <div class="live-dot"></div>
             <span>LIVE</span>
         </div>
@@ -65,7 +83,7 @@
             <p>Garmi mein thanda girls dance - Call Priyance Creator Hub 🔥</p>
         </div>
 
-        <!-- Right Side Actions with Gift & Live Buttons -->
+        <!-- Right Side Actions with Gift, Live & Share -->
         <div class="side-actions">
             <div class="action-btn" onclick="alert('Liked!')">
                 <div class="action-icon">❤️</div>
@@ -80,12 +98,13 @@
                 <div class="action-icon gift-icon-btn">🎁</div>
                 <span>Gift</span>
             </div>
-            <!-- Live Stream Button -->
-            <div class="action-btn" onclick="alert('🔴 Going Live / Joining Creator Live Stream Room!')">
+            <!-- Live Studio Button -->
+            <div class="action-btn" onclick="openLiveStudio()">
                 <div class="action-icon live-icon-btn">🔴</div>
                 <span>Live</span>
             </div>
-            <div class="action-btn" onclick="alert('Shared!')">
+            <!-- Real Share Button -->
+            <div class="action-btn" onclick="toggleShareModal()">
                 <div class="action-icon">↗️</div>
                 <span>Share</span>
             </div>
@@ -101,50 +120,80 @@
         <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Select a coin gift to support Ramkumar Dhobi / Creator:</p>
         
         <div class="gift-grid">
-            <div class="gift-card" onclick="sendGift('Rose 🌹', 1)">
-                <div class="emoji">🌹</div>
-                <h4>Rose</h4>
-                <p>1 Coin</p>
+            <div class="gift-card" onclick="sendGift('Rose 🌹', 1)"><div class="emoji">🌹</div><h4>Rose</h4><p>1 Coin</p></div>
+            <div class="gift-card" onclick="sendGift('Coffee ☕', 5)"><div class="emoji">☕</div><h4>Coffee</h4><p>5 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Finger Heart 🫶', 10)"><div class="emoji">🫶</div><h4>Heart</h4><p>10 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Sunglasses 🕶️', 20)"><div class="emoji">🕶️</div><h4>Glasses</h4><p>20 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('TikTok Icon 🪙', 50)"><div class="emoji">🪙</div><h4>TikTok</h4><p>50 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Sports Car 🏎️', 100)"><div class="emoji">🏎️</div><h4>Car</h4><p>100 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Magic Ring 💍', 200)"><div class="emoji">💍</div><h4>Ring</h4><p>200 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Yacht 🛥️', 500)"><div class="emoji">🛥️</div><h4>Yacht</h4><p>500 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Lion 🦁', 1000)"><div class="emoji">🦁</div><h4>Lion</h4><p>1,000 Coins</p></div>
+        </div>
+    </div>
+
+    <!-- ADVANCED LIVE STUDIO MODAL (PK Battle, Gaming & Voice Live) -->
+    <div id="liveStudioModal">
+        <div class="live-studio-box">
+            <span class="close-studio" onclick="closeLiveStudio()">✕</span>
+            <h2>🔴 Call Priyance Live Studio</h2>
+            
+            <button class="live-option-btn" onclick="startLive('PK Battle & Multi-Host', '🎮 Connecting 2-4 creators for live hosting & gaming battle...')">
+                ⚔️ PK Battle & Multi-Hosting (2-4 Users)
+            </button>
+
+            <button class="live-option-btn" onclick="toggleGameSearch()">
+                🕹️ Live Gaming Stream (Search & Play)
+            </button>
+            <div class="game-search-box" id="gameSearchBox">
+                <label style="font-size:11px; color:#aaa;">Type Game Name (e.g. Free Fire, Ludo, PUBG):</label>
+                <input type="text" id="gameInput" placeholder="Enter game name..." onkeypress="handleGameSearch(event)">
             </div>
-            <div class="gift-card" onclick="sendGift('Coffee ☕', 5)">
-                <div class="emoji">☕</div>
-                <h4>Coffee</h4>
-                <p>5 Coins</p>
+
+            <button class="live-option-btn" onclick="startLive('Audio Voice Live Room', '🎙️ Starting Voice Live Room for 10-15 members...')">
+                🎧 Audio Voice Live Room (10-15 Speakers)
+            </button>
+        </div>
+    </div>
+
+    <!-- ALL SOCIAL MEDIA SHARE POPUP SHEET -->
+    <div id="shareModal">
+        <div class="share-header">
+            <h3>Share to Social Media</h3>
+            <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="toggleShareModal()">✕</span>
+        </div>
+        <div class="share-grid">
+            <div class="share-app-item" onclick="shareTo('WhatsApp')">
+                <div class="share-app-icon" style="background:#25d366;">💬</div>
+                <span>WhatsApp</span>
             </div>
-            <div class="gift-card" onclick="sendGift('Finger Heart 🫶', 10)">
-                <div class="emoji">🫶</div>
-                <h4>Heart</h4>
-                <p>10 Coins</p>
+            <div class="share-app-item" onclick="shareTo('Facebook')">
+                <div class="share-app-icon" style="background:#1877f2;">📘</div>
+                <span>Facebook</span>
             </div>
-            <div class="gift-card" onclick="sendGift('Sunglasses 🕶️', 20)">
-                <div class="emoji">🕶️</div>
-                <h4>Glasses</h4>
-                <p>20 Coins</p>
+            <div class="share-app-item" onclick="shareTo('Instagram')">
+                <div class="share-app-icon" style="background:linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">📸</div>
+                <span>Instagram</span>
             </div>
-            <div class="gift-card" onclick="sendGift('TikTok Icon 🪙', 50)">
-                <div class="emoji">🪙</div>
-                <h4>TikTok</h4>
-                <p>50 Coins</p>
+            <div class="share-app-item" onclick="shareTo('TikTok')">
+                <div class="share-app-icon" style="background:#000; border:1px solid #fe2c55;">🎵</div>
+                <span>TikTok</span>
             </div>
-            <div class="gift-card" onclick="sendGift('Sports Car 🏎️', 100)">
-                <div class="emoji">🏎️</div>
-                <h4>Car</h4>
-                <p>100 Coins</p>
+            <div class="share-app-item" onclick="shareTo('YouTube')">
+                <div class="share-app-icon" style="background:#ff0000;">▶️</div>
+                <span>YouTube</span>
             </div>
-            <div class="gift-card" onclick="sendGift('Magic Ring 💍', 200)">
-                <div class="emoji">💍</div>
-                <h4>Ring</h4>
-                <p>200 Coins</p>
+            <div class="share-app-item" onclick="shareTo('IMO')">
+                <div class="share-app-icon" style="background:#0099ff;">💙</div>
+                <span>IMO</span>
             </div>
-            <div class="gift-card" onclick="sendGift('Yacht 🛥️', 500)">
-                <div class="emoji">🛥️</div>
-                <h4>Yacht</h4>
-                <p>500 Coins</p>
+            <div class="share-app-item" onclick="shareTo('Twitter / X')">
+                <div class="share-app-icon" style="background:#1da1f2;">🐦</div>
+                <span>Twitter</span>
             </div>
-            <div class="gift-card" onclick="sendGift('Lion 🦁', 1000)">
-                <div class="emoji">🦁</div>
-                <h4>Lion</h4>
-                <p>1,000 Coins</p>
+            <div class="share-app-item" onclick="shareTo('VidMate')">
+                <div class="share-app-icon" style="background:#ff7700;">📥</div>
+                <span>VidMate</span>
             </div>
         </div>
     </div>
@@ -175,6 +224,46 @@
         function sendGift(giftName, coinCost) {
             alert('🎉 You successfully sent a ' + giftName + ' (' + coinCost + ' Coins)!\n🎁 Gift sent to creator wallet successfully.');
             toggleGiftModal();
+        }
+
+        // Live Studio Functions
+        function openLiveStudio() {
+            document.getElementById('liveStudioModal').style.display = 'flex';
+        }
+
+        function closeLiveStudio() {
+            document.getElementById('liveStudioModal').style.display = 'none';
+        }
+
+        function toggleGameSearch() {
+            let box = document.getElementById('gameSearchBox');
+            box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function handleGameSearch(e) {
+            if(e.key === 'Enter') {
+                let gameName = document.getElementById('gameInput').value.trim();
+                if(gameName !== '') {
+                    alert('🕹️ Searching game: "' + gameName + '"...\n🚀 Redirecting to Live Gaming Stream & App Launcher!');
+                    closeLiveStudio();
+                }
+            }
+        }
+
+        function startLive(modeName, msg) {
+            alert('🔴 ' + modeName + '\n' + msg);
+            closeLiveStudio();
+        }
+
+        // Social Media Share Functions
+        function toggleShareModal() {
+            let modal = document.getElementById('shareModal');
+            modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function shareTo(platform) {
+            alert('🚀 Successfully shared video link to ' + platform + '!\n🔗 Content URL copied and broadcasted.');
+            toggleShareModal();
         }
     </script>
 </body>
