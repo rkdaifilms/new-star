@@ -18,7 +18,7 @@
         .tab-btn.active { background: #fe2c55; color: #fff; border-color: #fe2c55; }
 
         /* Studio Content Container */
-        .studio-container { width: 100%; max-width: 450px; margin-top: 15px; background: #141414; border: 1px solid #333; border-radius: 16px; padding: 20px; text-align: left; position: relative; }
+        .studio-box { width: 100%; max-width: 450px; margin-top: 15px; background: #141414; border: 1px solid #333; border-radius: 16px; padding: 20px; text-align: left; position: relative; }
         
         .section-title { font-size: 17px; color: #25f4ee; margin-bottom: 4px; font-weight: bold; }
         .section-desc { font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4; }
@@ -30,10 +30,14 @@
 
         input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; margin-top: 6px; font-size: 13px; outline: none; }
 
-        /* SETTINGS GEAR ICON BUTTON */
+        /* SETTINGS GEAR ICON BUTTON (Clean & Polished) */
         .settings-gear-btn { position: absolute; top: 20px; right: 20px; background: #222; border: 1px solid #444; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; transition: 0.2s; }
         .settings-gear-btn:hover { background: #fe2c55; border-color: #fe2c55; }
-        #settingsDrawer { display: none; background: #1a1a1a; border: 1px solid #444; border-radius: 12px; padding: 15px; margin-top: 15px; }
+
+        /* ADVANCED SETTINGS DRAWER */
+        #settingsDrawer { display: none; background: #1a1a1a; border: 1px solid #444; border-radius: 12px; padding: 15px; margin-top: 15px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); }
+        .setting-group { margin-bottom: 12px; }
+        .setting-label { font-size: 11px; color: #ffcc00; display: block; margin-bottom: 4px; font-weight: bold; }
 
         /* 9-10 Seats Voice Room Grid */
         .voice-seats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
@@ -41,7 +45,7 @@
         .voice-seat.active { border: 2px solid #25f4ee; background: #102a2a; color: #25f4ee; font-weight: bold; }
         .seat-number { position: absolute; top: 2px; right: 8px; font-size: 9px; color: #ffcc00; }
 
-        /* ACTIVE LIVE BROADCAST ROOM (TIKTOK / BIGO STYLE WITH ALL BUTTONS) */
+        /* ACTIVE LIVE BROADCAST ROOM */
         #activeLiveView { display: none; width: 100%; max-width: 450px; background: #111; border: 2px solid #fe2c55; padding: 15px; border-radius: 16px; margin-top: 15px; text-align: center; position: relative; }
         .pulsing-dot { display: inline-block; width: 8px; height: 8px; background: #fe2c55; border-radius: 50%; animation: pulse 1.2s infinite; margin-right: 5px; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
@@ -79,7 +83,7 @@
     <!-- Dynamic Studio Container -->
     <div id="studioPanel" style="width:100%; max-width:450px; margin-top:15px;"></div>
 
-    <!-- ACTIVE LIVE BROADCAST ROOM (Applies to Video Live, Voice Room & Gaming) -->
+    <!-- ACTIVE LIVE BROADCAST ROOM -->
     <div id="activeLiveView">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <span style="background:rgba(254,44,85,0.2); border:1px solid #fe2c55; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; color:#fe2c55;"><span class="pulsing-dot"></span> LIVE ROOM ACTIVE</span>
@@ -88,7 +92,6 @@
 
         <p id="liveStatusText" style="font-size: 13px; color: #ccc; margin-bottom: 10px;"></p>
         
-        <!-- Dynamic Live Room Content (Video Split Screen, 10 Voice Seats or Game Launcher View) -->
         <div id="activeLiveDynamicArea" style="margin-bottom: 15px; min-height: 220px; display:flex; flex-direction:column; justify-content:center; align-items:center;"></div>
 
         <!-- Floating Side Actions: Like, Gift, Share -->
@@ -142,34 +145,44 @@
                         <label style="font-size:11px; color:#aaa; display:block;">Video Caption & Hashtags:</label>
                         <input type="text" id="vidCaption" placeholder="e.g. Amazing Dance #Viral #CallPriyance" style="margin-bottom:10px;">
 
-                        <!-- HIDDEN SETTINGS DRAWER -->
+                        <!-- SETTINGS DRAWER (Themes, Size, Lighting, Bio Link & Voiceover) -->
                         <div id="settingsDrawer">
-                            <h4 style="color: #25f4ee; font-size: 13px; margin-bottom: 8px;">🎨 Advanced Video Settings & Filters</h4>
+                            <h4 style="color: #25f4ee; font-size: 13px; margin-bottom: 10px;">⚙️ Creator Studio Pro Settings</h4>
                             
-                            <label style="font-size:11px; color:#aaa; display:block;">Video Color Theme / Filter:</label>
-                            <select style="margin-bottom:8px;">
-                                <option>✨ Normal / Original</option>
-                                <option>🔥 Cinematic Vibrant</option>
-                                <option>🖤 Black & White Artistic</option>
-                                <option>🌅 Warm Golden Glow</option>
-                            </select>
+                            <div class="setting-group">
+                                <span class="setting-label">🎨 Video Color Theme / Filter:</span>
+                                <select>
+                                    <option>✨ Normal / Original</option>
+                                    <option>🔥 Cinematic Vibrant</option>
+                                    <option>🖤 Black & White Artistic</option>
+                                    <option>🌅 Warm Golden Glow</option>
+                                </select>
+                            </div>
 
-                            <label style="font-size:11px; color:#aaa; display:block;">Video Aspect Ratio / Size:</label>
-                            <select style="margin-bottom:8px;">
-                                <option>📱 9:16 Vertical (TikTok / Reels Style)</option>
-                                <option>⬛ 1:1 Square</option>
-                                <option>🖥️ 16:9 Landscape</option>
-                            </select>
+                            <div class="setting-group">
+                                <span class="setting-label">📐 Video Aspect Ratio / Size:</span>
+                                <select>
+                                    <option>📱 9:16 Vertical (TikTok / Reels Style)</option>
+                                    <option>⬛ 1:1 Square</option>
+                                    <option>🖥️ 16:9 Landscape</option>
+                                </select>
+                            </div>
 
-                            <label style="font-size:11px; color:#aaa; display:block;">Brightness & Lighting Control:</label>
-                            <input type="range" min="50" max="150" value="100" style="width:100%; margin:6px 0 10px 0;">
+                            <div class="setting-group">
+                                <span class="setting-label">💡 Brightness & Lighting Control:</span>
+                                <input type="range" min="50" max="150" value="100" style="width:100%; margin:4px 0;">
+                            </div>
 
-                            <label style="font-size:11px; color:#ffcc00; display:block;">🛒 Bio Product / Selling Link (Affiliate):</label>
-                            <input type="text" id="bioProductLink" placeholder="https://store.com/product-link" style="margin-bottom:10px;">
+                            <div class="setting-group">
+                                <span class="setting-label">🛒 Bio Product / Selling Link (Affiliate):</span>
+                                <input type="text" id="bioProductLink" placeholder="https://store.com/product-link">
+                            </div>
 
-                            <label style="font-size:11px; color:#ffcc00; display:block;">🎙️ Microphone Voiceover Studio:</label>
-                            <button class="btn btn-audio" style="margin-top:4px; padding:8px; background:#7928ca; color:#fff;" onclick="toggleVoiceRecording(this)">🎙️ Start Recording Overvoice</button>
-                            <p id="voiceStatus" style="font-size:11px; color:#aaa; margin-top:4px; display:none;">🔴 Recording audio... Click again to stop.</p>
+                            <div class="setting-group">
+                                <span class="setting-label">🎙️ Microphone Voiceover Studio:</span>
+                                <button class="btn" style="margin-top:2px; padding:8px; background:#7928ca; color:#fff;" onclick="toggleVoiceRecording(this)">🎙️ Start Recording Overvoice</button>
+                                <p id="voiceStatus" style="font-size:11px; color:#aaa; margin-top:4px; display:none;">🔴 Recording audio... Click again to stop.</p>
+                            </div>
                         </div>
 
                         <label style="font-size:11px; color:#aaa; margin-top:8px; display:block;">Privacy Control:</label>
@@ -180,7 +193,7 @@
                         </select>
 
                         <button class="btn btn-live" onclick="publishVideo()">🚀 Publish Video Now</button>
-                        <div id="pubSuccess" class="success-banner">✅ Video published successfully with Bio Link & Voiceover!</div>
+                        <div id="pubSuccess" class="success-banner">✅ Video published successfully with Pro Settings & Voiceover!</div>
                     </div>
                 `;
             } else if(mode === 'live') {
