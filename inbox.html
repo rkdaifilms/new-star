@@ -11,13 +11,13 @@
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: #111; position: sticky; top: 0; z-index: 10; }
         .header h2 { font-size: 18px; color: #fe2c55; }
         
-        /* User's Own Profile Banner (Clickable to view own profile instantly) */
+        /* User's Own Profile Banner */
         .my-inbox-profile { display: flex; align-items: center; gap: 12px; padding: 12px 15px; background: #121212; border-bottom: 1px solid #222; cursor: pointer; }
         .my-inbox-profile img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; }
         .my-inbox-profile div h4 { font-size: 14px; }
         .my-inbox-profile div p { font-size: 12px; color: #aaa; }
 
-        /* Inbox Tabs (Messages, Followers, Following) */
+        /* Inbox Tabs */
         .inbox-tabs { display: flex; justify-content: space-around; padding: 12px; background: #111; border-bottom: 1px solid #222; }
         .inbox-tab { font-size: 14px; font-weight: 600; color: #777; cursor: pointer; padding-bottom: 4px; }
         .inbox-tab.active { color: #fff; border-bottom: 2px solid #fe2c55; }
@@ -40,15 +40,17 @@
         .chat-box-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; cursor: pointer; }
         .chat-box-header h3 { font-size: 16px; cursor: pointer; }
         .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #080808; }
-        .message { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; }
+        .message { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-break: break-word; }
         .message.incoming { background: #222; color: #fff; align-self: flex-start; border-bottom-left-radius: 2px; }
         .message.outgoing { background: #fe2c55; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .message img { max-width: 100%; border-radius: 8px; margin-top: 5px; }
+        .message img, .message video { max-width: 100%; border-radius: 8px; margin-top: 5px; display: block; }
         
         .chat-input-area { display: flex; padding: 12px; background: #111; border-top: 1px solid #222; gap: 8px; align-items: center; }
         .chat-input-area input { flex: 1; padding: 10px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
-        .chat-icon-btn { background: #222; border: 1px solid #444; color: #fff; width: 38px; height: 38px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 16px; }
-        .send-btn { background: #fe2c55; color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        
+        .chat-icon-btn { background: #222; border: 1px solid #444; color: #fff; width: 38px; height: 38px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 16px; flex-shrink: 0; }
+        .chat-icon-btn:hover { background: #333; border-color: #fe2c55; }
+        .send-btn { background: #fe2c55; color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
 
         /* Profile Pop-up Modal */
         #profilePopup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.85); z-index: 300; justify-content: center; align-items: center; }
@@ -71,7 +73,7 @@
         <h2>Direct Messages & Activity</h2>
     </div>
 
-    <!-- User's Own Profile Banner (Clickable to view own profile instantly) -->
+    <!-- User's Own Profile Banner -->
     <div class="my-inbox-profile" onclick="window.location.href='profile.html'">
         <img id="inboxUserPic" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" alt="My Profile">
         <div>
@@ -160,12 +162,17 @@
         </div>
         <div class="chat-messages" id="chatMessagesArea"></div>
         <div class="chat-input-area">
-            <label for="imageFile" class="chat-icon-btn">📷</label>
-            <input type="file" id="imageFile" accept="image/*" style="display:none;" onchange="sendPhoto(event)">
+            <!-- Plus / Gallery Button for Photos & Videos -->
+            <label for="mediaFile" class="chat-icon-btn" title="Send Photo or Video">➕</label>
+            <input type="file" id="mediaFile" accept="image/*,video/*" style="display:none;" onchange="sendMediaFile(event)">
             
-            <div class="chat-icon-btn" onclick="startVoiceRecording()" id="micBtn">🎙️</div>
+            <!-- Voice Recording Mic Button -->
+            <div class="chat-icon-btn" onclick="startVoiceRecording()" id="micBtn" title="Voice to Text">🎙️</div>
             
+            <!-- Text Message Input -->
             <input type="text" id="messageInput" placeholder="Type a message or voice note..." onkeypress="handleKeyPress(event)">
+            
+            <!-- Send Button -->
             <button class="send-btn" onclick="sendMessage()">Send</button>
         </div>
     </div>
@@ -275,11 +282,11 @@
             }, 1000);
         }
 
-        // Voice Recording Simulation (Speech to Text)
+        // Voice Recording to Auto-Typed Text Simulation
         function startVoiceRecording() {
             let btn = document.getElementById('micBtn');
             btn.style.background = '#fe2c55';
-            alert('🎙️ Recording voice note... Speak now!');
+            alert('🎙️ Recording voice... Speak now!');
 
             setTimeout(() => {
                 btn.style.background = '#222';
@@ -289,14 +296,19 @@
             }, 1500);
         }
 
-        // Send Photo from Gallery
-        function sendPhoto(event) {
+        // Send Photo or Video from Gallery via Plus (+) button
+        function sendMediaFile(event) {
             let file = event.target.files[0];
             if (file) {
                 let reader = new FileReader();
                 reader.onload = function(e) {
                     let msgArea = document.getElementById('chatMessagesArea');
-                    msgArea.innerHTML += `<div class="message outgoing"><img src="${e.target.result}" alt="Photo"></div>`;
+                    let fileType = file.type;
+                    if(fileType.includes('video')) {
+                        msgArea.innerHTML += `<div class="message outgoing"><video controls src="${e.target.result}"></video></div>`;
+                    } else {
+                        msgArea.innerHTML += `<div class="message outgoing"><img src="${e.target.result}" alt="Photo"></div>`;
+                    }
                     msgArea.scrollTop = msgArea.scrollHeight;
                 }
                 reader.readAsDataURL(file);
