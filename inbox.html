@@ -177,7 +177,7 @@
             <img id="popupAvatar" src="" alt="Profile">
             <h3 id="popupName">Name</h3>
             <p id="popupBio">Bio details</p>
-            <button class="action-tag-btn" style="width:100%;" onclick="closeProfilePopup(); alert('Message feature opened!');">Send Message</button>
+            <button class="action-tag-btn" style="width:100%; margin-top:10px;" id="popupMsgBtn" onclick="openChatFromPopup()">Send Message</button>
         </div>
     </div>
 
@@ -214,8 +214,13 @@
             if(tabName === 'following') document.getElementById('tabFollowing').style.display = 'block';
         }
 
+        let popupUser = '';
+        let popupAvatarUrl = '';
+
         // Profile Popup Viewer
         function showProfile(name, avatar, bio) {
+            popupUser = name;
+            popupAvatarUrl = avatar;
             document.getElementById('popupName').innerText = name;
             document.getElementById('popupAvatar').src = avatar;
             document.getElementById('popupBio').innerText = bio;
@@ -224,6 +229,11 @@
 
         function closeProfilePopup() {
             document.getElementById('profilePopup').style.display = 'none';
+        }
+
+        function openChatFromPopup() {
+            closeProfilePopup();
+            openChat(popupUser, popupAvatarUrl, 'Hello Ramkumar bhai! Let us chat.');
         }
 
         let activeAvatar = '';
@@ -276,7 +286,7 @@
                 let voiceText = "Ramkumar bhai, ye raha voice message ka auto-typed text!";
                 document.getElementById('messageInput').value = voiceText;
                 alert('✍️ Voice converted to text successfully! Click Send.');
-            }, 2000);
+            }, 1500);
         }
 
         // Send Photo from Gallery
