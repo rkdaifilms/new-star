@@ -3,44 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings and Privacy</title>
+    <title>Settings, Monetization & Privacy - Call Priyance</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #0f0f0f; color: #fff; padding-bottom: 40px; }
-        .header { background: #1a1a1a; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; }
-        .header h2 { font-size: 16px; }
-        .back-btn { color: #fff; text-decoration: none; font-size: 16px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #000; color: #fff; padding-bottom: 70px; transition: 0.3s; }
         
-        .menu-group { margin-top: 20px; padding: 0 15px; }
-        .menu-title { font-size: 12px; color: #777; margin-bottom: 8px; text-transform: uppercase; padding-left: 5px; }
-        .menu-item { background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid #282828; }
-        .menu-item span { font-size: 14px; }
-        .menu-item .arrow { color: #666; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: #111; position: sticky; top: 0; z-index: 10; }
+        .header h2 { font-size: 16px; color: #fff; }
+        .back-btn { color: #fff; text-decoration: none; font-size: 14px; cursor: pointer; }
+
+        .section-title { font-size: 12px; color: #fe2c55; text-transform: uppercase; letter-spacing: 1px; padding: 20px 20px 8px; font-weight: bold; }
         
-        .logout-btn { display: block; width: calc(100% - 30px); margin: 30px 15px 0; background: #fe2c55; color: #fff; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #121212; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: 0.2s; }
+        .setting-item:hover { background: #1c1c1c; }
+        .setting-item span { font-size: 14px; color: #fff; }
+        .setting-item .right-val { font-size: 13px; color: #888; display: flex; align-items: center; gap: 6px; }
+
+        .logout-box { padding: 30px 20px; text-align: center; }
+        .logout-btn { background: #fe2c55; color: #fff; border: none; width: 100%; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+
+        /* POPUP MODALS FOR MONETIZATION & SETTINGS */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.88); z-index: 200; justify-content: center; align-items: center; padding: 20px; }
+        .modal-card { background: #181818; border: 1px solid #333; width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; max-height: 85vh; overflow-y: auto; position: relative; }
+        .modal-card h3 { font-size: 18px; color: #fe2c55; margin-bottom: 12px; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 18px; cursor: pointer; color: #aaa; }
+        
+        .modal-option { padding: 12px 15px; background: #222; border: 1px solid #444; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-size: 14px; text-align: left; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .modal-option:hover { background: #2a2a2a; border-color: #fe2c55; }
+
+        .form-input { width: 100%; padding: 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 14px; margin-top: 8px; margin-bottom: 12px; outline: none; }
+        .action-pub-btn { background: #fe2c55; color: #fff; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
+        .nav-item.active { color: #fff; }
+        .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
     </style>
 </head>
 <body>
+
     <div class="header">
-        <a href="profile.html" class="back-btn">← Back</a>
+        <a class="back-btn" onclick="history.back()">← Back</a>
         <h2>Settings and privacy</h2>
-        <div>⚙️</div>
+        <span>⚙️</span>
     </div>
 
-    <div class="menu-group">
-        <div class="menu-title">Account & Security</div>
-        <div class="menu-item" onclick="alert('Gmail: ram060039@gmail.com')"><span>Account Information (Gmail)</span><span class="arrow">›</span></div>
-        <div class="menu-item" onclick="alert('Password & Security settings')"><span>Password & Security</span><span class="arrow">›</span></div>
-        <div class="menu-item" onclick="window.location.href='wallet.html'"><span>Cards & Coin Balance</span><span class="arrow">›</span></div>
+    <div class="section-title">🚀 Creator Monetization & Earnings</div>
+    
+    <div class="setting-item" onclick="openMonetizationDashboard()">
+        <span>AdSense / AdMob Monetization Hub</span>
+        <span class="right-val" style="color:#25f4ee; font-weight:bold;">Active (50% Split) ❯</span>
     </div>
 
-    <div class="menu-group">
-        <div class="menu-title">Preferences</div>
-        <div class="menu-item" onclick="alert('Nagarik App ID: Verified ✅')"><span>Nagarik App Verification Status</span><span class="arrow">Verified ✅</span></div>
-        <div class="menu-item" onclick="alert('Language: Hindi/Nepali')"><span>App Language</span><span class="arrow">›</span></div>
-        <div class="menu-item" onclick="alert('Dark Theme On')"><span>Dark Mode Theme</span><span class="arrow">On</span></div>
+    <div class="setting-item" onclick="openSponsorshipHub()">
+        <span>Brand Sponsorships & Deals</span>
+        <span class="right-val">3 Active Offers ❯</span>
     </div>
 
-    <a href="index.html" class="logout-btn">Log Out</a>
+    <div class="setting-item" onclick="openAffiliateHub()">
+        <span>Affiliate Marketing Program</span>
+        <span class="right-val">Earn Commission ❯</span>
+    </div>
+
+    <div class="section-title">Account & Security</div>
+    
+    <div class="setting-item" onclick="openAccountInfo()">
+        <span>Account Information (Gmail)</span>
+        <span class="right-val" id="displayGmail">ram060039@gmail.com ❯</span>
+    </div>
+
+    <div class="setting-item" onclick="openPasswordModal()">
+        <span>Password & Security</span>
+        <span class="right-val">Protected ❯</span>
+    </div>
+
+    <div class="setting-item" onclick="window.location.href='wallet.html'">
+        <span>Cards & Coin Balance</span>
+        <span class="right-val">Manage ❯</span>
+    </div>
+
+    <div class="section-title">Preferences & Country</div>
+
+    <div class="setting-item" onclick="alert('✅ Nagarik App ID: #NP-981152-VERIFIED\nStatus: Fully Verified & Synced with Government Portal.')">
+        <span>Nagarik App Verification Status</span>
+        <span class="right-val" style="color: #25f4ee; font-weight: bold;">Verified ✅</span>
+    </div>
+
+    <div class="setting-item" onclick="openLanguageModal()">
+        <span>App Language (International)</span>
+        <span class="right-val" id="selectedLangDisplay">हिन्दी (Hindi) ❯</span>
+    </div>
+
+    <div class="setting-item" onclick="openThemeModal()">
+        <span>Themes & Color Modes (20+ Options)</span>
+        <span class="right-val" id="selectedThemeDisplay">TikTok Red (Default) ❯</span>
+    </div>
+
+    <div class="logout-box">
+        <button class="logout-btn" onclick="handleLogout()">Log Out</button>
+    </div>
+
+    <!-- MONETIZATION DASHBOARD MODAL (AdSense / AdMob & 50-50 Split) -->
+    <div class="modal-overlay" id="monetizationModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('monetizationModal')">✕</span>
+            <h3>💰 AdSense & AdMob Creator Studio</h3>
+            <p style="font-size:12px; color:#aaa; margin-bottom:12px;">Criteria: 5,000 Followers & 1 Lakh Views in last 2 months.</p>
+            
+            <div style="background:#222; padding:12px; border-radius:8px; margin-bottom:12px; font-size:13px;">
+                <p><b>Your Followers:</b> 24.8K / 5,000 (Completed ✅)</p>
+                <p><b>Your Video Views:</b> 180.5K / 100K (Completed ✅)</p>
+                <p style="color:#25f4ee; margin-top:6px;"><b>Status:</b> Eligible for Ad Monetization!</p>
+            </div>
+
+            <label style="font-size:12px; color:#ccc;">Link Your Google AdMob / AdSense Publisher ID:</label>
+            <input type="text" id="admobInput" class="form-input" placeholder="pub-xxxxxxxxxxxxxxxx">
+
+            <label style="font-size:12px; color:#ccc;">Bank / Pay System Verification (Payout Account):</label>
+            <input type="text" id="payoutInput" class="form-input" placeholder="Enter Bank / eSewa / Nabil Account">
+
+            <div style="font-size:11px; color:#888; margin-bottom:15px; background:#111; padding:8px; border-radius:6px;">
+                ℹ️ <b>Revenue Split Policy:</b> Ad earnings are automatically distributed as 50% to Creator and 50% to Platform Owner (Ramkumar Dhobi / Call Priyance).
+            </div>
+
+            <button class="action-pub-btn" onclick="saveAdSenseDetails()">Connect AdSense & Start Earning</button>
+        </div>
+    </div>
+
+    <!-- SPONSORSHIP HUB MODAL -->
+    <div class="modal-overlay" id="sponsorshipModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('sponsorshipModal')">✕</span>
+            <h3>🤝 Brand Sponsorship Deals</h3>
+            <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Collaborate with top brands and promote products in your videos.</p>
+            
+            <div class="modal-option">
+                <div>
+                    <b>Asian Paints MasterStroke</b>
+                    <p style="font-size:11px; color:#888;">Promote wall putty & paint finishing • $250/deal</p>
+                </div>
+                <button class="action-pub-btn" style="width:auto; padding:6px 12px; font-size:11px;" onclick="alert('🎉 Sponsorship request accepted! Deal contract unlocked.')">Accept</button>
+            </div>
+
+            <div class="modal-option">
+                <div>
+                    <b>Nabil Bank Digital Wallet</b>
+                    <p style="font-size:11px; color:#888;">Promote digital mobile banking app • $180/deal</p>
+                </div>
+                <button class="action-pub-btn" style="width:auto; padding:6px 12px; font-size:11px;" onclick="alert('🎉 Sponsorship request accepted! Deal contract unlocked.')">Accept</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AFFILIATE MARKETING MODAL -->
+    <div class="modal-overlay" id="affiliateModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('affiliateModal')">✕</span>
+            <h3>🔗 Affiliate Marketing Hub</h3>
+            <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Share product links and earn 15% commission on every sale.</p>
+            
+            <label style="font-size:12px; color:#ccc;">Your Unique Affiliate Referral Link:</label>
+            <input type="text" class="form-input" value="https://callpriyance.app/ref/ramkumar06" readonly>
+
+            <button class="action-pub-btn" onclick="alert('📋 Affiliate link copied to clipboard! Share on TikTok, Facebook & WhatsApp.')">Copy Referral Link</button>
+        </div>
+    </div>
+
+    <!-- LANGUAGE MODAL -->
+    <div class="modal-overlay" id="langModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('langModal')">✕</span>
+            <h3>🌐 Select App Language</h3>
+            <div class="modal-option" onclick="setLanguage('हिन्दी (Hindi)')"><span>🇮🇳 हिन्दी (Hindi)</span></div>
+            <div class="modal-option" onclick="setLanguage('नेपाली (Nepali)')"><span>🇳🇵 नेपाली (Nepali)</span></div>
+            <div class="modal-option" onclick="setLanguage('English (US)')"><span>🇺🇸 English (US)</span></div>
+            <div class="modal-option" onclick="setLanguage('Español (Spanish)')"><span>🇪🇸 Español (Spanish)</span></div>
+            <div class="modal-option" onclick="setLanguage('Français (French)')"><span>🇫🇷 Français (French)</span></div>
+            <div class="modal-option" onclick="setLanguage('العربية (Arabic)')"><span>🇸🇦 العربية (Arabic)</span></div>
+            <div class="modal-option" onclick="setLanguage('中文 (Chinese)')"><span>🇨🇳 中文 (Chinese)</span></div>
+            <div class="modal-option" onclick="setLanguage('日本語 (Japanese)')"><span>🇯🇵 日本語 (Japanese)</span></div>
+            <div class="modal-option" onclick="setLanguage('Deutsch (German)')"><span>🇩🇪 Deutsch (German)</span></div>
+            <div class="modal-option" onclick="setLanguage('Русский (Russian)')"><span>🇷🇺 Русский (Russian)</span></div>
+        </div>
+    </div>
+
+    <!-- THEMES MODAL -->
+    <div class="modal-overlay" id="themeModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('themeModal')">✕</span>
+            <h3>🎨 Select App Theme & Color</h3>
+            <div class="modal-option" onclick="setTheme('TikTok Red', '#fe2c55')"><span>🔴 TikTok Red (Default)</span><div style="width:16px; height:16px; background:#fe2c55; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Neon Cyan', '#25f4ee')"><span>🔵 Neon Cyan Blue</span><div style="width:16px; height:16px; background:#25f4ee; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Royal Gold', '#ffcc00')"><span>🟡 Royal Gold</span><div style="width:16px; height:16px; background:#ffcc00; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Emerald Green', '#00cc66')"><span>🟢 Emerald Green</span><div style="width:16px; height:16px; background:#00cc66; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Sunset Orange', '#ff6600')"><span>🟠 Sunset Orange</span><div style="width:16px; height:16px; background:#ff6600; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Deep Purple', '#9933ff')"><span>🟣 Deep Purple</span><div style="width:16px; height:16px; background:#9933ff; border-radius:50%;"></div></div>
+            <div class="modal-option" onclick="setTheme('Dark AMOLED', '#000000')"><span>⬛ Pure Dark AMOLED</span><div style="width:16px; height:16px; background:#000; border:1px solid #555; border-radius:50%;"></div></div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
+        <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
+        <a href="camera.html" class="nav-item"><div class="upload-plus-btn">+</div></a>
+        <a href="inbox.html" class="nav-item"><i>💬</i><span>Inbox</span></a>
+        <a href="profile.html" class="nav-item"><i>⭐</i><span>Profile</span></a>
+    </div>
+
+    <script>
+        window.onload = function() {
+            let savedGmail = localStorage.getItem('appGmail') || 'ram060039@gmail.com';
+            document.getElementById('displayGmail').innerText = savedGmail + ' ❯';
+
+            let savedLang = localStorage.getItem('appLanguage');
+            if(savedLang) document.getElementById('selectedLangDisplay').innerText = savedLang + ' ❯';
+
+            let savedThemeName = localStorage.getItem('appThemeName');
+            let savedThemeColor = localStorage.getItem('appThemeColor');
+            if(savedThemeName) {
+                document.getElementById('selectedThemeDisplay').innerText = savedThemeName + ' ❯';
+            }
+
+            let savedAdMob = localStorage.getItem('appAdMob');
+            if(savedAdMob) {
+                document.getElementById('admobInput').value = savedAdMob;
+            }
+        };
+
+        function openMonetizationDashboard() { document.getElementById('monetizationModal').style.display = 'flex'; }
+        function openSponsorshipHub() { document.getElementById('sponsorshipModal').style.display = 'flex'; }
+        function openAffiliateHub() { document.getElementById('affiliateModal').style.display = 'flex'; }
+        function openLanguageModal() { document.getElementById('langModal').style.display = 'flex'; }
+        function openThemeModal() { document.getElementById('themeModal').style.display = 'flex'; }
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+
+        function saveAdSenseDetails() {
+            let admob = document.getElementById('admobInput').value;
+            let payout = document.getElementById('payoutInput').value;
+            if(admob === '' || payout === '') {
+                alert('⚠️ Please enter both AdMob/AdSense ID and Payout Account details.');
+                return;
+            }
+            localStorage.setItem('appAdMob', admob);
+            alert('🎉 AdSense/AdMob account successfully linked!\n✅ Pay system verified. Ads are now active on your videos (50% Creator / 50% Platform Owner revenue split enabled).');
+            closeModal('monetizationModal');
+        }
+
+        function setLanguage(langName) {
+            localStorage.setItem('appLanguage', langName);
+            document.getElementById('selectedLangDisplay').innerText = langName + ' ❯';
+            closeModal('langModal');
+            alert('🌐 App language changed to ' + langName);
+        }
+
+        function setTheme(themeName, colorHex) {
+            localStorage.setItem('appThemeName', themeName);
+            localStorage.setItem('appThemeColor', colorHex);
+            document.getElementById('selectedThemeDisplay').innerText = themeName + ' ❯';
+            closeModal('themeModal');
+            alert('🎨 Theme switched to ' + themeName);
+        }
+
+        function openAccountInfo() {
+            let gmail = localStorage.getItem('appGmail') || 'ram060039@gmail.com';
+            alert('👤 Account Information:\n\nGmail: ' + gmail + '\nStatus: Active & Verified');
+        }
+
+        function openPasswordModal() {
+            let newPass = prompt('🔒 Enter your new secure password:');
+            if(newPass) alert('✅ Password updated successfully!');
+        }
+
+        function handleLogout() {
+            if(confirm('Are you sure you want to log out?')) {
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
 </body>
 </html>
