@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Ramkumar Dhobi</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #000; color: #fff; padding-bottom: 70px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; }
+        .header h2 { font-size: 16px; }
+        .menu-icon { font-size: 22px; cursor: pointer; text-decoration: none; color: #fff; }
+
+        .profile-box { text-align: center; padding: 25px 20px 15px; }
+        .avatar { width: 85px; height: 85px; border-radius: 50%; border: 2px solid #fe2c55; object-fit: cover; margin-bottom: 10px; }
+        .profile-box h2 { font-size: 18px; margin-bottom: 4px; }
+        .profile-box p { font-size: 13px; color: #aaa; margin-bottom: 15px; }
+
+        .stats { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; text-align: center; }
+        .stat-num { font-size: 16px; font-weight: bold; }
+        .stat-label { font-size: 12px; color: #888; }
+
+        .profile-btns { display: flex; justify-content: center; gap: 10px; padding: 0 20px; margin-bottom: 25px; }
+        .p-btn { background: #222; border: 1px solid #444; color: #fff; padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .p-btn.active { background: #fe2c55; border-color: #fe2c55; }
+
+        .grid-videos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+        .grid-item { background: #222; aspect-ratio: 9/16; position: relative; display: flex; align-items: flex-end; padding: 8px; font-size: 11px; font-weight: bold; }
+
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
+        .nav-item.active { color: #fff; }
+        .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="wallet.html" style="color:#fff; text-decoration:none; font-size:14px;">🪙 Wallet</a>
+        <h2>Ramkumar Dhobi</h2>
+        <a href="settings.html" class="menu-icon">☰</a>
+    </div>
+
+    <div class="profile-box">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="avatar" alt="Profile">
+        <h2>Ramkumar Dhobi</h2>
+        <p>@ramram981152 | Call Priyance Creator</p>
+        <div class="stats">
+            <div><div class="stat-num">142</div><div class="stat-label">Following</div></div>
+            <div><div class="stat-num">24.8K</div><div class="stat-label">Followers</div></div>
+            <div><div class="stat-num">180.5K</div><div class="stat-label">Likes</div></div>
+        </div>
+        <div class="profile-btns">
+            <a href="settings.html" class="p-btn active">Edit profile</a>
+            <a href="wallet.html" class="p-btn">My Balance</a>
+        </div>
+    </div>
+
+    <div class="grid-videos">
+        <div class="grid-item" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent), url('https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-in-a-party-41650-large.mp4'); background-size:cover;">▶ 48K</div>
+        <div class="grid-item" style="background: #333;">▶ 12K (10 Min)</div>
+        <div class="grid-item" style="background: #222;">▶ 95K</div>
+    </div>
+
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
+        <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
+        <a href="camera.html" class="nav-item"><div class="upload-plus-btn">+</div></a>
+        <a href="profile.html" class="nav-item"><i>👤</i><span>Inbox</span></a>
+        <a href="profile.html" class="nav-item active"><i>⭐</i><span>Profile</span></a>
+    </div>
+</body>
+</html>
