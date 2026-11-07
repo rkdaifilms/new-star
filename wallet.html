@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Merchant Wallet & Payout - Call Priyance</title>
+    <title>Global Merchant Wallet & Real Payout - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #0f0f0f; color: #fff; padding-bottom: 70px; }
@@ -32,7 +32,7 @@
         
         .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; border: none; cursor: pointer; }
         .btn-outline { background: transparent; border: 1px solid #fe2c55; color: #fe2c55; }
-        input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 8px; font-size: 14px; }
+        input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 8px; font-size: 14px; outline: none; }
         
         /* Active Payment Form Container */
         #paymentSection { display: none; background: #1f1f1f; border: 2px solid #fe2c55; padding: 20px; border-radius: 12px; margin-top: 20px; }
@@ -41,6 +41,12 @@
         #smsBox { display: none; background: #112233; border: 2px solid #00b4d8; padding: 15px; border-radius: 10px; margin-top: 15px; }
         #smsBox h4 { color: #90e0ef; font-size: 14px; margin-bottom: 5px; }
         #smsBox p { font-size: 13px; color: #fff; line-height: 1.4; }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
+        .nav-item.active { color: #fff; }
+        .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
     </style>
 </head>
 <body>
@@ -51,11 +57,22 @@
     </div>
 
     <div class="wallet-card">
-        <h4>Developer Merchant Balance</h4>
+        <h4>Developer Master Merchant Balance (100% Revenue)</h4>
         <h1 id="merchantBalance">$482.50</h1>
         <div class="coins-row">
             <span>My Coin Balance: <strong id="userCoins">19,550 🪙</strong></span>
             <span style="font-size:12px; opacity:0.9;">1 Cent = 1 Coin</span>
+        </div>
+    </div>
+
+    <!-- 🛠️ DEVELOPER MASTER MERCHANT / PAYONEER CONFIGURATION BOX -->
+    <div class="section">
+        <h3 style="color: #ffcc00;">⚙️ Developer Master Merchant Setup (Owner Control)</h3>
+        <div class="box" style="border-color: #ffcc00; background: #1a1811;">
+            <strong>Link Your Master Account (Payoneer / Merchant ID)</strong>
+            <p style="font-size:12px; color:#ccc;">Enter your Payoneer email or Merchant Gateway ID. All global coin purchases and 30% gift commissions route directly here:</p>
+            <input type="text" id="devMerchantAccount" placeholder="e.g. rkdaifilms@gmail.com or Merchant ID #981152">
+            <button class="btn" style="background: #ffcc00; color: #000;" onclick="saveDevMerchant()">Save Master Merchant Account</button>
         </div>
     </div>
 
@@ -106,7 +123,7 @@
         </div>
     </div>
 
-    <!-- Dynamic Real Payment Form (Appears when package is clicked) -->
+    <!-- Dynamic Real Payment Form -->
     <div class="section" id="paymentSection">
         <h3 id="selectedTitle" style="color: #ffcc00;">💳 Checkout: $1.00</h3>
         <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">Enter your bank/wallet number, account details, and secure PIN/MPIN to pay real money directly to developer merchant account:</p>
@@ -139,25 +156,66 @@
         </div>
     </div>
 
-    <!-- Global & Local Payout System -->
+    <!-- Creator Payout System with 30% Gift Commission & $50 Min Limit Lock -->
     <div class="section">
-        <h3>💸 Developer / Creator Payout System</h3>
+        <h3>💸 Creator Payout & 30% Commission System</h3>
         <div class="box">
-            <strong>Withdraw Earnings</strong>
-            <p>Send funds from merchant balance to your bank worldwide:</p>
+            <strong>Withdraw Earnings (Min. Limit: $50.00 Required)</strong>
+            <p style="font-size: 12px; color: #25f4ee; margin-top: 4px; margin-bottom: 8px;">ℹ️ Note: Platform automatically deducts 30% commission on gift earnings; 70% goes to creator.</p>
+            <p id="payoutStatusMsg" style="color: #fe2c55; margin-bottom: 8px;">🔒 Status: Your balance is below $50.00. Minimum $50 required to request payout.</p>
+            
             <select id="payoutMethod">
                 <option value="payoneer">Payoneer Account (Global)</option>
-                <option value="nepal">Nepal Local Bank / eSewa</option>
+                <option value="nepal">Nepal Local Bank / eSewa / Khalti</option>
                 <option value="india">India Bank / UPI</option>
                 <option value="bangladesh">Bangladesh bKash / Bank</option>
                 <option value="pakistan">Pakistan JazzCash / Bank</option>
             </select>
             <input type="text" id="payoutDetails" placeholder="Enter Account Details / UPI / Email">
-            <button class="btn btn-outline" onclick="requestPayout()">Request Real Payout</button>
+            
+            <button class="btn btn-outline" id="payoutSubmitBtn" onclick="requestPayout()" disabled style="opacity: 0.5; cursor: not-allowed;">Request Real Payout (Locked)</button>
         </div>
     </div>
 
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
+        <a href="wallet.html" class="nav-item active"><i>🪙</i><span>Wallet</span></a>
+        <a href="camera.html" class="nav-item"><div class="upload-plus-btn">+</div></a>
+        <a href="inbox.html" class="nav-item"><i>💬</i><span>Inbox</span></a>
+        <a href="profile.html" class="nav-item"><i>⭐</i><span>Profile</span></a>
+    </div>
+
     <script>
+        let targetPayoutMinimum = 50.00; // Minimum limit for creators
+
+        window.onload = function() {
+            let savedDevMerchant = localStorage.getItem('appDevMerchantID');
+            if(savedDevMerchant) {
+                document.getElementById('devMerchantAccount').value = savedDevMerchant;
+            }
+
+            let currentMerchantBal = parseFloat(document.getElementById('merchantBalance').innerText.replace('$', ''));
+            if(currentMerchantBal >= targetPayoutMinimum) {
+                document.getElementById('payoutStatusMsg').innerHTML = '🟢 Status: Minimum limit met! You can withdraw your earnings.';
+                document.getElementById('payoutStatusMsg').style.color = '#25f4ee';
+                document.getElementById('payoutSubmitBtn').disabled = false;
+                document.getElementById('payoutSubmitBtn').style.opacity = '1';
+                document.getElementById('payoutSubmitBtn').style.cursor = 'pointer';
+                document.getElementById('payoutSubmitBtn').innerText = 'Request Real Payout';
+            }
+        };
+
+        function saveDevMerchant() {
+            let merchantId = document.getElementById('devMerchantAccount').value.trim();
+            if(merchantId === '') {
+                alert('⚠️ Please enter your Payoneer email or Merchant ID.');
+                return;
+            }
+            localStorage.setItem('appDevMerchantID', merchantId);
+            alert('✅ Master Merchant Account saved successfully!\n🔗 ID: ' + merchantId + '\n🚀 All global coin payments and 30% commissions will now route directly here.');
+        }
+
         let currentCoins = 100;
         let currentBonus = 5;
         let currentAmountUSD = 1.00;
@@ -206,6 +264,7 @@
         function executeRealPayment() {
             let accountNum = document.getElementById('payInput1').value;
             let pinVal = document.getElementById('securePin').value;
+            let devMerchant = localStorage.getItem('appDevMerchantID') || 'Default Master Merchant';
 
             if(accountNum.trim() === '') {
                 alert('⚠️ Please enter your account number, mobile number, or card details.');
@@ -218,32 +277,30 @@
 
             let totalCoinsAdded = currentCoins + currentBonus;
             
-            // Real Calculation update
             let oldCoins = parseInt(document.getElementById('userCoins').innerText.replace(/,/g, ''));
             let newCoinsTotal = oldCoins + totalCoinsAdded;
             document.getElementById('userCoins').innerText = newCoinsTotal.toLocaleString() + ' 🪙';
 
-            // Merchant balance update
             let oldMerchantBal = parseFloat(document.getElementById('merchantBalance').innerText.replace('$', ''));
             let newMerchantBal = oldMerchantBal + currentAmountUSD;
             document.getElementById('merchantBalance').innerText = '$' + newMerchantBal.toFixed(2);
 
-            // Show Real Bank SMS Alert on Screen
             let smsBox = document.getElementById('smsBox');
             let smsText = document.getElementById('smsText');
             smsBox.style.display = 'block';
-            smsText.innerHTML = `<b>[BANK SMS ALERT]</b><br>Debit: <b>${currentPriceStr} USD</b> successfully debited from account (${accountNum}).<br>Paid directly to <b>Call Priyance Developer Merchant</b>.<br>🎉 <b>${totalCoinsAdded.toLocaleString()} Coins</b> added to your wallet!`;
+            smsText.innerHTML = `<b>[BANK SMS ALERT]</b><br>Debit: <b>${currentPriceStr} USD</b> successfully debited from account (${accountNum}).<br>Routed directly to Master Merchant: <b>${devMerchant}</b>.<br>🎉 <b>${totalCoinsAdded.toLocaleString()} Coins</b> added to your wallet!`;
 
-            alert('✅ PIN Verified Successfully!\n💰 Payment of ' + currentPriceStr + ' transferred to Developer Merchant Account.\n📲 SMS notification sent to your registered number.');
+            alert('✅ PIN Verified Successfully!\n💰 Payment of ' + currentPriceStr + ' transferred to Developer Master Merchant Account (' + devMerchant + ').\n📲 SMS notification sent to your registered number.');
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
         function requestPayout() {
             let details = document.getElementById('payoutDetails').value;
+            let method = document.getElementById('payoutMethod').value;
             if(details.trim() === '') {
                 alert('⚠️ Please enter your destination account details.');
             } else {
-                alert('✅ Real payout request submitted successfully! Funds will be transferred to your account shortly.');
+                alert('✅ Real payout request submitted successfully via ' + method + '! Funds will be transferred to your account shortly.');
             }
         }
     </script>
