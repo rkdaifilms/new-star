@@ -11,38 +11,52 @@
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: #111; position: sticky; top: 0; z-index: 10; }
         .header h2 { font-size: 18px; color: #fe2c55; }
         
-        .my-inbox-profile { display: flex; align-items: center; gap: 12px; padding: 12px 15px; background: #121212; border-bottom: 1px solid #222; }
+        /* User's Own Profile Banner (Clickable to view own profile instantly) */
+        .my-inbox-profile { display: flex; align-items: center; gap: 12px; padding: 12px 15px; background: #121212; border-bottom: 1px solid #222; cursor: pointer; }
         .my-inbox-profile img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; }
         .my-inbox-profile div h4 { font-size: 14px; }
         .my-inbox-profile div p { font-size: 12px; color: #aaa; }
 
-        .inbox-tabs { display: flex; justify-content: center; gap: 30px; padding: 12px; background: #111; border-bottom: 1px solid #222; }
-        .inbox-tab { font-size: 15px; font-weight: 600; color: #777; cursor: pointer; padding-bottom: 4px; }
+        /* Inbox Tabs (Messages, Followers, Following) */
+        .inbox-tabs { display: flex; justify-content: space-around; padding: 12px; background: #111; border-bottom: 1px solid #222; }
+        .inbox-tab { font-size: 14px; font-weight: 600; color: #777; cursor: pointer; padding-bottom: 4px; }
         .inbox-tab.active { color: #fff; border-bottom: 2px solid #fe2c55; }
 
-        .chat-list { padding: 10px 15px; }
-        .chat-item { display: flex; align-items: center; gap: 12px; padding: 12px 10px; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: 0.2s; border-radius: 8px; }
-        .chat-item:hover { background: #181818; }
-        .chat-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; }
-        .chat-info { flex: 1; }
-        .chat-info h4 { font-size: 15px; margin-bottom: 3px; display: flex; justify-content: space-between; }
-        .chat-info h4 span { font-size: 11px; color: #777; font-weight: normal; }
-        .chat-info p { font-size: 13px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
-        .unread-badge { background: #fe2c55; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 50%; }
+        /* Chat & Follower List */
+        .list-container { padding: 10px 15px; }
+        .list-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 10px; border-bottom: 1px solid #1a1a1a; cursor: pointer; border-radius: 8px; transition: 0.2s; }
+        .list-item:hover { background: #181818; }
+        .user-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .list-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; cursor: pointer; }
+        .list-info h4 { font-size: 15px; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .list-info p { font-size: 13px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+        
+        .action-tag-btn { background: #fe2c55; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .action-tag-btn.following { background: #222; border: 1px solid #444; color: #ccc; }
 
-        /* Real Live Chat Window */
+        /* Real Messenger Chat Window */
         #chatBoxWindow { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #000; z-index: 200; flex-direction: column; }
         .chat-box-header { display: flex; align-items: center; gap: 15px; padding: 15px; background: #111; border-bottom: 1px solid #222; }
-        .chat-box-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        .chat-box-header h3 { font-size: 16px; }
+        .chat-box-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; cursor: pointer; }
+        .chat-box-header h3 { font-size: 16px; cursor: pointer; }
         .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #080808; }
         .message { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; }
         .message.incoming { background: #222; color: #fff; align-self: flex-start; border-bottom-left-radius: 2px; }
         .message.outgoing { background: #fe2c55; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .message img { max-width: 100%; border-radius: 8px; margin-top: 5px; }
         
-        .chat-input-area { display: flex; padding: 12px; background: #111; border-top: 1px solid #222; gap: 10px; align-items: center; }
-        .chat-input-area input { flex: 1; padding: 12px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
-        .send-btn { background: #fe2c55; color: #fff; border: none; padding: 10px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        .chat-input-area { display: flex; padding: 12px; background: #111; border-top: 1px solid #222; gap: 8px; align-items: center; }
+        .chat-input-area input { flex: 1; padding: 10px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
+        .chat-icon-btn { background: #222; border: 1px solid #444; color: #fff; width: 38px; height: 38px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 16px; }
+        .send-btn { background: #fe2c55; color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+
+        /* Profile Pop-up Modal */
+        #profilePopup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.85); z-index: 300; justify-content: center; align-items: center; }
+        .profile-popup-card { background: #181818; border: 1px solid #333; width: 90%; max-width: 320px; border-radius: 16px; padding: 25px; text-align: center; position: relative; }
+        .profile-popup-card img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #fe2c55; margin-bottom: 12px; }
+        .profile-popup-card h3 { font-size: 18px; margin-bottom: 4px; }
+        .profile-popup-card p { font-size: 13px; color: #aaa; margin-bottom: 15px; }
+        .close-popup { position: absolute; top: 12px; right: 15px; font-size: 18px; cursor: pointer; color: #aaa; }
 
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
@@ -54,54 +68,116 @@
 <body>
 
     <div class="header">
-        <h2>Direct Messages (Inbox)</h2>
+        <h2>Direct Messages & Activity</h2>
     </div>
 
-    <!-- User's Synced Profile Banner inside Inbox -->
-    <div class="my-inbox-profile">
+    <!-- User's Own Profile Banner (Clickable to view own profile instantly) -->
+    <div class="my-inbox-profile" onclick="window.location.href='profile.html'">
         <img id="inboxUserPic" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" alt="My Profile">
         <div>
             <h4 id="inboxUserName">Ramkumar Dhobi</h4>
-            <p>Active Status • Direct Messaging Enabled</p>
+            <p>Tap to view your Profile • Active Status</p>
         </div>
     </div>
 
+    <!-- Inbox Tabs -->
     <div class="inbox-tabs">
-        <div class="inbox-tab active">All Messages</div>
-        <div class="inbox-tab" onclick="alert('No pending requests')">Requests (0)</div>
+        <div class="inbox-tab active" onclick="switchTab('messages', this)">Messages (2)</div>
+        <div class="inbox-tab" onclick="switchTab('followers', this)">Followers (3)</div>
+        <div class="inbox-tab" onclick="switchTab('following', this)">Following (2)</div>
     </div>
 
-    <!-- Chat Creators List -->
-    <div class="chat-list">
-        <div class="chat-item" onclick="openChat('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', 'Bhai video bahut mast banaya hai! 🔥')">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="chat-avatar" alt="User">
-            <div class="chat-info">
-                <h4>Priyance Official <span>10:45 AM</span></h4>
-                <p>Bhai video bahut mast banaya hai! 🔥</p>
+    <!-- Tab 1: Messages List -->
+    <div class="list-container" id="tabMessages">
+        <div class="list-item" onclick="openChat('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', 'Bhai video bahut mast banaya hai! 🔥')">
+            <div class="user-left">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="list-avatar" onclick="event.stopPropagation(); showProfile('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', '@priyance_official | Creator & Dancer')">
+                <div class="list-info">
+                    <h4 onclick="event.stopPropagation(); showProfile('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', '@priyance_official | Creator & Dancer')">Priyance Official</h4>
+                    <p>Bhai video bahut mast banaya hai! 🔥</p>
+                </div>
             </div>
-            <div class="unread-badge">2</div>
+            <span style="font-size:11px; color:#777;">10:45 AM</span>
         </div>
 
-        <div class="chat-item" onclick="openChat('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', 'Your coin purchase of $10.00 was successful.')">
-            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200" class="chat-avatar" alt="Support">
-            <div class="chat-info">
-                <h4>Call Priyance Support <span>Yesterday</span></h4>
-                <p>Your coin purchase of $10.00 was successful.</p>
+        <div class="list-item" onclick="openChat('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', 'Your coin purchase of $10.00 was successful.')">
+            <div class="user-left">
+                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200" class="list-avatar" onclick="event.stopPropagation(); showProfile('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', '@support | Official Helpdesk')">
+                <div class="list-info">
+                    <h4 onclick="event.stopPropagation(); showProfile('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', '@support | Official Helpdesk')">Call Priyance Support</h4>
+                    <p>Your coin purchase of $10.00 was successful.</p>
+                </div>
             </div>
+            <span style="font-size:11px; color:#777;">Yesterday</span>
         </div>
     </div>
 
-    <!-- Real Live Chat Window -->
+    <!-- Tab 2: Followers List -->
+    <div class="list-container" id="tabFollowers" style="display:none;">
+        <div class="list-item">
+            <div class="user-left" onclick="showProfile('Anjali Dance Hub', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200', '@anjali_dance | Started following you')">
+                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200" class="list-avatar">
+                <div class="list-info">
+                    <h4>Anjali Dance Hub</h4>
+                    <p>Started following you • 2m ago</p>
+                </div>
+            </div>
+            <button class="action-tag-btn" onclick="toggleFollow(this)">Follow Back</button>
+        </div>
+
+        <div class="list-item">
+            <div class="user-left" onclick="showProfile('Rohit Painter', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200', '@rohit_paint | Wall Putty Expert')">
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200" class="list-avatar">
+                <div class="list-info">
+                    <h4>Rohit Painter</h4>
+                    <p>Started following you • 1h ago</p>
+                </div>
+            </div>
+            <button class="action-tag-btn following" onclick="toggleFollow(this)">Following</button>
+        </div>
+    </div>
+
+    <!-- Tab 3: Following List -->
+    <div class="list-container" id="tabFollowing" style="display:none;">
+        <div class="list-item">
+            <div class="user-left" onclick="showProfile('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', '@priyance_official')">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="list-avatar">
+                <div class="list-info">
+                    <h4>Priyance Official</h4>
+                    <p>You are following this creator</p>
+                </div>
+            </div>
+            <button class="action-tag-btn following" onclick="toggleFollow(this)">Following</button>
+        </div>
+    </div>
+
+    <!-- Real Messenger Chat Window -->
     <div id="chatBoxWindow">
         <div class="chat-box-header">
             <span onclick="closeChat()" style="font-size: 22px; cursor: pointer;">←</span>
-            <img id="activeChatAvatar" src="" alt="">
-            <h3 id="activeChatName">Creator Name</h3>
+            <img id="activeChatAvatar" src="" alt="" onclick="showProfileFromChat()">
+            <h3 id="activeChatName" onclick="showProfileFromChat()">Creator Name</h3>
         </div>
         <div class="chat-messages" id="chatMessagesArea"></div>
         <div class="chat-input-area">
-            <input type="text" id="messageInput" placeholder="Type a message to creator..." onkeypress="handleKeyPress(event)">
+            <label for="imageFile" class="chat-icon-btn">📷</label>
+            <input type="file" id="imageFile" accept="image/*" style="display:none;" onchange="sendPhoto(event)">
+            
+            <div class="chat-icon-btn" onclick="startVoiceRecording()" id="micBtn">🎙️</div>
+            
+            <input type="text" id="messageInput" placeholder="Type a message or voice note..." onkeypress="handleKeyPress(event)">
             <button class="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- Profile Pop-up Modal -->
+    <div id="profilePopup" onclick="closeProfilePopup()">
+        <div class="profile-popup-card" onclick="event.stopPropagation()">
+            <span class="close-popup" onclick="closeProfilePopup()">✕</span>
+            <img id="popupAvatar" src="" alt="Profile">
+            <h3 id="popupName">Name</h3>
+            <p id="popupBio">Bio details</p>
+            <button class="action-tag-btn" style="width:100%;" onclick="closeProfilePopup(); alert('Message feature opened!');">Send Message</button>
         </div>
     </div>
 
@@ -120,18 +196,42 @@
             let savedName = localStorage.getItem('appName');
             let savedPic = localStorage.getItem('appPic');
 
-            if(savedName) {
-                document.getElementById('inboxUserName').innerText = savedName;
-            }
-            if(savedPic) {
-                document.getElementById('inboxUserPic').src = savedPic;
-            }
+            if(savedName) document.getElementById('inboxUserName').innerText = savedName;
+            if(savedPic) document.getElementById('inboxUserPic').src = savedPic;
         };
 
+        // Tab Switcher
+        function switchTab(tabName, el) {
+            document.querySelectorAll('.inbox-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+
+            document.getElementById('tabMessages').style.display = 'none';
+            document.getElementById('tabFollowers').style.display = 'none';
+            document.getElementById('tabFollowing').style.display = 'none';
+
+            if(tabName === 'messages') document.getElementById('tabMessages').style.display = 'block';
+            if(tabName === 'followers') document.getElementById('tabFollowers').style.display = 'block';
+            if(tabName === 'following') document.getElementById('tabFollowing').style.display = 'block';
+        }
+
+        // Profile Popup Viewer
+        function showProfile(name, avatar, bio) {
+            document.getElementById('popupName').innerText = name;
+            document.getElementById('popupAvatar').src = avatar;
+            document.getElementById('popupBio').innerText = bio;
+            document.getElementById('profilePopup').style.display = 'flex';
+        }
+
+        function closeProfilePopup() {
+            document.getElementById('profilePopup').style.display = 'none';
+        }
+
+        let activeAvatar = '';
         let currentChatUser = '';
 
         function openChat(name, avatar, lastMsg) {
             currentChatUser = name;
+            activeAvatar = avatar;
             document.getElementById('activeChatName').innerText = name;
             document.getElementById('activeChatAvatar').src = avatar;
             
@@ -139,6 +239,10 @@
             msgArea.innerHTML = `<div class="message incoming"><b>${name}:</b> ${lastMsg}</div>`;
 
             document.getElementById('chatBoxWindow').style.display = 'flex';
+        }
+
+        function showProfileFromChat() {
+            showProfile(currentChatUser, activeAvatar, 'Verified Creator & Active User');
         }
 
         function closeChat() {
@@ -159,6 +263,44 @@
                 msgArea.innerHTML += `<div class="message incoming"><b>${currentChatUser}:</b> Ramkumar bhai, message mil gaya! 👍</div>`;
                 msgArea.scrollTop = msgArea.scrollHeight;
             }, 1000);
+        }
+
+        // Voice Recording Simulation (Speech to Text)
+        function startVoiceRecording() {
+            let btn = document.getElementById('micBtn');
+            btn.style.background = '#fe2c55';
+            alert('🎙️ Recording voice note... Speak now!');
+
+            setTimeout(() => {
+                btn.style.background = '#222';
+                let voiceText = "Ramkumar bhai, ye raha voice message ka auto-typed text!";
+                document.getElementById('messageInput').value = voiceText;
+                alert('✍️ Voice converted to text successfully! Click Send.');
+            }, 2000);
+        }
+
+        // Send Photo from Gallery
+        function sendPhoto(event) {
+            let file = event.target.files[0];
+            if (file) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let msgArea = document.getElementById('chatMessagesArea');
+                    msgArea.innerHTML += `<div class="message outgoing"><img src="${e.target.result}" alt="Photo"></div>`;
+                    msgArea.scrollTop = msgArea.scrollHeight;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function toggleFollow(btn) {
+            if(btn.innerText === 'Follow Back') {
+                btn.innerText = 'Following';
+                btn.classList.add('following');
+            } else {
+                btn.innerText = 'Follow Back';
+                btn.classList.remove('following');
+            }
         }
 
         function handleKeyPress(e) {
