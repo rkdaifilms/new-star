@@ -6,14 +6,32 @@
     <title>Upload & LIVE Studio - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #000; color: #fff; height: 100vh; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 30px 20px; text-align: center; }
-        .top-close { align-self: flex-start; font-size: 24px; text-decoration: none; color: #fff; }
-        .studio-box { width: 100%; max-width: 400px; }
-        .studio-box h1 { font-size: 22px; margin-bottom: 10px; }
-        .studio-box p { font-size: 13px; color: #aaa; margin-bottom: 25px; }
-        .action-card { background: #1a1a1a; border: 1px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 15px; cursor: pointer; }
-        .action-card h3 { font-size: 16px; color: #fe2c55; margin-bottom: 5px; }
-        .action-card span { font-size: 12px; color: #888; }
+        body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px; text-align: center; }
+        .top-close { align-self: flex-start; font-size: 24px; text-decoration: none; color: #fff; background: #222; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        
+        .studio-box { width: 100%; max-width: 450px; margin-top: 10px; }
+        .studio-box h1 { font-size: 22px; margin-bottom: 5px; color: #25f4ee; }
+        .studio-box p { font-size: 12px; color: #aaa; margin-bottom: 20px; }
+        
+        .action-card { background: #161616; border: 1px solid #333; padding: 18px; border-radius: 12px; margin-bottom: 15px; cursor: pointer; transition: 0.2s; text-align: left; }
+        .action-card:hover { border-color: #fe2c55; background: #1f1f1f; }
+        .action-card h3 { font-size: 15px; color: #fe2c55; margin-bottom: 4px; }
+        .action-card span { font-size: 11px; color: #888; display: block; }
+
+        /* Live Studio Dashboard Modal / View */
+        #liveStudioModal { display: none; background: #141414; border: 2px solid #25f4ee; padding: 20px; border-radius: 15px; margin-top: 15px; text-align: left; }
+        
+        /* 9-10 Seats Voice Room Grid */
+        .voice-seats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+        .voice-seat { background: #222; border: 1px dashed #555; height: 65px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #ccc; cursor: pointer; position: relative; }
+        .voice-seat.active { border: 2px solid #25f4ee; background: #1a2a2a; color: #25f4ee; font-weight: bold; }
+        .seat-number { position: absolute; top: 2px; right: 8px; font-size: 9px; color: #ffcc00; }
+
+        .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 12px; border: none; cursor: pointer; }
+        .btn-live { background: linear-gradient(135deg, #fe2c55, #ff6b8b); }
+        .btn-voice { background: linear-gradient(135deg, #00b4d8, #0077b6); color: #fff; }
+
+        input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 6px; font-size: 13px; outline: none; }
     </style>
 </head>
 <body>
@@ -21,19 +39,124 @@
     
     <div class="studio-box">
         <h1>🎥 Creator Upload & LIVE Studio</h1>
-        <p>Post 10-Min videos or Go LIVE with real-time Coin Gifting!</p>
+        <p>Post 10-Min videos or Go LIVE with real-time Coin Gifting & Multi-Hosting!</p>
 
-        <div class="action-card" onclick="alert('📹 Video Recording/Uploading Studio (Supports up to 10 Mins)')">
-            <h3>📹 Upload / Record (Up to 10 Mins)</h3>
-            <span>Post videos with filters & share across social media</span>
+        <!-- 1. Video Upload Card -->
+        <div class="action-card" onclick="openUploadStudio()">
+            <h3>📹 Upload / Record Video (Up to 10 Mins)</h3>
+            <span>Post long-form videos with filters, music & earn ad revenue (50% share)</span>
         </div>
 
-        <div class="action-card" onclick="alert('📡 LIVE Streaming Started! Viewers can now send 1, 5, 10, 100+ coin gifts live.')">
-            <h3>🔴 Go LIVE & Receive Coin Gifts</h3>
-            <span>Interact live, chat, and collect coin gifts from fans</span>
+        <!-- 2. Live Stream & Multi-Hosting Card -->
+        <div class="action-card" onclick="openLiveStudio('video')">
+            <h3>🔴 Video LIVE Stream & PK Battle (2-4 Hosts)</h3>
+            <span>Go live with multiple creators, split screen, and collect coin gifts (30% fee)</span>
+        </div>
+
+        <!-- 3. Audio Voice Party Room Card (9-10 Seats) -->
+        <div class="action-card" onclick="openLiveStudio('voice')">
+            <h3>🎙️ Audio Voice Party Room (9-10 Hosting Seats)</h3>
+            <span>Open audio chat room, invite up to 10 friends on stage to talk & gift</span>
+        </div>
+
+        <!-- 4. Live Gaming Stream Card -->
+        <div class="action-card" onclick="openLiveStudio('gaming')">
+            <h3>🎮 Live Gaming Stream (Free Fire, PUBG, Ludo)</h3>
+            <span>Broadcast mobile gameplay live and interact with fans in real-time</span>
+        </div>
+
+        <!-- DYNAMIC LIVE / UPLOAD STUDIO PANEL -->
+        <div id="liveStudioModal">
+            <h3 id="modalTitle" style="color: #25f4ee; margin-bottom: 8px;">📡 Live Broadcasting Studio</h3>
+            <div id="modalContent"></div>
+            <button class="btn" style="background:#444; color:#fff; margin-top:10px;" onclick="closeStudioModal()">Close Studio</button>
         </div>
     </div>
 
-    <div style="font-size: 11px; color: #666;">Call Priyance Engine</div>
+    <div style="font-size: 11px; color: #666; margin-top: 15px;">Call Priyance Engine v2.6 • Global Creator Ecosystem</div>
+
+    <script>
+        function openUploadStudio() {
+            let modal = document.getElementById('liveStudioModal');
+            modal.style.display = 'block';
+            document.getElementById('modalTitle').innerText = '📹 10-Min Video Upload & Recording Studio';
+            document.getElementById('modalContent').innerHTML = `
+                <p style="font-size:12px; color:#ccc; margin-bottom:10px;">Select or record a video up to 10 minutes for your channel:</p>
+                <input type="file" accept="video/*" style="margin-bottom:8px;">
+                <input type="text" placeholder="Enter video caption, hashtags (#Dance #Viral)..." style="margin-bottom:8px;">
+                <select>
+                    <option>Public (Everyone can watch & gift)</option>
+                    <option>Friends Only</option>
+                    <option>Private</option>
+                </select>
+                <button class="btn btn-live" onclick="alert('✅ Video uploaded successfully! Ready for distribution & ad monetization.'); closeStudioModal();">🚀 Publish Video Now</button>
+            `;
+            modal.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function openLiveStudio(type) {
+            let modal = document.getElementById('liveStudioModal');
+            modal.style.display = 'block';
+            let content = '';
+
+            if(type === 'voice') {
+                document.getElementById('modalTitle').innerText = '🎙️ Audio Voice Party Room (10 Hosting Seats)';
+                content = `
+                    <p style="font-size:12px; color:#ccc;">Invite friends to join the stage. 1 Host + 9 Co-Hosts (Total 10 Seats):</p>
+                    <div class="voice-seats-grid">
+                        <div class="voice-seat active"><span class="seat-number">1</span>👑 Host</div>
+                        <div class="voice-seat" onclick="inviteFriend(2)"><span class="seat-number">2</span>+ Add Seat</div>
+                        <div class="voice-seat" onclick="inviteFriend(3)"><span class="seat-number">3</span>+ Add Seat</div>
+                        <div class="voice-seat" onclick="inviteFriend(4)"><span class="seat-number">4</span>+ Add Seat</div>
+                        <div class="voice-seat" onclick="inviteFriend(5)"><span class="seat-number">5</span>+ Add Seat</div>
+                        <div class="voice-seat" onclick="inviteFriend(6)"><span class="seat-number">6</span>+ Add Seat</div>
+                        <div class="voice-seat" onclick="inviteFriend(7)"><span class="seat-number">7</span>+ Add Seat</div>
+                        <div class="voice-seat" onclick="inviteFriend(8)"><span class="seat-number">8</span>+ Add Seat</div>
+                        <div class="voice-seat" onclick="inviteFriend(9)"><span class="seat-number">9</span>+ Add Seat</div>
+                        <div class="voice-seat" onclick="inviteFriend(10)"><span class="seat-number">10</span>+ Add Seat</div>
+                    </div>
+                    <button class="btn btn-voice" onclick="alert('🎙️ Voice Party Room LIVE! Audio streaming active for 10 members.')">🟢 Go LIVE Audio Room</button>
+                `;
+            } else if(type === 'video') {
+                document.getElementById('modalTitle').innerText = '🔴 Video LIVE & Multi-Host PK Battle';
+                content = `
+                    <p style="font-size:12px; color:#ccc;">Connect 2-4 creators on split screen for live PK battle:</p>
+                    <input type="text" placeholder="Enter Live Stream Title (e.g., Night Dance Party)" style="margin-bottom:8px;">
+                    <select style="margin-bottom:8px;">
+                        <option>Single Host Stream</option>
+                        <option>2-Way PK Battle</option>
+                        <option>4-Way Multi-Host Grid</option>
+                    </select>
+                    <button class="btn btn-live" onclick="alert('🔴 Video LIVE Stream started! Viewers can send coin gifts.')">🔴 Start Video LIVE Stream</button>
+                `;
+            } else if(type === 'gaming') {
+                document.getElementById('modalTitle').innerText = '🎮 Live Gaming Stream & App Launcher';
+                content = `
+                    <p style="font-size:12px; color:#ccc;">Select game to broadcast live:</p>
+                    <input type="text" value="Free Fire / PUBG Mobile / Ludo" style="margin-bottom:8px;">
+                    <select style="margin-bottom:8px;">
+                        <option>Stream Mobile Screen & Mic</option>
+                        <option>Front Camera + Gameplay PIP</option>
+                    </select>
+                    <button class="btn btn-live" onclick="alert('🎮 Gaming Stream Initialized! Broadcasting live to fans.')">🚀 Start Gaming Broadcast</button>
+                `;
+            }
+
+            document.getElementById('modalContent').content = content;
+            document.getElementById('modalContent').innerHTML = content;
+            modal.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function inviteFriend(seatNo) {
+            let friendName = prompt("Enter Friend's Username or ID to invite to Seat #" + seatNo + ":");
+            if(friendName) {
+                alert('✅ Invitation sent to ' + friendName + ' for Seat #' + seatNo + '!');
+            }
+        }
+
+        function closeStudioModal() {
+            document.getElementById('liveStudioModal').style.display = 'none';
+        }
+    </script>
 </body>
 </html>
