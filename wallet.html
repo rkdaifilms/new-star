@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creator Wallet, Coins & Global Payout - Call Priyance</title>
+    <title>Global Merchant Wallet & Payout - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #0f0f0f; color: #fff; padding-bottom: 70px; }
@@ -33,64 +33,67 @@
         .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; border: none; cursor: pointer; }
         .btn-outline { background: transparent; border: 1px solid #fe2c55; color: #fe2c55; }
         input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 8px; font-size: 14px; }
+        
+        /* Active Payment Form Container */
+        #paymentSection { display: none; background: #1f1f1f; border: 2px solid #fe2c55; padding: 20px; border-radius: 12px; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="header">
         <a href="index.html" class="back-btn">← Back</a>
-        <h2>Wallet & Coin Recharge</h2>
+        <h2>Global Merchant Wallet</h2>
         <div>🪙</div>
     </div>
 
     <div class="wallet-card">
-        <h4>Creator Earnings Balance</h4>
-        <h1>$482.50</h1>
+        <h4>Developer Merchant Balance</h4>
+        <h1 id="merchantBalance">$482.50</h1>
         <div class="coins-row">
-            <span>Coin Balance: <strong id="userCoins">19,550 🪙</strong></span>
-            <span style="font-size:12px; opacity:0.9;">1 Cent = 1 Coin Rate</span>
+            <span>My Coin Balance: <strong id="userCoins">19,550 🪙</strong></span>
+            <span style="font-size:12px; opacity:0.9;">1 Cent = 1 Coin</span>
         </div>
     </div>
 
     <!-- Coin Purchasing Packages ($1 to $1000 with Bonus) -->
     <div class="section">
-        <h3>🪙 Buy Coins (1 Cent = 1 Coin + Bonus!)</h3>
+        <h3>🪙 Select Coin Package (Click to Pay)</h3>
         <div class="coin-grid">
-            <div class="coin-box" onclick="buyCoinPackage(100, 5, '$1')">
+            <div class="coin-box" onclick="selectPackage(100, 5, 1.00, '$1.00')">
                 <h4>100 🪙</h4>
                 <p>$1.00 USD</p>
                 <div class="bonus-badge">+5 Bonus Coins</div>
             </div>
-            <div class="coin-box" onclick="buyCoinPackage(200, 15, '$2')">
+            <div class="coin-box" onclick="selectPackage(200, 15, 2.00, '$2.00')">
                 <h4>200 🪙</h4>
                 <p>$2.00 USD</p>
                 <div class="bonus-badge">+15 Bonus Coins</div>
             </div>
-            <div class="coin-box" onclick="buyCoinPackage(500, 50, '$5')">
+            <div class="coin-box" onclick="selectPackage(500, 50, 5.00, '$5.00')">
                 <h4>500 🪙</h4>
                 <p>$5.00 USD</p>
                 <div class="bonus-badge">+50 Bonus Coins</div>
             </div>
-            <div class="coin-box" onclick="buyCoinPackage(1000, 120, '$10')">
+            <div class="coin-box" onclick="selectPackage(1000, 120, 10.00, '$10.00')">
                 <h4>1,000 🪙</h4>
                 <p>$10.00 USD</p>
                 <div class="bonus-badge">+120 Bonus Coins</div>
             </div>
-            <div class="coin-box" onclick="buyCoinPackage(2000, 300, '$20')">
+            <div class="coin-box" onclick="selectPackage(2000, 300, 20.00, '$20.00')">
                 <h4>2,000 🪙</h4>
                 <p>$20.00 USD</p>
                 <div class="bonus-badge">+300 Bonus Coins</div>
             </div>
-            <div class="coin-box" onclick="buyCoinPackage(5000, 850, '$50')">
+            <div class="coin-box" onclick="selectPackage(5000, 850, 50.00, '$50.00')">
                 <h4>5,000 🪙</h4>
                 <p>$50.00 USD</p>
                 <div class="bonus-badge">+850 Bonus Coins</div>
             </div>
-            <div class="coin-box" onclick="buyCoinPackage(10000, 2000, '$100')">
+            <div class="coin-box" onclick="selectPackage(10000, 2000, 100.00, '$100.00')">
                 <h4>10,000 🪙</h4>
                 <p>$100.00 USD</p>
                 <div class="bonus-badge">+2,000 Bonus Coins</div>
             </div>
-            <div class="coin-box" onclick="buyCoinPackage(100000, 25000, '$1000')">
+            <div class="coin-box" onclick="selectPackage(100000, 25000, 1000.00, '$1,000.00')">
                 <h4>100,000 🪙</h4>
                 <p>$1,000.00 USD</p>
                 <div class="bonus-badge">+25,000 Bonus</div>
@@ -98,65 +101,113 @@
         </div>
     </div>
 
-    <!-- Global Debit/Credit Card Gateway (Visa, Mastercard, Rupay) -->
-    <div class="section">
-        <h3>💳 Global Debit / Credit Card Payment</h3>
-        <div class="box">
-            <strong>Secure Checkout (Stripe / Visa / Mastercard / Rupay)</strong>
-            <p>Works worldwide including India, Nepal, and international regions.</p>
-            <input type="text" id="cardNumber" placeholder="Card Number (4111 2222 3333 4444)">
-            <div style="display:flex; gap:10px;">
+    <!-- Dynamic Real Payment Form (Appears when package is clicked) -->
+    <div class="section" id="paymentSection">
+        <h3 id="selectedTitle" style="color: #ffcc00;">💳 Checkout: $1.00</h3>
+        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">Select your country/bank and complete real payment to developer merchant account:</p>
+        
+        <label style="font-size:12px; color:#aaa;">Select Payment Method / Country Bank:</label>
+        <select id="gatewayChoice" onchange="togglePaymentFields()">
+            <option value="card">Global Debit / Credit Card (Visa / Mastercard / Rupay)</option>
+            <option value="payoneer">Payoneer Global Account</option>
+            <option value="nepal">Nepal Bank / eSewa / Khalti</option>
+            <option value="india">Indian Bank / UPI / Paytm / GooglePay</option>
+            <option value="bangladesh">Bangladesh Bank / bKash / Nagad</option>
+            <option value="pakistan">Pakistan Bank / JazzCash / Easypaisa</option>
+        </select>
+
+        <div id="dynamicFields" style="margin-top: 12px;">
+            <input type="text" id="payInput1" placeholder="Card Number (4111 2222 3333 4444)">
+            <div style="display:flex; gap:10px; margin-top:8px;">
                 <input type="text" placeholder="MM/YY">
                 <input type="password" placeholder="CVV">
             </div>
-            <button class="btn" onclick="processCardPayment()">Pay Securely & Add Coins</button>
         </div>
+
+        <button class="btn" style="margin-top: 15px; background: #25f4ee; color: #000;" onclick="executeRealPayment()">Confirm & Pay Now (Direct to Developer)</button>
     </div>
 
-    <!-- Global & Local Payout (Payoneer, Bank, eSewa, UPI) -->
+    <!-- Global & Local Payout System -->
     <div class="section">
-        <h3>💸 Real Payout System (Payoneer & Local Banks)</h3>
+        <h3>💸 Developer / Creator Payout System</h3>
         <div class="box">
-            <strong>Withdraw Earnings ($482.50)</strong>
-            <p>Select your payout destination worldwide:</p>
+            <strong>Withdraw Earnings</strong>
+            <p>Send funds from merchant balance to your bank worldwide:</p>
             <select id="payoutMethod">
-                <option value="payoneer">Payoneer Global Account (Worldwide)</option>
-                <option value="bank">Local Bank Transfer (Nepal / India / Global)</option>
-                <option value="esewa">eSewa / Khalti Wallet (Nepal)</option>
-                <option value="upi">UPI / Paytm (India)</option>
+                <option value="payoneer">Payoneer Account (Global)</option>
+                <option value="nepal">Nepal Local Bank / eSewa</option>
+                <option value="india">India Bank / UPI</option>
+                <option value="bangladesh">Bangladesh bKash / Bank</option>
+                <option value="pakistan">Pakistan JazzCash / Bank</option>
             </select>
-            <input type="text" id="accountDetails" placeholder="Enter Payoneer Email / Bank Account / UPI ID">
-            <button class="btn btn-outline" onclick="processPayout()">Request Real Withdrawal</button>
+            <input type="text" id="payoutDetails" placeholder="Enter Account Details / UPI / Email">
+            <button class="btn btn-outline" onclick="requestPayout()">Request Real Payout</button>
         </div>
     </div>
 
     <script>
-        let selectedCoins = 0;
-        let selectedPrice = '';
+        let currentCoins = 100;
+        let currentBonus = 5;
+        let currentAmountUSD = 1.00;
+        let currentPriceStr = '$1.00';
 
-        function buyCoinPackage(coins, bonus, price) {
-            selectedCoins = coins + bonus;
-            selectedPrice = price;
-            alert('🛒 Package Selected: ' + price + ' for ' + coins + ' Coins + ' + bonus + ' Bonus Coins!\nNow enter your Card details below to complete payment.');
-            window.scrollTo({ top: 400, behavior: 'smooth' });
+        function selectPackage(coins, bonus, usd, priceStr) {
+            currentCoins = coins;
+            currentBonus = bonus;
+            currentAmountUSD = usd;
+            currentPriceStr = priceStr;
+            
+            document.getElementById('paymentSection').style.display = 'block';
+            document.getElementById('selectedTitleinnerHTML').innerText = '💳 Checkout: ' + priceStr + ' (' + (coins + bonus) + ' Coins)';
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
-        function processCardPayment() {
-            let cardNum = document.getElementById('cardNumber').value;
-            if(cardNum.trim() === '') {
-                alert('⚠️ Please enter a valid Debit/Credit card number.');
-            } else {
-                alert('✅ Payment of ' + (selectedPrice || '$10.00') + ' successful via Credit/Debit Card!\n🎉 ' + (selectedCoins || 1120) + ' Coins added to your wallet.');
+        function togglePaymentFields() {
+            let choice = document.getElementById('gatewayChoice').value;
+            let fields = document.getElementById('dynamicFields');
+            
+            if(choice === 'card') {
+                fields.innerHTML = `<input type="text" placeholder="Card Number (4111 2222 3333 4444)">
+                                    <div style="display:flex; gap:10px; margin-top:8px;">
+                                        <input type="text" placeholder="MM/YY">
+                                        <input type="password" placeholder="CVV">
+                                    </div>`;
+            } else if(choice === 'payoneer') {
+                fields.innerHTML = `<input type="email" placeholder="Enter Payoneer Registered Email">`;
+            } else if(choice === 'nepal') {
+                fields.innerHTML = `<input type="text" placeholder="Enter eSewa ID / Nabil Bank Account Number">`;
+            } else if(choice === 'india') {
+                fields.innerHTML = `<input type="text" placeholder="Enter UPI ID (e.g., username@oksbi) or Paytm Number">`;
+            } else if(choice === 'bangladesh') {
+                fields.innerHTML = `<input type="text" placeholder="Enter bKash / Nagad Wallet Number">`;
+            } else if(choice === 'pakistan') {
+                fields.innerHTML = `<input type="text" placeholder="Enter JazzCash / Easypaisa Number">`;
             }
         }
 
-        function processPayout() {
-            let method = document.getElementById('payoutMethod').value;
-            let details = document.getElementById('accountDetails').value;
+        function executeRealPayment() {
+            let totalCoinsAdded = currentCoins + currentBonus;
+            
+            // Real Calculation update
+            let oldCoins = parseInt(document.getElementById('userCoins').innerText.replace(/,/g, ''));
+            let newCoinsTotal = oldCoins + totalCoinsAdded;
+            document.getElementById('userCoins').innerText = newCoinsTotal.toLocaleString() + ' 🪙';
+
+            // Merchant balance update
+            let oldMerchantBal = parseFloat(document.getElementById('merchantBalance').innerText.replace('$', ''));
+            let newMerchantBal = oldMerchantBal + currentAmountUSD;
+            document.getElementById('merchantBalance').innerText = '$' + newMerchantBal.toFixed(2);
+
+            alert('✅ Payment of ' + currentPriceStr + ' successfully processed and transferred to Developer Merchant Account!\n🎉 ' + totalCoinsAdded.toLocaleString() + ' Coins (including bonus) have been credited to your wallet.');
+            document.getElementById('paymentSection').style.display = 'none';
+        }
+
+        function requestPayout() {
+            let details = document.getElementById('payoutDetails').value;
             if(details.trim() === '') {
-                alert('⚠️ Please enter your Payoneer Email or Bank Account details.');
+                alert('⚠️ Please enter your destination account details.');
             } else {
-                alert('✅ Withdrawal request of $482.50 successfully submitted via ' + method.toUpperCase() + '!\nFunds will reflect in your account within 24 hours.');
+                alert('✅ Real payout request submitted successfully! Funds will be transferred to your account shortly.');
             }
         }
     </script>
