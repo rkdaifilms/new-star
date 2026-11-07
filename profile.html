@@ -14,7 +14,8 @@
         .profile-box { text-align: center; padding: 25px 20px 15px; }
         .avatar { width: 85px; height: 85px; border-radius: 50%; border: 2px solid #fe2c55; object-fit: cover; margin-bottom: 10px; }
         .profile-box h2 { font-size: 18px; margin-bottom: 4px; }
-        .profile-box p { font-size: 13px; color: #aaa; margin-bottom: 15px; }
+        .profile-box p { font-size: 13px; color: #aaa; margin-bottom: 5px; }
+        .profile-extra-info { font-size: 12px; color: #25f4ee; margin-bottom: 15px; }
 
         .stats { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; text-align: center; }
         .stat-num { font-size: 16px; font-weight: bold; }
@@ -52,7 +53,8 @@
     <div class="profile-box">
         <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="avatar" id="profilePicPreview" alt="Profile">
         <h2 id="profileNameText">Ramkumar Dhobi</h2>
-        <p id="profileHandleText">@ramram981152 | Call Priyance Creator</p>
+        <p id="profileHandleText">@ramram981152 | Painter & Creator</p>
+        <div class="profile-extra-info" id="profileExtraInfo">📍 Siddharthanagar, Nepal | 📧 ram060039@gmail.com</div>
         
         <div class="stats">
             <div><div class="stat-num">142</div><div class="stat-label">Following</div></div>
@@ -66,9 +68,9 @@
         </div>
     </div>
 
-    <!-- Edit Profile Form -->
+    <!-- Edit Profile Form with All Fields -->
     <div id="editProfileModal">
-        <h3>✏️ Edit Profile Details</h3>
+        <h3>✏️ Edit Profile Details (All Options)</h3>
         
         <div class="form-group">
             <label>Change Profile Picture (From Gallery / File Manager):</label>
@@ -85,9 +87,26 @@
             <input type="text" id="inputHandle" value="@ramram981152">
         </div>
         <div class="form-group">
-            <label>Bio / Profession:</label>
+            <label>Bio / Profession (What you do):</label>
             <textarea id="inputBio" rows="2">Painter & Call Priyance Creator Hub</textarea>
         </div>
+        <div class="form-group">
+            <label>Gmail Address:</label>
+            <input type="email" id="inputGmail" value="ram060039@gmail.com">
+        </div>
+        <div class="form-group">
+            <label>Phone Number:</label>
+            <input type="text" id="inputPhone" value="+977 98XXXXXXXX">
+        </div>
+        <div class="form-group">
+            <label>Location / Address (Where are you from):</label>
+            <input type="text" id="inputLocation" value="Siddharthanagar, Nepal">
+        </div>
+        <div class="form-group">
+            <label>Website / Social Link:</label>
+            <input type="text" id="inputLink" value="https://github.com/new-star">
+        </div>
+
         <button class="p-btn active" style="width:100%; margin-top:10px; padding:12px;" onclick="saveProfileChanges()">Save Profile Changes</button>
     </div>
 
@@ -106,26 +125,32 @@
     </div>
 
     <script>
-        // Load saved profile data on page load across the app
+        // Load saved profile data across the app on page load
         window.onload = function() {
             let savedName = localStorage.getItem('appName');
             let savedHandle = localStorage.getItem('appHandle');
             let savedBio = localStorage.getItem('appBio');
             let savedPic = localStorage.getItem('appPic');
+            let savedGmail = localStorage.getItem('appGmail');
+            let savedPhone = localStorage.getItem('appPhone');
+            let savedLocation = localStorage.getItem('appLocation');
 
             if(savedName) {
                 document.getElementById('headerName').innerText = savedName;
                 document.getElementById('profileNameText').innerText = savedName;
                 document.getElementById('inputName').value = savedName;
             }
-            if(savedHandle) {
-                document.getElementById('inputHandle').value = savedHandle;
-            }
-            if(savedBio) {
-                document.getElementById('inputBio').value = savedBio;
-            }
+            if(savedHandle) document.getElementById('inputHandle').value = savedHandle;
+            if(savedBio) document.getElementById('inputBio').value = savedBio;
+            if(savedGmail) document.getElementById('inputGmail').value = savedGmail;
+            if(savedPhone) document.getElementById('inputPhone').value = savedPhone;
+            if(savedLocation) document.getElementById('inputLocation').value = savedLocation;
+
             if(savedName && savedHandle && savedBio) {
                 document.getElementById('profileHandleText').innerText = savedHandle + ' | ' + savedBio;
+            }
+            if(savedLocation && savedGmail) {
+                document.getElementById('profileExtraInfo').innerText = '📍 ' + (savedLocation || 'Siddharthanagar, Nepal') + ' | 📧 ' + (savedGmail || 'ram060039@gmail.com');
             }
             if(savedPic) {
                 document.getElementById('profilePicPreview').src = savedPic;
@@ -147,7 +172,7 @@
                 reader.onload = function(e) {
                     tempImageSrc = e.target.result;
                     document.getElementById('profilePicPreview').src = tempImageSrc;
-                    alert('✅ Photo loaded from device! Click "Save Profile Changes" to apply everywhere.');
+                    alert('✅ Photo loaded from device gallery!');
                 }
                 reader.readAsDataURL(file);
             }
@@ -157,11 +182,17 @@
             let newName = document.getElementById('inputName').value;
             let newHandle = document.getElementById('inputHandle').value;
             let newBio = document.getElementById('inputBio').value;
+            let newGmail = document.getElementById('inputGmail').value;
+            let newPhone = document.getElementById('inputPhone').value;
+            let newLocation = document.getElementById('inputLocation').value;
 
-            // Save to LocalStorage so Inbox, Profile and all pages update instantly
+            // Save everything to LocalStorage for full app synchronization
             localStorage.setItem('appName', newName);
             localStorage.setItem('appHandle', newHandle);
             localStorage.setItem('appBio', newBio);
+            localStorage.setItem('appGmail', newGmail);
+            localStorage.setItem('appPhone', newPhone);
+            localStorage.setItem('appLocation', newLocation);
             if(tempImageSrc !== '') {
                 localStorage.setItem('appPic', tempImageSrc);
             }
@@ -169,9 +200,10 @@
             document.getElementById('headerName').innerText = newName;
             document.getElementById('profileNameText').innerText = newName;
             document.getElementById('profileHandleText').innerText = newHandle + ' | ' + newBio;
+            document.getElementById('profileExtraInfo').innerText = '📍 ' + newLocation + ' | 📧 ' + newGmail;
 
             document.getElementById('editProfileModal').style.display = 'none';
-            alert('🎉 Profile updated and synced across the entire app successfully!');
+            alert('🎉 Profile updated successfully with all details and synced everywhere!');
         }
     </script>
 </body>
