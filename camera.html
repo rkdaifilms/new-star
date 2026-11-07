@@ -3,159 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload & LIVE Studio - Call Priyance</title>
+    <title>Creator & LIVE Studio - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px; text-align: center; }
-        .top-close { align-self: flex-start; font-size: 24px; text-decoration: none; color: #fff; background: #222; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; }
         
-        .studio-box { width: 100%; max-width: 450px; margin-top: 10px; }
-        .studio-box h1 { font-size: 22px; margin-bottom: 5px; color: #25f4ee; }
-        .studio-box p { font-size: 12px; color: #aaa; margin-bottom: 20px; }
+        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .top-close { font-size: 22px; text-decoration: none; color: #fff; background: #222; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         
-        .action-card { background: #161616; border: 1px solid #333; padding: 18px; border-radius: 12px; margin-bottom: 15px; cursor: pointer; transition: 0.2s; text-align: left; }
-        .action-card:hover { border-color: #fe2c55; background: #1f1f1f; }
-        .action-card h3 { font-size: 15px; color: #fe2c55; margin-bottom: 4px; }
-        .action-card span { font-size: 11px; color: #888; display: block; }
+        /* Side-by-Side Mode Switching Tabs */
+        .mode-tabs { display: flex; gap: 8px; overflow-x: auto; width: 100%; max-width: 450px; padding-bottom: 5px; scrollbar-width: none; }
+        .mode-tabs::-webkit-scrollbar { display: none; }
+        .tab-btn { background: #1a1a1a; color: #aaa; border: 1px solid #333; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+        .tab-btn.active { background: #fe2c55; color: #fff; border-color: #fe2c55; }
 
-        /* Live Studio Dashboard Modal / View */
-        #liveStudioModal { display: none; background: #141414; border: 2px solid #25f4ee; padding: 20px; border-radius: 15px; margin-top: 15px; text-align: left; }
+        /* Studio Content Container */
+        .studio-container { width: 100%; max-width: 450px; margin-top: 15px; background: #141414; border: 1px solid #333; border-radius: 15px; padding: 20px; text-align: left; }
         
+        .section-title { font-size: 18px; color: #25f4ee; margin-bottom: 5px; }
+        .section-desc { font-size: 12px; color: #aaa; margin-bottom: 15px; }
+
         /* 9-10 Seats Voice Room Grid */
-        .voice-seats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
-        .voice-seat { background: #222; border: 1px dashed #555; height: 65px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #ccc; cursor: pointer; position: relative; }
-        .voice-seat.active { border: 2px solid #25f4ee; background: #1a2a2a; color: #25f4ee; font-weight: bold; }
+        .voice-seats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 15px 0; }
+        .voice-seat { background: #1f1f1f; border: 1px dashed #555; height: 70px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #ccc; cursor: pointer; position: relative; }
+        .voice-seat.active { border: 2px solid #25f4ee; background: #102a2a; color: #25f4ee; font-weight: bold; }
         .seat-number { position: absolute; top: 2px; right: 8px; font-size: 9px; color: #ffcc00; }
 
-        .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 12px; border: none; cursor: pointer; }
+        .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 15px; border: none; cursor: pointer; }
         .btn-live { background: linear-gradient(135deg, #fe2c55, #ff6b8b); }
         .btn-voice { background: linear-gradient(135deg, #00b4d8, #0077b6); color: #fff; }
+        .btn-audio { background: linear-gradient(135deg, #7928ca, #ff0055); color: #fff; }
+        .btn-game { background: linear-gradient(135deg, #00b4d8, #25f4ee); color: #000; }
 
         input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 6px; font-size: 13px; outline: none; }
+
+        /* LIVE Active Broadcast Screen */
+        #activeLiveView { display: none; width: 100%; max-width: 450px; background: #141414; border: 2px solid #fe2c55; padding: 20px; border-radius: 15px; margin-top: 15px; text-align: center; }
+        .pulsing-dot { display: inline-block; width: 10px; height: 10px; background: #fe2c55; border-radius: 50%; animation: pulse 1.2s infinite; margin-right: 5px; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        /* Success Banner */
+        .success-banner { background: #113322; border: 1px solid #25f4ee; color: #25f4ee; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 13px; font-weight: bold; display: none; text-align: center; }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
+        .nav-item.active { color: #fff; }
+        .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
     </style>
 </head>
-<body>
-    <a href="index.html" class="top-close">✕</a>
-    
-    <div class="studio-box">
-        <h1>🎥 Creator Upload & LIVE Studio</h1>
-        <p>Post 10-Min videos or Go LIVE with real-time Coin Gifting & Multi-Hosting!</p>
-
-        <!-- 1. Video Upload Card -->
-        <div class="action-card" onclick="openUploadStudio()">
-            <h3>📹 Upload / Record Video (Up to 10 Mins)</h3>
-            <span>Post long-form videos with filters, music & earn ad revenue (50% share)</span>
-        </div>
-
-        <!-- 2. Live Stream & Multi-Hosting Card -->
-        <div class="action-card" onclick="openLiveStudio('video')">
-            <h3>🔴 Video LIVE Stream & PK Battle (2-4 Hosts)</h3>
-            <span>Go live with multiple creators, split screen, and collect coin gifts (30% fee)</span>
-        </div>
-
-        <!-- 3. Audio Voice Party Room Card (9-10 Seats) -->
-        <div class="action-card" onclick="openLiveStudio('voice')">
-            <h3>🎙️ Audio Voice Party Room (9-10 Hosting Seats)</h3>
-            <span>Open audio chat room, invite up to 10 friends on stage to talk & gift</span>
-        </div>
-
-        <!-- 4. Live Gaming Stream Card -->
-        <div class="action-card" onclick="openLiveStudio('gaming')">
-            <h3>🎮 Live Gaming Stream (Free Fire, PUBG, Ludo)</h3>
-            <span>Broadcast mobile gameplay live and interact with fans in real-time</span>
-        </div>
-
-        <!-- DYNAMIC LIVE / UPLOAD STUDIO PANEL -->
-        <div id="liveStudioModal">
-            <h3 id="modalTitle" style="color: #25f4ee; margin-bottom: 8px;">📡 Live Broadcasting Studio</h3>
-            <div id="modalContent"></div>
-            <button class="btn" style="background:#444; color:#fff; margin-top:10px;" onclick="closeStudioModal()">Close Studio</button>
-        </div>
+<body style="padding-bottom: 80px;">
+    <div class="top-bar">
+        <a href="index.html" class="top-close">✕</a>
+        <h3 style="font-size: 15px; color: #fff;">Call Priyance Creator Studio</h3>
+        <div>🎥</div>
     </div>
 
-    <div style="font-size: 11px; color: #666; margin-top: 15px;">Call Priyance Engine v2.6 • Global Creator Ecosystem</div>
+    <!-- Side-by-Side Switching Tabs -->
+    <div class="mode-tabs">
+        <button class="tab-btn active" onclick="switchTab('video', this)">📹 Video & Voiceover</button>
+        <button class="tab-btn" onclick="switchTab('live', this)">🔴 Video LIVE</button>
+        <button class="tab-btn" onclick="switchTab('voice', this)">🎙️ Audio Voice Room</button>
+        <button class="tab-btn" onclick="switchTab('gaming', this)">🎮 Gaming Stream</button>
+    </div>
+
+    <!-- Dynamic Content Panel -->
+    <div class="studio-container" id="studioPanel">
+        <!-- Content injected via JavaScript -->
+    </div>
+
+    <!-- LIVE Active Broadcast Screen -->
+    <div id="activeLiveView">
+        <h3 style="color: #fe2c55; margin-bottom: 10px;"><span class="pulsing-dot"></span> BROADCASTING LIVE NOW</h3>
+        <p id="liveStatusText" style="font-size: 13px; color: #ccc; margin-bottom: 15px;"></p>
+        
+        <div id="activeLiveDynamicArea" style="margin-bottom: 15px;"></div>
+
+        <div style="background: #1a1a1a; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+            <p style="font-size: 12px; color: #25f4ee;">🪙 Real-Time Coin Gifts Counter: <b>0</b> 🪙</p>
+            <p style="font-size: 11px; color: #888; margin-top: 4px;">Platform Fee: 30% | Your Earning: 70%</p>
+        </div>
+        <button class="btn" style="background: #333; color: #fff;" onclick="stopLiveBroadcast()">⏹️ End LIVE & Exit</button>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
+        <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
+        <a href="camera.html" class="nav-item active"><div class="upload-plus-btn">+</div></a>
+        <a href="inbox.html" class="nav-item"><i>💬</i><span>Inbox</span></a>
+        <a href="profile.html" class="nav-item"><i>⭐</i><span>Profile</span></a>
+    </div>
 
     <script>
-        function openUploadStudio() {
-            let modal = document.getElementById('liveStudioModal');
-            modal.style.display = 'block';
-            document.getElementById('modalTitle').innerText = '📹 10-Min Video Upload & Recording Studio';
-            document.getElementById('modalContent').innerHTML = `
-                <p style="font-size:12px; color:#ccc; margin-bottom:10px;">Select or record a video up to 10 minutes for your channel:</p>
-                <input type="file" accept="video/*" style="margin-bottom:8px;">
-                <input type="text" placeholder="Enter video caption, hashtags (#Dance #Viral)..." style="margin-bottom:8px;">
-                <select>
-                    <option>Public (Everyone can watch & gift)</option>
-                    <option>Friends Only</option>
-                    <option>Private</option>
-                </select>
-                <button class="btn btn-live" onclick="alert('✅ Video uploaded successfully! Ready for distribution & ad monetization.'); closeStudioModal();">🚀 Publish Video Now</button>
-            `;
-            modal.scrollIntoView({ behavior: 'smooth' });
-        }
+        window.onload = function() {
+            switchTab('video', document.querySelector('.tab-btn'));
+        };
 
-        function openLiveStudio(type) {
-            let modal = document.getElementById('liveStudioModal');
-            modal.style.display = 'block';
-            let content = '';
+        function switchTab(mode, btnElement) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
 
-            if(type === 'voice') {
-                document.getElementById('modalTitle').innerText = '🎙️ Audio Voice Party Room (10 Hosting Seats)';
-                content = `
-                    <p style="font-size:12px; color:#ccc;">Invite friends to join the stage. 1 Host + 9 Co-Hosts (Total 10 Seats):</p>
-                    <div class="voice-seats-grid">
-                        <div class="voice-seat active"><span class="seat-number">1</span>👑 Host</div>
-                        <div class="voice-seat" onclick="inviteFriend(2)"><span class="seat-number">2</span>+ Add Seat</div>
-                        <div class="voice-seat" onclick="inviteFriend(3)"><span class="seat-number">3</span>+ Add Seat</div>
-                        <div class="voice-seat" onclick="inviteFriend(4)"><span class="seat-number">4</span>+ Add Seat</div>
-                        <div class="voice-seat" onclick="inviteFriend(5)"><span class="seat-number">5</span>+ Add Seat</div>
-                        <div class="voice-seat" onclick="inviteFriend(6)"><span class="seat-number">6</span>+ Add Seat</div>
-                        <div class="voice-seat" onclick="inviteFriend(7)"><span class="seat-number">7</span>+ Add Seat</div>
-                        <div class="voice-seat" onclick="inviteFriend(8)"><span class="seat-number">8</span>+ Add Seat</div>
-                        <div class="voice-seat" onclick="inviteFriend(9)"><span class="seat-number">9</span>+ Add Seat</div>
-                        <div class="voice-seat" onclick="inviteFriend(10)"><span class="seat-number">10</span>+ Add Seat</div>
+            document.getElementById('activeLiveView').style.display = 'none';
+            let panel = document.getElementById('studioPanel');
+            panel.style.display = 'block';
+
+            if(mode === 'video') {
+                panel.innerHTML = `
+                    <div class="section-title">📹 Video Recording & File Manager Upload</div>
+                    <div class="section-desc">Record direct from camera or select any video file (15 sec to 10+ Mins). Add voiceover & publish.</div>
+                    
+                    <label style="font-size:11px; color:#aaa;">Select Video from File Manager / Record:</label>
+                    <input type="file" accept="video/*" style="margin-bottom:8px;">
+                    
+                    <label style="font-size:11px; color:#aaa; margin-top:6px; display:block;">Video Caption & Hashtags:</label>
+                    <input type="text" id="vidCaption" placeholder="e.g. Amazing Dance #Viral #CallPriyance" style="margin-bottom:8px;">
+
+                    <div style="background:#1f1f1f; padding:12px; border-radius:8px; margin-top:10px; border:1px solid #333;">
+                        <p style="font-size:12px; color:#ffcc00; margin-bottom:6px;">🎙️ Microphone Voiceover / Overvoice Studio:</p>
+                        <button class="btn btn-audio" style="margin-top:0;" onclick="toggleVoiceRecording(this)">🎙️ Start Recording Overvoice</button>
+                        <p id="voiceStatus" style="font-size:11px; color:#aaa; margin-top:5px; display:none;">🔴 Recording microphone audio... Click again to stop.</p>
                     </div>
-                    <button class="btn btn-voice" onclick="alert('🎙️ Voice Party Room LIVE! Audio streaming active for 10 members.')">🟢 Go LIVE Audio Room</button>
-                `;
-            } else if(type === 'video') {
-                document.getElementById('modalTitle').innerText = '🔴 Video LIVE & Multi-Host PK Battle';
-                content = `
-                    <p style="font-size:12px; color:#ccc;">Connect 2-4 creators on split screen for live PK battle:</p>
-                    <input type="text" placeholder="Enter Live Stream Title (e.g., Night Dance Party)" style="margin-bottom:8px;">
+
+                    <label style="font-size:11px; color:#aaa; margin-top:10px; display:block;">Privacy Settings:</label>
                     <select style="margin-bottom:8px;">
-                        <option>Single Host Stream</option>
-                        <option>2-Way PK Battle</option>
+                        <option>Public (Everyone can watch & gift)</option>
+                        <option>Friends Only</option>
+                        <option>Private</option>
+                    </select>
+
+                    <button class="btn btn-live" onclick="showPublishSuccess()">🚀 Publish Video Now</button>
+                    <div id="pubSuccess" class="success-banner">✅ Video published successfully! Ready for distribution & 50% ad revenue share.</div>
+                `;
+            } else if(mode === 'live') {
+                panel.innerHTML = `
+                    <div class="section-title">🔴 Video LIVE Stream & PK Battle</div>
+                    <div class="section-desc">Go live with multi-creators on split screen & collect real-time coin gifts (30% fee).</div>
+                    <label style="font-size:11px; color:#aaa;">Live Stream Title:</label>
+                    <input type="text" id="liveTitleInput" value="Night Dance & Music Party 🎉">
+                    <label style="font-size:11px; color:#aaa; margin-top:8px; display:block;">Hosting Mode:</label>
+                    <select id="liveModeSelect">
+                        <option>Single Creator Stream</option>
+                        <option>2-Way PK Battle (Split Screen)</option>
                         <option>4-Way Multi-Host Grid</option>
                     </select>
-                    <button class="btn btn-live" onclick="alert('🔴 Video LIVE Stream started! Viewers can send coin gifts.')">🔴 Start Video LIVE Stream</button>
+                    <button class="btn btn-live" onclick="startLiveBroadcast('Video LIVE Stream Started', 'video')">🔴 Start Video LIVE Now</button>
                 `;
-            } else if(type === 'gaming') {
-                document.getElementById('modalTitle').innerText = '🎮 Live Gaming Stream & App Launcher';
-                content = `
-                    <p style="font-size:12px; color:#ccc;">Select game to broadcast live:</p>
-                    <input type="text" value="Free Fire / PUBG Mobile / Ludo" style="margin-bottom:8px;">
-                    <select style="margin-bottom:8px;">
-                        <option>Stream Mobile Screen & Mic</option>
-                        <option>Front Camera + Gameplay PIP</option>
+            } else if(mode === 'voice') {
+                panel.innerHTML = `
+                    <div class="section-title">🎙️ Audio Voice Party Room (10 Seats)</div>
+                    <div class="section-desc">Open audio chat room, invite up to 10 friends on stage to talk & receive gifts.</div>
+                    <div class="voice-seats-grid">
+                        <div class="voice-seat active"><span class="seat-number">1</span>👑 Host</div>
+                        <div class="voice-seat" onclick="inviteSeat(2)"><span class="seat-number">2</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(3)"><span class="seat-number">3</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(4)"><span class="seat-number">4</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(5)"><span class="seat-number">5</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(6)"><span class="seat-number">6</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(7)"><span class="seat-number">7</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(8)"><span class="seat-number">8</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(9)"><span class="seat-number">9</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(10)"><span class="seat-number">10</span>+ Add</div>
+                    </div>
+                    <button class="btn btn-voice" onclick="startLiveBroadcast('Audio Voice Party Room Active (10 Seats)', 'voice')">🟢 Go LIVE Audio Room</button>
+                `;
+            } else if(mode === 'gaming') {
+                panel.innerHTML = `
+                    <div class="section-title">🎮 Live Gaming Stream & App Launcher</div>
+                    <div class="section-desc">Launch and broadcast mobile gameplay live (Free Fire, PUBG, Ludo) instantly.</div>
+                    <label style="font-size:11px; color:#aaa;">Select Game to Launch & Stream:</label>
+                    <select id="selectedGameName" style="margin-bottom:8px;">
+                        <option value="Free Fire">🔥 Free Fire Mobile</option>
+                        <option value="PUBG Mobile">🎯 PUBG Mobile / Battlegrounds</option>
+                        <option value="Ludo King">🎲 Ludo King</option>
+                        <option value="Subway Surfers">🛹 Subway Surfers</option>
+                        <option value="Custom Game">🎮 Other Device Game / App</option>
                     </select>
-                    <button class="btn btn-live" onclick="alert('🎮 Gaming Stream Initialized! Broadcasting live to fans.')">🚀 Start Gaming Broadcast</button>
+                    <label style="font-size:11px; color:#aaa; margin-top:6px; display:block;">Stream Resolution & FPS:</label>
+                    <select style="margin-bottom:8px;">
+                        <option>1080p 60FPS (High Speed Gaming)</option>
+                        <option>720p 30FPS Standard</option>
+                    </select>
+                    <button class="btn btn-game" onclick="launchGameStream()">🚀 Launch Game & Start Live Stream</button>
                 `;
             }
-
-            document.getElementById('modalContent').content = content;
-            document.getElementById('modalContent').innerHTML = content;
-            modal.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function inviteFriend(seatNo) {
-            let friendName = prompt("Enter Friend's Username or ID to invite to Seat #" + seatNo + ":");
-            if(friendName) {
-                alert('✅ Invitation sent to ' + friendName + ' for Seat #' + seatNo + '!');
+        let isRecordingVoice = false;
+        function toggleVoiceRecording(btn) {
+            isRecordingVoice = !isRecordingVoice;
+            let status = document.getElementById('voiceStatus');
+            if(isRecordingVoice) {
+                btn.style.background = '#fe2c55';
+                btn.innerText = '⏹️ Stop Recording Voiceover';
+                status.style.display = 'block';
+            } else {
+                btn.style.background = '#7928ca';
+                btn.innerText = '🎙️ Record Overvoice Again';
+                status.innerText = '✅ Voiceover recorded successfully and attached to video!';
             }
         }
 
-        function closeStudioModal() {
-            document.getElementById('liveStudioModal').style.display = 'none';
+        function showPublishSuccess() {
+            document.getElementById('pubSuccess').style.display = 'block';
+        }
+
+        function launchGameStream() {
+            let gameName = document.getElementById('selectedGameName').value;
+            document.getElementById('studioPanel').style.display = 'none';
+            let liveView = document.getElementById('activeLiveView');
+            liveView.style.display = 'block';
+            document.getElementById('liveStatusText').innerText = '🎮 Launching ' + gameName + ' Gameplay & Broadcasting Live to Fans!';
+
+            let dynamicArea = document.getElementById('activeLiveDynamicArea');
+            dynamicArea.innerHTML = `
+                <div style="background:#112233; border:1px solid #00b4d8; padding:15px; border-radius:10px; text-align:left;">
+                    <h4 style="color:#25f4ee; font-size:14px; margin-bottom:5px;">⚡ Game Launcher Active: ${gameName}</h4>
+                    <p style="font-size:12px; color:#fff;">Game graphics rendered at 60FPS. Screen capture & mic audio streaming live to followers.</p>
+                </div>
+            `;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function inviteSeat(seatNo) {
+            let friendId = prompt("Enter Friend's Username or ID to invite to Seat #" + seatNo + ":");
+            if(friendId) {
+                alert('✅ Invitation successfully sent to ' + friendId + ' for Seat #' + seatNo + '!');
+            }
+        }
+
+        function startLiveBroadcast(msg, type) {
+            document.getElementById('studioPanel').style.display = 'none';
+            let liveView = document.getElementById('activeLiveView');
+            liveView.style.display = 'block';
+            document.getElementById('liveStatusText').innerText = msg + ' — Fans can now join and send gifts!';
+
+            let dynamicArea = document.getElementById('activeLiveDynamicArea');
+            if(type === 'voice') {
+                dynamicArea.innerHTML = `
+                    <p style="font-size:12px; color:#ccc; margin-bottom:8px;">Active Audio Voice Room (1 Host + 9 Co-Hosts):</p>
+                    <div class="voice-seats-grid" style="margin:0 auto;">
+                        <div class="voice-seat active"><span class="seat-number">1</span>👑 Host</div>
+                        <div class="voice-seat" onclick="inviteSeat(2)"><span class="seat-number">2</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(3)"><span class="seat-number">3</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(4)"><span class="seat-number">4</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(5)"><span class="seat-number">5</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(6)"><span class="seat-number">6</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(7)"><span class="seat-number">7</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(8)"><span class="seat-number">8</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(9)"><span class="seat-number">9</span>+ Add</div>
+                        <div class="voice-seat" onclick="inviteSeat(10)"><span class="seat-number">10</span>+ Add</div>
+                    </div>
+                `;
+            } else {
+                dynamicArea.innerHTML = `<div style="background:#1a1a1a; padding:15px; border-radius:8px; font-size:13px; color:#25f4ee;">📡 Stream Connection Active. Camera & Mic Ready for Global Broadcast.</div>`;
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function stopLiveBroadcast() {
+            document.getElementById('activeLiveView').style.display = 'none';
+            switchTab('video', document.querySelector('.tab-btn'));
         }
     </script>
 </body>
