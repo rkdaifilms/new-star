@@ -11,35 +11,35 @@
         .header h2 { font-size: 18px; }
         .back-btn { color: #fff; text-decoration: none; font-size: 16px; }
         
-        .wallet-card { background: linear-gradient(135deg, #fe2c55, #ff6b8b); margin: 20px; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(254,44,85,0.3); }
-        .wallet-card h4 { font-size: 14px; opacity: 0.9; }
-        .wallet-card h1 { font-size: 32px; margin: 10px 0; }
-        .coins-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 12px; }
+        .wallet-card { background: linear-gradient(135deg, #fe2c55, #ff6b8b); margin: 15px 20px; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(254,44,85,0.3); }
+        .wallet-card h4 { font-size: 13px; opacity: 0.9; }
+        .wallet-card h1 { font-size: 28px; margin: 8px 0; }
+        .coins-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px; font-size: 13px; }
         
         /* Creator Earnings Clickable Card */
-        .creator-card { background: linear-gradient(135deg, #00b4d8, #0077b6); margin: 20px; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,180,216,0.3); cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
+        .creator-card { background: linear-gradient(135deg, #00b4d8, #0077b6); margin: 15px 20px; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,180,216,0.3); cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
         .creator-card:hover { border-color: #25f4ee; transform: scale(1.01); }
 
-        .section { padding: 0 20px; margin-top: 25px; }
-        .section h3 { font-size: 16px; margin-bottom: 12px; color: #25f4ee; }
+        .section { padding: 0 20px; margin-top: 20px; }
+        .section h3 { font-size: 16px; margin-bottom: 10px; color: #25f4ee; }
         
         /* Coin Packages Grid */
-        .coin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 15px; }
-        .coin-box { background: #1a1a1a; border: 1px solid #333; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .coin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        .coin-box { background: #1a1a1a; border: 1px solid #333; padding: 12px; border-radius: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
         .coin-box:hover { border-color: #fe2c55; background: #222; }
-        .coin-box h4 { font-size: 18px; color: #ffcc00; margin-bottom: 5px; }
+        .coin-box h4 { font-size: 16px; color: #ffcc00; margin-bottom: 4px; }
         .coin-box p { font-size: 12px; color: #aaa; }
-        .bonus-badge { display: inline-block; background: #25f4ee; color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-top: 5px; }
+        .bonus-badge { display: inline-block; background: #25f4ee; color: #000; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 4px; margin-top: 4px; }
 
         .box { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #333; }
-        .box p { font-size: 13px; color: #aaa; margin-top: 5px; }
+        .box p { font-size: 12px; color: #aaa; margin-top: 4px; }
         
         .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; border: none; cursor: pointer; }
         .btn-outline { background: #00b4d8; color: #000; border: none; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 8px; font-size: 14px; outline: none; }
+        input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 6px; font-size: 13px; outline: none; }
         
         /* Active Payment & Popup Creator Payout Container */
-        #paymentSection, #creatorPayoutSection { display: none; background: #1f1f1f; border: 2px solid #00b4d8; padding: 20px; border-radius: 12px; margin: 20px; }
+        #paymentSection, #creatorPayoutSection { display: none; background: #1f1f1f; border: 2px solid #00b4d8; padding: 20px; border-radius: 12px; margin: 15px 20px; }
         #paymentSection { border-color: #fe2c55; }
 
         /* Real Bank SMS Simulation Box */
@@ -61,6 +61,17 @@
         <div>🪙</div>
     </div>
 
+    <!-- 🛠️ DEVELOPER MASTER MERCHANT / PAYONEER CONFIGURATION BOX -->
+    <div class="section">
+        <h3 style="color: #ffcc00;">⚙️ Developer Master Merchant Setup (Owner Control)</h3>
+        <div class="box" style="border-color: #ffcc00; background: #1a1811;">
+            <strong>Link Your Master Payoneer Account (Global Revenue Hub)</strong>
+            <p style="font-size:12px; color:#ccc;">Enter your Payoneer email or Merchant Gateway ID. All global coin purchases, gift commissions, and platform revenues route directly here:</p>
+            <input type="text" id="devMerchantAccount" value="ram060039@gmail.com">
+            <button class="btn" style="background: #ffcc00; color: #000;" onclick="saveDevMerchant()">Save Master Merchant Account</button>
+        </div>
+    </div>
+
     <!-- User Spendable Coins Card -->
     <div class="wallet-card">
         <h4>My Spendable Coins</h4>
@@ -70,7 +81,7 @@
         </div>
     </div>
 
-    <!-- 🎬 CLICKABLE CREATOR EARNINGS CARD (Gifts + Ads + Sponsorship Combined) -->
+    <!-- 🎬 CLICKABLE CREATOR EARNINGS CARD -->
     <div class="creator-card" onclick="toggleCreatorPayout()">
         <h4>🎬 Creator Total Main Balance (Click to Withdraw) 👇</h4>
         <h1 id="creatorTotalBalance">$1,250.00</h1>
@@ -80,19 +91,19 @@
         </div>
     </div>
 
-    <!-- 💸 POPUP CREATOR WITHDRAWAL & PAYOUT SYSTEM (Opens dynamically on clicking card) -->
+    <!-- 💸 POPUP CREATOR WITHDRAWAL & PAYOUT SYSTEM -->
     <div id="creatorPayoutSection">
         <h3 style="color: #00b4d8; margin-bottom: 8px;">💸 Creator Worldwide Payout System</h3>
-        <p style="font-size: 13px; color: #ccc; margin-bottom: 12px; line-height: 1.4;">
-            Min. withdrawal limit: <b>$20.00</b> (No maximum limit! Withdraw your full balance anytime).<br>
+        <p style="font-size: 12px; color: #ccc; margin-bottom: 12px; line-height: 1.4;">
+            Min. withdrawal limit: <b>$20.00</b> (No maximum limit!).<br>
             ⚠️ <b>Special Rule:</b> Payouts above <b>$1,000.00</b> carry a <b>10% Developer Commission / Processing Fee</b>.<br>
-            Platform fee on standard gifts: 30% | You get: <b>70%</b>.
+            Platform fee on standard gifts: 30% | Ads share: 50% | You get: <b>70%</b>.
         </p>
 
-        <label style="font-size:12px; color:#aaa;">Enter Withdrawal Amount (USD):</label>
-        <input type="number" id="withdrawAmount" value="1250.00" min="20" placeholder="Enter amount (Min $20, No max limit)">
+        <label style="font-size:11px; color:#aaa;">Enter Withdrawal Amount (USD):</label>
+        <input type="number" id="withdrawAmount" value="1250.00" min="20" placeholder="Enter amount (Min $20)">
 
-        <label style="font-size:12px; color:#aaa; margin-top:10px; display:block;">Select Your Country / Payout Method:</label>
+        <label style="font-size:11px; color:#aaa; margin-top:8px; display:block;">Select Your Country / Payout Method:</label>
         <select id="creatorCountry">
             <option value="nepal">🇳🇵 Nepal (eSewa / Khalti / Local Bank)</option>
             <option value="india">🇮🇳 India (UPI / Google Pay / Paytm)</option>
@@ -102,27 +113,16 @@
             <option value="uk">🇬🇧 United Kingdom (UK Bank)</option>
             <option value="bangladesh">🇧🇩 Bangladesh (bKash / Nagad)</option>
             <option value="pakistan">🇵🇰 Pakistan (JazzCash / Easypaisa)</option>
-            <option value="global">🌍 Global Payoneer Account</option>
+            <option value="payoneer">🌍 Global Payoneer Account</option>
         </select>
 
-        <label style="font-size:12px; color:#aaa; margin-top:10px; display:block;">Enter Your Account Details / UPI / eSewa Number:</label>
+        <label style="font-size:11px; color:#aaa; margin-top:8px; display:block;">Enter Your Account Details / UPI / eSewa Number:</label>
         <input type="text" id="creatorAccountDetails" placeholder="e.g. eSewa No, UPI ID, or Bank Account">
 
         <button class="btn btn-outline" onclick="submitCreatorPayout()" style="margin-top: 15px;">🚀 Confirm & Request Payout</button>
     </div>
 
-    <!-- 🛠️ DEVELOPER MASTER MERCHANT / PAYONEER CONFIGURATION BOX (HIDDEN / OWNER CONTROL ONLY) -->
-    <div class="section" style="display: none;">
-        <h3 style="color: #ffcc00;">⚙️ Developer Master Merchant Setup (Owner Control)</h3>
-        <div class="box" style="border-color: #ffcc00; background: #1a1811;">
-            <strong>Link Your Master Account (Payoneer / Merchant ID)</strong>
-            <p style="font-size:12px; color:#ccc;">Enter your Payoneer email or Merchant Gateway ID. All global coin purchases route directly here:</p>
-            <input type="text" id="devMerchantAccount" value="ram060039@gmail.com">
-            <button class="btn" style="background: #ffcc00; color: #000;" onclick="saveDevMerchant()">Save Master Merchant</button>
-        </div>
-    </div>
-
-    <!-- Coin Purchasing Packages ($1 to $1000 with Bonus) -->
+    <!-- 🪙 COIN PURCHASING PACKAGES (USER TOP-UP) -->
     <div class="section">
         <h3>🪙 Select Coin Package (Click to Pay)</h3>
         <div class="coin-grid">
@@ -215,6 +215,8 @@
             let savedDevMerchant = localStorage.getItem('appDevMerchantID');
             if(!savedDevMerchant) {
                 localStorage.setItem('appDevMerchantID', 'ram060039@gmail.com');
+            } else {
+                document.getElementById('devMerchantAccount').value = savedDevMerchant;
             }
         };
 
@@ -222,10 +224,9 @@
             let merchantId = document.getElementById('devMerchantAccount').value.trim();
             if(!merchantId) { alert('⚠️ Enter ID'); return; }
             localStorage.setItem('appDevMerchantID', merchantId);
-            alert('✅ Saved successfully!');
+            alert('✅ Master Merchant Account saved successfully!\n🔗 ID: ' + merchantId + '\n🚀 All global coin purchases will route directly to your Payoneer/Merchant account.');
         }
 
-        // Toggle Creator Payout Form on clicking the blue balance card
         function toggleCreatorPayout() {
             let pSec = document.getElementById('creatorPayoutSection');
             if (pSec.style.display === 'block') {
@@ -253,7 +254,6 @@
             let finalPayout = amount;
             let devFeeMsg = '';
             
-            // If withdrawal is above $1000, apply 10% developer commission fee
             if (amount > 1000.00) {
                 let devFee = amount * 0.10;
                 finalPayout = amount - devFee;
@@ -319,7 +319,7 @@
             smsBox.style.display = 'block';
             smsText.innerHTML = `<b>[GLOBAL BANK / WALLET SMS]</b><br>Debit: <b>${currentPriceStr} USD</b>.<br>Routed to Master Merchant (${devMerchant}).<br>🎉 <b>${totalCoinsAdded.toLocaleString()} Coins</b> added!`;
 
-            alert('✅ Payment Authorized Successfully!\n💰 Amount ' + currentPriceStr + ' transferred to Developer Master Merchant account.\n📲 SMS notification sent.');
+            alert('✅ Payment Authorized Successfully!\n💰 Amount ' + currentPriceStr + ' transferred directly to Developer Master Merchant account (' + devMerchant + ').\n📲 SMS notification sent.');
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
     </script>
