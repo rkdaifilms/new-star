@@ -3,108 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Call Priyance - Shorts & 10 Min Videos</title>
+    <title>Inbox & Direct Messages - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #000; color: #fff; overflow-x: hidden; height: 100vh; }
+        body { background-color: #000; color: #fff; padding-bottom: 70px; }
         
-        .top-header { position: fixed; top: 0; left: 0; width: 100%; display: flex; justify-content: center; align-items: center; gap: 20px; padding: 15px 20px; z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
-        .top-header span { font-size: 16px; font-weight: 600; color: rgba(255,255,255,0.6); cursor: pointer; }
-        .top-header span.active { color: #fff; border-bottom: 2px solid #fe2c55; padding-bottom: 4px; }
-        .top-header .search-icon { position: absolute; right: 20px; font-size: 20px; cursor: pointer; }
-
-        .feed-container { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
-        .feed-container::-webkit-scrollbar { display: none; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: #111; position: sticky; top: 0; z-index: 10; }
+        .header h2 { font-size: 18px; color: #fe2c55; }
         
-        .video-card { position: relative; width: 100%; height: 100vh; scroll-snap-align: start; background: #111; display: flex; justify-content: center; align-items: center; }
-        .video-card video { width: 100%; height: 100%; object-fit: cover; }
+        /* User's active status bar in inbox */
+        .my-inbox-profile { display: flex; align-items: center; gap: 12px; padding: 12px 15px; background: #121212; border-bottom: 1px solid #222; }
+        .my-inbox-profile img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; }
+        .my-inbox-profile div h4 { font-size: 14px; }
+        .my-inbox-profile div p { font-size: 12px; color: #aaa; }
+
+        .inbox-tabs { display: flex; justify-content: center; gap: 30px; padding: 12px; background: #111; border-bottom: 1px solid #222; }
+        .inbox-tab { font-size: 15px; font-weight: 600; color: #777; cursor: pointer; padding-bottom: 4px; }
+        .inbox-tab.active { color: #fff; border-bottom: 2px solid #fe2c55; }
+
+        .chat-list { padding: 10px 15px; }
+        .chat-item { display: flex; align-items: center; gap: 12px; padding: 12px 10px; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: 0.2s; border-radius: 8px; }
+        .chat-item:hover { background: #181818; }
+        .chat-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; }
+        .chat-info { flex: 1; }
+        .chat-info h4 { font-size: 15px; margin-bottom: 3px; display: flex; justify-content: space-between; }
+        .chat-info h4 span { font-size: 11px; color: #777; font-weight: normal; }
+        .chat-info p { font-size: 13px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
+        .unread-badge { background: #fe2c55; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 50%; }
+
+        /* Real Live Chat Window */
+        #chatBoxWindow { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #000; z-index: 200; flex-direction: column; }
+        .chat-box-header { display: flex; align-items: center; gap: 15px; padding: 15px; background: #111; border-bottom: 1px solid #222; }
+        .chat-box-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .chat-box-header h3 { font-size: 16px; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #080808; }
+        .message { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; }
+        .message.incoming { background: #222; color: #fff; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .message.outgoing { background: #fe2c55; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
         
-        .video-info { position: absolute; bottom: 70px; left: 15px; right: 80px; z-index: 10; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
-        .video-info h3 { font-size: 16px; margin-bottom: 8px; }
-        .video-info p { font-size: 14px; margin-bottom: 8px; opacity: 0.9; }
-        .video-badge { display: inline-block; background: rgba(254, 44, 85, 0.8); padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-bottom: 6px; }
-
-        .action-buttons { position: absolute; right: 15px; bottom: 80px; display: flex; flex-direction: column; align-items: center; gap: 18px; z-index: 10; }
-        .action-btn { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-        .action-btn .icon { width: 45px; height: 45px; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; margin-bottom: 3px; }
-        .action-btn span { font-size: 12px; font-weight: 500; }
-
-        /* TikTok Style Gift Modal Popup */
-        #giftModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; z-index: 1000; border-top: 1px solid #333; }
-        .gift-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
-        .gift-item { background: #262626; border: 1px solid #444; border-radius: 10px; padding: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .gift-item:active { border-color: #fe2c55; background: #333; }
-        .gift-item .emoji { font-size: 24px; margin-bottom: 4px; }
-        .gift-item .price { font-size: 11px; color: #ffcc00; font-weight: bold; }
+        .chat-input-area { display: flex; padding: 12px; background: #111; border-top: 1px solid #222; gap: 10px; align-items: center; }
+        .chat-input-area input { flex: 1; padding: 12px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
+        .send-btn { background: #fe2c55; color: #fff; border: none; padding: 10px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
 
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
         .nav-item.active { color: #fff; }
-        .nav-item i { font-size: 20px; margin-bottom: 2px; }
-        .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; font-weight: bold; }
+        .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
     </style>
 </head>
 <body>
-    <div class="top-header">
-        <span>Following</span>
-        <span class="active">For You</span>
-        <div class="search-icon" onclick="alert('Search Creators')">🔍</div>
+
+    <div class="header">
+        <h2>Direct Messages (Inbox)</h2>
     </div>
 
-    <div class="feed-container">
-        <div class="video-card">
-            <video src="https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-in-a-party-41650-large.mp4" autoplay loop muted playsinline></video>
-            <div class="video-info">
-                <span class="video-badge">🔥 10 Min Special Creator Video</span>
-                <h3>@ramram981152</h3>
-                <p>गर्मी में ठंढा डांस और फुल एंटरटेनमेंट! #Dance #Viral #CallPriyance</p>
+    <!-- User's Synced Profile Banner inside Inbox -->
+    <div class="my-inbox-profile">
+        <img id="inboxUserPic" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" alt="My Profile">
+        <div>
+            <h4 id="inboxUserName">Ramkumar Dhobi</h4>
+            <p>Active Status • Direct Messaging Enabled</p>
+        </div>
+    </div>
+
+    <div class="inbox-tabs">
+        <div class="inbox-tab active">All Messages</div>
+        <div class="inbox-tab" onclick="alert('No pending requests')">Requests (0)</div>
+    </div>
+
+    <!-- Chat Creators List -->
+    <div class="chat-list">
+        <div class="chat-item" onclick="openChat('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', 'Bhai video bahut mast banaya hai! 🔥')">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="chat-avatar" alt="User">
+            <div class="chat-info">
+                <h4>Priyance Official <span>10:45 AM</span></h4>
+                <p>Bhai video bahut mast banaya hai! 🔥</p>
             </div>
-            <div class="action-buttons">
-                <div class="action-btn" onclick="alert('❤️ Liked!')"><div class="icon">❤️</div><span>125K</span></div>
-                <div class="action-btn" onclick="alert('💬 Comments')"><div class="icon">💬</div><span>1,420</span></div>
-                <!-- Gift Button opens TikTok style coin gift popup -->
-                <div class="action-btn" onclick="openGiftModal()"><div class="icon">🎁</div><span>Gift</span></div>
-                <div class="action-btn" onclick="alert('↗️ Shared to WhatsApp & Facebook!')"><div class="icon">↗️</div><span>Share</span></div>
+            <div class="unread-badge">2</div>
+        </div>
+
+        <div class="chat-item" onclick="openChat('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', 'Your coin purchase of $10.00 was successful.')">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200" class="chat-avatar" alt="Support">
+            <div class="chat-info">
+                <h4>Call Priyance Support <span>Yesterday</span></h4>
+                <p>Your coin purchase of $10.00 was successful.</p>
             </div>
         </div>
     </div>
 
-    <!-- TikTok Gift Tray Modal -->
-    <div id="giftModal">
-        <div class="gift-header">
-            <h4>Send Gift to Creator 🎁</h4>
-            <span onclick="closeGiftModal()" style="font-size:20px; cursor:pointer;">✕</span>
+    <!-- Real Live Chat Window -->
+    <div id="chatBoxWindow">
+        <div class="chat-box-header">
+            <span onclick="closeChat()" style="font-size: 22px; cursor: pointer;">←</span>
+            <img id="activeChatAvatar" src="" alt="">
+            <h3 id="activeChatName">Creator Name</h3>
         </div>
-        <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Select coin amount to send gift:</p>
-        <div class="gift-grid">
-            <div class="gift-item" onclick="sendGift(1, 'Rose 🌹')"><div class="emoji">🌹</div><div class="price">1 Coin</div></div>
-            <div class="gift-item" onclick="sendGift(5, 'Thumbs Up 👍')"><div class="emoji">👍</div><div class="price">5 Coins</div></div>
-            <div class="gift-item" onclick="sendGift(10, 'Ice Cream 🍦')"><div class="emoji">🍦</div><div class="price">10 Coins</div></div>
-            <div class="gift-item" onclick="sendGift(50, 'Sunglasses 😎')"><div class="emoji">😎</div><div class="price">50 Coins</div></div>
-            <div class="gift-item" onclick="sendGift(100, 'Ring 💍')"><div class="emoji">💍</div><div class="price">100 Coins</div></div>
-            <div class="gift-item" onclick="sendGift(300, 'Sports Car 🏎️')"><div class="emoji">🏎️</div><div class="price">300 Coins</div></div>
-            <div class="gift-item" onclick="sendGift(500, 'Castle 🏰')"><div class="emoji">🏰</div><div class="price">500 Coins</div></div>
-            <div class="gift-item" onclick="sendGift(1000, 'Universe 🌌')"><div class="emoji">🌌</div><div class="price">1000+ Coins</div></div>
+        <div class="chat-messages" id="chatMessagesArea"></div>
+        <div class="chat-input-area">
+            <input type="text" id="messageInput" placeholder="Type a message to creator..." onkeypress="handleKeyPress(event)">
+            <button class="send-btn" onclick="sendMessage()">Send</button>
         </div>
-        <button onclick="window.location.href='wallet.html'" style="width:100%; background:#fe2c55; border:none; padding:10px; color:#fff; font-weight:bold; border-radius:6px; cursor:pointer;">🪙 Buy More Coins (Recharge)</button>
     </div>
 
+    <!-- Bottom Navigation Bar -->
     <div class="bottom-nav">
-        <a href="index.html" class="nav-item active"><i>🏠</i><span>Home</span></a>
+        <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
         <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
         <a href="camera.html" class="nav-item"><div class="upload-plus-btn">+</div></a>
-        <a href="profile.html" class="nav-item"><i>👤</i><span>Inbox</span></a>
+        <a href="inbox.html" class="nav-item active"><i>💬</i><span>Inbox</span></a>
         <a href="profile.html" class="nav-item"><i>⭐</i><span>Profile</span></a>
     </div>
 
     <script>
-        function openGiftModal() { document.getElementById('giftModal').style.display = 'block'; }
-        function closeGiftModal() { document.getElementById('giftModal').style.display = 'none'; }
-        function sendGift(coins, name) {
-            alert('🎉 You successfully sent ' + name + ' (' + coins + ' Coins) to @ramram981152!');
-            closeGiftModal();
+        // Sync profile photo and name automatically in Inbox
+        window.onload = function() {
+            let savedName = localStorage.getItem('appName');
+            let savedPic = localStorage.getItem('appPic');
+
+            if(savedName) {
+                document.getElementById('inboxUserName').innerText = savedName;
+            }
+            if(savedPic) {
+                document.getElementById('inboxUserPic').src = savedPic;
+            }
+        };
+
+        let currentChatUser = '';
+
+        function openChat(name, avatar, lastMsg) {
+            currentChatUser = name;
+            document.getElementById('activeChatName').innerText = name;
+            document.getElementById('activeChatAvatar').src = avatar;
+            
+            let msgArea = document.getElementById('chatMessagesArea');
+            msgArea.innerHTML = `<div class="message incoming"><b>${name}:</b> ${lastMsg}</div>`;
+
+            document.getElementById('chatBoxWindow').style.display = 'flex';
+        }
+
+        function closeChat() {
+            document.getElementById('chatBoxWindow').style.display = 'none';
+        }
+
+        function sendMessage() {
+            let input = document.getElementById('messageInput');
+            let text = input.value.trim();
+            if(text === '') return;
+
+            let msgArea = document.getElementById('chatMessagesArea');
+            msgArea.innerHTML += `<div class="message outgoing">${text}</div>`;
+            input.value = andClearInput = input.value = '';
+            msgArea.scrollTop = msgArea.scrollHeight;
+
+            setTimeout(() => {
+                msgArea.innerHTML += `<div class="message incoming"><b>${currentChatUser}:</b> Ramkumar bhai, message mil gaya! 👍</div>`;
+                msgArea.scrollTop = msgArea.scrollHeight;
+            }, 1000);
+        }
+
+        function handleKeyPress(e) {
+            if(e.key === 'Enter') { sendMessage(); }
         }
     </script>
 </body>
