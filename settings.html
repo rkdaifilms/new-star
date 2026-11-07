@@ -31,13 +31,13 @@
         .form-input { width: 100%; padding: 10px 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 13px; margin-top: 5px; margin-bottom: 10px; outline: none; }
         .form-select { width: 100%; padding: 10px 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 13px; margin-top: 5px; margin-bottom: 10px; outline: none; }
         
-        /* YouTube Style Progress Bar */
+        /* YouTube Style Dynamic Progress Bar */
         .progress-box { background: #222; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; border: 1px solid #333; }
-        .progress-track { width: 100%; height: 8px; background: #333; border-radius: 4px; margin-top: 8px; overflow: hidden; position: relative; }
-        .progress-fill { height: 100%; background: #25f4ee; width: 0%; border-radius: 4px; transition: 0.5s; }
+        .progress-track { width: 100%; height: 10px; background: #333; border-radius: 5px; margin-top: 6px; overflow: hidden; position: relative; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #ffcc00, #fe2c55); width: 0%; border-radius: 5px; transition: 0.6s ease; }
 
         .action-pub-btn { background: #fe2c55; color: #fff; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
-        .action-pub-btn:disabled { background: #444; color: #777; cursor: not-allowed; }
+        .action-pub-btn:disabled { background: #333; color: #777; cursor: not-allowed; border: 1px dashed #555; }
 
         .modal-option { padding: 12px 15px; background: #222; border: 1px solid #444; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-size: 14px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
 
@@ -60,7 +60,7 @@
     
     <div class="setting-item" onclick="openMonetizationDashboard()">
         <span>AdSense / AdMob Monetization Hub</span>
-        <span class="right-val" style="color:#25f4ee; font-weight:bold;">Active (50% Split) ❯</span>
+        <span class="right-val" id="monetizationStatusBadge" style="color:#25f4ee; font-weight:bold;">Check Criteria ❯</span>
     </div>
 
     <div class="setting-item" onclick="openSponsorshipHub()">
@@ -111,67 +111,74 @@
         <button class="logout-btn" onclick="handleLogout()">Log Out</button>
     </div>
 
-    <!-- MONETIZATION DASHBOARD MODAL (YouTube Style Progress & Legal Verification Lock) -->
+    <!-- MONETIZATION DASHBOARD MODAL (Strict Criteria Lock & Dynamic Progress Bar) -->
     <div class="modal-overlay" id="monetizationModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('monetizationModal')">✕</span>
             <h3>💰 AdSense & AdMob Creator Studio</h3>
             <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Requirement: 5,000 Followers & 1 Lakh Views in last 2 months.</p>
             
-            <!-- YouTube Style Progress Box -->
+            <!-- YouTube Style Dynamic Progress Box -->
             <div class="progress-box">
                 <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
-                    <span><b>Followers:</b> <span id="currentFollowers">24.8K</span> / 5,000</span>
-                    <span style="color:#25f4ee;">100% ✅</span>
+                    <span><b>Followers:</b> <span id="currentFollowers">3,450</span> / 5,000</span>
+                    <span id="followerPercent" style="color:#ffcc00;">69%</span>
                 </div>
-                <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+                <div class="progress-track"><div class="progress-fill" id="followerBar" style="width: 69%;"></div></div>
                 
                 <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:10px; margin-bottom:4px;">
-                    <span><b>Video Views:</b> <span id="currentViews">180.5K</span> / 100K</span>
-                    <span style="color:#25f4ee;">100% ✅</span>
+                    <span><b>Video Views:</b> <span id="currentViews">78,200</span> / 100K</span>
+                    <span id="viewPercent" style="color:#ffcc00;">78%</span>
                 </div>
-                <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+                <div class="progress-track"><div class="progress-fill" id="viewBar" style="width: 78%;"></div></div>
                 
-                <p id="eligibilityStatus" style="font-size:12px; color:#25f4ee; margin-top:10px; font-weight:bold;">🟢 Status: Criteria Met! Complete Legal Verification below.</p>
+                <p id="eligibilityStatus" style="font-size:12px; color:#fe2c55; margin-top:10px; font-weight:bold;">🔒 Status: Criteria Not Met Yet. Complete followers & views to unlock pay system.</p>
             </div>
 
-            <!-- Legal Verification & Pay System Form (Locked until criteria met) -->
+            <!-- Legal Verification & Pay System Form (Strictly Locked until criteria met) -->
             <div id="payoutFormSection">
-                <label style="font-size:11px; color:#ccc;">Full Legal Name (as per ID):</label>
-                <input type="text" id="legalName" class="form-input" placeholder="e.g. Ramkumar Dhobi">
-
-                <label style="font-size:11px; color:#ccc;">Select Country:</label>
-                <select id="countrySelect" class="form-select">
-                    <option value="Nepal">🇳🇵 Nepal</option>
-                    <option value="India">🇮🇳 India</option>
-                    <option value="Malaysia">🇲🇾 Malaysia</option>
-                    <option value="UAE">🇦🇪 United Arab Emirates</option>
-                    <option value="Qatar">🇶🇦 Qatar</option>
-                    <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-                    <option value="USA">🇺🇸 United States</option>
-                    <option value="Other">🌍 Other Country</option>
-                </select>
-
-                <label style="font-size:11px; color:#ccc;">Full Street Address & City:</label>
-                <input type="text" id="streetAddress" class="form-input" placeholder="e.g. Bhujauli, Ward 11, Siddharthanagar">
-
-                <label style="font-size:11px; color:#ccc;">Citizenship / National ID / Passport Number:</label>
-                <input type="text" id="idNumber" class="form-input" placeholder="Enter official ID / Citizenship number">
-
-                <label style="font-size:11px; color:#ccc;">Zip / Postal Code:</label>
-                <input type="text" id="zipCode" class="form-input" placeholder="e.g. 32900">
-
-                <label style="font-size:11px; color:#ccc;">Google AdMob / AdSense Publisher ID:</label>
-                <input type="text" id="admobInput" class="form-input" placeholder="pub-xxxxxxxxxxxxxxxx">
-
-                <label style="font-size:11px; color:#ccc;">Bank Account / eSewa / Nabil / Khalti Details:</label>
-                <input type="text" id="payoutInput" class="form-input" placeholder="Enter bank account or wallet number">
-
-                <div style="font-size:10px; color:#888; margin-bottom:10px; background:#111; padding:6px; border-radius:6px;">
-                    ℹ️ <b>Revenue Split Policy:</b> Ad earnings are automatically distributed as 50% to Creator and 50% to Platform Owner (Ramkumar Dhobi / Call Priyance).
+                <div id="lockWarningBox" style="background:#311; border:1px solid #fe2c55; padding:10px; border-radius:6px; margin-bottom:12px; text-align:center;">
+                    <p style="font-size:12px; color:#ffcc00; font-weight:bold;">⚠️ PAY SYSTEM LOCKED</p>
+                    <p style="font-size:11px; color:#aaa; margin-top:2px;">You need 5,000 followers & 100K views to unlock legal verification & AdSense binding.</p>
                 </div>
 
-                <button class="action-pub-btn" onclick="saveLegalMonetization()">Verify & Link Pay System</button>
+                <fieldset id="formFieldSet" disabled style="border:none; padding:0; margin:0;">
+                    <label style="font-size:11px; color:#ccc;">Full Legal Name (as per ID):</label>
+                    <input type="text" id="legalName" class="form-input" placeholder="e.g. Ramkumar Dhobi">
+
+                    <label style="font-size:11px; color:#ccc;">Select Country:</label>
+                    <select id="countrySelect" class="form-select">
+                        <option value="Nepal">🇳🇵 Nepal</option>
+                        <option value="India">🇮🇳 India</option>
+                        <option value="Malaysia">🇲🇾 Malaysia</option>
+                        <option value="UAE">🇦🇪 United Arab Emirates</option>
+                        <option value="Qatar">🇶🇦 Qatar</option>
+                        <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+                        <option value="USA">🇺🇸 United States</option>
+                        <option value="Other">🌍 Other Country</option>
+                    </select>
+
+                    <label style="font-size:11px; color:#ccc;">Full Street Address & City:</label>
+                    <input type="text" id="streetAddress" class="form-input" placeholder="e.g. Bhujauli, Ward 11, Siddharthanagar">
+
+                    <label style="font-size:11px; color:#ccc;">Citizenship / National ID / Passport Number:</label>
+                    <input type="text" id="idNumber" class="form-input" placeholder="Enter official ID / Citizenship number">
+
+                    <label style="font-size:11px; color:#ccc;">Zip / Postal Code:</label>
+                    <input type="text" id="zipCode" class="form-input" placeholder="e.g. 32900">
+
+                    <label style="font-size:11px; color:#ccc;">Google AdMob / AdSense Publisher ID:</label>
+                    <input type="text" id="admobInput" class="form-input" placeholder="pub-xxxxxxxxxxxxxxxx">
+
+                    <label style="font-size:11px; color:#ccc;">Bank Account / eSewa / Nabil / Khalti Details:</label>
+                    <input type="text" id="payoutInput" class="form-input" placeholder="Enter bank account or wallet number">
+
+                    <div style="font-size:10px; color:#888; margin-bottom:10px; background:#111; padding:6px; border-radius:6px;">
+                        ℹ️ <b>Revenue Split Policy:</b> Ad earnings are automatically distributed as 50% to Creator and 50% to Platform Owner (Ramkumar Dhobi / Call Priyance).
+                    </div>
+                </fieldset>
+
+                <button class="action-pub-btn" id="verifySubmitBtn" onclick="saveLegalMonetization()" disabled>Verify & Link Pay System (Locked)</button>
             </div>
         </div>
     </div>
@@ -211,7 +218,7 @@
             <label style="font-size:12px; color:#ccc;">Your Unique Affiliate Referral Link:</label>
             <input type="text" class="form-input" value="https://callpriyance.app/ref/ramkumar06" readonly>
 
-            <button class="action-pub-btn" onclick="alert('📋 Affiliate link copied to clipboard! Share on TikTok, Facebook & WhatsApp.')">Copy Referral Link</button>
+            <button class="action-pub-btn" style="margin-top:0;" onclick="alert('📋 Affiliate link copied to clipboard! Share on TikTok, Facebook & WhatsApp.')">Copy Referral Link</button>
         </div>
     </div>
 
@@ -254,6 +261,10 @@
     </div>
 
     <script>
+        // Simulated Real Creator Stats (Can be adjusted or synced with localStorage)
+        let targetFollowers = 5000;
+        let targetViews = 100000;
+
         window.onload = function() {
             let savedGmail = localStorage.getItem('appGmail') || 'ram060039@gmail.com';
             document.getElementById('displayGmail').innerText = savedGmail + ' ❯';
@@ -264,6 +275,40 @@
             let savedThemeName = localStorage.getItem('appThemeName');
             if(savedThemeName) {
                 document.getElementById('selectedThemeDisplay').innerText = savedThemeName + ' ❯';
+            }
+
+            // Calculate Dynamic Progress
+            let currentF = parseInt(localStorage.getItem('appFollowersCount') || '3450');
+            let currentV = parseInt(localStorage.getItem('appViewsCount') || '78200');
+
+            document.getElementById('currentFollowers').innerText = currentF.toLocaleString();
+            document.getElementById('currentViews').innerText = currentV.toLocaleString();
+
+            let fPercent = Math.min(100, Math.floor((currentF / targetFollowers) * 100));
+            let vPercent = Math.min(100, Math.floor((currentV / targetViews) * 100));
+
+            document.getElementById('followerBar').style.width = fPercent + '%';
+            document.getElementById('followerPercent').innerText = fPercent + '%';
+            document.getElementById('viewBar').style.width = vPercent + '%';
+            document.getElementById('viewPercent').innerText = vPercent + '%';
+
+            // Strict Lock Checking Logic
+            if(currentF >= targetFollowers && currentV >= targetViews) {
+                // UNLOCK FORM
+                document.getElementById('formFieldSet').disabled = false;
+                document.getElementById('verifySubmitBtn').disabled = false;
+                document.getElementById('verifySubmitBtn').innerText = 'Verify & Link Pay System';
+                document.getElementById('lockWarningBox').style.display = 'none';
+                document.getElementById('eligibilityStatus').innerHTML = '🟢 Status: Criteria Met! You can now complete legal verification.';
+                document.getElementById('monetizationStatusBadge').innerText = 'Eligible ✅ ❯';
+            } else {
+                // KEEP LOCKED
+                document.getElementById('formFieldSet').disabled = true;
+                document.getElementById('verifySubmitBtn').disabled = true;
+                document.getElementById('verifySubmitBtn').innerText = 'Verify & Link Pay System (Locked)';
+                document.getElementById('lockWarningBox').style.display = 'block';
+                document.getElementById('eligibilityStatus').innerHTML = '🔒 Status: Criteria Not Met Yet. Keep growing followers & views!';
+                document.getElementById('monetizationStatusBadge').innerText = fPercent + '% Progress ❯';
             }
 
             // Load saved verification info if exists
