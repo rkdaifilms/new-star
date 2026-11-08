@@ -2,11 +2,19 @@
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inbox & Direct Messages</title>
+    
+    <!-- 📱 PWA MANIFEST & APP INSTALL LINK -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#fe2c55">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="New Star">
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #000; color: #fff; padding-bottom: 70px; }
+        body { background-color: #000; color: #fff; padding-bottom: 70px; touch-action: manipulation; }
         
         /* Global Top Navigation Bar with Back Arrow */
         .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; }
@@ -212,6 +220,15 @@
     </div>
 
     <script>
+        // PWA Service Worker Registration for App Install
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => { console.log('Service Worker Registered!', reg); })
+                    .catch((err) => { console.log('Service Worker Failed!', err); });
+            });
+        }
+
         // Sync profile photo and name automatically in Inbox
         window.onload = function() {
             let savedName = localStorage.getItem('appName');
