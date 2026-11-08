@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
@@ -62,10 +62,10 @@
 </head>
 <body>
 
-    <!-- Global Top Bar with Back Arrow '←' and Studio '➕' -->
+    <!-- Clean Top Bar (No dummy text anywhere) -->
     <div class="top-bar">
         <button onclick="history.back()" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Go Back">←</button>
-        <h3 style="font-size: 15px; color: #fe2c55;">Call Priyance Settings</h3>
+        <div></div>
         <a href="camera.html" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="Studio/Camera">➕</a>
     </div>
 
@@ -80,6 +80,15 @@
     <div class="setting-item" onclick="openMonetizationDashboard()">
         <span id="txtAdSense">AdSense / AdMob Monetization Hub</span>
         <span class="right-val" id="monetizationStatusBadge" style="color:var(--theme-color, #fe2c55); font-weight:bold;">Check Criteria ❯</span>
+    </div>
+
+    <!-- 🎁 NEW REFERRAL & COMMISSION EARNINGS SYSTEM -->
+    <div class="setting-item" onclick="openReferralModal()" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
+        <div>
+            <span style="color: #25f4ee; font-weight: bold;" id="txtReferralMenu">👥 Invite Friends & Earn $1.00 Referral Bonus</span>
+            <p style="font-size:11px; color:#aaa;">Earn commission automatically from friends' gift earnings!</p>
+        </div>
+        <span class="right-val" style="color: #25f4ee; font-weight: bold;">Earn $1 ❯</span>
     </div>
 
     <div class="setting-item" onclick="openSponsorshipHub()">
@@ -128,7 +137,6 @@
 
     <div class="section-title" id="txtSecSupport">Support & Help Center</div>
 
-    <!-- Report a Problem & Help (Facebook/TikTok Style with Developer Support) -->
     <div class="setting-item" onclick="openHelpModal()">
         <span id="txtHelpReport">Help & Report a Problem (Send to Developer)</span>
         <span class="right-val" style="color:#25f4ee;">Support ❯</span>
@@ -150,19 +158,50 @@
         <button class="logout-btn" id="logoutBtn" onclick="handleLogout()">Log Out</button>
     </div>
 
-    <!-- HELP & REPORT A PROBLEM MODAL (Developer Direct Ticket) -->
+    <!-- 👥 REFERRAL & COMMISSION SYSTEM MODAL -->
+    <div class="modal-overlay" id="referralModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('referralModal')">✕</span>
+            <h3 style="color: #25f4ee;">👥 Referral & Commission Hub ($1.00 Reward)</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px; line-height: 1.4;">
+                Share your link anywhere (WhatsApp, IMO, Facebook, TikTok, Instagram, Twitter)!<br>
+                🎁 Earn up to <b>$1.00 per referral</b>. As your referred friends earn via live gifts, ads, or video earnings, a small daily commission (10%) automatically cuts and flows directly into your wallet until your $1.00 goal is fully achieved!
+            </p>
+
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px;">
+                <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">Your Unique Referral Link:</label>
+                <input type="text" id="myReferralLink" class="form-input" value="https://callpriyance.app/invite?ref=ramkumar06" readonly style="margin-bottom:8px;">
+                <button class="action-pub-btn" style="background:#25f4ee; color:#000; margin-top:0; padding:10px;" onclick="copyReferralLink()">📋 Copy Referral Link</button>
+            </div>
+
+            <!-- UNIVERSAL PHONE DIRECT SHARE BUTTON -->
+            <button class="action-pub-btn" style="background:linear-gradient(135deg, #25d366, #128c7e); margin-bottom:12px; padding:12px;" onclick="openPhoneShareDirect()">
+                <span>🌐 Share Directly to WhatsApp, IMO, FB, TikTok...</span>
+            </button>
+
+            <div style="background:#1a1a1a; padding:12px; border-radius:8px; border:1px solid #333;">
+                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+                    <span><b>Total Friends Invited:</b> <span id="totalInvitedCount" style="color:#25f4ee;">14 Friends</span></span>
+                    <span><b>Commission Earned:</b> <span id="totalRefEarned" style="color:#ffcc00;">$14.20</span></span>
+                </div>
+                <p style="font-size:10px; color:#888;">💡 Active daily commission cutting from friends' gift earnings is enabled.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- HELP & REPORT A PROBLEM MODAL -->
     <div class="modal-overlay" id="helpModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('helpModal')">✕</span>
             <h3>🛠️ Help & Report a Problem</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Facing issues? Send a report with a screenshot directly to our developer team. (Auto AI Support is active)</p>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Facing issues? Send a report with a screenshot directly to our developer team.</p>
             
             <label style="font-size:11px; color:#ccc;">Select Issue Type:</label>
             <select id="issueType" class="form-select">
                 <option value="Account Issue">Account / Login Issue</option>
                 <option value="Video Upload Error">Video Upload Error</option>
                 <option value="Monetization Payout">Monetization & Payout Problem</option>
-                <option value="Harassment / Fraud">Harassment / Fake ID Report</option>
+                <option value="Referral Commission">Referral Commission Issue</option>
                 <option value="Other Bug">Other Technical Bug</option>
             </select>
 
@@ -181,65 +220,54 @@
         </div>
     </div>
 
-    <!-- BLOCKED USERS MODAL (Fake ID / Fraud Control) -->
+    <!-- BLOCKED USERS MODAL -->
     <div class="modal-overlay" id="blockModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('blockModal')">✕</span>
             <h3 id="txtBlockTitle">🚫 Blocked Users & Fraud Control</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;" id="txtBlockDesc">Block any fake ID, fraud or annoying user so they cannot message or view your content.</p>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Block any fake ID, fraud or annoying user so they cannot message or view your content.</p>
             
-            <label style="font-size:11px; color:#ccc;" id="txtBlockLabel">Block a User (Username / ID):</label>
+            <label style="font-size:11px; color:#ccc;">Block a User (Username / ID):</label>
             <div style="display:flex; gap:8px;">
                 <input type="text" id="blockUserInput" class="form-input" placeholder="e.g. @fake_id_fraud" style="margin-bottom:0;">
-                <button class="action-pub-btn" id="txtBlockBtn" style="width:110px; margin-top:0; padding:10px;" onclick="blockUserAction()">Block</button>
+                <button class="action-pub-btn" style="width:110px; margin-top:0; padding:10px;" onclick="blockUserAction()">Block</button>
             </div>
 
             <div style="margin-top:15px;">
-                <p style="font-size:12px; color:#ccc; margin-bottom:6px;"><b id="txtBlockedListTitle">Blocked Accounts List:</b></p>
+                <p style="font-size:12px; color:#ccc; margin-bottom:6px;"><b>Blocked Accounts List:</b></p>
                 <div id="blockedListContainer" style="background:#111; border:1px solid #333; border-radius:8px; padding:10px; max-height:160px; overflow-y:auto; font-size:13px;">
-                    <p style="color:#777; text-align:center;" id="txtNoBlocked">No users blocked yet.</p>
+                    <p style="color:#777; text-align:center;">No users blocked yet.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ACCOUNT INFO MODAL (All World Countries) -->
+    <!-- ACCOUNT INFO MODAL -->
     <div class="modal-overlay" id="accountInfoModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('accountInfoModal')">✕</span>
-            <h3 id="txtAccModalTitle">📱 Account Information</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;" id="txtAccModalDesc">Manage your personal account details and global region.</p>
+            <h3>📱 Account Information</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Manage your personal account details and global region.</p>
             
-            <label style="font-size:11px; color:#ccc;" id="txtPhoneLabel">Phone Number:</label>
+            <label style="font-size:11px; color:#ccc;">Phone Number:</label>
             <input type="text" id="accPhone" class="form-input" placeholder="+977XXXXXXXXX">
 
-            <label style="font-size:11px; color:#ccc;" id="txtEmailLabel">Email Address:</label>
+            <label style="font-size:11px; color:#ccc;">Email Address:</label>
             <input type="email" id="accEmail" class="form-input" placeholder="ram060039@gmail.com">
 
-            <label style="font-size:11px; color:#ccc;" id="txtDobLabel">Date of Birth:</label>
+            <label style="font-size:11px; color:#ccc;">Date of Birth:</label>
             <input type="date" id="accDob" class="form-input">
 
-            <label style="font-size:11px; color:#ccc;" id="txtRegionLabel">Account Region / Country (All World Countries):</label>
+            <label style="font-size:11px; color:#ccc;">Account Region / Country:</label>
             <select id="accRegion" class="form-select">
                 <option value="Nepal">🇳🇵 Nepal</option>
                 <option value="India">🇮🇳 India</option>
-                <option value="Afghanistan">🇦🇫 Afghanistan</option>
-                <option value="Albania">🇦🇱 Albania</option>
-                <option value="Algeria">🇩🇿 Algeria</option>
-                <option value="Australia">🇦🇺 Australia</option>
-                <option value="Bangladesh">🇧🇩 Bangladesh</option>
-                <option value="Canada">🇨🇦 Canada</option>
-                <option value="China">🇨🇳 China</option>
-                <option value="France">🇫🇷 France</option>
-                <option value="Germany">🇩🇪 Germany</option>
-                <option value="Japan">🇯🇵 Japan</option>
                 <option value="Malaysia">🇲🇾 Malaysia</option>
-                <option value="Pakistan">🇵🇰 Pakistan</option>
-                <option value="United Kingdom">🇬🇧 United Kingdom</option>
-                <option value="United States">🇺🇸 United States</option>
+                <option value="USA">🇺🇸 United States</option>
+                <option value="UK">🇬🇧 United Kingdom</option>
             </select>
 
-            <button class="action-pub-btn" id="txtSaveAcc" onclick="saveAccountInfo()">Save Account Changes</button>
+            <button class="action-pub-btn" onclick="saveAccountInfo()">Save Account Changes</button>
         </div>
     </div>
 
@@ -247,19 +275,19 @@
     <div class="modal-overlay" id="passwordModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('passwordModal')">✕</span>
-            <h3 id="txtPassModalTitle">🔒 Change Password & Security</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;" id="txtPassModalDesc">Secure your account with a strong new password.</p>
+            <h3>🔒 Change Password & Security</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Secure your account with a strong new password.</p>
 
-            <label style="font-size:11px; color:#ccc;" id="txtCurrPassLabel">Current Password:</label>
+            <label style="font-size:11px; color:#ccc;">Current Password:</label>
             <input type="password" id="currPass" class="form-input" placeholder="Enter current password">
 
-            <label style="font-size:11px; color:#ccc;" id="txtNewPassLabel">New Password:</label>
+            <label style="font-size:11px; color:#ccc;">New Password:</label>
             <input type="password" id="newPass" class="form-input" placeholder="Enter new password (min 6 chars)">
 
-            <label style="font-size:11px; color:#ccc;" id="txtConfPassLabel">Confirm New Password:</label>
+            <label style="font-size:11px; color:#ccc;">Confirm New Password:</label>
             <input type="password" id="confirmPass" class="form-input" placeholder="Re-enter new password">
 
-            <button class="action-pub-btn" id="txtUpdatePassBtn" onclick="updatePassword()">Update Password</button>
+            <button class="action-pub-btn" onclick="updatePassword()">Update Password</button>
         </div>
     </div>
 
@@ -310,9 +338,6 @@
                     <label style="font-size:11px; color:#ccc;">Citizenship / ID Number:</label>
                     <input type="text" id="idNumber" class="form-input" placeholder="Official ID number">
 
-                    <label style="font-size:11px; color:#ccc;">Zip / Postal Code:</label>
-                    <input type="text" id="zipCode" class="form-input" placeholder="32900">
-
                     <label style="font-size:11px; color:#ccc;">Google AdMob / AdSense Publisher ID:</label>
                     <input type="text" id="admobInput" class="form-input" placeholder="pub-xxxxxxxxxxxxxxxx">
 
@@ -325,7 +350,7 @@
         </div>
     </div>
 
-    <!-- SPONSORSHIP HUB MODAL (1K Followers Lock) -->
+    <!-- SPONSORSHIP HUB MODAL -->
     <div class="modal-overlay" id="sponsorshipModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('sponsorshipModal')">✕</span>
@@ -346,7 +371,7 @@
         </div>
     </div>
 
-    <!-- AFFILIATE MARKETING MODAL (1K Followers Lock) -->
+    <!-- AFFILIATE MARKETING MODAL -->
     <div class="modal-overlay" id="affiliateModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('affiliateModal')">✕</span>
@@ -363,59 +388,29 @@
         </div>
     </div>
 
-    <!-- LANGUAGE MODAL (All World Country Languages) -->
+    <!-- LANGUAGE MODAL -->
     <div class="modal-overlay" id="langModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('langModal')">✕</span>
-            <h3 id="txtLangModalTitle">🌐 Select App Language (All World Languages)</h3>
+            <h3>🌐 Select App Language</h3>
             <div class="modal-option" onclick="setLanguage('हिन्दी (Hindi)')"><span>🇮🇳 हिन्दी (Hindi)</span></div>
             <div class="modal-option" onclick="setLanguage('नेपाली (Nepali)')"><span>🇳🇵 नेपाली (Nepali)</span></div>
             <div class="modal-option" onclick="setLanguage('English (US)')"><span>🇺🇸 English (US)</span></div>
             <div class="modal-option" onclick="setLanguage('বাংলা (Bengali)')"><span>🇧🇩 বাংলা (Bengali)</span></div>
             <div class="modal-option" onclick="setLanguage('اردو (Urdu)')"><span>🇵🇰 اردو (Urdu)</span></div>
-            <div class="modal-option" onclick="setLanguage('中文 (Chinese)')"><span>🇨🇳 中文 (Chinese)</span></div>
-            <div class="modal-option" onclick="setLanguage('日本語 (Japanese)')"><span>🇯🇵 日本語 (Japanese)</span></div>
-            <div class="modal-option" onclick="setLanguage('العربية (Arabic)')"><span>🇸🇦 العربية (Arabic)</span></div>
-            <div class="modal-option" onclick="setLanguage('Español (Spanish)')"><span>🇪🇸 Español (Spanish)</span></div>
-            <div class="modal-option" onclick="setLanguage('Français (French)')"><span>🇫🇷 Français (French)</span></div>
-            <div class="modal-option" onclick="setLanguage('Deutsch (German)')"><span>🇩🇪 Deutsch (German)</span></div>
-            <div class="modal-option" onclick="setLanguage('Русский (Russian)')"><span>🇷🇺 Русский (Russian)</span></div>
-            <div class="modal-option" onclick="setLanguage('Português (Portuguese)')"><span>🇧🇷 Português (Portuguese)</span></div>
-            <div class="modal-option" onclick="setLanguage('Italiano (Italian)')"><span>🇮🇹 Italiano (Italian)</span></div>
-            <div class="modal-option" onclick="setLanguage('Türkçe (Turkish)')"><span>🇹🇷 Türkçe (Turkish)</span></div>
-            <div class="modal-option" onclick="setLanguage('Tiếng Việt (Vietnamese)')"><span>🇻🇳 Tiếng Việt (Vietnamese)</span></div>
-            <div class="modal-option" onclick="setLanguage('한국어 (Korean)')"><span>🇰🇷 한국어 (Korean)</span></div>
-            <div class="modal-option" onclick="setLanguage('Bahasa Indonesia')"><span>🇮🇩 Bahasa Indonesia</span></div>
-            <div class="modal-option" onclick="setLanguage('فارسی (Persian)')"><span>🇮🇷 فارسی (Persian)</span></div>
-            <div class="modal-option" onclick="setLanguage('ภาษาไทย (Thai)')"><span>🇹🇭 ภาษาไทย (Thai)</span></div>
-            <div class="modal-option" onclick="setLanguage('Tagalog (Filipino)')"><span>🇵🇭 Tagalog (Filipino)</span></div>
-            <div class="modal-option" onclick="setLanguage('Polski (Polish)')"><span>🇵🇱 Polski (Polish)</span></div>
-            <div class="modal-option" onclick="setLanguage('Nederlands (Dutch)')"><span>🇳🇱 Nederlands (Dutch)</span></div>
-            <div class="modal-option" onclick="setLanguage('Ελληνικά (Greek)')"><span>🇬🇷 Ελληνικά (Greek)</span></div>
-            <div class="modal-option" onclick="setLanguage('Magyar (Hungarian)')"><span>🇭🇺 Magyar (Hungarian)</span></div>
         </div>
     </div>
 
-    <!-- THEMES MODAL (50+ Custom Colors & Themes) -->
+    <!-- THEMES MODAL -->
     <div class="modal-overlay" id="themeModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('themeModal')">✕</span>
-            <h3 id="txtThemeModalTitle">🎨 Select App Theme (50+ Colors)</h3>
+            <h3>🎨 Select App Theme (50+ Colors)</h3>
             <div class="modal-option" onclick="setTheme('TikTok Red', '#fe2c55')"><span>🔴 TikTok Red (Default)</span><div style="width:16px; height:16px; background:#fe2c55; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Neon Cyan', '#25f4ee')"><span>🔵 Neon Cyan Blue</span><div style="width:16px; height:16px; background:#25f4ee; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Royal Gold', '#ffcc00')"><span>🟡 Royal Gold</span><div style="width:16px; height:16px; background:#ffcc00; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Emerald Green', '#00cc66')"><span>🟢 Emerald Green</span><div style="width:16px; height:16px; background:#00cc66; border-radius:50%;"></div></div>
             <div class="modal-option" onclick="setTheme('Sunset Orange', '#ff6600')"><span>🟠 Sunset Orange</span><div style="width:16px; height:16px; background:#ff6600; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Deep Purple', '#9933ff')"><span>🟣 Deep Purple</span><div style="width:16px; height:16px; background:#9933ff; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Hot Pink', '#ff3399')"><span>💗 Hot Pink</span><div style="width:16px; height:16px; background:#ff3399; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Cyberpunk Neon', '#00ffcc')"><span>🌐 Cyberpunk Neon</span><div style="width:16px; height:16px; background:#00ffcc; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Matrix Green', '#00ff00')"><span>🟢 Matrix Green</span><div style="width:16px; height:16px; background:#00ff00; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Midnight Blue', '#0044ff')"><span>🔵 Midnight Blue</span><div style="width:16px; height:16px; background:#00ff00; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Royal Indigo', '#4b0082')"><span>🟣 Royal Indigo</span><div style="width:16px; height:16px; background:#4b0082; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Cherry Blossom', '#ffb7c5')"><span>🌸 Cherry Blossom</span><div style="width:16px; height:16px; background:#ffb7c5; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Blood Red', '#8b0000')"><span>🩸 Blood Red</span><div style="width:16px; height:16px; background:#8b0000; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Electric Lime', '#ccff00')"><span>🟢 Electric Lime</span><div style="width:16px; height:16px; background:#ccff00; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Pure Dark AMOLED', '#000000')"><span>⬛ Pure Dark AMOLED</span><div style="width:16px; height:16px; background:#000; border:1px solid #555; border-radius:50%;"></div></div>
         </div>
     </div>
 
@@ -429,73 +424,6 @@
     </div>
 
     <script>
-        let targetFollowers = 5000;
-        let targetViews = 100000;
-        let targetSponFollowers = 1000;
-
-        const translations = {
-            'हिन्दी (Hindi)': {
-                headerTitle: 'सेटिंग्स और गोपनीयता', back: '← पीछे',
-                secMonetization: '🚀 क्रिएटर मोनेटाइजेशन और कमाई',
-                adSense: 'ऐडसेंस / ऐडमॉब मोनेटाइजेशन हब',
-                sponsorship: 'ब्रांड स्पॉन्सरशिप और डील्स (1K फॉलोअर्स लॉक)',
-                affiliate: 'एफिलिएट मार्केटिंग प्रोग्राम (1K फॉलोअर्स लॉक)',
-                secAccount: 'खाता और सुरक्षा',
-                accountPrivacy: 'प्राइवेट अकाउंट मोड',
-                privacyDesc: 'प्राइवेट होने पर केवल स्वीकृत यूजर ही आपके वीडियो देख सकेंगे।',
-                accInfo: 'खाता जानकारी (फोन, ईमेल, जन्मतिथि, क्षेत्र)',
-                passSec: 'पासवर्ड और सुरक्षा (पासवर्ड बदलें)',
-                blockUser: 'ब्लॉक किए गए उपयोगकर्ता और फ्रॉड कंट्रोल',
-                cardsCoin: 'कार्ड और कॉइन बैलेंस',
-                secSupport: 'सहायता और हेल्प सेंटर',
-                helpReport: 'सहायता और समस्या रिपोर्ट करें (डेवलपर को भेजें)',
-                secPrefs: 'प्राथमिकताएं और वैश्विक सेटिंग्स',
-                appLang: 'ऐप की भाषा (सभी देशों की भाषाएं)',
-                themesColor: 'थीम्स और रंग मोड (50+ कस्टम रंग)',
-                logout: 'लॉग आउट', home: 'होम', wallet: 'वॉलेट', inbox: 'इनबॉक्स', profile: 'प्रोफाइल'
-            },
-            'नेपाली (Nepali)': {
-                headerTitle: 'सेटिङ्स र गोपनीयता', back: '← पछाडि',
-                secMonetization: '🚀 सिर्जनाकर्ता मुद्रीकरण र आम्दानी',
-                adSense: 'एडसेन्स / एडमोब मुद्रीकरण हब',
-                sponsorship: 'ब्रान्ड प्रायोजन र सम्झौताहरू (1K फलोअर्स लक)',
-                affiliate: 'एफ़िलिएट मार्केटिङ प्रोग्राम (1K फलोअर्स लक)',
-                secAccount: 'खाता र सुरक्षा',
-                accountPrivacy: 'प्राइभेट अकाउन्ट मोड',
-                privacyDesc: 'प्राइभेट हुँदा स्वीकृत प्रयोगकर्ताहरूले मात्र तपाईंका भिडियोहरू हेर्न सक्छन्।',
-                accInfo: 'खाता विवरण (फोन, इमेल, जन्म मिति, क्षेत्र)',
-                passSec: 'पासवर्ड र सुरक्षा (पासवर्ड परिवर्तन गर्नुहोस्)',
-                blockUser: 'ब्लक गरिएका प्रयोगकर्ताहरू र फ्रड नियन्त्रण',
-                cardsCoin: 'कार्ड र कोइन ब्यालेन्स',
-                secSupport: 'सहयोग र मद्दत केन्द्र',
-                helpReport: 'सहायता र समस्या रिपोर्ट गर्नुहोस् (विकासकर्तालाई पठाउनुहोस्)',
-                secPrefs: 'प्राथमिकताहरू र विश्वव्यापी सेटिङहरू',
-                appLang: 'एपको भाषा (सबै देशका भाषाहरू)',
-                themesColor: 'थिमहरू र रङ मोडहरू (50+ कस्टम रङ)',
-                logout: 'लग आउट', home: 'गृह', wallet: 'वालेट', inbox: 'इनबक्स', profile: 'प्रोफाइल'
-            },
-            'English (US)': {
-                headerTitle: 'Settings and privacy', back: '← Back',
-                secMonetization: '🚀 Creator Monetization & Earnings',
-                adSense: 'AdSense / AdMob Monetization Hub',
-                sponsorship: 'Brand Sponsorships & Deals (1K Followers Lock)',
-                affiliate: 'Affiliate Marketing Program (1K Followers Lock)',
-                secAccount: 'Account & Security',
-                accountPrivacy: 'Private Account Mode',
-                privacyDesc: 'When private, only approved users can see your videos.',
-                accInfo: 'Account Information (Phone, Email, DOB, Region)',
-                passSec: 'Password & Security (Change Password)',
-                blockUser: 'Blocked Users & Fraud Management',
-                cardsCoin: 'Cards & Coin Balance',
-                secSupport: 'Support & Help Center',
-                helpReport: 'Help & Report a Problem (Send to Developer)',
-                secPrefs: 'Preferences & Global Settings',
-                appLang: 'App Language (All World Country Languages)',
-                themesColor: 'Themes & Color Modes (50+ Custom Colors)',
-                logout: 'Log Out', home: 'Home', wallet: 'Wallet', inbox: 'Inbox', profile: 'Profile'
-            }
-        };
-
         window.onload = function() {
             let savedColor = localStorage.getItem('appThemeColor') || '#fe2c55';
             let savedThemeName = localStorage.getItem('appThemeName') || 'TikTok Red';
@@ -503,7 +431,6 @@
 
             let savedLang = localStorage.getItem('appLanguage') || 'हिन्दी (Hindi)';
             document.getElementById('selectedLangDisplay').innerText = savedLang + ' ❯';
-            applyLanguage(savedLang);
 
             let isPrivate = localStorage.getItem('appIsPrivate') === 'true';
             document.getElementById('privateAccountToggle').checked = isPrivate;
@@ -513,38 +440,6 @@
             document.getElementById('accPhone').value = localStorage.getItem('appPhone') || '+977981152XXXX';
             document.getElementById('accDob').value = localStorage.getItem('appDob') || '2000-05-05';
             document.getElementById('accRegion').value = localStorage.getItem('appRegion') || 'Nepal';
-
-            let currentF = parseInt(localStorage.getItem('appFollowersCount') || '3450');
-            let currentV = parseInt(localStorage.getItem('appViewsCount') || '78200');
-
-            document.getElementById('currentFollowers').innerText = currentF.toLocaleString();
-            document.getElementById('currentViews').innerText = currentV.toLocaleString();
-
-            let fPercent = Math.min(100, Math.floor((currentF / targetFollowers) * 100));
-            let vPercent = Math.min(100, Math.floor((currentV / targetViews) * 100));
-            document.getElementById('followerBar').style.width = fPercent + '%';
-            document.getElementById('viewBar').style.width = vPercent + '%';
-
-            if(currentF >= targetFollowers && currentV >= targetViews) {
-                document.getElementById('formFieldSet').disabled = false;
-                document.getElementById('verifySubmitBtn').disabled = false;
-                document.getElementById('verifySubmitBtn').innerText = 'Verify & Link Pay System';
-                document.getElementById('lockWarningBox').style.display = 'none';
-                document.getElementById('eligibilityStatus').innerHTML = '🟢 Status: Criteria Met!';
-                document.getElementById('monetizationStatusBadge').innerText = 'Eligible ✅ ❯';
-            }
-
-            if(currentF >= targetSponFollowers) {
-                document.getElementById('sponsorshipStatusBadge').innerText = 'Unlocked ✅ ❯';
-                document.getElementById('sponsorshipStatusBadge').style.color = '#25f4ee';
-                document.getElementById('sponsorshipLockedMsg').style.display = 'none';
-                document.getElementById('sponsorshipContent').style.display = 'block';
-
-                document.getElementById('affiliateStatusBadge').innerText = 'Unlocked ✅ ❯';
-                document.getElementById('affiliateStatusBadge').style.color = '#25f4ee';
-                document.getElementById('affiliateLockedMsg').style.display = 'none';
-                document.getElementById('affiliateContent').style.display = 'block';
-            }
 
             renderBlockedList();
         };
@@ -559,55 +454,23 @@
         function setTheme(themeName, colorHex) {
             applyGlobalTheme(colorHex, themeName);
             closeModal('themeModal');
-            alert('🎨 Theme successfully applied to the entire app: ' + themeName);
+            alert('🎨 Theme applied: ' + themeName);
         }
 
         function setLanguage(langName) {
             localStorage.setItem('appLanguage', langName);
             document.getElementById('selectedLangDisplay').innerText = langName + ' ❯';
-            applyLanguage(langName);
             closeModal('langModal');
-            alert('🌐 App language updated to ' + langName);
-        }
-
-        function applyLanguage(langName) {
-            let t = translations[langName] || translations['English (US)'];
-            document.getElementById('pageTitle').innerText = t.headerTitle;
-            document.getElementById('txtHeaderTitle').innerText = t.headerTitle;
-            document.getElementById('txtBack').innerText = t.back;
-            document.getElementById('txtSecMonetization').innerText = t.secMonetization;
-            document.getElementById('txtAdSense').innerText = t.adSense;
-            document.getElementById('txtSponsorship').innerText = t.sponsorship;
-            document.getElementById('txtAffiliate').innerText = t.affiliate;
-            document.getElementById('txtSecAccount').innerText = t.secAccount;
-            if(document.getElementById('txtAccountPrivacy')) document.getElementById('txtAccountPrivacy').innerText = t.accountPrivacy;
-            if(document.getElementById('txtPrivacyDesc')) document.getElementById('txtPrivacyDesc').innerText = t.privacyDesc;
-            document.getElementById('txtAccInfo').innerText = t.accInfo;
-            document.getElementById('txtPassSec').innerText = t.passSec;
-            document.getElementById('txtBlockUser').innerText = t.blockUser;
-            document.getElementById('txtCardsCoin').innerText = t.cardsCoin;
-            if(document.getElementById('txtSecSupport')) document.getElementById('txtSecSupport').innerText = t.secSupport;
-            if(document.getElementById('txtHelpReport')) document.getElementById('txtHelpReport').innerText = t.helpReport;
-            document.getElementById('txtSecPrefs').innerText = t.secPrefs;
-            document.getElementById('txtAppLang').innerText = t.appLang;
-            document.getElementById('txtThemesColor').innerText = t.themesColor;
-            document.getElementById('logoutBtn').innerText = t.logout;
-            document.getElementById('navHome').innerText = t.home;
-            document.getElementById('navWallet').innerText = t.wallet;
-            document.getElementById('navInbox').innerText = t.inbox;
-            document.getElementById('navProfile').innerText = t.profile;
+            alert('🌐 Language updated to ' + langName);
         }
 
         function toggleAccountPrivacy() {
             let isPrivate = document.getElementById('privateAccountToggle').checked;
             localStorage.setItem('appIsPrivate', isPrivate);
-            if(isPrivate) {
-                alert('🔒 Account set to PRIVATE. Only approved followers can view your content.');
-            } else {
-                alert('🌍 Account set to PUBLIC. Everyone can view your content.');
-            }
+            alert(isPrivate ? '🔒 Account set to PRIVATE.' : '🌍 Account set to PUBLIC.');
         }
 
+        function openReferralModal() { document.getElementById('referralModal').style.display = 'flex'; }
         function openHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
         function openBlockListModal() { document.getElementById('blockModal').style.display = 'flex'; }
         function openAccountInfoModal() { document.getElementById('accountInfoModal').style.display = 'flex'; }
@@ -619,22 +482,48 @@
         function openThemeModal() { document.getElementById('themeModal').style.display = 'flex'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
+        function copyReferralLink() {
+            let linkInput = document.getElementById('myReferralLink');
+            linkInput.select();
+            navigator.clipboard.writeText(linkInput.value);
+            alert('📋 Referral link copied to clipboard!');
+        }
+
+        // UNIVERSAL PHONE NATIVE SHARE (WhatsApp, IMO, WeChat, FB, TikTok, etc.)
+        function openPhoneShareDirect() {
+            let shareText = "Join Call Priyance app using my referral link and let's earn together: https://callpriyance.app/invite?ref=ramkumar06";
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Call Priyance Referral',
+                    text: shareText,
+                    url: 'https://callpriyance.app/invite?ref=ramkumar06',
+                }).then(() => {
+                    console.log('Shared successfully');
+                }).catch((error) => {
+                    console.log('Error sharing:', error);
+                });
+            } else {
+                navigator.clipboard.writeText(shareText);
+                alert('📋 Link copied! You can paste it directly into WhatsApp, IMO, Facebook, TikTok or any app.');
+            }
+        }
+
         function submitSupportTicket() {
             let issue = document.getElementById('issueDesc').value.trim();
             if(issue === '') { alert('⚠️ Please describe your problem.'); return; }
-            alert('✅ Support ticket & screenshot successfully sent to developer rkdaifilms@gmail.com (Helpline: 9811522480). AI Bot will reply soon!');
+            alert('✅ Support ticket sent to developer rkdaifilms@gmail.com (Helpline: 9811522480).');
             document.getElementById('issueDesc').value = '';
             closeModal('helpModal');
         }
 
         function blockUserAction() {
             let user = document.getElementById('blockUserInput').value.trim();
-            if(user === '') { alert('⚠️ Please enter a username to block.'); return; }
+            if(user === '') { alert('⚠️ Please enter a username.'); return; }
             let blocked = JSON.parse(localStorage.getItem('appBlockedUsers') || '[]');
             if(!blocked.includes(user)) {
                 blocked.push(user);
                 localStorage.setItem('appBlockedUsers', JSON.stringify(blocked));
-                alert('🚫 User ' + user + ' blocked successfully.');
+                alert('🚫 User ' + user + ' blocked.');
                 document.getElementById('blockUserInput').value = '';
                 renderBlockedList();
             }
