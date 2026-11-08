@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Creator & LIVE Studio - New Star</title>
+    <title>Creator & LIVE Studio - Call Priyance</title>
     
     <meta name="theme-color" content="#fe2c55">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="manifest.json">
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -33,27 +32,42 @@
         input, select { width: 100%; padding: 11px; background: #111; border: 1px solid #444; color: #fff; border-radius: 10px; margin-top: 6px; font-size: 13px; outline: none; }
         .big-upload-icon { width: 90px; height: 90px; background: #1f1f1f; border: 2px dashed #fe2c55; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 38px; margin: 10px auto 15px auto; cursor: pointer; }
 
-        /* LIVE BROADCAST ROOM WITH DYNAMIC SEATS */
+        /* ACTIVE LIVE BROADCAST ROOM */
         #activeLiveView { display: none; width: 100%; max-width: 450px; background: #111; border: 2px solid #fe2c55; padding: 15px; border-radius: 16px; margin-top: 15px; text-align: center; position: relative; }
         .pulsing-dot { display: inline-block; width: 8px; height: 8px; background: #fe2c55; border-radius: 50%; animation: pulse 1.2s infinite; margin-right: 5px; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        #liveStreamVideoElement { width: 100%; height: 200px; background: #000; border-radius: 12px; object-fit: cover; margin-bottom: 10px; border: 1px solid #333; }
+        #liveStreamVideoElement { width: 100%; height: 180px; background: #000; border-radius: 12px; object-fit: cover; margin-bottom: 8px; border: 1px solid #333; position: relative; }
+        
+        /* Floating App Logo Watermark on Gaming Stream */
+        .app-stream-logo { position: absolute; top: 22px; left: 22px; background: rgba(0,0,0,0.7); border: 1px solid #fe2c55; padding: 2px 8px; border-radius: 6px; font-size: 10px; color: #25f4ee; font-weight: bold; z-index: 5; }
 
-        /* Dynamic Multi-Seat Grids based on user selection */
-        .live-seats-grid { display: grid; gap: 8px; margin-bottom: 12px; }
+        /* TikTok Multi-Seat Grids */
+        .live-seats-grid { display: grid; gap: 6px; margin-bottom: 8px; }
         .grid-1 { grid-template-columns: 1fr; }
         .grid-4 { grid-template-columns: repeat(2, 1fr); }
         .grid-6 { grid-template-columns: repeat(3, 1fr); }
         .grid-10 { grid-template-columns: repeat(3, 1fr); }
 
-        .live-seat-box { background: #1f1f1f; border: 1px dashed #555; height: 50px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #ccc; cursor: pointer; position: relative; }
+        .live-seat-box { background: #1f1f1f; border: 1px dashed #555; height: 45px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #ccc; cursor: pointer; position: relative; }
         .live-seat-box.active { border: 2px solid #25f4ee; background: #102a2a; color: #25f4ee; font-weight: bold; }
         .seat-num { position: absolute; top: 2px; right: 6px; font-size: 8px; color: #ffcc00; }
 
-        .live-side-actions { position: absolute; right: 12px; bottom: 130px; display: flex; flex-direction: column; gap: 12px; z-index: 10; }
-        .live-action-icon { width: 42px; height: 42px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); color: #fff; }
+        /* Floating Side Actions inside Live Room */
+        .live-side-actions { position: absolute; right: 10px; bottom: 110px; display: flex; flex-direction: column; gap: 10px; z-index: 10; }
+        .live-action-icon { width: 38px; height: 38px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); color: #fff; }
         .live-gift-btn { background: linear-gradient(135deg, #fe2c55, #ffcc00); border: none; }
+        .live-treasure-btn { background: linear-gradient(135deg, #ffcc00, #ff6600); border: none; }
+
+        /* MODALS */
+        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; }
+        .modal-box { background: #181818; border: 1px solid #fe2c55; width: 90%; max-width: 360px; padding: 20px; border-radius: 16px; text-align: left; box-shadow: 0 5px 25px rgba(0,0,0,0.9); }
+        .online-friend-row { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 12px; }
+        .online-dot { width: 8px; height: 8px; background: #25f4ee; border-radius: 50%; display: inline-block; margin-right: 5px; }
+
+        .gift-grid-popup { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 250px; overflow-y: auto; margin: 15px 0; }
+        .gift-item-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .gift-item-card:hover { border-color: #fe2c55; background: #2a2a2a; }
 
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
@@ -72,7 +86,7 @@
     <div class="mode-tabs">
         <button class="tab-btn active" onclick="switchTab('video', this)">📹 Video Upload</button>
         <button class="tab-btn" onclick="switchTab('live', this)">🔴 Video LIVE</button>
-        <button class="tab-btn" onclick="switchTab('gaming', this)">🎮 Screen Share Stream</button>
+        <button class="tab-btn" onclick="switchTab('gaming', this)">🎮 Gaming Stream</button>
     </div>
 
     <div id="studioPanel" style="width:100%; max-width:450px; margin-top:15px;"></div>
@@ -86,18 +100,108 @@
 
         <p id="liveStatusText" style="font-size: 12px; color: #ccc; margin-bottom: 6px;"></p>
         
-        <!-- Live Video Element (Screen Share or Camera) -->
-        <video id="liveStreamVideoElement" autoplay playsinline muted></video>
-
-        <!-- Dynamic Multi-Seats Grid (Adjusts according to selected room size) -->
-        <div id="dynamicSeatsContainer" style="margin-bottom: 10px;"></div>
-
-        <div class="live-side-actions">
-            <div class="live-action-icon" onclick="alert('❤️ Liked live room!')">❤️</div>
-            <div class="live-action-icon live-gift-btn" onclick="alert('🎁 Open Gifts')">🎁</div>
+        <div style="position:relative; width:100%;">
+            <div class="app-stream-logo">★ Call Priyance LIVE</div>
+            <video id="liveStreamVideoElement" autoplay playsinline muted></video>
         </div>
 
-        <button class="btn" style="background: #333; color: #fff; margin-top:5px;" onclick="stopLiveBroadcast()">⏹️ End / Exit LIVE Room</button>
+        <!-- Dynamic Multi-Seats Grid -->
+        <div id="dynamicSeatsContainer" style="margin-bottom: 8px;"></div>
+
+        <!-- Live Chat Box inside Room -->
+        <div style="background:#1a1a1a; border:1px solid #333; padding:6px; border-radius:8px; margin-bottom:8px; text-align:left; width:100%;">
+            <div style="font-size:10px; color:#25f4ee; font-weight:bold; margin-bottom:3px;">💬 Live Chat Comments</div>
+            <div id="liveChatScrollArea" style="max-height:50px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; margin-bottom:5px; font-size:11px; color:#aaa;">
+                <div><b>Rohit Painter:</b> Mast gaming streaming hai bhai! 🔥</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+                <input type="text" id="liveCommentInput" placeholder="Say something..." style="margin-top:0; padding:5px; font-size:11px;">
+                <button style="background:#fe2c55; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;" onclick="sendLiveComment()">Send</button>
+            </div>
+        </div>
+
+        <!-- Floating Side Actions -->
+        <div class="live-side-actions">
+            <div class="live-action-icon" onclick="alert('❤️ Liked live room!')">❤️</div>
+            <div class="live-action-icon live-treasure-btn" onclick="openTreasureModal()" title="🎁 Treasure Box">🎁</div>
+            <div class="live-action-icon live-gift-btn" onclick="openRealGiftModal()">🎁</div>
+        </div>
+
+        <button class="btn" style="background: #333; color: #fff; margin-top:2px;" onclick="stopLiveBroadcast()">⏹️ End / Exit LIVE Room</button>
+    </div>
+
+    <!-- SEAT INVITATION MODAL WITH FRIEND LIST -->
+    <div id="seatInviteModal" class="custom-modal">
+        <div class="modal-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color: #25f4ee; font-size: 15px;" id="modalSeatTitle">Invite Friend to Seat</h4>
+                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('seatInviteModal')">✕</span>
+            </div>
+
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">🔍 Search Creator ID:</label>
+            <div style="display:flex; gap:6px; margin-bottom:12px;">
+                <input type="text" id="globalSearchInput" placeholder="Type username..." style="margin-top:0; padding:8px; font-size:12px;">
+                <button style="background:#25f4ee; color:#000; border:none; padding:0 12px; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer;" onclick="searchGlobalUser()">Invite</button>
+            </div>
+
+            <label style="font-size:11px; color:#25f4ee; display:block; margin-bottom:6px;">🟢 Online Friends (Click to Invite):</label>
+            <div style="max-height:130px; overflow-y:auto; margin-bottom:12px;">
+                <div class="online-friend-row">
+                    <span><span class="online-dot"></span><b>Priyance Official</b></span>
+                    <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="inviteFriendDirect('Priyance Official')">Invite</button>
+                </div>
+                <div class="online-friend-row">
+                    <span><span class="online-dot"></span><b>Rohit Painter</b></span>
+                    <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="inviteFriendDirect('Rohit Painter')">Invite</button>
+                </div>
+                <div class="online-friend-row">
+                    <span><span class="online-dot"></span><b>Anjali Dance Hub</b></span>
+                    <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="inviteFriendDirect('Anjali Dance Hub')">Invite</button>
+                </div>
+            </div>
+            <button class="btn" style="background:#fe2c55; color:#fff; margin-top:0; padding:10px;" onclick="closeModal('seatInviteModal')">Close</button>
+        </div>
+    </div>
+
+    <!-- 🎁 REAL GIFT MODAL (16+ Options) -->
+    <div id="realGiftModal" class="custom-modal">
+        <div class="modal-box" style="max-width:400px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color: #ffcc00; font-size: 16px;">🎁 Send Real Gift (16+ Options)</h4>
+                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('realGiftModal')">✕</span>
+            </div>
+            <div class="gift-grid-popup">
+                <div class="gift-item-card" onclick="sendRealGift('Rose 🌹', 1)"><div style="font-size:24px;">🌹</div><div style="font-size:11px; color:#fff; margin-top:2px;">Rose</div><div style="font-size:10px; color:#ffcc00;">1 Coin</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Coffee ☕', 5)"><div style="font-size:24px;">☕</div><div style="font-size:11px; color:#fff; margin-top:2px;">Coffee</div><div style="font-size:10px; color:#ffcc00;">5 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Heart 🫶', 10)"><div style="font-size:24px;">🫶</div><div style="font-size:11px; color:#fff; margin-top:2px;">Heart</div><div style="font-size:10px; color:#ffcc00;">10 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Glasses 🕶️', 20)"><div style="font-size:24px;">🕶️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Glasses</div><div style="font-size:10px; color:#ffcc00;">20 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('TikTok 🪙', 50)"><div style="font-size:24px;">🪙</div><div style="font-size:11px; color:#fff; margin-top:2px;">TikTok</div><div style="font-size:10px; color:#ffcc00;">50 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Car 🏎️', 100)"><div style="font-size:24px;">🏎️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Car</div><div style="font-size:10px; color:#ffcc00;">100 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Ring 💍', 200)"><div style="font-size:24px;">💍</div><div style="font-size:11px; color:#fff; margin-top:2px;">Ring</div><div style="font-size:10px; color:#ffcc00;">200 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Yacht 🛥️', 500)"><div style="font-size:24px;">🛥️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Yacht</div><div style="font-size:10px; color:#ffcc00;">500 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Lion 🦁', 1000)"><div style="font-size:24px;">🦁</div><div style="font-size:11px; color:#fff; margin-top:2px;">Lion</div><div style="font-size:10px; color:#ffcc00;">1k Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Diamond 💎', 1500)"><div style="font-size:24px;">💎</div><div style="font-size:11px; color:#fff; margin-top:2px;">Diamond</div><div style="font-size:10px; color:#ffcc00;">1.5k Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Crown 👑', 2000)"><div style="font-size:24px;">👑</div><div style="font-size:11px; color:#fff; margin-top:2px;">Crown</div><div style="font-size:10px; color:#ffcc00;">2k Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Jet ✈️', 3000)"><div style="font-size:24px;">✈️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Jet</div><div style="font-size:10px; color:#ffcc00;">3k Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Castle 🏰', 5000)"><div style="font-size:24px;">🏰</div><div style="font-size:11px; color:#fff; margin-top:2px;">Castle</div><div style="font-size:10px; color:#ffcc00;">5k Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Dragon 🐉', 10000)"><div style="font-size:24px;">🐉</div><div style="font-size:11px; color:#fff; margin-top:2px;">Dragon</div><div style="font-size:10px; color:#ffcc00;">10k Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Galaxy 🌌', 20000)"><div style="font-size:24px;">🌌</div><div style="font-size:11px; color:#fff; margin-top:2px;">Galaxy</div><div style="font-size:10px; color:#ffcc00;">20k Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Universe 🪐', 50000)"><div style="font-size:24px;">🪐</div><div style="font-size:11px; color:#fff; margin-top:2px;">Universe</div><div style="font-size:10px; color:#ffcc00;">50k Coins</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TREASURE BOX MODAL -->
+    <div id="treasureModal" class="custom-modal">
+        <div class="modal-box" style="border-color: #ffcc00;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color: #ffcc00; font-size: 16px;">🎁 Drop TikTok Treasure Box</h4>
+                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('treasureModal')">✕</span>
+            </div>
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">Coins in Box:</label>
+            <input type="number" id="boxCoinsInput" value="100" min="10" style="margin-bottom:10px;">
+            <button class="btn" style="background: #ffcc00; color: #000; margin-top:0; font-weight:bold;" onclick="deployTreasureBox()">🚀 Drop Treasure Box</button>
+        </div>
     </div>
 
     <div class="bottom-nav">
@@ -129,7 +233,7 @@
                         <div id="videoFileNameDisplay" style="font-size:12px; color:#25f4ee; margin-bottom:10px; text-align:center; font-weight:bold;">No video selected</div>
                         
                         <label style="font-size:11px; color:#aaa; display:block;">Video Caption & Hashtags:</label>
-                        <input type="text" id="vidCaption" placeholder="e.g. Amazing Dance #Viral #NewStar" style="margin-bottom:12px;">
+                        <input type="text" id="vidCaption" placeholder="e.g. Free Fire Gameplay #Viral #CallPriyance" style="margin-bottom:12px;">
                         
                         <button class="btn btn-live" onclick="publishVideoInstantly()">🚀 Publish Video Now</button>
                     </div>
@@ -138,17 +242,17 @@
                 panel.innerHTML = `
                     <div class="studio-box">
                         <div class="section-title">🔴 Video LIVE Room Setup</div>
-                        <div class="section-desc">Choose how many seats/rooms you want to open:</div>
+                        <div class="section-desc">Choose seat capacity for your live room:</div>
                         
                         <label style="font-size:11px; color:#aaa; display:block; margin-top:8px;">Live Room Title:</label>
                         <input type="text" id="liveTitleInput" value="Night Dance Party 🎉" style="margin-bottom:10px;">
                         
                         <label style="font-size:11px; color:#aaa; display:block;">Room Seat Capacity:</label>
                         <select id="setupRoomSize" style="margin-bottom:15px;">
-                            <option value="1">👤 1 Seat (Solo Live / Single Room)</option>
+                            <option value="1">👤 1 Seat (Solo Live)</option>
                             <option value="4">👥 4 Seats Grid</option>
                             <option value="6">👥 6 Seats Grid</option>
-                            <option value="10" selected>👥 10 Seats Grid (Full Party Room)</option>
+                            <option value="10" selected>👥 10 Seats Grid (Full Party)</option>
                         </select>
                         
                         <button class="btn btn-live" onclick="startLiveSession('cameraLive', document.getElementById('setupRoomSize').value)">🔴 Start LIVE Room Now</button>
@@ -157,8 +261,8 @@
             } else if(mode === 'gaming') {
                 panel.innerHTML = `
                     <div class="studio-box">
-                        <div class="section-title">🎮 Mobile Screen Share & Game Stream</div>
-                        <div class="section-desc">Stream Free Fire, PUBG or any game with custom rooms:</div>
+                        <div class="section-title">🎮 Gaming Stream Setup</div>
+                        <div class="section-desc">Type game name (e.g. Free Fire, PUBG) and start mobile screen capture stream:</div>
                         
                         <label style="font-size:11px; color:#aaa; display:block; margin-top:8px;">Game Name / Stream Title:</label>
                         <input type="text" id="customGameSearchInput" value="Free Fire Mobile Live" style="margin-bottom:10px;">
@@ -170,7 +274,7 @@
                             <option value="10" selected>👥 10 Seats Gaming Party</option>
                         </select>
                         
-                        <button class="btn btn-game" onclick="startLiveSession('screenShare', document.getElementById('setupGamingRoomSize').value)">🚀 Start Phone Screen Share Stream</button>
+                        <button class="btn btn-game" onclick="startLiveSession('screenShare', document.getElementById('setupGamingRoomSize').value)">🚀 Launch Game & Start Screen Stream</button>
                     </div>
                 `;
             }
@@ -190,7 +294,7 @@
         }
 
         function publishVideoInstantly() {
-            let caption = document.getElementById('vidCaption').value.trim() || 'New Viral Video #NewStar';
+            let caption = document.getElementById('vidCaption').value.trim() || 'New Viral Video #CallPriyance';
             if(!selectedVideoDataUrl) {
                 alert('⚠️ Please select a video file from your gallery first!');
                 return;
@@ -200,9 +304,9 @@
             feedList.unshift({
                 url: selectedVideoDataUrl,
                 caption: caption,
-                username: localStorage.getItem('appHandle') || '@newstar981152',
-                likes: '12K',
-                views: '45.2K'
+                username: localStorage.getItem('appHandle') || '@CallPriyance',
+                likes: '18K',
+                views: '62.4K'
             });
             localStorage.setItem('customFeedVideos', JSON.stringify(feedList));
 
@@ -217,11 +321,11 @@
             liveView.style.display = 'block';
 
             let statusText = document.getElementById('liveStatusText');
-            statusText.innerText = (type === 'screenShare') ? '🎮 Mobile Screen Share Live Active' : '🔴 Camera LIVE Room Active';
-
             let videoElement = document.getElementById('liveStreamVideoElement');
 
             if(type === 'screenShare') {
+                statusText.innerText = '🎮 Gaming Stream & Mobile Screen Capture Active';
+                // Trigger Screen Share API to capture mobile screen while playing game
                 if(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
                     navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
                         .then(stream => {
@@ -229,29 +333,56 @@
                             videoElement.srcObject = stream;
                         })
                         .catch(err => {
-                            alert('⚠️ Screen share canceled or not permitted: ' + err.message);
-                            fallbackCamera(videoElement);
+                            fallbackCameraStream(videoElement);
                         });
                 } else {
-                    fallbackCamera(videoElement);
+                    fallbackCameraStream(videoElement);
                 }
             } else {
-                fallbackCamera(videoElement);
+                statusText.innerText = '🔴 LIVE Room Active';
+                fallbackCameraStream(videoElement);
             }
 
             renderMultiSeatsGrid(size);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function fallbackCamera(videoElement) {
+        function fallbackCameraStream(videoElement) {
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(stream => {
                     activeStreamObject = stream;
                     videoElement.srcObject = stream;
                 })
                 .catch(err => {
-                    alert('⚠️ Camera access error: ' + err.message);
+                    console.log('Stream note:', err);
                 });
+        }
+
+        let currentSeatTarget = 1;
+        function openSeatInviteModal(seatNo) {
+            currentSeatTarget = seatNo;
+            document.getElementById('modalSeatTitle').innerText = 'Invite Friend to Seat #' + seatNo;
+            document.getElementById('seatInviteModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function inviteFriendDirect(friendName) {
+            alert('✅ Successfully invited ' + friendName + ' to Seat #' + currentSeatTarget + '!');
+            closeModal('seatInviteModal');
+        }
+
+        function searchGlobalUser() {
+            let query = document.getElementById('globalSearchInput').value.trim();
+            if(query) {
+                alert('🔍 Invitation sent successfully to creator "' + query + '" for Seat #' + currentSeatTarget + '!');
+                document.getElementById('globalSearchInput').value = '';
+                closeModal('seatInviteModal');
+            } else {
+                alert('⚠️ Please enter a valid creator name.');
+            }
         }
 
         function renderMultiSeatsGrid(size) {
@@ -267,7 +398,7 @@
             for(let i = 1; i <= sizeNum; i++) {
                 let isHost = (i === 1);
                 html += `
-                    <div class="live-seat-box ${isHost ? 'active' : ''}" onclick="alert('Seat #${i}: Invite viewer or friend to join room')">
+                    <div class="live-seat-box ${isHost ? 'active' : ''}" onclick="openSeatInviteModal(${i})">
                         <span class="seat-num">${i}</span>
                         <span>${isHost ? '👑 Host' : '+ Seat ' + i}</span>
                     </div>
@@ -275,6 +406,42 @@
             }
             html += `</div>`;
             container.innerHTML = html;
+        }
+
+        function sendLiveComment() {
+            let input = document.getElementById('liveCommentInput');
+            let txt = input.value.trim();
+            if(!txt) return;
+            let scrollArea = document.getElementById('liveChatScrollArea');
+            scrollArea.innerHTML += `<div><b>You:</b> ${txt}</div>`;
+            input.value = '';
+            scrollArea.scrollTop = scrollArea.scrollHeight;
+        }
+
+        function openRealGiftModal() {
+            document.getElementById('realGiftModal').style.display = 'flex';
+        }
+
+        function sendRealGift(giftName, coinCost) {
+            let walletElem = document.getElementById('userWalletCoins');
+            let currentCoins = parseInt(walletElem.innerText);
+            if(currentCoins >= coinCost) {
+                walletElem.innerText = currentCoins - coinCost;
+                alert('🎉 Sent ' + giftName + ' (' + coinCost + ' Coins) successfully!');
+                closeModal('realGiftModal');
+            } else {
+                alert('❌ Insufficient Coins in wallet!');
+            }
+        }
+
+        function openTreasureModal() {
+            document.getElementById('treasureModal').style.display = 'flex';
+        }
+
+        function deployTreasureBox() {
+            let coins = document.getElementById('boxCoinsInput').value;
+            alert('🎁 TikTok Treasure Box of ' + coins + ' coins dropped successfully in live room!');
+            closeModal('treasureModal');
         }
 
         function stopLiveBroadcast() {
