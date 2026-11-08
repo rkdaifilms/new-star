@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Creator & LIVE Studio - Star New Star Gaming</title>
+    <title>Creator Studio - Star New Star</title>
     
     <meta name="theme-color" content="#fe2c55">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,15 +13,15 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; padding-bottom: 80px; }
         
-        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .top-close { font-size: 20px; text-decoration: none; color: #fff; background: #222; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; }
         
-        .mode-tabs { display: flex; gap: 8px; overflow-x: auto; width: 100%; max-width: 450px; padding-bottom: 5px; scrollbar-width: none; }
+        .mode-tabs { display: flex; gap: 8px; overflow-x: auto; width: 100%; max-width: 480px; padding-bottom: 5px; scrollbar-width: none; }
         .mode-tabs::-webkit-scrollbar { display: none; }
         .tab-btn { background: #1a1a1a; color: #aaa; border: 1px solid #333; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; transition: 0.2s; }
         .tab-btn.active { background: #fe2c55; color: #fff; border-color: #fe2c55; }
 
-        .studio-box { width: 100%; max-width: 450px; margin-top: 20px; background: #141414; border: 1px solid #333; border-radius: 20px; padding: 25px 20px; text-align: left; position: relative; }
+        .studio-box { width: 100%; max-width: 480px; margin-top: 20px; background: #141414; border: 1px solid #333; border-radius: 20px; padding: 25px 20px; text-align: left; position: relative; }
         .section-title { font-size: 17px; color: #25f4ee; margin-bottom: 4px; font-weight: bold; }
         .section-desc { font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4; }
 
@@ -34,28 +34,35 @@
         input, select { padding: 11px; background: #111; border: 1px solid #444; color: #fff; border-radius: 10px; margin-top: 6px; font-size: 13px; outline: none; }
         .big-upload-icon { width: 90px; height: 90px; background: #1f1f1f; border: 2px dashed #fe2c55; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 38px; margin: 10px auto 15px auto; cursor: pointer; }
 
-        /* ACTIVE LIVE BROADCAST ROOM */
-        #activeLiveView { display: none; width: 100%; max-width: 450px; background: #111; border: 2px solid #fe2c55; padding: 15px; border-radius: 16px; margin-top: 15px; text-align: center; position: relative; }
+        /* ACTIVE NORMAL LIVE ROOM */
+        #activeLiveView { display: none; width: 100%; max-width: 480px; background: #111; border: 2px solid #fe2c55; padding: 15px; border-radius: 16px; margin-top: 15px; text-align: center; position: relative; }
+        
+        /* ACTIVE PRO GAMING STREAM VIEW (Pure Screen Capture + Facecam) */
+        #activeGamingView { display: none; width: 100%; max-width: 480px; background: #111; border: 2px solid #00b4d8; padding: 15px; border-radius: 16px; margin-top: 15px; text-align: center; position: relative; }
+
         .pulsing-dot { display: inline-block; width: 8px; height: 8px; background: #fe2c55; border-radius: 50%; animation: pulse 1.2s infinite; margin-right: 5px; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
         /* PK Battle Scoreboard */
         .pk-scoreboard { display: none; justify-content: space-between; align-items: center; background: #220000; border: 1px solid #ff4444; padding: 6px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; font-weight: bold; }
 
-        /* Stream Container (Big Game Screen Recorder) */
-        .stream-container { position: relative; width: 100%; height: 220px; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #333; margin-bottom: 8px; }
-        #liveStreamVideoElement { width: 100%; height: 100%; object-fit: cover; }
+        /* Stream Containers */
+        .stream-container { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #333; margin-bottom: 8px; }
+        #liveStreamVideoElement { width: 100%; height: 100%; object-fit: cover; background: #000; }
         
-        .app-stream-logo { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); border: 1px solid #fe2c55; padding: 2px 8px; border-radius: 6px; font-size: 10px; color: #25f4ee; font-weight: bold; z-index: 5; }
+        /* Big Game Screen Recorder Player (Full Landscape Support) */
+        #gameScreenVideoElement { width: 100%; height: 100%; object-fit: fill; background: #000; }
+        
+        .app-stream-logo { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); border: 1px solid #00b4d8; padding: 2px 8px; border-radius: 6px; font-size: 10px; color: #00b4d8; font-weight: bold; z-index: 5; }
 
         /* Movable, Zoomable & Hideable Floating Facecam */
-        .floating-facecam { position: absolute; top: 20px; right: 20px; width: 90px; height: 120px; background: #222; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; z-index: 20; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.9); cursor: grab; touch-action: none; }
+        .floating-facecam { position: absolute; top: 20px; right: 20px; width: 100px; height: 130px; background: #222; border: 2px solid #00b4d8; border-radius: 8px; overflow: hidden; z-index: 30; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.9); cursor: grab; touch-action: none; }
         .floating-facecam:active { cursor: grabbing; }
         #facecamVideoElement { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-        .facecam-controls { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 25; }
-        .fc-btn { background: rgba(0,0,0,0.7); color: #fff; border: none; font-size: 9px; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
+        .facecam-controls { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 35; }
+        .fc-btn { background: rgba(0,0,0,0.8); color: #fff; border: none; font-size: 10px; padding: 2px 5px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
-        /* TikTok Multi-Seat Grids */
+        /* TikTok Multi-Seat Grids for Normal Live */
         .live-seats-grid { display: grid; gap: 6px; margin-bottom: 8px; }
         .grid-1 { grid-template-columns: 1fr; }
         .grid-2 { grid-template-columns: repeat(2, 1fr); }
@@ -103,9 +110,9 @@
         <button class="tab-btn" onclick="switchTab('gaming', this)">🎮 Gaming Stream</button>
     </div>
 
-    <div id="studioPanel" style="width:100%; max-width:450px; margin-top:15px;"></div>
+    <div id="studioPanel" style="width:100%; max-width:480px; margin-top:15px;"></div>
 
-    <!-- ACTIVE LIVE BROADCAST ROOM -->
+    <!-- ACTIVE NORMAL LIVE BROADCAST ROOM -->
     <div id="activeLiveView">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <span style="background:rgba(254,44,85,0.2); border:1px solid #fe2c55; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; color:#fe2c55;"><span class="pulsing-dot"></span> LIVE ROOM ACTIVE</span>
@@ -121,28 +128,16 @@
 
         <p id="liveStatusText" style="font-size: 12px; color: #ccc; margin-bottom: 6px;"></p>
         
-        <!-- Stream Container (Big Game Screen Recorder) -->
-        <div class="stream-container" id="streamContainerBox">
-            <div class="app-stream-logo">★ Star New Star Gaming Stream</div>
+        <div class="stream-container">
+            <div class="app-stream-logo">★ Call Priyance LIVE</div>
             <video id="liveStreamVideoElement" autoplay playsinline muted></video>
-            
-            <!-- Movable, Zoomable & Hideable Floating Facecam -->
-            <div class="floating-facecam" id="floatingFacecamBox">
-                <div class="facecam-controls">
-                    <button class="fc-btn" onclick="toggleFacecamSize()" title="Zoom / Resize">🔍</button>
-                    <button class="fc-btn" onclick="toggleFacecamVisibility()" title="Camera On/Off">📷</button>
-                    <button class="fc-btn" onclick="closeFacecam()" title="Close">✕</button>
-                </div>
-                <video id="facecamVideoElement" autoplay playsinline muted></video>
-            </div>
         </div>
 
         <!-- Audio & Quick Mod/Settings Bar -->
         <div style="display:flex; justify-content:space-between; align-items:center; background:#1a1a1a; padding:6px 10px; border-radius:8px; margin-bottom:8px; font-size:11px;">
             <span>🎙️ Mic: <b id="micStatusText" style="color:#25f4ee;">ON</b></span>
             <button style="background:#333; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="toggleMicrophoneAudio()">Mute</button>
-            <button style="background:#25f4ee; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="toggleFacecamVisibility()">📷 Cam On/Off</button>
-            <button style="background:#ffcc00; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openRoomModSettingsModal()">⚙️ Settings</button>
+            <button style="background:#ffcc00; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openRoomModSettingsModal()">⚙️ Moderator & Settings</button>
         </div>
 
         <!-- Dynamic Multi-Seats Grid -->
@@ -154,7 +149,7 @@
                 <span style="font-size:10px; color:#25f4ee; font-weight:bold;">💬 Live Chat Comments (Likes: <b id="likePointsCount" style="color:#ffcc00;">0</b> pts)</span>
             </div>
             <div id="liveChatScrollArea" style="max-height:55px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; margin-bottom:5px; font-size:11px; color:#aaa;">
-                <div><b>Rohit Painter:</b> Mast gaming stream hai bhai! 🔥</div>
+                <div><b>Rohit Painter:</b> Mast live room hai bhai! 🔥</div>
             </div>
             <div style="display:flex; gap:4px;">
                 <input type="text" id="liveCommentInput" placeholder="Say something..." style="margin-top:0; padding:5px; font-size:11px;">
@@ -173,7 +168,68 @@
         <button class="btn" style="background: #333; color: #fff; margin-top:2px;" onclick="stopLiveBroadcast()">⏹️ End / Exit LIVE Room</button>
     </div>
 
-    <!-- ⚙️ MODERATOR & ROOM SETTINGS MODAL -->
+
+    <!-- ACTIVE PRO GAMING STREAM VIEW (Pure Screen Capture + Facecam with Zoom +/-) -->
+    <div id="activeGamingView">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="background:rgba(0,180,216,0.2); border:1px solid #00b4d8; padding:3px 8px; border-radius:10px; font-size:10px; font-weight:bold; color:#00b4d8;"><span class="pulsing-dot"></span> GAME STREAM LIVE</span>
+            <span style="font-size:11px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins2">500</b> | 🔥 Rank: <b style="color:#00b4d8;">#1</b></span>
+        </div>
+
+        <!-- PK Battle Scoreboard for Gamer -->
+        <div id="pkScoreboardGame" class="pk-scoreboard">
+            <span style="color:#00b4d8;">⚔️ You: <b id="myGamePkScore">0</b> pts</span>
+            <span style="color:#ffcc00; font-size:9px;">GAMER PK BATTLE</span>
+            <span style="color:#ff4444;">Rival: <b id="rivalGamePkScore">0</b> pts</span>
+        </div>
+
+        <!-- Big Game Screen Capture Container -->
+        <div class="stream-container" id="streamContainerBox">
+            <div class="app-stream-logo">★ Star New Star Gaming Stream</div>
+            <video id="gameScreenVideoElement" autoplay playsinline muted></video>
+            
+            <!-- Movable & Zoomable Facecam with Zoom +/- and Cam On/Off Controls -->
+            <div class="floating-facecam" id="floatingFacecamBox">
+                <div class="facecam-controls">
+                    <button class="fc-btn" onclick="zoomFacecamIn()" title="Zoom In">+</button>
+                    <button class="fc-btn" onclick="zoomFacecamOut()" title="Zoom Out">-</button>
+                    <button class="fc-btn" onclick="toggleFacecamCam()" title="Cam On/Off">📷</button>
+                    <button class="fc-btn" onclick="closeFacecam()" title="Close">✕</button>
+                </div>
+                <video id="facecamVideoElement" autoplay playsinline muted></video>
+            </div>
+        </div>
+
+        <!-- Gamer Control Bar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:6px 10px; border-radius:8px; margin-bottom:8px; font-size:11px;">
+            <span>🎙️ Mic: <b id="gameMicStatusText" style="color:#00b4d8;">ON</b></span>
+            <button style="background:#333; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="toggleGameMicrophone()">Mute</button>
+            <button style="background:#ffcc00; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openGamePkModal()">⚔️ PK Battle</button>
+            <button style="background:#ff4444; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openGamerSettingsModal()">⚙️ Settings</button>
+        </div>
+
+        <!-- Quick Chat Box -->
+        <div style="background:#181818; border:1px solid #333; padding:6px; border-radius:8px; margin-bottom:8px; text-align:left;">
+            <div style="font-size:9px; color:#00b4d8; font-weight:bold; margin-bottom:2px;">💬 Stream Chat (Likes: <b id="gameLikeCount" style="color:#ffcc00;">0</b>)</div>
+            <div id="gameChatScroll" style="max-height:40px; overflow-y:auto; font-size:10px; color:#aaa; margin-bottom:4px;">
+                <div><b>Viewer:</b> Free Fire OP! 🔥</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+                <input type="text" id="gameChatInput" placeholder="Say something..." style="margin-top:0; padding:4px; font-size:10px;">
+                <button style="background:#00b4d8; color:#000; border:none; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="sendGameChat()">Send</button>
+            </div>
+        </div>
+
+        <!-- Bottom Action Buttons for Gamer -->
+        <div style="display:flex; gap:6px;">
+            <button class="btn" style="background:#fe2c55; color:#fff; margin-top:0; padding:9px; font-size:11px;" onclick="sendGameLike()">❤️ Like (+1)</button>
+            <button class="btn" style="background:#ffcc00; color:#000; margin-top:0; padding:9px; font-size:11px;" onclick="openRealGiftModal()">🎁 Gifts</button>
+            <button class="btn" style="background:#333; color:#fff; margin-top:0; padding:9px; font-size:11px;" onclick="stopGameStream()">⏹️ End Stream</button>
+        </div>
+    </div>
+
+
+    <!-- ⚙️ MODERATOR & GAMER SETTINGS MODAL -->
     <div id="roomModSettingsModal" class="custom-modal">
         <div class="modal-box">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -203,7 +259,7 @@
         </div>
     </div>
 
-    <!-- ⚔️ PK BATTLE SETUP MODAL -->
+    <!-- ⚔️ PK BATTLE MODAL -->
     <div id="pkBattleModal" class="custom-modal">
         <div class="modal-box" style="border-color: #ffcc00;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -213,9 +269,9 @@
 
             <label style="font-size:11px; color:#aaa; display:block; margin-bottom:4px;">Select Battle Mode:</label>
             <select id="pkBattleModeSelect" style="margin-bottom:12px;">
-                <option value="1v1">⚔️ 1v1 Battle (Solo vs Solo)</option>
-                <option value="2v2" selected>👥 2v2 Battle (2 Bandas each)</option>
-                <option value="3v3">👥 3v3 Battle (3 Bandas each)</option>
+                <option value="1v1">⚔️ 1v1 Battle</option>
+                <option value="2v2" selected>👥 2v2 Battle</option>
+                <option value="3v3">👥 3v3 Battle</option>
             </select>
 
             <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">🔍 Match Rival Creator:</label>
@@ -233,7 +289,7 @@
                 <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('seatInviteModal')">✕</span>
             </div>
 
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">📥 Incoming Join Requests / Invites:</label>
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">📥 Incoming Join Requests:</label>
             <div style="background:#222; padding:8px; border-radius:8px; margin-bottom:10px; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
                 <span><b>Rival Creator</b> wants to join seat</span>
                 <button style="background:#25f4ee; color:#000; border:none; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="acceptIncomingInvite()">Accept</button>
@@ -245,15 +301,11 @@
                 <button style="background:#25f4ee; color:#000; border:none; padding:0 12px; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer;" onclick="searchGlobalUser()">Send Invite</button>
             </div>
 
-            <label style="font-size:11px; color:#25f4ee; display:block; margin-bottom:6px;">🟢 Online Friends (Click to Invite to Seat):</label>
+            <label style="font-size:11px; color:#25f4ee; display:block; margin-bottom:6px;">🟢 Online Friends (Click to Invite):</label>
             <div style="max-height:110px; overflow-y:auto; margin-bottom:12px;">
                 <div class="online-friend-row">
                     <span><span class="online-dot"></span><b>Priyance Official</b></span>
                     <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="inviteFriendDirect('Priyance Official')">Invite</button>
-                </div>
-                <div class="online-friend-row">
-                    <span><span class="online-dot"></span><b>Rohit Painter</b></span>
-                    <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="inviteFriendDirect('Rohit Painter')">Invite</button>
                 </div>
             </div>
             <button class="btn" style="background:#fe2c55; color:#fff; margin-top:0; padding:10px;" onclick="closeModal('seatInviteModal')">Close</button>
@@ -320,6 +372,7 @@
             btnElement.classList.add('active');
 
             document.getElementById('activeLiveView').style.display = 'none';
+            document.getElementById('activeGamingView').style.display = 'none';
             let panel = document.getElementById('studioPanel');
             panel.style.display = 'block';
 
@@ -331,7 +384,7 @@
                         <div id="videoFileNameDisplay" style="font-size:12px; color:#25f4ee; margin-bottom:10px; text-align:center; font-weight:bold;">No video selected</div>
                         
                         <label style="font-size:11px; color:#aaa;">Video Caption & Hashtags:</label>
-                        <input type="text" id="vidCaption" placeholder="e.g. Free Fire Gameplay #Viral #StarNewStar" style="margin-bottom:12px;">
+                        <input type="text" id="vidCaption" placeholder="e.g. Free Fire #StarNewStar" style="margin-bottom:12px;">
                         
                         <button class="btn btn-live" onclick="publishVideoInstantly()">🚀 Publish Video Now</button>
                     </div>
@@ -361,25 +414,10 @@
                 panel.innerHTML = `
                     <div class="studio-box">
                         <div class="section-title">🎮 Pro Gaming Stream Setup</div>
-                        <div class="section-desc">Type game name & select seat capacity for mobile stream:</div>
+                        <div class="section-desc">Type game name & start live screen recording stream:</div>
                         
                         <label style="font-size:11px; color:#aaa;">Type Game Name (e.g. Free Fire, PUBG):</label>
-                        <input type="text" id="customGameSearchInput" value="Free Fire Mobile" style="margin-bottom:10px;">
-                        
-                        <label style="font-size:11px; color:#aaa;">Select Screen Ratio:</label>
-                        <select id="setupScreenRatio" style="margin-bottom:10px;">
-                            <option value="9:16" selected>📱 9:16 Vertical (TikTok / Shorts Style)</option>
-                            <option value="16:9">💻 16:9 Landscape (YouTube / Gaming Style)</option>
-                        </select>
-
-                        <label style="font-size:11px; color:#aaa;">Room Seat Capacity:</label>
-                        <select id="setupGamingRoomSize" style="margin-bottom:15px;">
-                            <option value="1">👤 1 Seat (Solo Gaming)</option>
-                            <option value="2">👥 2 Seats Gaming</option>
-                            <option value="4" selected>👥 4 Seats Gaming</option>
-                            <option value="5">👥 5 Seats Gaming</option>
-                            <option value="10">👥 10 Seats Gaming Party</option>
-                        </select>
+                        <input type="text" id="customGameSearchInput" value="Free Fire Mobile" style="margin-bottom:15px;">
                         
                         <button class="btn btn-game" onclick="startGamingStream()">🚀 Launch Game & Start Screen Stream</button>
                     </div>
@@ -412,8 +450,8 @@
                 url: selectedVideoDataUrl,
                 caption: caption,
                 username: localStorage.getItem('appHandle') || '@StarNewStar',
-                likes: '45K',
-                views: '128K'
+                likes: '50K',
+                views: '140K'
             });
             localStorage.setItem('customFeedVideos', JSON.stringify(feedList));
 
@@ -424,7 +462,7 @@
         let activeStreamObject = null;
         let facecamStreamObject = null;
         let isFacecamActive = true;
-        let facecamScaleLevel = 1; // 1 = Normal, 2 = Zoomed, 3 = Extra Zoom
+        let facecamScaleLevel = 1;
         let isMicMuted = false;
         let blockedUsersList = [];
         let likePoints = 0;
@@ -432,43 +470,42 @@
         let rivalPkPoints = 0;
         let isPkActive = false;
 
+        /* START PRO GAMING STREAM (Pure Screen Capture + Facecam + No Rooms) */
         function startGamingStream() {
             let gameName = document.getElementById('customGameSearchInput').value.trim() || 'Free Fire';
-            let ratio = document.getElementById('setupScreenRatio').value;
-            let size = document.getElementById('setupGamingRoomSize').value;
 
             document.getElementById('studioPanel').style.display = 'none';
-            let liveView = document.getElementById('activeLiveView');
-            liveView.style.display = 'block';
+            let gamingView = document.getElementById('activeGamingView');
+            gamingView.style.display = 'block';
 
-            let statusText = document.getElementById('liveStatusText');
-            statusText.innerText = `🎮 Game: "${gameName}" | Ratio: ${ratio} | Game Screen Capture & Facecam Active`;
-
-            let videoElement = document.getElementById('liveStreamVideoElement');
+            let gameVideo = document.getElementById('gameScreenVideoElement');
             let facecamBox = document.getElementById('floatingFacecamBox');
             let facecamVideo = document.getElementById('facecamVideoElement');
 
-            if(ratio === '16:9') {
-                videoElement.parentElement.style.height = '140px';
-            } else {
-                videoElement.parentElement.style.height = '220px';
-            }
-
-            // Big Screen captures Mobile Screen / Game Screen
+            // 1. Capture Mobile Screen / Game Play via getDisplayMedia (Full Screen Record)
             if(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-                navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+                navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" }, audio: true })
                     .then(stream => {
                         activeStreamObject = stream;
-                        videoElement.srcObject = stream;
+                        gameVideo.srcObject = stream;
                     })
                     .catch(err => {
-                        fallbackCameraStream(videoElement);
+                        // Fallback camera if display media is denied
+                        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                            .then(camStream => {
+                                activeStreamObject = camStream;
+                                gameVideo.srcObject = camStream;
+                            });
                     });
             } else {
-                fallbackCameraStream(videoElement);
+                navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                    .then(camStream => {
+                        activeStreamObject = camStream;
+                        gameVideo.srcObject = camStream;
+                    });
             }
 
-            // Small Facecam captures Front Camera
+            // 2. Capture Front Camera for Facecam
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(camStream => {
                     facecamStreamObject = camStream;
@@ -480,10 +517,10 @@
                     facecamBox.style.display = 'none';
                 });
 
-            renderMultiSeatsGrid(size);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        /* START NORMAL LIVE ROOM (Full Seats, Mod, PK, Gifts) */
         function startLiveSession(type, size) {
             document.getElementById('studioPanel').style.display = 'none';
             let liveView = document.getElementById('activeLiveView');
@@ -493,10 +530,6 @@
             statusText.innerText = '🔴 LIVE Room Active (Face-to-Face & Voice)';
 
             let videoElement = document.getElementById('liveStreamVideoElement');
-            let facecamBox = document.getElementById('floatingFacecamBox');
-            videoElement.parentElement.style.height = '200px';
-            facecamBox.style.display = 'none';
-
             fallbackCameraStream(videoElement);
             renderMultiSeatsGrid(size);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -546,29 +579,26 @@
             });
         }
 
-        function toggleFacecamSize() {
+        function zoomFacecamIn() {
             let facecamBox = document.getElementById('floatingFacecamBox');
-            facecamScaleLevel = (facecamScaleLevel % 3) + 1;
-            if(facecamScaleLevel === 1) {
-                facecamBox.style.width = '90px';
-                facecamBox.style.height = '120px';
-            } else if(facecamScaleLevel === 2) {
-                facecamBox.style.width = '130px';
-                facecamBox.style.height = '170px';
-            } else {
-                facecamBox.style.width = '170px';
-                facecamBox.style.height = '220px';
-            }
+            facecamScaleLevel = Math.min(facecamScaleLevel + 0.5, 3.0);
+            facecamBox.style.width = (100 * facecamScaleLevel) + 'px';
+            facecamBox.style.height = (130 * facecamScaleLevel) + 'px';
         }
 
-        function toggleFacecamVisibility() {
+        function zoomFacecamOut() {
+            let facecamBox = document.getElementById('floatingFacecamBox');
+            facecamScaleLevel = Math.max(facecamScaleLevel - 0.5, 1.0);
+            facecamBox.style.width = (100 * facecamScaleLevel) + 'px';
+            facecamBox.style.height = (130 * facecamScaleLevel) + 'px';
+        }
+
+        function toggleFacecamCam() {
             let facecamBox = document.getElementById('floatingFacecamBox');
             if(isFacecamActive) {
                 facecamBox.style.display = 'none';
                 isFacecamActive = false;
-                if(facecamStreamObject) {
-                    facecamStreamObject.getTracks().forEach(t => t.stop());
-                }
+                if(facecamStreamObject) facecamStreamObject.getTracks().forEach(t => t.stop());
             } else {
                 navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                     .then(camStream => {
@@ -576,9 +606,6 @@
                         document.getElementById('facecamVideoElement').srcObject = camStream;
                         facecamBox.style.display = 'block';
                         isFacecamActive = true;
-                    })
-                    .catch(err => {
-                        alert('Camera access denied or unavailable.');
                     });
             }
         }
@@ -599,10 +626,19 @@
             }
         }
 
-        /* 🛡️ Moderator & Room Control Functions */
-        function openRoomModSettingsModal() {
-            document.getElementById('roomModSettingsModal').style.display = 'flex';
+        function toggleGameMicrophone() {
+            isMicMuted = !isMicMuted;
+            let micText = document.getElementById('gameMicStatusText');
+            micText.innerText = isMicMuted ? 'MUTED' : 'ON';
+            micText.style.color = isMicMuted ? '#ff4444' : '#00b4d8';
+            if(activeStreamObject) {
+                activeStreamObject.getAudioTracks().forEach(track => track.enabled = !isMicMuted);
+            }
         }
+
+        /* 🛡️ Moderator & Room Control Functions */
+        function openRoomModSettingsModal() { document.getElementById('roomModSettingsModal').style.display = 'flex'; }
+        function openGamerSettingsModal() { document.getElementById('roomModSettingsModal').style.display = 'flex'; }
 
         function assignModerator() {
             let modName = document.getElementById('modUsernameInput').value.trim();
@@ -610,43 +646,36 @@
                 alert('🛡️ Moderator power granted successfully to "' + modName + '"!');
                 document.getElementById('modUsernameInput').value = '';
                 closeModal('roomModSettingsModal');
-            } else {
-                alert('⚠️ Please enter a valid username.');
-            }
+            } else { alert('⚠️ Please enter a valid username.'); }
         }
 
         function blockTroublemakerUser() {
             let badUser = document.getElementById('blockUsernameInput').value.trim();
             if(badUser) {
                 blockedUsersList.push(badUser.toLowerCase());
-                alert('🚫 User "' + badUser + '" has been blocked by Moderator/Host!');
+                alert('🚫 User "' + badUser + '" has been blocked!');
                 document.getElementById('blockUsernameInput').value = '';
                 closeModal('roomModSettingsModal');
-            } else {
-                alert('⚠️ Please enter username to block.');
-            }
+            } else { alert('⚠️ Please enter username to block.'); }
         }
 
         function kickOutUserFromRoom() {
             let kickUser = document.getElementById('kickUsernameInput').value.trim();
             if(kickUser) {
-                alert('👢 User "' + kickUser + '" has been kicked out / removed from the live room!');
+                alert('👢 User "' + kickUser + '" kicked out from room!');
                 document.getElementById('kickUsernameInput').value = '';
                 closeModal('roomModSettingsModal');
-            } else {
-                alert('⚠️ Please enter username to kick out.');
-            }
+            } else { alert('⚠️ Please enter username to kick out.'); }
         }
 
         function acceptIncomingInvite() {
-            alert('✅ Incoming join request accepted! Friend is now brought up to the live seat.');
+            alert('✅ Incoming join request accepted!');
             closeModal('seatInviteModal');
         }
 
         /* PK Battle Functions */
-        function openPkBattleModal() {
-            document.getElementById('pkBattleModal').style.display = 'flex';
-        }
+        function openPkBattleModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
+        function openGamePkModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
 
         function launchPkBattleSession() {
             let mode = document.getElementById('pkBattleModeSelect').value;
@@ -656,8 +685,11 @@
             rivalPkPoints = 50;
 
             document.getElementById('pkScoreboard').style.display = 'flex';
+            document.getElementById('pkScoreboardGame').style.display = 'flex';
             document.getElementById('myPkScore').innerText = myPkPoints;
             document.getElementById('rivalPkScore').innerText = rivalPkPoints;
+            document.getElementById('myGamePkScore').innerText = myPkPoints;
+            document.getElementById('rivalGamePkScore').innerText = rivalPkPoints;
 
             alert(`⚔️ PK Battle (${mode}) started against "${rival}"!`);
             closeModal('pkBattleModal');
@@ -673,6 +705,15 @@
             document.getElementById('liveRoomRank').innerText = '#' + Math.max(1, (10 - Math.floor(likePoints/10)));
         }
 
+        function sendGameLike() {
+            likePoints += 1;
+            document.getElementById('gameLikeCount').innerText = likePoints;
+            if(isPkActive) {
+                myPkPoints += 5;
+                document.getElementById('myGamePkScore').innerText = myPkPoints;
+            }
+        }
+
         let currentSeatTarget = 1;
         function openSeatInviteModal(seatNo) {
             currentSeatTarget = seatNo;
@@ -680,9 +721,7 @@
             document.getElementById('seatInviteModal').style.display = 'flex';
         }
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
         function inviteFriendDirect(friendName) {
             alert('✅ Successfully invited ' + friendName + ' to Seat #' + currentSeatTarget + '!');
@@ -692,12 +731,10 @@
         function searchGlobalUser() {
             let query = document.getElementById('globalSearchInput').value.trim();
             if(query) {
-                alert('🔍 Seat invite sent successfully to creator "' + query + '" for Seat #' + currentSeatTarget + '!');
+                alert('🔍 Invite sent to "' + query + '" for Seat #' + currentSeatTarget + '!');
                 document.getElementById('globalSearchInput').value = '';
                 closeModal('seatInviteModal');
-            } else {
-                alert('⚠️ Please enter a valid creator name.');
-            }
+            } else { alert('⚠️ Enter valid creator name.'); }
         }
 
         function renderMultiSeatsGrid(size) {
@@ -728,42 +765,43 @@
             let input = document.getElementById('liveCommentInput');
             let txt = input.value.trim();
             if(!txt) return;
-
-            let commenterName = 'You';
-            if(blockedUsersList.includes(commenterName.toLowerCase())) {
-                alert('❌ You are blocked from commenting in this room!');
-                return;
-            }
-
             let scrollArea = document.getElementById('liveChatScrollArea');
-            scrollArea.innerHTML += `<div><b>${commenterName}:</b> ${txt}</div>`;
+            scrollArea.innerHTML += `<div><b>You:</b> ${txt}</div>`;
             input.value = '';
             scrollArea.scrollTop = scrollArea.scrollHeight;
         }
 
-        function openRealGiftModal() {
-            document.getElementById('realGiftModal').style.display = 'flex';
+        function sendGameChat() {
+            let input = document.getElementById('gameChatInput');
+            let txt = input.value.trim();
+            if(!txt) return;
+            let scrollArea = document.getElementById('gameChatScroll');
+            scrollArea.innerHTML += `<div><b>You:</b> ${txt}</div>`;
+            input.value = '';
+            scrollArea.scrollTop = scrollArea.scrollHeight;
         }
+
+        function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
 
         function sendRealGift(giftName, coinCost) {
             let walletElem = document.getElementById('userWalletCoins');
+            let walletElem2 = document.getElementById('userWalletCoins2');
             let currentCoins = parseInt(walletElem.innerText);
             if(currentCoins >= coinCost) {
-                walletElem.innerText = currentCoins - coinCost;
+                let remaining = currentCoins - coinCost;
+                walletElem.innerText = remaining;
+                walletElem2.innerText = remaining;
                 alert('🎉 Sent ' + giftName + ' (' + coinCost + ' Coins) successfully!');
                 if(isPkActive) {
                     myPkPoints += coinCost * 2;
                     document.getElementById('myPkScore').innerText = myPkPoints;
+                    document.getElementById('myGamePkScore').innerText = myPkPoints;
                 }
                 closeModal('realGiftModal');
-            } else {
-                alert('❌ Insufficient Coins in wallet!');
-            }
+            } else { alert('❌ Insufficient Coins!'); }
         }
 
-        function openTreasureModal() {
-            document.getElementById('treasureModal').style.display = 'flex';
-        }
+        function openTreasureModal() { document.getElementById('treasureModal').style.display = 'flex'; }
 
         function deployTreasureBox() {
             let coins = document.getElementById('boxCoinsInput').value;
@@ -776,6 +814,13 @@
             if(facecamStreamObject) facecamStreamObject.getTracks().forEach(t => t.stop());
             document.getElementById('activeLiveView').style.display = 'none';
             switchTab('video', document.querySelector('.tab-btn'));
+        }
+
+        function stopGameStream() {
+            if(activeStreamObject) activeStreamObject.getTracks().forEach(t => t.stop());
+            if(facecamStreamObject) facecamStreamObject.getTracks().forEach(t => t.stop());
+            document.getElementById('activeGamingView').style.display = 'none';
+            switchTab('gaming', document.querySelector('.tab-btn'));
         }
     </script>
 </body>
