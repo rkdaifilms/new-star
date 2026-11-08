@@ -32,13 +32,20 @@
 
         .pk-scoreboard { display: none; justify-content: space-between; align-items: center; background: #220000; border: 1px solid #ff4444; padding: 6px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; font-weight: bold; }
 
-        /* Big Game Screen Capture Container (1:1 / 16:9) */
+        /* Big Game Screen Capture Container */
         .stream-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #333; margin-bottom: 8px; }
-        #gameScreenVideoElement { width: 100%; height: 100%; object-fit: contain; background: #000; }
+        #gameScreenVideoElement { width: 100%; height: 100%; object-fit: cover; background: #000; }
         .app-stream-logo { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); border: 1px solid #00b4d8; padding: 2px 8px; border-radius: 6px; font-size: 10px; color: #00b4d8; font-weight: bold; z-index: 5; }
 
-        /* Movable, Zoomable & Resizable Real Camera Floating Facecam */
-        .floating-facecam { position: absolute; top: 15px; right: 15px; width: 90px; height: 120px; background: #222; border: 2px solid #00b4d8; border-radius: 8px; overflow: hidden; z-index: 30; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.9); cursor: grab; touch-action: none; }
+        /* TikTok Style Floating Profile Bubble (Click to Hide/Show Settings) */
+        .floating-profile-bubble { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; background: linear-gradient(135deg, #fe2c55, #00b4d8); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; cursor: pointer; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.9); border: 2px solid #fff; transition: 0.3s; }
+        .floating-profile-bubble:hover { transform: scale(1.1); }
+
+        /* Collapsible Controls Wrapper */
+        #streamControlsWrapper { transition: 0.3s; }
+
+        /* Movable, Zoomable Real Camera Floating Facecam */
+        .floating-facecam { position: absolute; bottom: 15px; left: 15px; width: 80px; height: 110px; background: #222; border: 2px solid #00b4d8; border-radius: 8px; overflow: hidden; z-index: 30; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.9); cursor: grab; touch-action: none; }
         .floating-facecam:active { cursor: grabbing; }
         #facecamVideoElement { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
         .facecam-controls { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 35; }
@@ -66,12 +73,12 @@
     <!-- GAMING SETUP PANEL -->
     <div class="studio-card" id="gamingSetupPanel">
         <div class="section-title">Pro Gaming Screen Stream</div>
-        <div class="section-desc">Record mobile screen (Free Fire) with real movable & zoomable front/back facecam!</div>
+        <div class="section-desc">Record mobile screen (Free Fire) with movable facecam & TikTok style profile bubble!</div>
         
         <label>Game Name:</label>
         <input type="text" id="gameNameInput" value="Free Fire Mobile">
         
-        <button class="btn" onclick="startProGamingStream()">🚀 Launch Screen Stream & Real Facecam</button>
+        <button class="btn" onclick="startProGamingStream()">🚀 Launch Game Stream Live</button>
     </div>
 
     <!-- ACTIVE GAMING VIEW -->
@@ -83,40 +90,46 @@
 
         <div id="pkScoreboardGame" class="pk-scoreboard">
             <span style="color:#00b4d8;">⚔️ You: <b id="myGamePkScore">0</b> pts</span>
-            <span style="color:#ffcc00; font-size:9px;" id="pkModeBadge">GAMER PK BATTLE</span>
+            <span style="color:#ffcc00; font-size:9px;" id="pkModeBadge">PK BATTLE</span>
             <span style="color:#ff4444;">Rival: <b id="rivalGamePkScore">0</b> pts</span>
         </div>
 
         <div class="stream-container" id="streamContainerBox">
-            <div class="app-stream-logo">★ Star New Star Gaming</div>
+            <div class="app-stream-logo">★ New Star Gaming</div>
+            
+            <!-- TikTok Style Floating Profile Bubble (Tap to hide/show controls) -->
+            <div class="floating-profile-bubble" onclick="toggleStreamControls()" title="Tap to Open/Hide Settings">⭐</div>
+
             <!-- Big View: Mobile Screen / Game Display Capture -->
             <video id="gameScreenVideoElement" autoplay playsinline></video>
             
-            <!-- Small View: Real Movable, Zoomable & Switchable Camera Facecam -->
+            <!-- Small View: Real Movable & Zoomable Facecam -->
             <div class="floating-facecam" id="floatingFacecamBox">
                 <div class="facecam-controls">
-                    <button class="fc-btn" onclick="zoomFacecamIn()" title="Zoom In">+</button>
-                    <button class="fc-btn" onclick="zoomFacecamOut()" title="Zoom Out">-</button>
-                    <button class="fc-btn" onclick="switchCameraFacing()" title="Switch Front/Back" id="switchCamBtn">🔄</button>
-                    <button class="fc-btn" onclick="closeFacecam()" title="Close">✕</button>
+                    <button class="fc-btn" onclick="zoomFacecamIn()">+</button>
+                    <button class="fc-btn" onclick="zoomFacecamOut()">-</button>
+                    <button class="fc-btn" onclick="switchCameraFacing()">🔄</button>
+                    <button class="fc-btn" onclick="closeFacecam()">✕</button>
                 </div>
                 <video id="facecamVideoElement" autoplay playsinline muted></video>
             </div>
         </div>
 
-        <!-- Controls Bar: Mic, Pause, PK, Box -->
-        <div style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:6px 10px; border-radius:8px; margin-bottom:8px; font-size:11px;">
-            <span>🎙️ Mic: <b id="gameMicStatusText" style="color:#00b4d8;">ON</b></span>
-            <button style="background:#333; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="toggleGameMic()">Mute</button>
-            <button style="background:#00b4d8; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" id="pauseResumeBtn" onclick="togglePauseStream()">⏸️ Pause</button>
-            <button style="background:#ffcc00; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openGamePkModal()">⚔️ PK</button>
-        </div>
+        <div id="streamControlsWrapper">
+            <!-- Controls Bar: Mic, Pause, PK, Box -->
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:6px 10px; border-radius:8px; margin-bottom:8px; font-size:11px;">
+                <span>🎙️ Mic: <b id="gameMicStatusText" style="color:#00b4d8;">ON</b></span>
+                <button style="background:#333; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="toggleGameMic()">Mute</button>
+                <button style="background:#00b4d8; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" id="pauseResumeBtn" onclick="togglePauseStream()">⏸️ Pause</button>
+                <button style="background:#ffcc00; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openGamePkModal()">⚔️ PK</button>
+            </div>
 
-        <div style="display:flex; gap:6px;">
-            <button class="btn" style="background:#fe2c55; color:#fff; margin-top:0; padding:9px; font-size:11px;" onclick="sendGameLike()">❤️ Like</button>
-            <button class="btn" style="background:#ffcc00; color:#000; margin-top:0; padding:9px; font-size:11px;" onclick="openRealGiftModal()">🎁 Gifts</button>
-            <button class="btn" style="background:#00b4d8; color:#000; margin-top:0; padding:9px; font-size:11px;" onclick="nativeShareGameStream()">📤 Share</button>
-            <button class="btn" style="background:#333; color:#fff; margin-top:0; padding:9px; font-size:11px;" onclick="stopGameStream()">⏹️ End</button>
+            <div style="display:flex; gap:6px;">
+                <button class="btn" style="background:#fe2c55; color:#fff; margin-top:0; padding:9px; font-size:11px;" onclick="sendGameLike()">❤️ Like</button>
+                <button class="btn" style="background:#ffcc00; color:#000; margin-top:0; padding:9px; font-size:11px;" onclick="openRealGiftModal()">🎁 Gifts</button>
+                <button class="btn" style="background:#00b4d8; color:#000; margin-top:0; padding:9px; font-size:11px;" onclick="nativeShareGameStream()">📤 Share</button>
+                <button class="btn" style="background:#333; color:#fff; margin-top:0; padding:9px; font-size:11px;" onclick="stopGameStream()">⏹️ End</button>
+            </div>
         </div>
     </div>
 
@@ -144,7 +157,7 @@
                 <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('pkBattleModal')">✕</span>
             </div>
             
-            <label style="color:#ffcc00; margin-bottom:4px;">Select Battle Rooms / Players:</label>
+            <label style="color:#ffcc00; margin-bottom:4px;">Select Battle Mode:</label>
             <select id="pkModeSelect" style="margin-bottom:12px;">
                 <option value="1v1">⚔️ 1v1 Battle (2 Players)</option>
                 <option value="2v2" selected>👥 2v2 Battle (4 Rooms)</option>
@@ -171,6 +184,7 @@
         let myPkPts = 0;
         let isPkLive = false;
         let isStreamPaused = false;
+        let isControlsHidden = false;
 
         window.onload = function() { initDraggableFacecam(); };
 
@@ -179,48 +193,55 @@
             document.getElementById('activeGamingView').style.display = 'block';
 
             let gameVid = document.getElementById('gameScreenVideoElement');
-            let faceBox = document.getElementById('floatingFacecamBox');
 
-            // 1. Big View: Direct Mobile Screen / Game Display Capture
+            // 1. Mobile Screen Capture with Fallback to avoid error
             if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-                navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true })
+                navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" }, audio: true })
                     .then(stream => {
                         gameStreamObj = stream;
                         gameVid.srcObject = stream;
-                        
-                        stream.getVideoTracks()[0].onended = function() {
-                            stopGameStream();
-                        };
+                        stream.getVideoTracks()[0].onended = function() { stopGameStream(); };
                     })
                     .catch(err => {
-                        alert('⚠️ Screen capture permission is required for mobile game streaming.');
-                        stopGameStream();
+                        // Fallback camera if displayMedia is not allowed by mobile app browser
+                        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true })
+                            .then(camStream => {
+                                gameStreamObj = camStream;
+                                gameVid.srcObject = camStream;
+                            }).catch(e => alert('⚠️ Please allow screen/camera permissions to start live stream!'));
                     });
             } else {
-                alert('⚠️ Screen recording is not supported on this device browser.');
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true })
+                    .then(camStream => {
+                        gameStreamObj = camStream;
+                        gameVid.srcObject = camStream;
+                    }).catch(e => alert('⚠️ Screen capture not supported on this browser version.'));
             }
 
-            // 2. Small View: Real Camera for Facecam (Front/Back switchable)
+            // 2. Start Real Facecam
             startRealFacecam();
         }
 
-        function startRealFacecam() {
-            if(facecamStreamObj) {
-                facecamStreamObj.getTracks().forEach(t => t.stop());
+        // TikTok Style Minimize/Restore Controls via Floating Profile Bubble
+        function toggleStreamControls() {
+            let wrapper = document.getElementById('streamControlsWrapper');
+            isControlsHidden = !isControlsHidden;
+            if(isControlsHidden) {
+                wrapper.style.display = 'none';
+            } else {
+                wrapper.style.display = 'block';
             }
-            let constraints = {
-                video: { facingMode: useFrontCamera ? "user" : "environment" },
-                audio: true
-            };
-            navigator.mediaDevices.getUserMedia(constraints)
+        }
+
+        function startRealFacecam() {
+            if(facecamStreamObj) { facecamStreamObj.getTracks().forEach(t => t.stop()); }
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: useFrontCamera ? "user" : "environment" }, audio: false })
                 .then(stream => {
                     facecamStreamObj = stream;
                     document.getElementById('facecamVideoElement').srcObject = stream;
                     document.getElementById('floatingFacecamBox').style.display = 'block';
                 })
-                .catch(err => {
-                    console.log('Camera error:', err);
-                });
+                .catch(err => { console.log('Facecam error:', err); });
         }
 
         function switchCameraFacing() {
@@ -228,27 +249,16 @@
             startRealFacecam();
         }
 
-        // Pause / Resume Stream Feature
         function togglePauseStream() {
             if(!gameStreamObj) return;
             isStreamPaused = !isStreamPaused;
-            let videoTrack = gameStreamObj.getVideoTracks()[0];
-            if(videoTrack) {
-                videoTrack.enabled = !isStreamPaused;
-            }
+            gameStreamObj.getVideoTracks().forEach(t => t.enabled = !isStreamPaused);
             let btn = document.getElementById('pauseResumeBtn');
-            if(isStreamPaused) {
-                btn.innerHTML = '▶️ Resume';
-                btn.style.background = '#fe2c55';
-                btn.style.color = '#fff';
-            } else {
-                btn.innerHTML = '⏸️ Pause';
-                btn.style.background = '#00b4d8';
-                btn.style.color = '#000';
-            }
+            btn.innerHTML = isStreamPaused ? '▶️ Resume' : '⏸️ Pause';
+            btn.style.background = isStreamPaused ? '#fe2c55' : '#00b4d8';
+            btn.style.color = isStreamPaused ? '#fff' : '#000';
         }
 
-        // Drag & Drop Floating Facecam anywhere on screen
         function initDraggableFacecam() {
             let box = document.getElementById('floatingFacecamBox');
             let isDragging = false, startX, startY, initX, initY;
@@ -269,19 +279,18 @@
             box.addEventListener('pointerup', function() { isDragging = false; });
         }
 
-        // Zoom Facecam In / Out
         function zoomFacecamIn() {
             scaleLevel = Math.min(scaleLevel + 0.4, 2.5);
             let box = document.getElementById('floatingFacecamBox');
-            box.style.width = (90 * scaleLevel) + 'px';
-            box.style.height = (120 * scaleLevel) + 'px';
+            box.style.width = (80 * scaleLevel) + 'px';
+            box.style.height = (110 * scaleLevel) + 'px';
         }
 
         function zoomFacecamOut() {
-            scaleLevel = Math.max(scaleLevel - 0.4, 0.8);
+            scaleLevel = Math.max(scaleLevel - 0.4, 0.7);
             let box = document.getElementById('floatingFacecamBox');
-            box.style.width = (90 * scaleLevel) + 'px';
-            box.style.height = (120 * scaleLevel) + 'px';
+            box.style.width = (80 * scaleLevel) + 'px';
+            box.style.height = (110 * scaleLevel) + 'px';
         }
 
         function closeFacecam() {
@@ -317,10 +326,10 @@
             isPkLive = true; 
             myPkPts = 100;
             document.getElementById('pkScoreboardGame').style.display = 'flex';
-            document.getElementById('pkModeBadge').innerText = 'PK BATTLE (' + mode + ')';
+            document.getElementById('pkModeBadge').innerText = 'PK (' + mode + ')';
             document.getElementById('myGamePkScore').innerText = myPkPts;
             document.getElementById('rivalGamePkScore').innerText = 100;
-            alert('⚔️ Gamer PK Battle (' + mode + ') Launched Successfully!');
+            alert('⚔️ PK Battle (' + mode + ') Launched Successfully!');
             closeModal('pkBattleModal');
         }
 
