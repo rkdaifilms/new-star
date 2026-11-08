@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Creator & LIVE Studio - Call Priyance</title>
+    <title>Creator & LIVE Studio - Star New Star Gaming</title>
     
     <meta name="theme-color" content="#fe2c55">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -42,16 +42,18 @@
         /* PK Battle Scoreboard */
         .pk-scoreboard { display: none; justify-content: space-between; align-items: center; background: #220000; border: 1px solid #ff4444; padding: 6px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; font-weight: bold; }
 
-        .stream-container { position: relative; width: 100%; height: 200px; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #333; margin-bottom: 8px; }
+        /* Stream Container (Big Game Screen Recorder) */
+        .stream-container { position: relative; width: 100%; height: 220px; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #333; margin-bottom: 8px; }
         #liveStreamVideoElement { width: 100%; height: 100%; object-fit: cover; }
         
         .app-stream-logo { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); border: 1px solid #fe2c55; padding: 2px 8px; border-radius: 6px; font-size: 10px; color: #25f4ee; font-weight: bold; z-index: 5; }
 
-        /* Floating Pro Facecam (PiP) */
-        .floating-facecam { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 110px; background: #222; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; z-index: 10; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
-        #facecamVideoElement { width: 100%; height: 100%; object-fit: cover; }
-        .facecam-controls { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 12; }
-        .fc-btn { background: rgba(0,0,0,0.6); color: #fff; border: none; font-size: 9px; padding: 2px 4px; border-radius: 4px; cursor: pointer; }
+        /* Movable, Zoomable & Hideable Floating Facecam */
+        .floating-facecam { position: absolute; top: 20px; right: 20px; width: 90px; height: 120px; background: #222; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; z-index: 20; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.9); cursor: grab; touch-action: none; }
+        .floating-facecam:active { cursor: grabbing; }
+        #facecamVideoElement { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        .facecam-controls { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 25; }
+        .fc-btn { background: rgba(0,0,0,0.7); color: #fff; border: none; font-size: 9px; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
 
         /* TikTok Multi-Seat Grids */
         .live-seats-grid { display: grid; gap: 6px; margin-bottom: 8px; }
@@ -119,15 +121,16 @@
 
         <p id="liveStatusText" style="font-size: 12px; color: #ccc; margin-bottom: 6px;"></p>
         
-        <!-- Stream Container -->
-        <div class="stream-container">
-            <div class="app-stream-logo">★ Call Priyance LIVE</div>
+        <!-- Stream Container (Big Game Screen Recorder) -->
+        <div class="stream-container" id="streamContainerBox">
+            <div class="app-stream-logo">★ Star New Star Gaming Stream</div>
             <video id="liveStreamVideoElement" autoplay playsinline muted></video>
             
-            <!-- Floating Pro Facecam -->
+            <!-- Movable, Zoomable & Hideable Floating Facecam -->
             <div class="floating-facecam" id="floatingFacecamBox">
                 <div class="facecam-controls">
-                    <button class="fc-btn" onclick="toggleFacecamSize()" title="Resize">🔍</button>
+                    <button class="fc-btn" onclick="toggleFacecamSize()" title="Zoom / Resize">🔍</button>
+                    <button class="fc-btn" onclick="toggleFacecamVisibility()" title="Camera On/Off">📷</button>
                     <button class="fc-btn" onclick="closeFacecam()" title="Close">✕</button>
                 </div>
                 <video id="facecamVideoElement" autoplay playsinline muted></video>
@@ -138,7 +141,8 @@
         <div style="display:flex; justify-content:space-between; align-items:center; background:#1a1a1a; padding:6px 10px; border-radius:8px; margin-bottom:8px; font-size:11px;">
             <span>🎙️ Mic: <b id="micStatusText" style="color:#25f4ee;">ON</b></span>
             <button style="background:#333; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="toggleMicrophoneAudio()">Mute</button>
-            <button style="background:#ffcc00; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openRoomModSettingsModal()">⚙️ Moderator & Settings</button>
+            <button style="background:#25f4ee; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="toggleFacecamVisibility()">📷 Cam On/Off</button>
+            <button style="background:#ffcc00; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openRoomModSettingsModal()">⚙️ Settings</button>
         </div>
 
         <!-- Dynamic Multi-Seats Grid -->
@@ -150,7 +154,7 @@
                 <span style="font-size:10px; color:#25f4ee; font-weight:bold;">💬 Live Chat Comments (Likes: <b id="likePointsCount" style="color:#ffcc00;">0</b> pts)</span>
             </div>
             <div id="liveChatScrollArea" style="max-height:55px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; margin-bottom:5px; font-size:11px; color:#aaa;">
-                <div><b>Rohit Painter:</b> Mast live room hai bhai! 🔥</div>
+                <div><b>Rohit Painter:</b> Mast gaming stream hai bhai! 🔥</div>
             </div>
             <div style="display:flex; gap:4px;">
                 <input type="text" id="liveCommentInput" placeholder="Say something..." style="margin-top:0; padding:5px; font-size:11px;">
@@ -169,7 +173,7 @@
         <button class="btn" style="background: #333; color: #fff; margin-top:2px;" onclick="stopLiveBroadcast()">⏹️ End / Exit LIVE Room</button>
     </div>
 
-    <!-- ⚙️ MODERATOR & ROOM SETTINGS MODAL (Block User / Seat Config / Kick Out) -->
+    <!-- ⚙️ MODERATOR & ROOM SETTINGS MODAL -->
     <div id="roomModSettingsModal" class="custom-modal">
         <div class="modal-box">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -199,7 +203,7 @@
         </div>
     </div>
 
-    <!-- ⚔️ PK BATTLE SETUP MODAL (1v1, 2v2, 3v3) -->
+    <!-- ⚔️ PK BATTLE SETUP MODAL -->
     <div id="pkBattleModal" class="custom-modal">
         <div class="modal-box" style="border-color: #ffcc00;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -221,7 +225,7 @@
         </div>
     </div>
 
-    <!-- SEAT INVITATION & ACCEPT INVITATION MODAL -->
+    <!-- SEAT INVITATION MODAL -->
     <div id="seatInviteModal" class="custom-modal">
         <div class="modal-box">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -308,6 +312,7 @@
     <script>
         window.onload = function() {
             switchTab('video', document.querySelector('.tab-btn'));
+            initDraggableFacecam();
         };
 
         function switchTab(mode, btnElement) {
@@ -326,7 +331,7 @@
                         <div id="videoFileNameDisplay" style="font-size:12px; color:#25f4ee; margin-bottom:10px; text-align:center; font-weight:bold;">No video selected</div>
                         
                         <label style="font-size:11px; color:#aaa;">Video Caption & Hashtags:</label>
-                        <input type="text" id="vidCaption" placeholder="e.g. Free Fire Gameplay #Viral #CallPriyance" style="margin-bottom:12px;">
+                        <input type="text" id="vidCaption" placeholder="e.g. Free Fire Gameplay #Viral #StarNewStar" style="margin-bottom:12px;">
                         
                         <button class="btn btn-live" onclick="publishVideoInstantly()">🚀 Publish Video Now</button>
                     </div>
@@ -396,7 +401,7 @@
         }
 
         function publishVideoInstantly() {
-            let caption = document.getElementById('vidCaption').value.trim() || 'New Viral Video #CallPriyance';
+            let caption = document.getElementById('vidCaption').value.trim() || 'New Viral Video #StarNewStar';
             if(!selectedVideoDataUrl) {
                 alert('⚠️ Please select a video file from your gallery first!');
                 return;
@@ -406,9 +411,9 @@
             feedList.unshift({
                 url: selectedVideoDataUrl,
                 caption: caption,
-                username: localStorage.getItem('appHandle') || '@CallPriyance',
-                likes: '35K',
-                views: '102K'
+                username: localStorage.getItem('appHandle') || '@StarNewStar',
+                likes: '45K',
+                views: '128K'
             });
             localStorage.setItem('customFeedVideos', JSON.stringify(feedList));
 
@@ -419,7 +424,7 @@
         let activeStreamObject = null;
         let facecamStreamObject = null;
         let isFacecamActive = true;
-        let isFacecamLarge = false;
+        let facecamScaleLevel = 1; // 1 = Normal, 2 = Zoomed, 3 = Extra Zoom
         let isMicMuted = false;
         let blockedUsersList = [];
         let likePoints = 0;
@@ -437,7 +442,7 @@
             liveView.style.display = 'block';
 
             let statusText = document.getElementById('liveStatusText');
-            statusText.innerText = `🎮 Game: "${gameName}" | Ratio: ${ratio} | Screen Capture & Facecam Active`;
+            statusText.innerText = `🎮 Game: "${gameName}" | Ratio: ${ratio} | Game Screen Capture & Facecam Active`;
 
             let videoElement = document.getElementById('liveStreamVideoElement');
             let facecamBox = document.getElementById('floatingFacecamBox');
@@ -446,9 +451,10 @@
             if(ratio === '16:9') {
                 videoElement.parentElement.style.height = '140px';
             } else {
-                videoElement.parentElement.style.height = '200px';
+                videoElement.parentElement.style.height = '220px';
             }
 
+            // Big Screen captures Mobile Screen / Game Screen
             if(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
                 navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
                     .then(stream => {
@@ -462,6 +468,7 @@
                 fallbackCameraStream(videoElement);
             }
 
+            // Small Facecam captures Front Camera
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(camStream => {
                     facecamStreamObject = camStream;
@@ -506,12 +513,62 @@
                 });
         }
 
+        /* Drag and Zoom / Resize / Toggle Facecam Logic */
+        function initDraggableFacecam() {
+            let facecamBox = document.getElementById('floatingFacecamBox');
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+
+            facecamBox.addEventListener('pointerdown', function(e) {
+                if(e.target.tagName === 'BUTTON') return;
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                let rect = facecamBox.getBoundingClientRect();
+                let parentRect = facecamBox.parentElement.getBoundingClientRect();
+                initialX = rect.left - parentRect.left;
+                initialY = rect.top - parentRect.top;
+                facecamBox.setPointerCapture(e.pointerId);
+            });
+
+            facecamBox.addEventListener('pointermove', function(e) {
+                if(!isDragging) return;
+                let dx = e.clientX - startX;
+                let dy = e.clientY - startY;
+                facecamBox.style.left = (initialX + dx) + 'px';
+                facecamBox.style.top = (initialY + dy) + 'px';
+                facecamBox.style.right = 'auto';
+                facecamBox.style.bottom = 'auto';
+            });
+
+            facecamBox.addEventListener('pointerup', function(e) {
+                isDragging = false;
+            });
+        }
+
+        function toggleFacecamSize() {
+            let facecamBox = document.getElementById('floatingFacecamBox');
+            facecamScaleLevel = (facecamScaleLevel % 3) + 1;
+            if(facecamScaleLevel === 1) {
+                facecamBox.style.width = '90px';
+                facecamBox.style.height = '120px';
+            } else if(facecamScaleLevel === 2) {
+                facecamBox.style.width = '130px';
+                facecamBox.style.height = '170px';
+            } else {
+                facecamBox.style.width = '170px';
+                facecamBox.style.height = '220px';
+            }
+        }
+
         function toggleFacecamVisibility() {
             let facecamBox = document.getElementById('floatingFacecamBox');
             if(isFacecamActive) {
                 facecamBox.style.display = 'none';
                 isFacecamActive = false;
-                if(facecamStreamObject) facecamStreamObject.getTracks().forEach(t => t.stop());
+                if(facecamStreamObject) {
+                    facecamStreamObject.getTracks().forEach(t => t.stop());
+                }
             } else {
                 navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                     .then(camStream => {
@@ -519,15 +576,11 @@
                         document.getElementById('facecamVideoElement').srcObject = camStream;
                         facecamBox.style.display = 'block';
                         isFacecamActive = true;
+                    })
+                    .catch(err => {
+                        alert('Camera access denied or unavailable.');
                     });
             }
-        }
-
-        function toggleFacecamSize() {
-            let facecamBox = document.getElementById('floatingFacecamBox');
-            isFacecamLarge = !isFacecamLarge;
-            facecamBox.style.width = isFacecamLarge ? '130px' : '80px';
-            facecamBox.style.height = isFacecamLarge ? '170px' : '110px';
         }
 
         function closeFacecam() {
@@ -554,7 +607,7 @@
         function assignModerator() {
             let modName = document.getElementById('modUsernameInput').value.trim();
             if(modName) {
-                alert('🛡️ Moderator power granted successfully to "' + modName + '"! Now they can block bad comments, accept seat invites, and kick out users.');
+                alert('🛡️ Moderator power granted successfully to "' + modName + '"!');
                 document.getElementById('modUsernameInput').value = '';
                 closeModal('roomModSettingsModal');
             } else {
@@ -566,7 +619,7 @@
             let badUser = document.getElementById('blockUsernameInput').value.trim();
             if(badUser) {
                 blockedUsersList.push(badUser.toLowerCase());
-                alert('🚫 User "' + badUser + '" has been blocked by Moderator/Host! Their comments are banned.');
+                alert('🚫 User "' + badUser + '" has been blocked by Moderator/Host!');
                 document.getElementById('blockUsernameInput').value = '';
                 closeModal('roomModSettingsModal');
             } else {
@@ -577,7 +630,7 @@
         function kickOutUserFromRoom() {
             let kickUser = document.getElementById('kickUsernameInput').value.trim();
             if(kickUser) {
-                alert('👢 User "' + kickUser + '" has been kicked out / removed from the live room by Moderator/Host!');
+                alert('👢 User "' + kickUser + '" has been kicked out / removed from the live room!');
                 document.getElementById('kickUsernameInput').value = '';
                 closeModal('roomModSettingsModal');
             } else {
@@ -606,7 +659,7 @@
             document.getElementById('myPkScore').innerText = myPkPoints;
             document.getElementById('rivalPkScore').innerText = rivalPkPoints;
 
-            alert(`⚔️ PK Battle (${mode}) started against "${rival}"! Send gifts & likes to boost points & rank higher!`);
+            alert(`⚔️ PK Battle (${mode}) started against "${rival}"!`);
             closeModal('pkBattleModal');
         }
 
@@ -623,7 +676,7 @@
         let currentSeatTarget = 1;
         function openSeatInviteModal(seatNo) {
             currentSeatTarget = seatNo;
-            document.getElementById('modalSeatTitle').innerText = 'Seat #' + seatNo + ' Management (Invite / Accept)';
+            document.getElementById('modalSeatTitle').innerText = 'Seat #' + seatNo + ' Management';
             document.getElementById('seatInviteModal').style.display = 'flex';
         }
 
@@ -697,14 +750,14 @@
             let currentCoins = parseInt(walletElem.innerText);
             if(currentCoins >= coinCost) {
                 walletElem.innerText = currentCoins - coinCost;
-                alert('🎉 Sent ' + giftName + ' (' + coinCost + ' Coins) successfully! Creator earnings increased.');
+                alert('🎉 Sent ' + giftName + ' (' + coinCost + ' Coins) successfully!');
                 if(isPkActive) {
                     myPkPoints += coinCost * 2;
                     document.getElementById('myPkScore').innerText = myPkPoints;
                 }
                 closeModal('realGiftModal');
             } else {
-                alert('❌ Insufficient Coins in wallet! Top up coins first.');
+                alert('❌ Insufficient Coins in wallet!');
             }
         }
 
@@ -714,7 +767,7 @@
 
         function deployTreasureBox() {
             let coins = document.getElementById('boxCoinsInput').value;
-            alert('🎁 TikTok Treasure Box of ' + coins + ' coins dropped successfully in live room!');
+            alert('🎁 TikTok Treasure Box of ' + coins + ' coins dropped successfully!');
             closeModal('treasureModal');
         }
 
@@ -726,4 +779,4 @@
         }
     </script>
 </body>
-</html>gu
+</html>
