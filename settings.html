@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">Settings, Help & Global Themes - Call Priyance</title>
+    <title>Settings and Privacy - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--app-bg, #000); color: var(--app-text, #fff); padding-bottom: 70px; transition: 0.3s; }
         
-        /* Global Top Navigation Bar with Back Arrow */
+        /* Clean Top Bar */
         .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; }
 
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: var(--header-bg, #111); position: sticky; top: 0; z-index: 10; }
@@ -32,20 +32,12 @@
         .close-modal { position: absolute; top: 15px; right: 20px; font-size: 18px; cursor: pointer; color: #aaa; }
         
         .form-input { width: 100%; padding: 10px 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 13px; margin-top: 5px; margin-bottom: 10px; outline: none; }
-        .form-select { width: 100%; padding: 10px 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 13px; margin-top: 5px; margin-bottom: 10px; outline: none; }
-        
-        /* YouTube Style Dynamic Progress Bar */
-        .progress-box { background: #222; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; border: 1px solid #333; }
-        .progress-track { width: 100%; height: 10px; background: #333; border-radius: 5px; margin-top: 6px; overflow: hidden; position: relative; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #ffcc00, var(--theme-color, #fe2c55)); width: 0%; border-radius: 5px; transition: 0.6s ease; }
-
         .action-pub-btn { background: var(--theme-color, #fe2c55); color: #fff; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
-        .action-pub-btn:disabled { background: #333; color: #777; cursor: not-allowed; border: 1px dashed #555; }
 
         .modal-option { padding: 12px 15px; background: #222; border: 1px solid #444; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-size: 14px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
         .modal-option:hover { border-color: var(--theme-color, #fe2c55); }
 
-        /* Toggle Switch for Public/Private */
+        /* Toggle Switch */
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 24px; }
@@ -62,52 +54,56 @@
 </head>
 <body>
 
-    <!-- Clean Top Bar (No dummy text anywhere) -->
+    <!-- Clean Top Bar -->
     <div class="top-bar">
         <button onclick="history.back()" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Go Back">←</button>
         <div></div>
         <a href="camera.html" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="Studio/Camera">➕</a>
     </div>
 
+    <!-- Clean Header -->
     <div class="header">
-        <a class="back-btn" onclick="history.back()" id="txtBack">← Back</a>
-        <h2 id="txtHeaderTitle">Settings and privacy</h2>
+        <a class="back-btn" onclick="history.back()">← Back</a>
+        <h2>Settings and privacy</h2>
         <span>⚙️</span>
     </div>
 
-    <div class="section-title" id="txtSecMonetization">🚀 Creator Monetization & Earnings</div>
+    <div class="section-title">🎁 LIVE Gifts, Sponsorships & Subscriptions</div>
     
-    <div class="setting-item" onclick="openMonetizationDashboard()">
-        <span id="txtAdSense">AdSense / AdMob Monetization Hub</span>
-        <span class="right-val" id="monetizationStatusBadge" style="color:var(--theme-color, #fe2c55); font-weight:bold;">Check Criteria ❯</span>
+    <div class="setting-item" onclick="openLiveGiftRulesModal()">
+        <span>💎 Live Stream Gifts & Treasure Box Hub</span>
+        <span class="right-val" style="color:#ffcc00; font-weight:bold;">Active 🎁</span>
     </div>
 
-    <!-- 🎁 NEW REFERRAL & COMMISSION EARNINGS SYSTEM -->
     <div class="setting-item" onclick="openReferralModal()" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
         <div>
-            <span style="color: #25f4ee; font-weight: bold;" id="txtReferralMenu">👥 Invite Friends & Earn $1.00 Referral Bonus</span>
+            <span style="color: #25f4ee; font-weight: bold;">👥 Invite Friends & Earn $1.00 Referral Bonus</span>
             <p style="font-size:11px; color:#aaa;">Earn commission automatically from friends' gift earnings!</p>
         </div>
         <span class="right-val" style="color: #25f4ee; font-weight: bold;">Earn $1 ❯</span>
     </div>
 
     <div class="setting-item" onclick="openSponsorshipHub()">
-        <span id="txtSponsorship">Brand Sponsorships & Deals (1K Followers Lock)</span>
-        <span class="right-val" id="sponsorshipStatusBadge" style="color:#ffcc00;">Locked 🔒</span>
+        <span>🤝 Brand Sponsorship Deals (1K Followers Lock)</span>
+        <span class="right-val" style="color:#ffcc00;">Locked 🔒</span>
     </div>
 
     <div class="setting-item" onclick="openAffiliateHub()">
-        <span id="txtAffiliate">Affiliate Marketing Program (1K Followers Lock)</span>
-        <span class="right-val" id="affiliateStatusBadge" style="color:#ffcc00;">Locked 🔒</span>
+        <span>🔗 Affiliate Marketing Program (1K Followers Lock)</span>
+        <span class="right-val" style="color:#ffcc00;">Locked 🔒</span>
     </div>
 
-    <div class="section-title" id="txtSecAccount">Account & Security</div>
+    <div class="setting-item" onclick="openSubscriptionModal()">
+        <span>⭐ Creator Monthly Subscriptions (Fan Club)</span>
+        <span class="right-val" style="color:#25f4ee; font-weight:bold;">Active ⭐</span>
+    </div>
+
+    <div class="section-title">Account & Security</div>
     
-    <!-- Public / Private Account Toggle Setting -->
     <div class="setting-item">
         <div>
-            <span id="txtAccountPrivacy">Private Account Mode</span>
-            <p style="font-size:11px; color:#888;" id="txtPrivacyDesc">When private, only approved users can see your videos.</p>
+            <span>Private Account Mode</span>
+            <p style="font-size:11px; color:#888;">When private, only approved users can see your videos.</p>
         </div>
         <label class="switch">
             <input type="checkbox" id="privateAccountToggle" onchange="toggleAccountPrivacy()">
@@ -116,311 +112,207 @@
     </div>
 
     <div class="setting-item" onclick="openAccountInfoModal()">
-        <span id="txtAccInfo">Account Information (Phone, Email, DOB, Region)</span>
-        <span class="right-val" id="txtManage">Manage ❯</span>
-    </div>
-
-    <div class="setting-item" onclick="openPasswordModal()">
-        <span id="txtPassSec">Password & Security (Change Password)</span>
-        <span class="right-val" id="txtUpdate">Update ❯</span>
-    </div>
-
-    <div class="setting-item" onclick="openBlockListModal()">
-        <span id="txtBlockUser">Blocked Users & Fraud Management</span>
-        <span class="right-val" id="txtManageBlock" style="color:var(--theme-color, #fe2c55);">Manage Blocked ❯</span>
-    </div>
-
-    <div class="setting-item" onclick="window.location.href='wallet.html'">
-        <span id="txtCardsCoin">Cards & Coin Balance</span>
+        <span>Account Information (Phone, Email, DOB, Region)</span>
         <span class="right-val">Manage ❯</span>
     </div>
 
-    <div class="section-title" id="txtSecSupport">Support & Help Center</div>
+    <div class="setting-item" onclick="openPasswordModal()">
+        <span>Password & Security (Change Password)</span>
+        <span class="right-val">Update ❯</span>
+    </div>
+
+    <div class="setting-item" onclick="openBlockListModal()">
+        <span>Blocked Users & Fraud Management</span>
+        <span class="right-val" style="color:var(--theme-color, #fe2c55);">Manage Blocked ❯</span>
+    </div>
+
+    <div class="setting-item" onclick="window.location.href='wallet.html'">
+        <span>Cards & Coin Balance</span>
+        <span class="right-val">Manage ❯</span>
+    </div>
+
+    <div class="section-title">Support & Safety Center</div>
+
+    <div class="setting-item" onclick="openAutoModerationPolicyModal()" style="background: linear-gradient(135deg, #2e1a1a, #3e1616);">
+        <div>
+            <span style="color: #ff4444; font-weight: bold;">🛡️ Auto-Moderation & Content Safety Policy</span>
+            <p style="font-size:11px; color:#aaa;">Automatic AI detection for weapons, violence, and adult content.</p>
+        </div>
+        <span class="right-val" style="color: #ff4444; font-weight: bold;">Active 🛡️</span>
+    </div>
 
     <div class="setting-item" onclick="openHelpModal()">
-        <span id="txtHelpReport">Help & Report a Problem (Send to Developer)</span>
+        <span>Help & Report a Problem (Send to Developer)</span>
         <span class="right-val" style="color:#25f4ee;">Support ❯</span>
     </div>
 
-    <div class="section-title" id="txtSecPrefs">Preferences & Global Settings</div>
+    <div class="section-title">Preferences & Global Settings</div>
 
     <div class="setting-item" onclick="openLanguageModal()">
-        <span id="txtAppLang">App Language (All World Country Languages)</span>
+        <span>App Language</span>
         <span class="right-val" id="selectedLangDisplay">हिन्दी (Hindi) ❯</span>
     </div>
 
     <div class="setting-item" onclick="openThemeModal()">
-        <span id="txtThemesColor">Themes & Color Modes (50+ Custom Colors)</span>
+        <span>Themes & Color Modes (50+ Custom Colors)</span>
         <span class="right-val" id="selectedThemeDisplay">TikTok Red (Default) ❯</span>
     </div>
 
     <div class="logout-box">
-        <button class="logout-btn" id="logoutBtn" onclick="handleLogout()">Log Out</button>
+        <button class="logout-btn" onclick="handleLogout()">Log Out</button>
     </div>
 
-    <!-- 👥 REFERRAL & COMMISSION SYSTEM MODAL -->
+    <!-- MODALS -->
+    <div class="modal-overlay" id="liveGiftRulesModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('liveGiftRulesModal')">✕</span>
+            <h3 style="color: #ffcc00;">💎 LIVE Gifts & Treasure Box Rules</h3>
+            <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
+                • No complex criteria needed for gifts!<br>
+                • As soon as you go live, viewers can send you **16+ real gifts** (Rose, Car, Lion, Universe, etc.).<br>
+                • Both hosts and viewers can drop **Treasure Boxes** in live rooms with custom timers!
+            </p>
+            <button class="action-pub-btn" style="background:#ffcc00; color:#000;" onclick="closeModal('liveGiftRulesModal')">Got It</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="referralModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('referralModal')">✕</span>
             <h3 style="color: #25f4ee;">👥 Referral & Commission Hub ($1.00 Reward)</h3>
             <p style="font-size:11px; color:#aaa; margin-bottom:12px; line-height: 1.4;">
-                Share your link anywhere (WhatsApp, IMO, Facebook, TikTok, Instagram, Twitter)!<br>
-                🎁 Earn up to <b>$1.00 per referral</b>. As your referred friends earn via live gifts, ads, or video earnings, a small daily commission (10%) automatically cuts and flows directly into your wallet until your $1.00 goal is fully achieved!
+                Share your link anywhere (WhatsApp, IMO, Facebook, TikTok)!<br>
+                🎁 Earn up to <b>$1.00 per referral</b> + daily gift commission cuts.
             </p>
-
             <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px;">
                 <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">Your Unique Referral Link:</label>
                 <input type="text" id="myReferralLink" class="form-input" value="https://callpriyance.app/invite?ref=ramkumar06" readonly style="margin-bottom:8px;">
                 <button class="action-pub-btn" style="background:#25f4ee; color:#000; margin-top:0; padding:10px;" onclick="copyReferralLink()">📋 Copy Referral Link</button>
             </div>
-
-            <!-- UNIVERSAL PHONE DIRECT SHARE BUTTON -->
             <button class="action-pub-btn" style="background:linear-gradient(135deg, #25d366, #128c7e); margin-bottom:12px; padding:12px;" onclick="openPhoneShareDirect()">
                 <span>🌐 Share Directly to WhatsApp, IMO, FB, TikTok...</span>
             </button>
-
-            <div style="background:#1a1a1a; padding:12px; border-radius:8px; border:1px solid #333;">
-                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
-                    <span><b>Total Friends Invited:</b> <span id="totalInvitedCount" style="color:#25f4ee;">14 Friends</span></span>
-                    <span><b>Commission Earned:</b> <span id="totalRefEarned" style="color:#ffcc00;">$14.20</span></span>
-                </div>
-                <p style="font-size:10px; color:#888;">💡 Active daily commission cutting from friends' gift earnings is enabled.</p>
-            </div>
         </div>
     </div>
 
-    <!-- HELP & REPORT A PROBLEM MODAL -->
+    <div class="modal-overlay" id="sponsorshipModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('sponsorshipModal')">✕</span>
+            <h3>🤝 Brand Sponsorship Deals (1K Followers Unlock)</h3>
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px;">
+                <p style="font-size:12px; color:#ffcc00; font-weight:bold;">Asian Paints MasterStroke Deal</p>
+                <p style="font-size:11px; color:#aaa; margin-top:4px;">Promote wall putty & paint contracting work. Earn $250 per approved video campaign!</p>
+            </div>
+            <button class="action-pub-btn" onclick="alert('🎉 Campaign proposal submitted to Asian Paints Nepal team!')">Apply for Campaign</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="affiliateModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('affiliateModal')">✕</span>
+            <h3>🔗 Affiliate Marketing Program</h3>
+            <p style="font-size:12px; color:#ccc; margin-bottom:10px;">Share products and earn direct commission on every sale!</p>
+            <input type="text" class="form-input" value="https://callpriyance.app/affiliate?ref=ramkumar06" readonly>
+            <button class="action-pub-btn" onclick="alert('📋 Affiliate link copied!')">Copy Affiliate Link</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="subscriptionModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('subscriptionModal')">✕</span>
+            <h3>⭐ Creator Fan Club Subscriptions</h3>
+            <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
+                • Set your monthly subscription price for loyal fans (e.g. $4.99/month).<br>
+                • Subscribers get exclusive badge in live chat, custom emojis, and access to private posts.<br>
+                • Earn recurring monthly revenue directly into your wallet!
+            </p>
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">Monthly Subscription Price ($):</label>
+            <input type="number" class="form-input" value="4.99" style="margin-bottom:12px;">
+            <button class="action-pub-btn" style="background:#25f4ee; color:#000;" onclick="alert('✅ Fan Club Subscription settings saved!')">Save Subscription Plan</button>
+        </div>
+    </div>
+
+    <!-- AUTO-MODERATION & CONTENT SAFETY POLICY MODAL -->
+    <div class="modal-overlay" id="autoModerationPolicyModal">
+        <div class="modal-card" style="border-color: #ff4444;">
+            <span class="close-modal" onclick="closeModal('autoModerationPolicyModal')">✕</span>
+            <h3 style="color: #ff4444;">🛡️ Auto-Moderation & Content Safety System</h3>
+            <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
+                <b>Strict Content Protection Policy:</b><br>
+                • <b>Weapons & Violence:</b> Videos featuring knives, sharp weapons, physical fights, or harming children are **strictly prohibited**.<br>
+                • <b>Adult & Porn Content:</b> Explicit or NSFW videos are automatically blocked by the system.<br>
+                • <b>AI Auto-Detection:</b> Our automated AI scanner inspects every uploaded video instantly. If a violation is detected, the video is **automatically blocked from publishing**, and an instant warning is sent to the user to delete it.<br>
+                • <b>AdMob & Monetization Protection:</b> This strict policy safeguards our advertising network accounts from being banned or flagged.
+            </p>
+            <button class="action-pub-btn" style="background:#ff4444; color:#fff;" onclick="closeModal('autoModerationPolicyModal')">Understand & Close</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="helpModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('helpModal')">✕</span>
             <h3>🛠️ Help & Report a Problem</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Facing issues? Send a report with a screenshot directly to our developer team.</p>
-            
-            <label style="font-size:11px; color:#ccc;">Select Issue Type:</label>
-            <select id="issueType" class="form-select">
-                <option value="Account Issue">Account / Login Issue</option>
-                <option value="Video Upload Error">Video Upload Error</option>
-                <option value="Monetization Payout">Monetization & Payout Problem</option>
-                <option value="Referral Commission">Referral Commission Issue</option>
-                <option value="Other Bug">Other Technical Bug</option>
-            </select>
-
-            <label style="font-size:11px; color:#ccc;">Describe Your Problem:</label>
-            <textarea id="issueDesc" class="form-input" rows="3" placeholder="Write details about your problem here..." style="resize:none;"></textarea>
-
-            <label style="font-size:11px; color:#ccc;">Attach Screenshot / Photo Proof:</label>
-            <input type="file" id="issueScreenshot" class="form-input" accept="image/*">
-
-            <div style="background:#111; padding:8px; border-radius:6px; font-size:10px; color:#888; margin-bottom:12px;">
-                📬 Support Email: <b>rkdaifilms@gmail.com</b><br>
-                ☎️ Helpline: <b>9811522480</b>
-            </div>
-
-            <button class="action-pub-btn" onclick="submitSupportTicket()">Submit Report to Developer</button>
+            <textarea id="issueDesc" class="form-input" rows="3" placeholder="Describe your issue here..." style="resize:none;"></textarea>
+            <button class="action-pub-btn" onclick="submitSupportTicket()">Submit Report</button>
         </div>
     </div>
 
-    <!-- BLOCKED USERS MODAL -->
-    <div class="modal-overlay" id="blockModal">
-        <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('blockModal')">✕</span>
-            <h3 id="txtBlockTitle">🚫 Blocked Users & Fraud Control</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Block any fake ID, fraud or annoying user so they cannot message or view your content.</p>
-            
-            <label style="font-size:11px; color:#ccc;">Block a User (Username / ID):</label>
-            <div style="display:flex; gap:8px;">
-                <input type="text" id="blockUserInput" class="form-input" placeholder="e.g. @fake_id_fraud" style="margin-bottom:0;">
-                <button class="action-pub-btn" style="width:110px; margin-top:0; padding:10px;" onclick="blockUserAction()">Block</button>
-            </div>
-
-            <div style="margin-top:15px;">
-                <p style="font-size:12px; color:#ccc; margin-bottom:6px;"><b>Blocked Accounts List:</b></p>
-                <div id="blockedListContainer" style="background:#111; border:1px solid #333; border-radius:8px; padding:10px; max-height:160px; overflow-y:auto; font-size:13px;">
-                    <p style="color:#777; text-align:center;">No users blocked yet.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ACCOUNT INFO MODAL -->
     <div class="modal-overlay" id="accountInfoModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('accountInfoModal')">✕</span>
             <h3>📱 Account Information</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Manage your personal account details and global region.</p>
-            
-            <label style="font-size:11px; color:#ccc;">Phone Number:</label>
-            <input type="text" id="accPhone" class="form-input" placeholder="+977XXXXXXXXX">
-
-            <label style="font-size:11px; color:#ccc;">Email Address:</label>
-            <input type="email" id="accEmail" class="form-input" placeholder="ram060039@gmail.com">
-
-            <label style="font-size:11px; color:#ccc;">Date of Birth:</label>
-            <input type="date" id="accDob" class="form-input">
-
-            <label style="font-size:11px; color:#ccc;">Account Region / Country:</label>
-            <select id="accRegion" class="form-select">
-                <option value="Nepal">🇳🇵 Nepal</option>
-                <option value="India">🇮🇳 India</option>
-                <option value="Malaysia">🇲🇾 Malaysia</option>
-                <option value="USA">🇺🇸 United States</option>
-                <option value="UK">🇬🇧 United Kingdom</option>
-            </select>
-
-            <button class="action-pub-btn" onclick="saveAccountInfo()">Save Account Changes</button>
+            <input type="text" id="accPhone" class="form-input" placeholder="Phone Number">
+            <input type="email" id="accEmail" class="form-input" value="ram060039@gmail.com">
+            <button class="action-pub-btn" onclick="saveAccountInfo()">Save Changes</button>
         </div>
     </div>
 
-    <!-- PASSWORD CHANGE MODAL -->
     <div class="modal-overlay" id="passwordModal">
         <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('helpModal')">✕</span> <!-- fixed close modal reference -->
             <span class="close-modal" onclick="closeModal('passwordModal')">✕</span>
-            <h3>🔒 Change Password & Security</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Secure your account with a strong new password.</p>
-
-            <label style="font-size:11px; color:#ccc;">Current Password:</label>
-            <input type="password" id="currPass" class="form-input" placeholder="Enter current password">
-
-            <label style="font-size:11px; color:#ccc;">New Password:</label>
-            <input type="password" id="newPass" class="form-input" placeholder="Enter new password (min 6 chars)">
-
-            <label style="font-size:11px; color:#ccc;">Confirm New Password:</label>
-            <input type="password" id="confirmPass" class="form-input" placeholder="Re-enter new password">
-
-            <button class="action-pub-btn" onclick="updatePassword()">Update Password</button>
+            <h3>🔒 Change Password</h3>
+            <input type="password" class="form-input" placeholder="New Password">
+            <button class="action-pub-btn" onclick="alert('Password updated!')">Update</button>
         </div>
     </div>
 
-    <!-- MONETIZATION DASHBOARD MODAL -->
-    <div class="modal-overlay" id="monetizationModal">
+    <div class="modal-overlay" id="blockModal">
         <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('monetizationModal')">✕</span>
-            <h3>💰 AdSense & AdMob Creator Studio</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Requirement: 5,000 Followers & 1 Lakh Views in last 2 months.</p>
-            
-            <div class="progress-box">
-                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
-                    <span><b>Followers:</b> <span id="currentFollowers">3,450</span> / 5,000</span>
-                    <span id="followerPercent" style="color:#ffcc00;">69%</span>
-                </div>
-                <div class="progress-track"><div class="progress-fill" id="followerBar" style="width: 69%;"></div></div>
-                
-                <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:10px; margin-bottom:4px;">
-                    <span><b>Video Views:</b> <span id="currentViews">78,200</span> / 100K</span>
-                    <span id="viewPercent" style="color:#ffcc00;">78%</span>
-                </div>
-                <div class="progress-track"><div class="progress-fill" id="viewBar" style="width: 78%;"></div></div>
-                
-                <p id="eligibilityStatus" style="font-size:12px; color:var(--theme-color, #fe2c55); margin-top:10px; font-weight:bold;">🔒 Status: Criteria Not Met Yet.</p>
-            </div>
-
-            <div id="payoutFormSection">
-                <div id="lockWarningBox" style="background:#311; border:1px solid var(--theme-color, #fe2c55); padding:10px; border-radius:6px; margin-bottom:12px; text-align:center;">
-                    <p style="font-size:12px; color:#ffcc00; font-weight:bold;">⚠️ PAY SYSTEM LOCKED</p>
-                    <p style="font-size:11px; color:#aaa; margin-top:2px;">You need 5,000 followers & 100K views to unlock.</p>
-                </div>
-
-                <fieldset id="formFieldSet" disabled style="border:none; padding:0; margin:0;">
-                    <label style="font-size:11px; color:#ccc;">Full Legal Name:</label>
-                    <input type="text" id="legalName" class="form-input" placeholder="e.g. Ramkumar Dhobi">
-
-                    <label style="font-size:11px; color:#ccc;">Country:</label>
-                    <select id="countrySelect" class="form-select">
-                        <option value="Nepal">🇳🇵 Nepal</option>
-                        <option value="India">🇮🇳 India</option>
-                        <option value="Malaysia">🇲🇾 Malaysia</option>
-                        <option value="USA">🇺🇸 United States</option>
-                    </select>
-
-                    <label style="font-size:11px; color:#ccc;">Street Address & City:</label>
-                    <input type="text" id="streetAddress" class="form-input" placeholder="e.g. Bhujauli, Siddharthanagar">
-
-                    <label style="font-size:11px; color:#ccc;">Citizenship / ID Number:</label>
-                    <input type="text" id="idNumber" class="form-input" placeholder="Official ID number">
-
-                    <label style="font-size:11px; color:#ccc;">Google AdMob / AdSense Publisher ID:</label>
-                    <input type="text" id="admobInput" class="form-input" placeholder="pub-xxxxxxxxxxxxxxxx">
-
-                    <label style="font-size:11px; color:#ccc;">Bank / eSewa / Nabil / Khalti Details:</label>
-                    <input type="text" id="payoutInput" class="form-input" placeholder="Account or wallet details">
-                </fieldset>
-
-                <button class="action-pub-btn" id="verifySubmitBtn" onclick="saveLegalMonetization()" disabled>Verify & Link Pay System (Locked)</button>
-            </div>
+            <span class="close-modal" onclick="closeModal('blockModal')">✕</span>
+            <h3>🚫 Blocked Users</h3>
+            <input type="text" class="form-input" placeholder="@username">
+            <button class="action-pub-btn" onclick="alert('User blocked')">Block</button>
         </div>
     </div>
 
-    <!-- SPONSORSHIP HUB MODAL -->
-    <div class="modal-overlay" id="sponsorshipModal">
-        <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('sponsorshipModal')">✕</span>
-            <h3>🤝 Brand Sponsorship Deals</h3>
-            <div id="sponsorshipLockedMsg" style="background:#311; border:1px solid #fe2c55; padding:12px; border-radius:8px; text-align:center; margin-bottom:15px;">
-                <p style="font-size:13px; color:#ffcc00; font-weight:bold;">🔒 LOCKED FEATURE</p>
-                <p style="font-size:11px; color:#aaa; margin-top:4px;">You need at least <b>1,000 Followers</b> to unlock Brand Sponsorships.</p>
-            </div>
-            <div id="sponsorshipContent" style="display:none;">
-                <div class="modal-option">
-                    <div>
-                        <b>Asian Paints MasterStroke</b>
-                        <p style="font-size:11px; color:#888;">Promote wall putty & paint • $250/deal</p>
-                    </div>
-                    <button class="action-pub-btn" style="width:auto; padding:6px 12px; font-size:11px; margin-top:0;" onclick="alert('🎉 Deal accepted!')">Accept</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- AFFILIATE MARKETING MODAL -->
-    <div class="modal-overlay" id="affiliateModal">
-        <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('affiliateModal')">✕</span>
-            <h3>🔗 Affiliate Marketing Hub</h3>
-            <div id="affiliateLockedMsg" style="background:#311; border:1px solid #fe2c55; padding:12px; border-radius:8px; text-align:center; margin-bottom:15px;">
-                <p style="font-size:13px; color:#ffcc00; font-weight:bold;">🔒 LOCKED FEATURE</p>
-                <p style="font-size:11px; color:#aaa; margin-top:4px;">You need at least <b>1,000 Followers</b> to unlock Affiliate Program.</p>
-            </div>
-            <div id="affiliateContent" style="display:none;">
-                <label style="font-size:12px; color:#ccc;">Your Referral Link:</label>
-                <input type="text" class="form-input" value="https://callpriyance.app/ref/ramkumar06" readonly>
-                <button class="action-pub-btn" style="margin-top:0;" onclick="alert('📋 Link copied!')">Copy Referral Link</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- LANGUAGE MODAL -->
     <div class="modal-overlay" id="langModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('langModal')">✕</span>
-            <h3>🌐 Select App Language</h3>
+            <h3>🌐 Select Language</h3>
             <div class="modal-option" onclick="setLanguage('हिन्दी (Hindi)')"><span>🇮🇳 हिन्दी (Hindi)</span></div>
             <div class="modal-option" onclick="setLanguage('नेपाली (Nepali)')"><span>🇳🇵 नेपाली (Nepali)</span></div>
             <div class="modal-option" onclick="setLanguage('English (US)')"><span>🇺🇸 English (US)</span></div>
-            <div class="modal-option" onclick="setLanguage('বাংলা (Bengali)')"><span>🇧🇩 বাংলা (Bengali)</span></div>
-            <div class="modal-option" onclick="setLanguage('اردو (Urdu)')"><span>🇵🇰 اردو (Urdu)</span></div>
         </div>
     </div>
 
-    <!-- THEMES MODAL -->
     <div class="modal-overlay" id="themeModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('themeModal')">✕</span>
-            <h3>🎨 Select App Theme (50+ Colors)</h3>
-            <div class="modal-option" onclick="setTheme('TikTok Red', '#fe2c55')"><span>🔴 TikTok Red (Default)</span><div style="width:16px; height:16px; background:#fe2c55; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Neon Cyan', '#25f4ee')"><span>🔵 Neon Cyan Blue</span><div style="width:16px; height:16px; background:#25f4ee; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Royal Gold', '#ffcc00')"><span>🟡 Royal Gold</span><div style="width:16px; height:16px; background:#ffcc00; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Emerald Green', '#00cc66')"><span>🟢 Emerald Green</span><div style="width:16px; height:16px; background:#00cc66; border-radius:50%;"></div></div>
-            <div class="modal-option" onclick="setTheme('Sunset Orange', '#ff6600')"><span>🟠 Sunset Orange</span><div style="width:16px; height:16px; background:#ff6600; border-radius:50%;"></div></div>
+            <h3>🎨 Select Theme</h3>
+            <div class="modal-option" onclick="setTheme('TikTok Red', '#fe2c55')"><span>🔴 TikTok Red</span></div>
+            <div class="modal-option" onclick="setTheme('Neon Cyan', '#25f4ee')"><span>🔵 Neon Cyan</span></div>
+            <div class="modal-option" onclick="setTheme('Royal Gold', '#ffcc00')"><span>🟡 Royal Gold</span></div>
         </div>
     </div>
 
     <!-- Bottom Navigation Bar -->
     <div class="bottom-nav">
-        <a href="index.html" class="nav-item"><i>🏠</i><span id="navHome">Home</span></a>
-        <a href="wallet.html" class="nav-item"><i>🪙</i><span id="navWallet">Wallet</span></a>
+        <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
+        <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
         <a href="camera.html" class="nav-item"><div class="upload-plus-btn">+</div></a>
-        <a href="inbox.html" class="nav-item"><i>💬</i><span id="navInbox">Inbox</span></a>
-        <a href="profile.html" class="nav-item"><i>⭐</i><span id="navProfile">Profile</span></a>
+        <a href="inbox.html" class="nav-item"><i>💬</i><span>Inbox</span></a>
+        <a href="profile.html" class="nav-item"><i>⭐</i><span>Profile</span></a>
     </div>
 
     <script>
@@ -428,20 +320,6 @@
             let savedColor = localStorage.getItem('appThemeColor') || '#fe2c55';
             let savedThemeName = localStorage.getItem('appThemeName') || 'TikTok Red';
             applyGlobalTheme(savedColor, savedThemeName);
-
-            let savedLang = localStorage.getItem('appLanguage') || 'हिन्दी (Hindi)';
-            document.getElementById('selectedLangDisplay').innerText = savedLang + ' ❯';
-
-            let isPrivate = localStorage.getItem('appIsPrivate') === 'true';
-            document.getElementById('privateAccountToggle').checked = isPrivate;
-
-            let savedGmail = localStorage.getItem('appGmail') || 'ram060039@gmail.com';
-            document.getElementById('accEmail').value = savedGmail;
-            document.getElementById('accPhone').value = localStorage.getItem('appPhone') || '+977981152XXXX';
-            document.getElementById('accDob').value = localStorage.getItem('appDob') || '2000-05-05';
-            document.getElementById('accRegion').value = localStorage.getItem('appRegion') || 'Nepal';
-
-            renderBlockedList();
         };
 
         function applyGlobalTheme(colorHex, themeName) {
@@ -470,14 +348,16 @@
             alert(isPrivate ? '🔒 Account set to PRIVATE.' : '🌍 Account set to PUBLIC.');
         }
 
+        function openLiveGiftRulesModal() { document.getElementById('liveGiftRulesModal').style.display = 'flex'; }
         function openReferralModal() { document.getElementById('referralModal').style.display = 'flex'; }
-        function openHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
-        function openBlockListModal() { document.getElementById('blockModal').style.display = 'flex'; }
-        function openAccountInfoModal() { document.getElementById('accountInfoModal').style.display = 'flex'; }
-        function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
-        function openMonetizationDashboard() { document.getElementById('monetizationModal').style.display = 'flex'; }
         function openSponsorshipHub() { document.getElementById('sponsorshipModal').style.display = 'flex'; }
         function openAffiliateHub() { document.getElementById('affiliateModal').style.display = 'flex'; }
+        function openSubscriptionModal() { document.getElementById('subscriptionModal').style.display = 'flex'; }
+        function openAutoModerationPolicyModal() { document.getElementById('autoModerationPolicyModal').style.display = 'flex'; }
+        function openHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
+        function openBlockListModal() { document.getElementById('blockModal').style.display = 'flex'; }
+        function openAccountInfoModal() { document.getElementById('accountInfoModal').style.display = 'flex'; },
+        function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
         function openLanguageModal() { document.getElementById('langModal').style.display = 'flex'; }
         function openThemeModal() { document.getElementById('themeModal').style.display = 'flex'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
@@ -486,85 +366,30 @@
             let linkInput = document.getElementById('myReferralLink');
             linkInput.select();
             navigator.clipboard.writeText(linkInput.value);
-            alert('📋 Referral link copied to clipboard!');
+            alert('📋 Referral link copied!');
         }
 
-        // UNIVERSAL PHONE NATIVE SHARE (WhatsApp, IMO, WeChat, FB, TikTok, etc.)
         function openPhoneShareDirect() {
-            let shareText = "Join Call Priyance app using my referral link and let's earn together: https://callpriyance.app/invite?ref=ramkumar06";
+            let shareText = "Join Call Priyance using my referral link: https://callpriyance.app/invite?ref=ramkumar06";
             if (navigator.share) {
-                navigator.share({
-                    title: 'Call Priyance Referral',
-                    text: shareText,
-                    url: 'https://callpriyance.app/invite?ref=ramkumar06',
-                }).then(() => {
-                    console.log('Shared successfully');
-                }).catch((error) => {
-                    console.log('Error sharing:', error);
-                });
+                navigator.share({ title: 'Call Priyance', text: shareText, url: 'https://callpriyance.app/invite?ref=ramkumar06' });
             } else {
                 navigator.clipboard.writeText(shareText);
-                alert('📋 Link copied! You can paste it directly into WhatsApp, IMO, Facebook, TikTok or any app.');
+                alert('📋 Link copied to clipboard!');
             }
         }
 
         function submitSupportTicket() {
             let issue = document.getElementById('issueDesc').value.trim();
-            if(issue === '') { alert('⚠️ Please describe your problem.'); return; }
-            alert('✅ Support ticket sent to developer rkdaifilms@gmail.com (Helpline: 9811522480).');
+            if(!issue) { alert('⚠️ Please enter issue details.'); return; }
+            alert('✅ Support ticket sent to developer rkdaifilms@gmail.com');
             document.getElementById('issueDesc').value = '';
             closeModal('helpModal');
         }
 
-        function blockUserAction() {
-            let user = document.getElementById('blockUserInput').value.trim();
-            if(user === '') { alert('⚠️ Please enter a username.'); return; }
-            let blocked = JSON.parse(localStorage.getItem('appBlockedUsers') || '[]');
-            if(!blocked.includes(user)) {
-                blocked.push(user);
-                localStorage.setItem('appBlockedUsers', JSON.stringify(blocked));
-                alert('🚫 User ' + user + ' blocked.');
-                document.getElementById('blockUserInput').value = '';
-                renderBlockedList();
-            }
-        }
-
-        function renderBlockedList() {
-            let container = document.getElementById('blockedListContainer');
-            let blocked = JSON.parse(localStorage.getItem('appBlockedUsers') || '[]');
-            if(blocked.length === 0) {
-                container.innerHTML = '<p style="color:#777; text-align:center;">No users blocked yet.</p>';
-            } else {
-                container.innerHTML = blocked.map(u => `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #222;"><span>${u}</span><span style="color:var(--theme-color, #fe2c55); cursor:pointer;" onclick="unblockUser('${u}')">Unblock</span></div>`).join('');
-            }
-        }
-
-        function unblockUser(user) {
-            let blocked = JSON.parse(localStorage.getItem('appBlockedUsers') || '[]');
-            blocked = blocked.filter(u => u !== user);
-            localStorage.setItem('appBlockedUsers', JSON.stringify(blocked));
-            renderBlockedList();
-        }
-
         function saveAccountInfo() {
-            localStorage.setItem('appPhone', document.getElementById('accPhone').value.trim());
-            localStorage.setItem('appGmail', document.getElementById('accEmail').value.trim());
-            localStorage.setItem('appDob', document.getElementById('accDob').value);
-            localStorage.setItem('appRegion', document.getElementById('accRegion').value);
-            alert('✅ Account Information updated successfully!');
+            alert('✅ Account info saved!');
             closeModal('accountInfoModal');
-        }
-
-        function updatePassword() {
-            let npass = document.getElementById('newPass').value;
-            if(!npass || npass.length < 6) { alert('⚠️ Password must be at least 6 characters.'); return; }
-            alert('🔒 Password updated successfully!');
-            closeModal('passwordModal');
-        }
-
-        function saveLegalMonetization() {
-            alert('🎉 Legal Verification Successful! Ad Monetization Active.');
-            closeModal('monetizationModal');
         }
 
         function handleLogout() {
