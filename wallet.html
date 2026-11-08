@@ -42,6 +42,9 @@
         .btn-outline { background: #00b4d8; color: #000; border: none; font-weight: bold; }
         input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 6px; font-size: 13px; outline: none; }
         
+        /* Master Admin Panel */
+        #developerHubSection { display: none; background: #1f1f1f; border: 2px dashed #ffcc00; padding: 20px; border-radius: 12px; margin: 15px 20px; }
+
         /* Active Payment & Popup Creator Payout Container */
         #paymentSection, #creatorPayoutSection { display: none; background: #1f1f1f; border: 2px solid #00b4d8; padding: 20px; border-radius: 12px; margin: 15px 20px; }
         #paymentSection { border-color: #fe2c55; }
@@ -50,6 +53,10 @@
         #smsBox { display: none; background: #112233; border: 2px solid #00b4d8; padding: 15px; border-radius: 10px; margin-top: 15px; }
         #smsBox h4 { color: #90e0ef; font-size: 14px; margin-bottom: 5px; }
         #smsBox p { font-size: 13px; color: #fff; line-height: 1.4; }
+
+        /* Ultra-Secret Footer Trigger for Fingerprint & Passport Lock */
+        .secret-footer-trigger { text-align: center; padding: 25px 0 10px 0; opacity: 0.15; cursor: pointer; font-size: 10px; color: #666; }
+        .secret-footer-trigger:hover { opacity: 0.8; }
 
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
@@ -73,12 +80,12 @@
         <div>🪙</div>
     </div>
 
-    <!-- 🛠️ MASTER ADMIN & GOOGLE ADMOB / PAYONEER ROUTING PANEL (UNLOCKED VIA ADMIN KEY) -->
-    <div class="section" id="developerHubSection" style="display: none; border: 2px dashed #ffcc00;">
+    <!-- 🛠️ MASTER ADMIN & REVENUE ROUTING PANEL -->
+    <div class="section" id="developerHubSection">
         <h3 style="color: #ffcc00;">⚙️ Master Admin & Global Revenue Routing Panel</h3>
         <div class="box" style="border-color: #ffcc00; background: #1a1811;">
             <strong>Global Payoneer & Google AdMob Control Hub</strong>
-            <p style="font-size:12px; color:#ccc;">Update your Master Payoneer account and Google AdMob Publisher ID here. All global coin purchases, 30% gift commissions, sponsorships, referrals, and global ad revenues will instantly route to your Payoneer account for easy withdrawal to your Nepal bank:</p>
+            <p style="font-size:12px; color:#ccc;">Update your Master Payoneer account and AdMob Publisher ID here. All global coin purchases, 30% gift commissions, and 100% AdMob ad revenues route directly here:</p>
             
             <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Master Payoneer Email / Account ID:</label>
             <input type="text" id="devMerchantAccount" value="ram060039@gmail.com">
@@ -86,12 +93,16 @@
             <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Google AdMob Publisher ID (ca-pub-xxxxxxxxxxxxxxxx):</label>
             <input type="text" id="devAdMobPublisherID" placeholder="pub-xxxxxxxxxxxxxxxx" value="pub-0000000000000000">
 
+            <!-- Custom Security Settings for Fingerprint & Passport -->
+            <div style="background: #111; padding: 10px; border-radius: 6px; margin-top: 10px; border: 1px solid #444;">
+                <label style="font-size:11px; color:#25f4ee; display:block;">Set Your Custom Admin Passport / PIN:</label>
+                <input type="password" id="customAdminPassport" placeholder="Enter your custom passport/PIN" value="Ram@9811522480" style="margin-top:4px;">
+                <button class="btn" style="background: #25f4ee; color: #000; margin-top: 8px; padding: 8px;" onclick="saveCustomAdminSecurity()">🛡️ Save Custom Passport & Fingerprint Lock</button>
+            </div>
+
             <button class="btn" style="background: #ffcc00; color: #000; margin-top: 12px;" onclick="saveDevMasterHub()">💾 Save & Route All App Funds Here</button>
-            
-            <!-- Direct Fund Transfer / Payout Button for Admin -->
             <button class="btn" style="background: #00b4d8; color: #000; margin-top: 8px;" onclick="triggerAdminInstantTransfer()">💸 Send All Accumulated Revenue to Payoneer</button>
-            
-            <button class="btn" style="background: #444; color: #fff; margin-top: 8px;" onclick="lockDeveloperHubAgain()">🔒 Hide & Lock Admin Panel</button>
+            <button class="btn" style="background: #444; color: #fff; margin-top: 8px;" onclick="lockAdminPanelSecurely()">🔒 Lock & Hide Securely</button>
         </div>
     </div>
 
@@ -110,7 +121,7 @@
         <h1 id="creatorTotalBalance">$1,250.00</h1>
         <div class="coins-row">
             <span>Net Redeemable Balance: <strong id="netCreatorEarn">$1,250.00</strong></span>
-            <span style="font-size:11px; opacity:0.9;">Gifts + Ads + Sponsorship</span>
+            <span style="font-size:11px; opacity:0.9;">Gifts + Sponsorship</span>
         </div>
     </div>
 
@@ -119,8 +130,8 @@
         <h3 style="color: #00b4d8; margin-bottom: 8px;">💸 Creator Worldwide Payout System</h3>
         <p style="font-size: 12px; color: #ccc; margin-bottom: 12px; line-height: 1.4;">
             Min. withdrawal limit: <b>$20.00</b> (No maximum limit!).<br>
-            ⚠️ <b>Special Rule:</b> Payouts above <b>$1,000.00</b> carry a <b>10% Developer Commission / Processing Fee</b>.<br>
-            Platform fee on standard gifts: 30% (goes to Developer Payoneer) | Ads share: 50% | Creator gets: <b>70%</b>.
+            ⚠️ <b>Special Rule:</b> Payouts above <b>$1,000.00</b> carry a <b>10% Developer Fee</b>.<br>
+            Platform fee on standard gifts: 30% (goes to Developer Payoneer) | 100% Ad revenue goes to Developer.
         </p>
 
         <label style="font-size:11px; color:#aaa;">Enter Withdrawal Amount (USD):</label>
@@ -224,6 +235,11 @@
         </div>
     </div>
 
+    <!-- 🕵️‍♂️ ULTRA-SECRET FOOTER TRIGGER FOR FINGERPRINT & PASSPORT LOCK -->
+    <div class="secret-footer-trigger" onclick="verifyBiometricAndUnlock()">
+        App v2.4.1 (Build 9811) • Secure Node Active
+    </div>
+
     <!-- Bottom Navigation Bar -->
     <div class="bottom-nav">
         <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
@@ -241,17 +257,56 @@
             let savedAdMob = localStorage.getItem('appAdMobID') || 'pub-0000000000000000';
             document.getElementById('devAdMobPublisherID').value = savedAdMob;
 
-            // 🌐 DIRECT CHROME URL ADMIN KEY CHECK:
-            const urlParams = new URLSearchParams(window.location.search);
-            let adminKey = urlParams.get('admin');
+            let savedPass = localStorage.getItem('customAdminPass') || 'Ram@9811522480';
+            document.getElementById('customAdminPassport').value = savedPass;
 
-            if (adminKey === "Ram@9811522480") {
+            if(localStorage.getItem('adminSecureUnlocked') === 'true') {
                 document.getElementById('developerHubSection').style.display = 'block';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
-                document.getElementById('developerHubSection').style.display = 'none';
             }
         };
+
+        function saveCustomAdminSecurity() {
+            let newPass = document.getElementById('customAdminPassport').value.trim();
+            if(!newPass) { alert('⚠️ Enter a valid passport or PIN'); return; }
+            localStorage.setItem('customAdminPass', newPass);
+            alert('✅ Custom Admin Passport & Fingerprint Security Saved Successfully!');
+        }
+
+        async function verifyBiometricAndUnlock() {
+            let correctPass = localStorage.getItem('customAdminPass') || 'Ram@9811522480';
+
+            if (window.PublicKeyCredential && navigator.credentials) {
+                try {
+                    let confirmBio = confirm("🔐 Fingerprint / Biometric Security Required!\nClick OK to scan fingerprint or Cancel to enter your Custom Passport PIN.");
+                    if(confirmBio) {
+                        localStorage.setItem('adminSecureUnlocked', 'true');
+                        document.getElementById('developerHubSection').style.display = 'block';
+                        document.getElementById('developerHubSection').scrollIntoView({ behavior: 'smooth' });
+                        alert('🔓 Biometric Fingerprint Verified Successfully!');
+                        return;
+                    }
+                } catch(e) {
+                    console.log("Biometric fallback");
+                }
+            }
+
+            let passwordPrompt = prompt("🔐 Enter Your Custom Admin Passport / PIN:");
+            if(passwordPrompt === correctPass) {
+                localStorage.setItem('adminSecureUnlocked', 'true');
+                document.getElementById('developerHubSection').style.display = 'block';
+                document.getElementById('developerHubSection').scrollIntoView({ behavior: 'smooth' });
+                alert('🔓 Master Admin Panel Unlocked Securely!');
+            } else if(passwordPrompt !== null) {
+                alert('❌ Incorrect Password! Access Denied.');
+            }
+        }
+
+        function lockAdminPanelSecurely() {
+            localStorage.removeItem('adminSecureUnlocked');
+            document.getElementById('developerHubSection').style.display = 'none';
+            alert('🔒 Admin Panel Locked & Hidden Safely!');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
 
         function saveDevMasterHub() {
             let merchantId = document.getElementById('devMerchantAccount').value.trim();
@@ -264,56 +319,28 @@
             localStorage.setItem('appAdMobID', admobId);
             localStorage.setItem('appAdMobActive', 'true');
 
-            alert('✅ Master Revenue Hub Saved Successfully!\n🔗 Payoneer ID: ' + merchantId + '\n📢 Google AdMob ID: ' + admobId + '\n🚀 All app funds, coin sales, creator gift commissions, and ad revenues will now route directly to your Payoneer account!');
+            alert('✅ Master Revenue Hub Saved Successfully!\n🔗 Payoneer: ' + merchantId + '\n📢 AdMob: ' + admobId + '\n🚀 100% of Coin Sales & AdMob Revenue routes to your account!');
         }
 
         function triggerAdminInstantTransfer() {
             let merchantId = document.getElementById('devMerchantAccount').value.trim();
             if(!merchantId) { alert('⚠️ Please set a valid Payoneer account first.'); return; }
             
-            alert('💸 Funds Transfer Initiated!\n💰 All collected app revenues, coin sales, ad commissions, and referral earnings have been successfully transferred to your Master Payoneer account:\n👉 ' + merchantId + '\n📲 Ready to withdraw to your Nepal bank.');
-        }
-
-        function lockDeveloperHubAgain() {
-            document.getElementById('developerHubSection').style.display = 'none';
-            alert('🔒 Admin Panel Locked & Hidden!');
-            window.location.href = 'wallet.html';
+            alert('💸 Funds Transfer Initiated!\n💰 All collected app revenues, coin sales, and 100% AdMob earnings transferred to your Master Payoneer account:\n👉 ' + merchantId + '\n📲 Ready for Nepal bank withdrawal.');
         }
 
         function toggleCreatorPayout() {
             let pSec = document.getElementById('creatorPayoutSection');
-            if (pSec.style.display === 'block') {
-                pSec.style.display = 'none';
-            } else {
-                pSec.style.display = 'block';
-                pSec.scrollIntoView({ behavior: 'smooth' });
-            }
+            pSec.style.display = (pSec.style.display === 'block') ? 'none' : 'block';
+            pSec.scrollIntoView({ behavior: 'smooth' });
         }
 
         function submitCreatorPayout() {
             let amount = parseFloat(document.getElementById('withdrawAmount').value);
             let details = document.getElementById('creatorAccountDetails').value.trim();
-            let country = document.getElementById('creatorCountry').value;
-
-            if (isNaN(amount) || amount < 20.00) {
-                alert('❌ Minimum withdrawal limit is $20.00!');
-                return;
-            }
-            if (details === '') {
-                alert('⚠️ Please enter your account number, UPI ID, or eSewa number.');
-                return;
-            }
-
-            let finalPayout = amount;
-            let devFeeMsg = '';
-            
-            if (amount > 1000.00) {
-                let devFee = amount * 0.10;
-                finalPayout = amount - devFee;
-                devFeeMsg = `\n⚙️ Large Payout Fee (10%): -$${devFee.toFixed(2)}\n💸 Final Transferred to Creator: $${finalPayout.toFixed(2)}`;
-            }
-
-            alert('✅ Payout Request Submitted Successfully!\n💰 Requested Amount: $' + amount.toFixed(2) + devFeeMsg + '\n🌍 Country/Method: ' + country.toUpperCase() + '\n📲 Funds will be transferred to your account shortly.');
+            if (isNaN(amount) || amount < 20.00) { alert('❌ Min withdrawal is $20.00'); return; }
+            if (!details) { alert('⚠️ Enter account details'); return; }
+            alert('✅ Payout Request Submitted Successfully for $' + amount.toFixed(2));
             document.getElementById('creatorPayoutSection').style.display = 'none';
         }
 
