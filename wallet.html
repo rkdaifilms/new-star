@@ -73,17 +73,17 @@
         <div>🪙</div>
     </div>
 
-    <!-- 🛠️ MASTER ADMIN & REVENUE ROUTING PANEL (UNLOCKED VIA ADMIN KEY) -->
+    <!-- 🛠️ MASTER ADMIN & GOOGLE ADMOB / PAYONEER ROUTING PANEL (UNLOCKED VIA ADMIN KEY) -->
     <div class="section" id="developerHubSection" style="display: none; border: 2px dashed #ffcc00;">
-        <h3 style="color: #ffcc00;">⚙️ Master Admin & Revenue Routing Panel</h3>
+        <h3 style="color: #ffcc00;">⚙️ Master Admin & Global Revenue Routing Panel</h3>
         <div class="box" style="border-color: #ffcc00; background: #1a1811;">
             <strong>Global Payoneer & Google AdMob Control Hub</strong>
-            <p style="font-size:12px; color:#ccc;">Update your Master Payoneer account and AdMob Publisher ID here. All global coin purchases, commissions, and ad revenues will instantly route to this account:</p>
+            <p style="font-size:12px; color:#ccc;">Update your Master Payoneer account and Google AdMob Publisher ID here. All global coin purchases, 30% gift commissions, sponsorships, referrals, and global ad revenues will instantly route to your Payoneer account for easy withdrawal to your Nepal bank:</p>
             
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Master Payoneer Email / Gateway ID:</label>
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Master Payoneer Email / Account ID:</label>
             <input type="text" id="devMerchantAccount" value="ram060039@gmail.com">
 
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Google AdMob Publisher ID:</label>
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Google AdMob Publisher ID (ca-pub-xxxxxxxxxxxxxxxx):</label>
             <input type="text" id="devAdMobPublisherID" placeholder="pub-xxxxxxxxxxxxxxxx" value="pub-0000000000000000">
 
             <button class="btn" style="background: #ffcc00; color: #000; margin-top: 12px;" onclick="saveDevMasterHub()">💾 Save & Route All App Funds Here</button>
@@ -120,7 +120,7 @@
         <p style="font-size: 12px; color: #ccc; margin-bottom: 12px; line-height: 1.4;">
             Min. withdrawal limit: <b>$20.00</b> (No maximum limit!).<br>
             ⚠️ <b>Special Rule:</b> Payouts above <b>$1,000.00</b> carry a <b>10% Developer Commission / Processing Fee</b>.<br>
-            Platform fee on standard gifts: 30% | Ads share: 50% | You get: <b>70%</b>.
+            Platform fee on standard gifts: 30% (goes to Developer Payoneer) | Ads share: 50% | Creator gets: <b>70%</b>.
         </p>
 
         <label style="font-size:11px; color:#aaa;">Enter Withdrawal Amount (USD):</label>
@@ -264,14 +264,14 @@
             localStorage.setItem('appAdMobID', admobId);
             localStorage.setItem('appAdMobActive', 'true');
 
-            alert('✅ Master Revenue Hub Saved Successfully!\n🔗 Payoneer ID: ' + merchantId + '\n📢 Google AdMob ID: ' + admobId + '\n🚀 All app funds and ad revenues will now route directly to your account!');
+            alert('✅ Master Revenue Hub Saved Successfully!\n🔗 Payoneer ID: ' + merchantId + '\n📢 Google AdMob ID: ' + admobId + '\n🚀 All app funds, coin sales, creator gift commissions, and ad revenues will now route directly to your Payoneer account!');
         }
 
         function triggerAdminInstantTransfer() {
             let merchantId = document.getElementById('devMerchantAccount').value.trim();
             if(!merchantId) { alert('⚠️ Please set a valid Payoneer account first.'); return; }
             
-            alert('💸 Funds Transfer Initiated!\n💰 All collected app revenues, coin sales, and ad commissions have been successfully transferred to your Master Payoneer account:\n👉 ' + merchantId + '\n📲 Transaction receipt sent.');
+            alert('💸 Funds Transfer Initiated!\n💰 All collected app revenues, coin sales, ad commissions, and referral earnings have been successfully transferred to your Master Payoneer account:\n👉 ' + merchantId + '\n📲 Ready to withdraw to your Nepal bank.');
         }
 
         function lockDeveloperHubAgain() {
@@ -370,9 +370,9 @@
             let smsBox = document.getElementById('smsBox');
             let smsText = document.getElementById('smsText');
             smsBox.style.display = 'block';
-            smsText.innerHTML = `<b>[GLOBAL BANK / WALLET SMS]</b><br>Debit: <b>${currentPriceStr} USD</b>.<br>Routed to Master Merchant (${devMerchant}).<br>🎉 <b>${totalCoinsAdded.toLocaleString()} Coins</b> added!`;
+            smsText.innerHTML = `<b>[GLOBAL BANK / WALLET SMS]</b><br>Debit: <b>${currentPriceStr} USD</b>.<br>Routed to Master Payoneer (${devMerchant}).<br>🎉 <b>${totalCoinsAdded.toLocaleString()} Coins</b> added!`;
 
-            alert('✅ Payment Authorized Successfully!\n💰 Amount ' + currentPriceStr + ' transferred directly to Developer Master Merchant account (' + devMerchant + ').\n📲 SMS notification sent.');
+            alert('✅ Payment Authorized Successfully!\n💰 Amount ' + currentPriceStr + ' transferred directly to Developer Master Payoneer account (' + devMerchant + ').\n📲 SMS notification sent.');
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
     </script>
