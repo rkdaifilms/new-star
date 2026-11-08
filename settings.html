@@ -6,18 +6,17 @@
     <title>Settings and Privacy - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--app-bg, #000); color: var(--app-text, #fff); padding-bottom: 70px; transition: 0.3s; }
+        html, body { background-color: var(--app-bg, #000); color: var(--app-text, #fff); width: 100%; min-height: 100vh; overflow-x: hidden; }
+        body { padding-top: 60px; padding-bottom: 80px; position: relative; }
         
-        /* Clean Top Bar */
-        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; }
-
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: var(--header-bg, #111); position: sticky; top: 0; z-index: 10; }
+        /* Fixed Header */
+        .header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #222; background: var(--header-bg, #111); z-index: 1000; }
         .header h2 { font-size: 16px; color: var(--app-text, #fff); }
-        .back-btn { color: var(--app-text, #fff); text-decoration: none; font-size: 14px; cursor: pointer; }
+        .back-btn { color: var(--app-text, #fff); text-decoration: none; font-size: 14px; cursor: pointer; background: none; border: none; }
 
-        .section-title { font-size: 12px; color: var(--theme-color, #fe2c55); text-transform: uppercase; letter-spacing: 1px; padding: 20px 20px 8px; font-weight: bold; }
+        .section-title { font-size: 12px; color: var(--theme-color, #fe2c55); text-transform: uppercase; letter-spacing: 1px; padding: 25px 20px 8px; font-weight: bold; }
         
-        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #121212; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: 0.2s; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #121212; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: 0.2s; }
         .setting-item:hover { background: #1c1c1c; }
         .setting-item span { font-size: 14px; color: #fff; }
         .setting-item .right-val { font-size: 13px; color: #888; display: flex; align-items: center; gap: 6px; }
@@ -25,8 +24,8 @@
         .logout-box { padding: 30px 20px; text-align: center; }
         .logout-btn { background: var(--theme-color, #fe2c55); color: #fff; border: none; width: 100%; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
 
-        /* POPUP MODALS */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center; padding: 15px; }
+        /* POPUP MODALS - Full Overlay Fix */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; justify-content: center; align-items: center; padding: 15px; }
         .modal-card { background: #181818; border: 1px solid #333; width: 100%; max-width: 420px; border-radius: 16px; padding: 20px; max-height: 85vh; overflow-y: auto; position: relative; }
         .modal-card h3 { font-size: 18px; color: var(--theme-color, #fe2c55); margin-bottom: 10px; }
         .close-modal { position: absolute; top: 15px; right: 20px; font-size: 18px; cursor: pointer; color: #aaa; }
@@ -46,7 +45,7 @@
         input:checked + .slider:before { transform: translateX(20px); }
 
         /* Bottom Navigation Bar */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 1000; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
         .nav-item.active { color: #fff; }
         .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, var(--theme-color, #fe2c55)); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
@@ -54,16 +53,9 @@
 </head>
 <body>
 
-    <!-- Clean Top Bar -->
-    <div class="top-bar">
-        <button onclick="history.back()" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Go Back">←</button>
-        <div></div>
-        <a href="camera.html" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="Studio/Camera">➕</a>
-    </div>
-
-    <!-- Clean Header -->
+    <!-- Fixed Header -->
     <div class="header">
-        <a class="back-btn" onclick="history.back()">← Back</a>
+        <button class="back-btn" onclick="history.back()">← Back</button>
         <h2>Settings and privacy</h2>
         <span>⚙️</span>
     </div>
@@ -232,7 +224,6 @@
         </div>
     </div>
 
-    <!-- AUTO-MODERATION & CONTENT SAFETY POLICY MODAL -->
     <div class="modal-overlay" id="autoModerationPolicyModal">
         <div class="modal-card" style="border-color: #ff4444;">
             <span class="close-modal" onclick="closeModal('autoModerationPolicyModal')">✕</span>
@@ -269,7 +260,6 @@
 
     <div class="modal-overlay" id="passwordModal">
         <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('helpModal')">✕</span> <!-- fixed close modal reference -->
             <span class="close-modal" onclick="closeModal('passwordModal')">✕</span>
             <h3>🔒 Change Password</h3>
             <input type="password" class="form-input" placeholder="New Password">
@@ -326,7 +316,8 @@
             document.documentElement.style.setProperty('--theme-color', colorHex);
             localStorage.setItem('appThemeColor', colorHex);
             localStorage.setItem('appThemeName', themeName);
-            document.getElementById('selectedThemeDisplay').innerText = themeName + ' ❯';
+            let themeDisplay = document.getElementById('selectedThemeDisplay');
+            if(themeDisplay) themeDisplay.innerText = themeName + ' ❯';
         }
 
         function setTheme(themeName, colorHex) {
@@ -337,7 +328,8 @@
 
         function setLanguage(langName) {
             localStorage.setItem('appLanguage', langName);
-            document.getElementById('selectedLangDisplay').innerText = langName + ' ❯';
+            let langDisplay = document.getElementById('selectedLangDisplay');
+            if(langDisplay) langDisplay.innerText = langName + ' ❯';
             closeModal('langModal');
             alert('🌐 Language updated to ' + langName);
         }
@@ -356,7 +348,7 @@
         function openAutoModerationPolicyModal() { document.getElementById('autoModerationPolicyModal').style.display = 'flex'; }
         function openHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
         function openBlockListModal() { document.getElementById('blockModal').style.display = 'flex'; }
-        function openAccountInfoModal() { document.getElementById('accountInfoModal').style.display = 'flex'; },
+        function openAccountInfoModal() { document.getElementById('accountInfoModal').style.display = 'flex'; }
         function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
         function openLanguageModal() { document.getElementById('langModal').style.display = 'flex'; }
         function openThemeModal() { document.getElementById('themeModal').style.display = 'flex'; }
