@@ -53,7 +53,7 @@
     <!-- Global Top Bar with Back Arrow '←' and Studio '➕' -->
     <div class="top-bar">
         <button onclick="history.back()" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Go Back">←</button>
-        <h3 style="font-size: 15px; color: #fe2c55;">Call Priyance Profile</h3>
+        <h3 style="font-size: 15px; color: #fe2c55;">Profile</h3>
         <a href="camera.html" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="Studio/Camera">➕</a>
     </div>
 
@@ -85,7 +85,7 @@
 
     <!-- Edit Profile Form with All Fields -->
     <div id="editProfileModal">
-        <h3>✏️ Edit Profile Details (All Options)</h3>
+        <h3>✏️ Edit Profile Details</h3>
         
         <div class="form-group">
             <label>Change Profile Picture (From Gallery / File Manager):</label>
@@ -102,8 +102,8 @@
             <input type="text" id="inputHandle" value="@ramram981152">
         </div>
         <div class="form-group">
-            <label>Bio / Profession (What you do):</label>
-            <textarea id="inputBio" rows="2">Painter & Call Priyance Creator Hub</textarea>
+            <label>Bio / Profession:</label>
+            <textarea id="inputBio" rows="2">Painter & Creator Hub</textarea>
         </div>
         <div class="form-group">
             <label>Gmail Address:</label>
@@ -114,7 +114,7 @@
             <input type="text" id="inputPhone" value="+977 98XXXXXXXX">
         </div>
         <div class="form-group">
-            <label>Location / Address (Where are you from):</label>
+            <label>Location / Address:</label>
             <input type="text" id="inputLocation" value="Siddharthanagar, Nepal">
         </div>
         <div class="form-group">
@@ -141,7 +141,6 @@
     </div>
 
     <script>
-        // Load saved profile data across the app on page load
         window.onload = function() {
             let savedName = localStorage.getItem('appName');
             let savedHandle = localStorage.getItem('appHandle');
@@ -196,15 +195,14 @@
 
         function saveProfileChanges() {
             let newName = document.getElementById('inputName').value;
-            let newHandle = document.getElementById('inputHandle').value;
+            let newHandle = document.getElementById('inputHandle5') || document.getElementById('inputHandle').value;
             let newBio = document.getElementById('inputBio').value;
             let newGmail = document.getElementById('inputGmail').value;
             let newPhone = document.getElementById('inputPhone').value;
             let newLocation = document.getElementById('inputLocation').value;
 
-            // Save everything to LocalStorage for full app synchronization
             localStorage.setItem('appName', newName);
-            localStorage.setItem('appHandle', newHandle);
+            localStorage.setItem('appHandle', document.getElementById('inputHandle').value);
             localStorage.setItem('appBio', newBio);
             localStorage.setItem('appGmail', newGmail);
             localStorage.setItem('appPhone', newPhone);
@@ -215,11 +213,11 @@
 
             document.getElementById('headerName').innerText = newName;
             document.getElementById('profileNameText').innerText = newName;
-            document.getElementById('profileHandleText').innerText = newHandle + ' | ' + newBio;
+            document.getElementById('profileHandleText').innerText = document.getElementById('inputHandle').value + ' | ' + newBio;
             document.getElementById('profileExtraInfo').innerText = '📍 ' + newLocation + ' | 📧 ' + newGmail;
 
             document.getElementById('editProfileModal').style.display = 'none';
-            alert('🎉 Profile updated successfully with all details and synced everywhere!');
+            alert('🎉 Profile updated successfully!');
         }
     </script>
 </body>
