@@ -2,25 +2,27 @@
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creator & LIVE Studio - Call Priyance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Creator & LIVE Studio - New Star</title>
+    
+    <meta name="theme-color" content="#fe2c55">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; }
+        body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; padding-bottom: 80px; }
         
-        /* Clean Top Bar */
         .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .top-close { font-size: 20px; text-decoration: none; color: #fff; background: #222; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .top-close { font-size: 20px; text-decoration: none; color: #fff; background: #222; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; }
         
-        /* Side-by-Side Mode Switching Tabs */
         .mode-tabs { display: flex; gap: 8px; overflow-x: auto; width: 100%; max-width: 450px; padding-bottom: 5px; scrollbar-width: none; }
         .mode-tabs::-webkit-scrollbar { display: none; }
         .tab-btn { background: #1a1a1a; color: #aaa; border: 1px solid #333; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; transition: 0.2s; }
         .tab-btn.active { background: #fe2c55; color: #fff; border-color: #fe2c55; }
 
-        /* Clean Studio Box */
         .studio-box { width: 100%; max-width: 450px; margin-top: 20px; background: #141414; border: 1px solid #333; border-radius: 20px; padding: 25px 20px; text-align: left; position: relative; }
-        
         .section-title { font-size: 17px; color: #25f4ee; margin-bottom: 4px; font-weight: bold; }
         .section-desc { font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4; }
 
@@ -30,327 +32,62 @@
         .btn-game { background: linear-gradient(135deg, #00b4d8, #25f4ee); color: #000; }
 
         input, select { width: 100%; padding: 11px; background: #111; border: 1px solid #444; color: #fff; border-radius: 10px; margin-top: 6px; font-size: 13px; outline: none; }
-
-        /* SETTINGS GEAR ICON BUTTON */
-        .settings-gear-btn { position: absolute; top: 20px; right: 20px; background: #222; border: 1px solid #444; width: 38px; height: 38px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; transition: 0.2s; z-index: 5; }
-        .settings-gear-btn:hover { background: #fe2c55; border-color: #fe2c55; }
-
-        /* CLEAN SETTINGS DRAWER */
-        #settingsDrawer { display: none; background: #1a1a1a; border: 1px solid #444; border-radius: 14px; padding: 15px; margin-top: 15px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.6); }
-        .setting-group { margin-bottom: 14px; }
-        .setting-label { font-size: 11px; color: #ffcc00; display: block; margin-bottom: 3px; font-weight: bold; }
-
-        /* UPLOAD ICON */
         .big-upload-icon { width: 90px; height: 90px; background: #1f1f1f; border: 2px dashed #fe2c55; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 38px; margin: 10px auto 15px auto; cursor: pointer; }
 
-        /* Voice Room & Video Room Grids */
-        .voice-seats-grid { display: grid; gap: 10px; margin: 15px 0; }
-        .grid-1 { grid-template-columns: 1fr; }
-        .grid-4 { grid-template-columns: repeat(2, 1fr); }
-        .grid-6 { grid-template-columns: repeat(3, 1fr); }
-        .grid-10 { grid-template-columns: repeat(3, 1fr); }
-
-        .voice-seat { background: #1f1f1f; border: 1px dashed #555; height: 65px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #ccc; cursor: pointer; position: relative; }
-        .voice-seat.active { border: 2px solid #25f4ee; background: #102a2a; color: #25f4ee; font-weight: bold; }
-        .voice-seat.pinned { border: 2px solid #ffcc00; background: #2a2510; color: #ffcc00; }
-        .seat-number { position: absolute; top: 2px; right: 8px; font-size: 9px; color: #ffcc00; }
-        .mic-badge { position: absolute; bottom: 4px; right: 6px; font-size: 9px; background: rgba(0,0,0,0.6); padding: 1px 4px; border-radius: 4px; }
-        .pin-badge { position: absolute; top: 2px; left: 6px; font-size: 9px; color: #ffcc00; display: none; }
-        .voice-seat.pinned .pin-badge { display: block; }
-
-        /* MODALS */
-        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; }
-        .modal-box { background: #181818; border: 1px solid #fe2c55; width: 90%; max-width: 360px; padding: 20px; border-radius: 16px; text-align: left; box-shadow: 0 5px 25px rgba(0,0,0,0.9); }
-        .online-friend-row { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 12px; }
-        .online-dot { width: 8px; height: 8px; background: #25f4ee; border-radius: 50%; display: inline-block; margin-right: 5px; }
-
-        /* 16+ Real Gift Grid */
-        .gift-grid-popup { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 250px; overflow-y: auto; margin: 15px 0; }
-        .gift-item-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .gift-item-card:hover { border-color: #fe2c55; background: #2a2a2a; }
-
-        /* Multi-Select Friends Share Sheet Styling */
-        .friends-multi-container { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 12px; scrollbar-width: none; }
-        .friends-multi-container::-webkit-scrollbar { display: none; }
-        .friend-checkbox-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 65px; text-align: center; position: relative; }
-        .friend-avatar-wrap { position: relative; width: 50px; height: 50px; }
-        .friend-share-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #444; }
-        .friend-checkbox-item input[type="checkbox"] { position: absolute; bottom: 0; right: 0; width: 18px; height: 18px; accent-color: #fe2c55; cursor: pointer; border-radius: 50%; }
-        .friend-checkbox-item span { font-size: 11px; color: #ccc; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65px; }
-        .bulk-send-btn { background: #fe2c55; color: #fff; border: none; width: 100%; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; margin-bottom: 12px; display: none; }
-        .native-share-main-btn { width: 100%; background: linear-gradient(135deg, #00b4d8, #0077b6); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; }
-
-        /* Real Social Media Share Grid */
-        .share-grid-popup { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 15px 0; }
-        .share-item-card { background: #222; border: 1px solid #444; border-radius: 12px; padding: 10px 5px; text-align: center; cursor: pointer; font-size: 11px; color: #ccc; }
-        .share-item-card:hover { border-color: #25f4ee; color: #fff; }
-
-        /* ACTIVE LIVE BROADCAST ROOM (Clean Screen) */
+        /* LIVE BROADCAST VIEW WITH REAL CAMERA */
         #activeLiveView { display: none; width: 100%; max-width: 450px; background: #111; border: 2px solid #fe2c55; padding: 15px; border-radius: 16px; margin-top: 15px; text-align: center; position: relative; }
         .pulsing-dot { display: inline-block; width: 8px; height: 8px; background: #fe2c55; border-radius: 50%; animation: pulse 1.2s infinite; margin-right: 5px; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        /* Floating Side Actions inside Live Room */
+        /* Real Camera Feed inside Live Room */
+        #liveCameraFeed { width: 100%; height: 260px; background: #000; border-radius: 12px; object-fit: cover; margin-bottom: 10px; border: 1px solid #333; }
+
         .live-side-actions { position: absolute; right: 12px; bottom: 130px; display: flex; flex-direction: column; gap: 12px; z-index: 10; }
         .live-action-icon { width: 42px; height: 42px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); color: #fff; }
         .live-gift-btn { background: linear-gradient(135deg, #fe2c55, #ffcc00); border: none; }
-        .live-treasure-btn { background: linear-gradient(135deg, #ffcc00, #ff6600); border: none; animation: bounce 1.5s infinite; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: scale(1.1); } }
 
-        /* Success Banner */
-        .success-banner { background: #113322; border: 1px solid #25f4ee; color: #25f4ee; padding: 12px; border-radius: 10px; margin-top: 12px; font-size: 13px; font-weight: bold; display: none; text-align: center; }
-
-        /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
         .nav-item.active { color: #fff; }
         .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
     </style>
 </head>
-<body style="padding-bottom: 80px;">
-    <!-- Clean Top Bar -->
+<body>
     <div class="top-bar">
         <a href="index.html" class="top-close">←</a>
-        <div></div>
+        <h3 style="font-size:15px; color:#fe2c55;">Creator Studio</h3>
         <a href="camera.html" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444;">➕</a>
     </div>
 
-    <!-- Side-by-Side Switching Tabs -->
+    <!-- Mode Tabs -->
     <div class="mode-tabs">
         <button class="tab-btn active" onclick="switchTab('video', this)">📹 Video Upload</button>
         <button class="tab-btn" onclick="switchTab('live', this)">🔴 Video LIVE</button>
-        <button class="tab-btn" onclick="switchTab('voice', this)">🎙️ Audio Room</button>
         <button class="tab-btn" onclick="switchTab('gaming', this)">🎮 Gaming Stream</button>
     </div>
 
-    <!-- Dynamic Studio Container -->
     <div id="studioPanel" style="width:100%; max-width:450px; margin-top:15px;"></div>
 
-    <!-- ACTIVE LIVE BROADCAST ROOM (Clean Screen with TikTok Treasure Box) -->
+    <!-- ACTIVE LIVE BROADCAST ROOM WITH REAL CAMERA -->
     <div id="activeLiveView">
-        <div class="settings-gear-btn" onclick="toggleLiveSettingsDrawer()" title="⚙️ Live & Moderator Settings">⚙️</div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding-right:40px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <span style="background:rgba(254,44,85,0.2); border:1px solid #fe2c55; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; color:#fe2c55;"><span class="pulsing-dot"></span> LIVE ROOM ACTIVE</span>
             <span style="font-size:12px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins">500</b></span>
         </div>
 
         <p id="liveStatusText" style="font-size: 12px; color: #ccc; margin-bottom: 6px;"></p>
         
-        <!-- Active TikTok Treasure Box Display Banner inside Live Room -->
-        <div id="activeTreasureBanner" style="display:none; background: linear-gradient(135deg, #332200, #553300); border: 1px solid #ffcc00; padding: 10px; border-radius: 10px; margin-bottom: 10px; text-align: center;">
-            <span style="font-size: 16px;">🎁</span> <b style="color: #ffcc00;" id="treasureTitleHeading">TikTok Treasure Box Active!</b>
-            <p style="font-size: 11px; color: #fff; margin-top: 2px;" id="treasureInfoText">Amount: 100 Coins | Limit: 10 People</p>
-            <div id="treasureTimer" style="font-size: 14px; color: #25f4ee; font-weight: bold; margin-top: 4px;">Time left: 60s</div>
-            <button class="btn" id="grabTreasureBtn" style="background:#ffcc00; color:#000; padding:6px; font-size:12px; margin-top:6px;" onclick="grabTreasureBox()">🎁 Tap First to Grab Coins!</button>
-        </div>
+        <!-- Real Camera Element for Face-to-Face Live -->
+        <video id="liveCameraFeed" autoplay playsinline muted></video>
 
-        <div id="activeLiveDynamicArea" style="margin-bottom: 10px; min-height: 160px; width:100%;"></div>
-
-        <!-- Floating Side Actions: Like, Treasure Box, Gift, Share -->
         <div class="live-side-actions">
             <div class="live-action-icon" onclick="alert('❤️ Liked live room!')">❤️</div>
-            <div class="live-action-icon live-treasure-btn" onclick="openTreasureModal()" title="🎁 Drop Treasure Box (Host or Viewer)">🎁</div>
-            <div class="live-action-icon live-gift-btn" onclick="openRealGiftModal()">🎁</div>
-            <div class="live-action-icon" onclick="openRealShareModal()">↗️</div>
+            <div class="live-action-icon live-gift-btn" onclick="alert('🎁 Open Gifts')">🎁</div>
         </div>
 
-        <!-- Clean Live Chat / Comments Box -->
-        <div style="background:#1a1a1a; border:1px solid #333; padding:8px; border-radius:8px; margin-bottom:10px; text-align:left; width:100%;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid #222; padding-bottom:4px;">
-                <span style="font-size:10px; color:#25f4ee; font-weight:bold;">💬 Live Chat</span>
-                <button id="toggleCommentsBtn" style="background:#333; color:#ff4444; border:none; padding:2px 8px; border-radius:4px; font-size:9px; cursor:pointer;" onclick="toggleLiveComments(this)">Turn Off Comments</button>
-            </div>
-            
-            <div id="liveChatScrollArea" style="max-height:75px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; margin-bottom:6px;">
-                <div style="font-size:11px; color:#aaa; display:flex; justify-content:space-between; align-items:center;" id="chatMsg1">
-                    <span>💬 <b onclick="openUserProfileCard('Rohit Painter')" style="cursor:pointer; color:#25f4ee;">Rohit Painter</b>: Room mast chal raha hai bhai! 🔥</span>
-                    <span><button style="background:none; border:none; color:#ffcc00; font-size:9px; cursor:pointer; margin-right:4px;" onclick="muteUser('Rohit Painter')">Mute</button><button style="background:none; border:none; color:#ff4444; font-size:9px; cursor:pointer;" onclick="deleteComment('chatMsg1')">Delete</button></span>
-                </div>
-            </div>
-
-            <div style="display:flex; gap:6px;" id="creatorChatInputBox">
-                <input type="text" id="creatorChatInput" placeholder="Type a message..." style="margin-top:0; padding:6px 10px; font-size:11px;" onkeypress="handleCreatorChatKey(event)">
-                <button style="background:#fe2c55; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer;" onclick="sendCreatorChatMessage()">Send</button>
-            </div>
-        </div>
-
-        <!-- HIDDEN LIVE SETTINGS DRAWER -->
-        <div id="liveSettingsDrawer" style="display:none; background:#1a1a1a; border:1px solid #444; border-radius:12px; padding:12px; margin-bottom:10px; text-align:left;">
-            <h4 style="color:#ffcc00; font-size:13px; margin-bottom:8px;">⚙️ Live Room & Moderator Settings</h4>
-            <div class="setting-group">
-                <span class="setting-label">👥 Change Room Seats / Mode:</span>
-                <select id="activeRoomSizeSelect" style="padding:6px; font-size:11px; background:#222; border-color:#444;" onchange="changeActiveRoomSize(this.value)">
-                    <option value="1">👤 1 Seat (Single Solo Live)</option>
-                    <option value="4">👥 4 Seats Grid</option>
-                    <option value="6">👥 6 Seats Grid</option>
-                    <option value="10" selected>👥 10 Seats Grid (Full Party)</option>
-                </select>
-            </div>
-            <button class="btn" style="background:#333; color:#fff; padding:6px; font-size:11px; margin-top:4px;" onclick="toggleLiveSettingsDrawer()">Close Settings</button>
-        </div>
-
-        <button class="btn" style="background: #333; color: #fff; margin-top:2px;" onclick="stopLiveBroadcast()">⏹️ End / Exit LIVE Room</button>
+        <button class="btn" style="background: #333; color: #fff; margin-top:10px;" onclick="stopLiveBroadcast()">⏹️ End / Exit LIVE Room</button>
     </div>
 
-    <!-- 🎁 TIKTOK TREASURE BOX SETUP MODAL (With Custom Timer: 30s, 1m, 2m, 5m) -->
-    <div id="treasureModal" class="custom-modal">
-        <div class="modal-box" style="border-color: #ffcc00;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color: #ffcc00; font-size: 16px;">🎁 Drop TikTok Treasure Box</h4>
-                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('treasureModal')">✕</span>
-            </div>
-            
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Host or any viewer can drop coins. First to click when timer ends wins!</p>
-
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">Total Coins to Put in Box:</label>
-            <input type="number" id="boxCoinsInput" value="100" min="10" style="margin-bottom:10px;">
-
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">Lucky Grabbers Limit (Max People):</label>
-            <input type="number" id="boxPeopleInput" value="10" min="1" style="margin-bottom:10px;">
-
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">Countdown Timer (TikTok Style):</label>
-            <select id="boxTimerSelect" style="margin-bottom:15px;">
-                <option value="30">30 Seconds (Fast Drop)</option>
-                <option value="60" selected>1 Minute (Standard)</option>
-                <option value="120">2 Minutes</option>
-                <option value="300">5 Minutes (Big Room Drop)</option>
-            </select>
-
-            <button class="btn" style="background: #ffcc00; color: #000; margin-top:0; font-weight:bold;" onclick="deployTreasureBox()">🚀 Deduct Coins & Drop Box</button>
-        </div>
-    </div>
-
-    <!-- 1. SEAT INVITATION & PIN MODAL -->
-    <div id="seatInviteModal" class="custom-modal">
-        <div class="modal-box">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color: #25f4ee; font-size: 15px;" id="modalSeatTitle">Manage Seat</h4>
-                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('seatInviteModal')">✕</span>
-            </div>
-
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">🔍 Global User Search:</label>
-            <div style="display:flex; gap:6px; margin-bottom:12px;">
-                <input type="text" id="globalSearchInput" placeholder="Search any creator ID..." style="margin-top:0; padding:8px; font-size:12px;">
-                <button style="background:#25f4ee; color:#000; border:none; padding:0 12px; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer;" onclick="searchGlobalUser()">Search</button>
-            </div>
-
-            <label style="font-size:11px; color:#25f4ee; display:block; margin-bottom:6px;">🟢 Online Friends (Quick Invite / Kick):</label>
-            <div style="max-height:110px; overflow-y:auto; margin-bottom:12px;">
-                <div class="online-friend-row">
-                    <span><span class="online-dot"></span><b>Priyance Official</b></span>
-                    <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="inviteFriendDirect('Priyance Official')">Invite</button>
-                </div>
-                <div class="online-friend-row">
-                    <span><span class="online-dot"></span><b>Rohit Painter</b></span>
-                    <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="inviteFriendDirect('Rohit Painter')">Invite</button>
-                </div>
-            </div>
-
-            <button class="btn" style="background: #ffcc00; color:#000; margin-top:5px; padding:10px;" onclick="pinCurrentSeat()">📌 Pin / Unpin This Seat</button>
-        </div>
-    </div>
-
-    <!-- 2. USER PROFILE POPUP -->
-    <div id="userProfileModal" class="custom-modal">
-        <div class="modal-box" style="max-width:320px; text-align:center;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color: #25f4ee; font-size: 15px;">👤 User Profile Actions</h4>
-                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('userProfileModal')">✕</span>
-            </div>
-            <div style="font-size:40px; margin-bottom:5px;">👤</div>
-            <h3 id="profileUsernameDisplay" style="font-size:16px; color:#fff; margin-bottom:15px;">Username</h3>
-            
-            <div style="display:flex; flex-direction:column; gap:8px;">
-                <button class="btn" style="background:#333; color:#ffcc00; margin-top:0; padding:10px;" onclick="actionMuteProfileUser()">🔇 Mute User</button>
-                <button class="btn" style="background:#333; color:#ff4444; margin-top:0; padding:10px;" onclick="actionBlockProfileUser()">🚫 Block Profile & Chat</button>
-                <button class="btn" style="background:#fe2c55; color:#fff; margin-top:0; padding:10px;" onclick="closeModal('userProfileModal')">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. 16+ REAL GIFTS MODAL -->
-    <div id="realGiftModal" class="custom-modal">
-        <div class="modal-box" style="max-width:400px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color: #ffcc00; font-size: 16px;">🎁 Send Real Gift (16+ Options)</h4>
-                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('realGiftModal')">✕</span>
-            </div>
-            <div class="gift-grid-popup">
-                <div class="gift-item-card" onclick="sendRealGift('Rose 🌹', 1)"><div style="font-size:24px;">🌹</div><div style="font-size:11px; color:#fff; margin-top:2px;">Rose</div><div style="font-size:10px; color:#ffcc00;">1 Coin</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Coffee ☕', 5)"><div style="font-size:24px;">☕</div><div style="font-size:11px; color:#fff; margin-top:2px;">Coffee</div><div style="font-size:10px; color:#ffcc00;">5 Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Heart 🫶', 10)"><div style="font-size:24px;">🫶</div><div style="font-size:11px; color:#fff; margin-top:2px;">Heart</div><div style="font-size:10px; color:#ffcc00;">10 Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Glasses 🕶️', 20)"><div style="font-size:24px;">🕶️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Glasses</div><div style="font-size:10px; color:#ffcc00;">20 Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('TikTok 🪙', 50)"><div style="font-size:24px;">🪙</div><div style="font-size:11px; color:#fff; margin-top:2px;">TikTok</div><div style="font-size:10px; color:#ffcc00;">50 Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Car 🏎️', 100)"><div style="font-size:24px;">🏎️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Car</div><div style="font-size:10px; color:#ffcc00;">100 Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Ring 💍', 200)"><div style="font-size:24px;">💍</div><div style="font-size:11px; color:#fff; margin-top:2px;">Ring</div><div style="font-size:10px; color:#ffcc00;">200 Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Yacht 🛥️', 500)"><div style="font-size:24px;">🛥️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Yacht</div><div style="font-size:10px; color:#ffcc00;">500 Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Lion 🦁', 1000)"><div style="font-size:24px;">🦁</div><div style="font-size:11px; color:#fff; margin-top:2px;">Lion</div><div style="font-size:10px; color:#ffcc00;">1k Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Diamond 💎', 1500)"><div style="font-size:24px;">💎</div><div style="font-size:11px; color:#fff; margin-top:2px;">Diamond</div><div style="font-size:10px; color:#ffcc00;">1.5k Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Crown 👑', 2000)"><div style="font-size:24px;">👑</div><div style="font-size:11px; color:#fff; margin-top:2px;">Crown</div><div style="font-size:10px; color:#ffcc00;">2k Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Jet ✈️', 3000)"><div style="font-size:24px;">✈️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Jet</div><div style="font-size:10px; color:#ffcc00;">3k Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Castle 🏰', 5000)"><div style="font-size:24px;">🏰</div><div style="font-size:11px; color:#fff; margin-top:2px;">Castle</div><div style="font-size:10px; color:#ffcc00;">5k Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Dragon 🐉', 10000)"><div style="font-size:24px;">🐉</div><div style="font-size:11px; color:#fff; margin-top:2px;">Dragon</div><div style="font-size:10px; color:#ffcc00;">10k Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Galaxy 🌌', 20000)"><div style="font-size:24px;">🌌</div><div style="font-size:11px; color:#fff; margin-top:2px;">Galaxy</div><div style="font-size:10px; color:#ffcc00;">20k Coins</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Universe 🪐', 50000)"><div style="font-size:24px;">🪐</div><div style="font-size:11px; color:#fff; margin-top:2px;">Universe</div><div style="font-size:10px; color:#ffcc00;">50k Coins</div></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 4. REAL SOCIAL MEDIA & MULTI-SELECT FRIENDS SHARE MODAL -->
-    <div id="realShareModal" class="custom-modal">
-        <div class="modal-box" style="max-width:390px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color: #fff; font-size: 15px;">↗️ Share to Friends & Social Media</h4>
-                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('realShareModal')">✕</span>
-            </div>
-
-            <p style="font-size: 11px; color: #888; margin-bottom: 6px;">Select multiple friends to share instantly:</p>
-            
-            <div class="friends-multi-container" id="friendsListContainer">
-                <label class="friend-checkbox-item">
-                    <div class="friend-avatar-wrap">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="friend-share-avatar">
-                        <input type="checkbox" class="friend-chk" value="Priyance Official" onchange="checkBulkButton()">
-                    </div>
-                    <span>Priyance</span>
-                </label>
-                <label class="friend-checkbox-item">
-                    <div class="friend-avatar-wrap">
-                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200" class="friend-share-avatar">
-                        <input type="checkbox" class="friend-chk" value="Support Team" onchange="checkBulkButton()">
-                    </div>
-                    <span>Support</span>
-                </label>
-                <label class="friend-checkbox-item">
-                    <div class="friend-avatar-wrap">
-                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200" class="friend-share-avatar">
-                        <input type="checkbox" class="friend-chk" value="Anjali Dance Hub" onchange="checkBulkButton()">
-                    </div>
-                    <span>Anjali</span>
-                </label>
-                <label class="friend-checkbox-item">
-                    <div class="friend-avatar-wrap">
-                        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200" class="friend-share-avatar">
-                        <input type="checkbox" class="friend-chk" value="Rohit Painter" onchange="checkBulkButton()">
-                    </div>
-                    <span>Rohit</span>
-                </label>
-            </div>
-
-            <button class="bulk-send-btn" id="bulkSendBtn" onclick="sendToSelectedFriends()">🚀 Send to Selected Friends (Inbox Chat)</button>
-            <button class="native-share-main-btn" onclick="openPhoneNativeShare()"><span>🌐 Open Phone Share (IMO, WhatsApp, WeChat, All Apps...)</span></button>
-
-            <div class="share-grid-popup">
-                <div class="share-item-card" onclick="openPhoneNativeShare()"><div style="font-size:22px; margin-bottom:2px;">💬</div>WhatsApp</div>
-                <div class="share-item-card" onclick="openPhoneNativeShare()"><div style="font-size:22px; margin-bottom:2px;">📘</div>Facebook</div>
-                <div class="share-item-card" onclick="openPhoneNativeShare()"><div style="font-size:22px; margin-bottom:2px;">💙</div>IMO</div>
-                <div class="share-item-card" onclick="openPhoneNativeShare()"><div style="font-size:22px; margin-bottom:2px;">🟢</div>WeChat</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bottom Navigation Bar -->
     <div class="bottom-nav">
         <a href="index.html" class="nav-item"><i>🏠</i><span>Home</span></a>
         <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
@@ -375,381 +112,120 @@
             if(mode === 'video') {
                 panel.innerHTML = `
                     <div class="studio-box">
-                        <div class="settings-gear-btn" onclick="toggleSettingsDrawer()" title="⚙️ Creator Settings">⚙️</div>
-                        <div class="big-upload-icon" onclick="document.getElementById('hiddenVideoInput').click()" title="📹 Choose Video">📹</div>
-                        <input type="file" id="hiddenVideoInput" accept="video/*" style="display:none;" onchange="alert('✅ Video file selected successfully!')">
-                        <div style="font-size:12px; color:#aaa; margin-bottom:15px; text-align:center;">Tap the video icon above to upload or record video.</div>
+                        <div class="big-upload-icon" onclick="document.getElementById('hiddenVideoInput').click()" title="Choose Video">📹</div>
+                        <input type="file" id="hiddenVideoInput" accept="video/*" style="display:none;" onchange="previewSelectedVideo(event)">
+                        <div id="videoFileNameDisplay" style="font-size:12px; color:#25f4ee; margin-bottom:10px; text-align:center; font-weight:bold;">No video selected</div>
+                        
                         <label style="font-size:11px; color:#aaa; display:block;">Video Caption & Hashtags:</label>
-                        <input type="text" id="vidCaption" placeholder="e.g. Amazing Dance #Viral #CallPriyance" style="margin-bottom:12px;">
-                        <button class="btn btn-live" onclick="publishVideo()">🚀 Publish Video Now</button>
-                        <div id="pubSuccess" class="success-banner">✅ Video published successfully!</div>
+                        <input type="text" id="vidCaption" placeholder="e.g. Amazing Dance #Viral #NewStar" style="margin-bottom:12px;">
+                        
+                        <button class="btn btn-live" onclick="publishVideoToFeed()">🚀 Publish Video Now</button>
                     </div>
                 `;
             } else if(mode === 'live') {
                 panel.innerHTML = `
                     <div class="studio-box">
                         <div class="section-title">🔴 Video LIVE Room Setup</div>
-                        <div class="section-desc">Configure live room preferences before going live:</div>
+                        <div class="section-desc">Go face-to-face live with real camera support:</div>
                         <label style="font-size:11px; color:#aaa; display:block; margin-top:8px;">Live Room Title:</label>
-                        <input type="text" id="liveTitleInput" value="Night Dance Party 🎉" style="margin-bottom:10px;">
-                        <label style="font-size:11px; color:#aaa; display:block;">Initial Room Mode / Seat Capacity:</label>
-                        <select id="setupRoomSize" style="margin-bottom:15px;">
-                            <option value="1">👤 1 Seat (Single Solo Live)</option>
-                            <option value="4">👥 4 Seats Grid</option>
-                            <option value="6">👥 6 Seats Grid</option>
-                            <option value="10" selected>👥 10 Seats Grid (Full Party)</option>
-                        </select>
-                        <button class="btn btn-live" onclick="startLiveRoom('videoLive')">🔴 Start Video LIVE Room Now</button>
-                    </div>
-                `;
-            } else if(mode === 'voice') {
-                panel.innerHTML = `
-                    <div class="studio-box">
-                        <div class="section-title">🎙️ Audio Voice Party Room Setup</div>
-                        <div class="section-desc">Open audio room & configure capacity:</div>
-                        <label style="font-size:11px; color:#aaa; display:block; margin-top:8px;">Choose Audio Room Size:</label>
-                        <select id="setupRoomSize" style="margin-bottom:15px;">
-                            <option value="1">👤 1 Seat (Solo Speaker)</option>
-                            <option value="4">👥 4 Seats Audio</option>
-                            <option value="6">👥 6 Seats Audio</option>
-                            <option value="10" selected>👥 10 Seats Audio Party</option>
-                        </select>
-                        <button class="btn btn-voice" onclick="startLiveRoom('voiceRoom')">🟢 Go LIVE Audio Room</button>
+                        <input type="text" id="liveTitleInput" value="Night Dance Party 🎉" style="margin-bottom:15px;">
+                        <button class="btn btn-live" onclick="startVideoLiveWithCamera()">🔴 Start Face-to-Face LIVE Now</button>
                     </div>
                 `;
             } else if(mode === 'gaming') {
                 panel.innerHTML = `
                     <div class="studio-box">
                         <div class="section-title">🎮 Live Gaming Stream Setup</div>
-                        <div class="section-desc">Select game and co-streamer seats:</div>
+                        <div class="section-desc">Select game to launch directly on your device:</div>
                         <label style="font-size:11px; color:#aaa; display:block; margin-top:8px;">Select Game:</label>
-                        <select id="selectedGameName" style="margin-bottom:10px;">
+                        <select id="selectedGameName" style="margin-bottom:15px;">
                             <option value="Free Fire">🔥 Free Fire Mobile</option>
                             <option value="PUBG Mobile">🎯 PUBG Mobile</option>
                             <option value="Ludo King">🎲 Ludo King</option>
                         </select>
-                        <label style="font-size:11px; color:#aaa; display:block;">Choose Gaming Room Size:</label>
-                        <select id="setupRoomSize" style="margin-bottom:15px;">
-                            <option value="1">👤 1 Seat (Solo Gameplay)</option>
-                            <option value="4">👥 4 Seats Gaming</option>
-                            <option value="10" selected>👥 10 Seats Gaming Party</option>
-                        </select>
-                        <button class="btn btn-game" onclick="startLiveRoom('gamingLive')">🚀 Launch Game & Start Live Room</button>
+                        <button class="btn btn-game" onclick="launchGameAndStream()">🚀 Open Game & Start Stream</button>
                     </div>
                 `;
             }
         }
 
-        function toggleLiveSettingsDrawer() {
-            let drawer = document.getElementById('liveSettingsDrawer');
-            drawer.style.display = (drawer.style.display === 'block') ? 'none' : 'block';
-        }
-
-        let currentSeatTarget = 1;
-        function openInviteModal(seatNo) {
-            currentSeatTarget = seatNo;
-            document.getElementById('modalSeatTitle').innerText = 'Manage Seat #' + seatNo + ' (Invite & Pin)';
-            document.getElementById('seatInviteModal').style.display = 'flex';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        let selectedProfileName = '';
-        function openUserProfileCard(username) {
-            selectedProfileName = username;
-            document.getElementById('profileUsernameDisplay').innerText = username;
-            document.getElementById('userProfileModal').style.display = 'flex';
-        }
-
-        function actionMuteProfileUser() {
-            alert('🔇 User "' + selectedProfileName + '" has been muted.');
-            closeModal('userProfileModal');
-        }
-
-        function actionBlockProfileUser() {
-            alert('🚫 User "' + selectedProfileName + '" has been blocked.');
-            closeModal('userProfileModal');
-        }
-
-        function inviteFriendDirect(friendName) {
-            alert('✅ Successfully invited online friend ' + friendName + ' to Seat #' + currentSeatTarget + '!');
-            closeModal('seatInviteModal');
-        }
-
-        function searchGlobalUser() {
-            let query = document.getElementById('globalSearchInput').value.trim();
-            if(query) {
-                alert('🔍 Global Search Result: Found creator "' + query + '". Invitation sent!');
-                document.getElementById('globalSearchInput').value = '';
-                closeModal('seatInviteModal');
-            } else {
-                alert('⚠️ Please enter a name or ID.');
+        let selectedVideoDataUrl = '';
+        function previewSelectedVideo(event) {
+            let file = event.target.files[0];
+            if(file) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedVideoDataUrl = e.target.result;
+                    document.getElementById('videoFileNameDisplay').innerText = '✅ Selected: ' + file.name;
+                };
+                reader.readAsDataURL(file);
             }
         }
 
-        function pinCurrentSeat() {
-            let seatEl = document.getElementById('seat-box-' + currentSeatTarget);
-            if(seatEl) {
-                seatEl.classList.toggle('pinned');
-                alert('📌 Seat #' + currentSeatTarget + ' pin status updated.');
+        function publishVideoToFeed() {
+            let caption = document.getElementById('vidCaption').value.trim() || 'New Viral Video #NewStar';
+            if(!selectedVideoDataUrl) {
+                alert('⚠️ Please select a video file from your gallery first!');
+                return;
             }
-            closeModal('seatInviteModal');
+
+            // Save to localStorage so index.html can load it immediately
+            let feedList = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
+            feedList.unshift({
+                url: selectedVideoDataUrl,
+                caption: caption,
+                username: localStorage.getItem('appHandle') || '@newstar981152',
+                likes: '12K',
+                views: '45.2K'
+            });
+            localStorage.setItem('customFeedVideos', JSON.stringify(feedList));
+
+            alert('✅ Video published successfully! Redirecting to Home Feed...');
+            window.location.href = 'index.html';
         }
 
-        function toggleSeatMic(badgeEl) {
-            if(badgeEl.innerText.includes('On')) {
-                badgeEl.innerText = '🔇 Off';
-                badgeEl.style.color = '#ff4444';
-            } else {
-                badgeEl.innerText = '🎙️ On';
-                badgeEl.style.color = '#25f4ee';
-            }
-        }
-
-        let currentModeType = '';
-        function startLiveRoom(roomType) {
-            currentModeType = roomType;
+        let mediaStream = null;
+        function startVideoLiveWithCamera() {
             document.getElementById('studioPanel').style.display = 'none';
             let liveView = document.getElementById('activeLiveView');
             liveView.style.display = 'block';
+            document.getElementById('liveStatusText').innerText = '🔴 Face-to-Face Video LIVE Active';
 
-            let selectedSize = document.getElementById('setupRoomSize').value;
-            document.getElementById('activeRoomSizeSelect').value = selectedSize;
-
-            let statusText = document.getElementById('liveStatusText');
-
-            if(roomType === 'voiceRoom') {
-                statusText.innerText = '🎙️ Audio Voice Party Room Active (TikTok Live)';
-            } else if(roomType === 'videoLive') {
-                statusText.innerText = '🔴 Video LIVE Room Active (TikTok Live)';
-            } else if(roomType === 'gamingLive') {
-                let gameName = document.getElementById('selectedGameName').value;
-                statusText.innerText = '🎮 Gaming Live Stream Active: ' + gameName;
-            }
-
-            renderLiveSeatsGrid(selectedSize);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            let videoEl = document.getElementById('liveCameraFeed');
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    mediaStream = stream;
+                    videoEl.srcObject = stream;
+                })
+                .catch(err => {
+                    alert('⚠️ Camera access error or permission denied: ' + err.message);
+                });
         }
 
-        function changeActiveRoomSize(sizeVal) {
-            renderLiveSeatsGrid(sizeVal);
-        }
-
-        function renderLiveSeatsGrid(size) {
-            let dynamicArea = document.getElementById('activeLiveDynamicArea');
-            let gridClass = 'grid-10';
-            if(size == '1') gridClass = 'grid-1';
-            else if(size == '4') gridClass = 'grid-4';
-            else if(size == '6') gridClass = 'grid-6';
-            else if(size == '10') gridClass = 'grid-10';
-
-            let seatsHTML = `<div class="voice-seats-grid ${gridClass}" style="margin:0 auto; width:100%;">`;
+        function launchGameAndStream() {
+            let game = document.getElementById('selectedGameName').value;
+            alert('🚀 Launching ' + game + ' via deep-link intent...');
             
-            for(let i = 1; i <= parseInt(size); i++) {
-                let isHost = (i === 1);
-                let seatLabel = isHost ? '👑 Host' : '+ Seat ' + i;
-                if(currentModeType === 'gamingLive' && isHost) seatLabel = '🎮 Game';
-                
-                seatsHTML += `
-                    <div class="voice-seat ${isHost ? 'active' : ''}" id="seat-box-${i}" onclick="openInviteModal(${i})">
-                        <span class="seat-number">${i}</span>
-                        <span class="pin-badge">📌 PIN</span>
-                        <span>${seatLabel}</span>
-                        <span class="mic-badge" onclick="event.stopPropagation(); toggleSeatMic(this)">${isHost ? '🎙️ On' : '🔇'}</span>
-                    </div>
-                `;
-            }
-            seatsHTML += `</div>`;
-            dynamicArea.innerHTML = seatsHTML;
-        }
-
-        function sendCreatorChatMessage() {
-            let input = document.getElementById('creatorChatInput');
-            let text = input.value.trim();
-            if(text === '') return;
-
-            let chatArea = document.getElementById('liveChatScrollArea');
-            chatArea.innerHTML += `
-                <div style="font-size:11px; color:#25f4ee; display:flex; justify-content:space-between; align-items:center;">
-                    <span>💬 <b>You:</b> ${text}</span>
-                    <span style="font-size:9px; color:#888;">Live</span>
-                </div>
-            `;
-            input.value = '';
-            chatArea.scrollTop = chatArea.scrollHeight;
-        }
-
-        function handleCreatorChatKey(e) {
-            if(e.key === 'Enter') { sendCreatorChatMessage(); }
-        }
-
-        function muteUser(username) {
-            alert('🔇 User "' + username + '" has been muted.');
-        }
-
-        function deleteComment(msgId) {
-            let el = document.getElementById(msgId);
-            if(el) {
-                el.remove();
-                alert('🗑️ Comment deleted successfully.');
-            }
-        }
-
-        let isCommentsOff = false;
-        function toggleLiveComments(btn) {
-            isCommentsOff = !isCommentsOff;
-            let inputArea = document.getElementById('creatorChatInputBox');
-            if(isCommentsOff) {
-                btn.innerText = 'Turn On Comments';
-                btn.style.color = '#25f4ee';
-                inputArea.style.opacity = '0.4';
-                inputArea.style.pointerEvents = 'none';
-                alert('🔴 Comments turned OFF.');
+            // Attempt to open Free Fire / PUBG via Android Intent Scheme
+            if(game === 'Free Fire') {
+                window.location.href = 'intent://#Intent;package=com.dts.freefireth;end;';
+            } else if(game === 'PUBG Mobile') {
+                window.location.href = 'intent://#Intent;package=com.tencent.ig;end;';
             } else {
-                btn.innerText = 'Turn Off Comments';
-                btn.style.color = '#ff4444';
-                inputArea.style.opacity = '1';
-                inputArea.style.pointerEvents = 'auto';
-                alert('🟢 Comments turned ON.');
+                window.location.href = 'intent://#Intent;package=com.ludo.king;end;';
             }
-        }
 
-        function openRealGiftModal() {
-            document.getElementById('realGiftModal').style.display = 'flex';
-        }
-
-        function sendRealGift(giftName, coinCost) {
-            let walletElem = document.getElementById('userWalletCoins');
-            let currentCoins = parseInt(walletElem.innerText);
-
-            if(currentCoins >= coinCost) {
-                let remainingCoins = currentCoins - coinCost;
-                walletElem.innerText = remainingCoins;
-                alert('🎉 Sent ' + giftName + ' (-' + coinCost + ' Coins).\nBalance: ' + remainingCoins);
-                closeModal('realGiftModal');
-            } else {
-                alert('❌ Insufficient Coins!');
-            }
-        }
-
-        function openRealShareModal() {
-            document.getElementById('realShareModal').style.display = 'flex';
-        }
-
-        function checkBulkButton() {
-            let checkboxes = document.querySelectorAll('.friend-chk:checked');
-            let bulkBtn = document.getElementById('bulkSendBtn');
-            if(checkboxes.length > 0) {
-                bulkBtn.style.display = 'block';
-                bulkBtn.innerText = `🚀 Send to ${checkboxes.length} Selected Friend(s) (Inbox Chat)`;
-            } else {
-                bulkBtn.style.display = 'none';
-            }
-        }
-
-        function sendToSelectedFriends() {
-            let checkboxes = document.querySelectorAll('.friend-chk:checked');
-            let names = Array.from(checkboxes).map(chk => chk.value);
-            alert(`✅ Live room link successfully shared to ${names.length} friend(s) (${names.join(', ')}) chat box!`);
-            closeModal('realShareModal');
-            setTimeout(() => {
-                window.location.href = 'inbox.html';
-            }, 600);
-        }
-
-        function openPhoneNativeShare() {
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Call Priyance LIVE Stream',
-                    text: 'Join my live room on Call Priyance!',
-                    url: window.location.href,
-                }).catch((error) => { console.log('Error sharing:', error); });
-            } else {
-                navigator.clipboard.writeText(window.location.href);
-                alert('📋 Link copied to clipboard!');
-            }
-            closeModal('realShareModal');
+            // Also start camera stream concurrently
+            startVideoLiveWithCamera();
+            document.getElementById('liveStatusText').innerText = '🎮 Gaming Stream Active: ' + game;
         }
 
         function stopLiveBroadcast() {
+            if(mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
             document.getElementById('activeLiveView').style.display = 'none';
             switchTab('video', document.querySelector('.tab-btn'));
-        }
-
-        // --- TIKTOK STYLE TREASURE BOX LOGIC (Custom Timer & First-Come Grab) ---
-        function openTreasureModal() {
-            document.getElementById('treasureModal').style.display = 'flex';
-        }
-
-        let countdownInterval;
-        function deployTreasureBox() {
-            let coinsToDeduct = parseInt(document.getElementById('boxCoinsInput').value);
-            let peopleCount = document.getElementById('boxPeopleInput').value;
-            let seconds = parseInt(document.getElementById('boxTimerSelect').value);
-
-            let walletElem = document.getElementById('userWalletCoins');
-            let currentCoins = parseInt(walletElem.innerText);
-
-            if(isNaN(coinsToDeduct) || coinsToDeduct < 10) {
-                alert('⚠️ Minimum treasure box amount is 10 Coins!');
-                return;
-            }
-
-            if(currentCoins < coinsToDeduct) {
-                alert('❌ Insufficient Coins in your wallet to drop this Treasure Box! Please top-up from Wallet.');
-                return;
-            }
-
-            // Deduct coins
-            let remainingCoins = currentCoins - coinsToDeduct;
-            walletElem.innerText = remainingCoins;
-
-            closeModal('treasureModal');
-
-            let banner = document.getElementById('activeTreasureBanner');
-            let infoText = document.getElementById('treasureInfoText');
-            let timerEl = document.getElementById('treasureTimer');
-            let grabBtn = document.getElementById('grabTreasureBtn');
-
-            banner.style.display = 'block';
-            infoText.innerText = `Amount: ${coinsToDeduct} Coins | Lucky Grabbers: ${peopleCount} People`;
-            grabBtn.disabled = false;
-            grabBtn.style.opacity = '1';
-            grabBtn.innerText = '🎁 Tap First to Grab Coins!';
-
-            if(countdownInterval) clearInterval(countdownInterval);
-
-            countdownInterval = setInterval(() => {
-                if(seconds > 0) {
-                    seconds--;
-                    let mins = Math.floor(seconds / 60);
-                    let secs = seconds % 60;
-                    timerEl.innerText = `Time left: ${mins > 0 ? mins + 'm ' : ''}${secs}s`;
-                } else {
-                    clearInterval(countdownInterval);
-                    grabBtn.disabled = true;
-                    grabBtn.style.opacity = '0.5';
-                    grabBtn.innerText = '❌ Treasure Box Claimed / Expired';
-                    setTimeout(() => { banner.style.display = 'none'; }, 4000);
-                }
-            }, 1000);
-
-            alert('✅ TikTok Treasure Box successfully dropped! (-' + coinsToDeduct + ' Coins deducted). Timer is running.');
-        }
-
-        function grabTreasureBox() {
-            let walletElem = document.getElementById('userWalletCoins');
-            let currentCoins = parseInt(walletElem.innerText);
-            let wonCoins = Math.floor(Math.random() * 80) + 20; // First-come grab win
-            walletElem.innerText = currentCoins + wonCoins;
-            alert('🎉 Congratulations! You were fast and successfully grabbed ' + wonCoins + ' coins from the Treasure Box!');
-            
-            let grabBtn = document.getElementById('grabTreasureBtn');
-            grabBtn.disabled = true;
-            grabBtn.style.opacity = '0.5';
-            grabBtn.innerText = '✅ You Grabbed Coins Successfully!';
         }
     </script>
 </body>
