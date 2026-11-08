@@ -92,11 +92,13 @@
         .share-app-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; margin: 0 auto 5px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-decoration: none; color: #fff; }
         .share-app-item span { font-size: 11px; color: #ccc; }
 
-        /* Bottom Navigation Bar */
+        /* Bottom Navigation Bar (Updated with Live & Gaming links) */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
         .nav-item.active { color: #fff; }
         .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
+        .live-btn-nav { color: #fe2c55; font-weight: bold; }
+        .game-btn-nav { color: #00b4d8; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -278,11 +280,13 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar (Linked correctly to wallet, camera, inbox, profile) -->
+    <!-- Bottom Navigation Bar (Linked with Home, Wallet, Upload Plus, Live, Gaming, Inbox, Profile) -->
     <div class="bottom-nav">
         <a href="index.html" class="nav-item active"><i>🏠</i><span>Home</span></a>
         <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
         <a href="camera.html" class="nav-item"><div class="upload-plus-btn">+</div></a>
+        <a href="live.html" class="nav-item live-btn-nav"><i>🔴</i><span>LIVE</span></a>
+        <a href="gaming.html" class="nav-item game-btn-nav"><i>🎮</i><span>Gaming</span></a>
         <a href="inbox.html" class="nav-item"><i>💬</i><span>Inbox</span></a>
         <a href="profile.html" class="nav-item"><i>⭐</i><span>Profile</span></a>
     </div>
