@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
@@ -8,6 +8,9 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--app-bg, #000); color: var(--app-text, #fff); padding-bottom: 70px; transition: 0.3s; }
         
+        /* Global Top Navigation Bar with Back Arrow */
+        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; }
+
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: var(--header-bg, #111); position: sticky; top: 0; z-index: 10; }
         .header h2 { font-size: 16px; color: var(--app-text, #fff); }
         .back-btn { color: var(--app-text, #fff); text-decoration: none; font-size: 14px; cursor: pointer; }
@@ -58,6 +61,13 @@
     </style>
 </head>
 <body>
+
+    <!-- Global Top Bar with Back Arrow '←' and Studio '➕' -->
+    <div class="top-bar">
+        <button onclick="history.back()" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Go Back">←</button>
+        <h3 style="font-size: 15px; color: #fe2c55;">Call Priyance Settings</h3>
+        <a href="camera.html" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="Studio/Camera">➕</a>
+    </div>
 
     <div class="header">
         <a class="back-btn" onclick="history.back()" id="txtBack">← Back</a>
