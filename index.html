@@ -8,7 +8,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; overflow: hidden; height: 100vh; }
         
-        /* Global Top Navigation Bar with Back Arrow */
+        /* Clean Global Top Bar without dummy text */
         .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; position: absolute; top: 0; left: 0; right: 0; z-index: 20; }
 
         /* Video Feed Container */
@@ -41,25 +41,34 @@
         .comment-input-area input { flex: 1; padding: 10px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
         .comment-send-btn { background: #fe2c55; color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
 
-        /* TikTok Live Coin Gift Panel */
+        /* TikTok Live Coin Gift Panel (Expanded with 16+ Options) */
         #giftModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 150; box-shadow: 0 -5px 20px rgba(0,0,0,0.8); }
         .gift-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .gift-header h3 { font-size: 16px; color: #ffcc00; }
         .close-gift { font-size: 18px; cursor: pointer; color: #aaa; }
         
-        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 220px; overflow-y: auto; margin-bottom: 15px; }
+        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 250px; overflow-y: auto; margin-bottom: 15px; }
         .gift-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
         .gift-card:hover { border-color: #fe2c55; background: #2a2a2a; }
         .gift-card .emoji { font-size: 26px; margin-bottom: 4px; }
         .gift-card h4 { font-size: 12px; color: #fff; margin-bottom: 2px; }
         .gift-card p { font-size: 11px; color: #ffcc00; }
 
-        /* ALL SOCIAL MEDIA SHARE POPUP SHEET */
+        /* TIKTOK STYLE REAL SHARE SHEET WITH FRIENDS CHAT & SOCIAL MEDIA */
         #shareModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; background: #1c1c1e; border-top: 2px solid #333; border-radius: 20px 20px 0 0; padding: 20px; z-index: 150; box-shadow: 0 -5px 20px rgba(0,0,0,0.9); }
-        .share-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .share-header h3 { font-size: 16px; color: #fff; }
+        .share-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .share-header h3 { font-size: 15px; color: #fff; }
+        
+        /* Send to Friends Horizontal List (Direct Chat Share)[span_3](start_span)[span_3](end_span) */
+        .friends-scroll-container { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 12px; border-bottom: 1px solid #333; margin-bottom: 15px; scrollbar-width: none; }
+        .friends-scroll-container::-webkit-scrollbar { display: none; }
+        .friend-share-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 60px; text-align: center; }
+        .friend-share-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #fe2c55; margin-bottom: 4px; }
+        .friend-share-item span { font-size: 11px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px; }
+
+        /* Social Media Icons Grid */
         .share-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center; }
-        .share-app-icon { width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; margin: 0 auto 6px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .share-app-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; margin: 0 auto 5px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-decoration: none; color: #fff; }
         .share-app-item span { font-size: 11px; color: #ccc; }
 
         /* Bottom Navigation Bar */
@@ -71,10 +80,10 @@
 </head>
 <body>
 
-    <!-- Global Top Bar with Back Arrow '←' and Studio '➕' -->
+    <!-- Clean Top Bar (Only Back Arrow & Studio Plus Button) -->
     <div class="top-bar">
         <button onclick="history.back()" style="font-size: 16px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Go Back">←</button>
-        <h3 style="font-size: 15px; color: #fe2c55; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Call Priyance Feed</h3>
+        <div></div>
         <a href="camera.html" style="font-size: 16px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="Studio/Camera">➕</a>
     </div>
 
@@ -142,10 +151,10 @@
         </div>
     </div>
 
-    <!-- TikTok Live Coin Gift Panel -->
+    <!-- TikTok Live Coin Gift Panel (Expanded with 16 Options) -->
     <div id="giftModal">
         <div class="gift-header">
-            <h3>🎁 Send Creator Gift</h3>
+            <h3>🎁 Send Creator Gift (Select Option)</h3>
             <span class="close-gift" onclick="toggleGiftModal()">✕ Close</span>
         </div>
         <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Select a coin gift to support Ramkumar Dhobi / Creator:</p>
@@ -160,47 +169,80 @@
             <div class="gift-card" onclick="sendGift('Magic Ring 💍', 200)"><div class="emoji">💍</div><h4>Ring</h4><p>200 Coins</p></div>
             <div class="gift-card" onclick="sendGift('Yacht 🛥️', 500)"><div class="emoji">🛥️</div><h4>Yacht</h4><p>500 Coins</p></div>
             <div class="gift-card" onclick="sendGift('Lion 🦁', 1000)"><div class="emoji">🦁</div><h4>Lion</h4><p>1,000 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Diamond 💎', 1500)"><div class="emoji">💎</div><h4>Diamond</h4><p>1,500 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Golden Crown 👑', 2000)"><div class="emoji">👑</div><h4>Crown</h4><p>2,000 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Private Jet ✈️', 3000)"><div class="emoji">✈️</div><h4>Jet</h4><p>3,000 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Castle 🏰', 5000)"><div class="emoji">🏰</div><h4>Castle</h4><p>5,000 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Dragon 🐉', 10000)"><div class="emoji">🐉</div><h4>Dragon</h4><p>10,000 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Galaxy 🌌', 20000)"><div class="emoji">🌌</div><h4>Galaxy</h4><p>20,000 Coins</p></div>
+            <div class="gift-card" onclick="sendGift('Universe 🪐', 50000)"><div class="emoji">🪐</div><h4>Universe</h4><p>50,000 Coins</p></div>
         </div>
     </div>
 
-    <!-- ALL SOCIAL MEDIA SHARE POPUP SHEET -->
+    <!-- REAL TIKTOK STYLE SHARE SHEET WITH FRIENDS CHAT & SOCIAL MEDIA -->
     <div id="shareModal">
         <div class="share-header">
-            <h3>Share to Social Media</h3>
+            <h3>Share to Friends & Social Media</h3>
             <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="toggleShareModal()">✕</span>
         </div>
+
+        <!-- Send to Friends Horizontal List (Direct Chat Share)[span_4](start_span)[span_4](end_span) -->
+        <div class="friends-scroll-container">
+            <div class="friend-share-item" onclick="shareToFriend('Priyance Official')">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="friend-share-avatar">
+                <span>Priyance</span>
+            </div>
+            <div class="friend-share-item" onclick="shareToFriend('Support Team')">
+                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200" class="friend-share-avatar">
+                <span>Support</span>
+            </div>
+            <div class="friend-share-item" onclick="shareToFriend('Anjali Dance Hub')">
+                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200" class="friend-share-avatar">
+                <span>Anjali</span>
+            </div>
+            <div class="friend-share-item" onclick="shareToFriend('Rohit Painter')">
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200" class="friend-share-avatar">
+                <span>Rohit</span>
+            </div>
+            <div class="friend-share-item" onclick="shareToFriend('Creator Hub')">
+                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200" class="friend-share-avatar">
+                <span>Creator</span>
+            </div>
+        </div>
+
+        <!-- Social Media Apps Direct Share Grid -->
         <div class="share-grid">
-            <div class="share-app-item" onclick="shareTo('WhatsApp')">
+            <a href="https://api.whatsapp.com/send?text=Check%20out%20this%20amazing%20video%20on%20Call%20Priyance:%20https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-in-a-party-41650-large.mp4" target="_blank" class="share-app-item" style="text-decoration:none;">
                 <div class="share-app-icon" style="background:#25d366;">💬</div>
                 <span>WhatsApp</span>
-            </div>
-            <div class="share-app-item" onclick="shareTo('Facebook')">
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-in-a-party-41650-large.mp4" target="_blank" class="share-app-item" style="text-decoration:none;">
                 <div class="share-app-icon" style="background:#1877f2;">📘</div>
                 <span>Facebook</span>
-            </div>
-            <div class="share-app-item" onclick="shareTo('Instagram')">
+            </a>
+            <div class="share-app-item" onclick="shareSocialDirect('Instagram')">
                 <div class="share-app-icon" style="background:linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">📸</div>
                 <span>Instagram</span>
             </div>
-            <div class="share-app-item" onclick="shareTo('TikTok')">
+            <div class="share-app-item" onclick="shareSocialDirect('TikTok')">
                 <div class="share-app-icon" style="background:#000; border:1px solid #fe2c55;">🎵</div>
                 <span>TikTok</span>
             </div>
-            <div class="share-app-item" onclick="shareTo('YouTube')">
+            <a href="https://www.youtube.com/" target="_blank" class="share-app-item" style="text-decoration:none;">
                 <div class="share-app-icon" style="background:#ff0000;">▶️</div>
                 <span>YouTube</span>
-            </div>
-            <div class="share-app-item" onclick="shareTo('IMO')">
+            </a>
+            <div class="share-app-item" onclick="shareSocialDirect('IMO')">
                 <div class="share-app-icon" style="background:#0099ff;">💙</div>
                 <span>IMO</span>
             </div>
-            <div class="share-app-item" onclick="shareTo('Twitter / X')">
+            <a href="https://twitter.com/intent/tweet?text=Check%20out%20this%20video&url=https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-in-a-party-41650-large.mp4" target="_blank" class="share-app-item" style="text-decoration:none;">
                 <div class="share-app-icon" style="background:#1da1f2;">🐦</div>
                 <span>Twitter</span>
-            </div>
-            <div class="share-app-item" onclick="shareTo('VidMate')">
-                <div class="share-app-icon" style="background:#ff7700;">📥</div>
-                <span>VidMate</span>
+            </a>
+            <div class="share-app-item" onclick="copyVideoLink()">
+                <div class="share-app-icon" style="background:#ff7700;">🔗</div>
+                <span>Copy Link</span>
             </div>
         </div>
     </div>
@@ -287,8 +329,23 @@
             modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
         }
 
-        function shareTo(platform) {
-            alert('🚀 Successfully shared video link to ' + platform + '!\n🔗 Content URL copied.');
+        // Direct Share to Friend (Goes to Chat / Inbox)
+        function shareToFriend(friendName) {
+            alert('✅ Video successfully shared to ' + friendName + ' chat box!\n💬 Redirecting to your Inbox...');
+            toggleShareModal();
+            setTimeout(() => {
+                window.location.href = 'inbox.html';
+            }, 600);
+        }
+
+        function shareSocialDirect(platform) {
+            alert('🚀 Video link prepared for ' + platform + '!\n🔗 Opening direct post share...');
+            toggleShareModal();
+        }
+
+        function copyVideoLink() {
+            navigator.clipboard.writeText(window.location.href);
+            alert('📋 Video link copied to clipboard successfully!');
             toggleShareModal();
         }
     </script>
