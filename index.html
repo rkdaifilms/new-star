@@ -2,7 +2,7 @@
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>New Star - Home Feed, Comments & Share</title>
     
     <!-- 📱 PWA & APP INSTALL METAS WITH CLEAN PROFESSIONAL LOGO -->
@@ -10,6 +10,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="New Star">
+    
+    <!-- 🌟 HIGH-QUALITY PNG APP LOGO FOR INSTALL PROMPT & HOME SCREEN -->
+    <link rel="icon" type="image/png" href="https://imagetolink.com/ib/V5iL1K7K6m.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="https://imagetolink.com/ib/V5iL1K7K6m.png">
+    
     <link rel="manifest" href="data:application/manifest+json;charset=utf-8,{
         %22name%22: %22New Star App%22,
         %22short_name%22: %22New Star%22,
@@ -19,21 +24,23 @@
         %22theme_color%22: %22%23fe2c55%22,
         %22icons%22: [
             {
-                %22src%22: %22https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=192%22,
+                %22src%22: %22https://imagetolink.com/ib/V5iL1K7K6m.png%22,
                 %22sizes%22: %22192x192%22,
-                %22type%22: %22image/png%22
+                %22type%22: %22image/png%22,
+                %22purpose%22: %22any maskable%22
             },
             {
-                %22src%22: %22https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=512%22,
+                %22src%22: %22https://imagetolink.com/ib/RjO85SjT9M.png%22,
                 %22sizes%22: %22512x512%22,
-                %22type%22: %22image/png%22
+                %22type%22: %22image/png%22,
+                %22purpose%22: %22any maskable%22
             }
         ]
     }">
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #000; color: #fff; padding-bottom: 70px; overflow: hidden; height: 100vh; }
+        body { background-color: #000; color: #fff; padding-bottom: 70px; overflow: hidden; height: 100vh; touch-action: manipulation; }
         
         /* Clean Global Top Bar */
         .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; position: absolute; top: 0; left: 0; right: 0; z-index: 20; }
@@ -322,6 +329,17 @@
     </div>
 
     <script>
+        // PWA Install Prompt Logic (Crucial for immediate install option)
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            // Optionally, dsiplay an in-app button to trigger install
+            console.log("'beforeinstallprompt' event was fired.");
+        });
+
         window.onload = function() {
             let savedHandle = localStorage.getItem('appHandle');
             if(savedHandle) {
@@ -356,7 +374,7 @@
 
             let listArea = document.getElementById('commentListArea');
             let myName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
-            let myPic = localStorage.getItem('appPic') || 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=200';
+            let myPic = localStorage.getItem('appPic') || 'https://imagetolink.com/ib/V5iL1K7K6m.png';
 
             listArea.innerHTML += `
                 <div class="comment-item">
