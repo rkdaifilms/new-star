@@ -1,4 +1,4 @@
-{
+hereu{
   "name": "New Star App",
   "short_name": "New Star",
   "start_url": "/",
@@ -7,14 +7,16 @@
   "theme_color": "#fe2c55",
   "icons": [
     {
-      "src": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=192",
+      "src": "https://cdn-icons-png.flaticon.com/512/1828/1828884.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=512",
+      "src": "https://cdn-icons-png.flaticon.com/512/1828/1828884.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
