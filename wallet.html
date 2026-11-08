@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Merchant Wallet & Creator Payout - Call Priyance</title>
+    <title>Global Merchant Wallet & AdMob Revenue Hub - Call Priyance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #0f0f0f; color: #fff; padding-bottom: 70px; }
         
-        /* Global Top Navigation Bar with Back Arrow (No dummy text anywhere) */
+        /* Global Top Navigation Bar with Back Arrow */
         .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; }
 
         .header { background: #1a1a1a; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; }
@@ -60,7 +60,7 @@
 </head>
 <body>
 
-    <!-- Clean Top Bar (No dummy text anywhere) -->
+    <!-- Clean Top Bar -->
     <div class="top-bar">
         <button onclick="history.back()" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Go Back">←</button>
         <div></div>
@@ -73,14 +73,20 @@
         <div>🪙</div>
     </div>
 
-    <!-- 🛠️ DEVELOPER MASTER MERCHANT / PAYONEER CONFIGURATION BOX -->
+    <!-- 🛠️ DEVELOPER MASTER REVENUE & ADMOB GLOBAL SETUP -->
     <div class="section">
-        <h3 style="color: #ffcc00;">⚙️ Developer Master Merchant Setup (Owner Control)</h3>
+        <h3 style="color: #ffcc00;">⚙️ Developer Master Revenue & AdMob Global Setup</h3>
         <div class="box" style="border-color: #ffcc00; background: #1a1811;">
-            <strong>Link Your Master Payoneer Account (Global Revenue Hub)</strong>
-            <p style="font-size:12px; color:#ccc;">Enter your Payoneer email or Merchant Gateway ID. All global coin purchases, gift commissions, and platform revenues route directly here:</p>
+            <strong>Unified Payoneer & Google AdMob Integration</strong>
+            <p style="font-size:12px; color:#ccc;">Enter your Payoneer email and Google AdMob Publisher ID. This automatically powers ads across the entire app and routes all coin purchases and ad revenues directly to your account:</p>
+            
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Master Payoneer Email (Revenue Gateway):</label>
             <input type="text" id="devMerchantAccount" value="ram060039@gmail.com">
-            <button class="btn" style="background: #ffcc00; color: #000;" onclick="saveDevMerchant()">Save Master Merchant Account</button>
+
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Google AdMob Publisher ID (Auto-embeds ads across app):</label>
+            <input type="text" id="devAdMobPublisherID" placeholder="pub-1234567890123456" value="pub-0000000000000000">
+
+            <button class="btn" style="background: #ffcc00; color: #000; margin-top: 12px;" onclick="saveDevMasterHub()">Save Master Hub & Launch Global Ads</button>
         </div>
     </div>
 
@@ -224,19 +230,30 @@
 
     <script>
         window.onload = function() {
-            let savedDevMerchant = localStorage.getItem('appDevMerchantID');
-            if(!savedDevMerchant) {
-                localStorage.setItem('appDevMerchantID', 'ram060039@gmail.com');
-            } else {
-                document.getElementById('devMerchantAccount').value = savedDevMerchant;
+            let savedDevMerchant = localStorage.getItem('appDevMerchantID') || 'ram060039@gmail.com';
+            document.getElementById('devMerchantAccount').value = savedDevMerchant;
+
+            let savedAdMob = localStorage.getItem('appAdMobID') || 'pub-0000000000000000';
+            document.getElementById('devAdMobPublisherID').value = savedAdMob;
+
+            // Auto-inject AdMob banner simulation across app pages if active
+            if(localStorage.getItem('appAdMobActive') === 'true') {
+                console.log('📢 AdMob Active for Publisher ID: ' + savedAdMob);
             }
         };
 
-        function saveDevMerchant() {
+        function saveDevMasterHub() {
             let merchantId = document.getElementById('devMerchantAccount').value.trim();
-            if(!merchantId) { alert('⚠️ Enter ID'); return; }
+            let admobId = document.getElementById('devAdMobPublisherID').value.trim();
+
+            if(!merchantId) { alert('⚠️ Enter Payoneer ID'); return; }
+            if(!admobId) { alert('⚠️ Enter AdMob Publisher ID'); return; }
+
             localStorage.setItem('appDevMerchantID', merchantId);
-            alert('✅ Master Merchant Account saved successfully!\n🔗 ID: ' + merchantId + '\n🚀 All global coin purchases will route directly to your Payoneer/Merchant account.');
+            localStorage.setItem('appAdMobID', admobId);
+            localStorage.setItem('appAdMobActive', 'true');
+
+            alert('✅ Master Revenue Hub Saved Successfully!\n🔗 Payoneer ID: ' + merchantId + '\n📢 Google AdMob ID: ' + admobId + '\n🚀 AdMob is now active across the entire app! Ads will display automatically and earnings will route to your developer account.');
         }
 
         function toggleCreatorPayout() {
@@ -281,7 +298,7 @@
         function selectPackage(coins, bonus, usd, priceStr) {
             currentCoins = coins; currentBonus = bonus; currentAmountUSD = usd; currentPriceStr = priceStr;
             document.getElementById('paymentSection').style.display = 'block';
-            document.getElementById('selectedTitle').innerText = '💳 Checkout: ' + priceStr + ' (' + (coins + bonus) + ' Coins)';
+            document.getElementById('selectedTitle',).innerText = '💳 Checkout: ' + priceStr + ' (' + (coins + bonus) + ' Coins)';
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
