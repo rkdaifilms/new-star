@@ -22,6 +22,8 @@
         .profile-extra-info { font-size: 12px; color: #25f4ee; margin-bottom: 15px; }
 
         .stats { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; text-align: center; }
+        .stat-box { cursor: pointer; transition: 0.2s; }
+        .stat-box:hover { opacity: 0.8; }
         .stat-num { font-size: 16px; font-weight: bold; }
         .stat-label { font-size: 12px; color: #888; }
 
@@ -38,8 +40,24 @@
         
         .file-upload-btn { display: block; width: 100%; background: #222; border: 1px dashed #fe2c55; color: #25f4ee; padding: 12px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; margin-top: 5px; }
 
-        .grid-videos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
-        .grid-item { background: #222; aspect-ratio: 9/16; position: relative; display: flex; align-items: flex-end; padding: 8px; font-size: 11px; font-weight: bold; }
+        /* REAL SOCIAL MEDIA FOLLOWERS / FOLLOWING POPUP */
+        #listPopupModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; }
+        .popup-card { background: #181818; border: 1px solid #333; width: 90%; max-width: 380px; max-height: 80vh; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; }
+        .popup-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #111; border-bottom: 1px solid #222; }
+        .popup-header h3 { font-size: 16px; color: #fe2c55; }
+        .popup-close { font-size: 20px; cursor: pointer; color: #aaa; background: none; border: none; color: #fff; }
+        
+        .popup-body { padding: 15px; overflow-y: auto; flex: 1; }
+        .user-list-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #222; }
+        .user-left-info { display: flex; align-items: center; gap: 12px; }
+        .user-left-info img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; }
+        .user-left-info h4 { font-size: 14px; margin-bottom: 2px; }
+        .user-left-info p { font-size: 12px; color: #aaa; }
+        .follow-action-btn { background: #fe2c55; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .follow-action-btn.following { background: #222; border: 1px solid #444; color: #ccc; }
+
+        .grid-videos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 15px; }
+        .grid-item { background: #222; aspect-ratio: 9/16; position: relative; display: flex; align-items: flex-end; padding: 8px; font-size: 11px; font-weight: bold; color: #666; }
 
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
@@ -66,13 +84,23 @@
     <div class="profile-box">
         <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="avatar" id="profilePicPreview" alt="Profile">
         <h2 id="profileNameText">Ramkumar Dhobi</h2>
-        <p id="profileHandleText">@ramram981152 | Painter & Creator</p>
+        <p id="profileHandleText">@ramram981152 | Painter & Creator Hub</p>
         <div class="profile-extra-info" id="profileExtraInfo">📍 Siddharthanagar, Nepal | 📧 ram060039@gmail.com</div>
         
+        <!-- REAL-TIME LIVE STATS -->
         <div class="stats">
-            <div><div class="stat-num">142</div><div class="stat-label">Following</div></div>
-            <div><div class="stat-num">24.8K</div><div class="stat-label">Followers</div></div>
-            <div><div class="stat-num">180.5K</div><div class="stat-label">Likes</div></div>
+            <div class="stat-box" onclick="openUserList('following')">
+                <div class="stat-num" id="statFollowing">0</div>
+                <div class="stat-label">Following</div>
+            </div>
+            <div class="stat-box" onclick="openUserList('followers')">
+                <div class="stat-num" id="statFollowers">0</div>
+                <div class="stat-label">Followers</div>
+            </div>
+            <div class="stat-box" onclick="openUserList('likes')">
+                <div class="stat-num" id="statLikes">0</div>
+                <div class="stat-label">Likes</div>
+            </div>
         </div>
 
         <div class="profile-btns">
@@ -117,18 +145,27 @@
             <label>Location / Address:</label>
             <input type="text" id="inputLocation" value="Siddharthanagar, Nepal">
         </div>
-        <div class="form-group">
-            <label>Website / Social Link:</label>
-            <input type="text" id="inputLink" value="https://github.com/new-star">
-        </div>
 
         <button class="p-btn active" style="width:100%; margin-top:10px; padding:12px;" onclick="saveProfileChanges()">Save Profile Changes</button>
     </div>
 
+    <!-- 📋 DYNAMIC SOCIAL MEDIA POPUP LIST -->
+    <div id="listPopupModal" onclick="closeUserList()">
+        <div class="popup-card" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3 id="popupTitle">List</h3>
+                <button class="popup-close" onclick="closeUserList()">✕</button>
+            </div>
+            <div class="popup-body" id="popupUserListContainer">
+                Loading...
+            </div>
+        </div>
+    </div>
+
     <div class="grid-videos">
-        <div class="grid-item" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent), url('https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-in-a-party-41650-large.mp4'); background-size:cover;">▶ 48K</div>
-        <div class="grid-item" style="background: #333;">▶ 12K (10 Min)</div>
-        <div class="grid-item" style="background: #222;">▶ 95K</div>
+        <div class="grid-item">No Video Posted</div>
+        <div class="grid-item">No Video Posted</div>
+        <div class="grid-item">No Video Posted</div>
     </div>
 
     <!-- Bottom Navigation Bar -->
@@ -141,7 +178,9 @@
     </div>
 
     <script>
+        // REAL-TIME SOCIAL MEDIA LIVE DATA STORAGE SYSTEM
         window.onload = function() {
+            // Load Profile Info
             let savedName = localStorage.getItem('appName');
             let savedHandle = localStorage.getItem('appHandle');
             let savedBio = localStorage.getItem('appBio');
@@ -162,7 +201,7 @@
             if(savedLocation) document.getElementById('inputLocation').value = savedLocation;
 
             if(savedName && savedHandle && savedBio) {
-                document.getElementById('profileHandleText').innerText = savedHandle + ' | ' + savedBio;
+                document.getElementById('profileHandleText').innerText = (savedHandle || '@ramram981152') + ' | ' + (savedBio || 'Painter & Creator Hub');
             }
             if(savedLocation && savedGmail) {
                 document.getElementById('profileExtraInfo').innerText = '📍 ' + (savedLocation || 'Siddharthanagar, Nepal') + ' | 📧 ' + (savedGmail || 'ram060039@gmail.com');
@@ -170,7 +209,89 @@
             if(savedPic) {
                 document.getElementById('profilePicPreview').src = savedPic;
             }
+
+            // Load Live Stats (Followers, Following, Likes)
+            updateLiveStatsDisplay();
         };
+
+        function updateLiveStatsDisplay() {
+            let followers = JSON.parse(localStorage.getItem('appFollowersList')) || [];
+            let following = JSON.parse(localStorage.getItem('appFollowingList')) || [];
+            let totalLikes = parseInt(localStorage.getItem('appTotalLikes')) || 0;
+
+            document.getElementById('statFollowers').innerText = followers.length;
+            document.getElementById('statFollowing').innerText = following.length;
+            document.getElementById('statLikes').innerText = totalLikes;
+        }
+
+        function openUserList(type) {
+            let modal = document.getElementById('listPopupModal');
+            let titleEl = document.getElementById('popupTitle');
+            let container = document.getElementById('popupUserListContainer');
+            container.innerHTML = '';
+
+            if(type === 'followers') {
+                let followers = JSON.parse(localStorage.getItem('appFollowersList')) || [];
+                titleEl.innerText = `Followers (${followers.length})`;
+                if(followers.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">No followers yet. When someone follows you, they will appear here!</p>';
+                } else {
+                    followers.forEach((user, index) => {
+                        container.innerHTML += renderUserItem(user, index, 'follower');
+                    });
+                }
+            } else if(type === 'following') {
+                let following = JSON.parse(localStorage.getItem('appFollowingList')) || [];
+                titleEl.innerText = `Following (${following.length})`;
+                if(following.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">You are not following anyone yet. Explore creators and follow them!</p>';
+                } else {
+                    following.forEach((user, index) => {
+                        container.innerHTML += renderUserItem(user, index, 'following');
+                    });
+                }
+            } else if(type === 'likes') {
+                let totalLikes = parseInt(localStorage.getItem('appTotalLikes')) || 0;
+                titleEl.innerText = `Total Likes (${totalLikes})`;
+                container.innerHTML = `<p style="text-align:center; color:#888; padding:20px;">❤️ Your content has received a total of <b>${totalLikes}</b> likes across the platform.</p>`;
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function renderUserItem(user, index, listType) {
+            return `
+                <div class="user-list-item">
+                    <div class="user-left-info">
+                        <img src="${user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'}" alt="User">
+                        <div>
+                            <h4>${user.name}</h4>
+                            <p>${user.handle}</p>
+                        </div>
+                    </div>
+                    <button class="follow-action-btn following" onclick="removeUser('${listType}', ${index})">Unfollow</button>
+                </div>
+            `;
+        }
+
+        function removeUser(listType, index) {
+            if(listType === 'following') {
+                let following = JSON.parse(localStorage.getItem('appFollowingList')) || [];
+                following.splice(index, 1);
+                localStorage.setItem('appFollowingList', JSON.stringify(following));
+                openUserList('following');
+            } else {
+                let followers = JSON.parse(localStorage.getItem('appFollowersList')) || [];
+                followers.splice(index, 1);
+                localStorage.setItem('appFollowersList', JSON.stringify(followers));
+                openUserList('followers');
+            }
+            updateLiveStatsDisplay();
+        }
+
+        function closeUserList() {
+            document.getElementById('listPopupModal').style.display = 'none';
+        }
 
         let tempImageSrc = '';
 
@@ -195,14 +316,14 @@
 
         function saveProfileChanges() {
             let newName = document.getElementById('inputName').value;
-            let newHandle = document.getElementById('inputHandle5') || document.getElementById('inputHandle').value;
+            let newHandle = document.getElementById('inputHandle').value;
             let newBio = document.getElementById('inputBio').value;
             let newGmail = document.getElementById('inputGmail').value;
             let newPhone = document.getElementById('inputPhone').value;
             let newLocation = document.getElementById('inputLocation').value;
 
             localStorage.setItem('appName', newName);
-            localStorage.setItem('appHandle', document.getElementById('inputHandle').value);
+            localStorage.setItem('appHandle', newHandle);
             localStorage.setItem('appBio', newBio);
             localStorage.setItem('appGmail', newGmail);
             localStorage.setItem('appPhone', newPhone);
@@ -213,7 +334,7 @@
 
             document.getElementById('headerName').innerText = newName;
             document.getElementById('profileNameText').innerText = newName;
-            document.getElementById('profileHandleText').innerText = document.getElementById('inputHandle').value + ' | ' + newBio;
+            document.getElementById('profileHandleText').innerText = newHandle + ' | ' + newBio;
             document.getElementById('profileExtraInfo').innerText = '📍 ' + newLocation + ' | 📧 ' + newGmail;
 
             document.getElementById('editProfileModal').style.display = 'none';
