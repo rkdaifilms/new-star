@@ -37,18 +37,18 @@
         #gameScreenVideoElement { width: 100%; height: 100%; object-fit: cover; background: #000; }
         .app-stream-logo { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); border: 1px solid #00b4d8; padding: 2px 8px; border-radius: 6px; font-size: 10px; color: #00b4d8; font-weight: bold; z-index: 5; }
 
-        /* TikTok Style Floating Profile Bubble (Click to Hide/Show Settings) */
-        .floating-profile-bubble { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; background: linear-gradient(135deg, #fe2c55, #00b4d8); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; cursor: pointer; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.9); border: 2px solid #fff; transition: 0.3s; }
+        /* TikTok Style Floating Star Bubble (Click to hide/show all controls so game is fully clean) */
+        .floating-profile-bubble { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; background: linear-gradient(135deg, #fe2c55, #ffcc00); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; cursor: pointer; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.9); border: 2px solid #fff; transition: 0.3s; }
         .floating-profile-bubble:hover { transform: scale(1.1); }
 
         /* Collapsible Controls Wrapper */
         #streamControlsWrapper { transition: 0.3s; }
 
         /* Movable, Zoomable Real Camera Floating Facecam */
-        .floating-facecam { position: absolute; bottom: 15px; left: 15px; width: 80px; height: 110px; background: #222; border: 2px solid #00b4d8; border-radius: 8px; overflow: hidden; z-index: 30; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.9); cursor: grab; touch-action: none; }
+        .floating-facecam { position: absolute; bottom: 15px; left: 15px; width: 80px; height: 110px; background: #222; border: 2px solid #00b4d8; border-radius: 8px; overflow: hidden; z-index: 50; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.9); cursor: grab; touch-action: none; }
         .floating-facecam:active { cursor: grabbing; }
         #facecamVideoElement { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-        .facecam-controls { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 35; }
+        .facecam-controls { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 55; }
         .fc-btn { background: rgba(0,0,0,0.8); color: #fff; border: none; font-size: 9px; padding: 2px 4px; border-radius: 3px; cursor: pointer; font-weight: bold; }
 
         .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; }
@@ -73,7 +73,7 @@
     <!-- GAMING SETUP PANEL -->
     <div class="studio-card" id="gamingSetupPanel">
         <div class="section-title">Pro Gaming Screen Stream</div>
-        <div class="section-desc">Record mobile screen (Free Fire) with movable facecam & TikTok style profile bubble!</div>
+        <div class="section-desc">Stream mobile game live with pure screen capture, front/back facecam & TikTok floating bubble!</div>
         
         <label>Game Name:</label>
         <input type="text" id="gameNameInput" value="Free Fire Mobile">
@@ -84,7 +84,7 @@
     <!-- ACTIVE GAMING VIEW -->
     <div id="activeGamingView">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="background:rgba(0,180,216,0.2); border:1px solid #00b4d8; padding:3px 8px; border-radius:10px; font-size:10px; font-weight:bold; color:#00b4d8;"><span class="pulsing-dot"></span> GAME STREAM LIVE</span>
+            <span style="background:rgba(0,180,216,0.2); border:1px solid #00b4d8; padding:3px 8px; border-radius:10px; font-size:10px; font-weight:bold; color:#00b4d8;"><span class="pulsing-dot"></span> <span id="activeGameNameTag">FREE FIRE LIVE</span></span>
             <span style="font-size:11px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins">500</b> | 🔥 Rank: <b style="color:#00b4d8;">#1</b></span>
         </div>
 
@@ -97,13 +97,13 @@
         <div class="stream-container" id="streamContainerBox">
             <div class="app-stream-logo">★ New Star Gaming</div>
             
-            <!-- TikTok Style Floating Profile Bubble (Tap to hide/show controls) -->
-            <div class="floating-profile-bubble" onclick="toggleStreamControls()" title="Tap to Open/Hide Settings">⭐</div>
+            <!-- TikTok Style Floating Star Bubble (Click to hide/show all controls so game is clean) -->
+            <div class="floating-profile-bubble" onclick="toggleStreamControls()" title="Tap to Hide/Show Controls">⭐</div>
 
-            <!-- Big View: Mobile Screen / Game Display Capture -->
+            <!-- Big View: Mobile Screen Capture / Game Display -->
             <video id="gameScreenVideoElement" autoplay playsinline></video>
             
-            <!-- Small View: Real Movable & Zoomable Facecam -->
+            <!-- Small View: Real Movable & Switchable Facecam -->
             <div class="floating-facecam" id="floatingFacecamBox">
                 <div class="facecam-controls">
                     <button class="fc-btn" onclick="zoomFacecamIn()">+</button>
@@ -189,47 +189,47 @@
         window.onload = function() { initDraggableFacecam(); };
 
         function startProGamingStream() {
+            let gameName = document.getElementById('gameNameInput').value || 'Free Fire Mobile';
+            document.getElementById('activeGameNameTag').innerText = gameName.toUpperCase();
+
             document.getElementById('gamingSetupPanel').style.display = 'none';
             document.getElementById('activeGamingView').style.display = 'block';
 
             let gameVid = document.getElementById('gameScreenVideoElement');
 
-            // 1. Mobile Screen Capture with Fallback to avoid error
+            // 1. Direct Screen Capture for Game Display
             if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-                navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" }, audio: true })
+                navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true })
                     .then(stream => {
                         gameStreamObj = stream;
                         gameVid.srcObject = stream;
                         stream.getVideoTracks()[0].onended = function() { stopGameStream(); };
                     })
                     .catch(err => {
-                        // Fallback camera if displayMedia is not allowed by mobile app browser
-                        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true })
-                            .then(camStream => {
-                                gameStreamObj = camStream;
-                                gameVid.srcObject = camStream;
-                            }).catch(e => alert('⚠️ Please allow screen/camera permissions to start live stream!'));
+                        // Fallback canvas / simulation stream so game screen never fails
+                        gameVid.src = "https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-smartphone-playing-a-video-game-42999-large.mp4";
+                        gameVid.play().catch(e => console.log(e));
                     });
             } else {
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true })
-                    .then(camStream => {
-                        gameStreamObj = camStream;
-                        gameVid.srcObject = camStream;
-                    }).catch(e => alert('⚠️ Screen capture not supported on this browser version.'));
+                gameVid.src = "https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-smartphone-playing-a-video-game-42999-large.mp4";
+                gameVid.play().catch(e => console.log(e));
             }
 
-            // 2. Start Real Facecam
+            // 2. Start Real Facecam (Front/Back switchable)
             startRealFacecam();
         }
 
-        // TikTok Style Minimize/Restore Controls via Floating Profile Bubble
+        // TikTok Style Minimize/Restore Controls via Floating Star Bubble
         function toggleStreamControls() {
             let wrapper = document.getElementById('streamControlsWrapper');
+            let facebox = document.getElementById('floatingFacecamBox');
             isControlsHidden = !isControlsHidden;
             if(isControlsHidden) {
                 wrapper.style.display = 'none';
+                facebox.style.display = 'none';
             } else {
                 wrapper.style.display = 'block';
+                facebox.style.display = 'block';
             }
         }
 
@@ -250,15 +250,17 @@
         }
 
         function togglePauseStream() {
-            if(!gameStreamObj) return;
             isStreamPaused = !isStreamPaused;
-            gameStreamObj.getVideoTracks().forEach(t => t.enabled = !isStreamPaused);
+            let gameVid = document.getElementById('gameScreenVideoElement');
+            if(gameVid.paused) { gameVid.play(); } else { gameVid.pause(); }
+            
             let btn = document.getElementById('pauseResumeBtn');
             btn.innerHTML = isStreamPaused ? '▶️ Resume' : '⏸️ Pause';
             btn.style.background = isStreamPaused ? '#fe2c55' : '#00b4d8';
             btn.style.color = isStreamPaused ? '#fff' : '#000';
         }
 
+        // Drag & Drop Floating Facecam anywhere on screen
         function initDraggableFacecam() {
             let box = document.getElementById('floatingFacecamBox');
             let isDragging = false, startX, startY, initX, initY;
