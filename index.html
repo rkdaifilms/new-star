@@ -4,6 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Call Priyance - Home Feed, Comments & Share</title>
+    
+    <!-- 📱 PWA & APP INSTALL METAS FOR CHROME DIRECT APP DOWNLOAD/INSTALL -->
+    <meta name="theme-color" content="#fe2c55">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Call Priyance">
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,{
+        %22name%22: %22Call Priyance App%22,
+        %22short_name%22: %22Priyance%22,
+        %22start_url%22: %22/%22,
+        %22display%22: %22standalone%22,
+        %22background_color%22: %22%23000000%22,
+        %22theme_color%22: %22%23fe2c55%22,
+        %22icons%22: [
+            {
+                %22src%22: %22https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=192%22,
+                %22sizes%22: %22192x192%22,
+                %22type%22: %22image/png%22
+            },
+            {
+                %22src%22: %22https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=512%22,
+                %22sizes%22: %22512x512%22,
+                %22type%22: %22image/png%22
+            }
+        ]
+    }">
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; overflow: hidden; height: 100vh; }
@@ -87,16 +114,15 @@
 </head>
 <body>
 
-    <!-- Clean Top Bar (No dummy text, only Back Arrow & Studio Plus) -->
+    <!-- Clean Top Bar -->
     <div class="top-bar">
         <button onclick="history.back()" style="font-size: 16px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Go Back">←</button>
         <div></div>
         <a href="camera.html" style="font-size: 16px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="Studio/Camera">➕</a>
     </div>
 
-    <!-- Main Video Feed Section (Dummy Post Loaded) -->
+    <!-- Main Video Feed Section -->
     <div class="feed-container">
-        <!-- 🎬 Dummy Video Link for Testing -->
         <video class="feed-video" autoplay loop muted src="https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4"></video>
 
         <div class="video-info">
@@ -105,23 +131,19 @@
             <span class="video-views">👁️ 2.4M Views</span>
         </div>
 
-        <!-- Right Side Actions -->
         <div class="side-actions">
             <div class="action-btn" onclick="toggleLike(this)">
                 <div class="action-icon" id="likeIcon">❤️</div>
                 <span id="likeCount">195K</span>
             </div>
-            <!-- Comment Button -->
             <div class="action-btn" onclick="toggleCommentModal()">
                 <div class="action-icon">💬</div>
                 <span id="commentCountBadge">2,150</span>
             </div>
-            <!-- Gift Button -->
             <div class="action-btn" onclick="toggleGiftModal()">
                 <div class="action-icon gift-icon-btn">🎁</div>
                 <span>Gift</span>
             </div>
-            <!-- Real Share Button -->
             <div class="action-btn" onclick="toggleShareModal()">
                 <div class="action-icon">↗️</div>
                 <span>Share</span>
@@ -129,7 +151,7 @@
         </div>
     </div>
 
-    <!-- TIKTOK STYLE COMMENT MODAL -->
+    <!-- COMMENT MODAL -->
     <div id="commentModal">
         <div class="comment-header">
             <h3 id="commentHeaderTitle">2,150 comments</h3>
@@ -159,7 +181,7 @@
         </div>
     </div>
 
-    <!-- TikTok Live Coin Gift Panel (16 Options) -->
+    <!-- GIFT PANEL -->
     <div id="giftModal">
         <div class="gift-header">
             <h3>🎁 Send Creator Gift (Select Option)</h3>
@@ -187,7 +209,7 @@
         </div>
     </div>
 
-    <!-- SHARE SHEET WITH MULTI-SELECT FRIENDS & UNIVERSAL PHONE SHARE -->
+    <!-- SHARE MODAL -->
     <div id="shareModal">
         <div class="share-header">
             <h3>Share to Friends & Social Media</h3>
@@ -196,7 +218,6 @@
 
         <p style="font-size: 11px; color: #888; margin-bottom: 6px;">Select multiple friends to share instantly:</p>
         
-        <!-- Multi-Select Friends Horizontal List -->
         <div class="friends-multi-container" id="friendsListContainer">
             <label class="friend-checkbox-item">
                 <div class="friend-avatar-wrap">
@@ -249,15 +270,12 @@
             </label>
         </div>
 
-        <!-- Bulk Send Button (Appears when friends are ticked) -->
         <button class="bulk-send-btn" id="bulkSendBtn" onclick="sendToSelectedFriends()">🚀 Send to Selected Friends (Inbox Chat)</button>
 
-        <!-- Universal Phone Share Main Button -->
         <button class="native-share-main-btn" onclick="openPhoneNativeShare()">
             <span>🌐 Open Phone Share (IMO, WeChat, WhatsApp, All Apps...)</span>
         </button>
 
-        <!-- Social Media Direct Links Grid -->
         <div class="share-grid">
             <a href="https://api.whatsapp.com/send?text=Check%20out%20this%20video%20on%20Call%20Priyance:%20https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4" target="_blank" class="share-app-item" style="text-decoration:none;">
                 <div class="share-app-icon" style="background:#25d366;">💬</div>
@@ -376,7 +394,6 @@
             modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
         }
 
-        // Check how many friends are checked for bulk sharing
         function checkBulkButton() {
             let checkboxes = document.querySelectorAll('.friend-chk:checked');
             let bulkBtn = document.getElementById('bulkSendBtn');
@@ -388,7 +405,6 @@
             }
         }
 
-        // Send to multiple ticked friends at once and go to inbox
         function sendToSelectedFriends() {
             let checkboxes = document.querySelectorAll('.friend-chk:checked');
             let names = Array.from(checkboxes).map(chk => chk.value);
@@ -400,7 +416,6 @@
             }, 600);
         }
 
-        // UNIVERSAL PHONE NATIVE SHARE (Opens IMO, WeChat, WhatsApp, Instagram directly)
         function openPhoneNativeShare() {
             if (navigator.share) {
                 navigator.share({
