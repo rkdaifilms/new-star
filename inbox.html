@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+       <!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
@@ -7,6 +7,9 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; }
+        
+        /* Global Top Navigation Bar with Back Arrow */
+        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; }
         
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: #111; position: sticky; top: 0; z-index: 10; }
         .header h2 { font-size: 18px; color: #fe2c55; }
@@ -70,6 +73,13 @@
     </style>
 </head>
 <body>
+
+    <!-- Global Top Bar with Back Arrow '←' and Studio '➕' -->
+    <div class="top-bar">
+        <button onclick="history.back()" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Go Back">←</button>
+        <h3 style="font-size: 15px; color: #fe2c55;">Call Priyance Inbox</h3>
+        <a href="camera.html" style="font-size: 16px; text-decoration: none; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="Studio/Camera">➕</a>
+    </div>
 
     <div class="header">
         <h2>Direct Messages & Activity</h2>
