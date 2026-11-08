@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+     <!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
@@ -43,7 +43,7 @@
         /* UPLOAD ICON */
         .big-upload-icon { width: 90px; height: 90px; background: #1f1f1f; border: 2px dashed #fe2c55; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 38px; margin: 10px auto 15px auto; cursor: pointer; }
 
-        /* Voice Room (10 Seats) & Video Room Grids */
+        /* Voice Room & Video Room Grids */
         .voice-seats-grid { display: grid; gap: 10px; margin: 15px 0; }
         .grid-1 { grid-template-columns: 1fr; }
         .grid-4 { grid-template-columns: repeat(2, 1fr); }
@@ -58,17 +58,21 @@
         .pin-badge { position: absolute; top: 2px; left: 6px; font-size: 9px; color: #ffcc00; display: none; }
         .voice-seat.pinned .pin-badge { display: block; }
 
-        /* 6 Seats & 10 Seats Video Hosting / Battle Grid */
-        .video-hosting-grid { display: grid; gap: 10px; margin: 15px 0; }
-        .video-hosting-seat { background: #1a1a1a; border: 1px solid #333; height: 85px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #aaa; position: relative; cursor: pointer; transition: 0.2s; }
-        .video-hosting-seat.active { border: 2px solid #fe2c55; background: #221015; color: #fe2c55; font-weight: bold; }
-        .video-hosting-seat.pinned { border: 2px solid #ffcc00; background: #2a2510; color: #ffcc00; }
-
-        /* MODAL POPUP FOR SEAT INVITATION & SEARCH */
-        #seatInviteModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; }
-        .invite-modal-box { background: #181818; border: 1px solid #fe2c55; width: 90%; max-width: 360px; padding: 20px; border-radius: 16px; text-align: left; box-shadow: 0 5px 25px rgba(0,0,0,0.9); }
+        /* MODALS (Seat Invite & Real Gift Popup) */
+        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; }
+        .modal-box { background: #181818; border: 1px solid #fe2c55; width: 90%; max-width: 360px; padding: 20px; border-radius: 16px; text-align: left; box-shadow: 0 5px 25px rgba(0,0,0,0.9); }
         .online-friend-row { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 12px; }
         .online-dot { width: 8px; height: 8px; background: #25f4ee; border-radius: 50%; display: inline-block; margin-right: 5px; }
+
+        /* Real Gift Grid */
+        .gift-grid-popup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 220px; overflow-y: auto; margin: 15px 0; }
+        .gift-item-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .gift-item-card:hover { border-color: #fe2c55; background: #2a2a2a; }
+
+        /* Real Social Media Share Grid */
+        .share-grid-popup { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 15px 0; }
+        .share-item-card { background: #222; border: 1px solid #444; border-radius: 12px; padding: 10px 5px; text-align: center; cursor: pointer; font-size: 11px; color: #ccc; }
+        .share-item-card:hover { border-color: #25f4ee; color: #fff; }
 
         /* ACTIVE LIVE BROADCAST ROOM */
         #activeLiveView { display: none; width: 100%; max-width: 450px; background: #111; border: 2px solid #fe2c55; padding: 15px; border-radius: 16px; margin-top: 15px; text-align: center; position: relative; }
@@ -123,7 +127,7 @@
                 </select>
             </div>
 
-            <span style="font-size:12px; color:#ffcc00;">🪙 <b id="liveCoinsCount">0</b></span>
+            <span style="font-size:12px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins">500</b></span>
         </div>
 
         <p id="liveStatusText" style="font-size: 12px; color: #ccc; margin-bottom: 6px;"></p>
@@ -133,8 +137,8 @@
         <!-- Floating Side Actions: Like, Gift, Share -->
         <div class="live-side-actions">
             <div class="live-action-icon" onclick="alert('❤️ Liked live room!')">❤️</div>
-            <div class="live-action-icon live-gift-btn" onclick="openLiveGiftModal()">🎁</div>
-            <div class="live-action-icon" onclick="openLiveShareModal()">↗️</div>
+            <div class="live-action-icon live-gift-btn" onclick="openRealGiftModal()">🎁</div>
+            <div class="live-action-icon" onclick="openRealShareModal()">↗️</div>
         </div>
 
         <!-- Live Chat / Comments Box with Creator Controls (Mute, Block, Turn Off) -->
@@ -146,7 +150,7 @@
             
             <div id="liveChatScrollArea" style="max-height:75px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; margin-bottom:6px;">
                 <div style="font-size:11px; color:#aaa; display:flex; justify-content:space-between; align-items:center;" id="chatMsg1">
-                    <span>💬 <b>Rohit Painter:</b> Room mast chal raha hai bhai! 🔥</span>
+                    <span>💬 <b>Rohit Painter:</b> Room mast chal raha है bhai! 🔥</span>
                     <span><button style="background:none; border:none; color:#ffcc00; font-size:9px; cursor:pointer; margin-right:4px;" onclick="muteUser('Rohit Painter')">Mute</button><button style="background:none; border:none; color:#ff4444; font-size:9px; cursor:pointer;" onclick="blockUser('Rohit Painter')">Block</button></span>
                 </div>
                 <div style="font-size:11px; color:#aaa; display:flex; justify-content:space-between; align-items:center;" id="chatMsg2">
@@ -165,12 +169,12 @@
         <button class="btn" style="background: #333; color: #fff; margin-top:2px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room & Exit</button>
     </div>
 
-    <!-- IN-APP MODAL FOR SEAT INVITATION, GLOBAL SEARCH & PIN -->
-    <div id="seatInviteModal">
-        <div class="invite-modal-box">
+    <!-- 1. SEAT INVITATION, GLOBAL SEARCH & PIN MODAL -->
+    <div id="seatInviteModal" class="custom-modal">
+        <div class="modal-box">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <h4 style="color: #25f4ee; font-size: 15px;" id="modalSeatTitle">Manage Seat</h4>
-                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeInviteModal()">✕</span>
+                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('seatInviteModal')">✕</span>
             </div>
 
             <!-- Global Search Box -->
@@ -199,6 +203,47 @@
 
             <!-- Pin Seat Button -->
             <button class="btn" style="background: #ffcc00; color:#000; margin-top:5px; padding:10px;" onclick="pinCurrentSeat()">📌 Pin / Unpin This Seat (TikTok Style)</button>
+        </div>
+    </div>
+
+    <!-- 2. REAL TIKTOK STYLE GIFT MODAL (Connected to Wallet Coins) -->
+    <div id="realGiftModal" class="custom-modal">
+        <div class="modal-box" style="max-width:380px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color: #ffcc00; font-size: 16px;">🎁 Send Real Gift (Coins)</h4>
+                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('realGiftModal')">✕</span>
+            </div>
+            <p style="font-size: 11px; color: #aaa; margin-bottom:10px;">Select gift to support host (Coins will be deducted from your wallet):</p>
+            <div class="gift-grid-popup">
+                <div class="gift-item-card" onclick="sendRealGift('Rose 🌹', 1)"><div style="font-size:24px;">🌹</div><div style="font-size:11px; color:#fff; margin-top:2px;">Rose</div><div style="font-size:10px; color:#ffcc00;">1 Coin</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Coffee ☕', 5)"><div style="font-size:24px;">☕</div><div style="font-size:11px; color:#fff; margin-top:2px;">Coffee</div><div style="font-size:10px; color:#ffcc00;">5 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Heart 🫶', 10)"><div style="font-size:24px;">🫶</div><div style="font-size:11px; color:#fff; margin-top:2px;">Heart</div><div style="font-size:10px; color:#ffcc00;">10 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Glasses 🕶️', 20)"><div style="font-size:24px;">🕶️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Glasses</div><div style="font-size:10px; color:#ffcc00;">20 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Car 🏎️', 100)"><div style="font-size:24px;">🏎️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Car</div><div style="font-size:10px; color:#ffcc00;">100 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Yacht 🛥️', 500)"><div style="font-size:24px;">🛥️</div><div style="font-size:11px; color:#fff; margin-top:2px;">Yacht</div><div style="font-size:10px; color:#ffcc00;">500 Coins</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Lion 🦁', 1000)"><div style="font-size:24px;">🦁</div><div style="font-size:11px; color:#fff; margin-top:2px;">Lion</div><div style="font-size:10px; color:#ffcc00;">1000 Coins</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. REAL SOCIAL MEDIA SHARE MODAL (WhatsApp, Facebook, Instagram, YouTube, TikTok, Imo, etc.) -->
+    <div id="realShareModal" class="custom-modal">
+        <div class="modal-box" style="max-width:380px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color: #fff; font-size: 16px;">↗️ Share Live Room</h4>
+                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('realShareModal')">✕</span>
+            </div>
+            <p style="font-size: 11px; color: #aaa; margin-bottom:10px;">Select social platform to share live stream link:</p>
+            <div class="share-grid-popup">
+                <div class="share-item-card" onclick="shareToPlatform('WhatsApp', 'https://api.whatsapp.com/send?text=Join%20my%20LIVE%20stream!')"><div style="font-size:22px; margin-bottom:2px;">💬</div>WhatsApp</div>
+                <div class="share-item-card" onclick="shareToPlatform('Facebook', 'https://www.facebook.com/sharer/sharer.php?u=live')"><div style="font-size:22px; margin-bottom:2px;">📘</div>Facebook</div>
+                <div class="share-item-card" onclick="shareToPlatform('Instagram', 'https://instagram.com')"><div style="font-size:22px; margin-bottom:2px;">📸</div>Instagram</div>
+                <div class="share-item-card" onclick="shareToPlatform('TikTok', 'https://tiktok.com')"><div style="font-size:22px; margin-bottom:2px;">🎵</div>TikTok</div>
+                <div class="share-item-card" onclick="shareToPlatform('YouTube', 'https://youtube.com')"><div style="font-size:22px; margin-bottom:2px;">▶️</div>YouTube</div>
+                <div class="share-item-card" onclick="shareToPlatform('Twitter / X', 'https://twitter.com/intent/tweet?text=Live')"><div style="font-size:22px; margin-bottom:2px;">🐦</div>Twitter / X</div>
+                <div class="share-item-card" onclick="shareToPlatform('IMO', 'imo://chat')"><div style="font-size:22px; margin-bottom:2px;">💙</div>IMO Chat</div>
+                <div class="share-item-card" onclick="shareToPlatform('Messenger', 'https://m.me')"><div style="font-size:22px; margin-bottom:2px;">⚡</div>Messenger</div>
+            </div>
         </div>
     </div>
 
@@ -351,13 +396,13 @@
             document.getElementById('seatInviteModal').style.display = 'flex';
         }
 
-        function closeInviteModal() {
-            document.getElementById('seatInviteModal').style.display = 'none';
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
         }
 
         function inviteFriendDirect(friendName) {
             alert('✅ Successfully invited online friend ' + friendName + ' to Seat #' + currentSeatTarget + '!');
-            closeInviteModal();
+            closeModal('seatInviteModal');
         }
 
         function searchGlobalUser() {
@@ -365,7 +410,7 @@
             if(query) {
                 alert('🔍 Global Search Result: Found creator "' + query + '". Invitation sent to Seat #' + currentSeatTarget + '!');
                 document.getElementById('globalSearchInput').value = '';
-                closeInviteModal();
+                closeModal('seatInviteModal');
             } else {
                 alert('⚠️ Please enter a name or ID to search.');
             }
@@ -381,7 +426,7 @@
                     alert('📌 Seat #' + currentSeatTarget + ' unpinned.');
                 }
             }
-            closeInviteModal();
+            closeModal('seatInviteModal');
         }
 
         function toggleSeatMic(badgeEl) {
@@ -525,20 +570,45 @@
             }
         }
 
-        function openLiveGiftModal() {
-            let giftName = prompt("🎁 Choose a Gift to send (Rose, Heart, Car, Lion):", "Rose 🌹");
-            if(giftName) {
-                let currentCoins = parseInt(document.getElementById('liveCoinsCount').innerText);
-                document.getElementById('liveCoinsCount').innerText = currentCoins + 50;
-                alert('🎉 Successfully sent ' + giftName + ' to live room creator!\n🪙 Coins added.');
+        /* REAL WALLET CONNECTED GIFT SYSTEM */
+        function openRealGiftModal() {
+            document.getElementById('realGiftModal').style.display = 'flex';
+        }
+
+        function sendRealGift(giftName, coinCost) {
+            let walletElem = document.getElementById('userWalletCoins');
+            let currentCoins = parseInt(walletElem.innerText);
+
+            if(currentCoins >= coinCost) {
+                let remainingCoins = currentCoins - coinCost;
+                walletElem.innerText = remainingCoins;
+                
+                // Add to chat feed
+                let chatArea = document.getElementById('liveChatScrollArea');
+                chatArea.innerHTML += `
+                    <div style="font-size:11px; color:#ffcc00; display:flex; justify-content:space-between; align-items:center;">
+                        <span>🎁 <b>You:</b> Sent ${giftName} (-${coinCost} Coins)</span>
+                        <span style="font-size:9px; color:#888;">Gift</span>
+                    </div>
+                `;
+                chatArea.scrollTop = chatArea.scrollHeight;
+
+                alert('🎉 Successfully sent ' + giftName + '!\n🪙 ' + coinCost + ' Coins deducted from your wallet.\nRemaining Balance: ' + remainingCoins + ' Coins.');
+                closeModal('realGiftModal');
+            } else {
+                alert('❌ Insufficient Coins! Your wallet balance is ' + currentCoins + ' coins. Please top up from Wallet.');
             }
         }
 
-        function openLiveShareModal() {
-            let platform = prompt("Share Live Room to Social Media:\n1. WhatsApp\n2. Facebook\n3. TikTok\n4. YouTube", "WhatsApp");
-            if(platform) {
-                alert('🚀 Live room link successfully shared to ' + platform + '!');
-            }
+        /* REAL SOCIAL MEDIA SHARE SYSTEM */
+        function openRealShareModal() {
+            document.getElementById('realShareModal').style.display = 'flex';
+        }
+
+        function shareToPlatform(platformName, shareUrl) {
+            alert('🔗 Live room link generated successfully for ' + platformName + '!\nOpening app share dialog...');
+            window.open(shareUrl, '_blank');
+            closeModal('realShareModal');
         }
 
         function stopLiveBroadcast() {
