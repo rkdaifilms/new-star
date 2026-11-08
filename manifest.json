@@ -1,7 +1,8 @@
-hereu{
+{
   "name": "New Star App",
   "short_name": "New Star",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#fe2c55",
