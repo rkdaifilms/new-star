@@ -21,7 +21,7 @@
         .section-desc { font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4; }
 
         label { display: block; width: 100%; font-size: 12px; color: #ccc; margin-bottom: 5px; }
-        input { width: 100%; padding: 11px; background: #111; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-size: 13px; outline: none; }
+        input, select { width: 100%; padding: 11px; background: #111; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-size: 13px; outline: none; }
         
         .btn { display: block; width: 100%; background: linear-gradient(135deg, #00b4d8, #25f4ee); color: #000; text-align: center; padding: 13px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; }
 
@@ -32,16 +32,17 @@
 
         .pk-scoreboard { display: none; justify-content: space-between; align-items: center; background: #220000; border: 1px solid #ff4444; padding: 6px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; font-weight: bold; }
 
-        .stream-container { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #333; margin-bottom: 8px; }
-        #gameScreenVideoElement { width: 100%; height: 100%; object-fit: fill; background: #000; }
+        /* Big Game Screen Capture Container (1:1 / 16:9) */
+        .stream-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #333; margin-bottom: 8px; }
+        #gameScreenVideoElement { width: 100%; height: 100%; object-fit: contain; background: #000; }
         .app-stream-logo { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); border: 1px solid #00b4d8; padding: 2px 8px; border-radius: 6px; font-size: 10px; color: #00b4d8; font-weight: bold; z-index: 5; }
 
-        /* Movable, Zoomable & Hideable Floating Facecam */
-        .floating-facecam { position: absolute; top: 20px; right: 20px; width: 100px; height: 130px; background: #222; border: 2px solid #00b4d8; border-radius: 8px; overflow: hidden; z-index: 30; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.9); cursor: grab; touch-action: none; }
+        /* Movable, Zoomable & Resizable Real Camera Floating Facecam */
+        .floating-facecam { position: absolute; top: 15px; right: 15px; width: 90px; height: 120px; background: #222; border: 2px solid #00b4d8; border-radius: 8px; overflow: hidden; z-index: 30; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.9); cursor: grab; touch-action: none; }
         .floating-facecam:active { cursor: grabbing; }
         #facecamVideoElement { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
         .facecam-controls { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 35; }
-        .fc-btn { background: rgba(0,0,0,0.8); color: #fff; border: none; font-size: 10px; padding: 2px 5px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .fc-btn { background: rgba(0,0,0,0.8); color: #fff; border: none; font-size: 9px; padding: 2px 4px; border-radius: 3px; cursor: pointer; font-weight: bold; }
 
         .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; }
         .modal-box { background: #181818; border: 1px solid #00b4d8; width: 90%; max-width: 380px; padding: 20px; border-radius: 16px; text-align: left; }
@@ -65,12 +66,12 @@
     <!-- GAMING SETUP PANEL -->
     <div class="studio-card" id="gamingSetupPanel">
         <div class="section-title">Pro Gaming Screen Stream</div>
-        <div class="section-desc">Capture your mobile game screen (Free Fire, etc.) with zoomable front facecam!</div>
+        <div class="section-desc">Record mobile screen (Free Fire) with real movable & zoomable front/back facecam!</div>
         
         <label>Game Name:</label>
         <input type="text" id="gameNameInput" value="Free Fire Mobile">
         
-        <button class="btn" onclick="startProGamingStream()">🚀 Launch Game Screen Stream</button>
+        <button class="btn" onclick="startProGamingStream()">🚀 Launch Screen Stream & Real Facecam</button>
     </div>
 
     <!-- ACTIVE GAMING VIEW -->
@@ -82,31 +83,33 @@
 
         <div id="pkScoreboardGame" class="pk-scoreboard">
             <span style="color:#00b4d8;">⚔️ You: <b id="myGamePkScore">0</b> pts</span>
-            <span style="color:#ffcc00; font-size:9px;">GAMER PK BATTLE</span>
+            <span style="color:#ffcc00; font-size:9px;" id="pkModeBadge">GAMER PK BATTLE</span>
             <span style="color:#ff4444;">Rival: <b id="rivalGamePkScore">0</b> pts</span>
         </div>
 
         <div class="stream-container" id="streamContainerBox">
             <div class="app-stream-logo">★ Star New Star Gaming</div>
-            <video id="gameScreenVideoElement" autoplay playsinline muted></video>
+            <!-- Big View: Mobile Screen / Game Display Capture -->
+            <video id="gameScreenVideoElement" autoplay playsinline></video>
             
-            <!-- Draggable & Zoomable Facecam -->
+            <!-- Small View: Real Movable, Zoomable & Switchable Camera Facecam -->
             <div class="floating-facecam" id="floatingFacecamBox">
                 <div class="facecam-controls">
                     <button class="fc-btn" onclick="zoomFacecamIn()" title="Zoom In">+</button>
                     <button class="fc-btn" onclick="zoomFacecamOut()" title="Zoom Out">-</button>
-                    <button class="fc-btn" onclick="toggleFacecamCam()" title="Cam On/Off">📷</button>
+                    <button class="fc-btn" onclick="switchCameraFacing()" title="Switch Front/Back" id="switchCamBtn">🔄</button>
                     <button class="fc-btn" onclick="closeFacecam()" title="Close">✕</button>
                 </div>
                 <video id="facecamVideoElement" autoplay playsinline muted></video>
             </div>
         </div>
 
+        <!-- Controls Bar: Mic, Pause, PK, Box -->
         <div style="display:flex; justify-content:space-between; align-items:center; background:#181818; padding:6px 10px; border-radius:8px; margin-bottom:8px; font-size:11px;">
             <span>🎙️ Mic: <b id="gameMicStatusText" style="color:#00b4d8;">ON</b></span>
             <button style="background:#333; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="toggleGameMic()">Mute</button>
+            <button style="background:#00b4d8; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" id="pauseResumeBtn" onclick="togglePauseStream()">⏸️ Pause</button>
             <button style="background:#ffcc00; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openGamePkModal()">⚔️ PK</button>
-            <button style="background:#ff6600; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openTreasureModal()">🎁 Box</button>
         </div>
 
         <div style="display:flex; gap:6px;">
@@ -133,21 +136,21 @@
         </div>
     </div>
 
-    <!-- TREASURE BOX MODAL -->
-    <div id="treasureModal" class="custom-modal">
-        <div class="modal-box" style="border-color: #ffcc00;">
-            <h4 style="color: #ffcc00; font-size: 16px; margin-bottom:10px;">🎁 Drop Treasure Box</h4>
-            <input type="number" id="boxCoinsInput" value="100" style="margin-bottom:10px;">
-            <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold; margin-top:0;" onclick="deployTreasureBox()">🚀 Drop Box</button>
-        </div>
-    </div>
-
     <!-- PK BATTLE MODAL -->
     <div id="pkBattleModal" class="custom-modal">
         <div class="modal-box" style="border-color:#ffcc00;">
-            <h4 style="color:#ffcc00; font-size:16px; margin-bottom:10px;">⚔️ Start Gamer PK Battle</h4>
-            <select id="pkMode" style="margin-bottom:10px;"><option value="1v1">1v1 Battle</option><option value="2v2">2v2 Battle</option></select>
-            <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold;" onclick="startPkBattle()">🚀 Start PK Battle Now</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color: #ffcc00; font-size: 16px;">⚔️ Start Gamer PK Battle</h4>
+                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('pkBattleModal')">✕</span>
+            </div>
+            
+            <label style="color:#ffcc00; margin-bottom:4px;">Select Battle Rooms / Players:</label>
+            <select id="pkModeSelect" style="margin-bottom:12px;">
+                <option value="1v1">⚔️ 1v1 Battle (2 Players)</option>
+                <option value="2v2" selected>👥 2v2 Battle (4 Rooms)</option>
+            </select>
+            
+            <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold; margin-top:0;" onclick="startPkBattle()">🚀 Launch PK Battle Now</button>
         </div>
     </div>
 
@@ -163,10 +166,11 @@
     <script>
         let gameStreamObj = null;
         let facecamStreamObj = null;
-        let isFacecamActive = true;
+        let useFrontCamera = true;
         let scaleLevel = 1;
         let myPkPts = 0;
         let isPkLive = false;
+        let isStreamPaused = false;
 
         window.onload = function() { initDraggableFacecam(); };
 
@@ -175,35 +179,76 @@
             document.getElementById('activeGamingView').style.display = 'block';
 
             let gameVid = document.getElementById('gameScreenVideoElement');
-            let faceVid = document.getElementById('facecamVideoElement');
             let faceBox = document.getElementById('floatingFacecamBox');
 
-            // 1. Capture Phone Screen / Game Play via getDisplayMedia
+            // 1. Big View: Direct Mobile Screen / Game Display Capture
             if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-                navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" }, audio: true })
+                navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true })
                     .then(stream => {
                         gameStreamObj = stream;
                         gameVid.srcObject = stream;
+                        
+                        stream.getVideoTracks()[0].onended = function() {
+                            stopGameStream();
+                        };
                     })
                     .catch(err => {
-                        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                            .then(stream => { gameStreamObj = stream; gameVid.srcObject = stream; });
+                        alert('⚠️ Screen capture permission is required for mobile game streaming.');
+                        stopGameStream();
                     });
             } else {
-                navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                    .then(stream => { gameStreamObj = stream; gameVid.srcObject = stream; });
+                alert('⚠️ Screen recording is not supported on this device browser.');
             }
 
-            // 2. Capture Front Camera for Facecam
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                .then(stream => {
-                    facecamStreamObj = stream;
-                    faceVid.srcObject = stream;
-                    faceBox.style.display = 'block';
-                })
-                .catch(err => { faceBox.style.display = 'none'; });
+            // 2. Small View: Real Camera for Facecam (Front/Back switchable)
+            startRealFacecam();
         }
 
+        function startRealFacecam() {
+            if(facecamStreamObj) {
+                facecamStreamObj.getTracks().forEach(t => t.stop());
+            }
+            let constraints = {
+                video: { facingMode: useFrontCamera ? "user" : "environment" },
+                audio: true
+            };
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    facecamStreamObj = stream;
+                    document.getElementById('facecamVideoElement').srcObject = stream;
+                    document.getElementById('floatingFacecamBox').style.display = 'block';
+                })
+                .catch(err => {
+                    console.log('Camera error:', err);
+                });
+        }
+
+        function switchCameraFacing() {
+            useFrontCamera = !useFrontCamera;
+            startRealFacecam();
+        }
+
+        // Pause / Resume Stream Feature
+        function togglePauseStream() {
+            if(!gameStreamObj) return;
+            isStreamPaused = !isStreamPaused;
+            let videoTrack = gameStreamObj.getVideoTracks()[0];
+            if(videoTrack) {
+                videoTrack.enabled = !isStreamPaused;
+            }
+            let btn = document.getElementById('pauseResumeBtn');
+            if(isStreamPaused) {
+                btn.innerHTML = '▶️ Resume';
+                btn.style.background = '#fe2c55';
+                btn.style.color = '#fff';
+            } else {
+                btn.innerHTML = '⏸️ Pause';
+                btn.style.background = '#00b4d8';
+                btn.style.color = '#000';
+            }
+        }
+
+        // Drag & Drop Floating Facecam anywhere on screen
         function initDraggableFacecam() {
             let box = document.getElementById('floatingFacecamBox');
             let isDragging = false, startX, startY, initX, initY;
@@ -224,31 +269,29 @@
             box.addEventListener('pointerup', function() { isDragging = false; });
         }
 
+        // Zoom Facecam In / Out
         function zoomFacecamIn() {
-            scaleLevel = Math.min(scaleLevel + 0.5, 3.0);
+            scaleLevel = Math.min(scaleLevel + 0.4, 2.5);
             let box = document.getElementById('floatingFacecamBox');
-            box.style.width = (100 * scaleLevel) + 'px';
-            box.style.height = (130 * scaleLevel) + 'px';
+            box.style.width = (90 * scaleLevel) + 'px';
+            box.style.height = (120 * scaleLevel) + 'px';
         }
 
         function zoomFacecamOut() {
-            scaleLevel = Math.max(scaleLevel - 0.5, 1.0);
+            scaleLevel = Math.max(scaleLevel - 0.4, 0.8);
             let box = document.getElementById('floatingFacecamBox');
-            box.style.width = (100 * scaleLevel) + 'px';
-            box.style.height = (130 * scaleLevel) + 'px';
+            box.style.width = (90 * scaleLevel) + 'px';
+            box.style.height = (120 * scaleLevel) + 'px';
         }
 
-        function toggleFacecamCam() {
-            let box = document.getElementById('floatingFacecamBox');
-            isFacecamActive = !isFacecamActive;
-            box.style.display = isFacecamActive ? 'block' : 'none';
+        function closeFacecam() {
+            document.getElementById('floatingFacecamBox').style.display = 'none';
+            if(facecamStreamObj) facecamStreamObj.getTracks().forEach(t => t.stop());
         }
-
-        function closeFacecam() { document.getElementById('floatingFacecamBox').style.display = 'none'; }
         
         function nativeShareGameStream() {
             if (navigator.share) {
-                navigator.share({ title: 'Pro Gaming Stream', text: 'Watch my game streaming live! 🔥', url: window.location.href });
+                navigator.share({ title: 'Pro Gaming Stream', text: 'Watch my mobile game streaming live! 🔥', url: window.location.href });
             } else {
                 alert('📋 Link copied to clipboard!');
                 navigator.clipboard.writeText(window.location.href);
@@ -256,7 +299,6 @@
         }
 
         function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
-        function openTreasureModal() { document.getElementById('treasureModal').style.display = 'flex'; }
         function openGamePkModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
         
         function sendRealGift(name, cost) {
@@ -270,21 +312,20 @@
             } else { alert('❌ Not enough coins in wallet!'); }
         }
 
-        function deployTreasureBox() {
-            alert('🎁 Treasure box dropped successfully!');
-            closeModal('treasureModal');
-        }
-
         function startPkBattle() {
-            isPkLive = true; myPkPts = 100;
+            let mode = document.getElementById('pkModeSelect').value;
+            isPkLive = true; 
+            myPkPts = 100;
             document.getElementById('pkScoreboardGame').style.display = 'flex';
+            document.getElementById('pkModeBadge').innerText = 'PK BATTLE (' + mode + ')';
             document.getElementById('myGamePkScore').innerText = myPkPts;
             document.getElementById('rivalGamePkScore').innerText = 100;
-            alert('⚔️ Gamer PK Battle Started!');
+            alert('⚔️ Gamer PK Battle (' + mode + ') Launched Successfully!');
             closeModal('pkBattleModal');
         }
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
         function stopGameStream() {
             if(gameStreamObj) gameStreamObj.getTracks().forEach(t => t.stop());
             if(facecamStreamObj) facecamStreamObj.getTracks().forEach(t => t.stop());
@@ -296,7 +337,9 @@
         function toggleGameMic() {
             isGameMicMuted = !isGameMicMuted;
             document.getElementById('gameMicStatusText').innerText = isGameMicMuted ? 'MUTED' : 'ON';
-            if(gameStreamObj) gameStreamObj.getAudioTracks().forEach(t => t.enabled = !isGameMicMuted);
+            if(gameStreamObj && gameStreamObj.getAudioTracks().length > 0) {
+                gameStreamObj.getAudioTracks().forEach(t => t.enabled = !isGameMicMuted);
+            }
         }
     </script>
 </body>
