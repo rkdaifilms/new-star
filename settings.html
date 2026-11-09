@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Settings and Privacy - New Star Creator Hub</title>
+    <title>Settings and Privacy - New Star</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         html, body { background-color: var(--app-bg, #000); color: var(--app-text, #fff); width: 100%; min-height: 100vh; overflow-x: hidden; }
@@ -16,7 +16,6 @@
 
         .section-title { font-size: 12px; color: var(--theme-color, #fe2c55); text-transform: uppercase; letter-spacing: 1px; padding: 25px 20px 8px; font-weight: bold; }
         
-        /* Icon-Based Clean Setting Items */
         .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #121212; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: 0.2s; }
         .setting-item:hover { background: #1c1c1c; }
         .setting-left { display: flex; align-items: center; gap: 12px; }
@@ -36,16 +35,13 @@
         
         .form-input { width: 100%; padding: 10px 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 13px; margin-top: 5px; margin-bottom: 10px; outline: none; }
         .action-pub-btn { background: var(--theme-color, #fe2c55); color: #fff; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
-
         .modal-option { padding: 12px 15px; background: #222; border: 1px solid #444; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-size: 14px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
         .modal-option:hover { border-color: var(--theme-color, #fe2c55); }
 
-        /* 50+ Themes Grid */
         .theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 350px; overflow-y: auto; margin-top: 10px; }
         .theme-card { padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; font-size: 12px; font-weight: bold; border: 1px solid #444; color: #fff; display: flex; align-items: center; gap: 8px; }
         .color-dot { width: 18px; height: 18px; border-radius: 50%; display: inline-block; border: 1px solid #fff; }
 
-        /* Toggle Switch */
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 24px; }
@@ -63,79 +59,20 @@
         <span>⚙️</span>
     </div>
 
-    <!-- 1. GIFTS & MONETIZATION -->
-    <div class="section-title" id="txtSecGifts">🎁 LIVE Gifts, Sponsorships & Subscriptions</div>
-    
-    <div class="setting-item" onclick="openLiveGiftRulesModal()">
+    <!-- 💼 CREATOR & MONETIZATION HUB LINK -->
+    <div class="section-title">Creator Portal</div>
+    <div class="setting-item" onclick="window.location.href='monetization.html'" style="background: linear-gradient(135deg, #161625, #1f1f3a);">
         <div class="setting-left">
-            <span class="setting-icon">💎</span>
+            <span class="setting-icon">💼</span>
             <div class="setting-text">
-                <h4 id="txtLiveGifts">Live Stream Gifts & Treasure Box</h4>
-                <p>Send and receive 16+ real creator gifts</p>
+                <h4 style="color: #25f4ee;">Creator & Monetization Hub</h4>
+                <p>New Star Campaigns, Affiliate, Brand Deals & Video Boost</p>
             </div>
         </div>
-        <span class="right-val" style="color:#ffcc00; font-weight:bold;">Active 🎁</span>
+        <span class="right-val" style="color:#25f4ee; font-weight:bold;">Open ❯</span>
     </div>
 
-    <div class="setting-item" onclick="openReferralModal()" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
-        <div class="setting-left">
-            <span class="setting-icon">👥</span>
-            <div class="setting-text">
-                <h4 style="color: #25f4ee;" id="txtInviteBonus">Invite Friends & Earn $1.00 Bonus</h4>
-                <p>Earn 5% daily commission until $1.00 reached</p>
-            </div>
-        </div>
-        <span class="right-val" style="color: #25f4ee; font-weight: bold;">Earn $1 ❯</span>
-    </div>
-
-    <!-- 🔒 NEW STAR CAMPAIGNS (1K Followers Lock) -->
-    <div class="setting-item" onclick="checkCampaignAccess()">
-        <div class="setting-left">
-            <span class="setting-icon">⭐</span>
-            <div class="setting-text">
-                <h4 id="txtNewStarCamp">New Star Campaigns (Brands & Artists)</h4>
-                <p>Country & Worldwide music/brand campaigns</p>
-            </div>
-        </div>
-        <span class="right-val" id="campLockStatus" style="color:#ffcc00;">Locked (0/1K) 🔒</span>
-    </div>
-
-    <!-- 🔒 AFFILIATE MARKETING PROGRAM (1K Followers Lock) -->
-    <div class="setting-item" onclick="checkAffiliateAccess()">
-        <div class="setting-left">
-            <span class="setting-icon">🔗</span>
-            <div class="setting-text">
-                <h4 id="txtAffiliate">Affiliate Marketing Program</h4>
-                <p>Earn direct product sales commission</p>
-            </div>
-        </div>
-        <span class="right-val" id="affLockStatus" style="color:#ffcc00;">Locked (0/1K) 🔒</span>
-    </div>
-
-    <!-- 🚀 DIRECT VIDEO BOOST / PROMOTION SYSTEM -->
-    <div class="setting-item" onclick="openVideoBoostModal()">
-        <div class="setting-left">
-            <span class="setting-icon">📈</span>
-            <div class="setting-text">
-                <h4 id="txtVideoBoost">Promote & Boost Your Video</h4>
-                <p>Get 1,000 to 10,000+ views instantly (Paid)</p>
-            </div>
-        </div>
-        <span class="right-val" style="color:#25f4ee;">Boost 🚀</span>
-    </div>
-
-    <div class="setting-item" onclick="openSubscriptionModal()">
-        <div class="setting-left">
-            <span class="setting-icon">⭐</span>
-            <div class="setting-text">
-                <h4 id="txtFanClub">Creator Monthly Subscriptions</h4>
-                <p>Set monthly fan club subscription pricing</p>
-            </div>
-        </div>
-        <span class="right-val" style="color:#25f4ee; font-weight:bold;">Active ⭐</span>
-    </div>
-
-    <!-- 2. ACCOUNT & SECURITY -->
+    <!-- ACCOUNT & SECURITY -->
     <div class="section-title" id="txtSecAccount">Account & Security</div>
     
     <div class="setting-item">
@@ -153,96 +90,48 @@
     </div>
 
     <div class="setting-item" onclick="openAccountInfoModal()">
-        <div class="setting-left">
-            <span class="setting-icon">📱</span>
-            <div class="setting-text">
-                <h4 id="txtAccInfo">Account Information</h4>
-                <p>Phone, Email, DOB & Region management</p>
-            </div>
-        </div>
+        <div class="setting-left"><span class="setting-icon">📱</span><div class="setting-text"><h4 id="txtAccInfo">Account Information</h4><p>Phone, Email, DOB & Region management</p></div></div>
         <span class="right-val">Manage ❯</span>
     </div>
 
     <div class="setting-item" onclick="openPasswordModal()">
-        <div class="setting-left">
-            <span class="setting-icon">🔑</span>
-            <div class="setting-text">
-                <h4 id="txtSecurity">Password & Security</h4>
-                <p>Update your login credentials securely</p>
-            </div>
-        </div>
+        <div class="setting-left"><span class="setting-icon">🔑</span><div class="setting-text"><h4 id="txtSecurity">Password & Security</h4><p>Update login credentials securely</p></div></div>
         <span class="right-val">Update ❯</span>
     </div>
 
     <div class="setting-item" onclick="openBlockListModal()">
-        <div class="setting-left">
-            <span class="setting-icon">🚫</span>
-            <div class="setting-text">
-                <h4 id="txtBlockedUsers">Blocked Users & Fraud Management</h4>
-                <p>Manage restricted accounts and security</p>
-            </div>
-        </div>
+        <div class="setting-left"><span class="setting-icon">🚫</span><div class="setting-text"><h4 id="txtBlockedUsers">Blocked Users & Fraud Management</h4><p>Manage restricted accounts</p></div></div>
         <span class="right-val" style="color:var(--theme-color, #fe2c55);">Manage ❯</span>
     </div>
 
     <div class="setting-item" onclick="window.location.href='wallet.html'">
-        <div class="setting-left">
-            <span class="setting-icon">🪙</span>
-            <div class="setting-text">
-                <h4 id="txtWalletCards">Cards & Coin Balance</h4>
-                <p>Check spendable and withdrawable wallet</p>
-            </div>
-        </div>
+        <div class="setting-left"><span class="setting-icon">🪙</span><div class="setting-text"><h4 id="txtWalletCards">Cards & Coin Balance</h4><p>Check spendable and withdrawable wallet</p></div></div>
         <span class="right-val">Manage ❯</span>
     </div>
 
-    <!-- 3. SUPPORT & SAFETY -->
+    <!-- SUPPORT & SAFETY -->
     <div class="section-title" id="txtSecSupport">Support & Safety Center</div>
 
     <div class="setting-item" onclick="openAutoModerationPolicyModal()" style="background: linear-gradient(135deg, #2e1a1a, #3e1616);">
-        <div class="setting-left">
-            <span class="setting-icon">🛡️</span>
-            <div class="setting-text">
-                <h4 style="color: #ff4444;" id="txtAutoMod">Auto-Moderation & Content Safety</h4>
-                <p>AI protection against weapons & adult content</p>
-            </div>
-        </div>
+        <div class="setting-left"><span class="setting-icon">🛡️</span><div class="setting-text"><h4 style="color: #ff4444;" id="txtAutoMod">Auto-Moderation & Content Safety</h4><p>AI protection against weapons & adult content</p></div></div>
         <span class="right-val" style="color: #ff4444; font-weight: bold;">Active 🛡️</span>
     </div>
 
     <div class="setting-item" onclick="openHelpModal()">
-        <div class="setting-left">
-            <span class="setting-icon">🛠️</span>
-            <div class="setting-text">
-                <h4 id="txtHelpReport">Help & Report a Problem</h4>
-                <p>Send description and screenshot to developer</p>
-            </div>
-        </div>
+        <div class="setting-left"><span class="setting-icon">🛠️</span><div class="setting-text"><h4 id="txtHelpReport">Help & Report a Problem</h4><p>Send description and screenshot to developer</p></div></div>
         <span class="right-val" style="color:#25f4ee;">Support ❯</span>
     </div>
 
-    <!-- 4. PREFERENCES -->
+    <!-- PREFERENCES -->
     <div class="section-title" id="txtSecPrefs">Preferences & Global Settings</div>
 
     <div class="setting-item" onclick="openLanguageModal()">
-        <div class="setting-left">
-            <span class="setting-icon">🌐</span>
-            <div class="setting-text">
-                <h4 id="txtAppLang">App Language</h4>
-                <p>International multi-language translation</p>
-            </div>
-        </div>
+        <div class="setting-left"><span class="setting-icon">🌐</span><div class="setting-text"><h4 id="txtAppLang">App Language</h4><p>International multi-language translation</p></div></div>
         <span class="right-val" id="selectedLangDisplay">हिन्दी (Hindi) ❯</span>
     </div>
 
     <div class="setting-item" onclick="openThemeModal()">
-        <div class="setting-left">
-            <span class="setting-icon">🎨</span>
-            <div class="setting-text">
-                <h4 id="txtThemes50">Themes & Color Modes</h4>
-                <p>Choose from 50+ custom app color themes</p>
-            </div>
-        </div>
+        <div class="setting-left"><span class="setting-icon">🎨</span><div class="setting-text"><h4 id="txtThemes50">Themes & Color Modes</h4><p>Choose from 50+ custom app color themes</p></div></div>
         <span class="right-val" id="selectedThemeDisplay">TikTok Red (Default) ❯</span>
     </div>
 
@@ -251,106 +140,22 @@
     </div>
 
     <!-- MODALS -->
-    <div class="modal-overlay" id="liveGiftRulesModal">
-        <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('liveGiftRulesModal')">✕</span>
-            <h3 style="color: #ffcc00;">💎 LIVE Gifts & Treasure Box Rules</h3>
-            <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
-                • No complex criteria needed for gifts!<br>
-                • As soon as you go live, viewers can send you **16+ real gifts** (Rose, Car, Lion, Universe, etc.).<br>
-                • Both hosts and viewers can drop **Treasure Boxes** in live rooms with custom timers!
-            </p>
-            <button class="action-pub-btn" style="background:#ffcc00; color:#000;" onclick="closeModal('liveGiftRulesModal')">Got It</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="referralModal">
-        <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('referralModal')">✕</span>
-            <h3 style="color: #25f4ee;">👥 Referral & Commission Hub ($1.00 Reward)</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px; line-height: 1.4;">
-                Share your link anywhere (WhatsApp, IMO, Facebook, TikTok)!<br>
-                🎁 Earn up to <b>$1.00 per referral</b> + daily gift commission cuts.
-            </p>
-            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px;">
-                <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">Your Unique Referral Link:</label>
-                <input type="text" id="myReferralLink" class="form-input" value="https://callpriyance.app/invite?ref=ramkumar06" readonly style="margin-bottom:8px;">
-                <button class="action-pub-btn" style="background:#25f4ee; color:#000; margin-top:0; padding:10px;" onclick="copyReferralLink()">📋 Copy Referral Link</button>
-            </div>
-            <button class="action-pub-btn" style="background:linear-gradient(135deg, #25d366, #128c7e); margin-bottom:12px; padding:12px;" onclick="openPhoneShareDirect()">
-                <span>🌐 Share Directly to WhatsApp, IMO, FB, TikTok...</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- 🚀 VIDEO BOOST / PROMOTION MODAL -->
-    <div class="modal-overlay" id="videoBoostModal">
-        <div class="modal-card" style="border-color: #25f4ee;">
-            <span class="close-modal" onclick="closeModal('videoBoostModal')">✕</span>
-            <h3 style="color: #25f4ee;">📈 Promote & Boost Your Video</h3>
-            <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
-                Select a package to boost your video views instantly across the platform:
-            </p>
-            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(1000, 5)">
-                <h4 style="color:#ffcc00; font-size:14px;">🔥 1,000 Views Pack</h4>
-                <p style="font-size:11px; color:#aaa;">Price: $5.00 (500 Coins)</p>
-            </div>
-            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(5000, 20)">
-                <h4 style="color:#25f4ee; font-size:14px;">🚀 5,000 Views Pack</h4>
-                <p style="font-size:11px; color:#aaa;">Price: $20.00 (2,000 Coins)</p>
-            </div>
-            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px; cursor:pointer;" onclick="boostPackage(10000, 35)">
-                <h4 style="color:#fe2c55; font-size:14px;">🌟 10,000+ Viral Pack</h4>
-                <p style="font-size:11px; color:#aaa;">Price: $35.00 (3,500 Coins)</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="subscriptionModal">
-        <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('subscriptionModal')">✕</span>
-            <h3>⭐ Creator Fan Club Subscriptions</h3>
-            <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
-                • Set your monthly subscription price for loyal fans (e.g. $4.99/month).<br>
-                • Subscribers get exclusive badge in live chat, custom emojis, and access to private posts.<br>
-                • Earn recurring monthly revenue directly into your wallet!
-            </p>
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">Monthly Subscription Price ($):</label>
-            <input type="number" class="form-input" value="4.99" style="margin-bottom:12px;">
-            <button class="action-pub-btn" style="background:#25f4ee; color:#000;" onclick="alert('✅ Fan Club Subscription settings saved!')">Save Subscription Plan</button>
-        </div>
-    </div>
-
     <div class="modal-overlay" id="autoModerationPolicyModal">
         <div class="modal-card" style="border-color: #ff4444;">
             <span class="close-modal" onclick="closeModal('autoModerationPolicyModal')">✕</span>
             <h3 style="color: #ff4444;">🛡️ Auto-Moderation & Content Safety System</h3>
             <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
-                <b>Strict Content Protection Policy:</b><br>
-                • <b>Weapons & Violence:</b> Videos featuring knives, sharp weapons, physical fights, or harming children are **strictly prohibited**.<br>
-                • <b>Adult & Porn Content:</b> Explicit or NSFW videos are automatically blocked by the system.<br>
-                • <b>AI Auto-Detection:</b> Our automated AI scanner inspects every uploaded video instantly. If a violation is detected, the video is **automatically blocked from publishing**, and an instant warning is sent to the user to delete it.<br>
-                • <b>AdMob & Monetization Protection:</b> This strict policy safeguards our advertising network accounts from being banned or flagged.
+                Strict AI detection protects ads and keeps community safe.
             </p>
-            <button class="action-pub-btn" style="background:#ff4444; color:#fff;" onclick="closeModal('autoModerationPolicyModal')">Understand & Close</button>
+            <button class="action-pub-btn" style="background:#ff4444; color:#fff;" onclick="closeModal('autoModerationPolicyModal')">Close</button>
         </div>
     </div>
 
-    <!-- 🛠️ HELP & SUPPORT WITH SCREENSHOT UPLOAD -->
     <div class="modal-overlay" id="helpModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('helpModal')">✕</span>
             <h3>🛠️ Help & Report a Problem</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:8px;">Describe your issue and attach a screenshot if needed:</p>
             <textarea id="issueDesc" class="form-input" rows="3" placeholder="Describe your issue here..." style="resize:none;"></textarea>
-            
-            <div style="margin-bottom: 12px;">
-                <label style="font-size:11px; color:#25f4ee; display:block; margin-bottom:4px;">📷 Attach Screenshot / Evidence:</label>
-                <input type="file" id="supportScreenshotFile" accept="image/*" style="display:none;" onchange="previewSupportImage(event)">
-                <label for="supportScreenshotFile" style="display:block; background:#222; border:1px dashed #fe2c55; color:#25f4ee; padding:10px; text-align:center; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold;">📁 Browse Screenshot from Gallery</label>
-                <div id="screenshotPreviewBox" style="margin-top:8px; font-size:11px; color:#00ffcc;"></div>
-            </div>
-
             <button class="action-pub-btn" onclick="submitSupportTicket()">Submit Report</button>
         </div>
     </div>
@@ -383,306 +188,52 @@
         </div>
     </div>
 
-    <!-- 🌐 INTERNATIONAL LANGUAGE SELECTOR -->
     <div class="modal-overlay" id="langModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('langModal')">✕</span>
             <h3>🌐 Select International Language</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Choose any country language to instantly translate:</p>
-            <div style="max-height: 350px; overflow-y: auto;">
+            <div style="max-height: 300px; overflow-y: auto;">
                 <div class="modal-option" onclick="setLanguage('हिन्दी (Hindi)', 'hi')"><span>🇮🇳 हिन्दी (Hindi)</span></div>
                 <div class="modal-option" onclick="setLanguage('नेपाली (Nepali)', 'ne')"><span>🇳🇵 नेपाली (Nepali)</span></div>
                 <div class="modal-option" onclick="setLanguage('English (US)', 'en')"><span>🇺🇸 English (US)</span></div>
-                <div class="modal-option" onclick="setLanguage('中国人 (Chinese / Mandarin)', 'zh')"><span>🇨🇳 中文 (Chinese)</span></div>
-                <div class="modal-option" onclick="setLanguage('Español (Spanish)', 'es')"><span>🇪🇸 Español (Spanish)</span></div>
-                <div class="modal-option" onclick="setLanguage('Français (French)', 'fr')"><span>🇫🇷 Français (French)</span></div>
-                <div class="modal-option" onclick="setLanguage('العربية (Arabic)', 'ar')"><span>🇸🇦 العربية (Arabic)</span></div>
-                <div class="modal-option" onclick="setLanguage('日本語 (Japanese)', 'ja')"><span>🇯🇵 日本語 (Japanese)</span></div>
-                <div class="modal-option" onclick="setLanguage('Deutsch (German)', 'de')"><span>🇩🇪 Deutsch (German)</span></div>
-                <div class="modal-option" onclick="setLanguage('Русский (Russian)', 'ru')"><span>🇷🇺 Русский (Russian)</span></div>
-                <div class="modal-option" onclick="setLanguage('Português (Portuguese)', 'pt')"><span>🇧🇷 Português (Portuguese)</span></div>
-                <div class="modal-option" onclick="setLanguage('Italiano (Italian)', 'it')"><span>🇮🇹 Italiano (Italian)</span></div>
-                <div class="modal-option" onclick="setLanguage('한국어 (Korean)', 'ko')"><span>🇰🇷 한국어 (Korean)</span></div>
-                <div class="modal-option" onclick="setLanguage('Türkçe (Turkish)', 'tr')"><span>🇹🇷 Türkçe (Turkish)</span></div>
-                <div class="modal-option" onclick="setLanguage('বাংলা (Bengali)', 'bn')"><span>🇧🇩 বাংলা (Bengali)</span></div>
             </div>
         </div>
     </div>
 
-    <!-- 🎨 50+ CUSTOM THEMES MODAL -->
     <div class="modal-overlay" id="themeModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('themeModal')">✕</span>
             <h3>🎨 Select Theme (50+ Custom Colors)</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Select any color to instantly transform the app:</p>
             <div class="theme-grid" id="themeGridContainer"></div>
         </div>
     </div>
 
-    <!-- 🌟 NAVBAR SCRIPT LOADER -->
     <script src="navbar.js"></script>
-
     <script>
-        const themeList = [
-            { name: 'TikTok Red', hex: '#fe2c55' },
-            { name: 'Neon Cyan', hex: '#25f4ee' },
-            { name: 'Royal Gold', hex: '#ffcc00' },
-            { name: 'Emerald Green', hex: '#00b09b' },
-            { name: 'Electric Purple', hex: '#8a2be2' },
-            { name: 'Sunset Orange', hex: '#ff4500' },
-            { name: 'Deep Ocean Blue', hex: '#0077b6' },
-            { name: 'Hot Pink', hex: '#ff1493' },
-            { name: 'Lime Neon', hex: '#39ff14' },
-            { name: 'Cyber Yellow', hex: '#ffe600' },
-            { name: 'Crimson Red', hex: '#dc143c' },
-            { name: 'Turquoise', hex: '#40e0d0' },
-            { name: 'Amethyst', hex: '#9966cc' },
-            { name: 'Tangerine', hex: '#ff851b' },
-            { name: 'Sky Blue', hex: '#00b4d8' },
-            { name: 'Neon Magenta', hex: '#ff00ff' },
-            { name: 'Spring Green', hex: '#00ff7f' },
-            { name: 'Neon Violet', hex: '#9400d3' },
-            { name: 'Coral Red', hex: '#ff6f61' },
-            { name: 'Aqua Marine', hex: '#7fffd4' },
-            { name: 'Golden Yellow', hex: '#ffd700' },
-            { name: 'Ruby Red', hex: '#e0115f' },
-            { name: 'Electric Indigo', hex: '#4b0082' },
-            { name: 'Lime Green', hex: '#00ff00' },
-            { name: 'Neon Blue', hex: '#1f51ff' },
-            { name: 'Peach Glow', hex: '#ffdab9' },
-            { name: 'Lavender', hex: '#e6e6fa' },
-            { name: 'Mint Green', hex: '#98ff98' },
-            { name: 'Rose Gold', hex: '#b76e79' },
-            { name: 'Steel Blue', hex: '#4682b4' },
-            { name: 'Chocolate', hex: '#d2691e' },
-            { name: 'Dark Orchid', hex: '#9932cc' },
-            { name: 'Neon Lime', hex: '#a6e22e' },
-            { name: 'Flamingo', hex: '#fc8eac' },
-            { name: 'Teal', hex: '#008080' },
-            { name: 'Plum', hex: '#dda0dd' },
-            { name: 'Khaki', hex: '#f0e68c' },
-            { name: 'Salmon', hex: '#fa8072' },
-            { name: 'Sienna', hex: '#a0522d' },
-            { name: 'Slate Gray', hex: '#708090' },
-            { name: 'Midnight Blue', hex: '#191970' },
-            { name: 'Olive', hex: '#808000' },
-            { name: 'Orchid', hex: '#da70d6' },
-            { name: 'Periwinkle', hex: '#ccccff' },
-            { name: 'Papaya', hex: '#ffefd5' },
-            { name: 'Aquamarine', hex: '#66cdaa' },
-            { name: 'Burlywood', hex: '#deb887' },
-            { name: 'Cadet Blue', hex: '#5f9ea0' },
-            { name: 'Chartreuse', hex: '#7fff00' },
-            { name: 'Chocolate Brown', hex: '#d2691e' }
-        ];
-
         window.onload = function() {
             let savedColor = localStorage.getItem('appThemeColor') || '#fe2c55';
-            let savedThemeName = localStorage.getItem('appThemeName') || 'TikTok Red';
-            applyGlobalTheme(savedColor, savedThemeName);
-
-            let savedLang = localStorage.getItem('appLanguageName') || 'हिन्दी (Hindi)';
-            let langDisplay = document.getElementById('selectedLangDisplay');
-            if(langDisplay) langDisplay.innerText = savedLang + ' ❯';
-
-            // Check 1K Followers Lock Status
-            checkFollowerLockStatus();
-
-            let gridContainer = document.getElementById('themeGridContainer');
-            if(gridContainer) {
-                gridContainer.innerHTML = '';
-                themeList.forEach(t => {
-                    gridContainer.innerHTML += `
-                        <div class="theme-card" onclick="setTheme('${t.name}', '${t.hex}')" style="background:#222; border-color:#444;">
-                            <span class="color-dot" style="background:${t.hex};"></span>
-                            <span>${t.name}</span>
-                        </div>
-                    `;
-                });
-            }
+            document.documentElement.style.setProperty('--theme-color', savedColor);
         };
-
-        // 🔒 1K Followers Auto-Check Logic
-        function checkFollowerLockStatus() {
-            let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345'); // मान ले अभी 345 फॉलोअर्स हैं
-            let campLock = document.getElementById('campLockStatus');
-            let affLock = document.getElementById('affLockStatus');
-
-            if (userFollowers >= 1000) {
-                if(campLock) { campLock.innerText = 'Active ⭐'; campLock.style.color = '#25f4ee'; }
-                if(affLock) { affLock.innerText = 'Active 🔗'; affLock.style.color = '#25f4ee'; }
-            } else {
-                if(campLock) { campLock.innerText = `Locked (${userFollowers}/1K) 🔒`; campLock.style.color = '#ffcc00'; }
-                if(affLock) { affLock.innerText = `Locked (${userFollowers}/1K) 🔒`; affLock.style.color = '#ffcc00'; }
-            }
-        }
-
-        function checkCampaignAccess() {
-            let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
-            if (userFollowers >= 1000) {
-                window.location.href = 'campaign.html';
-            } else {
-                alert(`🔒 Feature Locked! You need 1,000 followers to unlock New Star Campaigns. You currently have ${userFollowers} followers.`);
-            }
-        }
-
-        function checkAffiliateAccess() {
-            let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
-            if (userFollowers >= 1000) {
-                alert('🔗 Opening Affiliate Marketing Dashboard...');
-            } else {
-                alert(`🔒 Feature Locked! You need 1,000 followers to unlock Affiliate Program. You currently have ${userFollowers} followers.`);
-            }
-        }
-
-        function openVideoBoostModal() {
-            document.getElementById('videoBoostModal').style.display = 'flex';
-        }
-
-        function boostPackage(views, price) {
-            let coins = parseInt(localStorage.getItem('userWalletCoins') || '500');
-            let coinCost = price * 100; // $1 = 100 coins
-            if(coins < coinCost) {
-                alert(`⚠️ Insufficient coins! You need ${coinCost} coins for ${views} views. Top up in Wallet.`);
-                return;
-            }
-            coins -= coinCost;
-            localStorage.setItem('userWalletCoins', coins);
-            closeModal('videoBoostModal');
-            alert(`🚀 Success! Your video has been successfully boosted for ${views} views (-${coinCost} Coins deducted).`);
-        }
-
-        function applyGlobalTheme(colorHex, themeName) {
-            document.documentElement.style.setProperty('--theme-color', colorHex);
-            localStorage.setItem('appThemeColor', colorHex);
-            localStorage.setItem('appThemeName', themeName);
-            let themeDisplay = document.getElementById('selectedThemeDisplay');
-            if(themeDisplay) themeDisplay.innerText = themeName + ' ❯';
-        }
-
-        function setTheme(themeName, colorHex) {
-            applyGlobalTheme(colorHex, themeName);
-            closeModal('themeModal');
-            alert('🎨 App Theme changed to: ' + themeName);
-        }
-
-        function setLanguage(langName, langCode) {
-            localStorage.setItem('appLanguageName', langName);
-            localStorage.setItem('appLanguageCode', langCode);
-            let langDisplay = document.getElementById('selectedLangDisplay');
-            if(langDisplay) langDisplay.innerText = langName + ' ❯';
-            closeModal('langModal');
-
-            if(langCode === 'hi') {
-                document.getElementById('txtSettingsTitle').innerText = "सेटिंग्स और गोपनीयता";
-                document.getElementById('txtSecGifts').innerText = "🎁 लाइव गिफ्ट, स्पॉन्सरशिप और सब्सक्रिप्शन";
-                document.getElementById('txtLiveGifts').innerText = "लाइव स्ट्रीम गिफ्ट और ट्रेजर बॉक्स";
-                document.getElementById('txtInviteBonus').innerText = "दोस्तों को आमंत्रित करें और $1.00 बोनस पाएं";
-                document.getElementById('txtSecAccount').innerText = "खाता और सुरक्षा";
-                document.getElementById('txtSecSupport').innerText = "सहायता और सुरक्षा केंद्र";
-                document.getElementById('txtSecPrefs').innerText = "वरीयताएँ और वैश्विक सेटिंग";
-                document.getElementById('txtLogOutBtn').innerText = "लॉग आउट";
-            } else if(langCode === 'ne') {
-                document.getElementById('txtSettingsTitle').innerText = "सिटिङ्स र गोपनीयता";
-                document.getElementById('txtSecGifts').innerText = "🎁 लाइभ उपहार, प्रायोजन र सदस्यताहरू";
-                document.getElementById('txtLiveGifts').innerText = "लाइभ स्ट्रिम उपहार र ट्रेजर बक्स";
-                document.getElementById('txtInviteBonus').innerText = "साथीहरूलाई आमन्त्रित गर्नुहोस् र $1.00 बोनस पाउनुहोस्";
-                document.getElementById('txtSecAccount').innerText = "खाता र सुरक्षा";
-                document.getElementById('txtSecSupport').innerText = "सहयोग र सुरक्षा केन्द्र";
-                document.getElementById('txtSecPrefs').innerText = "प्राथमिकताहरू र विश्वव्यापी सेटिङहरू";
-                document.getElementById('txtLogOutBtn').innerText = "लग आउट";
-            } else if(langCode === 'zh') {
-                document.getElementById('txtSettingsTitle').innerText = "设置和隐私";
-                document.getElementById('txtSecGifts').innerText = "🎁 直播礼物、赞助与订阅";
-                document.getElementById('txtLiveGifts').innerText = "直播礼物与宝箱";
-                document.getElementById('txtInviteBonus').innerText = "邀请好友并获得 $1.00 奖励";
-                document.getElementById('txtSecAccount').innerText = "账户与安全";
-                document.getElementById('txtSecSupport').innerText = "支持与安全中心";
-                document.getElementById('txtSecPrefs').innerText = "偏好与全局设置";
-                document.getElementById('txtLogOutBtn').innerText = "登出";
-            } else {
-                document.getElementById('txtSettingsTitle').innerText = "Settings and privacy";
-                document.getElementById('txtSecGifts').innerText = "🎁 LIVE Gifts, Sponsorships & Subscriptions";
-                document.getElementById('txtLiveGifts').innerText = "Live Stream Gifts & Treasure Box";
-                document.getElementById('txtInviteBonus').innerText = "Invite Friends & Earn $1.00 Bonus";
-                document.getElementById('txtSecAccount').innerText = "Account & Security";
-                document.getElementById('txtSecSupport').innerText = "Support & Safety Center";
-                document.getElementById('txtSecPrefs').innerText = "Preferences & Global Settings";
-                document.getElementById('txtLogOutBtn').innerText = "Log Out";
-            }
-
-            alert('🌐 App language successfully changed to: ' + langName);
-        }
-
         function toggleAccountPrivacy() {
             let isPrivate = document.getElementById('privateAccountToggle').checked;
             localStorage.setItem('appIsPrivate', isPrivate);
-            alert(isPrivate ? '🔒 Account set to PRIVATE.' : '🌍 Account set to PUBLIC.');
+            alert(isPrivate ? '🔒 Account PRIVATE' : '🌍 Account PUBLIC');
         }
-
-        let supportImageBase64 = '';
-        function previewSupportImage(event) {
-            let file = event.target.files[0];
-            if (file) {
-                let reader = new FileReader();
-                reader.onload = function(e) {
-                    supportImageBase64 = e.target.result;
-                    document.getElementById('screenshotPreviewBox').innerHTML = '✅ Screenshot attached: ' + file.name;
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
         function submitSupportTicket() {
-            let issue = document.getElementById('issueDesc').value.trim();
-            if(!issue && !supportImageBase64) { 
-                alert('⚠️ Please describe your issue or attach a screenshot.'); 
-                return; 
-            }
-            alert('✅ Support ticket and screenshot successfully sent to developer rkdaifilms@gmail.com!');
-            document.getElementById('issueDesc').value = '';
-            supportImageBase64 = '';
-            document.getElementById('screenshotPreviewBox').innerHTML = '';
+            alert('✅ Support ticket sent to developer!');
             closeModal('helpModal');
         }
-
-        function openLiveGiftRulesModal() { document.getElementById('liveGiftRulesModal').style.display = 'flex'; }
-        function openReferralModal() { document.getElementById('referralModal').style.display = 'flex'; }
-        function openSubscriptionModal() { document.getElementById('subscriptionModal').style.display = 'flex'; }
+        function saveAccountInfo() { alert('✅ Saved!'); closeModal('accountInfoModal'); }
         function openAutoModerationPolicyModal() { document.getElementById('autoModerationPolicyModal').style.display = 'flex'; }
         function openHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
-        function openBlockListModal() { document.getElementById('blockModal').style.display = 'flex'; }
         function openAccountInfoModal() { document.getElementById('accountInfoModal').style.display = 'flex'; }
         function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
+        function openBlockListModal() { document.getElementById('blockModal').style.display = 'flex'; }
         function openLanguageModal() { document.getElementById('langModal').style.display = 'flex'; }
         function openThemeModal() { document.getElementById('themeModal').style.display = 'flex'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
-
-        function copyReferralLink() {
-            let linkInput = document.getElementById('myReferralLink');
-            linkInput.select();
-            navigator.clipboard.writeText(linkInput.value);
-            alert('📋 Referral link copied!');
-        }
-
-        function openPhoneShareDirect() {
-            let shareText = "Join New Star using my referral link: https://callpriyance.app/invite?ref=ramkumar06";
-            if (navigator.share) {
-                navigator.share({ title: 'New Star', text: shareText, url: 'https://callpriyance.app/invite?ref=ramkumar06' });
-            } else {
-                navigator.clipboard.writeText(shareText);
-                alert('📋 Link copied to clipboard!');
-            }
-        }
-
-        function saveAccountInfo() {
-            alert('✅ Account info saved!');
-            closeModal('accountInfoModal');
-        }
-
-        function handleLogout() {
-            if(confirm('Are you sure you want to log out?')) { window.location.href = 'index.html'; }
-        }
+        function setLanguage(name) { alert('Language: ' + name); closeModal('langModal'); }
+        function handleLogout() { if(confirm('Log out?')) window.location.href = 'index.html'; }
     </script>
 </body>
 </html>
