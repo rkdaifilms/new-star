@@ -18,6 +18,9 @@
     <!-- 📋 STANDARD MANIFEST LINK -->
     <link rel="manifest" href="manifest.json">
 
+    <!-- ⚡ SUPABASE JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; overflow: hidden; height: 100vh; touch-action: manipulation; }
@@ -73,7 +76,6 @@
         .share-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .share-header h3 { font-size: 15px; color: #fff; }
         
-        /* Multi-Select Friends Section */
         .friends-multi-container { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 12px; scrollbar-width: none; }
         .friends-multi-container::-webkit-scrollbar { display: none; }
         .friend-checkbox-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 65px; text-align: center; position: relative; }
@@ -83,16 +85,13 @@
         .friend-checkbox-item span { font-size: 11px; color: #ccc; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65px; }
 
         .bulk-send-btn { background: #fe2c55; color: #fff; border: none; width: 100%; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; margin-bottom: 12px; display: none; }
-
-        /* Universal Phone Share Main Button */
         .native-share-main-btn { width: 100%; background: linear-gradient(135deg, #00b4d8, #0077b6); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; }
 
-        /* Social Media Icons Grid */
         .share-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center; }
         .share-app-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; margin: 0 auto 5px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-decoration: none; color: #fff; }
         .share-app-item span { font-size: 11px; color: #ccc; }
 
-        /* Bottom Navigation Bar (Updated with Live & Gaming links) */
+        /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
         .nav-item.active { color: #fff; }
@@ -155,13 +154,6 @@
                     <p>Dummy test video super hit hai bhai! 🔥</p>
                 </div>
             </div>
-            <div class="comment-item">
-                <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" class="comment-avatar">
-                <div class="comment-content">
-                    <h4>Ramkumar Dhobi</h4>
-                    <p>Ek number quality chal rahi hai New Star app ki! 👏</p>
-                </div>
-            </div>
         </div>
 
         <div class="comment-input-area">
@@ -182,19 +174,8 @@
             <div class="gift-card" onclick="sendGift('Rose 🌹', 1)"><div class="emoji">🌹</div><h4>Rose</h4><p>1 Coin</p></div>
             <div class="gift-card" onclick="sendGift('Coffee ☕', 5)"><div class="emoji">☕</div><h4>Coffee</h4><p>5 Coins</p></div>
             <div class="gift-card" onclick="sendGift('Finger Heart 🫶', 10)"><div class="emoji">🫶</div><h4>Heart</h4><p>10 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Sunglasses 🕶️', 20)"><div class="emoji">🕶️</div><h4>Glasses</h4><p>20 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('TikTok Icon 🪙', 50)"><div class="emoji">🪙</div><h4>TikTok</h4><p>50 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Sports Car 🏎️', 100)"><div class="emoji">🏎️</div><h4>Car</h4><p>100 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Magic Ring 💍', 200)"><div class="emoji">💍</div><h4>Ring</h4><p>200 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Yacht 🛥️', 500)"><div class="emoji">🛥️</div><h4>Yacht</h4><p>500 Coins</p></div>
             <div class="gift-card" onclick="sendGift('Lion 🦁', 1000)"><div class="emoji">🦁</div><h4>Lion</h4><p>1,000 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Diamond 💎', 1500)"><div class="emoji">💎</div><h4>Diamond</h4><p>1,500 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Golden Crown 👑', 2000)"><div class="emoji">👑</div><h4>Crown</h4><p>2,000 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Private Jet ✈️', 3000)"><div class="emoji">✈️</div><h4>Jet</h4><p>3,000 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Castle 🏰', 5000)"><div class="emoji">🏰</div><h4>Castle</h4><p>5,000 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Dragon 🐉', 10000)"><div class="emoji">🐉</div><h4>Dragon</h4><p>10,000 Coins</p></div>
             <div class="gift-card" onclick="sendGift('Galaxy 🌌', 20000)"><div class="emoji">🌌</div><h4>Galaxy</h4><p>20,000 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Universe 🪐', 50000)"><div class="emoji">🪐</div><h4>Universe</h4><p>50,000 Coins</p></div>
         </div>
     </div>
 
@@ -215,64 +196,12 @@
                 </div>
                 <span>New Star</span>
             </label>
-            <label class="friend-checkbox-item">
-                <div class="friend-avatar-wrap">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" class="friend-share-avatar">
-                    <input type="checkbox" class="friend-chk" value="Support Team" onchange="checkBulkButton()">
-                </div>
-                <span>Support</span>
-            </label>
-            <label class="friend-checkbox-item">
-                <div class="friend-avatar-wrap">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" class="friend-share-avatar">
-                    <input type="checkbox" class="friend-chk" value="Anjali Dance Hub" onchange="checkBulkButton()">
-                </div>
-                <span>Anjali</span>
-            </label>
-            <label class="friend-checkbox-item">
-                <div class="friend-avatar-wrap">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" class="friend-share-avatar">
-                    <input type="checkbox" class="friend-chk" value="Rohit Painter" onchange="checkBulkButton()">
-                </div>
-                <span>Rohit</span>
-            </label>
         </div>
 
         <button class="bulk-send-btn" id="bulkSendBtn" onclick="sendToSelectedFriends()">🚀 Send to Selected Friends (Inbox Chat)</button>
-
-        <button class="native-share-main-btn" onclick="openPhoneNativeShare()">
-            <span>🌐 Open Phone Share (IMO, WeChat, WhatsApp, All Apps...)</span>
-        </button>
+        <button class="native-share-main-btn" onclick="openPhoneNativeShare()"><span>🌐 Open Phone Share (WhatsApp, All Apps...)</span></button>
 
         <div class="share-grid">
-            <a href="https://api.whatsapp.com/send?text=Check%20out%20this%20video%20on%20New%20Star:%20https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4" target="_blank" class="share-app-item" style="text-decoration:none;">
-                <div class="share-app-icon" style="background:#25d366;">💬</div>
-                <span>WhatsApp</span>
-            </a>
-            <a href="https://www.facebook.com/sharer/sharer.php?u=https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4" target="_blank" class="share-app-item" style="text-decoration:none;">
-                <div class="share-app-icon" style="background:#1877f2;">📘</div>
-                <span>Facebook</span>
-            </a>
-            <div class="share-app-item" onclick="openPhoneNativeShare()">
-                <div class="share-app-icon" style="background:#0099ff;">💙</div>
-                <span>IMO</span>
-            </div>
-            <div class="share-app-item" onclick="openPhoneNativeShare()">
-                <div class="share-app-icon" style="background:#00e676;">🟢</div>
-                <span>WeChat</span>
-            </div>
-            <div class="share-app-item" onclick="openPhoneNativeShare()">
-                <div class="share-app-icon" style="background:linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">📸</div>
-                <span>Instagram</span>
-            </div>
-            <div class="share-app-item" onclick="openPhoneNativeShare()">
-                <div class="share-app-icon" style="background:#000; border:1px solid #fe2c55;">🎵</div>
-                <span>TikTok</span>
-            </div>
-            <a href="https://www.youtube.com/" target="_blank" class="share-app-item" style="text-decoration:none;">
-                <div class="share-app-icon" style="background:#ff0000;">▶️</div>
-                <span>YouTube</span>
-            </a>
             <div class="share-app-item" onclick="copyVideoLink()">
                 <div class="share-app-icon" style="background:#ff7700;">🔗</div>
                 <span>Copy Link</span>
@@ -280,7 +209,7 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar (Linked with Home, Wallet, Upload Plus, Live, Gaming, Inbox, Profile) -->
+    <!-- Bottom Navigation Bar -->
     <div class="bottom-nav">
         <a href="index.html" class="nav-item active"><i>🏠</i><span>Home</span></a>
         <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
@@ -292,6 +221,18 @@
     </div>
 
     <script>
+        // ==========================================
+        // 🚀 SUPABASE CONFIGURATION & CONNECTION (NEW STAR)
+        // ==========================================
+        const SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
+
+        // Initialize Supabase Client safely
+        const { createClient } = window.supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        console.log("✅ New Star connected to Supabase successfully!");
+
         // PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -304,7 +245,31 @@
             if(savedHandle) {
                 document.getElementById('feedUsername').innerText = savedHandle;
             }
+            // Fetch videos from Supabase database on load
+            fetchSupabaseVideos();
         };
+
+        // Function to fetch videos from Supabase database
+        async function fetchSupabaseVideos() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('videos') // Table name where videos are saved
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error fetching videos:', error.message);
+                    return;
+                }
+
+                if (data && data.length > 0) {
+                    console.log("📹 Loaded videos from Supabase:", data);
+                    // You can display the latest video dynamically here if needed
+                }
+            } catch (err) {
+                console.error('Supabase connection error:', err);
+            }
+        }
 
         let isLiked = false;
         function toggleLike(el) {
@@ -399,14 +364,10 @@
                     title: 'New Star Video',
                     text: 'Check out this amazing video on New Star!',
                     url: window.location.href,
-                }).then(() => {
-                    console.log('Shared successfully');
-                }).catch((error) => {
-                    console.log('Error sharing:', error);
-                });
+                }).catch((error) => console.log('Error sharing:', error));
             } else {
                 navigator.clipboard.writeText(window.location.href);
-                alert('📋 Link copied to clipboard! You can paste it in IMO, WeChat or any app.');
+                alert('📋 Link copied to clipboard!');
             }
             toggleShareModal();
         }
