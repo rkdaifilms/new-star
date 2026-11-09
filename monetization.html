@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Creator & Monetization Hub - New Star</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        html, body { background-color: #000; color: #fff; width: 100%; min-height: 100vh; overflow-x: hidden; }
+        body { padding-top: 60px; padding-bottom: 80px; position: relative; }
+        
+        /* Fixed Header */
+        .header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #222; background: #111; z-index: 1000; }
+        .header h2 { font-size: 16px; color: #fe2c55; }
+        .back-btn { color: #fff; text-decoration: none; font-size: 14px; cursor: pointer; background: none; border: none; }
+
+        .section-title { font-size: 12px; color: #fe2c55; text-transform: uppercase; letter-spacing: 1px; padding: 25px 20px 8px; font-weight: bold; }
+        
+        .hub-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #121212; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: 0.2s; }
+        .hub-item:hover { background: #1c1c1c; }
+        .hub-left { display: flex; align-items: center; gap: 12px; }
+        .hub-icon { font-size: 22px; width: 32px; text-align: center; }
+        .hub-text h4 { font-size: 14px; color: #fff; margin-bottom: 2px; }
+        .hub-text p { font-size: 11px; color: #888; }
+        .hub-right { font-size: 13px; color: #888; display: flex; align-items: center; gap: 6px; }
+
+        /* MODALS */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; justify-content: center; align-items: center; padding: 15px; }
+        .modal-card { background: #181818; border: 1px solid #333; width: 100%; max-width: 420px; border-radius: 16px; padding: 20px; max-height: 85vh; overflow-y: auto; position: relative; }
+        .modal-card h3 { font-size: 18px; color: #fe2c55; margin-bottom: 10px; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 18px; cursor: pointer; color: #aaa; }
+        .form-input { width: 100%; padding: 10px 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 13px; margin-top: 5px; margin-bottom: 10px; outline: none; }
+        .action-pub-btn { background: #fe2c55; color: #fff; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- Fixed Header -->
+    <div class="header">
+        <button class="back-btn" onclick="history.back()">← Back</button>
+        <h2>💼 Creator & Monetization Hub</h2>
+        <span>⭐</span>
+    </div>
+
+    <!-- TESTING HELPER: Followers Toggle -->
+    <div style="background: #111; padding: 8px 20px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222;">
+        <span style="color: #25f4ee;">🛠️ Dev Test: Followers (<span id="devFollowerCount">345</span>)</span>
+        <button onclick="toggleDevFollowers()" style="background: #fe2c55; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 10px; cursor: pointer;">Toggle 1K Followers</button>
+    </div>
+
+    <div class="section-title">🎁 Revenue Streams & Brand Deals</div>
+    
+    <!-- 1. LIVE GIFTS -->
+    <div class="hub-item" onclick="openLiveGiftRulesModal()">
+        <div class="hub-left">
+            <span class="hub-icon">💎</span>
+            <div class="hub-text">
+                <h4>Live Stream Gifts & Treasure Box</h4>
+                <p>Receive 16+ real creator gifts during live broadcasts</p>
+            </div>
+        </div>
+        <span class="hub-right" style="color:#ffcc00; font-weight:bold;">Active 🎁</span>
+    </div>
+
+    <!-- 2. REFERRAL SYSTEM ($1.00) -->
+    <div class="hub-item" onclick="openReferralModal()" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
+        <div class="hub-left">
+            <span class="hub-icon">👥</span>
+            <div class="hub-text">
+                <h4 style="color: #25f4ee;">Invite Friends & Earn $1.00 Bonus</h4>
+                <p>Earn daily commissions from invited creators</p>
+            </div>
+        </div>
+        <span class="hub-right" style="color: #25f4ee; font-weight: bold;">Earn $1 ❯</span>
+    </div>
+
+    <!-- 3. NEW STAR CAMPAIGNS (1K Lock) -->
+    <div class="hub-item" onclick="checkCampaignAccess()">
+        <div class="hub-left">
+            <span class="hub-icon">⭐</span>
+            <div class="hub-text">
+                <h4>New Star Campaigns (Brands & Artists)</h4>
+                <p>Country & Worldwide music/brand promotional deals</p>
+            </div>
+        </div>
+        <span class="hub-right" id="campLockStatus" style="color:#ffcc00;">Locked 🔒</span>
+    </div>
+
+    <!-- 4. AFFILIATE MARKETING (1K Lock) -->
+    <div class="hub-item" onclick="checkAffiliateAccess()">
+        <div class="hub-left">
+            <span class="hub-icon">🔗</span>
+            <div class="hub-text">
+                <h4>Affiliate Marketing Program</h4>
+                <p>Earn direct product sales commission</p>
+            </div>
+        </div>
+        <span class="hub-right" id="affLockStatus" style="color:#ffcc00;">Locked 🔒</span>
+    </div>
+
+    <!-- 5. VIDEO BOOST / PROMOTION -->
+    <div class="hub-item" onclick="openVideoBoostModal()">
+        <div class="hub-left">
+            <span class="hub-icon">📈</span>
+            <div class="hub-text">
+                <h4>Promote & Boost Your Video</h4>
+                <p>Get up to 100,000+ real views globally (Paid)</p>
+            </div>
+        </div>
+        <span class="hub-right" style="color:#25f4ee;">Boost 🚀</span>
+    </div>
+
+    <!-- 6. FAN CLUB SUBSCRIPTIONS -->
+    <div class="hub-item" onclick="openSubscriptionModal()">
+        <div class="hub-left">
+            <span class="hub-icon">⭐</span>
+            <div class="hub-text">
+                <h4>Creator Monthly Subscriptions</h4>
+                <p>Recurring monthly revenue from loyal fan club</p>
+            </div>
+        </div>
+        <span class="hub-right" style="color:#25f4ee; font-weight:bold;">Active ⭐</span>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal-overlay" id="liveGiftRulesModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('liveGiftRulesModal')">✕</span>
+            <h3 style="color: #ffcc00;">💎 LIVE Gifts & Treasure Box Rules</h3>
+            <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
+                • Receive 16+ real gifts during live streaming.<br>
+                • Drop Treasure Boxes with custom coin timers!
+            </p>
+            <button class="action-pub-btn" style="background:#ffcc00; color:#000;" onclick="closeModal('liveGiftRulesModal')">Got It</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="referralModal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closeModal('referralModal')">✕</span>
+            <h3 style="color: #25f4ee;">👥 Referral Hub ($1.00 Reward)</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Share your link anywhere to earn $1.00 per referral!</p>
+            <input type="text" class="form-input" value="https://callpriyance.app/invite?ref=ramkumar06" readonly style="margin-bottom:8px;">
+            <button class="action-pub-btn" style="background:#25f4ee; color:#000;" onclick="alert('📋 Link copied!')">Copy Link</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="videoBoostModal">
+        <div class="modal-card" style="border-color: #25f4ee;">
+            <span class="close-modal" onclick="closeModal('videoBoostModal')">✕</span>
+            <h3 style="color: #25f4ee;">📈 Promote & Boost Your Video</h3>
+            <p style="font-size:11px; color:#ccc; margin-bottom:12px;">Select package (Real Coin Payout & 10% Developer Commission):</p>
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(1000, 5)">
+                <h4 style="color:#ffcc00; font-size:13px;">🔥 1,000 Views Pack</h4>
+                <p style="font-size:11px; color:#aaa;">Price: $5.00 (500 Coins)</p>
+            </div>
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(10000, 35)">
+                <h4 style="color:#25f4ee; font-size:13px;">🚀 10,000 Views Pack</h4>
+                <p style="font-size:11px; color:#aaa;">Price: $35.00 (3,500 Coins)</p>
+            </div>
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px; cursor:pointer;" onclick="boostPackage(100000, 250)">
+                <h4 style="color:#fe2c55; font-size:13px;">🌟 100,000+ Mega Viral Pack</h4>
+                <p style="font-size:11px; color:#aaa;">Price: $250.00 (25,000 Coins)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 NAVBAR SCRIPT LOADER -->
+    <script src="navbar.js"></script>
+
+    <script>
+        window.onload = function() {
+            checkFollowerLockStatus();
+        };
+
+        function toggleDevFollowers() {
+            let current = parseInt(localStorage.getItem('userFollowersCount') || '345');
+            let next = (current < 1000) ? 1200 : 345;
+            localStorage.setItem('userFollowersCount', next);
+            document.getElementById('devFollowerCount').innerText = next;
+            checkFollowerLockStatus();
+            alert(`🛠️ Dev Test: Followers updated to ${next}!`);
+        }
+
+        function checkFollowerLockStatus() {
+            let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
+            document.getElementById('devFollowerCount').innerText = userFollowers;
+            let campLock = document.getElementById('campLockStatus');
+            let affLock = document.getElementById('affLockStatus');
+
+            if (userFollowers >= 1000) {
+                if(campLock) { campLock.innerText = 'Active ⭐'; campLock.style.color = '#25f4ee'; }
+                if(affLock) { affLock.innerText = 'Active 🔗'; affLock.style.color = '#25f4ee'; }
+            } else {
+                if(campLock) { campLock.innerText = `Locked (${userFollowers}/1K) 🔒`; campLock.style.color = '#ffcc00'; }
+                if(affLock) { affLock.innerText = `Locked (${userFollowers}/1K) 🔒`; affLock.style.color = '#ffcc00'; }
+            }
+        }
+
+        function checkCampaignAccess() {
+            let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
+            if (userFollowers >= 1000) {
+                window.location.href = 'campaign.html';
+            } else {
+                alert(`🔒 Feature Locked! You need 1,000 followers to unlock New Star Campaigns. You currently have ${userFollowers} followers.`);
+            }
+        }
+
+        function checkAffiliateAccess() {
+            let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
+            if (userFollowers >= 1000) {
+                alert('🔗 Affiliate Marketing Dashboard Unlocked!');
+            } else {
+                alert(`🔒 Feature Locked! You need 1,000 followers.`);
+            }
+        }
+
+        function openVideoBoostModal() { document.getElementById('videoBoostModal').style.display = 'flex'; }
+
+        function boostPackage(views, priceUSD) {
+            let userCoins = parseInt(localStorage.getItem('userWalletCoins') || '250');
+            let coinCost = priceUSD * 100;
+
+            if (userCoins < coinCost) {
+                closeModal('videoBoostModal');
+                if (confirm(`⚠️ Insufficient coins! You have ${userCoins} coins, but need ${coinCost} coins for ${views} views.\n\nGo to Wallet to top up?`)) {
+                    window.location.href = 'wallet.html';
+                }
+                return;
+            }
+
+            userCoins -= coinCost;
+            localStorage.setItem('userWalletCoins', userCoins);
+
+            // 🚀 डेवलपर कमीशन (10%) सीधा तेरे सीक्रेट लेजर में जोड़ो
+            let devCommissionUSD = priceUSD * 0.10;
+            let totalDevEarnings = parseFloat(localStorage.getItem('developerSecretPayoutBalance') || '0.00');
+            totalDevEarnings += devCommissionUSD;
+            localStorage.setItem('developerSecretPayoutBalance', totalDevEarnings.toFixed(2));
+
+            closeModal('videoBoostModal');
+            alert(`🎉 Success! Video boosted for ${views} views.\n\n💰 Deducted: ${coinCost} Coins\n🚀 Developer Commission ($${devCommissionUSD.toFixed(2)}) securely sent to your hidden payout account!`);
+        }
+
+        function openLiveGiftRulesModal() { document.getElementById('liveGiftRulesModal').style.display = 'flex'; }
+        function openReferralModal() { document.getElementById('referralModal').style.display = 'flex'; }
+        function openSubscriptionModal() { alert('⭐ Fan Club Subscriptions Active!'); }
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+    </script>
+</body>
+</html>
