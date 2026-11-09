@@ -1,33 +1,32 @@
-// navbar.js - Ultimate Master Navigation & Top-Right Settings Gear Integration
+// navbar.js - Ultimate Master Navigation with Center Header Title Fix
 document.addEventListener("DOMContentLoaded", function() {
     let currentPage = window.location.pathname.split("/").pop() || "index.html";
 
-    // 1. पुराना या डबल नेविगेशन तुरंत हटाओ
+    // 1. पुराना नेविगेशन तुरंत हटाओ
     let oldNavs = document.querySelectorAll('.bottom-nav, .app-global-bottom-nav, .master-tiktok-final-nav');
     oldNavs.forEach(el => el.remove());
 
-    // 2. ⚙️ ऊपर दाहिने कोने में फालतू प्लस हटाकर वहाँ सीधे 'Settings (⚙️)' का आइकॉन सेट करने वाला ऑटो-फिक्स कोड
-    function setupTopRightSettingsGear() {
-        // सबसे पहले ऊपर वाले हिस्से से सारे फालतू प्लस या कैमरा आइकॉन हटाओ
-        let topElements = document.querySelectorAll('.top-bar a, .top-bar button, header a, header button');
-        topElements.forEach(el => {
-            let text = el.innerText || '';
-            let href = el.getAttribute('href') || '';
-            if (text.includes('➕') || text.includes('+') || href.includes('camera')) {
-                el.remove();
-            }
-        });
-
-        // अब अगर पेज पर .top-bar मौजूद है, तो उसके दाहिने कोने में सेटिंग गियर जोड़ दो
+    // 2. ⚙️ ऊपर हेडर के टाइटल को बिल्कुल बीच में (Center) और सेटिंग गियर को दाहिने कोने में सेट करने का कोड
+    function fixHeaderTitleAndGear() {
         let topBars = document.querySelectorAll('.top-bar');
         topBars.forEach(bar => {
+            // हेडर को फ्लेक्सबॉक्स बनाओ ताकि स्पेस बराबर बंटे
+            bar.style.cssText = "position: relative !important; display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; max-width: 450px !important; margin: 10px auto !important; padding: 0 15px !important; box-sizing: border-box !important; min-height: 40px !important;";
+
+            // अगर अंदर कोई h3 या टाइटल है, तो उसे जबरदस्ती एकदम बीचों-बीच (Absolute Center) कर दो
+            let titleEl = bar.querySelector('h3, h2, .profile-title');
+            if (titleEl) {
+                titleEl.style.cssText = "position: absolute !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 16px !important; color: #fe2c55 !important; margin: 0 !important; text-align: center !important; font-weight: bold !important; width: max-content !important; pointer-events: none !important;";
+            }
+
+            // अगर दाहिने तरफ सेटिंग गियर नहीं है, तो अपने प जोड़ दो
             if (!bar.querySelector('.top-settings-gear')) {
                 let gearBtn = document.createElement('a');
-                gearBtn.href = 'settings.html'; // सीधे settings.html खोलेगा
+                gearBtn.href = 'settings.html';
                 gearBtn.className = 'top-settings-gear';
                 gearBtn.innerHTML = '⚙️';
                 gearBtn.title = 'Settings & Privacy';
-                gearBtn.style.cssText = "font-size: 18px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.6); border: 1px solid rgba(254,44,85,0.5); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 999999; margin-left: auto;";
+                gearBtn.style.cssText = "font-size: 18px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.6); border: 1px solid rgba(254,44,85,0.5); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: auto; z-index: 999999; position: relative;";
                 
                 gearBtn.onclick = function(e) {
                     e.preventDefault();
@@ -39,11 +38,12 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    setupTopRightSettingsGear();
-    setTimeout(setupTopRightSettingsGear, 50);
-    setTimeout(setupTopRightSettingsGear, 250);
+    fixHeaderTitleAndGear();
+    setTimeout(fixHeaderTitleAndGear, 50);
+    setTimeout(fixHeaderTitleAndGear, 200);
+    setTimeout(fixHeaderTitleAndGear, 500);
 
-    // 3. नया साफ-सुथरा टिकटॉक जैसा नेविगेशन बार
+    // 3. टिकटॉक जैसा नीचे का नेविगेशन बार
     let finalNavHTML = `
     <style>
         .master-tiktok-final-nav {
@@ -75,7 +75,6 @@ document.addEventListener("DOMContentLoaded", function() {
             text-align: center !important;
             background: transparent !important;
             border: none !important;
-            transition: 0.2s;
         }
         .mfn-item.active {
             color: #fff !important;
@@ -87,7 +86,7 @@ document.addEventListener("DOMContentLoaded", function() {
             font-style: normal !important;
         }
         
-        /* ➕ एकदम सटीक बीच वाला चमकता हुआ प्लस अपलोड बटन */
+        /* ➕ बीच वाला चमकता हुआ प्लस बटन */
         .mfn-center-plus {
             width: 46px !important;
             height: 32px !important;
@@ -101,13 +100,9 @@ document.addEventListener("DOMContentLoaded", function() {
             font-weight: bold !important;
             box-shadow: 0 2px 12px rgba(254,44,85,0.7) !important;
             margin: 0 auto !important;
-            transition: 0.2s;
-        }
-        .mfn-center-plus:hover {
-            transform: scale(1.08);
         }
 
-        /* 🔴 ऊपर बाएं कोने वाला LIVE बटन और उसका पॉपअप मेनू */
+        /* 🔴 ऊपर बाएं कोने वाला LIVE बटन */
         .top-left-live-wrapper {
             position: fixed !important;
             top: 10px !important;
@@ -126,7 +121,6 @@ document.addEventListener("DOMContentLoaded", function() {
             align-items: center;
             gap: 6px;
             cursor: pointer;
-            backdrop-filter: blur(5px);
             box-shadow: 0 2px 8px rgba(254,44,85,0.4);
         }
         #topLivePopupBox {
@@ -151,7 +145,6 @@ document.addEventListener("DOMContentLoaded", function() {
             text-decoration: none;
             font-size: 12px;
             border-radius: 6px;
-            transition: 0.2s;
         }
         .top-popup-link:hover {
             background: #252525;
@@ -159,16 +152,11 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     </style>
 
-    <!-- नीचे का फिक्स नेविगेशन बार (Wallet टैग यहाँ सही से बंद है) -->
+    <!-- नीचे का फिक्स नेविगेशन बार -->
     <div class="master-tiktok-final-nav">
         <a href="index.html" class="mfn-item ${currentPage === 'index.html' || currentPage === '' ? 'active' : ''}"><i>🏠</i><span>Home</span></a>
         <a href="wallet.html" class="mfn-item ${currentPage === 'wallet.html' ? 'active' : ''}"><i>🪙</i><span>Wallet</span></a>
-        
-        <!-- ➕ एकदम बीचों-बीच प्लस बटन -->
-        <a href="camera.html" class="mfn-item" style="flex: 1.5;">
-            <div class="mfn-center-plus">+</div>
-        </a>
-
+        <a href="camera.html" class="mfn-item" style="flex: 1.5;"><div class="mfn-center-plus">+</div></a>
         <a href="inbox.html" class="mfn-item ${currentPage === 'inbox.html' ? 'active' : ''}"><i>💬</i><span>Inbox</span></a>
         <a href="profile.html" class="mfn-item ${currentPage === 'profile.html' ? 'active' : ''}"><i>⭐</i><span>Profile</span></a>
     </div>
@@ -176,31 +164,15 @@ document.addEventListener("DOMContentLoaded", function() {
     <!-- 🔴 ऊपर बाएं कोने में 'LIVE' बटन -->
     <div class="top-left-live-wrapper">
         <button class="top-live-pill-btn" onclick="toggleTopLiveMenu(event)">
-            <span style="width:7px; height:7px; background:#fe2c55; border-radius:50%; display:inline-block; animation: blinkLive 1s infinite;"></span>
+            <span style="width:7px; height:7px; background:#fe2c55; border-radius:50%; display:inline-block;"></span>
             LIVE
         </button>
         <div id="topLivePopupBox">
-            <a href="live.html" class="top-popup-link">
-                <span style="font-size:16px;">🔴</span>
-                <div>
-                    <strong style="display:block; color:#fe2c55;">Live Stream</strong>
-                    <span style="font-size:9px; color:#aaa;">Broadcast & Gifts</span>
-                </div>
-            </a>
+            <a href="live.html" class="top-popup-link"><span>🔴</span><div><strong>Live Stream</strong><br><span style="font-size:9px; color:#aaa;">Broadcast & Gifts</span></div></a>
             <div style="height:1px; background:#222; margin:2px 0;"></div>
-            <a href="gaming.html" class="top-popup-link">
-                <span style="font-size:16px;">🎮</span>
-                <div>
-                    <strong style="display:block; color:#00b4d8;">Gaming Arena</strong>
-                    <span style="font-size:9px; color:#aaa;">Free Fire & Tournaments</span>
-                </div>
-            </a>
+            <a href="gaming.html" class="top-popup-link"><span>🎮</span><div><strong>Gaming Arena</strong><br><span style="font-size:9px; color:#aaa;">Free Fire & Tournaments</span></div></a>
         </div>
     </div>
-
-    <style>
-        @keyframes blinkLive { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-    </style>
     `;
 
     let wrap = document.createElement('div');
