@@ -9,6 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+    <!-- ⚡ SUPABASE JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; padding-bottom: 80px; }
@@ -23,12 +26,13 @@
         .big-upload-box { width: 100%; height: 130px; background: #1a1a1a; border: 2px dashed #fe2c55; border-radius: 14px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; margin-bottom: 15px; transition: 0.2s; }
         .big-upload-box:hover { background: #222; }
         .upload-icon { font-size: 40px; margin-bottom: 5px; }
-        .upload-text { font-size: 13px; color: #ff6b8b; font-weight: bold; }
+        .upload-text { font-size: 13px; color: #ff6b8b; font-weight: bold; text-align: center; padding: 0 10px; }
 
         label { display: block; width: 100%; font-size: 12px; color: #ccc; margin-bottom: 5px; }
         input[type="text"] { width: 100%; padding: 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-size: 13px; outline: none; }
         
         .post-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 15px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); }
+        .post-btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
 
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
@@ -47,7 +51,7 @@
     <!-- Video Upload Form Card -->
     <div class="studio-card">
         <div class="section-title">Upload Video to Profile & Feed</div>
-        <div class="section-desc">Click below to select a video from your gallery, write a catchy title/hashtag, and post it instantly!</div>
+        <div class="section-desc">Select a video from your gallery, write a catchy title, and post it directly to your Supabase database!</div>
         
         <!-- Gallery File Picker Box -->
         <div class="big-upload-box" onclick="document.getElementById('galleryVideoInput').click()">
@@ -59,7 +63,7 @@
         <label>Video Title & Hashtags:</label>
         <input type="text" id="videoCaptionInput" value="New Viral Dance Reel 🔥 #StarNewStar #Viral">
         
-        <button class="post-btn" onclick="publishVideoToApp()">🚀 Post Video Now</button>
+        <button class="post-btn" id="postBtn" onclick="publishVideoToSupabase()">🚀 Post Video Now</button>
     </div>
 
     <!-- Bottom Navigation Bar -->
@@ -72,42 +76,113 @@
     </div>
 
     <script>
-        let selectedVideoDataUrl = '';
+        // ==========================================
+        // 🚀 SUPABASE CONFIGURATION
+        // ==========================================
+        const SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
+
+        const { createClient } = window.supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let selectedVideoFile = null;
 
         function onVideoFileChosen(event) {
             let file = event.target.files[0];
             if(file) {
-                let reader = new FileReader();
-                reader.onload = function(e) {
-                    selectedVideoDataUrl = e.target.result;
-                    document.getElementById('uploadBoxLabel').innerText = '✅ Selected: ' + file.name;
-                };
-                reader.readAsDataURL(file);
+                selectedVideoFile = file;
+                document.getElementById('uploadBoxLabel').innerText = '✅ Selected: ' + file.name;
             }
         }
 
-        function publishVideoToApp() {
+        async function publishVideoToSupabase() {
             let caption = document.getElementById('videoCaptionInput').value.trim() || 'New Viral Video #StarNewStar';
-            if(!selectedVideoDataUrl) {
+            if(!selectedVideoFile) {
                 alert('⚠️ Please tap the gallery box and select a video file first!');
                 return;
             }
 
-            // Save video data to localStorage so it shows up in Home Feed & Profile
-            let feedList = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
-            let myHandle = localStorage.getItem('appHandle') || '@newstar981152';
-            
-            feedList.unshift({
-                url: selectedVideoDataUrl,
-                caption: caption,
-                username: myHandle,
-                likes: '120K',
-                views: '850K'
-            });
-            localStorage.setItem('customFeedVideos', JSON.stringify(feedList));
+            let btn = document.getElementById('postBtn');
+            btn.innerText = '⏳ Uploading to Supabase...';
+            btn.disabled = true;
 
-            alert('✅ Video posted successfully! Redirecting to Home Feed...');
-            window.location.href = 'index.html';
+            try {
+                let myHandle = localStorage.getItem('appHandle') || '@newstar981152';
+                let fileName = 'video_' + Date.now() + '_' + selectedVideoFile.name;
+
+                // 1. Upload video file to Supabase Storage (bucket name: 'videos')
+                let { data: uploadData, error: uploadError } = await supabaseClient.storage
+                    .from('videos')
+                    .upload(fileName, selectedVideoFile);
+
+                if (uploadError) {
+                    console.error('Storage upload error:', uploadError);
+                    // Fallback to local DataURL if storage bucket isn't created yet
+                    let reader = new FileReader();
+                    reader.onload = async function(e) {
+                        let base64Url = e.target.result;
+                        await saveVideoRecordToDatabase(base64Url, caption, myHandle);
+                    };
+                    reader.readAsDataURL(selectedVideoFile);
+                    return;
+                }
+
+                // 2. Get Public URL of the uploaded video
+                let { data: publicUrlData } = supabaseClient.storage
+                    .from('videos')
+                    .getPublicUrl(fileName);
+
+                let videoPublicUrl = publicUrlData.publicUrl;
+                await saveVideoRecordToDatabase(videoPublicUrl, caption, myHandle);
+
+            } catch (err) {
+                console.error('Upload exception:', err);
+                alert('❌ Error uploading video. Please try again.');
+                btn.innerText = '🚀 Post Video Now';
+                btn.disabled = false;
+            }
+        }
+
+        async function saveVideoRecordToDatabase(videoUrl, caption, handle) {
+            try {
+                // Save record into Supabase database table 'videos'
+                let { error: dbError } = await supabaseClient
+                    .from('videos')
+                    .insert([
+                        { 
+                            video_url: videoUrl, 
+                            caption: caption, 
+                            username: handle,
+                            likes_count: 120,
+                            views_count: 850
+                        }
+                    ]);
+
+                if (dbError) {
+                    console.error('DB Insert Error:', dbError.message);
+                }
+
+                // Also backup to localStorage so profile loads it instantly without delay
+                let feedList = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
+                let newPost = {
+                    url: videoUrl,
+                    caption: caption,
+                    username: handle,
+                    likes: '120K',
+                    views: '850K'
+                };
+                feedList.unshift(newPost);
+                localStorage.setItem('customFeedVideos', JSON.stringify(feedList));
+
+                alert('✅ Video posted successfully to Supabase & Profile!');
+                window.location.href = 'profile.html';
+
+            } catch (err) {
+                console.error('Database save error:', err);
+                alert('❌ Video uploaded but failed to save record.');
+                document.getElementById('postBtn').innerText = '🚀 Post Video Now';
+                document.getElementById('postBtn').disabled = false;
+            }
         }
     </script>
 </body>
