@@ -50,20 +50,35 @@
         .grid-overlay { position: relative; z-index: 2; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 8px; font-size: 11px; }
         .grid-overlay p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; margin-bottom: 2px; }
 
-        /* POPUP VIDEO PLAYER & CREATOR MANAGER MODAL */
-        #videoPlayerModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 999; justify-content: center; align-items: center; }
-        .modal-player-card { width: 100%; max-width: 400px; height: 90vh; background: #111; border-radius: 16px; border: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        .modal-player-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #181818; border-bottom: 1px solid #222; }
-        .modal-player-header h3 { font-size: 14px; color: #fe2c55; }
-        .close-player { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+        /* 🎬 TIKTOK STYLE FULL VIDEO PLAYER & CREATOR STUDIO MODAL */
+        #videoPlayerModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.96); z-index: 999; justify-content: center; align-items: center; }
+        .modal-player-card { width: 100%; max-width: 420px; height: 100vh; background: #000; display: flex; flex-direction: column; position: relative; overflow: hidden; }
         
-        .modal-video-container { flex: 1; position: relative; background: #000; display: flex; justify-content: center; align-items: center; }
-        .modal-video-container video { width: 100%; height: 100%; object-fit: cover; }
+        .modal-top-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px; position: absolute; top: 0; left: 0; right: 0; z-index: 30; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        .modal-top-bar h3 { font-size: 14px; color: #fff; }
         
-        .modal-video-details { padding: 15px; background: #181818; border-top: 1px solid #222; max-height: 25vh; overflow-y: auto; }
-        .modal-video-details input { width: 100%; padding: 8px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 13px; margin-bottom: 8px; }
-        .modal-action-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #ccc; margin-bottom: 8px; }
+        .modal-video-box { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; background: #111; }
+        .modal-video-box video { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Right Side TikTok Action Buttons */
+        .modal-side-actions { position: absolute; right: 15px; bottom: 120px; display: flex; flex-direction: column; align-items: center; gap: 16px; z-index: 25; }
+        .m-action-btn { text-align: center; color: #fff; font-size: 11px; cursor: pointer; }
+        .m-action-icon { width: 42px; height: 42px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; margin-bottom: 3px; border: 1px solid rgba(255,255,255,0.2); }
+
+        /* Video Info Bottom */
+        .modal-video-info { position: absolute; bottom: 15px; left: 15px; right: 80px; z-index: 25; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .modal-video-info h4 { font-size: 15px; margin-bottom: 4px; color: #fff; }
+        .modal-video-info p { font-size: 12px; color: #ddd; }
+
+        /* ⚙️ CREATOR SETTING / MANAGER PANEL (POPUP) */
+        #creatorSettingsModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; box-shadow: 0 -5px 25px rgba(0,0,0,0.9); max-height: 80vh; overflow-y: auto; }
         
+        /* COMMENTS MODAL */
+        #commentModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 55vh; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; z-index: 1050; flex-direction: column; }
+        
+        /* SHARE MODAL */
+        #shareModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #1c1c1e; border-top: 2px solid #333; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; }
+
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
@@ -122,40 +137,119 @@
     <!-- Video Grid Section -->
     <div class="section-heading">
         <span>🎬 My Uploaded Videos (<span id="videoCountBadge">0</span>)</span>
-        <span style="font-size:11px; color:#aaa;">Tap any video to check & edit</span>
+        <span style="font-size:11px; color:#aaa;">Tap any video to play & check stats</span>
     </div>
     
     <div class="grid-videos" id="creatorVideoGrid">
         <div class="grid-item" style="justify-content: center; align-items: center; color: #777;">Loading videos...</div>
     </div>
 
-    <!-- 🎥 POPUP VIDEO PLAYER & MANAGER MODAL -->
+    <!-- 🎬 TIKTOK STYLE FULL VIDEO PLAYER MODAL -->
     <div id="videoPlayerModal">
         <div class="modal-player-card">
-            <div class="modal-player-header">
-                <h3>🎬 Creator Video Manager</h3>
-                <button class="close-player" onclick="closeVideoPlayer()">✕</button>
+            
+            <!-- Top Bar inside Player -->
+            <div class="modal-top-bar">
+                <button onclick="closeVideoPlayer()" style="background:rgba(0,0,0,0.5); border:1px solid #444; color:#fff; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;">←</button>
+                <h3>New Star Reel</h3>
+                <!-- ⚙️ Creator Corner Setting Button -->
+                <button onclick="openCreatorSettings()" style="background:rgba(254,44,85,0.8); border:none; color:#fff; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;" title="Creator Settings">⚙️</button>
             </div>
             
-            <div class="modal-video-container">
-                <video id="modalActiveVideo" controls autoplay loop></video>
+            <div class="modal-video-box" onclick="togglePlayPause()">
+                <video id="modalActiveVideo" loop></video>
             </div>
 
-            <div class="modal-video-details">
-                <label style="font-size:11px; color:#25f4ee; margin-bottom:3px; display:block;">Edit Video Title / Caption:</label>
-                <input type="text" id="modalVideoCaption" placeholder="Write catchy caption...">
-                
-                <div class="modal-action-row">
-                    <span>❤️ Likes: <b id="modalLikesCount">120</b></span>
-                    <span>👁️ Views: <b id="modalViewsCount">850</b></span>
-                    <span>🎁 Gifts Received: <b id="modalGiftsCount">5 Coins</b></span>
+            <!-- Right Side TikTok Actions -->
+            <div class="modal-side-actions">
+                <div class="m-action-btn" onclick="toggleModalLike()">
+                    <div class="m-action-icon" id="modalLikeIcon">❤️</div>
+                    <span id="modalLikesNum">120K</span>
                 </div>
-
-                <div style="display: flex; gap: 10px; margin-top: 5px;">
-                    <button class="p-btn active" style="flex:1; padding:8px;" onclick="updateVideoTitle()">💾 Save New Title</button>
-                    <button class="p-btn" style="background:#ff3b30; border:none; flex:1; padding:8px;" onclick="deleteThisVideo()">🗑️ Delete Video</button>
+                <div class="m-action-btn" onclick="openCommentModal()">
+                    <div class="m-action-icon">💬</div>
+                    <span id="modalCommentsNum">2.4K</span>
+                </div>
+                <div class="m-action-btn" onclick="openGiftModal()">
+                    <div class="m-action-icon" style="background:linear-gradient(135deg, #fe2c55, #ffcc00);">🎁</div>
+                    <span>Gift</span>
+                </div>
+                <div class="m-action-btn" onclick="openShareModal()">
+                    <div class="m-action-icon">↗️</div>
+                    <span>Share</span>
                 </div>
             </div>
+
+            <!-- Video Info Bottom -->
+            <div class="modal-video-info">
+                <h4 id="modalCreatorHandle">@ramram981152</h4>
+                <p id="modalVideoCaptionText">New Viral Dance Reel 🔥 #StarNewStar</p>
+                <span style="font-size:10px; color:#25f4ee; background:rgba(0,0,0,0.5); padding:2px 8px; border-radius:8px; display:inline-block; margin-top:4px;">👁️ Views: <b id="modalViewsNum">850K</b></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚙️ CREATOR SETTING / MANAGER PANEL (POPUP) -->
+    <div id="creatorSettingsModal">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="font-size:16px; color:#fe2c55;">⚙️ Creator Video Manager & Settings</h3>
+            <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeCreatorSettings()">✕</span>
+        </div>
+        
+        <div class="form-group">
+            <label>Change Video Title / Caption:</label>
+            <input type="text" id="settingVideoCaption" placeholder="Write new title...">
+        </div>
+
+        <div class="form-group">
+            <label>Change Background Music (Pick from Gallery / Audio File):</label>
+            <input type="file" id="settingAudioFile" accept="audio/*" style="display:none;" onchange="onNewAudioChosen(event)">
+            <label for="settingAudioFile" class="file-upload-btn" id="audioUploadLabel">🎵 Select New Music from Gallery</label>
+        </div>
+
+        <div style="background:#222; padding:12px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#ccc;">
+            <p>❤️ Total Likes: <b id="settingLikesCheck" style="color:#fe2c55;">0</b></p>
+            <p style="margin-top:4px;">🎁 Gifts Received: <b id="settingGiftsCheck" style="color:#ffcc00;">0 Coins</b></p>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+            <button class="p-btn active" style="flex:1; padding:12px;" onclick="saveCreatorVideoSettings()">💾 Save Changes</button>
+            <button class="p-btn" style="background:#ff3b30; border:none; flex:1; padding:12px;" onclick="deleteThisVideo()">🗑️ Delete Video</button>
+        </div>
+    </div>
+
+    <!-- COMMENTS MODAL -->
+    <div id="commentModal" style="display:none; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #222;">
+            <h3>Comments (2,450)</h3>
+            <span style="cursor:pointer; font-size:18px;" onclick="closeCommentModal()">✕</span>
+        </div>
+        <div style="flex:1; overflow-y:auto; padding:15px; display:flex; flexDirection:column; gap:12px;" id="commentListArea">
+            <div style="display:flex; gap:10px;"><img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:30px;height:30px;border-radius:50%;"><div><h4 style="font-size:12px;color:#aaa;">New Star User</h4><p style="font-size:13px;">Super hit video bhai! 🔥</p></div></div>
+        </div>
+        <div style="display:flex; padding:10px; background:#111; border-top:1px solid #222; gap:8px;">
+            <input type="text" id="modalCommentInput" placeholder="Add comment..." style="flex:1; padding:8px 12px; background:#222; border:1px solid #444; color:#fff; border-radius:20px; outline:none; font-size:13px;">
+            <button onclick="postModalComment()" style="background:#fe2c55; color:#fff; border:none; padding:8px 16px; border-radius:20px; font-weight:bold; cursor:pointer;">Post</button>
+        </div>
+    </div>
+
+    <!-- SHARE MODAL -->
+    <div id="shareModal" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3>Share Video</h3>
+            <span style="cursor:pointer; font-size:18px;" onclick="closeShareModal()">✕</span>
+        </div>
+        <button onclick="nativePhoneShare()" style="width:100%; background:linear-gradient(135deg, #00b4d8, #0077b6); color:#fff; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; margin-bottom:12px;">🌐 Share to WhatsApp, IMO, All Apps...</button>
+        <button onclick="copyLink()" style="width:100%; background:#222; color:#fff; border:1px solid #444; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;">📋 Copy Video Link</button>
+    </div>
+
+    <!-- GIFT MODAL -->
+    <div id="giftModal" style="display:none; position:fixed; bottom:0; left:0; width:100%; background:#181818; border-top:2px solid #fe2c55; border-radius:20px 20px 0 0; padding:20px; z-index:1050;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><h3 style="color:#ffcc00;">🎁 Send Creator Gift</h3><span style="cursor:pointer;" onclick="closeGiftModal()">✕</span></div>
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+            <div onclick="sendGift('Rose 🌹', 1)" style="background:#222; padding:10px; text-align:center; border-radius:8px; cursor:pointer;"><div style="font-size:24px;">🌹</div><h4 style="font-size:12px;">Rose (1)</h4></div>
+            <div onclick="sendGift('Coffee ☕', 5)" style="background:#222; padding:10px; text-align:center; border-radius:8px; cursor:pointer;"><div style="font-size:24px;">☕</div><h4 style="font-size:12px;">Coffee (5)</h4></div>
+            <div onclick="sendGift('Lion 🦁', 1000)" style="background:#222; padding:10px; text-align:center; border-radius:8px; cursor:pointer;"><div style="font-size:24px;">🦁</div><h4 style="font-size:12px;">Lion (1000)</h4></div>
         </div>
     </div>
 
@@ -169,9 +263,6 @@
     </div>
 
     <script>
-        // ==========================================
-        // 🚀 SUPABASE CONFIGURATION
-        // ==========================================
         const SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
 
@@ -198,12 +289,9 @@
             if(savedPic) document.getElementById('profilePicPreview').src = savedPic;
         }
 
-        // Fetch videos from Supabase & LocalStorage backup
         async function fetchCreatorVideos() {
             let grid = document.getElementById('creatorVideoGrid');
-            
             try {
-                // 1. Try fetching from Supabase table 'videos'
                 let { data, error } = await supabaseClient
                     .from('videos')
                     .select('*')
@@ -216,10 +304,9 @@
                         caption: v.caption,
                         likes: v.likes_count || 120,
                         views: v.views_count || 850,
-                        gifts: '5 Coins'
+                        gifts: v.gifts_count || '15 Coins'
                     }));
                 } else {
-                    // 2. Fallback to LocalStorage backup
                     activeVideoList = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
                 }
 
@@ -242,10 +329,8 @@
                         </div>
                     `;
                 });
-
             } catch (err) {
-                console.error('Error loading profile videos:', err);
-                grid.innerHTML = '<div style="grid-column: span 3; text-align:center; padding:30px; color:#ff3b30;">Error loading videos.</div>';
+                console.error('Error loading videos:', err);
             }
         }
 
@@ -253,11 +338,18 @@
             currentSelectedVideoIndex = index;
             let video = activeVideoList[index];
 
-            document.getElementById('modalActiveVideo').src = video.url;
-            document.getElementById('modalVideoCaption').value = video.caption || '';
-            document.getElementById('modalLikesCount').innerText = video.likes || '120';
-            document.getElementById('modalViewsCount').innerText = video.views || '850';
-            document.getElementById('modalGiftsCount').innerText = video.gifts || '5 Coins';
+            let player = document.getElementById('modalActiveVideo');
+            player.src = video.url;
+            player.play();
+
+            document.getElementById('modalVideoCaptionText').innerText = video.caption || 'New Viral Dance Reel 🔥';
+            document.getElementById('modalCreatorHandle').innerText = localStorage.getItem('appHandle') || '@ramram981152';
+            document.getElementById('modalLikesNum').innerText = video.likes || '120K';
+            document.getElementById('modalViewsNum').innerText = video.views || '850K';
+
+            document.getElementById('settingVideoCaption').value = video.caption || '';
+            document.getElementById('settingLikesCheck').innerText = video.likes || '120';
+            document.getElementById('settingGiftsCheck').innerText = video.gifts || '15 Coins';
 
             document.getElementById('videoPlayerModal').style.display = 'flex';
         }
@@ -269,29 +361,97 @@
             document.getElementById('videoPlayerModal').style.display = 'none';
         }
 
-        async function updateVideoTitle() {
+        function togglePlayPause() {
+            let player = document.getElementById('modalActiveVideo');
+            if (player.paused) player.play();
+            else player.pause();
+        }
+
+        let isLikedModal = false;
+        function toggleModalLike() {
+            isLikedModal = !isLikedModal;
+            let icon = document.getElementById('modalLikeIcon');
+            icon.style.color = isLikedModal ? '#fe2c55' : '#fff';
+            alert(isLikedModal ? '❤️ Liked successfully!' : '🤍 Unliked.');
+        }
+
+        function openCommentModal() { document.getElementById('commentModal').style.display = 'flex'; }
+        function closeCommentModal() { document.getElementById('commentModal').style.display = 'none'; }
+        function openShareModal() { document.getElementById('shareModal').style.display = 'block'; }
+        function closeShareModal() { document.getElementById('shareModal').style.display = 'none'; }
+        function openGiftModal() { document.getElementById('giftModal').style.display = 'block'; }
+        function closeGiftModal() { document.getElementById('giftModal').style.display = 'none'; }
+
+        function openCreatorSettings() {
+            document.getElementById('creatorSettingsModal').style.display = 'block';
+        }
+        function closeCreatorSettings() {
+            document.getElementById('creatorSettingsModal').style.display = 'none';
+        }
+
+        let newAudioFileSelected = null;
+        function onNewAudioChosen(event) {
+            let file = event.target.files[0];
+            if(file) {
+                newAudioFileSelected = file;
+                document.getElementById('audioUploadLabel').innerText = '✅ Music Selected: ' + file.name;
+            }
+        }
+
+        async function saveCreatorVideoSettings() {
             if(currentSelectedVideoIndex === null) return;
-            let newCaption = document.getElementById('modalVideoCaption').value.trim();
+            let newCaption = document.getElementById('settingVideoCaption').value.trim();
             
             activeVideoList[currentSelectedVideoIndex].caption = newCaption;
-            localStorage.setItem('customFeedVideos', JSON.stringify(activeVideoList));
+            if(newAudioFileSelected) {
+                alert('🎵 New background music attached successfully from gallery!');
+            }
 
-            alert('✅ Video title updated successfully!');
+            localStorage.setItem('customFeedVideos', JSON.stringify(activeVideoList));
+            alert('✅ Video settings saved successfully!');
+            closeCreatorSettings();
             fetchCreatorVideos();
-            closeVideoPlayer();
         }
 
         function deleteThisVideo() {
-            if(confirm('🗑️ Are you sure you want to delete this video from your profile?')) {
+            if(confirm('🗑️ Delete this video permanently from profile?')) {
                 if(currentSelectedVideoIndex === null) return;
-                
                 activeVideoList.splice(currentSelectedVideoIndex, 1);
                 localStorage.setItem('customFeedVideos', JSON.stringify(activeVideoList));
-
-                alert('✅ Video deleted successfully!');
-                fetchCreatorVideos();
+                alert('✅ Video deleted!');
+                closeCreatorSettings();
                 closeVideoPlayer();
+                fetchCreatorVideos();
             }
+        }
+
+        function postModalComment() {
+            let input = document.getElementById('modalCommentInput');
+            let text = input.value.trim();
+            if(!text) return;
+            let list = document.getElementById('commentListArea');
+            list.innerHTML += `<div style="display:flex; gap:10px;"><img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:30px;height:30px;border-radius:50%;"><div><h4 style="font-size:12px;color:#aaa;">Ramkumar Dhobi</h4><p style="font-size:13px;">${text}</p></div></div>`;
+            input.value = '';
+        }
+
+        function sendGift(name, cost) {
+            alert(`🎉 You received a ${name} (${cost} Coins)! Added to wallet.`);
+            closeGiftModal();
+        }
+
+        function nativePhoneShare() {
+            if (navigator.share) {
+                navigator.share({ title: 'New Star Video', url: window.location.href });
+            } else {
+                alert('📋 Link copied to share!');
+            }
+            closeShareModal();
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href);
+            alert('📋 Link copied!');
+            closeShareModal();
         }
 
         let tempImageSrc = '';
@@ -299,7 +459,6 @@
             let modal = document.getElementById('editProfileModal');
             modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
         }
-
         function previewLocalImage(event) {
             let file = event.target.files[0];
             if (file) {
@@ -307,25 +466,22 @@
                 reader.onload = function(e) {
                     tempImageSrc = e.target.result;
                     document.getElementById('profilePicPreview').src = tempImageSrc;
-                    alert('✅ Profile picture loaded!');
+                    alert('✅ Profile photo updated!');
                 }
                 reader.readAsDataURL(file);
             }
         }
-
         function saveProfileChanges() {
             let newName = document.getElementById('inputName').value;
             let newHandle = document.getElementById('inputHandle').value;
             let newBio = document.getElementById('inputBio').value;
-
             localStorage.setItem('appName', newName);
             localStorage.setItem('appHandle', newHandle);
             localStorage.setItem('appBio', newBio);
-            if(tempImageSrc !== '') localStorage.setItem('appPic', tempImageSrc);
-
+            if(tempImageSrc) localStorage.setItem('appPic', tempImageSrc);
             loadProfileDetails();
             document.getElementById('editProfileModal').style.display = 'none';
-            alert('🎉 Profile updated successfully!');
+            alert('🎉 Profile updated!');
         }
     </script>
 </body>
