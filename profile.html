@@ -68,6 +68,23 @@
         .modal-video-info h4 { font-size: 15px; margin-bottom: 4px; color: #fff; }
         .modal-video-info p { font-size: 12px; color: #ddd; }
 
+        /* ✨ TIKTOK FLYING GIFT ANIMATION OVERLAY */
+        #flyingGiftOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .flying-gift-box { font-size: 65px; animation: flyUpGift 1.8s ease-out forwards; text-align: center; text-shadow: 0 5px 20px rgba(0,0,0,0.9); }
+        .flying-gift-box span { display: block; font-size: 14px; color: #ffcc00; font-weight: bold; background: rgba(0,0,0,0.7); padding: 4px 12px; border-radius: 12px; margin-top: 5px; border: 1px solid #fe2c55; }
+        @keyframes flyUpGift {
+            0% { transform: translateY(150px) scale(0.3); opacity: 0; }
+            40% { transform: translateY(0px) scale(1.3); opacity: 1; }
+            70% { transform: translateY(-80px) scale(1.1); opacity: 1; }
+            100% { transform: translateY(-220px) scale(0.8); opacity: 0; }
+        }
+
+        /* ⏳ SMOOTH LOADING / PROCESSING OVERLAY SPINNER */
+        #processingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; flex-direction: column; }
+        .spinner { width: 50px; height: 50px; border: 4px solid rgba(254,44,85,0.2); border-top: 4px solid #fe2c55; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #processingText { font-size: 14px; color: #25f4ee; font-weight: bold; }
+
         /* ⚙️ CREATOR SETTING / MANAGER PANEL */
         #creatorSettingsModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; box-shadow: 0 -5px 25px rgba(0,0,0,0.9); max-height: 80vh; overflow-y: auto; }
         
@@ -98,6 +115,12 @@
     </style>
 </head>
 <body>
+
+    <!-- ⏳ PROCESSING & UPLOADING SPINNER OVERLAY -->
+    <div id="processingOverlay">
+        <div class="spinner"></div>
+        <div id="processingText">Processing video... Please wait</div>
+    </div>
 
     <!-- Top Bar Studio -->
     <div class="top-bar">
@@ -161,10 +184,10 @@
             
             <div class="modal-video-box" onclick="togglePlayPause()">
                 <video id="modalActiveVideo" loop></video>
+                <div id="flyingGiftOverlay"></div>
             </div>
 
             <div class="modal-side-actions">
-                <!-- Like Button with Long Press (Hold) to see who liked -->
                 <div class="m-action-btn" id="likeButtonWrapper" onmousedown="startLikeHold()" onmouseup="endLikeHold()" ontouchstart="startLikeHold()" ontouchend="endLikeHold()">
                     <div class="m-action-icon" id="modalLikeIcon">❤️</div>
                     <span id="modalLikesNum">120K</span>
@@ -202,10 +225,6 @@
                 <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #222;">
                     <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:35px;height:35px;border-radius:50%;">
                     <div><h4 style="font-size:13px;">New Star Fan</h4><p style="font-size:11px;color:#aaa;">@fan_user99</p></div>
-                </div>
-                <div style="display:flex; align-items:center; gap:10px; padding:8px 0;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:35px;height:35px;border-radius:50%;">
-                    <div><h4 style="font-size:13px;">Anjali Dance Hub</h4><p style="font-size:11px;color:#aaa;">@anjali_official</p></div>
                 </div>
             </div>
         </div>
@@ -260,29 +279,29 @@
         <button onclick="copyLink()" style="width:100%; background:#222; color:#fff; border:1px solid #444; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;">📋 Copy Video Link</button>
     </div>
 
-    <!-- GIFT MODAL (FULL 16 OPTIONS WITH REAL WALLET COIN DEDUCTION) -->
+    <!-- GIFT MODAL (FULL 16 OPTIONS) -->
     <div id="giftModal" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="color:#ffcc00;">🎁 Send Creator Gift (16 Options)</h3>
             <span style="cursor:pointer; font-size:18px;" onclick="closeGiftModal()">✕</span>
         </div>
         <div class="gift-grid">
-            <div class="gift-card" onclick="sendRealGift('Rose 🌹', 1)"><div class="emoji">🌹</div><h4>Rose</h4><p>1 Coin</p></div>
-            <div class="gift-card" onclick="sendRealGift('Coffee ☕', 5)"><div class="emoji">☕</div><h4>Coffee</h4><p>5 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Finger Heart 🫶', 10)"><div class="emoji">🫶</div><h4>Heart</h4><p>10 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Sunglasses 🕶️', 20)"><div class="emoji">🕶️</div><h4>Glasses</h4><p>20 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('TikTok Icon 🪙', 50)"><div class="emoji">🪙</div><h4>TikTok</h4><p>50 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Sports Car 🏎️', 100)"><div class="emoji">🏎️</div><h4>Car</h4><p>100 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Magic Ring 💍', 200)"><div class="emoji">💍</div><h4>Ring</h4><p>200 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Yacht 🛥️', 500)"><div class="emoji">🛥️</div><h4>Yacht</h4><p>500 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Lion 🦁', 1000)"><div class="emoji">🦁</div><h4>Lion</h4><p>1,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Diamond 💎', 1500)"><div class="emoji">💎</div><h4>Diamond</h4><p>1,500 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Golden Crown 👑', 2000)"><div class="emoji">👑</div><h4>Crown</h4><p>2,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Private Jet ✈️', 3000)"><div class="emoji">✈️</div><h4>Jet</h4><p>3,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Castle 🏰', 5000)"><div class="emoji">🏰</div><h4>Castle</h4><p>5,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Dragon 🐉', 10000)"><div class="emoji">🐉</div><h4>Dragon</h4><p>10,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Galaxy 🌌', 20000)"><div class="emoji">🌌</div><h4>Galaxy</h4><p>20,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Universe 🪐', 50000)"><div class="emoji">🪐</div><h4>Universe</h4><p>50,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Rose 🌹', 1, '🌹')"><div class="emoji">🌹</div><h4>Rose</h4><p>1 Coin</p></div>
+            <div class="gift-card" onclick="sendRealGift('Coffee ☕', 5, '☕')"><div class="emoji">☕</div><h4>Coffee</h4><p>5 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Finger Heart 🫶', 10, '🫶')"><div class="emoji">🫶</div><h4>Heart</h4><p>10 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Sunglasses 🕶️', 20, '🕶️')"><div class="emoji">🕶️</div><h4>Glasses</h4><p>20 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('TikTok Icon 🪙', 50, '🪙')"><div class="emoji">🪙</div><h4>TikTok</h4><p>50 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Sports Car 🏎️', 100, '🏎️')"><div class="emoji">🏎️</div><h4>Car</h4><p>100 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Magic Ring 💍', 200, '💍')"><div class="emoji">💍</div><h4>Ring</h4><p>200 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Yacht 🛥️', 500, '🛥️')"><div class="emoji">🛥️</div><h4>Yacht</h4><p>500 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Lion 🦁', 1000, '🦁')"><div class="emoji">🦁</div><h4>Lion</h4><p>1,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Diamond 💎', 1500, '💎')"><div class="emoji">💎</div><h4>Diamond</h4><p>1,500 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Golden Crown 👑', 2000, '👑')"><div class="emoji">👑</div><h4>Crown</h4><p>2,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Private Jet ✈️', 3000, '✈️')"><div class="emoji">✈️</div><h4>Jet</h4><p>3,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Castle 🏰', 5000, '🏰')"><div class="emoji">🏰</div><h4>Castle</h4><p>5,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Dragon 🐉', 10000, '🐉')"><div class="emoji">🐉</div><h4>Dragon</h4><p>10,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Galaxy 🌌', 20000, '🌌')"><div class="emoji">🌌</div><h4>Galaxy</h4><p>20,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Universe 🪐', 50000, '🪐')"><div class="emoji">🪐</div><h4>Universe</h4><p>50,000 Coins</p></div>
         </div>
     </div>
 
@@ -309,6 +328,15 @@
             loadProfileDetails();
             await fetchCreatorVideos();
         };
+
+        function showSpinner(text) {
+            document.getElementById('processingText').innerText = text || 'Processing... Please wait';
+            document.getElementById('processingOverlay').style.display = 'flex';
+        }
+
+        function hideSpinner() {
+            document.getElementById('processingOverlay').style.display = 'none';
+        }
 
         function loadProfileDetails() {
             let savedName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
@@ -395,7 +423,6 @@
             else player.pause();
         }
 
-        // SMOOTH LIKE SYSTEM WITHOUT ANNOYING ALERTS
         let isLikedModal = false;
         function toggleModalLike() {
             isLikedModal = !isLikedModal;
@@ -403,16 +430,14 @@
             icon.style.color = isLikedModal ? '#fe2c55' : '#fff';
         }
 
-        // LONG PRESS TO SEE WHO LIKED
         let holdTimer = null;
         function startLikeHold() {
             holdTimer = setTimeout(() => {
                 document.getElementById('likesListModal').style.display = 'flex';
-            }, 600); // 0.6 seconds hold
+            }, 600);
         }
         function endLikeHold() {
             clearTimeout(holdTimer);
-            // If it wasn't a long press, treat as normal click
             toggleModalLike();
         }
         function closeLikesListModal() {
@@ -426,17 +451,23 @@
         function openGiftModal() { document.getElementById('giftModal').style.display = 'block'; }
         function closeGiftModal() { document.getElementById('giftModal').style.display = 'none'; }
 
-        // REAL GIFT SENDING WITH WALLET COIN DEDUCTION
-        function sendRealGift(giftName, coinCost) {
-            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500'); // Default wallet balance
+        function sendRealGift(giftName, coinCost, emojiIcon) {
+            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
             if(currentCoins < coinCost) {
                 alert(`⚠️ Insufficient coins! You need ${coinCost} coins to send ${giftName}. Top up in Wallet.`);
                 return;
             }
             currentCoins -= coinCost;
             localStorage.setItem('userWalletCoins', currentCoins);
-            alert(`🎉 Success! You sent ${giftName} (${coinCost} Coins).\n💰 Remaining Wallet Balance: ${currentCoins} Coins.`);
             closeGiftModal();
+
+            let overlay = document.getElementById('flyingGiftOverlay');
+            let giftDiv = document.createElement('div');
+            giftDiv.className = 'flying-gift-box';
+            giftDiv.innerHTML = `${emojiIcon}<span>Sent ${giftName} (-${coinCost} Coins)</span>`;
+            overlay.appendChild(giftDiv);
+
+            setTimeout(() => { giftDiv.remove(); }, 1800);
         }
 
         function openCreatorSettings() { document.getElementById('creatorSettingsModal').style.display = 'block'; }
@@ -455,26 +486,30 @@
             if(currentSelectedVideoIndex === null) return;
             let newCaption = document.getElementById('settingVideoCaption').value.trim();
             
-            activeVideoList[currentSelectedVideoIndex].caption = newCaption;
-            if(newAudioFileSelected) {
-                alert('🎵 New background music attached successfully from gallery!');
-            }
-
-            localStorage.setItem('customFeedVideos', JSON.stringify(activeVideoList));
-            alert('✅ Video settings saved successfully!');
-            closeCreatorSettings();
-            fetchCreatorVideos();
+            showSpinner("Saving video settings...");
+            
+            setTimeout(async () => {
+                activeVideoList[currentSelectedVideoIndex].caption = newCaption;
+                localStorage.setItem('customFeedVideos', JSON.stringify(activeVideoList));
+                
+                hideSpinner();
+                closeCreatorSettings();
+                await fetchCreatorVideos();
+            }, 800);
         }
 
         function deleteThisVideo() {
             if(confirm('🗑️ Delete this video permanently from profile?')) {
                 if(currentSelectedVideoIndex === null) return;
-                activeVideoList.splice(currentSelectedVideoIndex, 1);
-                localStorage.setItem('customFeedVideos', JSON.stringify(activeVideoList));
-                alert('✅ Video deleted!');
-                closeCreatorSettings();
-                closeVideoPlayer();
-                fetchCreatorVideos();
+                showSpinner("Deleting video...");
+                setTimeout(() => {
+                    activeVideoList.splice(currentSelectedVideoIndex, 1);
+                    localStorage.setItem('customFeedVideos', JSON.stringify(activeVideoList));
+                    hideSpinner();
+                    closeCreatorSettings();
+                    closeVideoPlayer();
+                    fetchCreatorVideos();
+                }, 700);
             }
         }
 
@@ -514,22 +549,24 @@
                 reader.onload = function(e) {
                     tempImageSrc = e.target.result;
                     document.getElementById('profilePicPreview').src = tempImageSrc;
-                    alert('✅ Profile photo updated!');
                 }
                 reader.readAsDataURL(file);
             }
         }
         function saveProfileChanges() {
-            let newName = document.getElementById('inputName').value;
-            let newHandle = document.getElementById('inputHandle').value;
-            let newBio = document.getElementById('inputBio').value;
-            localStorage.setItem('appName', newName);
-            localStorage.setItem('appHandle', newHandle);
-            localStorage.setItem('appBio', newBio);
-            if(tempImageSrc) localStorage.setItem('appPic', tempImageSrc);
-            loadProfileDetails();
-            document.getElementById('editProfileModal').style.display = 'none';
-            alert('🎉 Profile updated!');
+            showSpinner("Updating profile...");
+            setTimeout(() => {
+                let newName = document.getElementById('inputName').value;
+                let newHandle = document.getElementById('inputHandle').value;
+                let newBio = document.getElementById('inputBio').value;
+                localStorage.setItem('appName', newName);
+                localStorage.setItem('appHandle', newHandle);
+                localStorage.setItem('appBio', newBio);
+                if(tempImageSrc) localStorage.setItem('appPic', tempImageSrc);
+                loadProfileDetails();
+                hideSpinner();
+                document.getElementById('editProfileModal').style.display = 'none';
+            }, 700);
         }
     </script>
 </body>
