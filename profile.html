@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
@@ -12,14 +12,15 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; }
         
-        /* Clean Top Bar Studio */
+        /* Clean Top Bar Studio (Top-Right Plus Removed) */
         .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; }
 
         .profile-box { text-align: center; padding: 15px 20px 15px; }
         .avatar { width: 85px; height: 85px; border-radius: 50%; border: 2px solid #fe2c55; object-fit: cover; margin-bottom: 10px; }
         .profile-box h2 { font-size: 18px; margin-bottom: 4px; }
         .profile-box p { font-size: 13px; color: #aaa; margin-bottom: 5px; }
-        .profile-extra-info { font-size: 12px; color: #25f4ee; margin-bottom: 15px; }
+        .profile-extra-info { font-size: 12px; color: #25f4ee; margin-bottom: 10px; line-height: 1.5; }
+        .profile-social-links { font-size: 11px; color: #ffcc00; margin-bottom: 15px; word-break: break-all; padding: 0 10px; }
 
         .stats { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; text-align: center; }
         .stat-box { cursor: pointer; transition: 0.2s; }
@@ -34,13 +35,17 @@
         .p-main-btn { flex: 1; background: #222; border: 1px solid #444; color: #fff; height: 40px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; text-decoration: none; }
         .p-main-btn.active { background: #fe2c55; border-color: #fe2c55; }
 
-        /* Edit Profile Modal */
-        #editProfileModal { display: none; background: #181818; border: 1px solid #333; padding: 20px; margin: 15px; border-radius: 12px; text-align: left; }
+        /* Edit Profile Modal (Detailed Settings) */
+        #editProfileModal { display: none; background: #181818; border: 1px solid #333; padding: 20px; margin: 15px; border-radius: 12px; text-align: left; max-height: 75vh; overflow-y: auto; }
         #editProfileModal h3 { font-size: 16px; color: #fe2c55; margin-bottom: 15px; }
         .form-group { margin-bottom: 12px; }
         .form-group label { font-size: 12px; color: #aaa; display: block; margin-bottom: 4px; }
         .form-group input, .form-group textarea { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 14px; outline: none; }
         .file-upload-btn { display: block; width: 100%; background: #222; border: 1px dashed #fe2c55; color: #25f4ee; padding: 12px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; margin-top: 5px; }
+
+        /* Success Toast Notification (No More Alert OK) */
+        #successToast { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #25f4ee; color: #000; padding: 10px 20px; border-radius: 20px; font-weight: bold; font-size: 13px; z-index: 9999; box-shadow: 0 5px 15px rgba(0,0,0,0.5); animation: fadeInOut 2s ease; }
+        @keyframes fadeInOut { 0% { opacity: 0; transform: translate(-50%, -20px); } 15% { opacity: 1; transform: translate(-50%, 0); } 85% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -20px); } }
 
         /* Creator Video Grid */
         .section-heading { padding: 10px 20px; font-size: 14px; color: #25f4ee; border-top: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
@@ -120,6 +125,9 @@
 </head>
 <body>
 
+    <!-- SUCCESS TOAST POPUP (No More OK Alert) -->
+    <div id="successToast">🎉 Profile updated successfully!</div>
+
     <!-- 🚀 REAL UPLOAD PROGRESS MODAL -->
     <div id="uploadProgressModal">
         <div class="progress-card">
@@ -131,19 +139,20 @@
         </div>
     </div>
 
-    <!-- Top Bar Studio -->
+    <!-- Top Bar Studio (Top-Right Plus Removed) -->
     <div class="top-bar">
         <button onclick="history.back()" style="font-size: 16px; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">←</button>
         <h3 style="font-size: 15px; color: #fe2c55;">Profile Studio</h3>
-        <span onclick="triggerDirectUpload()" style="font-size: 16px; color: #fff; background: #222; border: 1px solid #444; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Upload Video">➕</span>
-        <input type="file" id="directVideoFileInput" accept="video/*" style="display:none;" onchange="handleDirectVideoUpload(event)">
+        <div></div>
     </div>
 
     <div class="profile-box">
         <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="avatar" id="profilePicPreview" alt="Profile">
         <h2 id="profileNameText">Ramkumar Dhobi</h2>
-        <p id="profileHandleText">@ramram981152 | Painter & Creator Hub</p>
-        <div class="profile-extra-info" id="profileExtraInfo">📍 Siddharthanagar, Nepal | 📧 ram060039@gmail.com</div>
+        <p id="profileHandleText">@ramram981152</p>
+        <div class="profile-extra-info" id="profileExtraInfo">📍 Siddharthanagar, Nepal | 📧 ram060039@gmail.com | 📱 +977-9800000000</div>
+        <div class="profile-social-links" id="profileSocialLinksText">🌐 Social Links: facebook.com/ramkumar</div>
+        <p style="font-size: 12px; color: #ccc; margin-bottom: 15px;" id="profileBioText">Painter & Creator Hub</p>
         
         <div class="stats">
             <div class="stat-box"><div class="stat-num" id="statFollowing">12</div><div class="stat-label">Following</div></div>
@@ -158,9 +167,9 @@
         </div>
     </div>
 
-    <!-- Edit Profile Modal -->
+    <!-- Edit Profile Modal (Complete Comprehensive Settings) -->
     <div id="editProfileModal">
-        <h3>✏️ Edit Profile Details</h3>
+        <h3>✏️ Edit Complete Profile Details</h3>
         <div class="form-group">
             <label>Change Profile Picture:</label>
             <input type="file" id="inputFile" accept="image/*" style="display:none;" onchange="previewLocalImage(event)">
@@ -169,6 +178,11 @@
         <div class="form-group"><label>Full Name:</label><input type="text" id="inputName" value="Ramkumar Dhobi"></div>
         <div class="form-group"><label>Username:</label><input type="text" id="inputHandle" value="@ramram981152"></div>
         <div class="form-group"><label>Bio:</label><textarea id="inputBio" rows="2">Painter & Creator Hub</textarea></div>
+        <div class="form-group"><label>Address / Location:</label><input type="text" id="inputAddress" value="Siddharthanagar, Nepal"></div>
+        <div class="form-group"><label>Phone Number:</label><input type="text" id="inputPhone" value="+977-9800000000"></div>
+        <div class="form-group"><label>Gmail ID:</label><input type="email" id="inputEmail" value="ram060039@gmail.com"></div>
+        <div class="form-group"><label>Social Media Links:</label><input type="text" id="inputSocial" value="facebook.com/ramkumar"></div>
+        
         <button class="p-main-btn active" style="width:100%; margin-top:10px; padding:12px; height:auto;" onclick="saveProfileChanges()">Save Changes</button>
     </div>
 
@@ -337,11 +351,28 @@
             let savedName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
             let savedHandle = localStorage.getItem('appHandle') || '@ramram981152';
             let savedBio = localStorage.getItem('appBio') || 'Painter & Creator Hub';
+            let savedAddress = localStorage.getItem('appAddress') || '📍 Siddharthanagar, Nepal';
+            let savedPhone = localStorage.getItem('appPhone') || '📱 +977-9800000000';
+            let savedEmail = localStorage.getItem('appEmail') || '📧 ram060039@gmail.com';
+            let savedSocial = localStorage.getItem('appSocial') || '🌐 facebook.com/ramkumar';
             let savedPic = localStorage.getItem('appPic');
 
             document.getElementById('profileNameText').innerText = savedName;
-            document.getElementById('profileHandleText').innerText = savedHandle + ' | ' + savedBio;
+            document.getElementById('profileHandleText').innerText = savedHandle;
+            document.getElementById('profileBioText').innerText = savedBio;
+            document.getElementById('profileExtraInfo').innerText = `${savedAddress} | ${savedEmail} | ${savedPhone}`;
+            document.getElementById('profileSocialLinksText').innerText = `🔗 ${savedSocial}`;
+
             if(savedPic) document.getElementById('profilePicPreview').src = savedPic;
+
+            // Pre-fill Edit inputs
+            if(document.getElementById('inputName')) document.getElementById('inputName').value = savedName;
+            if(document.getElementById('inputHandle')) document.getElementById('inputHandle').value = savedHandle;
+            if(document.getElementById('inputBio')) document.getElementById('inputBio').value = savedBio;
+            if(document.getElementById('inputAddress')) document.getElementById('inputAddress').value = savedAddress;
+            if(document.getElementById('inputPhone')) document.getElementById('inputPhone').value = savedPhone;
+            if(document.getElementById('inputEmail')) document.getElementById('inputEmail').value = savedEmail;
+            if(document.getElementById('inputSocial')) document.getElementById('inputSocial').value = savedSocial;
         }
 
         async function fetchCreatorVideos() {
@@ -367,7 +398,7 @@
                 document.getElementById('videoCountBadge').innerText = activeVideoList.length;
 
                 if (activeVideoList.length === 0) {
-                    grid.innerHTML = '<div style="grid-column: span 3; text-align:center; padding:40px; color:#888; font-size:13px;">No Video Posted Yet.<br>Tap ➕ above to upload!</div>';
+                    grid.innerHTML = '<div style="grid-column: span 3; text-align:center; padding:40px; color:#888; font-size:13px;">No Video Posted Yet.<br>Tap ➕ below to upload!</div>';
                     return;
                 }
 
@@ -388,65 +419,6 @@
             }
         }
 
-        function triggerDirectUpload() {
-            document.getElementById('directVideoFileInput').click();
-        }
-
-        function handleDirectVideoUpload(event) {
-            let file = event.target.files[0];
-            if (!file) return;
-
-            let modal = document.getElementById('uploadProgressModal');
-            let fill = document.getElementById('progressBarFill');
-            let percentText = document.getElementById('progressPercentText');
-            let titleText = document.getElementById('progressTitleText');
-
-            modal.style.display = 'flex';
-            let progress = 0;
-
-            let interval = setInterval(async () => {
-                progress += Math.floor(Math.random() * 8) + 5;
-                if (progress > 100) progress = 100;
-
-                fill.style.width = progress + '%';
-                percentText.innerText = progress + '%';
-
-                if (progress === 100) {
-                    clearInterval(interval);
-                    titleText.innerText = "✨ Upload Complete!";
-
-                    let videoUrl = URL.createObjectURL(file);
-                    let caption = "New Viral Dance Reel 🔥 #NewStar";
-                    let existingVideos = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
-                    
-                    let newVidObj = {
-                        id: 'vid_local_' + Date.now(),
-                        url: videoUrl,
-                        caption: caption,
-                        likes: 120,
-                        views: 850
-                    };
-
-                    existingVideos.unshift(newVidObj);
-                    localStorage.setItem('customFeedVideos', JSON.stringify(existingVideos));
-
-                    try {
-                        await supabaseClient.from('videos').insert([
-                            { video_url: videoUrl, caption: caption, likes_count: 120, views_count: 850 }
-                        ]);
-                    } catch(e) { console.log('Supabase sync note:', e); }
-
-                    setTimeout(async () => {
-                        modal.style.display = 'none';
-                        fill.style.width = '0%';
-                        percentText.innerText = '0%';
-                        titleText.innerText = '🚀 Uploading Video...';
-                        await fetchCreatorVideos();
-                    }, 1000);
-                }
-            }, 120);
-        }
-
         function openVideoPlayer(index) {
             currentSelectedVideoIndex = index;
             let video = activeVideoList[index];
@@ -461,8 +433,6 @@
             document.getElementById('modalViewsNum').innerText = video.views || '850K';
 
             document.getElementById('settingVideoCaption').value = video.caption || '';
-            
-            // Load Permanent Global Comments & Gifts
             loadPermanentInterests(video.id || ('vid_index_' + index));
 
             document.getElementById('videoPlayerModal').style.display = 'flex';
@@ -519,7 +489,6 @@
         function openGiftModal() { document.getElementById('giftModal').style.display = 'block'; }
         function closeGiftModal() { document.getElementById('giftModal').style.display = 'none'; }
 
-        // 🔒 GLOBAL PERMANENT STORAGE FOR GIFTS & COMMENTS
         function getGlobalStorageKey(videoId) {
             return 'global_permanent_video_data_' + (videoId || 'default_video');
         }
@@ -563,7 +532,6 @@
             localStorage.setItem(storageKey, JSON.stringify(savedRecords));
         }
 
-        // ✨ PERMANENT GIFT SENDING (CREATOR CAN ALSO SEND TO SELF)
         function sendRealGift(giftName, coinCost, emojiIcon) {
             let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
             if(currentCoins < coinCost) {
@@ -574,7 +542,6 @@
             localStorage.setItem('userWalletCoins', currentCoins);
             closeGiftModal();
 
-            // 1. Flying Gift Animation on screen
             let overlay = document.getElementById('flyingGiftOverlay');
             let giftDiv = document.createElement('div');
             giftDiv.className = 'flying-gift-box';
@@ -582,7 +549,6 @@
             overlay.appendChild(giftDiv);
             setTimeout(() => { giftDiv.remove(); }, 1800);
 
-            // 2. Prepare Record Data
             let senderName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
             let currentVideo = activeVideoList[currentSelectedVideoIndex];
             let videoUniqueId = currentVideo ? (currentVideo.id || ('vid_idx_' + currentSelectedVideoIndex)) : 'default_video';
@@ -596,10 +562,8 @@
                 time: Date.now()
             };
 
-            // 3. Save permanently
             saveRecordPermanently(videoUniqueId, giftRecord);
 
-            // 4. Render immediately in open comment box
             let commentList = document.getElementById('commentListArea');
             commentList.innerHTML += `
                 <div style="display:flex; gap:10px; background:rgba(254,44,85,0.18); padding:10px; border-radius:10px; border-left:4px solid #fe2c55; align-items:center;">
@@ -614,15 +578,6 @@
 
         function openCreatorSettings() { document.getElementById('creatorSettingsModal').style.display = 'block'; }
         function closeCreatorSettings() { document.getElementById('creatorSettingsModal').style.display = 'none'; }
-
-        let newAudioFileSelected = null;
-        function onNewAudioChosen(event) {
-            let file = event.target.files[0];
-            if(file) {
-                newAudioFileSelected = file;
-                document.getElementById('audioUploadLabel').innerText = '✅ Music Selected: ' + file.name;
-            }
-        }
 
         async function saveCreatorVideoSettings() {
             if(currentSelectedVideoIndex === null) return;
@@ -709,17 +664,36 @@
                 reader.readAsDataURL(file);
             }
         }
+
+        // 🌟 DIRECT SAVE WITHOUT ALERT OK (Smooth Toast Notification)
         function saveProfileChanges() {
             let newName = document.getElementById('inputName').value;
             let newHandle = document.getElementById('inputHandle').value;
             let newBio = document.getElementById('inputBio').value;
+            let newAddress = document.getElementById('inputAddress').value;
+            let newPhone = document.getElementById('inputPhone').value;
+            let newEmail = document.getElementById('inputEmail').value;
+            let newSocial = document.getElementById('inputSocial').value;
+
             localStorage.setItem('appName', newName);
             localStorage.setItem('appHandle', newHandle);
             localStorage.setItem('appBio', newBio);
+            localStorage.setItem('appAddress', newAddress);
+            localStorage.setItem('appPhone', newPhone);
+            localStorage.setItem('appEmail', newEmail);
+            localStorage.setItem('appSocial', newSocial);
+
             if(tempImageSrc) localStorage.setItem('appPic', tempImageSrc);
+            
             loadProfileDetails();
             document.getElementById('editProfileModal').style.display = 'none';
-            alert('🎉 Profile updated!');
+
+            // Show Smooth Toast instead of alert()
+            let toast = document.getElementById('successToast');
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 2000);
         }
     </script>
 </body>
