@@ -1,11 +1,45 @@
-// navbar.js - Ultimate Master Navigation Component (Top Right Plus Removed)
+// navbar.js - Ultimate Master Navigation Component (Top-Right Plus Permanently Destroyed)
 document.addEventListener("DOMContentLoaded", function() {
     let currentPage = window.location.pathname.split("/").pop() || "index.html";
 
-    // पुराना नेविगेशन हटाकर नया सही सेट करने के लिए क्लीनर
+    // 1. पुराना या डबल नेविगेशन तुरंत हटाओ
     let oldNavs = document.querySelectorAll('.bottom-nav, .app-global-bottom-nav, .master-tiktok-final-nav');
     oldNavs.forEach(el => el.remove());
 
+    // 2. 🛑 जादुई कोड: ऊपर दाहिने कोने या टॉप-बार में कहीं भी फालतू प्लस (+) बटन या कैमरा लिंक दिखे, उसे तुरंत जड़ से उड़ा दो!
+    function removeAllTopRightPluses() {
+        // टॉप बार या स्क्रीन के ऊपर वाले हिस्से के सभी लिंक्स और बटंस की जाँच करें
+        let topElements = document.querySelectorAll('.top-bar a, .top-bar button, header a, header button');
+        topElements.forEach(el => {
+            let text = el.innerText || el.textContent || '';
+            let href = el.getAttribute('href') || '';
+            let title = el.getAttribute('title') || '';
+            
+            if (text.includes('➕') || text.includes('+') || href.includes('camera') || title.includes('Studio')) {
+                el.remove();
+            }
+        });
+
+        // इसके अलावा अगर पूरी स्क्रीन पर कोई भी ऐसा एलिमेंट है जो ऊपर दाहिने कोने में है और प्लस दिखाता है
+        let allItems = document.querySelectorAll('a, button, div, span');
+        allItems.forEach(el => {
+            let text = el.innerText || el.textContent || '';
+            let href = el.getAttribute('href') || '';
+            if ((text.trim() === '➕' || text.trim() === '+' || href.includes('camera.html')) && !el.classList.contains('mfn-center-plus')) {
+                let rect = el.getBoundingClientRect();
+                // यदि यह स्क्रीन के ऊपर (टॉप 80 पिक्सेल के अंदर) और दाईं तरफ है
+                if (rect.top < 80 && rect.left > window.innerWidth / 2) {
+                    el.remove();
+                }
+            }
+        });
+    }
+
+    removeAllTopRightPluses();
+    setTimeout(removeAllTopRightPluses, 50);
+    setTimeout(removeAllTopRightPluses, 250);
+
+    // 3. नया साफ-सुथरा टिकटॉक जैसा नेविगेशन बार
     let finalNavHTML = `
     <style>
         .master-tiktok-final-nav {
@@ -69,7 +103,7 @@ document.addEventListener("DOMContentLoaded", function() {
             transform: scale(1.08);
         }
 
-        /* 🔴 ऊपर बाईं तरफ कोने वाला LIVE बटन और उसका पॉपअप मेनू */
+        /* 🔴 ऊपर बाएं कोने वाला LIVE बटन और उसका पॉपअप मेनू */
         .top-left-live-wrapper {
             position: fixed !important;
             top: 10px !important;
@@ -121,10 +155,10 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     </style>
 
-    <!-- नीचे का फिक्स नेविगेशन बार -->
+    <!-- नीचे का फिक्स नेविगेशन बार (Wallet टैग यहाँ सही से बंद किया गया है) -->
     <div class="master-tiktok-final-nav">
         <a href="index.html" class="mfn-item ${currentPage === 'index.html' || currentPage === '' ? 'active' : ''}"><i>🏠</i><span>Home</span></a>
-        <a href="wallet.html" class="mfn-item ${currentPage === 'wallet.html' ? 'active' : ''}"><i>🪙</i><span>Wallet</span>
+        <a href="wallet.html" class="mfn-item ${currentPage === 'wallet.html' ? 'active' : ''}"><i>🪙</i><span>Wallet</span></a>
         
         <!-- ➕ एकदम बीचों-बीच प्लस बटन -->
         <a href="camera.html" class="mfn-item" style="flex: 1.5;">
@@ -168,14 +202,6 @@ document.addEventListener("DOMContentLoaded", function() {
     let wrap = document.createElement('div');
     wrap.innerHTML = finalNavHTML;
     document.body.appendChild(wrap);
-
-    // 🛑 साथ ही अगर एचटीएमएल में ऊपर दाहिने कोने में कोई पुराना प्लस बटन (`<a href="camera.html">➕</a>`) है, तो उसे भी ऑटोमैटिकली हटा दो!
-    let topBarLinks = document.querySelectorAll('.top-bar a, .top-bar button');
-    topBarLinks.forEach(el => {
-        if (el.innerHTML.includes('➕') || el.href.includes('camera.html')) {
-            el.remove();
-        }
-    });
 
     window.toggleTopLiveMenu = function(event) {
         event.stopPropagation();
