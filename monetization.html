@@ -54,7 +54,7 @@
 
     <div class="section-title">💰 Official New Star Ad Revenue Program</div>
     
-    <!-- 🌟 OFFICIAL MONETIZATION DASHBOARD ITEM WITH DYNAMIC GREEN TICK -->
+    <!-- 🌟 OFFICIAL MONETIZATION DASHBOARD ITEM WITH GREEN TICK -->
     <div class="hub-item" onclick="openMonetizationStatusModal()" style="background: linear-gradient(135deg, #1f1f3a, #2a1626); border-left: 4px solid #fe2c55;" id="mainHubItemBox">
         <div class="hub-left">
             <span class="hub-icon" id="mainHubIcon">💸</span>
@@ -80,16 +80,16 @@
         <span class="hub-right" style="color:#ffcc00; font-weight:bold;">Active 🎁</span>
     </div>
 
-    <!-- 2. REFERRAL SYSTEM ($1.00) -->
+    <!-- 2. REFERRAL SYSTEM ($1.00) WITH DIRECT SOCIAL MEDIA SHARE -->
     <div class="hub-item" onclick="openReferralModal()" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
         <div class="hub-left">
             <span class="hub-icon">👥</span>
             <div class="hub-text">
                 <h4 style="color: #25f4ee;">Invite Friends & Earn $1.00 Bonus</h4>
-                <p>Earn daily commissions from invited creators</p>
+                <p>Share instantly to WhatsApp, Facebook & Social Apps</p>
             </div>
         </div>
-        <span class="hub-right" style="color: #25f4ee; font-weight: bold;">Earn $1 ❯</span>
+        <span class="hub-right" style="color: #25f4ee; font-weight: bold;">Share $1 ❯</span>
     </div>
 
     <!-- 3. NEW STAR CAMPAIGNS (1K Lock) -->
@@ -141,14 +141,13 @@
     </div>
 
     <!-- MODALS -->
-    <!-- 💰 OFFICIAL MONETIZATION RULES MODAL WITH GREEN TICK VERIFICATION -->
+    <!-- 💰 OFFICIAL MONETIZATION RULES MODAL -->
     <div class="modal-overlay" id="monetizationStatusModal">
         <div class="modal-card" style="border-color: #fe2c55;" id="modalCardBorder">
             <span class="close-modal" onclick="closeModal('monetizationStatusModal')">✕</span>
             <h3 style="color: #fe2c55;" id="modalTitleText">💸 New Star Ad Revenue Monetization</h3>
             <div style="font-size:12px; color:#ccc; margin-bottom:15px; line-height: 1.6;">
                 
-                <!-- ✅ VERIFICATION & ELIGIBILITY STATUS BANNER -->
                 <div id="verificationStatusBanner" style="background: #222; border: 1px solid #444; padding: 10px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
                     <span style="font-size: 13px; font-weight: bold; color: #ffcc00;" id="bannerStatusText">🔒 Account Not Verified / Criteria Pending</span>
                 </div>
@@ -184,6 +183,21 @@
         </div>
     </div>
 
+    <!-- 👥 REFERRAL HUB MODAL WITH DIRECT SOCIAL MEDIA SHARE API -->
+    <div class="modal-overlay" id="referralModal">
+        <div class="modal-card" style="border-color: #25f4ee;">
+            <span class="close-modal" onclick="closeModal('referralModal')">✕</span>
+            <h3 style="color: #25f4ee;">👥 Referral Hub ($1.00 Reward)</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Share your invite link directly to WhatsApp, Facebook, Telegram & all social apps:</p>
+            
+            <input type="text" id="referralLinkInput" class="form-input" value="https://new-star-creator.vercel.app/invite?ref=ramkumar06" readonly style="margin-bottom:8px;">
+            
+            <!-- 🌐 REAL SOCIAL MEDIA SHARE & COPY BUTTONS -->
+            <button class="action-pub-btn" style="background:#25f4ee; color:#000; margin-bottom: 8px;" onclick="shareToSocialMedia()">🚀 Share to WhatsApp, Facebook & Social Apps</button>
+            <button class="action-pub-btn" style="background:#333; color:#fff;" onclick="copyReferralLinkOnly()">📋 Copy Link Only</button>
+        </div>
+    </div>
+
     <!-- 📈 VIDEO BOOST MODAL -->
     <div class="modal-overlay" id="videoBoostModal">
         <div class="modal-card" style="border-color: #25f4ee;">
@@ -211,20 +225,10 @@
             <span class="close-modal" onclick="closeModal('liveGiftRulesModal')">✕</span>
             <h3 style="color: #ffcc00;">💎 LIVE Gifts & Treasure Box Rules</h3>
             <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
-                • Receive 16+ real gifts during live streaming.<br>
+                • Receive 16+ real gifts during live broadcasting.<br>
                 • Drop Treasure Boxes with custom coin timers!
             </p>
             <button class="action-pub-btn" style="background:#ffcc00; color:#000;" onclick="closeModal('liveGiftRulesModal')">Got It</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="referralModal">
-        <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('referralModal')">✕</span>
-            <h3 style="color: #25f4ee;">👥 Referral Hub ($1.00 Reward)</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Share your link anywhere to earn $1.00 per referral!</p>
-            <input type="text" class="form-input" value="https://callpriyance.app/invite?ref=ramkumar06" readonly style="margin-bottom:8px;">
-            <button class="action-pub-btn" style="background:#25f4ee; color:#000;" onclick="alert('📋 Link copied!')">Copy Link</button>
         </div>
     </div>
 
@@ -273,16 +277,14 @@
             let banner = document.getElementById('verificationStatusBanner');
             let bannerText = document.getElementById('bannerStatusText');
 
-            // 1K locks for campaigns
             if (userFollowers >= 1000) {
                 if(campLock) { campLock.innerText = 'Active ⭐'; campLock.style.color = '#25f4ee'; }
                 if(affLock) { affLock.innerText = 'Active 🔗'; affLock.style.color = '#25f4ee'; }
             } else {
                 if(campLock) { campLock.innerText = `Locked (${userFollowers}/1K) 🔒`; campLock.style.color = '#ffcc00'; }
-                if(affLock) { affLock.innerText = `Locked (${userFollowers}/1K) 🔒`; campLock.style.color = '#ffcc00'; }
+                if(affLock) { affLock.innerText = `Locked (${userFollowers}/1K) 🔒`; affLock.style.color = '#ffcc00'; }
             }
 
-            // Progress Bar Calculations
             let followerPercent = Math.min(100, Math.floor((userFollowers / 10000) * 100));
             let viewsPercent = Math.min(100, Math.floor((userViews / 200000) * 100));
 
@@ -298,9 +300,7 @@
             vBar.style.width = `${viewsPercent}%`;
             vBar.style.backgroundColor = viewsPercent >= 100 ? '#25f4ee' : '#ffcc00';
 
-            // 🌟 MONETIZATION & GREEN TICK VERIFICATION CHECK
             if (userFollowers >= 10000 && userViews >= 200000) {
-                // Fully Verified & Unlocked with Green Tick ✅
                 if(mainMonetizationStatus) { mainMonetizationStatus.innerText = 'Verified & Unlocked ✅'; mainMonetizationStatus.style.color = '#25f4ee'; }
                 if(mainHubBox) { mainHubBox.style.borderLeftColor = '#25f4ee'; }
                 if(mainHubIcon) { mainHubIcon.innerText = '✅'; }
@@ -311,7 +311,6 @@
                 
                 if(actionBtn) { actionBtn.innerText = '🎉 Claim & Manage Ad Revenue (55%)'; actionBtn.style.background = '#25f4ee'; actionBtn.style.color = '#000'; }
             } else {
-                // Locked State
                 if(mainMonetizationStatus) { mainMonetizationStatus.innerText = 'Locked 🔒'; mainMonetizationStatus.style.color = '#ffcc00'; }
                 if(mainHubBox) { mainHubBox.style.borderLeftColor = '#fe2c55'; }
                 if(mainHubIcon) { mainHubIcon.innerText = '💸'; }
@@ -337,9 +336,36 @@
                 alert('🎉 Congratulations! Your channel is fully verified and monetized. AdMob 55% revenue sharing is active!');
                 closeModal('monetizationStatusModal');
             } else {
-                // 🛑 PROFESSIONAL ENGLISH MESSAGE AS REQUESTED
                 alert('Not Available. Criteria Not Met Yet.');
             }
+        }
+
+        // 🌐 REAL SOCIAL MEDIA SHARE API (फोन के सारे सोशल मीडिया ऐप्स खोल देगा)
+        function shareToSocialMedia() {
+            let shareData = {
+                title: 'New Star Creator Hub',
+                text: 'Join New Star Creator Hub, watch viral videos and earn rewards! Use my invite link:',
+                url: document.getElementById('referralLinkInput').value
+            };
+
+            if (navigator.share) {
+                navigator.share(shareData).then(() => {
+                    console.log('Shared successfully');
+                }).catch((error) => {
+                    console.log('Error sharing', error);
+                });
+            } else {
+                copyReferralLinkOnly();
+                alert('🔗 Link copied to clipboard! You can paste it directly into WhatsApp or Facebook.');
+            }
+        }
+
+        function copyReferralLinkOnly() {
+            let copyText = document.getElementById('referralLinkInput');
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(copyText.value);
+            alert('📋 Referral Link Copied Successfully!');
         }
 
         function checkCampaignAccess() {
@@ -362,7 +388,6 @@
 
         function openVideoBoostModal() { document.getElementById('videoBoostModal').style.display = 'flex'; }
 
-        // 💳 DIRECT BANK / CARD PAYMENT + COIN OPTION
         function boostPackage(views, priceUSD) {
             let userCoins = parseInt(localStorage.getItem('userWalletCoins') || '250');
             let coinCost = priceUSD * 100;
