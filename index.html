@@ -91,11 +91,11 @@
         .share-app-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; margin: 0 auto 5px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-decoration: none; color: #fff; }
         .share-app-item span { font-size: 11px; color: #ccc; }
 
-        /* Bottom Navigation Bar */
+        /* 🌟 Bottom Navigation Bar - PERFECT CENTER PLUS FIX */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; flex: 1; text-align: center; }
         .nav-item.active { color: #fff; }
-        .upload-plus-btn { width: 42px; height: 28px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; }
+        .upload-plus-btn { width: 44px; height: 30px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 22px; font-weight: bold; box-shadow: 0 2px 10px rgba(254,44,85,0.5); margin: 0 auto; }
         .live-btn-nav { color: #fe2c55; font-weight: bold; }
         .game-btn-nav { color: #00b4d8; font-weight: bold; }
     </style>
@@ -209,7 +209,7 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar -->
+    <!-- Bottom Navigation Bar (Centered Plus Fix) -->
     <div class="bottom-nav">
         <a href="index.html" class="nav-item active"><i>🏠</i><span>Home</span></a>
         <a href="wallet.html" class="nav-item"><i>🪙</i><span>Wallet</span></a>
@@ -221,19 +221,14 @@
     </div>
 
     <script>
-        // ==========================================
-        // 🚀 SUPABASE CONFIGURATION & CONNECTION (NEW STAR)
-        // ==========================================
         const SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
 
-        // Initialize Supabase Client safely
         const { createClient } = window.supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         console.log("✅ New Star connected to Supabase successfully!");
 
-        // PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed', err));
@@ -245,15 +240,13 @@
             if(savedHandle) {
                 document.getElementById('feedUsername').innerText = savedHandle;
             }
-            // Fetch videos from Supabase database on load
             fetchSupabaseVideos();
         };
 
-        // Function to fetch videos from Supabase database
         async function fetchSupabaseVideos() {
             try {
                 const { data, error } = await supabaseClient
-                    .from('videos') // Table name where videos are saved
+                    .from('videos')
                     .select('*')
                     .order('created_at', { ascending: false });
 
@@ -264,7 +257,6 @@
 
                 if (data && data.length > 0) {
                     console.log("📹 Loaded videos from Supabase:", data);
-                    // You can display the latest video dynamically here if needed
                 }
             } catch (err) {
                 console.error('Supabase connection error:', err);
