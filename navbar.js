@@ -1,4 +1,4 @@
-// navbar.js - Ultimate Master Navigation Component (Top-Right Plus Permanently Destroyed)
+// navbar.js - Ultimate Master Navigation & Top-Right Settings Gear Integration
 document.addEventListener("DOMContentLoaded", function() {
     let currentPage = window.location.pathname.split("/").pop() || "index.html";
 
@@ -6,38 +6,42 @@ document.addEventListener("DOMContentLoaded", function() {
     let oldNavs = document.querySelectorAll('.bottom-nav, .app-global-bottom-nav, .master-tiktok-final-nav');
     oldNavs.forEach(el => el.remove());
 
-    // 2. 🛑 जादुई कोड: ऊपर दाहिने कोने या टॉप-बार में कहीं भी फालतू प्लस (+) बटन या कैमरा लिंक दिखे, उसे तुरंत जड़ से उड़ा दो!
-    function removeAllTopRightPluses() {
-        // टॉप बार या स्क्रीन के ऊपर वाले हिस्से के सभी लिंक्स और बटंस की जाँच करें
+    // 2. ⚙️ ऊपर दाहिने कोने में फालतू प्लस हटाकर वहाँ सीधे 'Settings (⚙️)' का आइकॉन सेट करने वाला ऑटो-फिक्स कोड
+    function setupTopRightSettingsGear() {
+        // सबसे पहले ऊपर वाले हिस्से से सारे फालतू प्लस या कैमरा आइकॉन हटाओ
         let topElements = document.querySelectorAll('.top-bar a, .top-bar button, header a, header button');
         topElements.forEach(el => {
-            let text = el.innerText || el.textContent || '';
+            let text = el.innerText || '';
             let href = el.getAttribute('href') || '';
-            let title = el.getAttribute('title') || '';
-            
-            if (text.includes('➕') || text.includes('+') || href.includes('camera') || title.includes('Studio')) {
+            if (text.includes('➕') || text.includes('+') || href.includes('camera')) {
                 el.remove();
             }
         });
 
-        // इसके अलावा अगर पूरी स्क्रीन पर कोई भी ऐसा एलिमेंट है जो ऊपर दाहिने कोने में है और प्लस दिखाता है
-        let allItems = document.querySelectorAll('a, button, div, span');
-        allItems.forEach(el => {
-            let text = el.innerText || el.textContent || '';
-            let href = el.getAttribute('href') || '';
-            if ((text.trim() === '➕' || text.trim() === '+' || href.includes('camera.html')) && !el.classList.contains('mfn-center-plus')) {
-                let rect = el.getBoundingClientRect();
-                // यदि यह स्क्रीन के ऊपर (टॉप 80 पिक्सेल के अंदर) और दाईं तरफ है
-                if (rect.top < 80 && rect.left > window.innerWidth / 2) {
-                    el.remove();
-                }
+        // अब अगर पेज पर .top-bar मौजूद है, तो उसके दाहिने कोने में सेटिंग गियर जोड़ दो
+        let topBars = document.querySelectorAll('.top-bar');
+        topBars.forEach(bar => {
+            if (!bar.querySelector('.top-settings-gear')) {
+                let gearBtn = document.createElement('a');
+                gearBtn.href = 'settings.html'; // सीधे settings.html खोलेगा
+                gearBtn.className = 'top-settings-gear';
+                gearBtn.innerHTML = '⚙️';
+                gearBtn.title = 'Settings & Privacy';
+                gearBtn.style.cssText = "font-size: 18px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.6); border: 1px solid rgba(254,44,85,0.5); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 999999; margin-left: auto;";
+                
+                gearBtn.onclick = function(e) {
+                    e.preventDefault();
+                    window.location.href = 'settings.html';
+                };
+
+                bar.appendChild(gearBtn);
             }
         });
     }
 
-    removeAllTopRightPluses();
-    setTimeout(removeAllTopRightPluses, 50);
-    setTimeout(removeAllTopRightPluses, 250);
+    setupTopRightSettingsGear();
+    setTimeout(setupTopRightSettingsGear, 50);
+    setTimeout(setupTopRightSettingsGear, 250);
 
     // 3. नया साफ-सुथरा टिकटॉक जैसा नेविगेशन बार
     let finalNavHTML = `
@@ -155,7 +159,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     </style>
 
-    <!-- नीचे का फिक्स नेविगेशन बार (Wallet टैग यहाँ सही से बंद किया गया है) -->
+    <!-- नीचे का फिक्स नेविगेशन बार (Wallet टैग यहाँ सही से बंद है) -->
     <div class="master-tiktok-final-nav">
         <a href="index.html" class="mfn-item ${currentPage === 'index.html' || currentPage === '' ? 'active' : ''}"><i>🏠</i><span>Home</span></a>
         <a href="wallet.html" class="mfn-item ${currentPage === 'wallet.html' ? 'active' : ''}"><i>🪙</i><span>Wallet</span></a>
