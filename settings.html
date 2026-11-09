@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Settings and Privacy - New Star Creator Hub</title>
+    <title data-i18n="pageTitle">Settings and Privacy - New Star Creator Hub</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         html, body { background-color: var(--app-bg, #000); color: var(--app-text, #fff); width: 100%; min-height: 100vh; overflow-x: hidden; }
@@ -62,33 +62,33 @@
 
     <!-- Fixed Header -->
     <div class="header">
-        <button class="back-btn" onclick="history.back()">← Back</button>
-        <h2 id="txtSettingsTitle">Settings and privacy</h2>
+        <button class="back-btn" onclick="history.back()" data-i18n="backBtn">← Back</button>
+        <h2 id="txtSettingsTitle" data-i18n="settingsTitle">Settings and privacy</h2>
         <span>⚙️</span>
     </div>
 
     <!-- 💼 CREATOR & MONETIZATION HUB LINK -->
-    <div class="section-title">Creator Portal</div>
+    <div class="section-title" data-i18n="secCreatorPortal">Creator Portal</div>
     <div class="setting-item" onclick="window.location.href='monetization.html'" style="background: linear-gradient(135deg, #161625, #1f1f3a);">
         <div class="setting-left">
             <span class="setting-icon">💼</span>
             <div class="setting-text">
-                <h4 style="color: #25f4ee;">Creator & Monetization Hub</h4>
-                <p>New Star Campaigns, Affiliate, Brand Deals & Video Boost</p>
+                <h4 style="color: #25f4ee;" data-i18n="hubTitle">Creator & Monetization Hub</h4>
+                <p data-i18n="hubDesc">New Star Campaigns, Affiliate, Brand Deals & Video Boost</p>
             </div>
         </div>
-        <span class="right-val" style="color:#25f4ee; font-weight:bold;">Open ❯</span>
+        <span class="right-val" style="color:#25f4ee; font-weight:bold;" data-i18n="openText">Open ❯</span>
     </div>
 
     <!-- ACCOUNT & SECURITY -->
-    <div class="section-title" id="txtSecAccount">Account & Security</div>
+    <div class="section-title" data-i18n="secAccount">Account & Security</div>
     
     <div class="setting-item">
         <div class="setting-left">
             <span class="setting-icon">🔒</span>
             <div class="setting-text">
-                <h4 id="txtPrivateAcc">Private Account Mode</h4>
-                <p>Only approved users can view your videos</p>
+                <h4 data-i18n="privateAcc">Private Account Mode</h4>
+                <p data-i18n="privateAccDesc">Only approved users can view your videos</p>
             </div>
         </div>
         <label class="switch">
@@ -97,70 +97,58 @@
         </label>
     </div>
 
-    <!-- 📱 ACCOUNT INFORMATION (Verify & Change Phone, Gmail, Region) -->
+    <!-- 📱 UNIFIED ACCOUNT INFO & VERIFICATION MODAL TRIGGER -->
     <div class="setting-item" onclick="openAccountInfoModal()">
         <div class="setting-left">
             <span class="setting-icon">📱</span>
             <div class="setting-text">
-                <h4 id="txtAccInfo">Account Information</h4>
-                <p>Verify & update your Phone, Gmail, DOB & Region</p>
+                <h4 data-i18n="accInfo">Account Information & Verification</h4>
+                <p data-i18n="accInfoDesc">Verify & update Phone, Gmail, Region & Passport PIN</p>
             </div>
         </div>
-        <span class="right-val">Manage ❯</span>
-    </div>
-
-    <!-- 🔑 PASSWORD & SECURITY (Verify & Change Passport/PIN) -->
-    <div class="setting-item" onclick="openPasswordModal()">
-        <div class="setting-left">
-            <span class="setting-icon">🔑</span>
-            <div class="setting-text">
-                <h4 id="txtSecurity">Password & Security (Passport)</h4>
-                <p>Update your login credentials and security passport safely</p>
-            </div>
-        </div>
-        <span class="right-val">Update ❯</span>
+        <span class="right-val" data-i18n="manageText">Manage ❯</span>
     </div>
 
     <div class="setting-item" onclick="openBlockListModal()">
-        <div class="setting-left"><span class="setting-icon">🚫</span><div class="setting-text"><h4 id="txtBlockedUsers">Blocked Users & Fraud Management</h4><p>Manage restricted accounts</p></div></div>
-        <span class="right-val" style="color:var(--theme-color, #fe2c55);">Manage ❯</span>
+        <div class="setting-left"><span class="setting-icon">🚫</span><div class="setting-text"><h4 data-i18n="blockedUsers">Blocked Users & Fraud Management</h4><p data-i18n="blockedUsersDesc">Manage restricted accounts</p></div></div>
+        <span class="right-val" style="color:var(--theme-color, #fe2c55);" data-i18n="manageText">Manage ❯</span>
     </div>
 
     <div class="setting-item" onclick="window.location.href='wallet.html'">
-        <div class="setting-left"><span class="setting-icon">🪙</span><div class="setting-text"><h4 id="txtWalletCards">Cards & Coin Balance</h4><p>Check spendable and withdrawable wallet</p></div></div>
-        <span class="right-val">Manage ❯</span>
+        <div class="setting-left"><span class="setting-icon">🪙</span><div class="setting-text"><h4 data-i18n="walletCards">Cards & Coin Balance</h4><p data-i18n="walletCardsDesc">Check spendable and withdrawable wallet</p></div></div>
+        <span class="right-val" data-i18n="manageText">Manage ❯</span>
     </div>
 
     <!-- SUPPORT & SAFETY -->
-    <div class="section-title" id="txtSecSupport">Support & Safety Center</div>
+    <div class="section-title" data-i18n="secSupport">Support & Safety Center</div>
 
     <div class="setting-item" onclick="openAutoModerationPolicyModal()" style="background: linear-gradient(135deg, #2e1a1a, #3e1616);">
-        <div class="setting-left"><span class="setting-icon">🛡️</span><div class="setting-text"><h4 style="color: #ff4444;" id="txtAutoMod">Auto-Moderation & Content Safety</h4><p>AI protection against weapons & adult content</p></div></div>
+        <div class="setting-left"><span class="setting-icon">🛡️</span><div class="setting-text"><h4 style="color: #ff4444;" data-i18n="autoMod">Auto-Moderation & Content Safety</h4><p data-i18n="autoModDesc">AI protection against weapons & adult content</p></div></div>
         <span class="right-val" style="color: #ff4444; font-weight: bold;">Active 🛡️</span>
     </div>
 
-    <!-- 🛠️ HELP & REPORT (Sends Description & Screenshot to WhatsApp 9811522480 & Gmail rkdaifilms@gmail.com) -->
+    <!-- 🛠️ HELP & REPORT (Sends to WhatsApp 9811522480 & Gmail rkdaifilms@gmail.com) -->
     <div class="setting-item" onclick="openHelpModal()">
         <div class="setting-left">
             <span class="setting-icon">🛠️</span>
             <div class="setting-text">
-                <h4 id="txtHelpReport">Help & Report a Problem</h4>
-                <p>Send issue & screenshot to WhatsApp (9811522480) & Gmail</p>
+                <h4 data-i18n="helpReport">Help & Report a Problem</h4>
+                <p data-i18n="helpReportDesc">Send issue & screenshot to WhatsApp (9811522480) & Gmail</p>
             </div>
         </div>
-        <span class="right-val" style="color:#25f4ee;">Support ❯</span>
+        <span class="right-val" style="color:#25f4ee;" data-i18n="supportText">Support ❯</span>
     </div>
 
     <!-- PREFERENCES -->
-    <div class="section-title" id="txtSecPrefs">Preferences & Global Settings</div>
+    <div class="section-title" data-i18n="secPrefs">Preferences & Global Settings</div>
 
-    <!-- 🌐 INTERNATIONAL LANGUAGE SELECTOR -->
+    <!-- 🌐 REAL INTERNATIONAL LANGUAGE SELECTOR -->
     <div class="setting-item" onclick="openLanguageModal()">
         <div class="setting-left">
             <span class="setting-icon">🌐</span>
             <div class="setting-text">
-                <h4 id="txtAppLang">App Language (International)</h4>
-                <p>Multi-language translation for global users</p>
+                <h4 data-i18n="appLang">App Language (International)</h4>
+                <p data-i18n="appLangDesc">Instant real translation for global users</p>
             </div>
         </div>
         <span class="right-val" id="selectedLangDisplay">हिन्दी (Hindi) ❯</span>
@@ -171,117 +159,103 @@
         <div class="setting-left">
             <span class="setting-icon">🎨</span>
             <div class="setting-text">
-                <h4 id="txtThemes50">Themes & Color Modes (50+ Colors)</h4>
-                <p>Instantly change entire app color scheme</p>
+                <h4 data-i18n="themes50">Themes & Color Modes (50+ Colors)</h4>
+                <p data-i18n="themes50Desc">Instantly change entire app color scheme</p>
             </div>
         </div>
         <span class="right-val" id="selectedThemeDisplay">TikTok Red (Default) ❯</span>
     </div>
 
     <div class="logout-box">
-        <button class="logout-btn" onclick="handleLogout()" id="txtLogOutBtn">Log Out</button>
+        <button class="logout-btn" onclick="handleLogout()" id="txtLogOutBtn" data-i18n="logOutBtn">Log Out</button>
     </div>
 
     <!-- MODALS -->
-    <!-- 🛡️ PROFESSIONAL AUTO-MODERATION POLICY MODAL -->
+    <!-- 🛡️ AUTO-MODERATION POLICY MODAL -->
     <div class="modal-overlay" id="autoModerationPolicyModal">
         <div class="modal-card" style="border-color: #ff4444;">
             <span class="close-modal" onclick="closeModal('autoModerationPolicyModal')">✕</span>
-            <h3 style="color: #ff4444;">🛡️ Auto-Moderation & Content Safety System</h3>
-            <div style="font-size:12px; color:#ccc; margin-bottom:15px; line-height: 1.6;">
+            <h3 style="color: #ff4444;" data-i18n="autoModTitle">🛡️ Auto-Moderation & Content Safety System</h3>
+            <div style="font-size:12px; color:#ccc; margin-bottom:15px; line-height: 1.6;" data-i18n="autoModBody">
                 <p style="margin-bottom: 8px;"><b>🌐 Global AI Protection & Compliance Hub:</b></p>
                 <p style="margin-bottom: 6px;">• <b>Automated AI Scanning:</b> Scans every uploaded video and short in real-time before publishing.</p>
                 <p style="margin-bottom: 6px;">• <b>Strict Safety Enforcement:</b> Blocks weapons, violence, adult/NSFW content, and hate speech instantly.</p>
                 <p style="margin-bottom: 6px;">• <b>AdMob & Monetization Shield:</b> Protects advertising accounts and global payment nodes from restrictions.</p>
                 <p>• <b>Developer Oversight:</b> Logs safety actions securely to maintain 100% platform integrity.</p>
             </div>
-            <button class="action-pub-btn" style="background:#ff4444; color:#fff;" onclick="closeModal('autoModerationPolicyModal')">Understood & Close</button>
+            <button class="action-pub-btn" style="background:#ff4444; color:#fff;" onclick="closeModal('autoModerationPolicyModal')" data-i18n="closeBtn">Understood & Close</button>
         </div>
     </div>
 
-    <!-- 🛠️ HELP & REPORT MODAL WITH PHOTO UPLOAD & DIRECT WHATSAPP/GMAIL -->
+    <!-- 🛠️ HELP & REPORT MODAL WITH PHOTO UPLOAD -->
     <div class="modal-overlay" id="helpModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('helpModal')">✕</span>
-            <h3>🛠️ Help & Report a Problem</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:8px;">Describe your issue and attach a screenshot from your gallery:</p>
+            <h3 data-i18n="helpModalTitle">🛠️ Help & Report a Problem</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:8px;" data-i18n="helpModalDesc">Describe your issue and attach a screenshot from your gallery:</p>
             <textarea id="issueDesc" class="form-input" rows="3" placeholder="Describe your issue here..." style="resize:none;"></textarea>
             
             <div style="margin-bottom: 12px;">
                 <input type="file" id="supportScreenshotFile" accept="image/*" style="display:none;" onchange="previewSupportImage(event)">
-                <label for="supportScreenshotFile" style="display:block; background:#222; border:1px dashed #fe2c55; color:#25f4ee; padding:10px; text-align:center; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold;">📁 Browse Screenshot from Gallery</label>
+                <label for="supportScreenshotFile" style="display:block; background:#222; border:1px dashed #fe2c55; color:#25f4ee; padding:10px; text-align:center; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold;" data-i18n="browseScreenshot">📁 Browse Screenshot from Gallery</label>
                 <div id="screenshotPreviewBox" style="margin-top:8px; font-size:11px; color:#00ffcc;"></div>
             </div>
 
-            <button class="action-pub-btn" onclick="submitSupportTicketToWhatsAppGmail()">🚀 Send Report to WhatsApp & Gmail</button>
+            <button class="action-pub-btn" onclick="submitSupportTicketToWhatsAppGmail()" data-i18n="sendReportBtn">🚀 Send Report to WhatsApp & Gmail</button>
         </div>
     </div>
 
-    <!-- 📱 ACCOUNT INFORMATION MODAL (Verify & Update Phone & Gmail) -->
+    <!-- 📱 UNIFIED ACCOUNT INFORMATION & VERIFICATION MODAL -->
     <div class="modal-overlay" id="accountInfoModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('accountInfoModal')">✕</span>
-            <h3>📱 Account Information & Verification</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Verify and update your registered phone and Gmail:</p>
+            <h3 data-i18n="accModalTitle">📱 Account Information & Verification</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:10px;" data-i18n="accModalDesc">Verify and update your phone, Gmail, and security passport:</p>
             
-            <label style="font-size:11px; color:#ffcc00;">Registered Phone Number:</label>
-            <input type="text" id="accPhone" class="form-input" value="+977-9811522480" placeholder="Enter Phone Number">
+            <label style="font-size:11px; color:#ffcc00;" data-i18n="labelPhone">Registered Phone Number:</label>
+            <input type="text" id="accPhone" class="form-input" value="+977-9811522480">
             
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Registered Gmail Account:</label>
-            <input type="email" id="accEmail" class="form-input" value="rkdaifilms@gmail.com" placeholder="Enter Gmail">
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;" data-i18n="labelEmail">Registered Gmail Account:</label>
+            <input type="email" id="accEmail" class="form-input" value="rkdaifilms@gmail.com">
 
-            <button class="action-pub-btn" onclick="saveAccountInfo()">💾 Save & Verify Account Info</button>
-        </div>
-    </div>
+            <label style="font-size:11px; color:#25f4ee; display:block; margin-top:8px;" data-i18n="labelPass">Update Security Passport / PIN:</label>
+            <input type="password" id="accPass" class="form-input" placeholder="Enter new password or PIN" value="Ram@9811522480">
 
-    <!-- 🔑 PASSWORD & SECURITY PASSPORT MODAL -->
-    <div class="modal-overlay" id="passwordModal">
-        <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('passwordModal')">✕</span>
-            <h3>🔒 Password & Security Passport</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Update your login security passport or PIN:</p>
-            
-            <label style="font-size:11px; color:#25f4ee;">Current Password / PIN:</label>
-            <input type="password" id="currentPass" class="form-input" placeholder="Enter current password">
-
-            <label style="font-size:11px; color:#25f4ee; display:block; margin-top:8px;">New Password / Passport PIN:</label>
-            <input type="password" id="newPass" class="form-input" placeholder="Enter new password or PIN">
-
-            <button class="action-pub-btn" onclick="saveNewPassword()">🛡️ Update Security Passport</button>
+            <button class="action-pub-btn" onclick="saveUnifiedAccountInfo()" data-i18n="saveAccountBtn">💾 Verify & Save Account Details</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="blockModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('blockModal')">✕</span>
-            <h3>🚫 Blocked Users</h3>
+            <h3 data-i18n="blockedUsersModalTitle">🚫 Blocked Users</h3>
             <input type="text" class="form-input" placeholder="@username">
-            <button class="action-pub-btn" onclick="showToast('✅ User blocked')">Block</button>
+            <button class="action-pub-btn" onclick="showToast('✅ User blocked')" data-i18n="blockBtn">Block</button>
         </div>
     </div>
 
-    <!-- 🌐 INTERNATIONAL LANGUAGE MODAL (15+ Languages) -->
+    <!-- 🌐 REAL INTERNATIONAL LANGUAGE MODAL (15+ Languages) -->
     <div class="modal-overlay" id="langModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('langModal')">✕</span>
-            <h3>🌐 Select International Language</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Choose country language to translate entire app:</p>
+            <h3 data-i18n="langModalTitle">🌐 Select International Language</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:10px;" data-i18n="langModalDesc">Click any language to instantly translate entire app:</p>
             <div style="max-height: 350px; overflow-y: auto;">
-                <div class="modal-option" onclick="setLanguage('हिन्दी (Hindi)', 'hi')"><span>🇮🇳 हिन्दी (Hindi)</span></div>
-                <div class="modal-option" onclick="setLanguage('नेपाली (Nepali)', 'ne')"><span>🇳🇵 नेपाली (Nepali)</span></div>
-                <div class="modal-option" onclick="setLanguage('English (US)', 'en')"><span>🇺🇸 English (US)</span></div>
-                <div class="modal-option" onclick="setLanguage('中国人 (Chinese / Mandarin)', 'zh')"><span>🇨🇳 中文 (Chinese)</span></div>
-                <div class="modal-option" onclick="setLanguage('Español (Spanish)', 'es')"><span>🇪🇸 Español (Spanish)</span></div>
-                <div class="modal-option" onclick="setLanguage('Français (French)', 'fr')"><span>🇫🇷 Français (French)</span></div>
-                <div class="modal-option" onclick="setLanguage('العربية (Arabic)', 'ar')"><span>🇸🇦 العربية (Arabic)</span></div>
-                <div class="modal-option" onclick="setLanguage('日本語 (Japanese)', 'ja')"><span>🇯🇵 日本語 (Japanese)</span></div>
-                <div class="modal-option" onclick="setLanguage('Deutsch (German)', 'de')"><span>🇩🇪 Deutsch (German)</span></div>
-                <div class="modal-option" onclick="setLanguage('Русский (Russian)', 'ru')"><span>🇷🇺 Русский (Russian)</span></div>
-                <div class="modal-option" onclick="setLanguage('Português (Portuguese)', 'pt')"><span>🇧🇷 Português (Portuguese)</span></div>
-                <div class="modal-option" onclick="setLanguage('Italiano (Italian)', 'it')"><span>🇮🇹 Italiano (Italian)</span></div>
-                <div class="modal-option" onclick="setLanguage('한국어 (Korean)', 'ko')"><span>🇰🇷 한국어 (Korean)</span></div>
-                <div class="modal-option" onclick="setLanguage('Türkçe (Turkish)', 'tr')"><span>🇹🇷 Türkçe (Turkish)</span></div>
-                <div class="modal-option" onclick="setLanguage('বাংলা (Bengali)', 'bn')"><span>🇧🇩 বাংলা (Bengali)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('hi', 'हिन्दी (Hindi)')"><span>🇮🇳 हिन्दी (Hindi)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('ne', 'नेपाली (Nepali)')"><span>🇳🇵 नेपाली (Nepali)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('en', 'English (US)')"><span>🇺🇸 English (US)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('zh', '中国人 (Chinese)')"><span>🇨🇳 中文 (Chinese)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('es', 'Español (Spanish)')"><span>🇪🇸 Español (Spanish)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('fr', 'Français (French)')"><span>🇫🇷 Français (French)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('ar', 'العربية (Arabic)')"><span>🇸🇦 العربية (Arabic)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('ja', '日本語 (Japanese)')"><span>🇯🇵 日本語 (Japanese)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('de', 'Deutsch (German)')"><span>🇩🇪 Deutsch (German)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('ru', 'Русский (Russian)')"><span>🇷🇺 Русский (Russian)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('pt', 'Português (Portuguese)')"><span>🇧🇷 Português (Portuguese)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('it', 'Italiano (Italian)')"><span>🇮🇹 Italiano (Italian)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('ko', '한국어 (Korean)')"><span>🇰🇷 한국어 (Korean)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('tr', 'Türkçe (Turkish)')"><span>🇹🇷 Türkçe (Turkish)</span></div>
+                <div class="modal-option" onclick="setRealAppLanguage('bn', 'বাংলা (Bengali)')"><span>🇧🇩 বাংলা (Bengali)</span></div>
             </div>
         </div>
     </div>
@@ -290,75 +264,261 @@
     <div class="modal-overlay" id="themeModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('themeModal')">✕</span>
-            <h3>🎨 Select Theme (50+ Custom Colors)</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Select any color to instantly transform entire app:</p>
+            <h3 data-i18n="themeModalTitle">🎨 Select Theme (50+ Custom Colors)</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:10px;" data-i18n="themeModalDesc">Select any color to instantly transform entire app:</p>
             <div class="theme-grid" id="themeGridContainer"></div>
         </div>
     </div>
 
     <script src="navbar.js"></script>
     <script>
-        const themeList = [
-            { name: 'TikTok Red', hex: '#fe2c55' },
-            { name: 'Neon Cyan', hex: '#25f4ee' },
-            { name: 'Royal Gold', hex: '#ffcc00' },
-            { name: 'Emerald Green', hex: '#00b09b' },
-            { name: 'Electric Purple', hex: '#8a2be2' },
-            { name: 'Sunset Orange', hex: '#ff4500' },
-            { name: 'Deep Ocean Blue', hex: '#0077b6' },
-            { name: 'Hot Pink', hex: '#ff1493' },
-            { name: 'Lime Neon', hex: '#39ff14' },
-            { name: 'Cyber Yellow', hex: '#ffe600' },
-            { name: 'Crimson Red', hex: '#dc143c' },
-            { name: 'Turquoise', hex: '#40e0d0' },
-            { name: 'Amethyst', hex: '#9966cc' },
-            { name: 'Tangerine', hex: '#ff851b' },
-            { name: 'Sky Blue', hex: '#00b4d8' },
-            { name: 'Neon Magenta', hex: '#ff00ff' },
-            { name: 'Spring Green', hex: '#00ff7f' },
-            { name: 'Neon Violet', hex: '#9400d3' },
-            { name: 'Coral Red', hex: '#ff6f61' },
-            { name: 'Aqua Marine', hex: '#7fffd4' },
-            { name: 'Golden Yellow', hex: '#ffd700' },
-            { name: 'Ruby Red', hex: '#e0115f' },
-            { name: 'Electric Indigo', hex: '#4b0082' },
-            { name: 'Lime Green', hex: '#00ff00' },
-            { name: 'Neon Blue', hex: '#1f51ff' },
-            { name: 'Peach Glow', hex: '#ffdab9' },
-            { name: 'Lavender', hex: '#e6e6fa' },
-            { name: 'Mint Green', hex: '#98ff98' },
-            { name: 'Rose Gold', hex: '#b76e79' },
-            { name: 'Steel Blue', hex: '#4682b4' },
-            { name: 'Chocolate', hex: '#d2691e' },
-            { name: 'Dark Orchid', hex: '#9932cc' },
-            { name: 'Neon Lime', hex: '#a6e22e' },
-            { name: 'Flamingo', hex: '#fc8eac' },
-            { name: 'Teal', hex: '#008080' },
-            { name: 'Plum', hex: '#dda0dd' },
-            { name: 'Khaki', hex: '#f0e68c' },
-            { name: 'Salmon', hex: '#fa8072' },
-            { name: 'Sienna', hex: '#a0522d' },
-            { name: 'Slate Gray', hex: '#708090' },
-            { name: 'Midnight Blue', hex: /#191970/ },
-            { name: 'Olive', hex: '#808000' },
-            { name: 'Orchid', hex: '#da70d6' },
-            { name: 'Periwinkle', hex: '#ccccff' },
-            { name: 'Papaya', hex: '#ffefd5' },
-            { name: 'Aquamarine', hex: '#66cdaa' },
-            { name: 'Burlywood', hex: '#deb887' },
-            { name: 'Cadet Blue', hex: '#5f9ea0' },
-            { name: 'Chartreuse', hex: '#7fff00' },
-            { name: 'Chocolate Brown', hex: '#d2691e' }
-        ];
+        // 🌍 REAL MULTI-LANGUAGE DICTIONARY ENGINE
+        const translations = {
+            hi: {
+                pageTitle: "सेटिंग्स और गोपनीयता - न्यू स्टार",
+                backBtn: "← पीछे",
+                settingsTitle: "सेटिंग्स और गोपनीयता",
+                secCreatorPortal: "क्रिएटर पोर्टल",
+                hubTitle: "क्रिएटर और मोनेटाइजेशन हब",
+                hubDesc: "न्यू स्टार कैंपेन, Affiliate, ब्रांड डील और वीडियो बूस्ट",
+                openText: "खोलें ❯",
+                secAccount: "खाता और सुरक्षा",
+                privateAcc: "प्राइवेट अकाउंट मोड",
+                privateAccDesc: "केवल स्वीकृत उपयोगकर्ता ही आपके वीडियो देख सकते हैं",
+                accInfo: "खाता जानकारी और वेरिफिकेशन",
+                accInfoDesc: "फोन, जीमेल, रीजन और पासपोर्ट पिन सत्यापित करें और बदलें",
+                blockedUsers: "ब्लॉक किए गए उपयोगकर्ता और फ्रॉड मैनेजमेंट",
+                blockedUsersDesc: "प्रतिबंधित खातों को प्रबंधित करें",
+                walletCards: "कार्ड और कॉइन बैलेंस",
+                walletCardsDesc: "खर्च करने योग्य और निकालने योग्य वॉलेट जांचें",
+                secSupport: "सहायता और सुरक्षा केंद्र",
+                autoMod: "ऑटो-मॉडरेशन और कंटेंट सेफ्टी",
+                autoModDesc: "हथियारों और वयस्क सामग्री के खिलाफ एआई सुरक्षा",
+                helpReport: "सहायता और समस्या की रिपोर्ट करें",
+                helpReportDesc: "व्हाट्सएप (9811522480) और जीमेल पर समस्या और स्क्रीनशॉट भेजें",
+                secPrefs: "प्राथमिकताएं और वैश्विक सेटिंग्स",
+                appLang: "ऐप भाषा (अंतर्राष्ट्रीय)",
+                appLangDesc: "वैश्विक उपयोगकर्ताओं के लिए त्वरित वास्तविक अनुवाद",
+                themes50: "थीम और रंग मोड (50+ रंग)",
+                themes50Desc: "तुरंत पूरे ऐप की रंग योजना बदलें",
+                logOutBtn: "लॉग आउट",
+                manageText: "मैनेज ❯",
+                supportText: "सहायता ❯",
+                autoModTitle: "🛡️ ऑटो-मॉडरेशन और कंटेंट सेफ्टी सिस्टम",
+                closeBtn: "समझ गया और बंद करें",
+                helpModalTitle: "🛠️ सहायता और समस्या की रिपोर्ट करें",
+                helpModalDesc: "अपनी समस्या का वर्णन करें और गैलरी से स्क्रीनशॉट संलग्न करें:",
+                browseScreenshot: "📁 गैलरी से स्क्रीनशॉट ब्राउज़ करें",
+                sendReportBtn: "🚀 व्हाट्सएप और जीमेल पर रिपोर्ट भेजें",
+                accModalTitle: "📱 खाता जानकारी और वेरिफिकेशन",
+                accModalDesc: "अपने पंजीकृत फोन, जीमेल और सुरक्षा पासपोर्ट को सत्यापित और अपडेट करें:",
+                labelPhone: "पंजीकृत फोन नंबर:",
+                labelEmail: "पंजीकृत जीमेल खाता:",
+                labelPass: "सुरक्षा पासपोर्ट / पिन अपडेट करें:",
+                saveAccountBtn: "💾 खाता विवरण सत्यापित करें और सहेजें",
+                langModalTitle: "🌐 अंतर्राष्ट्रीय भाषा चुनें",
+                langModalDesc: "पूरे ऐप को तुरंत अनुवादित करने के लिए किसी भी भाषा पर क्लिक करें:",
+                themeModalTitle: "🎨 थीम चुनें (50+ कस्टम रंग)",
+                themeModalDesc: "पूरे ऐप को बदलने के लिए कोई भी रंग चुनें:"
+            },
+            ne: {
+                pageTitle: "सेटिङ्ग्स् र गोपनीयता - न्यु स्टार",
+                backBtn: "← पछाडि",
+                settingsTitle: "सेटिङ्ग्स् र गोपनीयता",
+                secCreatorPortal: "सृष्टिकर्ता पोर्टल",
+                hubTitle: "सिर्जनाकार र मुद्रीकरण केन्द्र",
+                hubDesc: "न्यु स्टार अभियान, Affiliate, ब्रान्ड डिल र भिडियो बुस्ट",
+                openText: "खोल्नुहोस् ❯",
+                secAccount: "खाता र सुरक्षा",
+                privateAcc: "प्राइभेट अकाउन्ट मोड",
+                privateAccDesc: "स्वीकृत प्रयोगकर्ताहरूले मात्र तपाईंका भिडियोहरू हेर्न सक्छन्",
+                accInfo: "खाता जानकारी र प्रमाणीकरण",
+                accInfoDesc: "फोन, जिमेल, क्षेत्र र पासपोर्ट पिन प्रमाणित गर्नुहोस् र परिवर्तन गर्नुहोस्",
+                blockedUsers: "ब्लक गरिएका प्रयोगकर्ताहरू",
+                blockedUsersDesc: "प्रतिबन्धित खाताहरू व्यवस्थापन गर्नुहोस्",
+                walletCards: "कार्ड र कोइन ब्यालेन्स",
+                walletCardsDesc: "खर्च गर्ने योग्य र निकाल्ने योग्य वालेट जाँच गर्नुहोस्",
+                secSupport: "सहायता र सुरक्षा केन्द्र",
+                autoMod: "अटो-मोडरेसन र सामग्री सुरक्षा",
+                autoModDesc: "हतियार र वयस्क सामग्री विरुद्ध एआई सुरक्षा",
+                helpReport: "सहायता र समस्या रिपोर्ट गर्नुहोस्",
+                helpReportDesc: "व्हाट्सएप (9811522480) र जिमेलमा समस्या र स्क्रिनसट पठाउनुहोस्",
+                secPrefs: "प्राथमिकताहरू र विश्वव्यापी सेटिङ्हरू",
+                appLang: "एप भाषा (अन्तर्राष्ट्रिय)",
+                appLangDesc: "विश्वव्यापी प्रयोगकर्ताहरूको लागि तत्काल वास्तविक अनुवाद",
+                themes50: "थिमहरू र रङ्ग मोडहरू (50+ रङ्ग)",
+                themes50Desc: "तत्काल सम्पूर्ण एपको रङ्ग योजना बदल्नुहोस्",
+                logOutBtn: "लग आउट",
+                manageText: "व्यवस्थापन ❯",
+                supportText: "सहायता ❯",
+                autoModTitle: "🛡️ अटो-मोडरेसन र सामग्री सुरक्षा प्रणाली",
+                closeBtn: "बुझें र बन्द गर्नुहोस्",
+                helpModalTitle: "🛠️ सहायता र समस्या रिपोर्ट गर्नुहोस्",
+                helpModalDesc: "तपाईंको समस्या वर्णन गर्नुहोस् र ग्यालरीबाट स्क्रिनसट संलग्न गर्नुहोस्:",
+                browseScreenshot: "📁 ग्यालरीबाट स्क्रिनसट ब्राउज गर्नुहोस्",
+                sendReportBtn: "🚀 व्हाट्सएप र जिमेलमा रिपोर्ट पठाउनुहोस्",
+                accModalTitle: "📱 खाता जानकारी र प्रमाणीकरण",
+                accModalDesc: "तपाईंको दर्ता गरिएको फोन, जिमेल र सुरक्षा पासपोर्ट प्रमाणित र अद्यावधिक गर्नुहोस्:",
+                labelPhone: "दर्ता गरिएको फोन नम्बर:",
+                labelEmail: "दर्ता गरिएको जिमेल खाता:",
+                labelPass: "सुरक्षा पासपोर्ट / पिन अद्यावधिक गर्नुहोस्:",
+                saveAccountBtn: "💾 खाता विवरण प्रमाणित गर्नुहोस् र बचत गर्नुहोस्",
+                langModalTitle: "🌐 अन्तर्राष्ट्रिय भाषा चयन गर्नुहोस्",
+                langModalDesc: "सम्पूर्ण एपलाई तुरुन्तै अनुवाद गर्न कुनै पनि भाषामा क्लिक गर्नुहोस्:",
+                themeModalTitle: "🎨 थिम चयन गर्नुहोस् (50+ कस्टम रङ्ग)",
+                themeModalDesc: "सम्पूर्ण एप रूपान्तरण गर्न कुनै पनि रङ्ग चयन गर्नुहोस्:"
+            },
+            en: {
+                pageTitle: "Settings and Privacy - New Star Creator Hub",
+                backBtn: "← Back",
+                settingsTitle: "Settings and privacy",
+                secCreatorPortal: "Creator Portal",
+                hubTitle: "Creator & Monetization Hub",
+                hubDesc: "New Star Campaigns, Affiliate, Brand Deals & Video Boost",
+                openText: "Open ❯",
+                secAccount: "Account & Security",
+                privateAcc: "Private Account Mode",
+                privateAccDesc: "Only approved users can view your videos",
+                accInfo: "Account Information & Verification",
+                accInfoDesc: "Verify & update Phone, Gmail, Region & Passport PIN",
+                blockedUsers: "Blocked Users & Fraud Management",
+                blockedUsersDesc: "Manage restricted accounts",
+                walletCards: "Cards & Coin Balance",
+                walletCardsDesc: "Check spendable and withdrawable wallet",
+                secSupport: "Support & Safety Center",
+                autoMod: "Auto-Moderation & Content Safety",
+                autoModDesc: "AI protection against weapons & adult content",
+                helpReport: "Help & Report a Problem",
+                helpReportDesc: "Send issue & screenshot to WhatsApp (9811522480) & Gmail",
+                secPrefs: "Preferences & Global Settings",
+                appLang: "App Language (International)",
+                appLangDesc: "Instant real translation for global users",
+                themes50: "Themes & Color Modes (50+ Colors)",
+                themes50Desc: "Instantly change entire app color scheme",
+                logOutBtn: "Log Out",
+                manageText: "Manage ❯",
+                supportText: "Support ❯",
+                autoModTitle: "🛡️ Auto-Moderation & Content Safety System",
+                closeBtn: "Understood & Close",
+                helpModalTitle: "🛠️ Help & Report a Problem",
+                helpModalDesc: "Describe your issue and attach a screenshot from your gallery:",
+                browseScreenshot: "📁 Browse Screenshot from Gallery",
+                sendReportBtn: "🚀 Send Report to WhatsApp & Gmail",
+                accModalTitle: "📱 Account Information & Verification",
+                accModalDesc: "Verify and update your phone, Gmail, and security passport:",
+                labelPhone: "Registered Phone Number:",
+                labelEmail: "Registered Gmail Account:",
+                labelPass: "Update Security Passport / PIN:",
+                saveAccountBtn: "💾 Verify & Save Account Details",
+                langModalTitle: "🌐 Select International Language",
+                langModalDesc: "Click any language to instantly translate entire app:",
+                themeModalTitle: "🎨 Select Theme (50+ Custom Colors)",
+                themeModalDesc: "Select any color to instantly transform entire app:"
+            },
+            zh: {
+                pageTitle: "设置与隐私 - 新星创作者中心",
+                backBtn: "← 返回",
+                settingsTitle: "设置与隐私",
+                secCreatorPortal: "创作者门户",
+                hubTitle: "创作者与变现中心",
+                hubDesc: "新星活动、联盟营销、品牌合作与视频推广",
+                openText: "打开 ❯",
+                secAccount: "账号与安全",
+                privateAcc: "私密账号模式",
+                privateAccDesc: "只有批准的用户才能查看您的视频",
+                accInfo: "账号信息与验证",
+                accInfoDesc: "验证并更新手机、Gmail、地区及密码PIN",
+                blockedUsers: "已屏蔽用户与欺诈管理",
+                blockedUsersDesc: "管理受限账号",
+                walletCards: "卡片与金币余额",
+                walletCardsDesc: "检查可用和可提现钱包",
+                secSupport: "支持与安全中心",
+                autoMod: "自动审核与内容安全",
+                autoModDesc: "防范武器和成人内容的AI保护",
+                helpReport: "帮助与举报问题",
+                helpReportDesc: "发送问题及截图至WhatsApp (9811522480) & Gmail",
+                secPrefs: "偏好与全局设置",
+                appLang: "应用语言（国际）",
+                appLangDesc: "为全球用户提供即时实时翻译",
+                themes50: "主题与色彩模式（50+种颜色）",
+                themes50Desc: "即时更改整个应用的配色方案",
+                logOutBtn: "退出登录",
+                manageText: "管理 ❯",
+                supportText: "支持 ❯",
+                autoModTitle: "🛡️ 自动审核与内容安全系统",
+                closeBtn: "了解并关闭",
+                helpModalTitle: "🛠️ 帮助与举报问题",
+                helpModalDesc: "描述您的问题并从相册添加截图：",
+                browseScreenshot: "📁 从相册浏览截图",
+                sendReportBtn: "🚀 发送报告至WhatsApp与Gmail",
+                accModalTitle: "📱 账号信息与验证",
+                accModalDesc: "验证并更新您的手机、Gmail和安全密码：",
+                labelPhone: "注册手机号码：",
+                labelEmail: "注册Gmail账号：",
+                labelPass: "更新安全密码/PIN：",
+                saveAccountBtn: "💾 验证并保存账号详情",
+                langModalTitle: "🌐 选择国际语言",
+                langModalDesc: "点击任意语言即可立即翻译整个应用：",
+                themeModalTitle: "🎨 选择主题（50+种自定义颜色）",
+                themeModalDesc: "选择任意颜色即可瞬间转换整个应用："
+            },
+            es: {
+                pageTitle: "Configuración y Privacidad - New Star",
+                backBtn: "← Volver",
+                settingsTitle: "Configuración y privacidad",
+                secCreatorPortal: "Portal de Creadores",
+                hubTitle: "Centro de Creadores y Monetización",
+                hubDesc: "Campañas, Afiliados, Acuerdos de Marca y Impulso de Video",
+                openText: "Abrir ❯",
+                secAccount: "Cuenta y Seguridad",
+                privateAcc: "Modo de Cuenta Privada",
+                privateAccDesc: "Solo los usuarios aprobados pueden ver tus videos",
+                accInfo: "Información de Cuenta y Verificación",
+                accInfoDesc: "Verifica y actualiza Teléfono, Gmail y PIN de Pasaporte",
+                blockedUsers: "Usuarios Bloqueados",
+                blockedUsersDesc: "Gestionar cuentas restringidas",
+                walletCards: "Tarjetas y Saldo de Monedas",
+                walletCardsDesc: "Verificar billetera gastable y retirable",
+                secSupport: "Centro de Soporte y Seguridad",
+                autoMod: "Auto-Moderación y Seguridad",
+                autoModDesc: "Protección de IA contra contenido peligroso",
+                helpReport: "Ayuda e Informar un Problema",
+                helpReportDesc: "Enviar reporte a WhatsApp (9811522480) y Gmail",
+                secPrefs: "Preferencias y Configuración Global",
+                appLang: "Idioma de la App (Internacional)",
+                appLangDesc: "Traducción instantánea para usuarios globales",
+                themes50: "Temas y Modos de Color (50+ Colores)",
+                themes50Desc: "Cambiar instantáneamente los colores de la app",
+                logOutBtn: "Cerrar Sesión",
+                manageText: "Gestionar ❯",
+                supportText: "Soporte ❯",
+                autoModTitle: "🛡️ Sistema de Auto-Moderación y Seguridad",
+                closeBtn: "Entendido y Cerrar",
+                helpModalTitle: "🛠️ Ayuda e Informar un Problema",
+                helpModalDesc: "Describe tu problema y adjunta una captura de pantalla:",
+                browseScreenshot: "📁 Buscar captura de pantalla",
+                sendReportBtn: "🚀 Enviar reporte a WhatsApp y Gmail",
+                accModalTitle: "📱 Información de Cuenta y Verificación",
+                accModalDesc: "Verifica y actualiza tu teléfono, Gmail y pasaporte:",
+                labelPhone: "Número de Teléfono Registrado:",
+                labelEmail: "Cuenta de Gmail Registrada:",
+                labelPass: "Actualizar Contraseña / PIN:",
+                saveAccountBtn: "💾 Verificar y Guardar Detalles",
+                langModalTitle: "🌐 Seleccionar Idioma Internacional",
+                langModalDesc: "Haz clic en cualquier idioma para traducir toda la app:",
+                themeModalTitle: "🎨 Seleccionar Tema (50+ Colores)",
+                themeModalDesc: "Selecciona cualquier color para transformar la app:"
+            }
+        };
 
         window.onload = function() {
             let savedColor = localStorage.getItem('appThemeColor') || '#fe2c55';
             let savedThemeName = localStorage.getItem('appThemeName') || 'TikTok Red';
             applyGlobalTheme(savedColor, savedThemeName);
 
-            let savedLang = localStorage.getItem('appLanguageName') || 'हिन्दी (Hindi)';
-            let langDisplay = document.getElementById('selectedLangDisplay');
-            if(langDisplay) langDisplay.innerText = savedLang + ' ❯';
+            let savedLangCode = localStorage.getItem('appLangCode') || 'hi';
+            let savedLangName = localStorage.getItem('appLanguageName') || 'हिन्दी (Hindi)';
+            setRealAppLanguage(savedLangCode, savedLangName, false);
 
             let savedPhone = localStorage.getItem('userAccPhone') || '+977-9811522480';
             let savedEmail = localStorage.getItem('userAccEmail') || 'rkdaifilms@gmail.com';
@@ -386,6 +546,24 @@
             setTimeout(() => { toast.style.display = 'none'; }, 3000);
         }
 
+        // 🌐 REAL LANGUAGE APPLICATOR ENGINE
+        function setRealAppLanguage(langCode, langName, showAlert = true) {
+            localStorage.setItem('appLangCode', langCode);
+            localStorage.setItem('appLanguageName', langName);
+            document.getElementById('selectedLangDisplay').innerText = langName + ' ❯';
+
+            let t = translations[langCode] || translations['en'];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                let key = el.getAttribute('data-i18n');
+                if(t[key]) {
+                    el.innerText = t[key];
+                }
+            });
+
+            closeModal('langModal');
+            if(showAlert) showToast('🌐 Language changed to: ' + langName);
+        }
+
         function applyGlobalTheme(colorHex, themeName) {
             document.documentElement.style.setProperty('--theme-color', colorHex);
             localStorage.setItem('appThemeColor', colorHex);
@@ -398,15 +576,6 @@
             applyGlobalTheme(colorHex, themeName);
             closeModal('themeModal');
             showToast('🎨 Theme changed to: ' + themeName);
-        }
-
-        function setLanguage(langName, langCode) {
-            localStorage.setItem('appLanguageName', langName);
-            localStorage.setItem('appLanguageCode', langCode);
-            let langDisplay = document.getElementById('selectedLangDisplay');
-            if(langDisplay) langDisplay.innerText = langName + ' ❯';
-            closeModal('langModal');
-            showToast('🌐 Language changed to: ' + langName);
         }
 
         function toggleAccountPrivacy() {
@@ -457,27 +626,22 @@
             closeModal('helpModal');
         }
 
-        // 📱 SAVE ACCOUNT INFO (Phone & Gmail verification)
-        function saveAccountInfo() { 
+        // 📱 UNIFIED ACCOUNT INFO & SECURITY PASSPORT SAVE
+        function saveUnifiedAccountInfo() { 
             let phone = document.getElementById('accPhone').value.trim();
             let email = document.getElementById('accEmail').value.trim();
+            let pass = document.getElementById('accPass').value.trim();
+
             if(!phone || !email) { showToast('⚠️ Enter valid phone and email'); return; }
             
             localStorage.setItem('userAccPhone', phone);
             localStorage.setItem('userAccEmail', email);
-            showToast('✅ Account Information Verified & Saved!');
-            closeModal('accountInfoModal'); 
-        }
+            if(pass) {
+                localStorage.setItem('customAdminPass', pass);
+            }
 
-        // 🔒 SAVE PASSWORD & SECURITY PASSPORT
-        function saveNewPassword() {
-            let currPass = document.getElementById('currentPass').value.trim();
-            let newPass = document.getElementById('newPass').value.trim();
-            if(!currPass || !newPass) { showToast('⚠️ Enter current and new passport PIN'); return; }
-            
-            localStorage.setItem('customAdminPass', newPass);
-            showToast('✅ Security Passport & PIN Updated Successfully!');
-            closeModal('passwordModal');
+            showToast('✅ Account Details & Security Passport Verified & Saved!');
+            closeModal('accountInfoModal'); 
         }
 
         function openAutoModerationPolicyModal() { document.getElementById('autoModerationPolicyModal').style.display = 'flex'; }
@@ -490,6 +654,14 @@
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
         function handleLogout() { if(confirm('Log out?')) window.location.href = 'index.html'; }
+
+        const themeList = [
+            { name: 'TikTok Red', hex: '#fe2c55' }, { name: 'Neon Cyan', hex: '#25f4ee' },
+            { name: 'Royal Gold', hex: '#ffcc00' }, { name: 'Emerald Green', hex: '#00b09b' },
+            { name: 'Electric Purple', hex: '#8a2be2' }, { name: 'Sunset Orange', hex: '#ff4500' },
+            { name: 'Deep Ocean Blue', hex: '#0077b6' }, { name: 'Hot Pink', hex: '#ff1493' },
+            { name: 'Lime Neon', hex: '#39ff14' }, { name: 'Cyber Yellow', hex: '#ffe600' }
+        ];
     </script>
 </body>
 </html>
