@@ -68,7 +68,7 @@
         .modal-video-info h4 { font-size: 15px; margin-bottom: 4px; color: #fff; }
         .modal-video-info p { font-size: 12px; color: #ddd; }
 
-        /* ⚙️ CREATOR SETTING / MANAGER PANEL */
+        /* ⚙️ CREATOR SETTING / MANAGER PANEL (CLEAN & PROFESSIONAL) */
         #creatorSettingsModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; box-shadow: 0 -5px 25px rgba(0,0,0,0.9); max-height: 80vh; overflow-y: auto; }
         
         /* COMMENTS MODAL */
@@ -181,7 +181,7 @@
         </div>
     </div>
 
-    <!-- ⚙️ CREATOR SETTING / MANAGER PANEL -->
+    <!-- ⚙️ CREATOR SETTING / MANAGER PANEL (CLEAN) -->
     <div id="creatorSettingsModal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="font-size:16px; color:#fe2c55;">⚙️ Creator Video Manager & Settings</h3>
@@ -199,12 +199,7 @@
             <label for="settingAudioFile" class="file-upload-btn" id="audioUploadLabel">🎵 Select New Music from Gallery</label>
         </div>
 
-        <div style="background:#222; padding:12px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#ccc;">
-            <p>❤️ Total Likes: <b id="settingLikesCheck" style="color:#fe2c55;">0</b></p>
-            <p style="margin-top:4px;">🎁 Gifts Received: <b id="settingGiftsCheck" style="color:#ffcc00;">0 Coins</b></p>
-        </div>
-
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; margin-top: 15px;">
             <button class="p-main-btn active" style="flex:1;" onclick="saveCreatorVideoSettings()">💾 Save Changes</button>
             <button class="p-main-btn" style="background:#ff3b30; border:none; flex:1;" onclick="deleteThisVideo()">🗑️ Delete Video</button>
         </div>
@@ -339,8 +334,6 @@
             document.getElementById('modalViewsNum').innerText = video.views || '850K';
 
             document.getElementById('settingVideoCaption').value = video.caption || '';
-            document.getElementById('settingLikesCheck').innerText = video.likes || '120';
-            document.getElementById('settingGiftsCheck').innerText = video.gifts || '15 Coins';
 
             document.getElementById('videoPlayerModal').style.display = 'flex';
         }
