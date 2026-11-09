@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
@@ -97,7 +97,6 @@
         </label>
     </div>
 
-    <!-- 📱 UNIFIED ACCOUNT INFO & VERIFICATION MODAL TRIGGER -->
     <div class="setting-item" onclick="openAccountInfoModal()">
         <div class="setting-left">
             <span class="setting-icon">📱</span>
@@ -123,11 +122,10 @@
     <div class="section-title" data-i18n="secSupport">Support & Safety Center</div>
 
     <div class="setting-item" onclick="openAutoModerationPolicyModal()" style="background: linear-gradient(135deg, #2e1a1a, #3e1616);">
-        <div class="setting-left"><span class="setting-icon">🛡️</span><div class="setting-text"><h4 style="color: #ff4444;" data-i18n="autoMod">Auto-Moderation & Content Safety</h4><p data-i18n="autoModDesc">AI protection against weapons & adult content</p></div></div>
+        <div class="setting-left"><span class="setting-icon">🛡️</span><div class="setting-text"><h4 style="color: #ff4444;" data-i18n="autoMod">Auto-Moderation & Content Safety</h4><p data-i18n="autoModDesc">AdMob Policy, 18+ rules & strict child safety</p></div></div>
         <span class="right-val" style="color: #ff4444; font-weight: bold;">Active 🛡️</span>
     </div>
 
-    <!-- 🛠️ HELP & REPORT (Sends to WhatsApp 9811522480 & Gmail rkdaifilms@gmail.com) -->
     <div class="setting-item" onclick="openHelpModal()">
         <div class="setting-left">
             <span class="setting-icon">🛠️</span>
@@ -171,17 +169,19 @@
     </div>
 
     <!-- MODALS -->
-    <!-- 🛡️ AUTO-MODERATION POLICY MODAL -->
+    <!-- 🛡️ STRICT ADMOB & SAFETY GUIDELINES POLICY MODAL -->
     <div class="modal-overlay" id="autoModerationPolicyModal">
         <div class="modal-card" style="border-color: #ff4444;">
             <span class="close-modal" onclick="closeModal('autoModerationPolicyModal')">✕</span>
             <h3 style="color: #ff4444;" data-i18n="autoModTitle">🛡️ Auto-Moderation & Content Safety System</h3>
             <div style="font-size:12px; color:#ccc; margin-bottom:15px; line-height: 1.6;" data-i18n="autoModBody">
-                <p style="margin-bottom: 8px;"><b>🌐 Global AI Protection & Compliance Hub:</b></p>
-                <p style="margin-bottom: 6px;">• <b>Automated AI Scanning:</b> Scans every uploaded video and short in real-time before publishing.</p>
-                <p style="margin-bottom: 6px;">• <b>Strict Safety Enforcement:</b> Blocks weapons, violence, adult/NSFW content, and hate speech instantly.</p>
-                <p style="margin-bottom: 6px;">• <b>AdMob & Monetization Shield:</b> Protects advertising accounts and global payment nodes from restrictions.</p>
-                <p>• <b>Developer Oversight:</b> Logs safety actions securely to maintain 100% platform integrity.</p>
+                <p style="margin-bottom: 8px;"><b>🌐 Google AdMob & Community Compliance Standards:</b></p>
+                <p style="margin-bottom: 6px;">• <b>18+ Account Registration:</b> Users registering and managing monetized accounts must be 18+ or under adult parental supervision.</p>
+                <p style="margin-bottom: 6px;">• <b>Child Safety Policy:</b> Zero tolerance for child abuse, physical punishment, hitting children, or endangering minors. Safe child talents like dancing, singing, and family vlogs are allowed.</p>
+                <p style="margin-bottom: 6px;">• <b>Weapons & Violence Ban:</b> Firearms, knives, bloody violence, and dangerous stunts are strictly prohibited.</p>
+                <p style="margin-bottom: 6px;">• <b>Adult & NSFW Protection:</b> Sexual acts, nudity, and explicit adult content are automatically blocked to protect AdMob earnings.</p>
+                <p style="margin-bottom: 6px;">• <b>Allowed Entertainment:</b> Family-friendly content, creative dance, music, vlogs, comedy, and general entertainment are fully supported.</p>
+                <p>• <b>AdMob Revenue Shield:</b> Strict AI filters ensure 100% compliance so your Google AdMob ads run safely without restrictions.</p>
             </div>
             <button class="action-pub-btn" style="background:#ff4444; color:#fff;" onclick="closeModal('autoModerationPolicyModal')" data-i18n="closeBtn">Understood & Close</button>
         </div>
@@ -205,7 +205,7 @@
         </div>
     </div>
 
-    <!-- 📱 UNIFIED ACCOUNT INFORMATION & VERIFICATION MODAL -->
+    <!-- 📱 ACCOUNT INFORMATION & VERIFICATION MODAL -->
     <div class="modal-overlay" id="accountInfoModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('accountInfoModal')">✕</span>
@@ -272,7 +272,15 @@
 
     <script src="navbar.js"></script>
     <script>
-        // 🌍 REAL MULTI-LANGUAGE DICTIONARY ENGINE
+        const themeList = [
+            { name: 'TikTok Red', hex: '#fe2c55' }, { name: 'Neon Cyan', hex: '#25f4ee' },
+            { name: 'Royal Gold', hex: '#ffcc00' }, { name: 'Emerald Green', hex: '#00b09b' },
+            { name: 'Electric Purple', hex: '#8a2be2' }, { name: 'Sunset Orange', hex: '#ff4500' },
+            { name: 'Deep Ocean Blue', hex: '#0077b6' }, { name: 'Hot Pink', hex: '#ff1493' },
+            { name: 'Lime Neon', hex: '#39ff14' }, { name: 'Cyber Yellow', hex: '#ffe600' }
+        ];
+
+        // 🌍 REAL FULL-APP MULTI-LANGUAGE TRANSLATION ENGINE
         const translations = {
             hi: {
                 pageTitle: "सेटिंग्स और गोपनीयता - न्यू स्टार",
@@ -286,19 +294,19 @@
                 privateAcc: "प्राइवेट अकाउंट मोड",
                 privateAccDesc: "केवल स्वीकृत उपयोगकर्ता ही आपके वीडियो देख सकते हैं",
                 accInfo: "खाता जानकारी और वेरिफिकेशन",
-                accInfoDesc: "फोन, जीमेल, रीजन और पासपोर्ट पिन सत्यापित करें और बदलें",
-                blockedUsers: "ब्लॉक किए गए उपयोगकर्ता और फ्रॉड मैनेजमेंट",
+                accInfoDesc: "फोन, जीमेल, रीजन और पासपोर्ट पिन सत्यापित करें",
+                blockedUsers: "ब्लॉक किए गए उपयोगकर्ता",
                 blockedUsersDesc: "प्रतिबंधित खातों को प्रबंधित करें",
                 walletCards: "कार्ड और कॉइन बैलेंस",
                 walletCardsDesc: "खर्च करने योग्य और निकालने योग्य वॉलेट जांचें",
                 secSupport: "सहायता और सुरक्षा केंद्र",
                 autoMod: "ऑटो-मॉडरेशन और कंटेंट सेफ्टी",
-                autoModDesc: "हथियारों और वयस्क सामग्री के खिलाफ एआई सुरक्षा",
+                autoModDesc: "एडमॉब नियम, 18+ नियम और सख्त बाल सुरक्षा",
                 helpReport: "सहायता और समस्या की रिपोर्ट करें",
-                helpReportDesc: "व्हाट्सएप (9811522480) और जीमेल पर समस्या और स्क्रीनशॉट भेजें",
+                helpReportDesc: "व्हाट्सएप (9811522480) और जीमेल पर समस्या भेजें",
                 secPrefs: "प्राथमिकताएं और वैश्विक सेटिंग्स",
                 appLang: "ऐप भाषा (अंतर्राष्ट्रीय)",
-                appLangDesc: "वैश्विक उपयोगकर्ताओं के लिए त्वरित वास्तविक अनुवाद",
+                appLangDesc: "वैश्विक उपयोगकर्ताओं के लिए वास्तविक अनुवाद",
                 themes50: "थीम और रंग मोड (50+ रंग)",
                 themes50Desc: "तुरंत पूरे ऐप की रंग योजना बदलें",
                 logOutBtn: "लॉग आउट",
@@ -317,7 +325,7 @@
                 labelPass: "सुरक्षा पासपोर्ट / पिन अपडेट करें:",
                 saveAccountBtn: "💾 खाता विवरण सत्यापित करें और सहेजें",
                 langModalTitle: "🌐 अंतर्राष्ट्रीय भाषा चुनें",
-                langModalDesc: "पूरे ऐप को तुरंत अनुवादित करने के लिए किसी भी भाषा पर क्लिक करें:",
+                langModalDesc: "पूरे ऐप को तुरंत अनुवादित करने के लिए भाषा चुनें:",
                 themeModalTitle: "🎨 थीम चुनें (50+ कस्टम रंग)",
                 themeModalDesc: "पूरे ऐप को बदलने के लिए कोई भी रंग चुनें:"
             },
@@ -331,23 +339,23 @@
                 openText: "खोल्नुहोस् ❯",
                 secAccount: "खाता र सुरक्षा",
                 privateAcc: "प्राइभेट अकाउन्ट मोड",
-                privateAccDesc: "स्वीकृत प्रयोगकर्ताहरूले मात्र तपाईंका भिडियोहरू हेर्न सक्छन्",
+                privateAccDesc: "स्वीकृत प्रयोगकर्ताहरूले मात्र भिडियो हेर्न सक्छन्",
                 accInfo: "खाता जानकारी र प्रमाणीकरण",
-                accInfoDesc: "फोन, जिमेल, क्षेत्र र पासपोर्ट पिन प्रमाणित गर्नुहोस् र परिवर्तन गर्नुहोस्",
+                accInfoDesc: "फोन, जिमेल र पासपोर्ट पिन प्रमाणित गर्नुहोस्",
                 blockedUsers: "ब्लक गरिएका प्रयोगकर्ताहरू",
                 blockedUsersDesc: "प्रतिबन्धित खाताहरू व्यवस्थापन गर्नुहोस्",
                 walletCards: "कार्ड र कोइन ब्यालेन्स",
-                walletCardsDesc: "खर्च गर्ने योग्य र निकाल्ने योग्य वालेट जाँच गर्नुहोस्",
+                walletCardsDesc: "वालेट ब्यालेन्स जाँच गर्नुहोस्",
                 secSupport: "सहायता र सुरक्षा केन्द्र",
                 autoMod: "अटो-मोडरेसन र सामग्री सुरक्षा",
-                autoModDesc: "हतियार र वयस्क सामग्री विरुद्ध एआई सुरक्षा",
+                autoModDesc: "AdMob नियमहरू, 18+ नियमहरू र कडा बाल सुरक्षा",
                 helpReport: "सहायता र समस्या रिपोर्ट गर्नुहोस्",
-                helpReportDesc: "व्हाट्सएप (9811522480) र जिमेलमा समस्या र स्क्रिनसट पठाउनुहोस्",
+                helpReportDesc: "व्हाट्सएप (9811522480) र जिमेलमा समस्या पठाउनुहोस्",
                 secPrefs: "प्राथमिकताहरू र विश्वव्यापी सेटिङ्हरू",
                 appLang: "एप भाषा (अन्तर्राष्ट्रिय)",
-                appLangDesc: "विश्वव्यापी प्रयोगकर्ताहरूको लागि तत्काल वास्तविक अनुवाद",
+                appLangDesc: "विश्वव्यापी प्रयोगकर्ताहरूको लागि वास्तविक अनुवाद",
                 themes50: "थिमहरू र रङ्ग मोडहरू (50+ रङ्ग)",
-                themes50Desc: "तत्काल सम्पूर्ण एपको रङ्ग योजना बदल्नुहोस्",
+                themes50Desc: "सम्पूर्ण एपको रङ्ग योजना बदल्नुहोस्",
                 logOutBtn: "लग आउट",
                 manageText: "व्यवस्थापन ❯",
                 supportText: "सहायता ❯",
@@ -358,15 +366,15 @@
                 browseScreenshot: "📁 ग्यालरीबाट स्क्रिनसट ब्राउज गर्नुहोस्",
                 sendReportBtn: "🚀 व्हाट्सएप र जिमेलमा रिपोर्ट पठाउनुहोस्",
                 accModalTitle: "📱 खाता जानकारी र प्रमाणीकरण",
-                accModalDesc: "तपाईंको दर्ता गरिएको फोन, जिमेल र सुरक्षा पासपोर्ट प्रमाणित र अद्यावधिक गर्नुहोस्:",
+                accModalDesc: "तपाईंको दर्ता गरिएको फोन र जिमेल प्रमाणित गर्नुहोस्:",
                 labelPhone: "दर्ता गरिएको फोन नम्बर:",
                 labelEmail: "दर्ता गरिएको जिमेल खाता:",
                 labelPass: "सुरक्षा पासपोर्ट / पिन अद्यावधिक गर्नुहोस्:",
                 saveAccountBtn: "💾 खाता विवरण प्रमाणित गर्नुहोस् र बचत गर्नुहोस्",
                 langModalTitle: "🌐 अन्तर्राष्ट्रिय भाषा चयन गर्नुहोस्",
-                langModalDesc: "सम्पूर्ण एपलाई तुरुन्तै अनुवाद गर्न कुनै पनि भाषामा क्लिक गर्नुहोस्:",
+                langModalDesc: "सम्पूर्ण एप अनुवाद गर्न भाषा चयन गर्नुहोस्:",
                 themeModalTitle: "🎨 थिम चयन गर्नुहोस् (50+ कस्टम रङ्ग)",
-                themeModalDesc: "सम्पूर्ण एप रूपान्तरण गर्न कुनै पनि रङ्ग चयन गर्नुहोस्:"
+                themeModalDesc: "रङ्ग चयन गर्नुहोस्:"
             },
             en: {
                 pageTitle: "Settings and Privacy - New Star Creator Hub",
@@ -387,7 +395,7 @@
                 walletCardsDesc: "Check spendable and withdrawable wallet",
                 secSupport: "Support & Safety Center",
                 autoMod: "Auto-Moderation & Content Safety",
-                autoModDesc: "AI protection against weapons & adult content",
+                autoModDesc: "AdMob Policy, 18+ rules & strict child safety",
                 helpReport: "Help & Report a Problem",
                 helpReportDesc: "Send issue & screenshot to WhatsApp (9811522480) & Gmail",
                 secPrefs: "Preferences & Global Settings",
@@ -434,7 +442,7 @@
                 walletCardsDesc: "检查可用和可提现钱包",
                 secSupport: "支持与安全中心",
                 autoMod: "自动审核与内容安全",
-                autoModDesc: "防范武器和成人内容的AI保护",
+                autoModDesc: "AdMob政策、18+规则与严格儿童安全",
                 helpReport: "帮助与举报问题",
                 helpReportDesc: "发送问题及截图至WhatsApp (9811522480) & Gmail",
                 secPrefs: "偏好与全局设置",
@@ -481,7 +489,7 @@
                 walletCardsDesc: "Verificar billetera gastable y retirable",
                 secSupport: "Centro de Soporte y Seguridad",
                 autoMod: "Auto-Moderación y Seguridad",
-                autoModDesc: "Protección de IA contra contenido peligroso",
+                autoModDesc: "Política AdMob, reglas 18+ y seguridad infantil",
                 helpReport: "Ayuda e Informar un Problema",
                 helpReportDesc: "Enviar reporte a WhatsApp (9811522480) y Gmail",
                 secPrefs: "Preferencias y Configuración Global",
@@ -492,7 +500,7 @@
                 logOutBtn: "Cerrar Sesión",
                 manageText: "Gestionar ❯",
                 supportText: "Soporte ❯",
-                autoModTitle: "🛡️ Sistema de Auto-Moderación y Seguridad",
+                autoModTitle: "🛡️ Auto-Moderación y Sistema de Seguridad",
                 closeBtn: "Entendido y Cerrar",
                 helpModalTitle: "🛠️ Ayuda e Informar un Problema",
                 helpModalDesc: "Describe tu problema y adjunta una captura de pantalla:",
@@ -546,7 +554,7 @@
             setTimeout(() => { toast.style.display = 'none'; }, 3000);
         }
 
-        // 🌐 REAL LANGUAGE APPLICATOR ENGINE
+        // 🌐 REAL FULL-APP MULTI-LANGUAGE TRANSLATION ENGINE
         function setRealAppLanguage(langCode, langName, showAlert = true) {
             localStorage.setItem('appLangCode', langCode);
             localStorage.setItem('appLanguageName', langName);
@@ -605,8 +613,8 @@
                 return; 
             }
 
-            let whatsappNumber = "9779811522480"; // 9811522480
-            let gmailEmail = "rkdaifilms@gmail.com"; // rkdaifilms@gmail.com
+            let whatsappNumber = "9779811522480";
+            let gmailEmail = "rkdaifilms@gmail.com";
             
             let messageText = `🚨 *New Star Creator App - Support Ticket*\n\n📝 *Description:* ${issue}\n📸 *Screenshot Attached:* ${supportImageBase64 ? 'Yes (Image Selected)' : 'No'}`;
 
@@ -654,14 +662,6 @@
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
         function handleLogout() { if(confirm('Log out?')) window.location.href = 'index.html'; }
-
-        const themeList = [
-            { name: 'TikTok Red', hex: '#fe2c55' }, { name: 'Neon Cyan', hex: '#25f4ee' },
-            { name: 'Royal Gold', hex: '#ffcc00' }, { name: 'Emerald Green', hex: '#00b09b' },
-            { name: 'Electric Purple', hex: '#8a2be2' }, { name: 'Sunset Orange', hex: '#ff4500' },
-            { name: 'Deep Ocean Blue', hex: '#0077b6' }, { name: 'Hot Pink', hex: '#ff1493' },
-            { name: 'Lime Neon', hex: '#39ff14' }, { name: 'Cyber Yellow', hex: '#ffe600' }
-        ];
     </script>
 </body>
 </html>
