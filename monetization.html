@@ -42,7 +42,7 @@
     <!-- Fixed Header -->
     <div class="header">
         <button class="back-btn" onclick="history.back()">← Back</button>
-        <h2>💼 Creator & Monetization Hub</h2>
+        <h2>💼 New Star Creator Hub</h2>
         <span>⭐</span>
     </div>
 
@@ -52,15 +52,15 @@
         <button onclick="toggleDevMonetizationStatus()" style="background: #fe2c55; color: #fff; border: none; padding: 5px 12px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold;">Simulate Progress</button>
     </div>
 
-    <div class="section-title">💰 Official AdMob Revenue Sharing Program</div>
+    <div class="section-title">💰 Official New Star Ad Revenue Program</div>
     
-    <!-- 🌟 OFFICIAL MONETIZATION DASHBOARD ITEM -->
-    <div class="hub-item" onclick="openMonetizationStatusModal()" style="background: linear-gradient(135deg, #1f1f3a, #2a1626); border-left: 4px solid #fe2c55;">
+    <!-- 🌟 OFFICIAL MONETIZATION DASHBOARD ITEM WITH DYNAMIC GREEN TICK -->
+    <div class="hub-item" onclick="openMonetizationStatusModal()" style="background: linear-gradient(135deg, #1f1f3a, #2a1626); border-left: 4px solid #fe2c55;" id="mainHubItemBox">
         <div class="hub-left">
-            <span class="hub-icon">💸</span>
+            <span class="hub-icon" id="mainHubIcon">💸</span>
             <div class="hub-text">
-                <h4 style="color: #25f4ee;">YouTube-Style Ad Revenue Monetization</h4>
-                <p>Earn 55% share from AdMob ads once criteria is met</p>
+                <h4 style="color: #25f4ee;">New Star Ad Revenue Monetization</h4>
+                <p id="mainHubSubText">Earn 55% share from AdMob ads once criteria is met</p>
             </div>
         </div>
         <span class="hub-right" id="monetizationMainStatus" style="color:#ffcc00; font-weight:bold;">Locked 🔒</span>
@@ -122,7 +122,7 @@
             <span class="hub-icon">📈</span>
             <div class="hub-text">
                 <h4>Promote & Boost Your Video</h4>
-                <p>Get up to 100,000+ real views globally (Paid)</p>
+                <p>Get up to 100,000+ real views globally (Coins or Direct Bank)</p>
             </div>
         </div>
         <span class="hub-right" style="color:#25f4ee;">Boost 🚀</span>
@@ -141,12 +141,18 @@
     </div>
 
     <!-- MODALS -->
-    <!-- 💰 OFFICIAL MONETIZATION RULES & APPLICATION MODAL WITH PROGRESS BARS -->
+    <!-- 💰 OFFICIAL MONETIZATION RULES MODAL WITH GREEN TICK VERIFICATION -->
     <div class="modal-overlay" id="monetizationStatusModal">
-        <div class="modal-card" style="border-color: #fe2c55;">
+        <div class="modal-card" style="border-color: #fe2c55;" id="modalCardBorder">
             <span class="close-modal" onclick="closeModal('monetizationStatusModal')">✕</span>
-            <h3 style="color: #fe2c55;">💸 Creator Ad Revenue Monetization</h3>
+            <h3 style="color: #fe2c55;" id="modalTitleText">💸 New Star Ad Revenue Monetization</h3>
             <div style="font-size:12px; color:#ccc; margin-bottom:15px; line-height: 1.6;">
+                
+                <!-- ✅ VERIFICATION & ELIGIBILITY STATUS BANNER -->
+                <div id="verificationStatusBanner" style="background: #222; border: 1px solid #444; padding: 10px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
+                    <span style="font-size: 13px; font-weight: bold; color: #ffcc00;" id="bannerStatusText">🔒 Account Not Verified / Criteria Pending</span>
+                </div>
+
                 <p style="margin-bottom: 6px; color: #25f4ee;"><b>📜 Official Eligibility & Quality Standards:</b></p>
                 <p style="margin-bottom: 4px;">• Age 18+ & Verified Identity required.</p>
                 
@@ -178,6 +184,28 @@
         </div>
     </div>
 
+    <!-- 📈 VIDEO BOOST MODAL -->
+    <div class="modal-overlay" id="videoBoostModal">
+        <div class="modal-card" style="border-color: #25f4ee;">
+            <span class="close-modal" onclick="closeModal('videoBoostModal')">✕</span>
+            <h3 style="color: #25f4ee;">📈 Promote & Boost Your Video</h3>
+            <p style="font-size:11px; color:#ccc; margin-bottom:12px;">Pay with Coins OR Direct Bank / Card Payment:</p>
+            
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(1000, 5)">
+                <h4 style="color:#ffcc00; font-size:13px;">🔥 1,000 Views Pack</h4>
+                <p style="font-size:11px; color:#aaa;">Price: $5.00 (500 Coins or Direct Bank)</p>
+            </div>
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(10000, 35)">
+                <h4 style="color:#25f4ee; font-size:13px;">🚀 10,000 Views Pack</h4>
+                <p style="font-size:11px; color:#aaa;">Price: $35.00 (3,500 Coins or Direct Bank)</p>
+            </div>
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px; cursor:pointer;" onclick="boostPackage(100000, 250)">
+                <h4 style="color:#fe2c55; font-size:13px;">🌟 100,000+ Mega Viral Pack</h4>
+                <p style="font-size:11px; color:#aaa;">Price: $250.00 (25,000 Coins or Direct Bank)</p>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="liveGiftRulesModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('liveGiftRulesModal')">✕</span>
@@ -200,26 +228,6 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="videoBoostModal">
-        <div class="modal-card" style="border-color: #25f4ee;">
-            <span class="close-modal" onclick="closeModal('videoBoostModal')">✕</span>
-            <h3 style="color: #25f4ee;">📈 Promote & Boost Your Video</h3>
-            <p style="font-size:11px; color:#ccc; margin-bottom:12px;">Select package (Real Coin Payout & 10% Developer Commission):</p>
-            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(1000, 5)">
-                <h4 style="color:#ffcc00; font-size:13px;">🔥 1,000 Views Pack</h4>
-                <p style="font-size:11px; color:#aaa;">Price: $5.00 (500 Coins)</p>
-            </div>
-            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(10000, 35)">
-                <h4 style="color:#25f4ee; font-size:13px;">🚀 10,000 Views Pack</h4>
-                <p style="font-size:11px; color:#aaa;">Price: $35.00 (3,500 Coins)</p>
-            </div>
-            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px; cursor:pointer;" onclick="boostPackage(100000, 250)">
-                <h4 style="color:#fe2c55; font-size:13px;">🌟 100,000+ Mega Viral Pack</h4>
-                <p style="font-size:11px; color:#aaa;">Price: $250.00 (25,000 Coins)</p>
-            </div>
-        </div>
-    </div>
-
     <!-- 🌟 NAVBAR SCRIPT LOADER -->
     <script src="navbar.js"></script>
 
@@ -228,18 +236,16 @@
             checkAllLocksAndCriteria();
         };
 
-        // 🟢 PROGRESS SIMULATOR (हर क्लिक पर फॉलोअर्स और व्यूज बढ़ेंगे और लाइन हरी होगी)
         function toggleDevMonetizationStatus() {
             let currentFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
             let currentViews = parseInt(localStorage.getItem('userMonthlyViews') || '15000');
 
-            // धीरे-धीरे बढ़ाएं या पूरा अनलॉक करें
             let nextFollowers = currentFollowers + 2500;
             let nextViews = currentViews + 50000;
 
             if (nextFollowers > 12000) {
-                nextFollowers = 500;
-                nextViews = 10000;
+                nextFollowers = 345;
+                nextViews = 15000;
             }
 
             localStorage.setItem('userFollowersCount', nextFollowers);
@@ -260,6 +266,12 @@
             let affLock = document.getElementById('affLockStatus');
             let mainMonetizationStatus = document.getElementById('monetizationMainStatus');
             let actionBtn = document.getElementById('monetizationActionBtn');
+            let mainHubBox = document.getElementById('mainHubItemBox');
+            let mainHubIcon = document.getElementById('mainHubIcon');
+            let mainHubSubText = document.getElementById('mainHubSubText');
+            
+            let banner = document.getElementById('verificationStatusBanner');
+            let bannerText = document.getElementById('bannerStatusText');
 
             // 1K locks for campaigns
             if (userFollowers >= 1000) {
@@ -267,33 +279,47 @@
                 if(affLock) { affLock.innerText = 'Active 🔗'; affLock.style.color = '#25f4ee'; }
             } else {
                 if(campLock) { campLock.innerText = `Locked (${userFollowers}/1K) 🔒`; campLock.style.color = '#ffcc00'; }
-                if(affLock) { affLock.innerText = `Locked (${userFollowers}/1K) 🔒`; affLock.style.color = '#ffcc00'; }
+                if(affLock) { affLock.innerText = `Locked (${userFollowers}/1K) 🔒`; campLock.style.color = '#ffcc00'; }
             }
 
-            // 📊 CALCULATE PERCENTAGES FOR PROGRESS BARS
+            // Progress Bar Calculations
             let followerPercent = Math.min(100, Math.floor((userFollowers / 10000) * 100));
             let viewsPercent = Math.min(100, Math.floor((userViews / 200000) * 100));
 
-            // Update Follower Bar
             document.getElementById('followerProgressText').innerText = `${userFollowers.toLocaleString()} / 10,000`;
             document.getElementById('followerPercentText').innerText = `${followerPercent}%`;
             let fBar = document.getElementById('followerProgressBar');
             fBar.style.width = `${followerPercent}%`;
             fBar.style.backgroundColor = followerPercent >= 100 ? '#25f4ee' : '#ffcc00';
 
-            // Update Views Bar
             document.getElementById('viewsProgressText').innerText = `${userViews.toLocaleString()} / 2,00,000`;
             document.getElementById('viewsPercentText').innerText = `${viewsPercent}%`;
             let vBar = document.getElementById('viewsProgressBar');
             vBar.style.width = `${viewsPercent}%`;
             vBar.style.backgroundColor = viewsPercent >= 100 ? '#25f4ee' : '#ffcc00';
 
-            // 10K Followers & 2 Lakh Views check for AdMob Monetization
+            // 🌟 MONETIZATION & GREEN TICK VERIFICATION CHECK
             if (userFollowers >= 10000 && userViews >= 200000) {
-                if(mainMonetizationStatus) { mainMonetizationStatus.innerText = 'Unlocked 🚀'; mainMonetizationStatus.style.color = '#25f4ee'; }
+                // Fully Verified & Unlocked with Green Tick ✅
+                if(mainMonetizationStatus) { mainMonetizationStatus.innerText = 'Verified & Unlocked ✅'; mainMonetizationStatus.style.color = '#25f4ee'; }
+                if(mainHubBox) { mainHubBox.style.borderLeftColor = '#25f4ee'; }
+                if(mainHubIcon) { mainHubIcon.innerText = '✅'; }
+                if(mainHubSubText) { mainHubSubText.innerHTML = '<span style="color:#25f4ee; font-weight:bold;">AdMob 55% Revenue Sharing Active ✅</span>'; }
+                
+                if(banner) { banner.style.borderColor = '#25f4ee'; banner.style.background = 'rgba(37,244,238,0.1)'; }
+                if(bannerText) { bannerText.innerHTML = '✅ <span style="color:#25f4ee;">Account Fully Verified & Monetization Active!</span>'; }
+                
                 if(actionBtn) { actionBtn.innerText = '🎉 Claim & Manage Ad Revenue (55%)'; actionBtn.style.background = '#25f4ee'; actionBtn.style.color = '#000'; }
             } else {
+                // Locked State
                 if(mainMonetizationStatus) { mainMonetizationStatus.innerText = 'Locked 🔒'; mainMonetizationStatus.style.color = '#ffcc00'; }
+                if(mainHubBox) { mainHubBox.style.borderLeftColor = '#fe2c55'; }
+                if(mainHubIcon) { mainHubIcon.innerText = '💸'; }
+                if(mainHubSubText) { mainHubSubText.innerText = 'Earn 55% share from AdMob ads once criteria is met'; }
+                
+                if(banner) { banner.style.borderColor = '#444'; banner.style.background = '#222'; }
+                if(bannerText) { bannerText.innerHTML = '🔒 <span style="color:#ffcc00;">Account Not Verified / Criteria Pending</span>'; }
+                
                 if(actionBtn) { actionBtn.innerText = '🚀 Apply for Monetization Review'; actionBtn.style.background = '#fe2c55'; actionBtn.style.color = '#fff'; }
             }
         }
@@ -308,10 +334,11 @@
             let userViews = parseInt(localStorage.getItem('userMonthlyViews') || '15000');
 
             if (userFollowers >= 10000 && userViews >= 200000) {
-                alert('🎉 Congratulations! Your channel is fully monetized. AdMob 55% revenue sharing is active on your short videos!');
+                alert('🎉 Congratulations! Your channel is fully verified and monetized. AdMob 55% revenue sharing is active!');
                 closeModal('monetizationStatusModal');
             } else {
-                alert(`⚠️ Criteria Not Met Yet!\n\nYou need 10,000 Followers and 2 Lakh Views to unlock AdMob 55% revenue sharing.\n\nKeep growing your profile!`);
+                // 🛑 PROFESSIONAL ENGLISH MESSAGE AS REQUESTED
+                alert('Not Available. Criteria Not Met Yet.');
             }
         }
 
@@ -320,7 +347,7 @@
             if (userFollowers >= 1000) {
                 window.location.href = 'campaign.html';
             } else {
-                alert(`🔒 Feature Locked! You need 1,000 followers to unlock New Star Campaigns.`);
+                alert('Not Available. Criteria Not Met Yet (1,000 followers required).');
             }
         }
 
@@ -329,39 +356,49 @@
             if (userFollowers >= 1000) {
                 alert('🔗 Affiliate Marketing Dashboard Unlocked!');
             } else {
-                alert(`🔒 Feature Locked! You need 1,000 followers.`);
+                alert('Not Available. Criteria Not Met Yet (1,000 followers required).');
             }
         }
 
         function openVideoBoostModal() { document.getElementById('videoBoostModal').style.display = 'flex'; }
 
+        // 💳 DIRECT BANK / CARD PAYMENT + COIN OPTION
         function boostPackage(views, priceUSD) {
             let userCoins = parseInt(localStorage.getItem('userWalletCoins') || '250');
             let coinCost = priceUSD * 100;
 
-            if (userCoins < coinCost) {
-                closeModal('videoBoostModal');
-                if (confirm(`⚠️ Insufficient coins! You need ${coinCost} coins.\n\nGo to Wallet to top up?`)) {
-                    window.location.href = 'wallet.html';
+            let paymentChoice = prompt(`🚀 Promote & Boost Video (${views} Views - $${priceUSD}):\n\nEnter 1 to Pay with Coins (${coinCost} Coins)\nEnter 2 to Pay via Direct Bank / Card ($${priceUSD})`, "1");
+
+            if (paymentChoice === "1") {
+                if (userCoins < coinCost) {
+                    closeModal('videoBoostModal');
+                    if (confirm(`⚠️ Insufficient coins! You have ${userCoins} coins, but need ${coinCost} coins.\n\nGo to Wallet to top up?`)) {
+                        window.location.href = 'wallet.html';
+                    }
+                    return;
                 }
+                userCoins -= coinCost;
+                localStorage.setItem('userWalletCoins', userCoins);
+                alert(`🎉 Success! Video boosted using Coins for ${views} views.`);
+            } 
+            else if (paymentChoice === "2") {
+                let devCommissionUSD = priceUSD * 0.10;
+                let totalDevEarnings = parseFloat(localStorage.getItem('developerSecretPayoutBalance') || '0.00');
+                totalDevEarnings += devCommissionUSD;
+                localStorage.setItem('developerSecretPayoutBalance', totalDevEarnings.toFixed(2));
+
+                alert(`💳 Direct Bank Payment Successful ($${priceUSD})!\n\n🚀 Video boosted for ${views} views.\n💰 Developer Commission ($${devCommissionUSD.toFixed(2)}) securely sent to your payout account!`);
+            } 
+            else {
                 return;
             }
 
-            userCoins -= coinCost;
-            localStorage.setItem('userWalletCoins', userCoins);
-
-            let devCommissionUSD = priceUSD * 0.10;
-            let totalDevEarnings = parseFloat(localStorage.getItem('developerSecretPayoutBalance') || '0.00');
-            totalDevEarnings += devCommissionUSD;
-            localStorage.setItem('developerSecretPayoutBalance', totalDevEarnings.toFixed(2));
-
             closeModal('videoBoostModal');
-            alert(`🎉 Success! Video boosted for ${views} views.\n\n🚀 Developer Commission ($${devCommissionUSD.toFixed(2)}) securely sent to your hidden payout account!`);
         }
 
         function openLiveGiftRulesModal() { document.getElementById('liveGiftRulesModal').style.display = 'flex'; }
         function openReferralModal() { document.getElementById('referralModal').style.display = 'flex'; }
-        function openSubscriptionModal() { alert('⭐ Fan Club Subscriptions Active!'); }
+        function openSubscriptionModal() { alert('⭐ Creator Monthly Subscriptions Active!'); }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
     </script>
 </body>
