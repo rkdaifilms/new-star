@@ -68,7 +68,7 @@
         .modal-video-info h4 { font-size: 15px; margin-bottom: 4px; color: #fff; }
         .modal-video-info p { font-size: 12px; color: #ddd; }
 
-        /* ⚙️ CREATOR SETTING / MANAGER PANEL (CLEAN & PROFESSIONAL) */
+        /* ⚙️ CREATOR SETTING / MANAGER PANEL */
         #creatorSettingsModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; box-shadow: 0 -5px 25px rgba(0,0,0,0.9); max-height: 80vh; overflow-y: auto; }
         
         /* COMMENTS MODAL */
@@ -77,8 +77,18 @@
         /* SHARE MODAL */
         #shareModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #1c1c1e; border-top: 2px solid #333; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; }
 
-        /* GIFT MODAL */
-        #giftModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; }
+        /* GIFT MODAL (FULL 16 OPTIONS) */
+        #giftModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; max-height: 60vh; overflow-y: auto; }
+        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
+        .gift-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .gift-card:hover { border-color: #fe2c55; background: #2a2a2a; }
+        .gift-card .emoji { font-size: 22px; margin-bottom: 2px; }
+        .gift-card h4 { font-size: 11px; color: #fff; }
+        .gift-card p { font-size: 10px; color: #ffcc00; }
+
+        /* WHO LIKED THIS VIDEO MODAL */
+        #likesListModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 1100; justify-content: center; align-items: center; }
+        .likes-card { background: #181818; border: 1px solid #333; width: 85%; max-width: 350px; max-height: 70vh; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; }
 
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
@@ -108,7 +118,6 @@
             <div class="stat-box"><div class="stat-num" id="statLikes">12.5K</div><div class="stat-label">Likes</div></div>
         </div>
 
-        <!-- 3 Action Buttons in One Line (Gear, Wallet Icon, Message Icon) -->
         <div class="profile-btns-row">
             <button class="p-icon-btn" onclick="toggleEditProfile()" title="Edit Profile Settings">⚙️</button>
             <a href="wallet.html" class="p-icon-btn" title="My Wallet / Balance">🪙</a>
@@ -133,7 +142,7 @@
     <!-- Video Grid Section -->
     <div class="section-heading">
         <span>🎬 My Uploaded Videos (<span id="videoCountBadge">0</span>)</span>
-        <span style="font-size:11px; color:#aaa;">Tap any video to play & check stats</span>
+        <span style="font-size:11px; color:#aaa;">Tap to play | Hold like icon to see who liked</span>
     </div>
     
     <div class="grid-videos" id="creatorVideoGrid">
@@ -155,7 +164,8 @@
             </div>
 
             <div class="modal-side-actions">
-                <div class="m-action-btn" onclick="toggleModalLike()">
+                <!-- Like Button with Long Press (Hold) to see who liked -->
+                <div class="m-action-btn" id="likeButtonWrapper" onmousedown="startLikeHold()" onmouseup="endLikeHold()" ontouchstart="startLikeHold()" ontouchend="endLikeHold()">
                     <div class="m-action-icon" id="modalLikeIcon">❤️</div>
                     <span id="modalLikesNum">120K</span>
                 </div>
@@ -181,7 +191,27 @@
         </div>
     </div>
 
-    <!-- ⚙️ CREATOR SETTING / MANAGER PANEL (CLEAN) -->
+    <!-- WHO LIKED THIS VIDEO MODAL -->
+    <div id="likesListModal" onclick="closeLikesListModal()">
+        <div class="likes-card" onclick="event.stopPropagation()">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:#111; border-bottom:1px solid #222;">
+                <h3 style="font-size:15px; color:#fe2c55;">❤️ Users who liked this video</h3>
+                <span style="cursor:pointer; font-size:18px;" onclick="closeLikesListModal()">✕</span>
+            </div>
+            <div style="padding:15px; overflow-y:auto; flex:1;" id="likesUserContainer">
+                <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #222;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:35px;height:35px;border-radius:50%;">
+                    <div><h4 style="font-size:13px;">New Star Fan</h4><p style="font-size:11px;color:#aaa;">@fan_user99</p></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; padding:8px 0;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:35px;height:35px;border-radius:50%;">
+                    <div><h4 style="font-size:13px;">Anjali Dance Hub</h4><p style="font-size:11px;color:#aaa;">@anjali_official</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚙️ CREATOR SETTING / MANAGER PANEL -->
     <div id="creatorSettingsModal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="font-size:16px; color:#fe2c55;">⚙️ Creator Video Manager & Settings</h3>
@@ -230,13 +260,29 @@
         <button onclick="copyLink()" style="width:100%; background:#222; color:#fff; border:1px solid #444; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;">📋 Copy Video Link</button>
     </div>
 
-    <!-- GIFT MODAL -->
+    <!-- GIFT MODAL (FULL 16 OPTIONS WITH REAL WALLET COIN DEDUCTION) -->
     <div id="giftModal" style="display:none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><h3 style="color:#ffcc00;">🎁 Send Creator Gift</h3><span style="cursor:pointer;" onclick="closeGiftModal()">✕</span></div>
-        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
-            <div onclick="sendGift('Rose 🌹', 1)" style="background:#222; padding:10px; text-align:center; border-radius:8px; cursor:pointer;"><div style="font-size:24px;">🌹</div><h4 style="font-size:12px;">Rose (1)</h4></div>
-            <div onclick="sendGift('Coffee ☕', 5)" style="background:#222; padding:10px; text-align:center; border-radius:8px; cursor:pointer;"><div style="font-size:24px;">☕</div><h4 style="font-size:12px;">Coffee (5)</h4></div>
-            <div onclick="sendGift('Lion 🦁', 1000)" style="background:#222; padding:10px; text-align:center; border-radius:8px; cursor:pointer;"><div style="font-size:24px;">🦁</div><h4 style="font-size:12px;">Lion (1000)</h4></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="color:#ffcc00;">🎁 Send Creator Gift (16 Options)</h3>
+            <span style="cursor:pointer; font-size:18px;" onclick="closeGiftModal()">✕</span>
+        </div>
+        <div class="gift-grid">
+            <div class="gift-card" onclick="sendRealGift('Rose 🌹', 1)"><div class="emoji">🌹</div><h4>Rose</h4><p>1 Coin</p></div>
+            <div class="gift-card" onclick="sendRealGift('Coffee ☕', 5)"><div class="emoji">☕</div><h4>Coffee</h4><p>5 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Finger Heart 🫶', 10)"><div class="emoji">🫶</div><h4>Heart</h4><p>10 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Sunglasses 🕶️', 20)"><div class="emoji">🕶️</div><h4>Glasses</h4><p>20 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('TikTok Icon 🪙', 50)"><div class="emoji">🪙</div><h4>TikTok</h4><p>50 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Sports Car 🏎️', 100)"><div class="emoji">🏎️</div><h4>Car</h4><p>100 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Magic Ring 💍', 200)"><div class="emoji">💍</div><h4>Ring</h4><p>200 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Yacht 🛥️', 500)"><div class="emoji">🛥️</div><h4>Yacht</h4><p>500 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Lion 🦁', 1000)"><div class="emoji">🦁</div><h4>Lion</h4><p>1,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Diamond 💎', 1500)"><div class="emoji">💎</div><h4>Diamond</h4><p>1,500 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Golden Crown 👑', 2000)"><div class="emoji">👑</div><h4>Crown</h4><p>2,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Private Jet ✈️', 3000)"><div class="emoji">✈️</div><h4>Jet</h4><p>3,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Castle 🏰', 5000)"><div class="emoji">🏰</div><h4>Castle</h4><p>5,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Dragon 🐉', 10000)"><div class="emoji">🐉</div><h4>Dragon</h4><p>10,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Galaxy 🌌', 20000)"><div class="emoji">🌌</div><h4>Galaxy</h4><p>20,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Universe 🪐', 50000)"><div class="emoji">🪐</div><h4>Universe</h4><p>50,000 Coins</p></div>
         </div>
     </div>
 
@@ -289,8 +335,7 @@
                         url: v.video_url,
                         caption: v.caption,
                         likes: v.likes_count || 120,
-                        views: v.views_count || 850,
-                        gifts: v.gifts_count || '15 Coins'
+                        views: v.views_count || 850
                     }));
                 } else {
                     activeVideoList = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
@@ -334,7 +379,6 @@
             document.getElementById('modalViewsNum').innerText = video.views || '850K';
 
             document.getElementById('settingVideoCaption').value = video.caption || '';
-
             document.getElementById('videoPlayerModal').style.display = 'flex';
         }
 
@@ -351,12 +395,28 @@
             else player.pause();
         }
 
+        // SMOOTH LIKE SYSTEM WITHOUT ANNOYING ALERTS
         let isLikedModal = false;
         function toggleModalLike() {
             isLikedModal = !isLikedModal;
             let icon = document.getElementById('modalLikeIcon');
             icon.style.color = isLikedModal ? '#fe2c55' : '#fff';
-            alert(isLikedModal ? '❤️ Liked successfully!' : '🤍 Unliked.');
+        }
+
+        // LONG PRESS TO SEE WHO LIKED
+        let holdTimer = null;
+        function startLikeHold() {
+            holdTimer = setTimeout(() => {
+                document.getElementById('likesListModal').style.display = 'flex';
+            }, 600); // 0.6 seconds hold
+        }
+        function endLikeHold() {
+            clearTimeout(holdTimer);
+            // If it wasn't a long press, treat as normal click
+            toggleModalLike();
+        }
+        function closeLikesListModal() {
+            document.getElementById('likesListModal').style.display = 'none';
         }
 
         function openCommentModal() { document.getElementById('commentModal').style.display = 'flex'; }
@@ -365,6 +425,19 @@
         function closeShareModal() { document.getElementById('shareModal').style.display = 'none'; }
         function openGiftModal() { document.getElementById('giftModal').style.display = 'block'; }
         function closeGiftModal() { document.getElementById('giftModal').style.display = 'none'; }
+
+        // REAL GIFT SENDING WITH WALLET COIN DEDUCTION
+        function sendRealGift(giftName, coinCost) {
+            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500'); // Default wallet balance
+            if(currentCoins < coinCost) {
+                alert(`⚠️ Insufficient coins! You need ${coinCost} coins to send ${giftName}. Top up in Wallet.`);
+                return;
+            }
+            currentCoins -= coinCost;
+            localStorage.setItem('userWalletCoins', currentCoins);
+            alert(`🎉 Success! You sent ${giftName} (${coinCost} Coins).\n💰 Remaining Wallet Balance: ${currentCoins} Coins.`);
+            closeGiftModal();
+        }
 
         function openCreatorSettings() { document.getElementById('creatorSettingsModal').style.display = 'block'; }
         function closeCreatorSettings() { document.getElementById('creatorSettingsModal').style.display = 'none'; }
@@ -412,11 +485,6 @@
             let list = document.getElementById('commentListArea');
             list.innerHTML += `<div style="display:flex; gap:10px;"><img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:30px;height:30px;border-radius:50%;"><div><h4 style="font-size:12px;color:#aaa;">Ramkumar Dhobi</h4><p style="font-size:13px;">${text}</p></div></div>`;
             input.value = '';
-        }
-
-        function sendGift(name, cost) {
-            alert(`🎉 You received a ${name} (${cost} Coins)! Added to wallet.`);
-            closeGiftModal();
         }
 
         function nativePhoneShare() {
