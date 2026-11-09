@@ -24,6 +24,10 @@
         .hub-text p { font-size: 11px; color: #888; }
         .hub-right { font-size: 13px; color: #888; display: flex; align-items: center; gap: 6px; }
 
+        /* PROGRESS BAR STYLES */
+        .progress-container { background: #222; border-radius: 8px; height: 10px; width: 100%; margin-top: 8px; margin-bottom: 12px; overflow: hidden; position: relative; border: 1px solid #444; }
+        .progress-fill { height: 100%; background: #ffcc00; width: 0%; transition: width 0.4s ease, background-color 0.4s ease; }
+
         /* MODALS */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; justify-content: center; align-items: center; padding: 15px; }
         .modal-card { background: #181818; border: 1px solid #333; width: 100%; max-width: 420px; border-radius: 16px; padding: 20px; max-height: 85vh; overflow-y: auto; position: relative; }
@@ -42,10 +46,24 @@
         <span>⭐</span>
     </div>
 
-    <!-- TESTING HELPER: Followers Toggle -->
-    <div style="background: #111; padding: 8px 20px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222;">
-        <span style="color: #25f4ee;">🛠️ Dev Test: Followers (<span id="devFollowerCount">345</span>)</span>
-        <button onclick="toggleDevFollowers()" style="background: #fe2c55; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 10px; cursor: pointer;">Toggle 1K Followers</button>
+    <!-- TESTING HELPER: Followers & Views Simulation -->
+    <div style="background: #111; padding: 10px 20px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222;">
+        <span style="color: #25f4ee;">🛠️ Dev Test: Followers (<span id="devFollowerCount">345</span>) | Views (<span id="devViewCount">15,000</span>)</span>
+        <button onclick="toggleDevMonetizationStatus()" style="background: #fe2c55; color: #fff; border: none; padding: 5px 12px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold;">Simulate Progress</button>
+    </div>
+
+    <div class="section-title">💰 Official AdMob Revenue Sharing Program</div>
+    
+    <!-- 🌟 OFFICIAL MONETIZATION DASHBOARD ITEM -->
+    <div class="hub-item" onclick="openMonetizationStatusModal()" style="background: linear-gradient(135deg, #1f1f3a, #2a1626); border-left: 4px solid #fe2c55;">
+        <div class="hub-left">
+            <span class="hub-icon">💸</span>
+            <div class="hub-text">
+                <h4 style="color: #25f4ee;">YouTube-Style Ad Revenue Monetization</h4>
+                <p>Earn 55% share from AdMob ads once criteria is met</p>
+            </div>
+        </div>
+        <span class="hub-right" id="monetizationMainStatus" style="color:#ffcc00; font-weight:bold;">Locked 🔒</span>
     </div>
 
     <div class="section-title">🎁 Revenue Streams & Brand Deals</div>
@@ -86,7 +104,7 @@
         <span class="hub-right" id="campLockStatus" style="color:#ffcc00;">Locked 🔒</span>
     </div>
 
-    <!-- 4. AFFILIATE MARKETING (1K Lock) -->
+    <!-- 4. AFFILIATE MARKETING -->
     <div class="hub-item" onclick="checkAffiliateAccess()">
         <div class="hub-left">
             <span class="hub-icon">🔗</span>
@@ -123,6 +141,43 @@
     </div>
 
     <!-- MODALS -->
+    <!-- 💰 OFFICIAL MONETIZATION RULES & APPLICATION MODAL WITH PROGRESS BARS -->
+    <div class="modal-overlay" id="monetizationStatusModal">
+        <div class="modal-card" style="border-color: #fe2c55;">
+            <span class="close-modal" onclick="closeModal('monetizationStatusModal')">✕</span>
+            <h3 style="color: #fe2c55;">💸 Creator Ad Revenue Monetization</h3>
+            <div style="font-size:12px; color:#ccc; margin-bottom:15px; line-height: 1.6;">
+                <p style="margin-bottom: 6px; color: #25f4ee;"><b>📜 Official Eligibility & Quality Standards:</b></p>
+                <p style="margin-bottom: 4px;">• Age 18+ & Verified Identity required.</p>
+                
+                <!-- 📊 FOLLOWER PROGRESS BAR -->
+                <div style="margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                        <span>👥 Followers: <b id="followerProgressText">0 / 10,000</b></span>
+                        <span id="followerPercentText" style="color: #ffcc00;">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-fill" id="followerProgressBar"></div>
+                    </div>
+                </div>
+
+                <!-- 📊 VIEWS PROGRESS BAR -->
+                <div style="margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                        <span>📈 Monthly Views: <b id="viewsProgressText">0 / 2,00,000</b></span>
+                        <span id="viewsPercentText" style="color: #ffcc00;">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-fill" id="viewsProgressBar"></div>
+                    </div>
+                </div>
+
+                <p style="margin-top: 10px; font-size: 11px; color: #aaa;">• Revenue Split: Approved channels earn <b>55%</b> of AdMob ad earnings; platform retains <b>45%</b>.</p>
+            </div>
+            <button class="action-pub-btn" id="monetizationActionBtn" onclick="applyOrManageMonetization()">🚀 Apply for Monetization Review</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="liveGiftRulesModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('liveGiftRulesModal')">✕</span>
@@ -170,30 +225,93 @@
 
     <script>
         window.onload = function() {
-            checkFollowerLockStatus();
+            checkAllLocksAndCriteria();
         };
 
-        function toggleDevFollowers() {
-            let current = parseInt(localStorage.getItem('userFollowersCount') || '345');
-            let next = (current < 1000) ? 1200 : 345;
-            localStorage.setItem('userFollowersCount', next);
-            document.getElementById('devFollowerCount').innerText = next;
-            checkFollowerLockStatus();
-            alert(`🛠️ Dev Test: Followers updated to ${next}!`);
+        // 🟢 PROGRESS SIMULATOR (हर क्लिक पर फॉलोअर्स और व्यूज बढ़ेंगे और लाइन हरी होगी)
+        function toggleDevMonetizationStatus() {
+            let currentFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
+            let currentViews = parseInt(localStorage.getItem('userMonthlyViews') || '15000');
+
+            // धीरे-धीरे बढ़ाएं या पूरा अनलॉक करें
+            let nextFollowers = currentFollowers + 2500;
+            let nextViews = currentViews + 50000;
+
+            if (nextFollowers > 12000) {
+                nextFollowers = 500;
+                nextViews = 10000;
+            }
+
+            localStorage.setItem('userFollowersCount', nextFollowers);
+            localStorage.setItem('userMonthlyViews', nextViews);
+            
+            checkAllLocksAndCriteria();
+            alert(`📈 Progress Updated!\n• Followers: ${nextFollowers}\n• Monthly Views: ${nextViews.toLocaleString()}`);
         }
 
-        function checkFollowerLockStatus() {
+        function checkAllLocksAndCriteria() {
             let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
+            let userViews = parseInt(localStorage.getItem('userMonthlyViews') || '15000');
+
             document.getElementById('devFollowerCount').innerText = userFollowers;
+            document.getElementById('devViewCount').innerText = userViews.toLocaleString();
+
             let campLock = document.getElementById('campLockStatus');
             let affLock = document.getElementById('affLockStatus');
+            let mainMonetizationStatus = document.getElementById('monetizationMainStatus');
+            let actionBtn = document.getElementById('monetizationActionBtn');
 
+            // 1K locks for campaigns
             if (userFollowers >= 1000) {
                 if(campLock) { campLock.innerText = 'Active ⭐'; campLock.style.color = '#25f4ee'; }
                 if(affLock) { affLock.innerText = 'Active 🔗'; affLock.style.color = '#25f4ee'; }
             } else {
                 if(campLock) { campLock.innerText = `Locked (${userFollowers}/1K) 🔒`; campLock.style.color = '#ffcc00'; }
                 if(affLock) { affLock.innerText = `Locked (${userFollowers}/1K) 🔒`; affLock.style.color = '#ffcc00'; }
+            }
+
+            // 📊 CALCULATE PERCENTAGES FOR PROGRESS BARS
+            let followerPercent = Math.min(100, Math.floor((userFollowers / 10000) * 100));
+            let viewsPercent = Math.min(100, Math.floor((userViews / 200000) * 100));
+
+            // Update Follower Bar
+            document.getElementById('followerProgressText').innerText = `${userFollowers.toLocaleString()} / 10,000`;
+            document.getElementById('followerPercentText').innerText = `${followerPercent}%`;
+            let fBar = document.getElementById('followerProgressBar');
+            fBar.style.width = `${followerPercent}%`;
+            fBar.style.backgroundColor = followerPercent >= 100 ? '#25f4ee' : '#ffcc00';
+
+            // Update Views Bar
+            document.getElementById('viewsProgressText').innerText = `${userViews.toLocaleString()} / 2,00,000`;
+            document.getElementById('viewsPercentText').innerText = `${viewsPercent}%`;
+            let vBar = document.getElementById('viewsProgressBar');
+            vBar.style.width = `${viewsPercent}%`;
+            vBar.style.backgroundColor = viewsPercent >= 100 ? '#25f4ee' : '#ffcc00';
+
+            // 10K Followers & 2 Lakh Views check for AdMob Monetization
+            if (userFollowers >= 10000 && userViews >= 200000) {
+                if(mainMonetizationStatus) { mainMonetizationStatus.innerText = 'Unlocked 🚀'; mainMonetizationStatus.style.color = '#25f4ee'; }
+                if(actionBtn) { actionBtn.innerText = '🎉 Claim & Manage Ad Revenue (55%)'; actionBtn.style.background = '#25f4ee'; actionBtn.style.color = '#000'; }
+            } else {
+                if(mainMonetizationStatus) { mainMonetizationStatus.innerText = 'Locked 🔒'; mainMonetizationStatus.style.color = '#ffcc00'; }
+                if(actionBtn) { actionBtn.innerText = '🚀 Apply for Monetization Review'; actionBtn.style.background = '#fe2c55'; actionBtn.style.color = '#fff'; }
+            }
+        }
+
+        function openMonetizationStatusModal() {
+            checkAllLocksAndCriteria();
+            document.getElementById('monetizationStatusModal').style.display = 'flex';
+        }
+
+        function applyOrManageMonetization() {
+            let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
+            let userViews = parseInt(localStorage.getItem('userMonthlyViews') || '15000');
+
+            if (userFollowers >= 10000 && userViews >= 200000) {
+                alert('🎉 Congratulations! Your channel is fully monetized. AdMob 55% revenue sharing is active on your short videos!');
+                closeModal('monetizationStatusModal');
+            } else {
+                alert(`⚠️ Criteria Not Met Yet!\n\nYou need 10,000 Followers and 2 Lakh Views to unlock AdMob 55% revenue sharing.\n\nKeep growing your profile!`);
             }
         }
 
@@ -202,7 +320,7 @@
             if (userFollowers >= 1000) {
                 window.location.href = 'campaign.html';
             } else {
-                alert(`🔒 Feature Locked! You need 1,000 followers to unlock New Star Campaigns. You currently have ${userFollowers} followers.`);
+                alert(`🔒 Feature Locked! You need 1,000 followers to unlock New Star Campaigns.`);
             }
         }
 
@@ -223,7 +341,7 @@
 
             if (userCoins < coinCost) {
                 closeModal('videoBoostModal');
-                if (confirm(`⚠️ Insufficient coins! You have ${userCoins} coins, but need ${coinCost} coins for ${views} views.\n\nGo to Wallet to top up?`)) {
+                if (confirm(`⚠️ Insufficient coins! You need ${coinCost} coins.\n\nGo to Wallet to top up?`)) {
                     window.location.href = 'wallet.html';
                 }
                 return;
@@ -232,14 +350,13 @@
             userCoins -= coinCost;
             localStorage.setItem('userWalletCoins', userCoins);
 
-            // 🚀 डेवलपर कमीशन (10%) सीधा तेरे सीक्रेट लेजर में जोड़ो
             let devCommissionUSD = priceUSD * 0.10;
             let totalDevEarnings = parseFloat(localStorage.getItem('developerSecretPayoutBalance') || '0.00');
             totalDevEarnings += devCommissionUSD;
             localStorage.setItem('developerSecretPayoutBalance', totalDevEarnings.toFixed(2));
 
             closeModal('videoBoostModal');
-            alert(`🎉 Success! Video boosted for ${views} views.\n\n💰 Deducted: ${coinCost} Coins\n🚀 Developer Commission ($${devCommissionUSD.toFixed(2)}) securely sent to your hidden payout account!`);
+            alert(`🎉 Success! Video boosted for ${views} views.\n\n🚀 Developer Commission ($${devCommissionUSD.toFixed(2)}) securely sent to your hidden payout account!`);
         }
 
         function openLiveGiftRulesModal() { document.getElementById('liveGiftRulesModal').style.display = 'flex'; }
