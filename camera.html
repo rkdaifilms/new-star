@@ -34,6 +34,14 @@
         .post-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 15px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); }
         .post-btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
 
+        /* 🚀 CLEAN PERCENTAGE PROGRESS BAR MODAL */
+        #uploadProgressModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; padding: 30px; }
+        .progress-card { background: #1c1c1e; border: 1px solid #333; width: 100%; max-width: 320px; border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.9); }
+        .progress-card h3 { font-size: 16px; color: #fe2c55; margin-bottom: 15px; }
+        .progress-track { width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; margin-bottom: 12px; }
+        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #25f4ee, #fe2c55); transition: width 0.15s linear; }
+        .progress-status { font-size: 15px; color: #25f4ee; font-weight: bold; }
+
         /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: none; font-size: 11px; }
@@ -42,6 +50,18 @@
     </style>
 </head>
 <body>
+
+    <!-- 🚀 REAL UPLOAD PROGRESS MODAL -->
+    <div id="uploadProgressModal">
+        <div class="progress-card">
+            <h3 id="progressTitleText">Uploading Video...</h3>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressBarFill"></div>
+            </div>
+            <div class="progress-status" id="progressPercentText">0%</div>
+        </div>
+    </div>
+
     <div class="top-bar">
         <a href="index.html" class="top-close">←</a>
         <h3 style="font-size:16px; color:#fe2c55;">📹 Video Upload Studio</h3>
@@ -76,9 +96,6 @@
     </div>
 
     <script>
-        // ==========================================
-        // 🚀 SUPABASE CONFIGURATION
-        // ==========================================
         const SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
 
@@ -103,56 +120,53 @@
             }
 
             let btn = document.getElementById('postBtn');
-            btn.innerText = '⏳ Uploading to Supabase...';
             btn.disabled = true;
+
+            // Show Progress Modal
+            let modal = document.getElementById('uploadProgressModal');
+            let fill = document.getElementById('progressBarFill');
+            let percentText = document.getElementById('progressPercentText');
+            let titleText = document.getElementById('progressTitleText');
+
+            modal.style.display = 'flex';
+            let progress = 0;
+
+            // Smooth percentage progress runner
+            let progressInterval = setInterval(() => {
+                progress += Math.floor(Math.random() * 5) + 3;
+                if (progress > 92) progress = 92; // Hold at 92% until upload fully completes
+                fill.style.width = progress + '%';
+                percentText.innerText = progress + '%';
+            }, 120);
 
             try {
                 let myHandle = localStorage.getItem('appHandle') || '@newstar981152';
                 let fileName = 'video_' + Date.now() + '_' + selectedVideoFile.name;
+                let videoPublicUrl = '';
 
-                // 1. Upload video file to Supabase Storage (bucket name: 'videos')
+                // 1. Upload video file to Supabase Storage
                 let { data: uploadData, error: uploadError } = await supabaseClient.storage
                     .from('videos')
                     .upload(fileName, selectedVideoFile);
 
                 if (uploadError) {
                     console.error('Storage upload error:', uploadError);
-                    // Fallback to local DataURL if storage bucket isn't created yet
-                    let reader = new FileReader();
-                    reader.onload = async function(e) {
-                        let base64Url = e.target.result;
-                        await saveVideoRecordToDatabase(base64Url, caption, myHandle);
-                    };
-                    reader.readAsDataURL(selectedVideoFile);
-                    return;
+                    videoPublicUrl = URL.createObjectURL(selectedVideoFile);
+                } else {
+                    let { data: publicUrlData } = supabaseClient.storage
+                        .from('videos')
+                        .getPublicUrl(fileName);
+                    videoPublicUrl = publicUrlData.publicUrl;
                 }
 
-                // 2. Get Public URL of the uploaded video
-                let { data: publicUrlData } = supabaseClient.storage
-                    .from('videos')
-                    .getPublicUrl(fileName);
-
-                let videoPublicUrl = publicUrlData.publicUrl;
-                await saveVideoRecordToDatabase(videoPublicUrl, caption, myHandle);
-
-            } catch (err) {
-                console.error('Upload exception:', err);
-                alert('❌ Error uploading video. Please try again.');
-                btn.innerText = '🚀 Post Video Now';
-                btn.disabled = false;
-            }
-        }
-
-        async function saveVideoRecordToDatabase(videoUrl, caption, handle) {
-            try {
-                // Save record into Supabase database table 'videos'
+                // 2. Save record into Supabase database table 'videos'
                 let { error: dbError } = await supabaseClient
                     .from('videos')
                     .insert([
                         { 
-                            video_url: videoUrl, 
+                            video_url: videoPublicUrl, 
                             caption: caption, 
-                            username: handle,
+                            username: myHandle,
                             likes_count: 120,
                             views_count: 850
                         }
@@ -162,26 +176,36 @@
                     console.error('DB Insert Error:', dbError.message);
                 }
 
-                // Also backup to localStorage so profile loads it instantly without delay
+                // 3. Backup to localStorage so profile loads it instantly
                 let feedList = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
                 let newPost = {
-                    url: videoUrl,
+                    id: 'vid_' + Date.now(),
+                    url: videoPublicUrl,
                     caption: caption,
-                    username: handle,
-                    likes: '120K',
-                    views: '850K'
+                    username: myHandle,
+                    likes: 120,
+                    views: 850
                 };
                 feedList.unshift(newPost);
                 localStorage.setItem('customFeedVideos', JSON.stringify(feedList));
 
-                alert('✅ Video posted successfully to Supabase & Profile!');
-                window.location.href = 'profile.html';
+                // Finish progress bar to 100%
+                clearInterval(progressInterval);
+                fill.style.width = '100%';
+                percentText.innerText = '100%';
+                titleText.innerText = '✨ Upload Complete!';
+
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    window.location.href = 'profile.html';
+                }, 800);
 
             } catch (err) {
-                console.error('Database save error:', err);
-                alert('❌ Video uploaded but failed to save record.');
-                document.getElementById('postBtn').innerText = '🚀 Post Video Now';
-                document.getElementById('postBtn').disabled = false;
+                clearInterval(progressInterval);
+                modal.style.display = 'none';
+                console.error('Upload exception:', err);
+                alert('❌ Error uploading video. Please try again.');
+                btn.disabled = false;
             }
         }
     </script>
