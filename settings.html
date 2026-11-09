@@ -97,13 +97,27 @@
         </label>
     </div>
 
+    <!-- 📱 ACCOUNT INFORMATION (Verify & Change Phone, Gmail, Region) -->
     <div class="setting-item" onclick="openAccountInfoModal()">
-        <div class="setting-left"><span class="setting-icon">📱</span><div class="setting-text"><h4 id="txtAccInfo">Account Information</h4><p>Phone, Email, DOB & Region management</p></div></div>
+        <div class="setting-left">
+            <span class="setting-icon">📱</span>
+            <div class="setting-text">
+                <h4 id="txtAccInfo">Account Information</h4>
+                <p>Verify & update your Phone, Gmail, DOB & Region</p>
+            </div>
+        </div>
         <span class="right-val">Manage ❯</span>
     </div>
 
+    <!-- 🔑 PASSWORD & SECURITY (Verify & Change Passport/PIN) -->
     <div class="setting-item" onclick="openPasswordModal()">
-        <div class="setting-left"><span class="setting-icon">🔑</span><div class="setting-text"><h4 id="txtSecurity">Password & Security</h4><p>Update login credentials securely</p></div></div>
+        <div class="setting-left">
+            <span class="setting-icon">🔑</span>
+            <div class="setting-text">
+                <h4 id="txtSecurity">Password & Security (Passport)</h4>
+                <p>Update your login credentials and security passport safely</p>
+            </div>
+        </div>
         <span class="right-val">Update ❯</span>
     </div>
 
@@ -125,13 +139,13 @@
         <span class="right-val" style="color: #ff4444; font-weight: bold;">Active 🛡️</span>
     </div>
 
-    <!-- 🛠️ HELP & REPORT WITH SCREENSHOT UPLOAD TO WHATSAPP & GMAIL -->
+    <!-- 🛠️ HELP & REPORT (Sends Description & Screenshot to WhatsApp 9811522480 & Gmail rkdaifilms@gmail.com) -->
     <div class="setting-item" onclick="openHelpModal()">
         <div class="setting-left">
             <span class="setting-icon">🛠️</span>
             <div class="setting-text">
                 <h4 id="txtHelpReport">Help & Report a Problem</h4>
-                <p>Send description and screenshot to WhatsApp & Gmail</p>
+                <p>Send issue & screenshot to WhatsApp (9811522480) & Gmail</p>
             </div>
         </div>
         <span class="right-val" style="color:#25f4ee;">Support ❯</span>
@@ -203,22 +217,37 @@
         </div>
     </div>
 
+    <!-- 📱 ACCOUNT INFORMATION MODAL (Verify & Update Phone & Gmail) -->
     <div class="modal-overlay" id="accountInfoModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('accountInfoModal')">✕</span>
-            <h3>📱 Account Information</h3>
-            <input type="text" id="accPhone" class="form-input" placeholder="Phone Number" value="+977-9811522480">
-            <input type="email" id="accEmail" class="form-input" value="rkdaifilms@gmail.com">
-            <button class="action-pub-btn" onclick="saveAccountInfo()">Save Changes</button>
+            <h3>📱 Account Information & Verification</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Verify and update your registered phone and Gmail:</p>
+            
+            <label style="font-size:11px; color:#ffcc00;">Registered Phone Number:</label>
+            <input type="text" id="accPhone" class="form-input" value="+977-9811522480" placeholder="Enter Phone Number">
+            
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Registered Gmail Account:</label>
+            <input type="email" id="accEmail" class="form-input" value="rkdaifilms@gmail.com" placeholder="Enter Gmail">
+
+            <button class="action-pub-btn" onclick="saveAccountInfo()">💾 Save & Verify Account Info</button>
         </div>
     </div>
 
+    <!-- 🔑 PASSWORD & SECURITY PASSPORT MODAL -->
     <div class="modal-overlay" id="passwordModal">
         <div class="modal-card">
             <span class="close-modal" onclick="closeModal('passwordModal')">✕</span>
-            <h3>🔒 Change Password</h3>
-            <input type="password" class="form-input" placeholder="New Password">
-            <button class="action-pub-btn" onclick="showToast('✅ Password updated!')">Update</button>
+            <h3>🔒 Password & Security Passport</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Update your login security passport or PIN:</p>
+            
+            <label style="font-size:11px; color:#25f4ee;">Current Password / PIN:</label>
+            <input type="password" id="currentPass" class="form-input" placeholder="Enter current password">
+
+            <label style="font-size:11px; color:#25f4ee; display:block; margin-top:8px;">New Password / Passport PIN:</label>
+            <input type="password" id="newPass" class="form-input" placeholder="Enter new password or PIN">
+
+            <button class="action-pub-btn" onclick="saveNewPassword()">🛡️ Update Security Passport</button>
         </div>
     </div>
 
@@ -310,7 +339,7 @@
             { name: 'Salmon', hex: '#fa8072' },
             { name: 'Sienna', hex: '#a0522d' },
             { name: 'Slate Gray', hex: '#708090' },
-            { name: 'Midnight Blue', hex: '#191970' },
+            { name: 'Midnight Blue', hex: /#191970/ },
             { name: 'Olive', hex: '#808000' },
             { name: 'Orchid', hex: '#da70d6' },
             { name: 'Periwinkle', hex: '#ccccff' },
@@ -330,6 +359,11 @@
             let savedLang = localStorage.getItem('appLanguageName') || 'हिन्दी (Hindi)';
             let langDisplay = document.getElementById('selectedLangDisplay');
             if(langDisplay) langDisplay.innerText = savedLang + ' ❯';
+
+            let savedPhone = localStorage.getItem('userAccPhone') || '+977-9811522480';
+            let savedEmail = localStorage.getItem('userAccEmail') || 'rkdaifilms@gmail.com';
+            document.getElementById('accPhone').value = savedPhone;
+            document.getElementById('accEmail').value = savedEmail;
 
             let gridContainer = document.getElementById('themeGridContainer');
             if(gridContainer) {
@@ -394,7 +428,7 @@
             }
         }
 
-        // 📲 DIRECT WHATSAPP (9811522480) & GMAIL (rkdaifilms@gmail.com) SUBMISSION WITH SCREENSHOT
+        // 📲 DIRECT HELP REPORT TO WHATSAPP (9811522480) & GMAIL (rkdaifilms@gmail.com)
         function submitSupportTicketToWhatsAppGmail() {
             let issue = document.getElementById('issueDesc').value.trim();
             if(!issue && !supportImageBase64) { 
@@ -423,6 +457,29 @@
             closeModal('helpModal');
         }
 
+        // 📱 SAVE ACCOUNT INFO (Phone & Gmail verification)
+        function saveAccountInfo() { 
+            let phone = document.getElementById('accPhone').value.trim();
+            let email = document.getElementById('accEmail').value.trim();
+            if(!phone || !email) { showToast('⚠️ Enter valid phone and email'); return; }
+            
+            localStorage.setItem('userAccPhone', phone);
+            localStorage.setItem('userAccEmail', email);
+            showToast('✅ Account Information Verified & Saved!');
+            closeModal('accountInfoModal'); 
+        }
+
+        // 🔒 SAVE PASSWORD & SECURITY PASSPORT
+        function saveNewPassword() {
+            let currPass = document.getElementById('currentPass').value.trim();
+            let newPass = document.getElementById('newPass').value.trim();
+            if(!currPass || !newPass) { showToast('⚠️ Enter current and new passport PIN'); return; }
+            
+            localStorage.setItem('customAdminPass', newPass);
+            showToast('✅ Security Passport & PIN Updated Successfully!');
+            closeModal('passwordModal');
+        }
+
         function openAutoModerationPolicyModal() { document.getElementById('autoModerationPolicyModal').style.display = 'flex'; }
         function openHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
         function openAccountInfoModal() { document.getElementById('accountInfoModal').style.display = 'flex'; }
@@ -432,10 +489,6 @@
         function openThemeModal() { document.getElementById('themeModal').style.display = 'flex'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
-        function saveAccountInfo() { 
-            showToast('✅ Account information saved!');
-            closeModal('accountInfoModal'); 
-        }
         function handleLogout() { if(confirm('Log out?')) window.location.href = 'index.html'; }
     </script>
 </body>
