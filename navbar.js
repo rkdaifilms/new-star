@@ -1,36 +1,14 @@
-// navbar.js - Ultimate Master Navigation Component (Old Navigation Killer)
+// navbar.js - Ultimate Master Navigation Component (Top Right Plus Removed)
 document.addEventListener("DOMContentLoaded", function() {
     let currentPage = window.location.pathname.split("/").pop() || "index.html";
 
-    // 🛑 पुराना कोई भी नेविगेशन, फुटर या मेनू मिले तो उसे तुरंत हमेशा के लिए डिलीट कर दो!
-    function removeOldNavigations() {
-        let unwantedSelectors = [
-            '.bottom-nav', 
-            '.app-global-bottom-nav', 
-            '.master-tiktok-nav', 
-            '.fixed-tiktok-nav',
-            'div[style*="position: fixed"][style*="bottom: 0"]'
-        ];
-        
-        unwantedSelectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(el => {
-                // हमारे नए वाले को छोड़कर बाकी सबको उड़ा दो
-                if (!el.classList.contains('master-tiktok-bottom-nav')) {
-                    el.remove();
-                }
-            });
-        });
-    }
+    // पुराना नेविगेशन हटाकर नया सही सेट करने के लिए क्लीनर
+    let oldNavs = document.querySelectorAll('.bottom-nav, .app-global-bottom-nav, .master-tiktok-final-nav');
+    oldNavs.forEach(el => el.remove());
 
-    // तुरंत हटाओ और एक बार फिर से चेक करके हटाओ
-    removeOldNavigations();
-    setTimeout(removeOldNavigations, 50);
-    setTimeout(removeOldNavigations, 200);
-
-    // 🎨 नया और एकदम साफ टिकटॉक जैसा नेविगेशन बार
-    let bottomNavHTML = `
+    let finalNavHTML = `
     <style>
-        .master-tiktok-bottom-nav {
+        .master-tiktok-final-nav {
             position: fixed !important;
             bottom: 0 !important;
             left: 0 !important;
@@ -41,12 +19,12 @@ document.addEventListener("DOMContentLoaded", function() {
             justify-content: space-around !important;
             align-items: center !important;
             border-top: 1px solid #222 !important;
-            z-index: 999999 !important;
+            z-index: 9999999 !important;
             box-sizing: border-box !important;
             margin: 0 !important;
             padding: 0 !important;
         }
-        .mtn-item {
+        .mfn-item {
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
@@ -61,18 +39,18 @@ document.addEventListener("DOMContentLoaded", function() {
             border: none !important;
             transition: 0.2s;
         }
-        .mtn-item.active {
+        .mfn-item.active {
             color: #fff !important;
             font-weight: bold !important;
         }
-        .mtn-item i {
+        .mfn-item i {
             font-size: 18px !important;
             margin-bottom: 2px !important;
             font-style: normal !important;
         }
         
         /* ➕ एकदम सटीक बीच वाला चमकता हुआ प्लस अपलोड बटन */
-        .mtn-center-plus {
+        .mfn-center-plus {
             width: 46px !important;
             height: 32px !important;
             background: linear-gradient(135deg, #25f4ee, #fe2c55) !important;
@@ -87,22 +65,22 @@ document.addEventListener("DOMContentLoaded", function() {
             margin: 0 auto !important;
             transition: 0.2s;
         }
-        .mtn-center-plus:hover {
+        .mfn-center-plus:hover {
             transform: scale(1.08);
         }
 
         /* 🔴 ऊपर बाईं तरफ कोने वाला LIVE बटन और उसका पॉपअप मेनू */
-        .top-left-live-container {
+        .top-left-live-wrapper {
             position: fixed !important;
             top: 10px !important;
             left: 15px !important;
-            z-index: 1000000 !important;
+            z-index: 10000000 !important;
         }
-        .top-live-btn {
-            background: rgba(0, 0, 0, 0.6);
+        .top-live-pill-btn {
+            background: rgba(0, 0, 0, 0.7);
             border: 1px solid #fe2c55;
             color: #fe2c55;
-            padding: 6px 12px;
+            padding: 5px 12px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: bold;
@@ -113,20 +91,20 @@ document.addEventListener("DOMContentLoaded", function() {
             backdrop-filter: blur(5px);
             box-shadow: 0 2px 8px rgba(254,44,85,0.4);
         }
-        #topLivePopupModal {
+        #topLivePopupBox {
             display: none;
             position: fixed;
-            top: 50px;
+            top: 45px;
             left: 15px;
             background: #181818;
             border: 1px solid #333;
             border-radius: 12px;
             width: 180px;
             padding: 8px;
-            z-index: 1000001;
+            z-index: 10000001;
             box-shadow: 0 10px 25px rgba(0,0,0,0.95);
         }
-        .top-popup-option {
+        .top-popup-link {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -137,34 +115,34 @@ document.addEventListener("DOMContentLoaded", function() {
             border-radius: 6px;
             transition: 0.2s;
         }
-        .top-popup-option:hover {
+        .top-popup-link:hover {
             background: #252525;
             color: #fe2c55;
         }
     </style>
 
-    <!-- नीचे का साफ-सुथरा नेविगेशन बार -->
-    <div class="master-tiktok-bottom-nav">
-        <a href="index.html" class="mtn-item ${currentPage === 'index.html' ? 'active' : ''}"><i>🏠</i><span>Home</span></a>
-        <a href="wallet.html" class="mtn-item ${currentPage === 'wallet.html' ? 'active' : ''}"><i>🪙</i><span>Wallet</span></a>
+    <!-- नीचे का फिक्स नेविगेशन बार -->
+    <div class="master-tiktok-final-nav">
+        <a href="index.html" class="mfn-item ${currentPage === 'index.html' || currentPage === '' ? 'active' : ''}"><i>🏠</i><span>Home</span></a>
+        <a href="wallet.html" class="mfn-item ${currentPage === 'wallet.html' ? 'active' : ''}"><i>🪙</i><span>Wallet</span>
         
         <!-- ➕ एकदम बीचों-बीच प्लस बटन -->
-        <a href="camera.html" class="mtn-item" style="flex: 1.5;">
-            <div class="mtn-center-plus">+</div>
+        <a href="camera.html" class="mfn-item" style="flex: 1.5;">
+            <div class="mfn-center-plus">+</div>
         </a>
 
-        <a href="inbox.html" class="mtn-item ${currentPage === 'inbox.html' ? 'active' : ''}"><i>💬</i><span>Inbox</span></a>
-        <a href="profile.html" class="mtn-item ${currentPage === 'profile.html' ? 'active' : ''}"><i>⭐</i><span>Profile</span></a>
+        <a href="inbox.html" class="mfn-item ${currentPage === 'inbox.html' ? 'active' : ''}"><i>💬</i><span>Inbox</span></a>
+        <a href="profile.html" class="mfn-item ${currentPage === 'profile.html' ? 'active' : ''}"><i>⭐</i><span>Profile</span></a>
     </div>
 
-    <!-- 🔴 ऊपर बाईं तरफ कोने में 'LIVE' बटन -->
-    <div class="top-left-live-container">
-        <button class="top-live-btn" onclick="toggleTopLivePopup(event)">
-            <span style="width:8px; height:8px; background:#fe2c55; border-radius:50%; display:inline-block; animation: blink 1s infinite;"></span>
+    <!-- 🔴 ऊपर बाएं कोने में 'LIVE' बटन -->
+    <div class="top-left-live-wrapper">
+        <button class="top-live-pill-btn" onclick="toggleTopLiveMenu(event)">
+            <span style="width:7px; height:7px; background:#fe2c55; border-radius:50%; display:inline-block; animation: blinkLive 1s infinite;"></span>
             LIVE
         </button>
-        <div id="topLivePopupModal">
-            <a href="live.html" class="top-popup-option">
+        <div id="topLivePopupBox">
+            <a href="live.html" class="top-popup-link">
                 <span style="font-size:16px;">🔴</span>
                 <div>
                     <strong style="display:block; color:#fe2c55;">Live Stream</strong>
@@ -172,7 +150,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 </div>
             </a>
             <div style="height:1px; background:#222; margin:2px 0;"></div>
-            <a href="gaming.html" class="top-popup-option">
+            <a href="gaming.html" class="top-popup-link">
                 <span style="font-size:16px;">🎮</span>
                 <div>
                     <strong style="display:block; color:#00b4d8;">Gaming Arena</strong>
@@ -183,25 +161,30 @@ document.addEventListener("DOMContentLoaded", function() {
     </div>
 
     <style>
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        @keyframes blinkLive { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
     </style>
     `;
 
-    // पेज पर नया बार जोड़ें
-    let container = document.createElement('div');
-    container.innerHTML = bottomNavHTML;
-    document.body.appendChild(container);
+    let wrap = document.createElement('div');
+    wrap.innerHTML = finalNavHTML;
+    document.body.appendChild(wrap);
 
-    // ऊपर वाले LIVE पॉपअप को खोलने/बंद करने का फंक्शन
-    window.toggleTopLivePopup = function(event) {
+    // 🛑 साथ ही अगर एचटीएमएल में ऊपर दाहिने कोने में कोई पुराना प्लस बटन (`<a href="camera.html">➕</a>`) है, तो उसे भी ऑटोमैटिकली हटा दो!
+    let topBarLinks = document.querySelectorAll('.top-bar a, .top-bar button');
+    topBarLinks.forEach(el => {
+        if (el.innerHTML.includes('➕') || el.href.includes('camera.html')) {
+            el.remove();
+        }
+    });
+
+    window.toggleTopLiveMenu = function(event) {
         event.stopPropagation();
-        let modal = document.getElementById('topLivePopupModal');
-        modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+        let box = document.getElementById('topLivePopupBox');
+        box.style.display = (box.style.display === 'block') ? 'none' : 'block';
     }
 
-    // कहीं बाहर क्लिक करने पर पॉपअप बंद हो जाए
     window.addEventListener('click', function() {
-        let modal = document.getElementById('topLivePopupModal');
-        if (modal) modal.style.display = 'none';
+        let box = document.getElementById('topLivePopupBox');
+        if (box) box.style.display = 'none';
     });
 });
