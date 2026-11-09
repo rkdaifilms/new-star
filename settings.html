@@ -88,26 +88,40 @@
         <span class="right-val" style="color: #25f4ee; font-weight: bold;">Earn $1 ❯</span>
     </div>
 
-    <div class="setting-item" onclick="openSponsorshipHub()">
+    <!-- 🔒 NEW STAR CAMPAIGNS (1K Followers Lock) -->
+    <div class="setting-item" onclick="checkCampaignAccess()">
         <div class="setting-left">
-            <span class="setting-icon">🤝</span>
+            <span class="setting-icon">⭐</span>
             <div class="setting-text">
-                <h4 id="txtBrandSponsor">Brand Sponsorship Deals</h4>
-                <p>Daraz, Amazon & Paint brand campaigns (1K Lock)</p>
+                <h4 id="txtNewStarCamp">New Star Campaigns (Brands & Artists)</h4>
+                <p>Country & Worldwide music/brand campaigns</p>
             </div>
         </div>
-        <span class="right-val" style="color:#ffcc00;">Locked 🔒</span>
+        <span class="right-val" id="campLockStatus" style="color:#ffcc00;">Locked (0/1K) 🔒</span>
     </div>
 
-    <div class="setting-item" onclick="openAffiliateHub()">
+    <!-- 🔒 AFFILIATE MARKETING PROGRAM (1K Followers Lock) -->
+    <div class="setting-item" onclick="checkAffiliateAccess()">
         <div class="setting-left">
             <span class="setting-icon">🔗</span>
             <div class="setting-text">
                 <h4 id="txtAffiliate">Affiliate Marketing Program</h4>
-                <p>Earn direct product sales commission (1K Lock)</p>
+                <p>Earn direct product sales commission</p>
             </div>
         </div>
-        <span class="right-val" style="color:#ffcc00;">Locked 🔒</span>
+        <span class="right-val" id="affLockStatus" style="color:#ffcc00;">Locked (0/1K) 🔒</span>
+    </div>
+
+    <!-- 🚀 DIRECT VIDEO BOOST / PROMOTION SYSTEM -->
+    <div class="setting-item" onclick="openVideoBoostModal()">
+        <div class="setting-left">
+            <span class="setting-icon">📈</span>
+            <div class="setting-text">
+                <h4 id="txtVideoBoost">Promote & Boost Your Video</h4>
+                <p>Get 1,000 to 10,000+ views instantly (Paid)</p>
+            </div>
+        </div>
+        <span class="right-val" style="color:#25f4ee;">Boost 🚀</span>
     </div>
 
     <div class="setting-item" onclick="openSubscriptionModal()">
@@ -269,25 +283,26 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="sponsorshipModal">
-        <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('sponsorshipModal')">✕</span>
-            <h3>🤝 Brand Sponsorship Deals (1K Followers Unlock)</h3>
-            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px;">
-                <p style="font-size:12px; color:#ffcc00; font-weight:bold;">Asian Paints MasterStroke Deal</p>
-                <p style="font-size:11px; color:#aaa; margin-top:4px;">Promote wall putty & paint contracting work. Earn $250 per approved video campaign!</p>
+    <!-- 🚀 VIDEO BOOST / PROMOTION MODAL -->
+    <div class="modal-overlay" id="videoBoostModal">
+        <div class="modal-card" style="border-color: #25f4ee;">
+            <span class="close-modal" onclick="closeModal('videoBoostModal')">✕</span>
+            <h3 style="color: #25f4ee;">📈 Promote & Boost Your Video</h3>
+            <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
+                Select a package to boost your video views instantly across the platform:
+            </p>
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(1000, 5)">
+                <h4 style="color:#ffcc00; font-size:14px;">🔥 1,000 Views Pack</h4>
+                <p style="font-size:11px; color:#aaa;">Price: $5.00 (500 Coins)</p>
             </div>
-            <button class="action-pub-btn" onclick="alert('🎉 Campaign proposal submitted to Asian Paints Nepal team!')">Apply for Campaign</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="affiliateModal">
-        <div class="modal-card">
-            <span class="close-modal" onclick="closeModal('affiliateModal')">✕</span>
-            <h3>🔗 Affiliate Marketing Program</h3>
-            <p style="font-size:12px; color:#ccc; margin-bottom:10px;">Share products and earn direct commission on every sale!</p>
-            <input type="text" class="form-input" value="https://callpriyance.app/affiliate?ref=ramkumar06" readonly>
-            <button class="action-pub-btn" onclick="alert('📋 Affiliate link copied!')">Copy Affiliate Link</button>
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(5000, 20)">
+                <h4 style="color:#25f4ee; font-size:14px;">🚀 5,000 Views Pack</h4>
+                <p style="font-size:11px; color:#aaa;">Price: $20.00 (2,000 Coins)</p>
+            </div>
+            <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px; cursor:pointer;" onclick="boostPackage(10000, 35)">
+                <h4 style="color:#fe2c55; font-size:14px;">🌟 10,000+ Viral Pack</h4>
+                <p style="font-size:11px; color:#aaa;">Price: $35.00 (3,500 Coins)</p>
+            </div>
         </div>
     </div>
 
@@ -470,6 +485,9 @@
             let langDisplay = document.getElementById('selectedLangDisplay');
             if(langDisplay) langDisplay.innerText = savedLang + ' ❯';
 
+            // Check 1K Followers Lock Status
+            checkFollowerLockStatus();
+
             let gridContainer = document.getElementById('themeGridContainer');
             if(gridContainer) {
                 gridContainer.innerHTML = '';
@@ -483,6 +501,56 @@
                 });
             }
         };
+
+        // 🔒 1K Followers Auto-Check Logic
+        function checkFollowerLockStatus() {
+            let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345'); // मान ले अभी 345 फॉलोअर्स हैं
+            let campLock = document.getElementById('campLockStatus');
+            let affLock = document.getElementById('affLockStatus');
+
+            if (userFollowers >= 1000) {
+                if(campLock) { campLock.innerText = 'Active ⭐'; campLock.style.color = '#25f4ee'; }
+                if(affLock) { affLock.innerText = 'Active 🔗'; affLock.style.color = '#25f4ee'; }
+            } else {
+                if(campLock) { campLock.innerText = `Locked (${userFollowers}/1K) 🔒`; campLock.style.color = '#ffcc00'; }
+                if(affLock) { affLock.innerText = `Locked (${userFollowers}/1K) 🔒`; affLock.style.color = '#ffcc00'; }
+            }
+        }
+
+        function checkCampaignAccess() {
+            let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
+            if (userFollowers >= 1000) {
+                window.location.href = 'campaign.html';
+            } else {
+                alert(`🔒 Feature Locked! You need 1,000 followers to unlock New Star Campaigns. You currently have ${userFollowers} followers.`);
+            }
+        }
+
+        function checkAffiliateAccess() {
+            let userFollowers = parseInt(localStorage.getItem('userFollowersCount') || '345');
+            if (userFollowers >= 1000) {
+                alert('🔗 Opening Affiliate Marketing Dashboard...');
+            } else {
+                alert(`🔒 Feature Locked! You need 1,000 followers to unlock Affiliate Program. You currently have ${userFollowers} followers.`);
+            }
+        }
+
+        function openVideoBoostModal() {
+            document.getElementById('videoBoostModal').style.display = 'flex';
+        }
+
+        function boostPackage(views, price) {
+            let coins = parseInt(localStorage.getItem('userWalletCoins') || '500');
+            let coinCost = price * 100; // $1 = 100 coins
+            if(coins < coinCost) {
+                alert(`⚠️ Insufficient coins! You need ${coinCost} coins for ${views} views. Top up in Wallet.`);
+                return;
+            }
+            coins -= coinCost;
+            localStorage.setItem('userWalletCoins', coins);
+            closeModal('videoBoostModal');
+            alert(`🚀 Success! Your video has been successfully boosted for ${views} views (-${coinCost} Coins deducted).`);
+        }
 
         function applyGlobalTheme(colorHex, themeName) {
             document.documentElement.style.setProperty('--theme-color', colorHex);
@@ -580,8 +648,6 @@
 
         function openLiveGiftRulesModal() { document.getElementById('liveGiftRulesModal').style.display = 'flex'; }
         function openReferralModal() { document.getElementById('referralModal').style.display = 'flex'; }
-        function openSponsorshipHub() { document.getElementById('sponsorshipModal').style.display = 'flex'; }
-        function openAffiliateHub() { document.getElementById('affiliateModal').style.display = 'flex'; }
         function openSubscriptionModal() { document.getElementById('subscriptionModal').style.display = 'flex'; }
         function openAutoModerationPolicyModal() { document.getElementById('autoModerationPolicyModal').style.display = 'flex'; }
         function openHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
