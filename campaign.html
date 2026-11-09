@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>New Star Campaigns - Global Creator Hub</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        html, body { background-color: #000; color: #fff; width: 100%; min-height: 100vh; overflow-x: hidden; }
+        body { padding-top: 60px; padding-bottom: 80px; position: relative; }
+        
+        /* Fixed Header */
+        .header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #222; background: #111; z-index: 1000; }
+        .header h2 { font-size: 16px; color: #fe2c55; }
+        .back-btn { color: #fff; text-decoration: none; font-size: 14px; cursor: pointer; background: none; border: none; }
+
+        .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 20px; }
+        .card { background: #161616; border: 1px solid #282828; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.8); }
+        .card h3 { font-size: 16px; color: #25f4ee; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { font-size: 12px; color: #aaa; display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; font-size: 13px; outline: none; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #fe2c55; }
+
+        .action-btn { width: 100%; background: linear-gradient(135deg, #25f4ee, #fe2c55); color: #fff; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; text-align: center; margin-top: 10px; box-shadow: 0 4px 15px rgba(254,44,85,0.4); }
+        .action-btn:hover { opacity: 0.9; }
+
+        .calc-box { background: #111; border: 1px solid #333; border-radius: 10px; padding: 12px; margin-top: 15px; font-size: 12px; color: #ddd; }
+        .calc-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    </style>
+</head>
+<body>
+
+    <!-- Fixed Header -->
+    <div class="header">
+        <button class="back-btn" onclick="history.back()">← Back</button>
+        <h2>⭐ New Star Campaigns</h2>
+        <span>🚀</span>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h3>🎵 Create Brand or "Work with Artists" Campaign</h3>
+            
+            <div class="form-group">
+                <label>Campaign Type:</label>
+                <select id="campaignType">
+                    <option value="Brand Sponsor">🏢 Brand Sponsored Challenge (Products/Apps)</option>
+                    <option value="Work with Artists">🎶 Work with Artists (Music & Song Promotion)</option>
+                    <option value="Affiliate Sales">🔗 Affiliate & Sales Commission</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Brand / Artist Name:</label>
+                <input type="text" id="compName" placeholder="e.g. Daraz, Sony Music, Asian Paints...">
+            </div>
+
+            <div class="form-group">
+                <label>Target Country (Where to Show):</label>
+                <select id="targetCountry">
+                    <option value="Worldwide">🌍 Worldwide (All Countries)</option>
+                    <option value="United States">🇺🇸 United States (USA)</option>
+                    <option value="Nepal">🇳🇵 Nepal</option>
+                    <option value="India">🇮🇳 India</option>
+                    <option value="United Kingdom">🇬🇧 United Kingdom (UK)</option>
+                    <option value="United Arab Emirates">🇦🇪 United Arab Emirates (UAE)</option>
+                    <option value="Australia">🇦🇺 Australia</option>
+                    <option value="Canada">🇨🇦 Canada</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Campaign Title & Goal:</label>
+                <input type="text" id="compTitle" placeholder="e.g. Promote New Song Viral Dance / Summer Promo">
+            </div>
+
+            <div class="form-group">
+                <label>Total Budget ($ USD):</label>
+                <input type="number" id="compBudget" placeholder="e.g. 1000" oninput="calculateCommission()">
+            </div>
+
+            <div class="form-group">
+                <label>Max Creators Limit (Participant Limit):</label>
+                <input type="number" id="compCreatorsLimit" placeholder="e.g. 500 Creators">
+            </div>
+
+            <div class="form-group">
+                <label>Audio/Music File Link, Hashtag & Rules:</label>
+                <textarea id="compRules" rows="3" placeholder="Enter audio track link, required hashtags, or video guidelines..."></textarea>
+            </div>
+
+            <!-- Developer Commission Breakdown Box -->
+            <div class="calc-box">
+                <div class="calc-row"><span>Total Campaign Budget:</span> <b id="dispTotalBudget">$0.00</b></div>
+                <div class="calc-row" style="color: #25f4ee;"><span>Platform Fee (Developer 10% Cut):</span> <b id="dispDevCommission">$0.00</b></div>
+                <div class="calc-row" style="color: #ffcc00;"><span>Creator Reward Pool (90%):</span> <b id="dispCreatorPool">$0.00</b></div>
+            </div>
+
+            <button class="action-btn" onclick="publishNewStarCampaign()">🚀 Publish New Star Campaign</button>
+        </div>
+    </div>
+
+    <!-- 🌟 NAVBAR SCRIPT LOADER -->
+    <script src="navbar.js"></script>
+
+    <script>
+        function calculateCommission() {
+            let budget = parseFloat(document.getElementById('compBudget').value) || 0;
+            let devCut = budget * 0.10; // 10% Developer Commission
+            let creatorPool = budget - devCut;
+
+            document.getElementById('dispTotalBudget').innerText = '$' + budget.toFixed(2);
+            document.getElementById('dispDevCommission').innerText = '$' + devCut.toFixed(2) + ' (Your Profit 🚀)';
+            document.getElementById('dispCreatorPool').innerText = '$' + creatorPool.toFixed(2);
+        }
+
+        function publishNewStarCampaign() {
+            let type = document.getElementById('campaignType').value;
+            let name = document.getElementById('compName').value.trim();
+            let country = document.getElementById('targetCountry').value;
+            let title = document.getElementById('compTitle').value.trim();
+            let budget = document.getElementById('compBudget').value;
+
+            if(!name || !title || !budget) {
+                alert('⚠️ Please fill in all required campaign details!');
+                return;
+            }
+
+            let devProfit = (parseFloat(budget) * 0.10).toFixed(2);
+            
+            alert(`🎉 Success! "${type}" launched for target: ${country}.\n\n🏢 Brand/Artist: ${name}\n💰 Budget: $${budget}\n🚀 Your Developer Commission: $${devProfit}`);
+            
+            let campaigns = JSON.parse(localStorage.getItem('newStarCampaignsData') || '[]');
+            campaigns.unshift({ type, name, country, title, budget, time: Date.now() });
+            localStorage.setItem('newStarCampaignsData', JSON.stringify(campaigns));
+
+            window.location.href = 'settings.html';
+        }
+    </script>
+</body>
+</html>
