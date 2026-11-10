@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Video Upload Studio - Star New Star</title>
+    <title>Video Upload & Camera Studio - New Star</title>
     
     <meta name="theme-color" content="#fe2c55">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,22 +14,27 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; padding-bottom: 80px; }
+        body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; padding-bottom: 90px; }
         
-        .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .top-close { font-size: 20px; text-decoration: none; color: #fff; background: #222; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; }
         
-        .studio-card { width: 100%; max-width: 480px; background: #141414; border: 1px solid #333; border-radius: 20px; padding: 25px 20px; text-align: left; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
-        .section-title { font-size: 18px; color: #25f4ee; margin-bottom: 6px; font-weight: bold; }
-        .section-desc { font-size: 12px; color: #aaa; margin-bottom: 20px; line-height: 1.4; }
+        .studio-card { width: 100%; max-width: 480px; background: #141414; border: 1px solid #333; border-radius: 20px; padding: 20px; text-align: left; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+        .section-title { font-size: 17px; color: #25f4ee; margin-bottom: 5px; font-weight: bold; }
+        .section-desc { font-size: 11px; color: #aaa; margin-bottom: 15px; line-height: 1.4; }
 
-        label { display: block; width: 100%; font-size: 12px; color: #ccc; margin-bottom: 5px; }
-        input[type="text"] { width: 100%; padding: 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-size: 13px; outline: none; }
+        label { display: block; width: 100%; font-size: 12px; color: #ccc; margin-bottom: 4px; margin-top: 10px; }
+        input[type="text"], textarea { width: 100%; padding: 10px 12px; background: #111; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 5px; font-size: 13px; outline: none; }
+        textarea { resize: none; height: 70px; }
         
-        .post-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 15px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-bottom: 12px; }
+        .post-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 15px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 15px; }
         .post-btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
 
-        .select-gallery-btn { display: block; width: 100%; background: #222; border: 1px solid #444; color: #25f4ee; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; margin-bottom: 15px; }
+        .action-file-btn { display: block; width: 100%; background: #222; border: 1px solid #444; color: #25f4ee; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 13px; cursor: pointer; margin-bottom: 10px; }
+        .action-camera-btn { display: block; width: 100%; background: linear-gradient(135deg, #25f4ee, #0077b6); color: #000; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 13px; cursor: pointer; margin-bottom: 15px; border: none; }
+
+        /* 🌐 DIRECT SOCIAL SHARE BUTTON ON STUDIO */
+        .share-studio-btn { display: block; width: 100%; background: linear-gradient(135deg, #00b4d8, #0077b6); color: #fff; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 13px; cursor: pointer; margin-top: 10px; border: none; }
 
         /* 🚀 CLEAN PERCENTAGE PROGRESS BAR MODAL */
         #uploadProgressModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; padding: 30px; }
@@ -55,27 +60,40 @@
 
     <div class="top-bar">
         <a href="index.html" class="top-close">←</a>
-        <h3 style="font-size:16px; color:#fe2c55;">📹 Video Upload Studio</h3>
+        <h3 style="font-size:15px; color:#fe2c55;">📹 Camera & Video Studio</h3>
         <div></div>
     </div>
 
-    <!-- Video Upload Form Card -->
+    <!-- Video Upload & Camera Form Card -->
     <div class="studio-card">
-        <div class="section-title">Upload Video to Profile & Feed</div>
-        <div class="section-desc" id="statusDescText">Select video from gallery, write a catchy title, and post instantly!</div>
+        <div class="section-title">Record Live or Upload Video</div>
+        <div class="section-desc" id="statusDescText">Choose from gallery or record directly with your mobile camera, add details, and post instantly!</div>
         
-        <!-- Hidden Gallery File Picker -->
+        <!-- 📁 Hidden Gallery File Picker -->
         <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
         
-        <button class="select-gallery-btn" onclick="document.getElementById('galleryVideoInput').click()">📁 Open Gallery & Choose Video</button>
+        <!-- 📷 Hidden Live Camera Recorder Picker -->
+        <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onVideoFileChosen(event)">
+
+        <button class="action-camera-btn" onclick="document.getElementById('liveCameraInput').click()">🔴 Record Video with Camera</button>
+        <button class="action-file-btn" onclick="document.getElementById('galleryVideoInput').click()">📁 Open Gallery & Choose Video</button>
 
         <label>Video Title & Hashtags:</label>
-        <input type="text" id="videoCaptionInput" value="New Viral Dance Reel 🔥 #StarNewStar #Viral">
+        <input type="text" id="videoCaptionInput" value="New Viral Dance Reel 🔥 #StarNewStar">
+
+        <label>Detailed Video Description:</label>
+        <textarea id="videoDescriptionInput" placeholder="Write detailed description about your video..."></textarea>
+
+        <label>Affiliate / Promo / Custom Link:</label>
+        <input type="text" id="videoAffiliateInput" placeholder="https://your-affiliate-link.com">
         
         <button class="post-btn" id="postBtn" onclick="publishVideoToGlobalFeed()">🚀 Post Video Now</button>
+
+        <!-- 🌐 DIRECT SOCIAL MEDIA SHARE BUTTON ON STUDIO -->
+        <button class="share-studio-btn" onclick="shareStudioToAllSocialApps()">🌐 Share App / Video to WhatsApp & All Apps</button>
     </div>
 
-    <!-- 🌟 NAVBAR SCRIPT LOADER (Automatic Footer & Centered Plus) -->
+    <!-- 🌟 NAVBAR NAVBAR SCRIPT LOADER -->
     <script src="navbar.js"></script>
 
     <script>
@@ -91,21 +109,44 @@
             let file = event.target.files[0];
             if(file) {
                 selectedVideoFile = file;
-                document.getElementById('statusDescText').innerHTML = '<b style="color:#25f4ee;">✅ Selected File: ' + file.name + '</b>';
+                document.getElementById('statusDescText').innerHTML = '<b style="color:#25f4ee;">✅ Video Ready: ' + file.name + '</b>';
+            }
+        }
+
+        // 🌐 DIRECT MOBILE SHARE API (Opens WhatsApp, Facebook, Telegram & all installed apps)
+        function shareStudioToAllSocialApps() {
+            let captionText = document.getElementById('videoCaptionInput').value.trim() || 'Check out my new video on New Star Creator Hub!';
+            let shareData = {
+                title: 'New Star Creator Hub',
+                text: captionText,
+                url: window.location.origin + '/index.html'
+            };
+
+            if (navigator.share) {
+                navigator.share(shareData).then(() => {
+                    console.log('Shared successfully');
+                }).catch((error) => {
+                    console.log('Error sharing', error);
+                });
+            } else {
+                navigator.clipboard.writeText(window.location.origin + '/index.html');
+                alert('📋 Link copied to clipboard! You can paste and share it directly on WhatsApp, Facebook, or any social app.');
             }
         }
 
         function publishVideoToGlobalFeed() {
             let caption = document.getElementById('videoCaptionInput').value.trim() || 'New Viral Video #StarNewStar';
+            let description = document.getElementById('videoDescriptionInput').value.trim() || 'Professional video on New Star Creator Hub.';
+            let affiliate = document.getElementById('videoAffiliateInput').value.trim() || '';
+
             if(!selectedVideoFile) {
-                alert('⚠️ Please click "Open Gallery & Choose Video" first!');
+                alert('⚠️ Please record a video or choose one from your gallery first!');
                 return;
             }
 
             let btn = document.getElementById('postBtn');
             btn.disabled = true;
 
-            // Show Progress Modal
             let modal = document.getElementById('uploadProgressModal');
             let fill = document.getElementById('progressBarFill');
             let percentText = document.getElementById('progressPercentText');
@@ -114,7 +155,6 @@
             modal.style.display = 'flex';
             let progress = 0;
 
-            // Smooth percentage progress runner
             let progressInterval = setInterval(() => {
                 progress += Math.floor(Math.random() * 5) + 3;
                 if (progress > 95) progress = 95;
@@ -122,7 +162,6 @@
                 percentText.innerText = progress + '%';
             }, 100);
 
-            // Read video file as Permanent Base64 Data URL so it syncs everywhere instantly
             let reader = new FileReader();
             reader.onload = async function(e) {
                 let permanentVideoUrl = e.target.result;
@@ -132,17 +171,19 @@
                     id: 'vid_' + Date.now(),
                     url: permanentVideoUrl,
                     caption: caption,
+                    description: description,
+                    affiliate: affiliate,
                     username: myHandle,
                     likes: 120,
                     views: 850
                 };
 
-                // 1. Save to Global Feed Storage (so Home & Inbox see it)
+                // 1. Save to Global Feed Storage
                 let globalFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
                 globalFeed.unshift(newPostObj);
                 localStorage.setItem('customFeedVideos', JSON.stringify(globalFeed));
 
-                // 2. Also save specifically to Profile storage key to ensure 100% sync
+                // 2. Save to Profile Feed Storage
                 let profileFeed = JSON.parse(localStorage.getItem('profileVideosList') || '[]');
                 profileFeed.unshift(newPostObj);
                 localStorage.setItem('profileVideosList', JSON.stringify(profileFeed));
@@ -153,6 +194,8 @@
                         { 
                             video_url: permanentVideoUrl, 
                             caption: caption, 
+                            description: description,
+                            affiliate_link: affiliate,
                             username: myHandle,
                             likes_count: 120,
                             views_count: 850
@@ -162,7 +205,6 @@
                     console.log('Supabase DB Sync Note:', err);
                 }
 
-                // Finish progress bar to 100%
                 clearInterval(progressInterval);
                 fill.style.width = '100%';
                 percentText.innerText = '100%';
@@ -177,7 +219,7 @@
             reader.onerror = function(err) {
                 clearInterval(progressInterval);
                 modal.style.display = 'none';
-                alert('❌ Error reading video file. Try another video.');
+                alert('❌ Error processing video file. Try another video.');
                 btn.disabled = false;
             };
 
