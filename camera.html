@@ -14,18 +14,20 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; position: relative; padding-bottom: 90px; }
         
-        /* Top Navigation Bar (Clean & No Floating Live Button) */
-        .top-camera-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; align-items: center; z-index: 9999; }
-        .top-close-btn { font-size: 18px; text-decoration: none; color: #fff; background: rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); }
+        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 15px; width: 100%; max-width: 450px; margin: 0 auto; }
 
-        /* Main Studio Content Area */
-        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding: 15px; padding-bottom: 110px; position: relative; z-index: 10; width: 100%; max-width: 450px; margin: 0 auto; overflow-y: auto; height: 100vh; }
+        /* 🎯 तीन मुख्य आइकन (वीडियो, लाइव, गेमिंग) एक लाइन में */
+        .creator-main-modes-row { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
+        .mode-icon-card { width: 90px; height: 90px; background: #181818; border: 2px solid #333; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; text-decoration: none; color: #fff; }
+        .mode-icon-card:hover, .mode-icon-card.active { border-color: #fe2c55; background: #222; transform: scale(1.05); }
+        .mode-icon-card span { font-size: 28px; margin-bottom: 4px; }
+        .mode-icon-card b { font-size: 11px; text-align: center; }
 
-        /* Mode Content Panels */
-        .mode-panel { display: none; background: #121212; border: 1px solid #222; border-radius: 16px; padding: 18px; margin-top: 50px; box-shadow: 0 8px 30px rgba(0,0,0,0.8); }
-        .mode-panel.active { display: block; }
+        /* Content Sections */
+        .studio-section { display: none; background: #121212; border: 1px solid #222; border-radius: 16px; padding: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.8); }
+        .studio-section.active { display: block; }
 
         .media-actions-row { display: flex; gap: 10px; margin-bottom: 12px; }
         .media-btn { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -50,19 +52,11 @@
         #previewBox { display: none; width: 100%; height: 130px; background: #000; border-radius: 8px; margin-bottom: 10px; overflow: hidden; position: relative; border: 1px solid #333; }
         #previewBox video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Direct Action Redirect Cards for Live & Gaming */
+        /* Direct Action Cards for Live & Gaming */
         .redirect-action-card { background: #181818; border: 1px solid #333; border-radius: 14px; padding: 25px 15px; text-align: center; }
         .redirect-action-card h3 { font-size: 15px; margin-bottom: 6px; color: #fff; }
         .redirect-action-card p { font-size: 10px; color: #888; margin-bottom: 15px; }
         .redirect-btn { display: inline-block; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 12px; text-decoration: none; cursor: pointer; }
-
-        /* 🎯 TIKTOK / PROFILE STYLE ROUND BUTTONS FOOTER BAR (बिल्कुल प्रोफाइल वाले गोल बटनों जैसी स्टाइल) */
-        .tiktok-modes-footer { position: fixed; bottom: 20px; left: 0; width: 100%; z-index: 10000; display: flex; justify-content: center; align-items: center; pointer-events: none; }
-        .modes-scroll-container { display: flex; gap: 25px; align-items: center; pointer-events: auto; background: rgba(18,18,18,0.85); padding: 8px 25px; border-radius: 40px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 8px 25px rgba(0,0,0,0.8); }
-        
-        .mode-item { width: 48px; height: 48px; border-radius: 50%; background: #1a1a1a; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: 0.2s; outline: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .mode-item:hover { transform: scale(1.05); }
-        .mode-item.active { background: linear-gradient(135deg, #fe2c55, #ff6b8b); border-color: #fe2c55; box-shadow: 0 0 15px rgba(254,44,85,0.6); transform: scale(1.1); }
 
         /* 🚀 SUPABASE UPLOAD PROGRESS MODAL */
         #uploadProgressModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 30000; justify-content: center; align-items: center; flex-direction: column; padding: 30px; }
@@ -86,17 +80,27 @@
         </div>
     </div>
 
-    <!-- Top Bar -->
-    <div class="top-camera-bar">
-        <a href="index.html" class="top-close-btn">✕</a>
-        <div></div>
-    </div>
-
     <!-- Main Viewport -->
     <div class="studio-main-viewport">
         
-        <!-- 1️⃣ UPLOAD VIDEO PANEL (वीडियो अपलोड करने का पूरा सिस्टम - कैमरा, गैलरी, टाइटल, डिस्क्रिप्शन, एफिलिएट लिंक) -->
-        <div id="panelUpload" class="mode-panel active">
+        <!-- 🎯 ऊपर 3 मुख्य आइकन (वीडियो, लाइव, गेमिंग) -->
+        <div class="creator-main-modes-row">
+            <div class="mode-icon-card active" id="btnModeVideo" onclick="switchStudioMode('video')">
+                <span>📹</span>
+                <b>Video</b>
+            </div>
+            <div class="mode-icon-card" id="btnModeLive" onclick="switchStudioMode('live')">
+                <span>🔴</span>
+                <b>Live</b>
+            </div>
+            <div class="mode-icon-card" id="btnModeGaming" onclick="switchStudioMode('gaming')">
+                <span>🎮</span>
+                <b>Gaming</b>
+            </div>
+        </div>
+
+        <!-- 1️⃣ VIDEO UPLOAD SECTION (कैमरा, गैलरी, टाइटल, डिस्क्रिप्शन, एफिलिएट लिंक) -->
+        <div id="sectionVideo" class="studio-section active">
             <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onVideoFileChosen(event)">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
 
@@ -104,8 +108,8 @@
                 <div class="media-btn" onclick="document.getElementById('liveCameraInput').click()">
                     <span>🔴</span>
                     <div>
-                        <b>Record Video</b>
-                        <small>Direct Camera</small>
+                        <b>Camera</b>
+                        <small>Direct Record</small>
                     </div>
                 </div>
                 <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()">
@@ -144,8 +148,8 @@
             <button class="post-action-btn" id="postBtn" onclick="publishVideoToSupabaseStorage()">🚀 Post Video Now</button>
         </div>
 
-        <!-- 2️⃣ LIVE STREAM PANEL (लाइव रूम सिस्टम) -->
-        <div id="panelLive" class="mode-panel">
+        <!-- 2️⃣ LIVE STREAM SECTION -->
+        <div id="sectionLive" class="studio-section">
             <div class="redirect-action-card">
                 <div style="font-size:32px; margin-bottom:8px;">🔴</div>
                 <h3>Live Stream Room</h3>
@@ -154,8 +158,8 @@
             </div>
         </div>
 
-        <!-- 3️⃣ GAMING STREAM PANEL (न्यू स्टार गेमिंग स्ट्रीम) -->
-        <div id="panelGaming" class="mode-panel">
+        <!-- 3️⃣ GAMING STREAM SECTION -->
+        <div id="sectionGaming" class="studio-section">
             <div class="redirect-action-card">
                 <div style="font-size:32px; margin-bottom:8px;">🎮</div>
                 <h3>New Star Gaming Stream</h3>
@@ -164,15 +168,6 @@
             </div>
         </div>
 
-    </div>
-
-    <!-- 🎯 3 ROUND ICONS FOOTER BAR (जैसे प्रोफाइल में नीचे गोल बटन हैं) -->
-    <div class="tiktok-modes-footer">
-        <div class="modes-scroll-container">
-            <button class="mode-item active" id="modeUploadBtn" onclick="switchTikTokMode('upload')" title="Upload Video">📹</button>
-            <button class="mode-item" id="modeLiveBtn" onclick="switchTikTokMode('live')" title="Live Stream">🔴</button>
-            <button class="mode-item" id="modeGamingBtn" onclick="switchTikTokMode('gaming')" title="New Star Gaming Stream">🎮</button>
-        </div>
     </div>
 
     <!-- 🌟 NAVBAR SCRIPT LOADER -->
@@ -188,20 +183,20 @@
         let selectedVideoFile = null;
         let finalVideoCategory = "Shorts (9:16)";
 
-        // 🔄 SWITCH MODES (Clicking Round Icons)
-        function switchTikTokMode(mode) {
-            document.querySelectorAll('.mode-item').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.mode-panel').forEach(el => el.classList.remove('active'));
+        // 🔄 SWITCH MODES
+        function switchStudioMode(mode) {
+            document.querySelectorAll('.mode-icon-card').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.studio-section').forEach(el => el.classList.remove('active'));
 
-            if(mode === 'upload') {
-                document.getElementById('modeUploadBtn').classList.add('active');
-                document.getElementById('panelUpload').classList.add('active');
+            if(mode === 'video') {
+                document.getElementById('btnModeVideo').classList.add('active');
+                document.getElementById('sectionVideo').classList.add('active');
             } else if(mode === 'live') {
-                document.getElementById('modeLiveBtn').classList.add('active');
-                document.getElementById('panelLive').classList.add('active');
+                document.getElementById('btnModeLive').classList.add('active');
+                document.getElementById('sectionLive').classList.add('active');
             } else if(mode === 'gaming') {
-                document.getElementById('modeGamingBtn').classList.add('active');
-                document.getElementById('panelGaming').classList.add('active');
+                document.getElementById('btnModeGaming').classList.add('active');
+                document.getElementById('sectionGaming').classList.add('active');
             }
         }
 
@@ -240,7 +235,7 @@
             let affiliate = document.getElementById('videoAffiliateInput').value.trim() || '';
 
             if(!selectedVideoFile) {
-                alert('⚠️ Please record a video or choose one from your gallery first!');
+                alert('⚠️ Please record using Camera or choose a video from your gallery first!');
                 return;
             }
 
@@ -266,7 +261,6 @@
                 fill.style.width = progress + '%';
                 percentText.innerText = progress + '%';
 
-                // 1. Upload to Supabase Storage Bucket ('videos')
                 let { data: uploadData, error: uploadError } = await supabaseClient.storage
                     .from('videos')
                     .upload(fileName, selectedVideoFile, {
@@ -282,7 +276,6 @@
                 fill.style.width = progress + '%';
                 percentText.innerText = progress + '%';
 
-                // 2. Get Public URL from Supabase Bucket
                 let { data: urlData } = supabaseClient.storage
                     .from('videos')
                     .getPublicUrl(fileName);
@@ -311,7 +304,6 @@
                     views: 850
                 };
 
-                // 3. Save to Local Storage safely
                 try {
                     let globalFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
                     globalFeed.unshift(newPostObj);
@@ -324,7 +316,6 @@
                     console.log('Local storage sync note:', e);
                 }
 
-                // 4. Save to Supabase Database Table ('videos')
                 await supabaseClient.from('videos').insert([
                     { 
                         video_url: publicVideoUrl, 
