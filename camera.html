@@ -166,7 +166,7 @@
             }
         }
 
-        // ⏱️ AUTO DETECT DURATION & RATIO (Shorts <= 60s vs Long Video > 60s)
+        // ⏱️ AUTO DETECT DURATION & RATIO
         function checkVideoDurationAndRatio(videoEl) {
             let durationSeconds = videoEl.duration;
             let width = videoEl.videoWidth;
@@ -216,32 +216,48 @@
             let titleHeading = document.getElementById('progressTitleHeading');
 
             modal.style.display = 'flex';
-            let progress = 0;
-
-            let progressInterval = setInterval(() => {
-                progress += 12;
-                if (progress > 90) progress = 90;
-                fill.style.width = progress + '%';
-                percentText.innerText = progress + '%';
-            }, 70);
+            let progress = 10;
+            fill.style.width = progress + '%';
+            percentText.innerText = progress + '%';
 
             try {
-                // 1. Upload directly to Supabase Storage Bucket ('videos')
-                let fileName = 'video_' + Date.now() + '_' + selectedVideoFile.name.replace(/[^a-zA-Z0-9.]/g, '_');
+                let cleanFileName = selectedVideoFile.name ? selectedVideoFile.name.replace(/[^a-zA-Z0-9.]/g, '_') : 'video.mp4';
+                let fileName = 'video_' + Date.now() + '_' + cleanFileName;
                 
+                progress = 35;
+                fill.style.width = progress + '%';
+                percentText.innerText = progress + '%';
+
+                // 1. Upload to Supabase Storage Bucket ('videos')
                 let { data: uploadData, error: uploadError } = await supabaseClient.storage
                     .from('videos')
-                    .upload(fileName, selectedVideoFile);
+                    .upload(fileName, selectedVideoFile, {
+                        cacheControl: '3600',
+                        upsert: true
+                    });
 
-                let publicVideoUrl = '';
-                if (!uploadError) {
-                    let { data: urlData } = supabaseClient.storage.from('videos').getPublicUrl(fileName);
-                    publicVideoUrl = urlData ? urlData.publicUrl : '';
+                if (uploadError) {
+                    throw new Error('Storage Upload Failed: ' + uploadError.message);
                 }
+
+                progress = 75;
+                fill.style.width = progress + '%';
+                percentText.innerText = progress + '%';
+
+                // 2. Get 100% Guaranteed Public URL from Supabase Bucket
+                let { data: urlData } = supabaseClient.storage
+                    .from('videos')
+                    .getPublicUrl(fileName);
+
+                let publicVideoUrl = urlData ? urlData.publicUrl : '';
 
                 if (!publicVideoUrl) {
-                    publicVideoUrl = URL.createObjectURL(selectedVideoFile);
+                    throw new Error('Could not generate Public URL from Supabase Storage!');
                 }
+
+                progress = 90;
+                fill.style.width = progress + '%';
+                percentText.innerText = progress + '%';
 
                 let myHandle = localStorage.getItem('appHandle') || '@ramram981152';
 
@@ -257,7 +273,7 @@
                     views: 850
                 };
 
-                // 2. Save to Local Storage safely
+                // 3. Save to Local Storage safely
                 try {
                     let globalFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
                     globalFeed.unshift(newPostObj);
@@ -270,7 +286,7 @@
                     console.log('Local storage sync note:', e);
                 }
 
-                // 3. Save to Supabase Database Table ('videos') with Category
+                // 4. Save to Supabase Database Table ('videos')
                 await supabaseClient.from('videos').insert([
                     { 
                         video_url: publicVideoUrl, 
@@ -284,20 +300,19 @@
                     }
                 ]);
 
-                clearInterval(progressInterval);
+                progress = 100;
                 fill.style.width = '100%';
                 percentText.innerText = '100%';
-                titleHeading.innerText = `✨ ${finalVideoCategory} Published!`;
+                titleHeading.innerText = `✨ ${finalVideoCategory} Published Successfully!`;
 
                 setTimeout(() => {
                     modal.style.display = 'none';
                     window.location.href = 'profile.html';
-                }, 600);
+                }, 800);
 
             } catch(err) {
-                clearInterval(progressInterval);
                 modal.style.display = 'none';
-                alert('❌ Upload error: ' + err.message);
+                alert('❌ Upload Error: ' + err.message);
                 btn.disabled = false;
             }
         }
