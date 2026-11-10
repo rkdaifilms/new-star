@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Video Upload Studio - New Star</title>
+    <title>Creator Studio - New Star</title>
     
     <meta name="theme-color" content="#fe2c55">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -26,12 +26,13 @@
         .studio-header h2 { font-size: 16px; color: #fe2c55; font-weight: bold; }
         .studio-header p { font-size: 11px; color: #888; }
 
-        .media-actions-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        .media-btn { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 16px 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-        .media-btn:hover { border-color: #fe2c55; background: #222; }
-        .media-btn span { font-size: 22px; }
-        .media-btn b { font-size: 13px; color: #fff; display: block; }
-        .media-btn small { font-size: 10px; color: #888; display: block; }
+        /* 🚀 3 TIKTOK STYLE OPTIONS CONTAINER (1, 2, 3 LINE) */
+        .creator-options-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .creator-option-card { display: flex; align-items: center; gap: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 15px; text-decoration: none; color: #fff; cursor: pointer; transition: 0.2s; }
+        .creator-option-card:hover { border-color: #fe2c55; background: #222; }
+        .creator-option-card .opt-icon { font-size: 24px; width: 40px; height: 40px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; }
+        .creator-option-card .opt-info h4 { font-size: 13px; font-weight: bold; color: #fff; }
+        .creator-option-card .opt-info p { font-size: 10px; color: #888; margin-top: 2px; }
 
         /* Auto Detected Category Badge */
         #categoryBadgeBox { display: none; background: rgba(37,244,238,0.1); border: 1px solid #25f4ee; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: #25f4ee; margin-bottom: 15px; text-align: center; font-weight: bold; }
@@ -44,8 +45,6 @@
 
         .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 20px; }
         .post-action-btn:disabled { background: #444; cursor: not-allowed; box-shadow: none; }
-
-        .share-row-btn { display: block; width: 100%; background: #1a1a1a; border: 1px solid #333; color: #25f4ee; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 13px; cursor: pointer; margin-top: 10px; }
 
         /* Video Preview Box */
         #previewBox { display: none; width: 100%; height: 160px; background: #000; border-radius: 10px; margin-bottom: 15px; overflow: hidden; position: relative; border: 1px solid #333; }
@@ -75,7 +74,7 @@
 
     <div class="top-bar">
         <a href="index.html" class="top-close">←</a>
-        <h3 style="font-size:15px; color:#fe2c55;">📹 Video Studio & Camera</h3>
+        <h3 style="font-size:15px; color:#fe2c55;">📹 Creator Hub Studio</h3>
         <div></div>
     </div>
 
@@ -85,23 +84,43 @@
         <div class="studio-header">
             <span>🎬</span>
             <div>
-                <h2>Create & Publish Video</h2>
-                <p>Auto-detects Shorts (&le; 1 min) or Long Video (&gt; 1 min up to 10 mins)</p>
+                <h2>Create & Broadcast</h2>
+                <p>Choose Upload, Live Stream, or Gaming</p>
             </div>
         </div>
 
-        <!-- Hidden Gallery Input -->
+        <!-- Hidden Inputs for Video Upload & Direct Camera -->
+        <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onVideoFileChosen(event)">
         <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
 
-        <!-- Media Selection Button (Single Clean Upload Option) -->
-        <div class="media-actions-row">
-            <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()" style="flex: 1;">
-                <span>📹</span>
-                <div>
-                    <b>Upload Video</b>
-                    <small>Choose from Gallery or Files</small>
+        <!-- 🚀 3 TIKTOK STYLE OPTIONS (1. Upload Video, 2. Live Stream, 3. Gaming Stream) -->
+        <div class="creator-options-grid">
+            <!-- Option 1: Upload Video (Gallery / Direct Camera) -->
+            <div class="creator-option-card" onclick="triggerVideoUploadOptions()">
+                <div class="opt-icon">📹</div>
+                <div class="opt-info">
+                    <h4>Upload Video</h4>
+                    <p>Record or select from gallery (Shorts / Long)</p>
                 </div>
             </div>
+
+            <!-- Option 2: Live Stream -->
+            <a href="live.html" class="creator-option-card">
+                <div class="opt-icon" style="color: #fe2c55;">🔴</div>
+                <div class="opt-info">
+                    <h4>Live Stream</h4>
+                    <p>Go live with seats, multi-guest & gifts</p>
+                </div>
+            </a>
+
+            <!-- Option 3: New Star Gaming Stream -->
+            <a href="gaming.html" class="creator-option-card">
+                <div class="opt-icon" style="color: #25f4ee;">🎮</div>
+                <div class="opt-info">
+                    <h4>New Star Gaming Stream</h4>
+                    <p>Stream Free Fire, PUBG & tournaments</p>
+                </div>
+            </a>
         </div>
 
         <!-- Auto Category & Ratio Badge -->
@@ -129,7 +148,6 @@
         </div>
 
         <button class="post-action-btn" id="postBtn" onclick="publishVideoToSupabaseStorage()">🚀 Post Video Now</button>
-        <button class="share-row-btn" onclick="shareStudioToAllSocialApps()">🌐 Share App to WhatsApp & Social Apps</button>
     </div>
 
     <!-- 🌟 NAVBAR SCRIPT LOADER -->
@@ -144,6 +162,15 @@
 
         let selectedVideoFile = null;
         let finalVideoCategory = "Shorts (9:16)";
+
+        function triggerVideoUploadOptions() {
+            let choice = confirm("OK dabane par Gallery se video chunein, Cancel dabane par Direct Camera se record karein!");
+            if (choice) {
+                document.getElementById('galleryVideoInput').click();
+            } else {
+                document.getElementById('liveCameraInput').click();
+            }
+        }
 
         function onVideoFileChosen(event) {
             let file = event.target.files[0];
@@ -174,28 +201,13 @@
             }
         }
 
-        function shareStudioToAllSocialApps() {
-            let shareData = {
-                title: 'New Star Creator Hub',
-                text: 'Check out amazing videos and creators on New Star Creator Hub!',
-                url: window.location.origin + '/index.html'
-            };
-
-            if (navigator.share) {
-                navigator.share(shareData).catch((error) => console.log('Share error', error));
-            } else {
-                navigator.clipboard.writeText(window.location.origin + '/index.html');
-                alert('📋 Link copied to clipboard!');
-            }
-        }
-
         async function publishVideoToSupabaseStorage() {
             let caption = document.getElementById('videoCaptionInput').value.trim() || 'New Viral Video #StarNewStar';
             let description = document.getElementById('videoDescriptionInput').value.trim() || 'Professional video on New Star Creator Hub.';
             let affiliate = document.getElementById('videoAffiliateInput').value.trim() || '';
 
             if(!selectedVideoFile) {
-                alert('⚠️ Please choose a video file from your gallery first!');
+                alert('⚠️ Please choose or record a video first!');
                 return;
             }
 
