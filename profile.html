@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Profile - New Star Creator Hub</title>
 
-    <!-- ⚡ SUPABASE JS SDK -->
+    <!-- ⚡ SUPABASE JS SDK & CONFIG -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -195,7 +196,7 @@
             </div>
             
             <div class="modal-video-box" onclick="togglePlayPause()">
-                <video id="modalActiveVideo" loop></video>
+                <video id="modalActiveVideo" loop playsinline autoplay></video>
                 <div id="flyingGiftOverlay"></div>
             </div>
 
@@ -333,12 +334,6 @@
     <script src="navbar.js"></script>
 
     <script>
-        const SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
-        const SUPABASE_ANON_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
-
-        const { createClient } = window.supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         let activeVideoList = [];
         let currentSelectedVideoIndex = null;
 
@@ -417,7 +412,7 @@
                 activeVideoList.forEach((video, index) => {
                     grid.innerHTML += `
                         <div class="grid-item" onclick="openVideoPlayer(${index})">
-                            <video src="${video.url}" muted></video>
+                            <video src="${video.url}" muted playsinline preload="metadata"></video>
                             <div class="grid-overlay">
                                 <p>💬 ${video.caption || 'New Reel'}</p>
                                 <span>👁️ ${video.views || '850'}</span>
@@ -661,7 +656,6 @@
             input.value = '';
         }
 
-        // 🌐 REAL SOCIAL MEDIA SHARE API (OPENS ALL MOBILE SOCIAL APPS)
         function nativePhoneShare() {
             let currentVideo = activeVideoList[currentSelectedVideoIndex];
             let shareData = {
@@ -671,11 +665,7 @@
             };
 
             if (navigator.share) {
-                navigator.share(shareData).then(() => {
-                    console.log('Shared successfully');
-                }).catch((error) => {
-                    console.log('Error sharing', error);
-                });
+                navigator.share(shareData).catch((error) => console.log('Share error', error));
             } else {
                 copyLink();
                 alert('🔗 Link copied! You can share it directly on WhatsApp or Facebook.');
@@ -732,9 +722,7 @@
 
             let toast = document.getElementById('successToast');
             toast.style.display = 'block';
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 2000);
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
         }
     </script>
 </body>
