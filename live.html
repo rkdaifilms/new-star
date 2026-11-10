@@ -3,135 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TikTok Style LIVE Room - New Star</title>
+    <title>Video LIVE Room - Star New Star</title>
     
-    <!-- 📱 PWA & META -->
     <meta name="theme-color" content="#fe2c55">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- ⚡ SUPABASE JS SDK & CONFIG -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
-
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #000; color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; padding-bottom: 80px; }
         
-        /* Clean Top Bar (No Unwanted Plus Icons) */
-        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; position: absolute; top: 0; left: 0; right: 0; z-index: 20; min-height: 40px; }
+        /* 🛠️ TOP BAR FIXED: Back button and Title/Live neatly spaced out */
+        .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; position: relative; }
+        .top-close { font-size: 18px; text-decoration: none; color: #fff; background: #222; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; flex-shrink: 0; }
+        .top-title { font-size: 15px; color: #fe2c55; font-weight: bold; position: absolute; left: 50%; transform: translateX(-50%); text-align: center; width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* LIVE Room Container */
-        .live-container { flex: 1; position: relative; width: 100%; max-width: 450px; margin: 0 auto; background: #111; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
-        .live-video-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+        .studio-card { width: 100%; max-width: 480px; background: #141414; border: 1px solid #333; border-radius: 20px; padding: 25px 20px; text-align: left; }
+        .section-title { font-size: 18px; color: #fe2c55; margin-bottom: 6px; font-weight: bold; }
+        .section-desc { font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4; }
 
-        /* LIVE Room Top Stats Header */
-        .live-room-header { position: absolute; top: 50px; left: 15px; right: 15px; display: flex; justify-content: space-between; align-items: center; z-index: 10; background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 20px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); }
-        .live-pill { background: #fe2c55; color: #fff; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; display: flex; align-items: center; gap: 4px; }
-        .room-stats-text { font-size: 11px; color: #ffcc00; font-weight: bold; }
-
-        /* LIVE Room Chat & Interaction Area */
-        .live-overlay-content { position: absolute; bottom: 70px; left: 0; right: 0; padding: 15px; z-index: 10; display: flex; flex-direction: column; gap: 10px; max-height: 50vh; pointer-events: none; }
-        .live-chat-box { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
-        .chat-bubble { background: rgba(0,0,0,0.5); padding: 6px 10px; border-radius: 10px; font-size: 12px; max-width: 85%; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.08); }
-        .chat-bubble b { color: #25f4ee; }
-
-        /* Bottom Live Control Action Bar */
-        .live-bottom-actions { position: absolute; bottom: 10px; left: 15px; right: 15px; display: flex; gap: 10px; align-items: center; z-index: 15; }
-        .live-chat-input { flex: 1; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); padding: 10px 14px; border-radius: 20px; color: #fff; font-size: 13px; outline: none; backdrop-filter: blur(5px); }
+        label { display: block; width: 100%; font-size: 12px; color: #ccc; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 11px; background: #111; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-size: 13px; outline: none; }
         
-        .live-action-icon-btn { width: 40px; height: 40px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; color: #fff; flex-shrink: 0; }
-        .live-action-icon-btn:hover { background: rgba(254,44,85,0.4); border-color: #fe2c55; }
+        .btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 13px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; }
 
-        /* 🎁 TREASURE BOX MODAL (ULTRA FLEXIBLE & SMART WALLET DEDUCTION) */
-        #treasureBoxModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
-        .treasure-card { background: #181818; border: 2px solid #fe2c55; width: 100%; max-width: 350px; border-radius: 18px; padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); position: relative; }
-        .treasure-card h3 { font-size: 16px; color: #ffcc00; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-        
-        .t-form-group { margin-bottom: 12px; }
-        .t-form-group label { display: block; font-size: 12px; color: #aaa; margin-bottom: 4px; font-weight: bold; }
-        .t-form-group input { width: 100%; padding: 10px 14px; background: #111; border: 1px solid #333; color: #fff; border-radius: 10px; font-size: 14px; outline: none; }
-        .t-form-group input:focus { border-color: #fe2c55; }
+        /* ACTIVE LIVE BROADCAST ROOM */
+        #activeLiveView { display: none; width: 100%; max-width: 480px; background: #111; border: 2px solid #fe2c55; padding: 15px; border-radius: 16px; margin-top: 5px; text-align: center; position: relative; }
+        .pulsing-dot { display: inline-block; width: 8px; height: 8px; background: #fe2c55; border-radius: 50%; animation: pulse 1.2s infinite; margin-right: 5px; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        .drop-treasure-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ffcc00); color: #000; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 15px; box-shadow: 0 4px 15px rgba(254,44,85,0.4); }
-        .close-treasure { position: absolute; top: 14px; right: 18px; font-size: 18px; cursor: pointer; color: #aaa; }
+        /* PK Battle Scoreboard */
+        .pk-scoreboard { display: none; justify-content: space-between; align-items: center; background: #220000; border: 1px solid #ff4444; padding: 6px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; font-weight: bold; }
 
-        /* Active Floating Treasure Box Animation in Live Room */
-        #activeTreasureBanner { display: none; position: absolute; top: 110px; left: 15px; right: 15px; background: linear-gradient(135deg, rgba(254,44,85,0.9), rgba(255,204,0,0.9)); padding: 10px 15px; border-radius: 14px; z-index: 12; color: #000; font-weight: bold; box-shadow: 0 5px 20px rgba(0,0,0,0.8); animation: bounceBox 1s infinite alternate; }
-        @keyframes bounceBox { 0% { transform: translateY(0); } 100% { transform: translateY(-4px); } }
+        .stream-container { position: relative; width: 100%; height: 240px; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #333; margin-bottom: 8px; }
+        #liveStreamVideoElement { width: 100%; height: 100%; object-fit: cover; background: #000; }
+        .app-stream-logo { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); border: 1px solid #fe2c55; padding: 2px 8px; border-radius: 6px; font-size: 10px; color: #25f4ee; font-weight: bold; z-index: 5; }
+
+        /* Active Floating Treasure Box Banner */
+        #activeTreasureBanner { display: none; position: absolute; top: 55px; left: 10px; right: 10px; background: linear-gradient(135deg, rgba(254,44,85,0.95), rgba(255,204,0,0.95)); padding: 8px 12px; border-radius: 10px; z-index: 25; color: #000; font-weight: bold; font-size: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.8); text-align: left; }
+
+        /* Multi-Seat Grids */
+        .live-seats-grid { display: grid; gap: 6px; margin-bottom: 8px; }
+        .grid-1 { grid-template-columns: 1fr; }
+        .grid-4 { grid-template-columns: repeat(2, 1fr); }
+        .grid-10 { grid-template-columns: repeat(3, 1fr); }
+
+        .live-seat-box { background: #1f1f1f; border: 1px dashed #555; height: 40px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #ccc; cursor: pointer; position: relative; }
+        .live-seat-box.active { border: 2px solid #25f4ee; background: #102a2a; color: #25f4ee; font-weight: bold; }
+        .seat-num { position: absolute; top: 2px; right: 6px; font-size: 8px; color: #ffcc00; }
+
+        /* Floating Side Actions inside Live Room */
+        .live-side-actions { position: absolute; right: 10px; bottom: 120px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
+        .live-action-icon { width: 36px; height: 36px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 15px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); color: #fff; }
+        .live-gift-btn { background: linear-gradient(135deg, #fe2c55, #ffcc00); border: none; }
+        .live-share-btn { background: linear-gradient(135deg, #00b4d8, #25f4ee); color: #000; border: none; font-weight: bold; }
+        .live-treasure-btn { background: linear-gradient(135deg, #ffcc00, #ff6600); border: none; }
+
+        /* MODALS & GIFTS GRID */
+        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; }
+        .modal-box { background: #181818; border: 1px solid #fe2c55; width: 90%; max-width: 380px; padding: 20px; border-radius: 16px; text-align: left; }
+        .gift-grid-popup { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 250px; overflow-y: auto; margin: 15px 0; }
+        .gift-item-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .gift-item-card:hover { border-color: #fe2c55; background: #2a2a2a; }
     </style>
 </head>
 <body>
-
-    <!-- Clean Top Bar -->
     <div class="top-bar">
-        <div></div>
+        <a href="index.html" class="top-close">←</a>
+        <h3 class="top-title">🔴 TikTok Style LIVE Room</h3>
         <div></div>
     </div>
 
-    <!-- LIVE Room Main Viewport -->
-    <div class="live-container">
-        <!-- Live Video Stream Background -->
-        <video class="live-video-bg" autoplay loop muted playsinline src="https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4"></video>
+    <!-- LIVE ROOM SETUP PANEL -->
+    <div class="studio-card" id="liveSetupPanel">
+        <div class="section-title">Start Video LIVE Broadcast</div>
+        <div class="section-desc">Set your room title and seat capacity to go live with friends and fans!</div>
+        
+        <label>Live Room Title:</label>
+        <input type="text" id="liveTitleInput" value="Night Dance Party 🎉">
+        
+        <label>Room Seats Capacity:</label>
+        <select id="setupRoomSize">
+            <option value="1">👤 1 Seat (Solo Live)</option>
+            <option value="4" selected>👥 4 Seats Grid</option>
+            <option value="10">👥 10 Seats Grid (Party Room)</option>
+        </select>
+        
+        <button class="btn" onclick="startLiveBroadcastSession()">🔴 Go LIVE Now</button>
+    </div>
 
+    <!-- ACTIVE LIVE BROADCAST ROOM -->
+    <div id="activeLiveView">
         <!-- Active Treasure Box Floating Banner -->
         <div id="activeTreasureBanner">
-            🎁 <span id="bannerTitle">Treasure Box Active!</span> | <span id="bannerTimer">00:30</span> left! (<span id="bannerCoinsLeft">500</span> 🪙)
+            🎁 <span id="bannerTitle">Treasure Box Active!</span> | <span id="bannerTimer">01:00</span> left! (<span id="bannerCoinsLeft">500</span> 🪙)
         </div>
 
-        <!-- Room Header Stats -->
-        <div class="live-room-header">
-            <div class="live-pill"><span>🔴</span> LIVE ROOM ACTIVE</div>
-            <div class="room-stats-text">🪙 Coins: <span id="roomUserCoins">19,550</span> | 🔥 Rank: #1</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="background:rgba(254,44,85,0.2); border:1px solid #fe2c55; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; color:#fe2c55;"><span class="pulsing-dot"></span> LIVE ROOM ACTIVE</span>
+            <span style="font-size:12px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins">500</b> | 🔥 Rank: <b id="liveRoomRank" style="color:#25f4ee;">#1</b></span>
         </div>
 
-        <!-- Chat Overlay -->
-        <div class="live-overlay-content">
-            <div class="live-chat-box" id="liveChatList">
-                <div class="chat-bubble"><b>Rohit Painter:</b> Mast live room hai bhai! 🔥</div>
-                <div class="chat-bubble"><b>Anjali Dance:</b> Sent a Rose 🌹</div>
+        <div id="pkScoreboard" class="pk-scoreboard">
+            <span style="color:#25f4ee;">⚔️ You: <b id="myPkScore">0</b> pts</span>
+            <span style="color:#ffcc00; font-size:10px;">PK BATTLE LIVE</span>
+            <span style="color:#ff4444;">Opponent: <b id="rivalPkScore">0</b> pts</span>
+        </div>
+
+        <div class="stream-container">
+            <div class="app-stream-logo">★ Star New Star LIVE</div>
+            <video id="liveStreamVideoElement" autoplay playsinline muted></video>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#1a1a1a; padding:6px 10px; border-radius:8px; margin-bottom:8px; font-size:11px;">
+            <span>🎙️ Mic: <b id="micStatusText" style="color:#25f4ee;">ON</b></span>
+            <button style="background:#333; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="toggleLiveMicrophone()">Mute</button>
+            <button style="background:#ffcc00; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openModSettingsModal()">⚙️ Mod Settings</button>
+        </div>
+
+        <div id="dynamicSeatsContainer" style="margin-bottom: 8px;"></div>
+
+        <div style="background:#1a1a1a; border:1px solid #333; padding:6px; border-radius:8px; margin-bottom:8px; text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                <span style="font-size:10px; color:#25f4ee; font-weight:bold;">💬 Live Chat (Likes: <b id="likePointsCount" style="color:#ffcc00;">0</b>)</span>
+            </div>
+            <div id="liveChatScrollArea" style="max-height:50px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; margin-bottom:5px; font-size:11px; color:#aaa;">
+                <div><b>Rohit Painter:</b> Mast live room hai bhai! 🔥</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+                <input type="text" id="liveCommentInput" placeholder="Say something..." style="margin-top:0; padding:5px; font-size:11px; margin-bottom:0;" onkeypress="handleLiveChatKey(event)">
+                <button style="background:#fe2c55; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;" onclick="sendLiveComment()">Send</button>
             </div>
         </div>
 
-        <!-- Bottom Action Bar -->
-        <div class="live-bottom-actions">
-            <input type="text" class="live-chat-input" id="liveChatInput" placeholder="Say something nice..." onkeypress="handleLiveChatKey(event)">
-            <!-- Treasure Box Trigger Button -->
-            <div class="live-action-icon-btn" onclick="openTreasureModal()" title="Drop Treasure Box">🎁</div>
-            <div class="live-action-icon-btn" onclick="sendLiveGift('Rose 🌹', 1)" title="Send Gift">🌹</div>
-            <div class="live-action-icon-btn" onclick="endLiveRoom()" title="End Live" style="background:#ff3b30;">✕</div>
+        <div class="live-side-actions">
+            <div class="live-action-icon" onclick="sendLiveLike()" title="❤️ Like">❤️</div>
+            <div class="live-action-icon" style="background:#ffcc00; color:#000; font-weight:bold;" onclick="openPkBattleModal()" title="⚔️ PK">⚔️</div>
+            <div class="live-action-icon live-treasure-btn" onclick="openTreasureModal()" title="🎁 Treasure">🎁</div>
+            <div class="live-action-icon live-gift-btn" onclick="openRealGiftModal()" title="🎁 Gifts">🎁</div>
+            <div class="live-action-icon live-share-btn" onclick="nativeShareLiveRoom()" title="📤 Share">📤</div>
+        </div>
+
+        <button class="btn" style="background: #333; color: #fff; margin-top:5px; padding:10px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room</button>
+    </div>
+
+    <!-- 🎁 GIFTS MODAL -->
+    <div id="realGiftModal" class="custom-modal">
+        <div class="modal-box" style="max-width:400px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color: #ffcc00; font-size: 16px;">🎁 Send Real Gift (16+ Options)</h4>
+                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('realGiftModal')">✕</span>
+            </div>
+            <div class="gift-grid-popup">
+                <div class="gift-item-card" onclick="sendRealGift('Rose 🌹', 1)"><div style="font-size:24px;">🌹</div><div style="font-size:11px;">Rose (1)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Coffee ☕', 5)"><div style="font-size:24px;">☕</div><div style="font-size:11px;">Coffee (5)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Heart 🫶', 10)"><div style="font-size:24px;">🫶</div><div style="font-size:11px;">Heart (10)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Glasses 🕶️', 20)"><div style="font-size:24px;">🕶️</div><div style="font-size:11px;">Glasses (20)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('TikTok 🪙', 50)"><div style="font-size:24px;">🪙</div><div style="font-size:11px;">TikTok (50)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Car 🏎️', 100)"><div style="font-size:24px;">🏎️</div><div style="font-size:11px;">Car (100)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Ring 💍', 200)"><div style="font-size:24px;">💍</div><div style="font-size:11px;">Ring (200)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Yacht 🛥️', 500)"><div style="font-size:24px;">🛥️</div><div style="font-size:11px;">Yacht (500)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Lion 🦁', 1000)"><div style="font-size:24px;">🦁</div><div style="font-size:11px;">Lion (1k)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Diamond 💎', 1500)"><div style="font-size:24px;">💎</div><div style="font-size:11px;">Diamond (1.5k)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Crown 👑', 2000)"><div style="font-size:24px;">👑</div><div style="font-size:11px;">Crown (2k)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Jet ✈️', 3000)"><div style="font-size:24px;">✈️</div><div style="font-size:11px;">Jet (3k)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Castle 🏰', 5000)"><div style="font-size:24px;">🏰</div><div style="font-size:11px;">Castle (5k)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Dragon 🐉', 10000)"><div style="font-size:24px;">🐉</div><div style="font-size:11px;">Dragon (10k)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Galaxy 🌌', 20000)"><div style="font-size:24px;">🌌</div><div style="font-size:11px;">Galaxy (20k)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Universe 🪐', 50000)"><div style="font-size:24px;">🪐</div><div style="font-size:11px;">Universe (50k)</div></div>
+            </div>
         </div>
     </div>
 
-    <!-- 🎁 SMART TREASURE BOX SETUP MODAL (UNLIMITED COINS, PEOPLE & TIME) -->
-    <div id="treasureBoxModal">
-        <div class="treasure-card" onclick="event.stopPropagation()">
-            <span class="close-treasure" onclick="closeTreasureModal()">✕</span>
-            <h3>🎁 Drop TikTok Treasure Box</h3>
-            <p style="font-size: 12px; color: #aaa; margin-bottom: 12px;">Set your custom coins, number of participants, and timer:</p>
-
-            <div class="t-form-group">
-                <label>Total Coins in Box (Unlimited):</label>
-                <input type="number" id="tbCoinsInput" value="500" min="10" placeholder="e.g. 500, 1000, 5000">
+    <!-- TREASURE BOX MODAL (UNLIMITED COINS, PEOPLE & TIMER 10s TO 5 mins) -->
+    <div id="treasureModal" class="custom-modal">
+        <div class="modal-box" style="border-color: #ffcc00; max-width:350px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h4 style="color: #ffcc00; font-size: 16px;">🎁 Drop TikTok Treasure Box</h4>
+                <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('treasureModal')">✕</span>
             </div>
+            
+            <label>Total Coins in Box (Unlimited):</label>
+            <input type="number" id="boxCoinsInput" value="500" min="10" placeholder="e.g. 500, 1000, 5000">
 
-            <div class="t-form-group">
-                <label>Number of People (Winners):</label>
-                <input type="number" id="tbPeopleInput" value="5" min="1" max="100" placeholder="e.g. 5 or 10 people">
-            </div>
+            <label>Number of People (Winners):</label>
+            <input type="number" id="tbPeopleInput" value="5" min="1" max="100" placeholder="e.g. 5 or 10 people">
 
-            <div class="t-form-group">
-                <label>Duration / Timer (10 Seconds to 5 Minutes):</label>
-                <select id="tbTimerSelect" style="width:100%; padding:10px; background:#111; border:1px solid #333; color:#fff; border-radius:10px; font-size:14px; outline:none;">
-                    <option value="10">10 Seconds</option>
-                    <option value="30">30 Seconds</option>
-                    <option value="60" selected>1 Minute (60s)</option>
-                    <option value="180">3 Minutes (180s)</option>
-                    <option value="300">5 Minutes (300s)</option>
-                </select>
-            </div>
+            <label>Duration / Timer (10 Seconds to 5 Minutes):</label>
+            <select id="tbTimerSelect" style="width:100%; padding:10px; background:#111; border:1px solid #333; color:#fff; border-radius:10px; font-size:13px; outline:none; margin-bottom:15px;">
+                <option value="10">10 Seconds</option>
+                <option value="30">30 Seconds</option>
+                <option value="60" selected>1 Minute (60s)</option>
+                <option value="180">3 Minutes (180s)</option>
+                <option value="300">5 Minutes (300s)</option>
+            </select>
 
-            <button class="drop-treasure-btn" onclick="executeDropTreasureBox()">🚀 Drop Treasure Box Now</button>
+            <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold; margin-top:0;" onclick="deployTreasureBox()">🚀 Drop Treasure Box Now</button>
+        </div>
+    </div>
+
+    <!-- PK BATTLE MODAL -->
+    <div id="pkBattleModal" class="custom-modal">
+        <div class="modal-box" style="border-color:#ffcc00;">
+            <h4 style="color:#ffcc00; font-size:16px; margin-bottom:10px;">⚔️ Start Live PK Battle</h4>
+            <select id="pkMode" style="margin-bottom:10px;"><option value="1v1">1v1 Battle</option><option value="2v2">2v2 Battle</option></select>
+            <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold;" onclick="startLivePkBattle()">🚀 Start PK Battle Now</button>
+        </div>
+    </div>
+
+    <!-- MOD SETTINGS MODAL -->
+    <div id="modSettingsModal" class="custom-modal">
+        <div class="modal-box">
+            <h4 style="color:#ffcc00; font-size:15px; margin-bottom:10px;">⚙️ Moderator & Room Settings</h4>
+            <label style="color:#25f4ee;">Assign Moderator:</label>
+            <input type="text" id="modUserInput" placeholder="Username...">
+            <button class="btn" style="background:#25f4ee; color:#000; padding:10px; margin-top:0;" onclick="alert('Moderator assigned successfully!')">Make Mod</button>
+            <button class="btn" style="background:#fe2c55; color:#fff; padding:10px; margin-top:10px;" onclick="closeModal('modSettingsModal')">Close</button>
         </div>
     </div>
 
@@ -139,27 +226,19 @@
     <script src="navbar.js"></script>
 
     <script>
-        let myWalletCoins = 19550;
+        let liveStreamObj = null;
+        let likePoints = 0;
+        let myPkPoints = 0;
+        let isPkActive = false;
 
         window.onload = function() {
-            let savedCoins = localStorage.getItem('userWalletCoins');
-            if(savedCoins) {
-                myWalletCoins = parseInt(savedCoins);
-            }
-            document.getElementById('roomUserCoins').innerText = myWalletCoins.toLocaleString();
+            let savedCoins = localStorage.getItem('userWalletCoins') || '500';
+            document.getElementById('userWalletCoins').innerText = parseInt(savedCoins).toLocaleString();
         };
 
-        function openTreasureModal() {
-            document.getElementById('treasureBoxModal').style.display = 'flex';
-        }
-
-        function closeTreasureModal() {
-            document.getElementById('treasureBoxModal').style.display = 'none';
-        }
-
-        // 🧠 SMART WALLET CHECK & DIRECT WALLET REDIRECT ENGINE
+        // 🧠 SMART WALLET CHECK & AUTO REDIRECT TO WALLET DASHBOARD
         function checkAndDeductCoins(requiredCoins) {
-            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '19550');
+            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
             
             if (currentCoins < requiredCoins) {
                 alert(`⚠️ Insufficient Balance!\nYou need ${requiredCoins.toLocaleString()} coins, but you have ${currentCoins.toLocaleString()} coins.\n\n🔄 Redirecting you to the Wallet & Coin Purchase Dashboard...`);
@@ -167,16 +246,89 @@
                 return false;
             }
 
-            // Direct deduction without extra confirmation popups
             currentCoins -= requiredCoins;
             localStorage.setItem('userWalletCoins', currentCoins);
-            document.getElementById('roomUserCoins').innerText = currentCoins.toLocaleString();
+            document.getElementById('userWalletCoins').innerText = currentCoins.toLocaleString();
             return true;
         }
 
-        // 🚀 EXECUTE DROP TREASURE BOX WITH UNLIMITED COINS, PEOPLE & TIMER
-        function executeDropTreasureBox() {
-            let coinsVal = parseInt(document.getElementById('tbCoinsInput').value);
+        function startLiveBroadcastSession() {
+            document.getElementById('liveSetupPanel').style.display = 'none';
+            document.getElementById('activeLiveView').style.display = 'block';
+            let size = document.getElementById('setupRoomSize').value;
+            renderLiveSeats(size);
+
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    liveStreamObj = stream;
+                    document.getElementById('liveStreamVideoElement').srcObject = stream;
+                })
+                .catch(err => alert('Camera & Microphone access required.'));
+        }
+
+        function renderLiveSeats(size) {
+            let container = document.getElementById('dynamicSeatsContainer');
+            let sizeNum = parseInt(size);
+            let gridClass = sizeNum === 1 ? 'grid-1' : (sizeNum === 4 ? 'grid-4' : 'grid-10');
+            let html = `<div class="live-seats-grid ${gridClass}">`;
+            for(let i=1; i<=sizeNum; i++) {
+                html += `<div class="live-seat-box ${i===1?'active':''}" onclick="alert('Seat #${i} invite & management')"><span class="seat-num">${i}</span><span>${i===1?'👑 Host':'+ Seat'}</span></div>`;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function nativeShareLiveRoom() {
+            if (navigator.share) {
+                navigator.share({ title: 'Star New Star LIVE', text: 'Join my live room right now! 🔥', url: window.location.href });
+            } else {
+                alert('📋 Link copied to clipboard to share with friends!');
+                navigator.clipboard.writeText(window.location.href);
+            }
+        }
+
+        function sendLiveComment() {
+            let input = document.getElementById('liveCommentInput');
+            if(!input.value.trim()) return;
+            let area = document.getElementById('liveChatScrollArea');
+            area.innerHTML += `<div><b>You:</b> ${input.value}</div>`;
+            input.value = '';
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function handleLiveChatKey(e) {
+            if (e.key === 'Enter') { sendLiveComment(); }
+        }
+
+        function sendLiveLike() {
+            likePoints += 1;
+            document.getElementById('likePointsCount').innerText = likePoints;
+            if(isPkActive) { myPkPoints += 5; document.getElementById('myPkScore').innerText = myPkPoints; }
+        }
+
+        function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
+        function openTreasureModal() { document.getElementById('treasureModal').style.display = 'flex'; }
+        function openPkBattleModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
+        function openModSettingsModal() { document.getElementById('modSettingsModal').style.display = 'flex'; }
+
+        // 🎁 SEND GIFT WITH SMART WALLET DEDUCTION & AUTO TOP-UP REDIRECT
+        function sendRealGift(name, cost) {
+            if (!checkAndDeductCoins(cost)) {
+                return;
+            }
+
+            alert('🎉 Sent ' + name + ' (' + cost + ' Coins) successfully!');
+            if(isPkActive) { myPkPoints += cost * 2; document.getElementById('myPkScore').innerText = myPkPoints; }
+            
+            let area = document.getElementById('liveChatScrollArea');
+            area.innerHTML += `<div style="color:#ffcc00;"><b>System:</b> Sent ${name} (-${cost} Coins) 🎁</div>`;
+            area.scrollTop = area.scrollHeight;
+            closeModal('realGiftModal');
+        }
+
+        // 🚀 DEPLOY TREASURE BOX WITH UNLIMITED COINS, PEOPLE, TIMER & WALLET CHECK
+        function deployTreasureBox() {
+            let coinsVal = parseInt(document.getElementById('boxCoinsInput').value);
             let peopleVal = parseInt(document.getElementById('tbPeopleInput').value);
             let timerSeconds = parseInt(document.getElementById('tbTimerSelect').value);
 
@@ -189,14 +341,12 @@
                 return;
             }
 
-            // Check balance and deduct directly or redirect to wallet if low
             if (!checkAndDeductCoins(coinsVal)) {
                 return;
             }
 
-            closeTreasureModal();
+            closeModal('treasureModal');
 
-            // Display active banner in live room
             let banner = document.getElementById('activeTreasureBanner');
             let titleSpan = document.getElementById('bannerTitle');
             let timerSpan = document.getElementById('bannerTimer');
@@ -220,41 +370,33 @@
                 timeLeft--;
             }, 1000);
 
-            // Add system chat message
-            let chatList = document.getElementById('liveChatList');
-            chatList.innerHTML += `<div class="chat-bubble" style="background:rgba(254,44,85,0.3); border-color:#fe2c55;">🎁 <b>System:</b> Ramkumar dropped a Treasure Box of <b>${coinsVal.toLocaleString()} Coins</b> for ${peopleVal} people! 🔥</div>`;
-            chatList.scrollTop = chatList.scrollHeight;
+            let area = document.getElementById('liveChatScrollArea');
+            area.innerHTML += `<div style="color:#ffcc00;">🎁 <b>System:</b> Dropped a Treasure Box of <b>${coinsVal.toLocaleString()} Coins</b> for ${peopleVal} people! 🔥</div>`;
+            area.scrollTop = area.scrollHeight;
         }
 
-        function sendLiveGift(giftName, cost) {
-            if (!checkAndDeductCoins(cost)) {
-                return;
-            }
-
-            let chatList = document.getElementById('liveChatList');
-            let myName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
-            chatList.innerHTML += `<div class="chat-bubble"><b>${myName}:</b> Sent ${giftName} (-${cost} Coins) 🎁</div>`;
-            chatList.scrollTop = chatList.scrollHeight;
+        function startLivePkBattle() {
+            isPkActive = true; myPkPoints = 50;
+            document.getElementById('pkScoreboard').style.display = 'flex';
+            document.getElementById('myPkScore').innerText = myPkPoints;
+            document.getElementById('rivalPkScore').innerText = 50;
+            alert('⚔️ LIVE PK Battle started!');
+            closeModal('pkBattleModal');
         }
 
-        function handleLiveChatKey(e) {
-            if (e.key === 'Enter') {
-                let input = document.getElementById('liveChatInput');
-                let txt = input.value.trim();
-                if(!txt) return;
-
-                let chatList = document.getElementById('liveChatList');
-                let myName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
-                chatList.innerHTML += `<div class="chat-bubble"><b>${myName}:</b> ${txt}</div>`;
-                input.value = '';
-                chatList.scrollTop = chatList.scrollHeight;
-            }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function stopLiveBroadcast() {
+            if(liveStreamObj) liveStreamObj.getTracks().forEach(t => t.stop());
+            document.getElementById('activeLiveView').style.display = 'none';
+            document.getElementById('liveSetupPanel').style.display = 'block';
         }
 
-        function endLiveRoom() {
-            if(confirm('🔴 Are you sure you want to end this Live Room?')) {
-                window.location.href = 'index.html';
-            }
+        let isMuted = false;
+        function toggleLiveMicrophone() {
+            isMuted = !isMuted;
+            document.getElementById('micStatusText').innerText = isMuted ? 'MUTED' : 'ON';
+            if(liveStreamObj) liveStreamObj.getAudioTracks().forEach(t => t.enabled = !isMuted);
         }
     </script>
 </body>
