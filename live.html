@@ -13,8 +13,10 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; padding-bottom: 80px; }
         
-        .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .top-close { font-size: 20px; text-decoration: none; color: #fff; background: #222; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; }
+        /* 🛠️ TOP BAR FIXED: Back button and Title/Live neatly spaced out */
+        .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; position: relative; }
+        .top-close { font-size: 18px; text-decoration: none; color: #fff; background: #222; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; flex-shrink: 0; }
+        .top-title { font-size: 15px; color: #fe2c55; font-weight: bold; position: absolute; left: 50%; transform: translateX(-50%); text-align: center; width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .studio-card { width: 100%; max-width: 480px; background: #141414; border: 1px solid #333; border-radius: 20px; padding: 25px 20px; text-align: left; }
         .section-title { font-size: 18px; color: #fe2c55; margin-bottom: 6px; font-weight: bold; }
@@ -65,7 +67,7 @@
 <body>
     <div class="top-bar">
         <a href="index.html" class="top-close">←</a>
-        <h3 style="font-size:16px; color:#fe2c55;">🔴 TikTok Style LIVE Room</h3>
+        <h3 class="top-title">🔴 TikTok Style LIVE Room</h3>
         <div></div>
     </div>
 
@@ -195,7 +197,7 @@
         </div>
     </div>
 
-    <!-- 🌟 NAVBAR SCRIPT LOADER (Automatic Footer & Centered Plus) -->
+    <!-- 🌟 NAVBAR SCRIPT LOADER -->
     <script src="navbar.js"></script>
 
     <script>
