@@ -1,8 +1,8 @@
-// navbar.js - Ultimate Master Navigation with Center Header Title Fix
+// navbar.js - Ultimate Master Navigation with Center Header Title & Smooth History Routing
 document.addEventListener("DOMContentLoaded", function() {
     let currentPage = window.location.pathname.split("/").pop() || "index.html";
 
-    // 1. पुराना नेविगेशन तुरंत हटाओ
+    // 1. पुराना नेविगेशन तुरंत हटाओ ताकि डुप्लीकेट न बने
     let oldNavs = document.querySelectorAll('.bottom-nav, .app-global-bottom-nav, .master-tiktok-final-nav');
     oldNavs.forEach(el => el.remove());
 
@@ -10,16 +10,13 @@ document.addEventListener("DOMContentLoaded", function() {
     function fixHeaderTitleAndGear() {
         let topBars = document.querySelectorAll('.top-bar');
         topBars.forEach(bar => {
-            // हेडर को फ्लेक्सबॉक्स बनाओ ताकि स्पेस बराबर बंटे
             bar.style.cssText = "position: relative !important; display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; max-width: 450px !important; margin: 10px auto !important; padding: 0 15px !important; box-sizing: border-box !important; min-height: 40px !important;";
 
-            // अगर अंदर कोई h3 या टाइटल है, तो उसे जबरदस्ती एकदम बीचों-बीच (Absolute Center) कर दो
             let titleEl = bar.querySelector('h3, h2, .profile-title');
             if (titleEl) {
                 titleEl.style.cssText = "position: absolute !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 16px !important; color: #fe2c55 !important; margin: 0 !important; text-align: center !important; font-weight: bold !important; width: max-content !important; pointer-events: none !important;";
             }
 
-            // अगर दाहिने तरफ सेटिंग गियर नहीं है, तो अपने प जोड़ दो
             if (!bar.querySelector('.top-settings-gear')) {
                 let gearBtn = document.createElement('a');
                 gearBtn.href = 'settings.html';
@@ -43,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function() {
     setTimeout(fixHeaderTitleAndGear, 200);
     setTimeout(fixHeaderTitleAndGear, 500);
 
-    // 3. टिकटॉक जैसा नीचे का नेविगेशन बार
+    // 3. टिकटॉक जैसा नीचे का नेविगेशन बार (Smooth Transition Links के साथ)
     let finalNavHTML = `
     <style>
         .master-tiktok-final-nav {
