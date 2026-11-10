@@ -1,12 +1,12 @@
-// navbar.js - Ultimate Master Navigation with Center Header Title & Smooth History Routing
+// navbar.js - Ultimate Master Navigation with Center Header Title & Clean Top Bar
 document.addEventListener("DOMContentLoaded", function() {
     let currentPage = window.location.pathname.split("/").pop() || "index.html";
 
     // 1. पुराना नेविगेशन तुरंत हटाओ ताकि डुप्लीकेट न बने
-    let oldNavs = document.querySelectorAll('.bottom-nav, .app-global-bottom-nav, .master-tiktok-final-nav');
+    let oldNavs = document.querySelectorAll('.bottom-nav, .app-global-bottom-nav, .master-tiktok-final-nav, .top-left-live-wrapper');
     oldNavs.forEach(el => el.remove());
 
-    // 2. ⚙️ ऊपर हेडर के टाइटल को बिल्कुल बीच में (Center) और सेटिंग गियर को दाहिने कोने में सेट करने का कोड
+    // 2. ⚙️ ऊपर हेडर के टाइटल को बिल्कुल बीच में (Center) और सेटिंग गियर को दाहिने कोने में सेट करने का कोड (ऊपर का लाइव बटन पूरी तरह हटा दिया गया है)
     function fixHeaderTitleAndGear() {
         let topBars = document.querySelectorAll('.top-bar');
         topBars.forEach(bar => {
@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function() {
     setTimeout(fixHeaderTitleAndGear, 200);
     setTimeout(fixHeaderTitleAndGear, 500);
 
-    // 3. टिकटॉक जैसा नीचे का नेविगेशन बार (Smooth Transition Links के साथ)
+    // 3. टिकटॉक जैसा नीचे का नेविगेशन बार (बिना किसी ऊपर वाले लाइव बटन के)
     let finalNavHTML = `
     <style>
         .master-tiktok-final-nav {
@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function() {
             font-style: normal !important;
         }
         
-        /* ➕ बीच वाला चमकता हुआ प्लस बटन */
+        /* ➕ बीच वाला चमकता हुआ प्लस बटन जो सीधा camera.html पर ले जाएगा */
         .mfn-center-plus {
             width: 46px !important;
             height: 32px !important;
@@ -98,55 +98,6 @@ document.addEventListener("DOMContentLoaded", function() {
             box-shadow: 0 2px 12px rgba(254,44,85,0.7) !important;
             margin: 0 auto !important;
         }
-
-        /* 🔴 ऊपर बाएं कोने वाला LIVE बटन */
-        .top-left-live-wrapper {
-            position: fixed !important;
-            top: 10px !important;
-            left: 15px !important;
-            z-index: 10000000 !important;
-        }
-        .top-live-pill-btn {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid #fe2c55;
-            color: #fe2c55;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(254,44,85,0.4);
-        }
-        #topLivePopupBox {
-            display: none;
-            position: fixed;
-            top: 45px;
-            left: 15px;
-            background: #181818;
-            border: 1px solid #333;
-            border-radius: 12px;
-            width: 180px;
-            padding: 8px;
-            z-index: 10000001;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.95);
-        }
-        .top-popup-link {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px;
-            color: #fff;
-            text-decoration: none;
-            font-size: 12px;
-            border-radius: 6px;
-        }
-        .top-popup-link:hover {
-            background: #252525;
-            color: #fe2c55;
-        }
     </style>
 
     <!-- नीचे का फिक्स नेविगेशन बार -->
@@ -157,33 +108,9 @@ document.addEventListener("DOMContentLoaded", function() {
         <a href="inbox.html" class="mfn-item ${currentPage === 'inbox.html' ? 'active' : ''}"><i>💬</i><span>Inbox</span></a>
         <a href="profile.html" class="mfn-item ${currentPage === 'profile.html' ? 'active' : ''}"><i>⭐</i><span>Profile</span></a>
     </div>
-
-    <!-- 🔴 ऊपर बाएं कोने में 'LIVE' बटन -->
-    <div class="top-left-live-wrapper">
-        <button class="top-live-pill-btn" onclick="toggleTopLiveMenu(event)">
-            <span style="width:7px; height:7px; background:#fe2c55; border-radius:50%; display:inline-block;"></span>
-            LIVE
-        </button>
-        <div id="topLivePopupBox">
-            <a href="live.html" class="top-popup-link"><span>🔴</span><div><strong>Live Stream</strong><br><span style="font-size:9px; color:#aaa;">Broadcast & Gifts</span></div></a>
-            <div style="height:1px; background:#222; margin:2px 0;"></div>
-            <a href="gaming.html" class="top-popup-link"><span>🎮</span><div><strong>Gaming Arena</strong><br><span style="font-size:9px; color:#aaa;">Free Fire & Tournaments</span></div></a>
-        </div>
-    </div>
     `;
 
     let wrap = document.createElement('div');
     wrap.innerHTML = finalNavHTML;
     document.body.appendChild(wrap);
-
-    window.toggleTopLiveMenu = function(event) {
-        event.stopPropagation();
-        let box = document.getElementById('topLivePopupBox');
-        box.style.display = (box.style.display === 'block') ? 'none' : 'block';
-    }
-
-    window.addEventListener('click', function() {
-        let box = document.getElementById('topLivePopupBox');
-        if (box) box.style.display = 'none';
-    });
 });
