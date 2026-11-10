@@ -20,19 +20,23 @@
         .top-close { font-size: 18px; text-decoration: none; color: #fff; background: #181818; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #333; }
         
         .studio-container { width: 100%; max-width: 450px; background: #121212; border: 1px solid #222; border-radius: 16px; padding: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.8); }
-        
-        .studio-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid #222; padding-bottom: 12px; }
-        .studio-header span { font-size: 24px; }
-        .studio-header h2 { font-size: 16px; color: #fe2c55; font-weight: bold; }
-        .studio-header p { font-size: 11px; color: #888; }
 
-        /* 🚀 3 TIKTOK STYLE OPTIONS CONTAINER (1, 2, 3 LINE) */
-        .creator-options-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        .creator-option-card { display: flex; align-items: center; gap: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 15px; text-decoration: none; color: #fff; cursor: pointer; transition: 0.2s; }
-        .creator-option-card:hover { border-color: #fe2c55; background: #222; }
-        .creator-option-card .opt-icon { font-size: 24px; width: 40px; height: 40px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; }
-        .creator-option-card .opt-info h4 { font-size: 13px; font-weight: bold; color: #fff; }
-        .creator-option-card .opt-info p { font-size: 10px; color: #888; margin-top: 2px; }
+        /* 🎬 TIKTOK STYLE HORIZONTAL SWIPE TABS BAR (दाएं-बाएं स्क्रॉल वाले 3 आइकन) */
+        .creator-mode-tabs { display: flex; justify-content: space-around; align-items: center; background: #181818; border: 1px solid #333; border-radius: 30px; padding: 6px; margin-bottom: 20px; overflow-x: auto; gap: 5px; }
+        .mode-tab-btn { flex: 1; background: transparent; border: none; color: #888; font-size: 12px; font-weight: bold; padding: 10px 8px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.3px; white-space: nowrap; }
+        .mode-tab-btn.active { background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; box-shadow: 0 4px 15px rgba(254,44,85,0.4); }
+        .mode-tab-btn span { font-size: 16px; }
+
+        /* 📦 SECTIONS (Hidden / Shown based on Tab) */
+        .studio-section-content { display: none; }
+        .studio-section-content.active { display: block; }
+
+        .media-actions-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .media-btn { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 14px 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .media-btn:hover { border-color: #fe2c55; background: #222; }
+        .media-btn span { font-size: 22px; }
+        .media-btn b { font-size: 12px; color: #fff; display: block; }
+        .media-btn small { font-size: 10px; color: #888; display: block; }
 
         /* Auto Detected Category Badge */
         #categoryBadgeBox { display: none; background: rgba(37,244,238,0.1); border: 1px solid #25f4ee; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: #25f4ee; margin-bottom: 15px; text-align: center; font-weight: bold; }
@@ -49,6 +53,12 @@
         /* Video Preview Box */
         #previewBox { display: none; width: 100%; height: 160px; background: #000; border-radius: 10px; margin-bottom: 15px; overflow: hidden; position: relative; border: 1px solid #333; }
         #previewBox video { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Direct Action Redirect Cards for Live & Gaming */
+        .redirect-action-card { background: #181818; border: 1px solid #333; border-radius: 14px; padding: 30px 20px; text-align: center; margin-top: 10px; }
+        .redirect-action-card h3 { font-size: 16px; margin-bottom: 8px; color: #fff; }
+        .redirect-action-card p { font-size: 11px; color: #888; margin-bottom: 20px; }
+        .redirect-btn { display: inline-block; padding: 12px 25px; border-radius: 10px; font-weight: bold; font-size: 13px; text-decoration: none; cursor: pointer; }
 
         /* 🚀 SUPABASE UPLOAD PROGRESS MODAL */
         #uploadProgressModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; padding: 30px; }
@@ -81,73 +91,89 @@
     <!-- Main Studio Card -->
     <div class="studio-container">
         
-        <div class="studio-header">
-            <span>🎬</span>
-            <div>
-                <h2>Create & Broadcast</h2>
-                <p>Choose Upload, Live Stream, or Gaming</p>
-            </div>
+        <!-- 🎯 TIKTOK STYLE 3 HORIZONTAL ICONS / TABS -->
+        <div class="creator-mode-tabs">
+            <button class="mode-tab-btn active" id="tabUploadBtn" onclick="switchCreatorMode('upload')">
+                <span>📹</span> Upload Video
+            </button>
+            <button class="mode-tab-btn" id="tabLiveBtn" onclick="switchCreatorMode('live')">
+                <span>🔴</span> Live Stream
+            </button>
+            <button class="mode-tab-btn" id="tabGamingBtn" onclick="switchCreatorMode('gaming')">
+                <span>🎮</span> New Star Gaming
+            </button>
         </div>
 
-        <!-- Hidden Inputs for Video Upload & Direct Camera -->
-        <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onVideoFileChosen(event)">
-        <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
+        <!-- 1️⃣ SECTION: UPLOAD VIDEO (Hidden Inputs, Preview, Title, Description, Affiliate & Post Button) -->
+        <div id="sectionUpload" class="studio-section-content active">
+            <!-- Hidden Inputs for Direct Camera & Gallery -->
+            <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onVideoFileChosen(event)">
+            <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
 
-        <!-- 🚀 3 TIKTOK STYLE OPTIONS (1. Upload Video, 2. Live Stream, 3. Gaming Stream) -->
-        <div class="creator-options-grid">
-            <!-- Option 1: Upload Video (Gallery / Direct Camera) -->
-            <div class="creator-option-card" onclick="triggerVideoUploadOptions()">
-                <div class="opt-icon">📹</div>
-                <div class="opt-info">
-                    <h4>Upload Video</h4>
-                    <p>Record or select from gallery (Shorts / Long)</p>
+            <div class="media-actions-row">
+                <div class="media-btn" onclick="document.getElementById('liveCameraInput').click()">
+                    <span>🔴</span>
+                    <div>
+                        <b>Record Video</b>
+                        <small>Direct Camera</small>
+                    </div>
+                </div>
+                <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()">
+                    <span>📁</span>
+                    <div>
+                        <b>Open Gallery</b>
+                        <small>Choose File</small>
+                    </div>
                 </div>
             </div>
 
-            <!-- Option 2: Live Stream -->
-            <a href="live.html" class="creator-option-card">
-                <div class="opt-icon" style="color: #fe2c55;">🔴</div>
-                <div class="opt-info">
-                    <h4>Live Stream</h4>
-                    <p>Go live with seats, multi-guest & gifts</p>
-                </div>
-            </a>
+            <!-- Auto Category & Ratio Badge -->
+            <div id="categoryBadgeBox">⚡ Auto-Detected: <span id="detectedCategoryText">Checking...</span></div>
 
-            <!-- Option 3: New Star Gaming Stream -->
-            <a href="gaming.html" class="creator-option-card">
-                <div class="opt-icon" style="color: #25f4ee;">🎮</div>
-                <div class="opt-info">
-                    <h4>New Star Gaming Stream</h4>
-                    <p>Stream Free Fire, PUBG & tournaments</p>
-                </div>
-            </a>
+            <!-- Video Preview Box -->
+            <div id="previewBox">
+                <video id="selectedVideoPreview" controls onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
+            </div>
+
+            <!-- Video Details Form -->
+            <div class="input-group">
+                <label><span>📝</span> Video Title / Caption:</label>
+                <input type="text" id="videoCaptionInput" placeholder="Write catchy title and hashtags (#Viral)...">
+            </div>
+
+            <div class="input-group">
+                <label><span>📜</span> Detailed Description (Optional):</label>
+                <textarea id="videoDescriptionInput" placeholder="Describe your video content..."></textarea>
+            </div>
+
+            <div class="input-group">
+                <label><span>🔗</span> Affiliate / Promo Link (Optional):</label>
+                <input type="text" id="videoAffiliateInput" placeholder="https://your-product-link.com">
+            </div>
+
+            <button class="post-action-btn" id="postBtn" onclick="publishVideoToSupabaseStorage()">🚀 Post Video Now</button>
         </div>
 
-        <!-- Auto Category & Ratio Badge -->
-        <div id="categoryBadgeBox">⚡ Auto-Detected: <span id="detectedCategoryText">Checking...</span></div>
-
-        <!-- Video Preview Box -->
-        <div id="previewBox">
-            <video id="selectedVideoPreview" controls onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
+        <!-- 2️⃣ SECTION: LIVE STREAM -->
+        <div id="sectionLive" class="studio-section-content">
+            <div class="redirect-action-card">
+                <div style="font-size:36px; margin-bottom:10px;">🔴</div>
+                <h3>Start Live Stream</h3>
+                <p>Go live with multi-seat rooms, gifts & PK battles instantly.</p>
+                <a href="live.html" class="redirect-btn" style="background:#fe2c55; color:#fff;">🔴 Open Live Room Studio</a>
+            </div>
         </div>
 
-        <!-- Video Details Form -->
-        <div class="input-group">
-            <label><span>📝</span> Video Title / Caption:</label>
-            <input type="text" id="videoCaptionInput" placeholder="Write catchy title and hashtags (#Viral)...">
+        <!-- 3️⃣ SECTION: NEW STAR GAMING STREAM -->
+        <div id="sectionGaming" class="studio-section-content">
+            <div class="redirect-action-card">
+                <div style="font-size:36px; margin-bottom:10px;">🎮</div>
+                <h3>New Star Gaming Stream</h3>
+                <p>Stream Free Fire, PUBG & mobile esports tournaments with fans.</p>
+                <a href="gaming.html" class="redirect-btn" style="background:linear-gradient(135deg, #00b4d8, #25f4ee); color:#000;">🎮 Launch Gaming Arena</a>
+            </div>
         </div>
 
-        <div class="input-group">
-            <label><span>📜</span> Detailed Description (Optional):</label>
-            <textarea id="videoDescriptionInput" placeholder="Describe your video content..."></textarea>
-        </div>
-
-        <div class="input-group">
-            <label><span>🔗</span> Affiliate / Promo Link (Optional):</label>
-            <input type="text" id="videoAffiliateInput" placeholder="https://your-product-link.com">
-        </div>
-
-        <button class="post-action-btn" id="postBtn" onclick="publishVideoToSupabaseStorage()">🚀 Post Video Now</button>
     </div>
 
     <!-- 🌟 NAVBAR SCRIPT LOADER -->
@@ -163,12 +189,20 @@
         let selectedVideoFile = null;
         let finalVideoCategory = "Shorts (9:16)";
 
-        function triggerVideoUploadOptions() {
-            let choice = confirm("OK dabane par Gallery se video chunein, Cancel dabane par Direct Camera se record karein!");
-            if (choice) {
-                document.getElementById('galleryVideoInput').click();
-            } else {
-                document.getElementById('liveCameraInput').click();
+        // 🔄 SWITCH TABS (Upload / Live / Gaming)
+        function switchCreatorMode(mode) {
+            document.querySelectorAll('.mode-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.studio-section-content').forEach(sec => sec.classList.remove('active'));
+
+            if(mode === 'upload') {
+                document.getElementById('tabUploadBtn').classList.add('active');
+                document.getElementById('sectionUpload').classList.add('active');
+            } else if(mode === 'live') {
+                document.getElementById('tabLiveBtn').classList.add('active');
+                document.getElementById('sectionLive').classList.add('active');
+            } else if(mode === 'gaming') {
+                document.getElementById('tabGamingBtn').classList.add('active');
+                document.getElementById('sectionGaming').classList.add('active');
             }
         }
 
@@ -207,7 +241,7 @@
             let affiliate = document.getElementById('videoAffiliateInput').value.trim() || '';
 
             if(!selectedVideoFile) {
-                alert('⚠️ Please choose or record a video first!');
+                alert('⚠️ Please record a video or choose one from your gallery first!');
                 return;
             }
 
