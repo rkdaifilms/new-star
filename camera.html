@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Creator Studio - New Star</title>
+    <title>TikTok Studio - New Star</title>
     
-    <meta name="theme-color" content="#fe2c55">
+    <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -14,54 +14,58 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; padding-bottom: 90px; }
+        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         
-        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .top-close { font-size: 18px; text-decoration: none; color: #fff; background: #181818; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #333; }
-        
-        .studio-container { width: 100%; max-width: 450px; background: #121212; border: 1px solid #222; border-radius: 16px; padding: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.8); }
+        /* Top Navigation Bar (Clean & No Floating Live Button) */
+        .top-camera-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; align-items: center; z-index: 9999; }
+        .top-close-btn { font-size: 18px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.6); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); }
 
-        /* 🎬 TIKTOK STYLE HORIZONTAL SWIPE TABS BAR (दाएं-बाएं स्क्रॉल वाले 3 आइकन) */
-        .creator-mode-tabs { display: flex; justify-content: space-around; align-items: center; background: #181818; border: 1px solid #333; border-radius: 30px; padding: 6px; margin-bottom: 20px; overflow-x: auto; gap: 5px; }
-        .mode-tab-btn { flex: 1; background: transparent; border: none; color: #888; font-size: 12px; font-weight: bold; padding: 10px 8px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.3px; white-space: nowrap; }
-        .mode-tab-btn.active { background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; box-shadow: 0 4px 15px rgba(254,44,85,0.4); }
-        .mode-tab-btn span { font-size: 16px; }
+        /* Main Studio Content Area */
+        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding: 15px; padding-bottom: 100px; position: relative; z-index: 10; width: 100%; max-width: 450px; margin: 0 auto; overflow-y: auto; height: 100vh; }
 
-        /* 📦 SECTIONS (Hidden / Shown based on Tab) */
-        .studio-section-content { display: none; }
-        .studio-section-content.active { display: block; }
+        /* Mode Content Panels */
+        .mode-panel { display: none; background: rgba(18,18,18,0.95); border: 1px solid #333; border-radius: 16px; padding: 18px; backdrop-filter: blur(10px); margin-top: 50px; }
+        .mode-panel.active { display: block; }
 
-        .media-actions-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        .media-btn { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 14px 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .media-actions-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .media-btn { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .media-btn:hover { border-color: #fe2c55; background: #222; }
-        .media-btn span { font-size: 22px; }
+        .media-btn span { font-size: 20px; }
         .media-btn b { font-size: 12px; color: #fff; display: block; }
-        .media-btn small { font-size: 10px; color: #888; display: block; }
+        .media-btn small { font-size: 9px; color: #888; display: block; }
 
         /* Auto Detected Category Badge */
-        #categoryBadgeBox { display: none; background: rgba(37,244,238,0.1); border: 1px solid #25f4ee; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: #25f4ee; margin-bottom: 15px; text-align: center; font-weight: bold; }
+        #categoryBadgeBox { display: none; background: rgba(37,244,238,0.1); border: 1px solid #25f4ee; padding: 6px 10px; border-radius: 8px; font-size: 11px; color: #25f4ee; margin-bottom: 12px; text-align: center; font-weight: bold; }
 
-        .input-group { margin-bottom: 14px; }
-        .input-group label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaa; margin-bottom: 6px; font-weight: 600; }
-        .input-group input, .input-group textarea { width: 100%; padding: 10px 14px; background: #181818; border: 1px solid #333; color: #fff; border-radius: 10px; font-size: 13px; outline: none; transition: border-color 0.2s; }
+        .input-group { margin-bottom: 10px; }
+        .input-group label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa; margin-bottom: 4px; font-weight: 600; }
+        .input-group input, .input-group textarea { width: 100%; padding: 8px 12px; background: #181818; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 12px; outline: none; transition: border-color 0.2s; }
         .input-group input:focus, .input-group textarea:focus { border-color: #fe2c55; }
-        .input-group textarea { resize: none; height: 65px; }
+        .input-group textarea { resize: none; height: 50px; }
 
-        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 20px; }
+        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 12px; }
         .post-action-btn:disabled { background: #444; cursor: not-allowed; box-shadow: none; }
 
         /* Video Preview Box */
-        #previewBox { display: none; width: 100%; height: 160px; background: #000; border-radius: 10px; margin-bottom: 15px; overflow: hidden; position: relative; border: 1px solid #333; }
+        #previewBox { display: none; width: 100%; height: 130px; background: #000; border-radius: 8px; margin-bottom: 10px; overflow: hidden; position: relative; border: 1px solid #333; }
         #previewBox video { width: 100%; height: 100%; object-fit: cover; }
 
         /* Direct Action Redirect Cards for Live & Gaming */
-        .redirect-action-card { background: #181818; border: 1px solid #333; border-radius: 14px; padding: 30px 20px; text-align: center; margin-top: 10px; }
-        .redirect-action-card h3 { font-size: 16px; margin-bottom: 8px; color: #fff; }
-        .redirect-action-card p { font-size: 11px; color: #888; margin-bottom: 20px; }
-        .redirect-btn { display: inline-block; padding: 12px 25px; border-radius: 10px; font-weight: bold; font-size: 13px; text-decoration: none; cursor: pointer; }
+        .redirect-action-card { background: #181818; border: 1px solid #333; border-radius: 14px; padding: 25px 15px; text-align: center; }
+        .redirect-action-card h3 { font-size: 15px; margin-bottom: 6px; color: #fff; }
+        .redirect-action-card p { font-size: 10px; color: #888; margin-bottom: 15px; }
+        .redirect-btn { display: inline-block; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 12px; text-decoration: none; cursor: pointer; }
+
+        /* 🎬 TIKTOK STYLE HORIZONTAL SCROLLING FOOTER MODES BAR ( एकदम नीचे दाएं-बाएं स्क्रॉल वाले 3 मोड्स ) */
+        .tiktok-modes-footer { position: fixed; bottom: 15px; left: 0; width: 100%; z-index: 10000; display: flex; justify-content: center; align-items: center; pointer-events: none; }
+        .modes-scroll-container { display: flex; gap: 20px; overflow-x: auto; scroll-behavior: smooth; padding: 5px 20px; pointer-events: auto; scrollbar-width: none; background: rgba(0,0,0,0.7); border-radius: 30px; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        .modes-scroll-container::-webkit-scrollbar { display: none; }
+        
+        .mode-item { font-size: 13px; font-weight: bold; color: rgba(255,255,255,0.5); cursor: pointer; white-space: nowrap; transition: 0.2s; text-transform: uppercase; background: none; border: none; outline: none; padding: 6px 10px; }
+        .mode-item.active { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.8); transform: scale(1.05); }
 
         /* 🚀 SUPABASE UPLOAD PROGRESS MODAL */
-        #uploadProgressModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; padding: 30px; }
+        #uploadProgressModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 30000; justify-content: center; align-items: center; flex-direction: column; padding: 30px; }
         .progress-card { background: #1c1c1e; border: 1px solid #333; width: 100%; max-width: 320px; border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.9); }
         .progress-card h3 { font-size: 16px; color: #fe2c55; margin-bottom: 15px; }
         .progress-track { width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; margin-bottom: 12px; }
@@ -82,31 +86,17 @@
         </div>
     </div>
 
-    <div class="top-bar">
-        <a href="index.html" class="top-close">←</a>
-        <h3 style="font-size:15px; color:#fe2c55;">📹 Creator Hub Studio</h3>
+    <!-- Top Bar -->
+    <div class="top-camera-bar">
+        <a href="index.html" class="top-close-btn">✕</a>
         <div></div>
     </div>
 
-    <!-- Main Studio Card -->
-    <div class="studio-container">
+    <!-- Main Viewport -->
+    <div class="studio-main-viewport">
         
-        <!-- 🎯 TIKTOK STYLE 3 HORIZONTAL ICONS / TABS -->
-        <div class="creator-mode-tabs">
-            <button class="mode-tab-btn active" id="tabUploadBtn" onclick="switchCreatorMode('upload')">
-                <span>📹</span> Upload Video
-            </button>
-            <button class="mode-tab-btn" id="tabLiveBtn" onclick="switchCreatorMode('live')">
-                <span>🔴</span> Live Stream
-            </button>
-            <button class="mode-tab-btn" id="tabGamingBtn" onclick="switchCreatorMode('gaming')">
-                <span>🎮</span> New Star Gaming
-            </button>
-        </div>
-
-        <!-- 1️⃣ SECTION: UPLOAD VIDEO (Hidden Inputs, Preview, Title, Description, Affiliate & Post Button) -->
-        <div id="sectionUpload" class="studio-section-content active">
-            <!-- Hidden Inputs for Direct Camera & Gallery -->
+        <!-- 1️⃣ UPLOAD VIDEO PANEL (वीडियो अपलोड करने का पूरा सिस्टम - टाइटल, डिस्क्रिप्शन, लिंक आदि) -->
+        <div id="panelUpload" class="mode-panel active">
             <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onVideoFileChosen(event)">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
 
@@ -154,26 +144,35 @@
             <button class="post-action-btn" id="postBtn" onclick="publishVideoToSupabaseStorage()">🚀 Post Video Now</button>
         </div>
 
-        <!-- 2️⃣ SECTION: LIVE STREAM -->
-        <div id="sectionLive" class="studio-section-content">
+        <!-- 2️⃣ LIVE STREAM PANEL (लाइव रूम सिस्टम) -->
+        <div id="panelLive" class="mode-panel">
             <div class="redirect-action-card">
-                <div style="font-size:36px; margin-bottom:10px;">🔴</div>
-                <h3>Start Live Stream</h3>
-                <p>Go live with multi-seat rooms, gifts & PK battles instantly.</p>
+                <div style="font-size:32px; margin-bottom:8px;">🔴</div>
+                <h3>Live Stream Room</h3>
+                <p>Go live with multi-seat rooms, gifts & interactive streaming.</p>
                 <a href="live.html" class="redirect-btn" style="background:#fe2c55; color:#fff;">🔴 Open Live Room Studio</a>
             </div>
         </div>
 
-        <!-- 3️⃣ SECTION: NEW STAR GAMING STREAM -->
-        <div id="sectionGaming" class="studio-section-content">
+        <!-- 3️⃣ GAMING STREAM PANEL (न्यू स्टार गेमिंग स्ट्रीम) -->
+        <div id="panelGaming" class="mode-panel">
             <div class="redirect-action-card">
-                <div style="font-size:36px; margin-bottom:10px;">🎮</div>
+                <div style="font-size:32px; margin-bottom:8px;">🎮</div>
                 <h3>New Star Gaming Stream</h3>
-                <p>Stream Free Fire, PUBG & mobile esports tournaments with fans.</p>
+                <p>Stream Free Fire, PUBG & mobile esports tournaments.</p>
                 <a href="gaming.html" class="redirect-btn" style="background:linear-gradient(135deg, #00b4d8, #25f4ee); color:#000;">🎮 Launch Gaming Arena</a>
             </div>
         </div>
 
+    </div>
+
+    <!-- 🎬 TIKTOK STYLE HORIZONTAL FOOTER MODES BAR ( एकदम नीचे दाएं-बाएं स्क्रॉल वाले 3 मोड्स ) -->
+    <div class="tiktok-modes-footer">
+        <div class="modes-scroll-container" id="modesScrollBox">
+            <button class="mode-item active" id="modeUploadBtn" onclick="switchTikTokMode('upload')">Upload Video</button>
+            <button class="mode-item" id="modeLiveBtn" onclick="switchTikTokMode('live')">Live Stream</button>
+            <button class="mode-item" id="modeGamingBtn" onclick="switchTikTokMode('gaming')">New Star Gaming Stream</button>
+        </div>
     </div>
 
     <!-- 🌟 NAVBAR SCRIPT LOADER -->
@@ -189,20 +188,20 @@
         let selectedVideoFile = null;
         let finalVideoCategory = "Shorts (9:16)";
 
-        // 🔄 SWITCH TABS (Upload / Live / Gaming)
-        function switchCreatorMode(mode) {
-            document.querySelectorAll('.mode-tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.studio-section-content').forEach(sec => sec.classList.remove('active'));
+        // 🔄 SWITCH TIKTOK MODES (Horizontal Scroll Action)
+        function switchTikTokMode(mode) {
+            document.querySelectorAll('.mode-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.mode-panel').forEach(el => el.classList.remove('active'));
 
             if(mode === 'upload') {
-                document.getElementById('tabUploadBtn').classList.add('active');
-                document.getElementById('sectionUpload').classList.add('active');
+                document.getElementById('modeUploadBtn').classList.add('active');
+                document.getElementById('panelUpload').classList.add('active');
             } else if(mode === 'live') {
-                document.getElementById('tabLiveBtn').classList.add('active');
-                document.getElementById('sectionLive').classList.add('active');
+                document.getElementById('modeLiveBtn').classList.add('active');
+                document.getElementById('panelLive').classList.add('active');
             } else if(mode === 'gaming') {
-                document.getElementById('tabGamingBtn').classList.add('active');
-                document.getElementById('sectionGaming').classList.add('active');
+                document.getElementById('modeGamingBtn').classList.add('active');
+                document.getElementById('panelGaming').classList.add('active');
             }
         }
 
