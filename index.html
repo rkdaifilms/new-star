@@ -26,8 +26,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; overflow: hidden; height: 100vh; touch-action: manipulation; }
         
-        /* Clean Global Top Bar */
-        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; position: absolute; top: 0; left: 0; right: 0; z-index: 20; }
+        /* Clean Global Top Bar (No Unwanted Icons) */
+        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; position: absolute; top: 0; left: 0; right: 0; z-index: 20; min-height: 40px; }
 
         /* Video Feed Container */
         .feed-container { height: calc(100vh - 60px); width: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: #111; }
@@ -95,11 +95,10 @@
 </head>
 <body>
 
-    <!-- Clean Top Bar -->
+    <!-- Clean Top Bar (Completely Cleaned) -->
     <div class="top-bar">
-        <button onclick="history.back()" style="font-size: 16px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Go Back">←</button>
         <div></div>
-        <a href="camera.html" style="font-size: 16px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="Studio/Camera">➕</a>
+        <div></div>
     </div>
 
     <!-- Main Video Feed Section -->
