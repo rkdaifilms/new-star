@@ -18,8 +18,9 @@
     <!-- 📋 STANDARD MANIFEST LINK -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- ⚡ SUPABASE JS SDK -->
+    <!-- ⚡ SUPABASE JS SDK & CONFIG -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -32,7 +33,7 @@
         .feed-container { height: calc(100vh - 60px); width: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: #111; }
         .feed-video { width: 100%; height: 100%; object-fit: cover; }
         
-        .video-info { position: absolute; bottom: 20px; left: 15px; z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
+        .video-info { position: absolute; bottom: 20px; left: 15px; z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.8); right: 80px; }
         .video-info h3 { font-size: 16px; margin-bottom: 4px; color: #fff; }
         .video-info p { font-size: 13px; color: #ddd; margin-bottom: 4px; }
         .video-views { font-size: 11px; color: #25f4ee; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 10px; display: inline-block; font-weight: bold; border: 1px solid rgba(37, 244, 238, 0.3); }
@@ -59,12 +60,12 @@
         .comment-send-btn { background: #fe2c55; color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
 
         /* TikTok Live Coin Gift Panel (16 Options) */
-        #giftModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 150; box-shadow: 0 -5px 20px rgba(0,0,0,0.8); }
+        #giftModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 150; box-shadow: 0 -5px 20px rgba(0,0,0,0.8); max-height: 50vh; overflow-y: auto; }
         .gift-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .gift-header h3 { font-size: 16px; color: #ffcc00; }
         .close-gift { font-size: 18px; cursor: pointer; color: #aaa; }
         
-        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 250px; overflow-y: auto; margin-bottom: 15px; }
+        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
         .gift-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
         .gift-card:hover { border-color: #fe2c55; background: #2a2a2a; }
         .gift-card .emoji { font-size: 26px; margin-bottom: 4px; }
@@ -103,12 +104,15 @@
 
     <!-- Main Video Feed Section -->
     <div class="feed-container">
-        <video class="feed-video" autoplay loop muted src="https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4"></video>
+        <video class="feed-video" id="activeFeedVideo" autoplay loop muted playsinline src="https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4"></video>
 
         <div class="video-info">
-            <h3 id="feedUsername">@newstar981152</h3>
-            <p>New Star Viral Dance Reel - Creator Hub 🔥</p>
-            <span class="video-views">👁️ 2.4M Views</span>
+            <h3 id="feedUsername">@ramram981152</h3>
+            <p id="feedCaptionText">New Star Viral Dance Reel - Creator Hub 🔥</p>
+            <div id="feedAffiliateBox" style="margin-top:4px; display:none;">
+                <a id="feedAffiliateLink" href="#" target="_blank" style="font-size:12px; color:#25f4ee; text-decoration:underline;">🛒 Product / Affiliate Link</a>
+            </div>
+            <span class="video-views" id="feedViewsNum">👁️ 2.4M Views</span>
         </div>
 
         <div class="side-actions">
@@ -143,7 +147,7 @@
                 <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" class="comment-avatar">
                 <div class="comment-content">
                     <h4>New Star Official</h4>
-                    <p>Dummy test video super hit hai bhai! 🔥</p>
+                    <p>Super hit video bhai! 🔥</p>
                 </div>
             </div>
         </div>
@@ -157,17 +161,28 @@
     <!-- GIFT PANEL -->
     <div id="giftModal">
         <div class="gift-header">
-            <h3>🎁 Send Creator Gift (Select Option)</h3>
+            <h3>🎁 Send Creator Gift (16 Options)</h3>
             <span class="close-gift" onclick="toggleGiftModal()">✕ Close</span>
         </div>
         <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Select a coin gift to support New Star Creator:</p>
         
         <div class="gift-grid">
-            <div class="gift-card" onclick="sendGift('Rose 🌹', 1)"><div class="emoji">🌹</div><h4>Rose</h4><p>1 Coin</p></div>
-            <div class="gift-card" onclick="sendGift('Coffee ☕', 5)"><div class="emoji">☕</div><h4>Coffee</h4><p>5 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Finger Heart 🫶', 10)"><div class="emoji">🫶</div><h4>Heart</h4><p>10 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Lion 🦁', 1000)"><div class="emoji">🦁</div><h4>Lion</h4><p>1,000 Coins</p></div>
-            <div class="gift-card" onclick="sendGift('Galaxy 🌌', 20000)"><div class="emoji">🌌</div><h4>Galaxy</h4><p>20,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Rose 🌹', 1, '🌹')"><div class="emoji">🌹</div><h4>Rose</h4><p>1 Coin</p></div>
+            <div class="gift-card" onclick="sendRealGift('Coffee ☕', 5, '☕')"><div class="emoji">☕</div><h4>Coffee</h4><p>5 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Finger Heart 🫶', 10, '🫶')"><div class="emoji">🫶</div><h4>Heart</h4><p>10 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Sunglasses 🕶️', 20, '🕶️')"><div class="emoji">🕶️</div><h4>Glasses</h4><p>20 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('TikTok Icon 🪙', 50, '🪙')"><div class="emoji">🪙</div><h4>TikTok</h4><p>50 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Sports Car 🏎️', 100, '🏎️')"><div class="emoji">🏎️</div><h4>Car</h4><p>100 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Magic Ring 💍', 200, '💍')"><div class="emoji">💍</div><h4>Ring</h4><p>200 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Yacht 🛥️', 500, '🛥️')"><div class="emoji">🛥️</div><h4>Yacht</h4><p>500 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Lion 🦁', 1000, '🦁')"><div class="emoji">🦁</div><h4>Lion</h4><p>1,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Diamond 💎', 1500, '💎')"><div class="emoji">💎</div><h4>Diamond</h4><p>1,500 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Golden Crown 👑', 2000, '👑')"><div class="emoji">👑</div><h4>Crown</h4><p>2,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Private Jet ✈️', 3000, '✈️')"><div class="emoji">✈️</div><h4>Jet</h4><p>3,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Castle 🏰', 5000, '🏰')"><div class="emoji">🏰</div><h4>Castle</h4><p>5,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Dragon 🐉', 10000, '🐉')"><div class="emoji">🐉</div><h4>Dragon</h4><p>10,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Galaxy 🌌', 20000, '🌌')"><div class="emoji">🌌</div><h4>Galaxy</h4><p>20,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Universe 🪐', 50000, '🪐')"><div class="emoji">🪐</div><h4>Universe</h4><p>50,000 Coins</p></div>
         </div>
     </div>
 
@@ -201,49 +216,60 @@
         </div>
     </div>
 
-    <!-- 🌟 NAVBAR SCRIPT LOADER (Automatic Footer & Top-Left LIVE) -->
+    <!-- 🌟 NAVBAR SCRIPT LOADER -->
     <script src="navbar.js"></script>
 
     <script>
-        const SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
-        const SUPABASE_ANON_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
+        let feedVideoList = [];
+        let currentFeedIndex = 0;
 
-        const { createClient } = window.supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        console.log("✅ New Star connected to Supabase successfully!");
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed', err));
-            });
-        }
-
-        window.onload = function() {
+        window.onload = async function() {
             let savedHandle = localStorage.getItem('appHandle');
             if(savedHandle) {
                 document.getElementById('feedUsername').innerText = savedHandle;
             }
-            fetchSupabaseVideos();
+            await fetchSupabaseFeedVideos();
         };
 
-        async function fetchSupabaseVideos() {
+        async function fetchSupabaseFeedVideos() {
             try {
-                const { data, error } = await supabaseClient
+                let { data, error } = await supabaseClient
                     .from('videos')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if (error) {
-                    console.error('Error fetching videos:', error.message);
-                    return;
-                }
+                if (!error && data && data.length > 0) {
+                    feedVideoList = data.map((v, i) => ({
+                        id: v.id || ('feed_vid_' + i),
+                        url: v.video_url,
+                        caption: v.caption || 'New Viral Reel 🔥',
+                        description: v.description || '',
+                        affiliate: v.affiliate_link || '',
+                        username: v.username || localStorage.getItem('appHandle') || '@ramram981152',
+                        likes: v.likes_count || 195,
+                        views: v.views_count || 850
+                    }));
 
-                if (data && data.length > 0) {
-                    console.log("📹 Loaded videos from Supabase:", data);
+                    let activeVid = document.getElementById('activeFeedVideo');
+                    activeVid.src = feedVideoList[0].url;
+                    activeVid.play();
+                    
+                    document.getElementById('feedUsername').innerText = feedVideoList[0].username;
+                    document.getElementById('feedCaptionText').innerText = feedVideoList[0].caption;
+                    document.getElementById('feedViewsNum').innerText = `👁️ ${feedVideoList[0].views} Views`;
+
+                    let affBox = document.getElementById('feedAffiliateBox');
+                    let affLink = document.getElementById('feedAffiliateLink');
+                    if(feedVideoList[0].affiliate) {
+                        affLink.href = feedVideoList[0].affiliate;
+                        affLink.innerText = `🛒 Product / Affiliate Link: ${feedVideoList[0].affiliate}`;
+                        affBox.style.display = 'block';
+                    } else {
+                        affBox.style.display = 'none';
+                    }
                 }
             } catch (err) {
-                console.error('Supabase connection error:', err);
+                console.error('Feed video load error:', err);
             }
         }
 
@@ -302,9 +328,29 @@
             modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
         }
 
-        function sendGift(giftName, coinCost) {
-            alert('🎉 You successfully sent a ' + giftName + ' (' + coinCost + ' Coins)!\n🎁 Gift sent to creator wallet successfully.');
+        function sendRealGift(giftName, coinCost, emojiIcon) {
+            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
+            if(currentCoins < coinCost) {
+                alert(`⚠️ Insufficient coins! You need ${coinCost} coins to send ${giftName}. Top up in Wallet.`);
+                return;
+            }
+            currentCoins -= coinCost;
+            localStorage.setItem('userWalletCoins', currentCoins);
             toggleGiftModal();
+
+            alert(`🎉 Success! You sent ${emojiIcon} ${giftName} (-${coinCost} Coins) to the creator!`);
+            
+            let listArea = document.getElementById('commentListArea');
+            let myName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
+            listArea.innerHTML += `
+                <div class="comment-item" style="background:rgba(254,44,85,0.15); padding:8px; border-radius:8px;">
+                    <span style="font-size:24px;">${emojiIcon}</span>
+                    <div class="comment-content">
+                        <h4 style="color:#ffcc00;">🎁 ${myName} sent a Gift!</h4>
+                        <p>Sent <b>${giftName}</b> (${coinCost} Coins) 🔥</p>
+                    </div>
+                </div>
+            `;
         }
 
         function toggleShareModal() {
