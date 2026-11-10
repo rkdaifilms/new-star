@@ -26,12 +26,15 @@
         .studio-header h2 { font-size: 16px; color: #fe2c55; font-weight: bold; }
         .studio-header p { font-size: 11px; color: #888; }
 
-        .media-actions-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .media-actions-row { display: flex; gap: 10px; margin-bottom: 15px; }
         .media-btn { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px; }
         .media-btn:hover { border-color: #fe2c55; background: #222; }
         .media-btn span { font-size: 20px; }
         .media-btn b { font-size: 12px; color: #fff; display: block; }
         .media-btn small { font-size: 10px; color: #888; display: block; }
+
+        /* Auto Detected Category Badge */
+        #categoryBadgeBox { display: none; background: rgba(37,244,238,0.1); border: 1px solid #25f4ee; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: #25f4ee; margin-bottom: 15px; text-align: center; font-weight: bold; }
 
         .input-group { margin-bottom: 14px; }
         .input-group label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaa; margin-bottom: 6px; font-weight: 600; }
@@ -48,7 +51,7 @@
         #previewBox { display: none; width: 100%; height: 160px; background: #000; border-radius: 10px; margin-bottom: 15px; overflow: hidden; position: relative; border: 1px solid #333; }
         #previewBox video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* 🚀 CLEAN PERCENTAGE PROGRESS BAR MODAL */
+        /* 🚀 SUPABASE UPLOAD PROGRESS MODAL */
         #uploadProgressModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; padding: 30px; }
         .progress-card { background: #1c1c1e; border: 1px solid #333; width: 100%; max-width: 320px; border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.9); }
         .progress-card h3 { font-size: 16px; color: #fe2c55; margin-bottom: 15px; }
@@ -59,10 +62,10 @@
 </head>
 <body>
 
-    <!-- 🚀 REAL UPLOAD PROGRESS MODAL -->
+    <!-- 🚀 PROGRESS BAR MODAL -->
     <div id="uploadProgressModal">
         <div class="progress-card">
-            <h3 id="progressTitleHeading">Publishing Video...</h3>
+            <h3 id="progressTitleHeading">Uploading to Supabase Cloud...</h3>
             <div class="progress-track">
                 <div class="progress-fill" id="progressBarFill"></div>
             </div>
@@ -82,12 +85,12 @@
         <div class="studio-header">
             <span>🎬</span>
             <div>
-                <h2>Create & Publish Reel</h2>
-                <p>Record up to 10 mins or choose from gallery (Short & Long supported)</p>
+                <h2>Create & Publish Video</h2>
+                <p>Auto-detects Shorts (&le; 1 min) or Long Video (&gt; 1 min up to 10 mins)</p>
             </div>
         </div>
 
-        <!-- Hidden Inputs for Gallery & Live Camera -->
+        <!-- Hidden Inputs -->
         <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
         <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onVideoFileChosen(event)">
 
@@ -104,20 +107,23 @@
                 <span>📁</span>
                 <div>
                     <b>Open Gallery</b>
-                    <small>Choose Video File</small>
+                    <small>Choose File</small>
                 </div>
             </div>
         </div>
 
-        <!-- Video Preview Container -->
+        <!-- Auto Category & Ratio Badge -->
+        <div id="categoryBadgeBox">⚡ Auto-Detected: <span id="detectedCategoryText">Checking...</span></div>
+
+        <!-- Video Preview Box -->
         <div id="previewBox">
-            <video id="selectedVideoPreview" controls></video>
+            <video id="selectedVideoPreview" controls onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
         </div>
 
         <!-- Video Details Form -->
         <div class="input-group">
             <label><span>📝</span> Video Title / Caption:</label>
-            <input type="text" id="videoCaptionInput" placeholder="Write catchy title and hashtags (#Viral #Dance)...">
+            <input type="text" id="videoCaptionInput" placeholder="Write catchy title and hashtags (#Viral)...">
         </div>
 
         <div class="input-group">
@@ -126,11 +132,11 @@
         </div>
 
         <div class="input-group">
-            <label><span>🔗</span> Affiliate / Promo / Custom Link (Optional):</label>
+            <label><span>🔗</span> Affiliate / Promo Link (Optional):</label>
             <input type="text" id="videoAffiliateInput" placeholder="https://your-product-link.com">
         </div>
 
-        <button class="post-action-btn" id="postBtn" onclick="publishVideoToGlobalFeed()">🚀 Post Video Now</button>
+        <button class="post-action-btn" id="postBtn" onclick="publishVideoToSupabaseStorage()">🚀 Post Video Now</button>
         <button class="share-row-btn" onclick="shareStudioToAllSocialApps()">🌐 Share App to WhatsApp & Social Apps</button>
     </div>
 
@@ -145,6 +151,7 @@
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let selectedVideoFile = null;
+        let finalVideoCategory = "Shorts (9:16)";
 
         function onVideoFileChosen(event) {
             let file = event.target.files[0];
@@ -155,6 +162,23 @@
                 
                 videoElement.src = URL.createObjectURL(file);
                 previewBox.style.display = 'block';
+                document.getElementById('categoryBadgeBox').style.display = 'block';
+            }
+        }
+
+        // ⏱️ AUTO DETECT DURATION & RATIO (Shorts <= 60s vs Long Video > 60s)
+        function checkVideoDurationAndRatio(videoEl) {
+            let durationSeconds = videoEl.duration;
+            let width = videoEl.videoWidth;
+            let height = videoEl.videoHeight;
+            let badgeText = document.getElementById('detectedCategoryText');
+
+            if (durationSeconds <= 60 || (height >= width)) {
+                finalVideoCategory = "Shorts (9:16)";
+                badgeText.innerText = `Shorts / Reel (9:16 Vertical - ${Math.floor(durationSeconds)}s)`;
+            } else {
+                finalVideoCategory = "Long Video (16:9)";
+                badgeText.innerText = `Long Video (16:9 Landscape - ${Math.floor(durationSeconds)}s)`;
             }
         }
 
@@ -169,11 +193,11 @@
                 navigator.share(shareData).catch((error) => console.log('Share error', error));
             } else {
                 navigator.clipboard.writeText(window.location.origin + '/index.html');
-                alert('📋 Link copied to clipboard! You can share it directly on WhatsApp or Facebook.');
+                alert('📋 Link copied to clipboard!');
             }
         }
 
-        async function publishVideoToGlobalFeed() {
+        async function publishVideoToSupabaseStorage() {
             let caption = document.getElementById('videoCaptionInput').value.trim() || 'New Viral Video #StarNewStar';
             let description = document.getElementById('videoDescriptionInput').value.trim() || 'Professional video on New Star Creator Hub.';
             let affiliate = document.getElementById('videoAffiliateInput').value.trim() || '';
@@ -195,74 +219,87 @@
             let progress = 0;
 
             let progressInterval = setInterval(() => {
-                progress += Math.floor(Math.random() * 6) + 4;
-                if (progress > 95) progress = 95;
+                progress += 12;
+                if (progress > 90) progress = 90;
                 fill.style.width = progress + '%';
                 percentText.innerText = progress + '%';
-            }, 90);
+            }, 70);
 
-            let reader = new FileReader();
-            reader.onload = async function(e) {
-                let permanentVideoUrl = e.target.result;
+            try {
+                // 1. Upload directly to Supabase Storage Bucket ('videos')
+                let fileName = 'video_' + Date.now() + '_' + selectedVideoFile.name.replace(/[^a-zA-Z0-9.]/g, '_');
+                
+                let { data: uploadData, error: uploadError } = await supabaseClient.storage
+                    .from('videos')
+                    .upload(fileName, selectedVideoFile);
+
+                let publicVideoUrl = '';
+                if (!uploadError) {
+                    let { data: urlData } = supabaseClient.storage.from('videos').getPublicUrl(fileName);
+                    publicVideoUrl = urlData ? urlData.publicUrl : '';
+                }
+
+                if (!publicVideoUrl) {
+                    publicVideoUrl = URL.createObjectURL(selectedVideoFile);
+                }
+
                 let myHandle = localStorage.getItem('appHandle') || '@ramram981152';
 
                 let newPostObj = {
                     id: 'vid_' + Date.now(),
-                    url: permanentVideoUrl,
+                    url: publicVideoUrl,
                     caption: caption,
                     description: description,
                     affiliate: affiliate,
+                    category: finalVideoCategory,
                     username: myHandle,
                     likes: 120,
                     views: 850
                 };
 
-                // 1. Save to Global Feed Storage
-                let globalFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
-                globalFeed.unshift(newPostObj);
-                localStorage.setItem('customFeedVideos', JSON.stringify(globalFeed));
-
-                // 2. Save to Profile Feed Storage
-                let profileFeed = JSON.parse(localStorage.getItem('profileVideosList') || '[]');
-                profileFeed.unshift(newPostObj);
-                localStorage.setItem('profileVideosList', JSON.stringify(profileFeed));
-
-                // 3. Sync with Supabase Database
+                // 2. Save to Local Storage safely
                 try {
-                    await supabaseClient.from('videos').insert([
-                        { 
-                            video_url: permanentVideoUrl, 
-                            caption: caption, 
-                            description: description,
-                            affiliate_link: affiliate,
-                            username: myHandle,
-                            likes_count: 120,
-                            views_count: 850
-                        }
-                    ]);
-                } catch(err) {
-                    console.log('Supabase DB Sync Note:', err);
+                    let globalFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
+                    globalFeed.unshift(newPostObj);
+                    localStorage.setItem('customFeedVideos', JSON.stringify(globalFeed));
+
+                    let profileFeed = JSON.parse(localStorage.getItem('profileVideosList') || '[]');
+                    profileFeed.unshift(newPostObj);
+                    localStorage.setItem('profileVideosList', JSON.stringify(profileFeed));
+                } catch(e) {
+                    console.log('Local storage sync note:', e);
                 }
+
+                // 3. Save to Supabase Database Table ('videos') with Category
+                await supabaseClient.from('videos').insert([
+                    { 
+                        video_url: publicVideoUrl, 
+                        caption: caption, 
+                        description: description,
+                        affiliate_link: affiliate,
+                        category: finalVideoCategory,
+                        username: myHandle,
+                        likes_count: 120,
+                        views_count: 850
+                    }
+                ]);
 
                 clearInterval(progressInterval);
                 fill.style.width = '100%';
                 percentText.innerText = '100%';
-                titleHeading.innerText = '✨ Upload Successful!';
+                titleHeading.innerText = `✨ ${finalVideoCategory} Published!`;
 
                 setTimeout(() => {
                     modal.style.display = 'none';
                     window.location.href = 'profile.html';
-                }, 700);
-            };
+                }, 600);
 
-            reader.onerror = function(err) {
+            } catch(err) {
                 clearInterval(progressInterval);
                 modal.style.display = 'none';
-                alert('❌ Error processing video file. Try another video.');
+                alert('❌ Upload error: ' + err.message);
                 btn.disabled = false;
-            };
-
-            reader.readAsDataURL(selectedVideoFile);
+            }
         }
     </script>
 </body>
