@@ -11,14 +11,14 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 10px; padding-bottom: 70px; }
+        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
         
-        /* 🛠️ TOP BAR (Super Small Arrow & Gear at Top Corners) */
-        .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 0 5px; }
-        .top-close { font-size: 14px; text-decoration: none; color: #fff; background: #222; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; flex-shrink: 0; }
-        .top-gear { font-size: 13px; text-decoration: none; color: #fff; background: #222; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; flex-shrink: 0; cursor: pointer; }
+        /* 🛠️ TOP BAR (Setup Mode Only) */
+        .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; z-index: 50; }
+        .top-close { font-size: 14px; text-decoration: none; color: #fff; background: #222; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; }
+        .top-gear { font-size: 13px; text-decoration: none; color: #fff; background: #222; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; cursor: pointer; }
 
-        .studio-card { width: 100%; max-width: 480px; background: #141414; border: 1px solid #333; border-radius: 16px; padding: 20px 15px; text-align: left; margin-top: 5px; }
+        .studio-card { width: 92%; max-width: 440px; background: #141414; border: 1px solid #333; border-radius: 16px; padding: 20px 15px; text-align: left; margin-top: 10px; z-index: 50; }
         .section-title { font-size: 16px; color: #fe2c55; margin-bottom: 5px; font-weight: bold; }
         .section-desc { font-size: 11px; color: #aaa; margin-bottom: 12px; line-height: 1.3; }
 
@@ -27,218 +27,141 @@
         
         .btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; }
 
-        /* ACTIVE LIVE BROADCAST ROOM */
-        #activeLiveView { display: none; width: 100%; max-width: 480px; background: #111; border: 1px solid #fe2c55; padding: 10px; border-radius: 12px; margin-top: 2px; text-align: center; position: relative; }
+        /* FULLSCREEN ACTIVE LIVE ROOM */
+        #activeLiveView { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 999; flex-direction: column; justify-content: space-between; padding: 10px; }
+        
+        .fullscreen-video-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; background: #000; }
+        
+        .live-overlay-content { position: relative; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
+        .live-overlay-content > * { pointer-events: auto; }
+
         .pulsing-dot { display: inline-block; width: 7px; height: 7px; background: #fe2c55; border-radius: 50%; animation: pulse 1.2s infinite; margin-right: 4px; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
         /* PK Battle Scoreboard */
-        .pk-scoreboard { display: none; justify-content: space-between; align-items: center; background: #220000; border: 1px solid #ff4444; padding: 5px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 11px; font-weight: bold; }
+        .pk-scoreboard { display: none; justify-content: space-between; align-items: center; background: rgba(34,0,0,0.85); border: 1px solid #ff4444; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; margin-top: 5px; }
 
-        /* MULTI-ROOM GRID CONTAINER */
-        .live-rooms-grid { display: grid; gap: 6px; margin-bottom: 8px; width: 100%; }
-        .grid-1 { grid-template-columns: 1fr; }
-        .grid-4 { grid-template-columns: repeat(2, 1fr); }
-        .grid-10 { grid-template-columns: repeat(3, 1fr); }
-
-        .live-room-box { background: #181818; border: 2px dashed #444; height: 100px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #ccc; cursor: pointer; position: relative; overflow: hidden; transition: 0.3s; }
-        .live-room-box.active { border: 2px solid #25f4ee; background: #0b1a1a; color: #25f4ee; font-weight: bold; }
-        .live-room-box.fullscreen { grid-column: 1 / -1; height: 240px; border: 2px solid #fe2c55; }
-        
-        .room-video-el { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; background: #000; display: none; }
-        .room-info-overlay { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: rgba(0,0,0,0.4); width: 100%; height: 100%; }
-        .seat-num-badge { position: absolute; top: 3px; left: 5px; font-size: 8px; background: rgba(0,0,0,0.7); padding: 2px 5px; border-radius: 4px; color: #ffcc00; z-index: 3; }
-
-        /* 🏺 GULLAK (Static when empty, Spinning & Glowing golden when active) */
-        #activeTreasureBanner { display: none; width: 52px; height: 52px; background: linear-gradient(135deg, #ffd700, #ff4500); border-radius: 50%; color: #000; font-weight: bold; font-size: 9px; box-shadow: 0 0 12px rgba(255,215,0,0.8); flex-direction: column; align-items: center; justify-content: center; border: 2px solid #fff; cursor: pointer; text-align: center; padding: 2px; flex-shrink: 0; }
-        .gullak-spinning { animation: spinGullakRot 1.5s linear infinite; }
+        /* 🏺 GULLAK (Spinning & Glowing golden when active, right beside chat) */
+        #activeTreasureBanner { display: none; width: 48px; height: 48px; background: linear-gradient(135deg, #ffd700, #ff4500); border-radius: 50%; color: #000; font-weight: bold; font-size: 8px; box-shadow: 0 0 15px rgba(255,215,0,0.9); flex-direction: column; align-items: center; justify-content: center; border: 2px solid #fff; cursor: pointer; text-align: center; padding: 2px; flex-shrink: 0; }
+        .gullak-spinning { animation: spinGullakRot 1.2s linear infinite; }
         @keyframes spinGullakRot { 
-            0% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 5px #ffcc00); } 
-            50% { transform: scale(1.08); filter: drop-shadow(0 0 12px #ff4500); }
-            100% { transform: rotate(360deg) scale(1); filter: drop-shadow(0 0 5px #ffd700); } 
+            0% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 6px #ffcc00); } 
+            50% { transform: scale(1.12); filter: drop-shadow(0 0 15px #ff4500); }
+            100% { transform: rotate(360deg) scale(1); filter: drop-shadow(0 0 6px #ffd700); } 
         }
 
-        /* Floating Side Actions inside Live Room */
-        .live-side-actions { position: absolute; right: 8px; bottom: 120px; display: flex; flex-direction: column; gap: 6px; z-index: 10; }
-        .live-action-icon { width: 34px; height: 34px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); color: #fff; }
+        /* Floating Side Actions */
+        .live-side-actions { position: absolute; right: 12px; bottom: 130px; display: flex; flex-direction: column; gap: 8px; z-index: 15; }
+        .live-action-icon { width: 38px; height: 38px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .live-gift-btn { background: linear-gradient(135deg, #fe2c55, #ffcc00); border: none; }
         .live-share-btn { background: linear-gradient(135deg, #00b4d8, #25f4ee); color: #000; border: none; font-weight: bold; }
         .live-treasure-btn { background: linear-gradient(135deg, #ffcc00, #ff6600); border: none; }
 
-        /* MODALS & 50+ GIFTS GRID */
-        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; }
-        .modal-box { background: #181818; border: 1px solid #fe2c55; width: 90%; max-width: 380px; padding: 15px; border-radius: 14px; text-align: left; }
+        /* CUSTOM MODALS */
+        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-box { background: #181818; border: 1px solid #fe2c55; width: 90%; max-width: 360px; padding: 16px; border-radius: 14px; text-align: left; color: #fff; }
         .gift-grid-popup { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 260px; overflow-y: auto; margin: 8px 0; padding: 3px; }
         .gift-item-card { background: #222; border: 1px solid #444; border-radius: 8px; padding: 6px 2px; text-align: center; cursor: pointer; transition: 0.2s; }
         .gift-item-card:hover { border-color: #ffcc00; background: #2a2a2a; transform: scale(1.05); }
-
-        .invite-user-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #333; }
     </style>
 </head>
 <body>
-    <div class="top-bar">
+    <div class="top-bar" id="setupTopBar">
         <a href="index.html" class="top-close">←</a>
         <div class="top-gear" onclick="openModSettingsModal()" title="Settings">⚙️</div>
     </div>
 
     <!-- LIVE ROOM SETUP PANEL -->
     <div class="studio-card" id="liveSetupPanel">
-        <div class="section-title">Start Video LIVE Broadcast</div>
-        <div class="section-desc">Set your room title and seat capacity to go live with friends and fans!</div>
+        <div class="section-title">Start Fullscreen Video LIVE</div>
+        <div class="section-desc">Go live in immersive full-screen mode with real-time gifts and Gullak!</div>
         
         <label>Live Room Title:</label>
         <input type="text" id="liveTitleInput" value="Night Dance Party 🎉">
         
-        <label>Room Seats Capacity:</label>
-        <select id="setupRoomSize">
-            <option value="1">👤 1 Seat (Solo Live)</option>
-            <option value="4" selected>👥 4 Rooms Grid (Host + 3 Seats)</option>
-            <option value="10">👥 10 Rooms Grid (Party Room)</option>
-        </select>
-        
-        <button class="btn" onclick="startLiveBroadcastSession()">🔴 Go LIVE Now</button>
+        <button class="btn" onclick="startLiveBroadcastSession()">🔴 Go LIVE in Fullscreen</button>
     </div>
 
-    <!-- ACTIVE LIVE BROADCAST ROOM -->
+    <!-- ACTIVE FULLSCREEN LIVE ROOM -->
     <div id="activeLiveView">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="background:rgba(254,44,85,0.2); border:1px solid #fe2c55; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:bold; color:#fe2c55;"><span class="pulsing-dot"></span> LIVE ROOM ACTIVE</span>
-            <span style="font-size:11px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins">500</b> | 🔥 Rank: <b id="liveRoomRank" style="color:#25f4ee;">#1</b></span>
-        </div>
+        <video class="fullscreen-video-bg" id="activeRoomVideo" autoplay playsinline muted></video>
 
-        <!-- PK BATTLE SCOREBOARD -->
-        <div id="pkScoreboard" class="pk-scoreboard">
-            <span style="color:#25f4ee;">⚔️ You: <b id="myPkScore">0</b> pts</span>
-            <span style="color:#ffcc00; font-size:10px;" id="pkBattleTitleStatus">PK BATTLE LIVE</span>
-            <span style="color:#ff4444;"><span id="rivalNameDisplay">Opponent</span>: <b id="rivalPkScore">0</b> pts</span>
-        </div>
-
-        <!-- MULTI-ROOM GRID CONTAINER -->
-        <div id="dynamicRoomsContainer" class="live-rooms-grid"></div>
-
-        <!-- 🎙️ MIC CONTROL & SETTINGS BAR -->
-        <div style="display:flex; justify-content:space-between; align-items:center; background:#1a1a1a; padding:5px 8px; border-radius:6px; margin-bottom:6px; font-size:10px;">
-            <span>🎙️ Mic: <b id="micStatusText" style="color:#25f4ee;">ON</b></span>
-            <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="toggleLiveMicrophone()">🎙️ Mute</button>
-            <button style="background:#ffcc00; color:#000; border:none; padding:3px 6px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="openModSettingsModal()">⚙️ Mod</button>
-        </div>
-
-        <!-- LIVE CHAT & GULLAK ROW (Gullak placed right beside chat/comment section) -->
-        <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
-            <!-- 🏺 GULLAK NEAR COMMENT AREA -->
-            <div id="activeTreasureBanner" onclick="claimTreasureBox()">
-                <span style="font-size:13px;">🏺</span>
-                <div id="bannerTimer" style="font-size:8px; color:#000; font-weight:900;">00:00</div>
-                <div id="treasureActionText" style="font-size:7px; background:#000; color:#ffcc00; padding:1px 2px; border-radius:2px;">Gullak</div>
-            </div>
-
-            <div style="flex:1; background:#1a1a1a; border:1px solid #333; padding:5px; border-radius:6px; text-align:left;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                    <span style="font-size:9px; color:#25f4ee; font-weight:bold;">💬 Live Chat (Likes: <b id="likePointsCount" style="color:#ffcc00;">0</b>)</span>
+        <div class="live-overlay-content">
+            <!-- TOP HEADER -->
+            <div style="display:flex; flex-direction:column; gap:4px; padding:5px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.5); padding:6px 10px; border-radius:20px; backdrop-filter:blur(5px);">
+                    <span style="background:rgba(254,44,85,0.3); border:1px solid #fe2c55; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:bold; color:#fe2c55;"><span class="pulsing-dot"></span> LIVE ACTIVE</span>
+                    <span style="font-size:11px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins">500</b> | 🔥 Rank: <b style="color:#25f4ee;">#1</b></span>
                 </div>
-                <div id="liveChatScrollArea" style="max-height:40px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; margin-bottom:3px; font-size:10px; color:#aaa;">
-                    <div><b>Rohit Painter:</b> Mast live room hai bhai! 🔥</div>
-                </div>
-                <div style="display:flex; gap:3px;">
-                    <input type="text" id="liveCommentInput" placeholder="Say something..." style="margin-top:0; padding:4px; font-size:10px; margin-bottom:0;" onkeypress="handleLiveChatKey(event)">
-                    <button style="background:#fe2c55; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="sendLiveComment()">Send</button>
+                <!-- PK BATTLE SCOREBOARD -->
+                <div id="pkScoreboard" class="pk-scoreboard">
+                    <span style="color:#25f4ee;">⚔️ You: <b id="myPkScore">0</b> pts</span>
+                    <span style="color:#ffcc00; font-size:10px;">PK BATTLE</span>
+                    <span style="color:#ff4444;"><span id="rivalNameDisplay">Opponent</span>: <b id="rivalPkScore">0</b> pts</span>
                 </div>
             </div>
-        </div>
 
-        <!-- FLOATING SIDE ACTIONS (Like on top, PK, Treasure, Gifts, Share at bottom) -->
-        <div class="live-side-actions">
-            <div class="live-action-icon" onclick="sendLiveLike()" title="❤️ Like">❤️</div>
-            <div class="live-action-icon" style="background:#ffcc00; color:#000; font-weight:bold;" onclick="openPkBattleModal()" title="⚔️ PK">⚔️</div>
-            <div class="live-action-icon live-treasure-btn" onclick="openTreasureModal()" title="🎁 Treasure">🎁</div>
-            <div class="live-action-icon live-gift-btn" onclick="openRealGiftModal()" title="🎁 Gifts">🎁</div>
-            <div class="live-action-icon live-share-btn" onclick="nativeShareLiveRoom()" title="📤 Share">📤</div>
-        </div>
-
-        <button class="btn" style="background: #333; color: #fff; margin-top:3px; padding:8px; font-size:12px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room</button>
-    </div>
-
-    <!-- 👥 INVITE FRIENDS MODAL -->
-    <div id="inviteFriendsModal" class="custom-modal">
-        <div class="modal-box" style="border-color: #25f4ee;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <h4 style="color: #25f4ee; font-size: 15px;">👥 Invite Friend to Seat</h4>
-                <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('inviteFriendsModal')">✕</span>
+            <!-- FLOATING SIDE ACTIONS -->
+            <div class="live-side-actions">
+                <div class="live-action-icon" onclick="sendLiveLike()" title="❤️ Like">❤️</div>
+                <div class="live-action-icon" style="background:#ffcc00; color:#000; font-weight:bold;" onclick="openPkBattleModal()" title="⚔️ PK">⚔️</div>
+                <div class="live-action-icon live-treasure-btn" onclick="openTreasureModal()" title="🎁 Treasure">🎁</div>
+                <div class="live-action-icon live-gift-btn" onclick="openRealGiftModal()" title="🎁 Gifts">🎁</div>
+                <div class="live-action-icon live-share-btn" onclick="nativeShareLiveRoom()" title="📤 Share">📤</div>
             </div>
-            <div style="max-height:180px; overflow-y:auto;">
-                <div class="invite-user-row">
-                    <div><b>Anjali Dance Hub</b><br><span style="font-size:9px; color:#25f4ee;">🟢 Online Follower</span></div>
-                    <button class="btn" style="width:auto; padding:4px 8px; font-size:10px; background:#25f4ee; color:#000;" onclick="assignFriendToSeat('Anjali Dance Hub')">Invite</button>
+
+            <!-- BOTTOM DOCK (Chat & Gullak right beside it) -->
+            <div style="display:flex; flex-direction:column; gap:6px; background:linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:6px;">
+                    <span>🎙️ Mic: <b id="micStatusText" style="color:#25f4ee;">ON</b></span>
+                    <button style="background:#fe2c55; color:#fff; border:none; padding:2px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="toggleLiveMicrophone()">Mute</button>
+                    <button style="background:#ffcc00; color:#000; border:none; padding:2px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="openModSettingsModal()">Mod</button>
                 </div>
-                <div class="invite-user-row">
-                    <div><b>Rohit Painter</b><br><span style="font-size:9px; color:#ffcc00;">🙋‍♂️ Requested to Join</span></div>
-                    <button class="btn" style="width:auto; padding:4px 8px; font-size:10px; background:#fe2c55; color:#fff;" onclick="assignFriendToSeat('Rohit Painter')">Accept</button>
+
+                <!-- CHAT & GULLAK ROW -->
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <!-- 🏺 GULLAK (Placed right beside chat) -->
+                    <div id="activeTreasureBanner" onclick="openTreasureStatusModal()">
+                        <span style="font-size:14px;">🏺</span>
+                        <div id="bannerTimer" style="font-size:7px; color:#000; font-weight:900;">00:00</div>
+                        <div id="treasureActionText" style="font-size:6px; background:#000; color:#ffcc00; padding:1px 3px; border-radius:2px;">Gullak</div>
+                    </div>
+
+                    <div style="flex:1; background:rgba(0,0,0,0.7); border:1px solid #333; padding:6px; border-radius:8px; text-align:left;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                            <span style="font-size:9px; color:#25f4ee; font-weight:bold;">💬 Live Chat (Likes: <b id="likePointsCount" style="color:#ffcc00;">0</b>)</span>
+                        </div>
+                        <div id="liveChatScrollArea" style="max-height:45px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; margin-bottom:4px; font-size:10px; color:#ddd;">
+                            <div><b>Rohit Painter:</b> Mast fullscreen live room hai bhai! 🔥</div>
+                        </div>
+                        <div style="display:flex; gap:4px;">
+                            <input type="text" id="liveCommentInput" placeholder="Say something..." style="margin-top:0; padding:5px; font-size:10px; margin-bottom:0;" onkeypress="handleLiveChatKey(event)">
+                            <button style="background:#fe2c55; color:#fff; border:none; padding:5px 10px; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="sendLiveComment()">Send</button>
+                        </div>
+                    </div>
                 </div>
+
+                <button class="btn" style="background: rgba(255,68,68,0.2); color: #ff4444; border:1px solid #ff4444; padding:8px; font-size:11px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room</button>
             </div>
         </div>
     </div>
 
-    <!-- ⚔️ PK BATTLE MATCHMAKING MODAL -->
-    <div id="pkBattleModal" class="custom-modal">
-        <div class="modal-box" style="border-color:#ffcc00; max-width:340px; text-align:center;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color:#ffcc00; font-size:15px;">⚔️ Live PK Battle Matchmaking</h4>
-                <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('pkBattleModal')">✕</span>
+    <!-- 🎁 TREASURE STATUS / CLAIM MODAL (Detailed info of coins, winners, time) -->
+    <div id="treasureStatusModal" class="custom-modal">
+        <div class="modal-box" style="border-color:#ffcc00; text-align:center;">
+            <div style="font-size:32px; margin-bottom:5px;">🏺</div>
+            <h4 style="color:#ffcc00; font-size:15px; margin-bottom:6px;">Gullak Treasure Box Status</h4>
+            <div id="treasureDetailInfo" style="font-size:12px; color:#ccc; margin-bottom:15px; line-height:1.4; background:#111; padding:10px; border-radius:8px;">
+                <!-- Filled dynamically -->
             </div>
-            <p style="font-size:11px; color:#ccc; margin-bottom:12px;">Choose how you want to start your PK Battle:</p>
-            
-            <div style="display:flex; flex-direction:column; gap:8px;">
-                <button class="btn" style="background:linear-gradient(135deg, #ff4444, #ff6b8b); font-weight:bold; padding:10px;" onclick="startGlobalPkSearch()">🌐 Global Random Search (Anywhere)</button>
-                <button class="btn" style="background:linear-gradient(135deg, #25f4ee, #00b4d8); color:#000; font-weight:bold; padding:10px;" onclick="openPkFriendInviteList()">👥 Invite Friend / Follower</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🌐 GLOBAL SEARCH LOADING MODAL -->
-    <div id="globalSearchModal" class="custom-modal">
-        <div class="modal-box" style="border-color:#25f4ee; text-align:center; padding:25px 15px;">
-            <div style="font-size:28px; margin-bottom:8px; animation: pulse 1s infinite;">🔍</div>
-            <h4 style="color:#25f4ee; font-size:14px; margin-bottom:4px;">Searching Global Live Opponent...</h4>
-            <p id="searchStatusText" style="font-size:10px; color:#aaa; margin-bottom:12px;">Scanning live rooms across the world...</p>
-            <div style="width:100%; background:#222; height:5px; border-radius:3px; overflow:hidden;">
-                <div id="searchProgressBar" style="width:0%; background:#25f4ee; height:100%; transition: 0.3s;"></div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold;" id="modalClaimBtn" onclick="executeClaimTreasure()">Claim Coins 🪙</button>
+                <button class="btn" style="background:#333; color:#fff;" onclick="closeModal('treasureStatusModal')">Close</button>
             </div>
         </div>
     </div>
 
-    <!-- 👥 PK FRIEND INVITE LIST MODAL -->
-    <div id="pkFriendModal" class="custom-modal">
-        <div class="modal-box" style="border-color:#25f4ee;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <h4 style="color:#25f4ee; font-size:14px;">⚔️ Invite Friend for PK Battle</h4>
-                <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('pkFriendModal')">✕</span>
-            </div>
-            <div style="max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:5px;">
-                <div class="invite-user-row">
-                    <div><b>Pooja Star Creator</b><br><span style="font-size:9px; color:#25f4ee;">🟢 Online & Ready</span></div>
-                    <button class="btn" style="width:auto; padding:4px 8px; font-size:10px; background:#ffcc00; color:#000;" onclick="startPkWithOpponent('Pooja Star Creator')">Send Battle ⚔️</button>
-                </div>
-                <div class="invite-user-row">
-                    <div><b>Rahul Dance King</b><br><span style="font-size:9px; color:#25f4ee;">🟢 Online & Ready</span></div>
-                    <button class="btn" style="width:auto; padding:4px 8px; font-size:10px; background:#ffcc00; color:#000;" onclick="startPkWithOpponent('Rahul Dance King')">Send Battle ⚔️</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🎁 MEGA TIKTOK STYLE 50+ GIFTS MODAL -->
-    <div id="realGiftModal" class="custom-modal">
-        <div class="modal-box" style="max-width:380px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <h4 style="color: #ffcc00; font-size: 15px;">🎁 TikTok Live Mega Gifts (50+ Items)</h4>
-                <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('realGiftModal')">✕</span>
-            </div>
-            <p style="font-size:10px; color:#aaa; margin-bottom:6px;">Tap any gift to send. Coins will be deducted from your wallet instantly!</p>
-            <div class="gift-grid-popup" id="megaGiftGridContainer"></div>
-        </div>
-    </div>
-
-    <!-- TREASURE BOX MODAL -->
+    <!-- TREASURE DROP MODAL -->
     <div id="treasureModal" class="custom-modal">
         <div class="modal-box" style="border-color: #ffcc00; max-width:340px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -252,7 +175,7 @@
             <label>Number of People (Winners):</label>
             <input type="number" id="tbPeopleInput" value="5" min="1" max="100">
 
-            <label>Duration / Timer (10s to 5 mins):</label>
+            <label>Duration / Timer:</label>
             <select id="tbTimerSelect" style="width:100%; padding:9px; background:#111; border:1px solid #333; color:#fff; border-radius:8px; font-size:12px; outline:none; margin-bottom:12px;">
                 <option value="10">10 Seconds</option>
                 <option value="30">30 Seconds</option>
@@ -265,18 +188,40 @@
         </div>
     </div>
 
+    <!-- ⚔️ PK BATTLE MODAL -->
+    <div id="pkBattleModal" class="custom-modal">
+        <div class="modal-box" style="border-color:#ffcc00; max-width:340px; text-align:center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color:#ffcc00; font-size:15px;">⚔️ Live PK Battle Matchmaking</h4>
+                <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('pkBattleModal')">✕</span>
+            </div>
+            <button class="btn" style="background:linear-gradient(135deg, #ff4444, #ff6b8b); font-weight:bold; padding:10px; margin-bottom:8px;" onclick="startGlobalPkSearch()">🌐 Global Random Search</button>
+            <button class="btn" style="background:linear-gradient(135deg, #25f4ee, #00b4d8); color:#000; font-weight:bold; padding:10px;" onclick="startPkWithOpponent('Pooja Star Creator')">👥 Quick Battle with Pooja</button>
+        </div>
+    </div>
+
+    <!-- 🎁 MEGA TIKTOK STYLE GIFTS MODAL -->
+    <div id="realGiftModal" class="custom-modal">
+        <div class="modal-box" style="max-width:380px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <h4 style="color: #ffcc00; font-size: 15px;">🎁 TikTok Live Mega Gifts (50+ Items)</h4>
+                <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('realGiftModal')">✕</span>
+            </div>
+            <div class="gift-grid-popup" id="megaGiftGridContainer"></div>
+        </div>
+    </div>
+
     <!-- MOD SETTINGS MODAL -->
     <div id="modSettingsModal" class="custom-modal">
         <div class="modal-box">
             <h4 style="color:#ffcc00; font-size:14px; margin-bottom:8px;">⚙️ Moderator & Room Settings</h4>
             <label style="color:#25f4ee;">Assign Moderator:</label>
             <input type="text" id="modUserInput" placeholder="Username...">
-            <button class="btn" style="background:#25f4ee; color:#000; padding:8px; margin-top:0;" onclick="alert('Moderator assigned successfully!')">Make Mod</button>
+            <button class="btn" style="background:#25f4ee; color:#000; padding:8px; margin-top:0;" onclick="alert('Moderator assigned successfully!'); closeModal('modSettingsModal');">Make Mod</button>
             <button class="btn" style="background:#fe2c55; color:#fff; padding:8px; margin-top:8px;" onclick="closeModal('modSettingsModal')">Close</button>
         </div>
     </div>
 
-    <!-- 🌟 NAVBAR SCRIPT LOADER -->
     <script src="navbar.js"></script>
 
     <script>
@@ -284,7 +229,6 @@
         let likePoints = 0;
         let myPkPoints = 0;
         let isPkActive = false;
-        let selectedSeatForInvite = null;
 
         let activeTreasureData = {
             active: false,
@@ -294,7 +238,6 @@
             timerInterval: null
         };
 
-        // 50+ TIKTOK STYLE GIFTS DATABASE
         const tiktokGiftsList = [
             { name: "Rose", icon: "🌹", cost: 1 }, { name: "Heart", icon: "❤️", cost: 5 },
             { name: "Coffee", icon: "☕", cost: 10 }, { name: "Ice Cream", icon: "🍦", cost: 15 },
@@ -345,14 +288,11 @@
 
         function checkAndDeductCoins(requiredCoins) {
             let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
-            
             if (currentCoins < requiredCoins) {
-                alert(`⚠️ Insufficient Balance!\nYou need ${requiredCoins.toLocaleString()} coins, but you have ${currentCoins.toLocaleString()} coins.\n\n🔄 Redirecting you to the Wallet & Coin Purchase Dashboard...`);
-                localStorage.setItem('returnFromWallet', 'live.html');
+                alert(`⚠️ Insufficient Balance! You need ${requiredCoins.toLocaleString()} coins.`);
                 window.location.href = 'wallet.html';
                 return false;
             }
-
             currentCoins -= requiredCoins;
             localStorage.setItem('userWalletCoins', currentCoins);
             document.getElementById('userWalletCoins').innerText = currentCoins.toLocaleString();
@@ -361,87 +301,23 @@
 
         function startLiveBroadcastSession() {
             document.getElementById('liveSetupPanel').style.display = 'none';
-            document.getElementById('activeLiveView').style.display = 'block';
-            let size = document.getElementById('setupRoomSize').value;
-            renderLiveRooms(size);
+            document.getElementById('setupTopBar').style.display = 'none';
+            document.getElementById('activeLiveView').style.display = 'flex';
 
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(stream => {
                     liveStreamObj = stream;
-                    let hostVideo = document.getElementById('roomVideo_1');
-                    if(hostVideo) {
-                        hostVideo.srcObject = stream;
-                        hostVideo.style.display = 'block';
-                    }
+                    let hostVideo = document.getElementById('activeRoomVideo');
+                    if(hostVideo) { hostVideo.srcObject = stream; }
                 })
                 .catch(err => alert('Camera & Microphone access required.'));
-        }
-
-        function renderLiveRooms(size) {
-            let container = document.getElementById('dynamicRoomsContainer');
-            let sizeNum = parseInt(size);
-            let gridClass = sizeNum === 1 ? 'grid-1' : (sizeNum === 4 ? 'grid-4' : 'grid-10');
-            container.className = `live-rooms-grid ${gridClass}`;
-            
-            let html = '';
-            for(let i=1; i<=sizeNum; i++) {
-                let title = (i === 1) ? '👑 Host (You)' : `+ Invite / Seat ${i}`;
-                let activeClass = (i === 1) ? 'active' : '';
-                html += `
-                    <div class="live-room-box ${activeClass}" id="roomBox_${i}" ondblclick="toggleRoomFullscreen(${i})" onclick="handleRoomClick(${i})">
-                        <span class="seat-num-badge">#${i}</span>
-                        <video class="room-video-el" id="roomVideo_${i}" autoplay playsinline muted></video>
-                        <div class="room-info-overlay" id="roomOverlay_${i}">
-                            <span style="font-size:15px;">${i===1?'👑':'➕'}</span>
-                            <span>${title}</span>
-                        </div>
-                    </div>
-                `;
-            }
-            container.innerHTML = html;
-        }
-
-        function toggleRoomFullscreen(roomNum) {
-            let box = document.getElementById(`roomBox_${roomNum}`);
-            if (box.classList.contains('fullscreen')) {
-                box.classList.remove('fullscreen');
-            } else {
-                document.querySelectorAll('.live-room-box').forEach(b => b.classList.remove('fullscreen'));
-                box.classList.add('fullscreen');
-            }
-        }
-
-        function handleRoomClick(roomNum) {
-            if (roomNum !== 1) {
-                selectedSeatForInvite = roomNum;
-                document.getElementById('inviteFriendsModal').style.display = 'flex';
-            }
-        }
-
-        function assignFriendToSeat(friendName) {
-            closeModal('inviteFriendsModal');
-            let overlay = document.getElementById(`roomOverlay_${selectedSeatForInvite}`);
-            let box = document.getElementById(`roomBox_${selectedSeatForInvite}`);
-            let videoEl = document.getElementById(`roomVideo_${selectedSeatForInvite}`);
-            
-            overlay.innerHTML = `<span style="font-size:13px; color:#25f4ee; font-weight:bold;">🎙️ ${friendName}</span><span style="font-size:9px; color:#ffcc00;">Connected</span>`;
-            box.classList.add('active');
-            
-            if(liveStreamObj) {
-                videoEl.srcObject = liveStreamObj;
-                videoEl.style.display = 'block';
-            }
-
-            let area = document.getElementById('liveChatScrollArea');
-            area.innerHTML += `<div style="color:#25f4ee;"><b>System:</b> ${friendName} joined room seat #${selectedSeatForInvite}! 🎙️</div>`;
-            area.scrollTop = area.scrollHeight;
         }
 
         function nativeShareLiveRoom() {
             if (navigator.share) {
                 navigator.share({ title: 'Star New Star LIVE', text: 'Join my live room right now! 🔥', url: window.location.href });
             } else {
-                alert('📋 Link copied to clipboard to share with friends!');
+                alert('📋 Link copied to clipboard!');
                 navigator.clipboard.writeText(window.location.href);
             }
         }
@@ -455,9 +331,7 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        function handleLiveChatKey(e) {
-            if (e.key === 'Enter') { sendLiveComment(); }
-        }
+        function handleLiveChatKey(e) { if (e.key === 'Enter') { sendLiveComment(); } }
 
         function sendLiveLike() {
             likePoints += 1;
@@ -467,59 +341,29 @@
 
         function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
         function openTreasureModal() { document.getElementById('treasureModal').style.display = 'flex'; }
-        
         function openPkBattleModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
-        function openPkFriendInviteList() {
-            closeModal('pkBattleModal');
-            document.getElementById('pkFriendModal').style.display = 'flex';
-        }
+        function openModSettingsModal() { document.getElementById('modSettingsModal').style.display = 'flex'; }
 
         function startGlobalPkSearch() {
             closeModal('pkBattleModal');
-            let searchModal = document.getElementById('globalSearchModal');
-            let progressBar = document.getElementById('searchProgressBar');
-            let statusText = document.getElementById('searchStatusText');
-            searchModal.style.display = 'flex';
-            progressBar.style.width = '10%';
-            statusText.innerText = "Scanning live rooms across the world...";
-
-            let globalOpponents = ["Vikash Star (India)", "Aarav Live (Nepal)", "Kavita Dance Hub", "Super Star Dan (Dubai)", "Neha Viral Official"];
-            let randomOpponent = globalOpponents[Math.floor(Math.random() * globalOpponents.length)];
-
-            setTimeout(() => { progressBar.style.width = '50%'; statusText.innerText = "Found opponent! Connecting signal..."; }, 800);
-            setTimeout(() => { progressBar.style.width = '90%'; statusText.innerText = `Matched with ${randomOpponent}! Starting battle...`; }, 1600);
-            
-            setTimeout(() => {
-                closeModal('globalSearchModal');
-                startPkWithOpponent(randomOpponent);
-            }, 2200);
+            startPkWithOpponent("Vikash Star (Global)");
         }
 
         function startPkWithOpponent(opponentName) {
-            closeModal('pkFriendModal');
             closeModal('pkBattleModal');
             isPkActive = true; 
             myPkPoints = 0;
-            
             document.getElementById('pkScoreboard').style.display = 'flex';
             document.getElementById('rivalNameDisplay').innerText = opponentName;
-            document.getElementById('myPkScore').innerText = myPkPoints;
+            document.getElementById('myPkScore').innerText = 0;
             document.getElementById('rivalPkScore').innerText = 0;
-            
-            alert(`⚔️ PK Battle successfully connected with ${opponentName}!\nSend gifts or likes to score points! 🔥`);
-            
             let area = document.getElementById('liveChatScrollArea');
-            area.innerHTML += `<div style="color:#ffcc00;">⚔️ <b>PK System:</b> Battle started against <b>${opponentName}</b>! Send likes & gifts to win! 🔥</div>`;
-            area.scrollTop = area.scrollHeight;
+            area.innerHTML += `<div style="color:#ffcc00;">⚔️ <b>PK Battle:</b> Connected against <b>${opponentName}</b>! 🔥</div>`;
         }
-
-        function openModSettingsModal() { document.getElementById('modSettingsModal').style.display = 'flex'; }
 
         function sendTiktokGift(name, icon, cost) {
             if (!checkAndDeductCoins(cost)) return;
-            alert(`🎉 Success! You sent ${icon} ${name} (-${cost} Coins)!`);
             if(isPkActive) { myPkPoints += cost * 2; document.getElementById('myPkScore').innerText = myPkPoints; }
-            
             let area = document.getElementById('liveChatScrollArea');
             area.innerHTML += `<div style="color:#ffcc00;"><b>System:</b> Sent ${icon} ${name} (-${cost} Coins) 🎁</div>`;
             area.scrollTop = area.scrollHeight;
@@ -547,12 +391,12 @@
                 timeLeft: timerSeconds
             };
 
-            let gullakEl = document.getElementById('activeTreasureBanner');
+            let banner = document.getElementById('activeTreasureBanner');
             let timerSpan = document.getElementById('bannerTimer');
             let actionText = document.getElementById('treasureActionText');
 
-            gullakEl.style.display = 'flex';
-            gullakEl.classList.add('gullak-spinning');
+            banner.style.display = 'flex';
+            banner.classList.add('gullak-spinning');
             actionText.innerText = `Gullak`;
 
             if(activeTreasureData.timerInterval) clearInterval(activeTreasureData.timerInterval);
@@ -564,7 +408,7 @@
                     timerSpan.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
                     activeTreasureData.timeLeft--;
                 } else {
-                    gullakEl.classList.remove('gullak-spinning');
+                    banner.classList.remove('gullak-spinning');
                     timerSpan.innerText = "OPEN 🎁";
                     actionText.innerText = "CLAIM";
                     actionText.style.background = "#ff4444";
@@ -573,25 +417,53 @@
             }, 1000);
 
             let area = document.getElementById('liveChatScrollArea');
-            area.innerHTML += `<div style="color:#ffcc00;">🏺 <b>System:</b> Dropped a Gullak Treasure Box of <b>${coinsVal.toLocaleString()} Coins</b>! 🔥</div>`;
-            area.scrollTop = area.scrollHeight;
+            area.innerHTML += `<div style="color:#ffcc00;">🏺 <b>System:</b> Dropped Gullak of <b>${coinsVal.toLocaleString()} Coins</b> for ${peopleVal} winners! 🔥</div>`;
         }
 
-        function claimTreasureBox() {
-            if (activeTreasureData.timeLeft <= 0) {
-                let sharePerPerson = Math.floor(activeTreasureData.coins / activeTreasureData.people);
-                alert(`🎉 Congratulations! You successfully opened the Gullak and won ${sharePerPerson} Coins! 🪙`);
-                
-                let gullakEl = document.getElementById('activeTreasureBanner');
-                gullakEl.style.display = 'none';
-                gullakEl.classList.remove('gullak-spinning');
-                
-                let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500') + sharePerPerson;
-                localStorage.setItem('userWalletCoins', currentCoins);
-                document.getElementById('userWalletCoins').innerText = currentCoins.toLocaleString();
+        function openTreasureStatusModal() {
+            let modal = document.getElementById('treasureStatusModal');
+            let infoDiv = document.getElementById('treasureDetailInfo');
+            let claimBtn = document.getElementById('modalClaimBtn');
+
+            if (!activeTreasureData.active) {
+                infoDiv.innerHTML = `⚠️ No active Gullak right now!<br>Tap the Treasure button (🎁) to drop a new Gullak for your viewers.`;
+                claimBtn.style.display = 'none';
+            } else if (activeTreasureData.timeLeft > 0) {
+                let mins = Math.floor(activeTreasureData.timeLeft / 60);
+                let secs = activeTreasureData.timeLeft % 60;
+                infoDiv.innerHTML = `
+                    🎁 <b>Gullak Treasure Box Active</b><br><br>
+                    🪙 Total Coins: <b>${activeTreasureData.coins.toLocaleString()} Coins</b><br>
+                    👥 Total Winners: <b>${activeTreasureData.people} People</b><br>
+                    ⏳ Time Remaining: <b style="color:#ffcc00;">${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}</b><br><br>
+                    <i>Please wait until the countdown ends to claim!</i>
+                `;
+                claimBtn.style.display = 'none';
             } else {
-                alert(`⏳ Gullak is locked! Please wait ${activeTreasureData.timeLeft} seconds until the timer ends.`);
+                let sharePerPerson = Math.floor(activeTreasureData.coins / activeTreasureData.people);
+                infoDiv.innerHTML = `
+                    🎉 <b>Gullak Timer Ended! Ready to Open!</b><br><br>
+                    🪙 Total Prize: <b>${activeTreasureData.coins.toLocaleString()} Coins</b><br>
+                    👥 Winners: <b>${activeTreasureData.people} People</b><br>
+                    ✨ Your Share: <b style="color:#25f4ee; font-size:14px;">+${sharePerPerson} Coins</b><br><br>
+                    <i>Click claim below to add coins directly to your wallet!</i>
+                `;
+                claimBtn.style.display = 'block';
             }
+            modal.style.display = 'flex';
+        }
+
+        function executeClaimTreasure() {
+            let sharePerPerson = Math.floor(activeTreasureData.coins / activeTreasureData.people);
+            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500') + sharePerPerson;
+            localStorage.setItem('userWalletCoins', currentCoins);
+            document.getElementById('userWalletCoins').innerText = currentCoins.toLocaleString();
+
+            document.getElementById('activeTreasureBanner').style.display = 'none';
+            activeTreasureData.active = false;
+            closeModal('treasureStatusModal');
+
+            alert(`🎉 Success! +${sharePerPerson} Coins added to your main wallet balance! 🪙`);
         }
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -600,6 +472,7 @@
             if(liveStreamObj) liveStreamObj.getTracks().forEach(t => t.stop());
             document.getElementById('activeLiveView').style.display = 'none';
             document.getElementById('liveSetupPanel').style.display = 'block';
+            document.getElementById('setupTopBar').style.display = 'flex';
         }
 
         let isMuted = false;
