@@ -30,10 +30,10 @@
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
         /* FLOATING STAR LOGO */
-        .floating-profile-bubble { position: fixed; top: 20px; right: 20px; width: 50px; height: 50px; background: linear-gradient(135deg, #fe2c55, #ffcc00); border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; z-index: 99999; box-shadow: 0 4px 20px rgba(0,0,0,0.9); border: 2px solid #fff; transition: 0.3s; touch-action: none; }
+        .floating-profile-bubble { position: fixed; top: 20px; right: 20px; width: 50px; height: 50px; background: linear-gradient(135deg, #fe2c55, #ffcc00); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; z-index: 99999; box-shadow: 0 4px 20px rgba(0,0,0,0.9); border: 2px solid #fff; transition: 0.3s; touch-action: none; }
         .floating-profile-bubble:hover { transform: scale(1.1); }
 
-        /* 🎁 FLOATING DANCING TREASURE CHEST (Top Corner during Live) */
+        /* 🎁 FLOATING DANCING TREASURE CHEST */
         .floating-treasure-chest { position: fixed; top: 80px; right: 20px; background: linear-gradient(135deg, #ff4444, #ffcc00); border: 2px solid #fff; border-radius: 50px; padding: 6px 12px; display: none; align-items: center; gap: 6px; z-index: 99988; cursor: pointer; box-shadow: 0 4px 15px rgba(255,204,0,0.6); animation: bounceChest 1.2s infinite alternate; }
         @keyframes bounceChest { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(-6px) scale(1.08); } }
         .floating-treasure-chest span { font-size: 20px; }
@@ -58,7 +58,7 @@
     <!-- GAMING SETUP PANEL -->
     <div class="studio-card" id="gamingSetupPanel">
         <div class="section-title">Pro Gaming Screen Stream</div>
-        <div class="section-desc">Launch screen stream, open your game & enjoy TikTok-style live gifting, PK battles & dancing treasure boxes!</div>
+        <div class="section-desc">Launch stream, open your game & enjoy TikTok-style live gifting, PK battles & dancing treasure boxes!</div>
         
         <label>Select or Type Game Name:</label>
         <select id="gameSelectDropdown" onchange="updateGameInput(this)">
@@ -78,10 +78,10 @@
         <button class="btn" style="background: linear-gradient(135deg, #00b4d8, #25f4ee); color:#000; margin-top:5px;" onclick="startProGamingStream()">🚀 3. Start Live Stream & Voice</button>
     </div>
 
-    <!-- FLOATING STAR LOGO -->
-    <div class="floating-profile-bubble" id="starBubbleIcon" onclick="toggleControlModal()" title="Tap to Collapse/Expand Settings">⭐</div>
+    <!-- FLOATING STAR LOGO (Always visible to open control panel) -->
+    <div class="floating-profile-bubble" id="starBubbleIcon" onclick="toggleControlModal()" title="Tap to Open Settings & Gifts">⭐</div>
 
-    <!-- 🎁 FLOATING DANCING TREASURE CHEST (Top Right Corner during Live) -->
+    <!-- 🎁 FLOATING DANCING TREASURE CHEST -->
     <div class="floating-treasure-chest" id="floatingChestWidget" onclick="openActiveChestModal()">
         <span>🎁</span>
         <div class="chest-info-text">
@@ -95,7 +95,7 @@
         <div class="modal-box" style="border-color:#00b4d8; text-align:center;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                 <span style="color:#00b4d8; font-weight:bold; font-size:13px;"><span class="pulsing-dot"></span> <span id="activeGameNameTag">FREE FIRE</span> LIVE ACTIVE</span>
-                <span style="font-size:14px; cursor:pointer; color:#ffcc00; background:#222; padding:3px 8px; border-radius:6px;" onclick="toggleControlModal()">⭐ Collapse</span>
+                <span style="font-size:14px; cursor:pointer; color:#ffcc00; background:#222; padding:3px 8px; border-radius:6px;" onclick="toggleControlModal()">✕ Close</span>
             </div>
 
             <div style="font-size:13px; color:#ffcc00; margin-bottom:12px; background:#111; padding:8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
@@ -202,7 +202,6 @@
         let micStreamObj = null;
         let isMicMuted = false;
 
-        // TREASURE CHEST SYSTEM VARIABLES
         let activeChest = null;
         let chestTimerInterval = null;
 
@@ -235,7 +234,6 @@
         ];
 
         window.onload = function() { 
-            initDraggableBubble();
             loadUserWalletCoins();
             renderMegaGiftGrid();
         };
@@ -274,7 +272,6 @@
             closeModal('realGiftModal');
         }
 
-        // 📦 DEPLOY TREASURE CHEST SYSTEM
         function deployNewTreasureChest() {
             let totalCoins = parseInt(document.getElementById('chestTotalCoins').value) || 100;
             let totalSlots = parseInt(document.getElementById('chestTotalSlots').value) || 30;
@@ -313,7 +310,6 @@
             }, 1000);
         }
 
-        // 🤲 OPEN CHEST & CLAIM REWARD TO WALLET
         function openActiveChestModal() {
             if(!activeChest) return;
 
@@ -331,10 +327,8 @@
                 return;
             }
 
-            // Calculate reward per slot (e.g. 100 coins / 30 slots = ~3 coins each)
             let rewardPerUser = Math.max(1, Math.floor(activeChest.coinsLeft / activeChest.slotsLeft));
             
-            // Add coins directly to current user's wallet
             let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
             currentCoins += rewardPerUser;
             localStorage.setItem('userWalletCoins', currentCoins);
@@ -380,6 +374,7 @@
             let gameName = document.getElementById('gameNameInput').value || 'Free Fire';
             document.getElementById('activeGameNameTag').innerText = gameName.toUpperCase();
 
+            // Try screen capture, but even if it fails/unsupported, keep the studio card & controls active!
             if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
                 navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" }, audio: true })
                 .then(screenStream => {
@@ -393,18 +388,16 @@
                     activateLiveBackground(gameName);
                 })
                 .catch(err => {
-                    alert("⚠️ Screen sharing permission was cancelled. Starting simulation mode.");
+                    // Fallback simulation mode without hiding the main setup card completely
                     activateLiveBackground(gameName);
                 });
             } else {
-                alert("⚠️ Screen capture not supported. Starting simulation mode.");
                 activateLiveBackground(gameName);
             }
         }
 
         function activateLiveBackground(gameName) {
-            document.getElementById('gamingSetupPanel').style.display = 'none';
-            document.getElementById('starBubbleIcon').style.display = 'flex';
+            // Keep setup panel visible or allow toggling via star icon so nothing disappears!
             alert('✅ Live Stream & Screen Recording Active! 🎮\n\n👉 Now go to your phone menu, open ' + gameName + ' and start playing!\n⭐ Tap the floating star logo anytime to open gifts, treasure box & settings.');
         }
 
@@ -435,29 +428,6 @@
         function toggleControlModal() {
             let modal = document.getElementById('activeGamingView');
             modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
-        }
-
-        function initDraggableBubble() {
-            let bubble = document.getElementById('starBubbleIcon');
-            let isDragging = false, startX, startY, initX, initY;
-            bubble.addEventListener('pointerdown', function(e) {
-                isDragging = true; startX = e.clientX; startY = e.clientY;
-                let rect = bubble.getBoundingClientRect();
-                initX = rect.left; initY = rect.top;
-                bubble.setPointerCapture(e.pointerId);
-            });
-            bubble.addEventListener('pointermove', function(e) {
-                if(!isDragging) return;
-                bubble.style.left = (initX + (e.clientX - startX)) + 'px';
-                bubble.style.top = (initY + (e.clientY - startY)) + 'px';
-                bubble.style.right = 'auto';
-            });
-            bubble.addEventListener('pointerup', function(e) {
-                if(Math.abs(e.clientX - startX) < 5 && Math.abs(e.clientY - startY) < 5) {
-                    toggleControlModal();
-                }
-                isDragging = false;
-            });
         }
 
         function openRealGiftModal() { 
@@ -505,11 +475,8 @@
         function stopGameStreamSession() {
             if(screenStreamObj) screenStreamObj.getTracks().forEach(t => t.stop());
             if(micStreamObj) micStreamObj.getTracks().forEach(t => t.stop());
-            document.getElementById('starBubbleIcon').style.display = 'none';
-            document.getElementById('activeGamingView').style.display = 'none';
             document.getElementById('floatingChestWidget').style.display = 'none';
             if(chestTimerInterval) clearInterval(chestTimerInterval);
-            document.getElementById('gamingSetupPanel').style.display = 'block';
             alert('⏹️ Live stream ended successfully.');
         }
     </script>
