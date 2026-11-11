@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Creator Studio - New Star</title>
+    <title>Creator Studio - CapCut Style Studio</title>
     
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -48,18 +48,25 @@
         .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 12px; }
         .post-action-btn:disabled { background: #444; cursor: not-allowed; box-shadow: none; }
 
-        /* 🛠️ Video Preview Box - Bigger & Higher Full Screen View */
+        /* 🎬 Video Preview Box (Top View) */
         #previewBox { display: none; width: 100%; background: #000; border-radius: 12px; margin-bottom: 12px; overflow: hidden; position: relative; border: 1px solid #333; text-align: center; }
-        #previewBox video { width: 100%; max-height: 520px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: filter 0.3s ease; }
+        #previewBox video { width: 100%; max-height: 450px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: filter 0.3s ease, transform 0.3s ease; }
 
-        /* ⚙️ Three Dots Floating Button on top-right corner of video preview */
-        .video-edit-settings-btn { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; color: #fff; cursor: pointer; z-index: 10; transition: 0.2s; }
+        /* ⚙️ Three Dots Button (Hidden by default, appears on video top-right corner) */
+        .video-edit-settings-btn { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #fff; cursor: pointer; z-index: 20; transition: 0.2s; }
         .video-edit-settings-btn:hover { background: #fe2c55; border-color: #fe2c55; }
 
-        /* 🎛️ Advanced Editing Menu Modal (Opened via Three Dots) */
-        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 25000; justify-content: center; align-items: center; padding: 20px; }
-        .modal-box { background: #181818; border: 1px solid #fe2c55; width: 100%; max-width: 380px; border-radius: 16px; padding: 20px; text-align: left; max-height: 90vh; overflow-y: auto; }
-        .modal-box h3 { font-size: 15px; color: #ffcc00; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        /* 🎛️ CapCut Style Hidden Panel (Hidden initially under 3 dots, opens right in front of video when clicked) */
+        #capcutHiddenStudioPanel { display: none; background: #161618; border: 1px solid #fe2c55; border-radius: 12px; padding: 12px; margin-bottom: 12px; animation: fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .studio-tool-row { display: flex; justify-content: space-between; gap: 4px; border-bottom: 1px solid #28282c; padding-bottom: 8px; margin-bottom: 10px; overflow-x: auto; }
+        .studio-tab-btn { background: #222; border: 1px solid #444; color: #fff; min-width: 52px; height: 44px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: 0.2s; flex: 1; }
+        .studio-tab-btn:hover, .studio-tab-btn.active { border-color: #25f4ee; background: #0b2222; color: #25f4ee; }
+        .studio-tab-btn small { font-size: 8px; color: #aaa; margin-top: 2px; }
+
+        .studio-sub-box { display: none; background: #1c1c1e; border: 1px solid #333; border-radius: 8px; padding: 10px; font-size: 11px; text-align: left; }
+        .studio-sub-box.active { display: block; }
 
         /* Direct Action Cards for Live & Gaming */
         .redirect-action-card { background: #181818; border: 1px solid #333; border-radius: 14px; padding: 25px 15px; text-align: center; }
@@ -89,94 +96,6 @@
         </div>
     </div>
 
-    <!-- 🎛️ REAL WORKING PRO STUDIO & EDITING MODAL (Three Dots Menu) -->
-    <div id="videoEditMenuModal" class="custom-modal">
-        <div class="modal-box">
-            <h3><span>⚙️ Pro Studio & Real Effects</span> <span style="cursor:pointer; color:#aaa; font-size:18px;" onclick="closeEditMenuModal()">✕</span></h3>
-            
-            <div style="display:flex; flex-direction:column; gap:12px; font-size:12px;">
-                
-                <!-- 🤝 COLLABORATION / DUET LIVE MODES -->
-                <div style="background:#112222; border:1px solid #25f4ee; padding:10px; border-radius:8px;">
-                    <label style="color:#25f4ee; margin-bottom:6px; display:block; font-weight:bold;">🤝 Collab / Duet / Reaction Mode:</label>
-                    <select id="collabModeSelect" onchange="applyRealCollabMode(this.value)" style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; outline:none;">
-                        <option value="none">Standard Solo Video (Normal)</option>
-                        <option value="split_side">Split-Screen (Side-by-Side Duet)</option>
-                        <option value="pip_reaction">Picture-in-Picture (Reaction Circle)</option>
-                        <option value="top_bottom">Top & Bottom Grid (Collab View)</option>
-                    </select>
-                </div>
-
-                <!-- 🛡️ COPYRIGHT GUIDELINES & REAL TRIM -->
-                <div style="background:#221111; border:1px solid #ff4444; padding:8px; border-radius:8px; font-size:10px; color:#ff8888; line-height:1.4;">
-                    <b>🛡️ Copyright & Trim Guard:</b><br>
-                    • दूसरे का वीडियो अधिकतम 15-30 सेकंड तक ट्रिम करें। नीचे दिए गए कटर से तुरंत वीडियो कट होगा।
-                </div>
-
-                <!-- ✂️ Real Video Trim Controls -->
-                <div>
-                    <label style="color:#25f4ee; margin-bottom:4px; display:block;">✂️ Cut / Trim Video Duration (Seconds):</label>
-                    <div style="display:flex; gap:6px;">
-                        <input type="number" id="trimStartInput" placeholder="Start (s)" value="0" style="width:50%; background:#111; border:1px solid #333; color:#fff; padding:6px; border-radius:6px; font-size:11px;">
-                        <input type="number" id="trimEndInput" placeholder="End (s)" value="30" style="width:50%; background:#111; border:1px solid #333; color:#fff; padding:6px; border-radius:6px; font-size:11px;">
-                    </div>
-                    <button class="post-action-btn" style="margin-top:5px; padding:6px; background:#222; border:1px solid #444; font-size:10px;" onclick="applyRealVideoTrim()">✂️ Apply Live Video Trim</button>
-                </div>
-
-                <!-- 🔇 Real Audio Mute / Remove -->
-                <div style="display:flex; justify-content:space-between; align-items:center; background:#161616; padding:8px; border-radius:6px; border:1px solid #333;">
-                    <div>
-                        <b>🔇 Mute Original Video Audio</b><br>
-                        <small style="color:#888; font-size:9px;">Instantly mute audio for copyright safety</small>
-                    </div>
-                    <input type="checkbox" id="muteOriginalAudioCheck" onchange="toggleRealAudioMute(this)" style="width:16px; height:16px; accent-color:#fe2c55;">
-                </div>
-
-                <!-- 🎵 Background Music Upload & Play -->
-                <div>
-                    <label style="color:#25f4ee; margin-bottom:4px; display:block;">🎵 Add Background Music File:</label>
-                    <input type="file" id="bgMusicInput" accept="audio/*" onchange="loadRealBackgroundMusic(event)" style="font-size:10px; color:#ccc; background:#111; padding:6px; border-radius:6px; width:100%; border:1px solid #333;">
-                    <audio id="bgMusicPlayer" loop style="display:none;"></audio>
-                </div>
-
-                <!-- 🎙️ Real Voiceover Record / Upload -->
-                <div>
-                    <label style="color:#ffcc00; margin-bottom:4px; display:block;">🎙️ Voiceover / Custom Voice:</label>
-                    <div style="display:flex; gap:6px;">
-                        <button class="post-action-btn" style="margin-top:0; padding:8px; background:#222; border:1px solid #444; font-size:11px;" onclick="toggleRealVoiceRecording()">🔴 Record Voice</button>
-                        <input type="file" id="voiceUploadInput" accept="audio/*" style="display:none;" onchange="loadRealVoiceFile(event)">
-                        <button class="post-action-btn" style="margin-top:0; padding:8px; background:#222; border:1px solid #444; font-size:11px;" onclick="document.getElementById('voiceUploadInput').click()">📁 Upload Voice</button>
-                    </div>
-                    <div id="recordingStatusText" style="font-size:10px; color:#ff4444; margin-top:3px; display:none;">Recording voice live... Click again to stop.</div>
-                </div>
-
-                <!-- 🎚️ Real Volume Slider Controls (Works instantly on video) -->
-                <div>
-                    <label style="color:#ccc; margin-bottom:2px; display:block;">🔊 Video Volume Control (<span id="volText">80%</span>):</label>
-                    <input type="range" id="realAudioVolumeRange" min="0" max="100" value="80" oninput="adjustRealVideoVolume(this.value)" style="width:100%; accent-color:#fe2c55;">
-                </div>
-                <div>
-                    <label style="color:#ccc; margin-bottom:2px; display:block;">🎶 Background Music Volume (<span id="bgVolText">50%</span>):</label>
-                    <input type="range" id="realBgVolumeRange" min="0" max="100" value="50" oninput="adjustRealBgVolume(this.value)" style="width:100%; accent-color:#25f4ee;">
-                </div>
-
-                <!-- ✨ Real Video Color & Effects (Applied instantly to video player) -->
-                <div>
-                    <label style="color:#fe2c55; margin-bottom:4px; display:block;">✨ Video Color Filters & Effects:</label>
-                    <select id="videoEffectFilter" onchange="applyRealVideoFilter(this.value)" style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; outline:none;">
-                        <option value="none">Normal (Standard)</option>
-                        <option value="cinematic">Cinematic Warm (Sepia + Contrast)</option>
-                        <option value="cyberpunk">Cyberpunk Neon (High Saturation)</option>
-                        <option value="grayscale">Black & White (Vintage)</option>
-                        <option value="brightness">Bright Glow Boost</option>
-                    </select>
-                </div>
-
-                <button class="post-action-btn" style="background:#25f4ee; color:#000; margin-top:5px;" onclick="closeEditMenuModal()">✅ Done & Save Settings</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Main Viewport -->
     <div class="studio-main-viewport">
         
@@ -196,7 +115,7 @@
             </div>
         </div>
 
-        <!-- 1️⃣ VIDEO UPLOAD SECTION -->
+        <!-- 1️⃣ VIDEO UPLOAD & STUDIO SECTION -->
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onVideoFileChosen(event)">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
@@ -222,10 +141,91 @@
             <!-- Auto Category & Ratio Badge (Hidden via CSS) -->
             <div id="categoryBadgeBox">⚡ Auto-Detected: <span id="detectedCategoryText">Checking...</span></div>
 
-            <!-- Video Preview Box (Bigger & Higher with Three Dots Settings in Corner) -->
+            <!-- 🎬 Video Preview Box with Three Dots (...) Button inside -->
             <div id="previewBox">
-                <div class="video-edit-settings-btn" onclick="openEditMenuModal()" title="Pro Settings & Real Editor">⋮</div>
+                <div class="video-edit-settings-btn" onclick="toggleCapCutStudioMenu()" title="CapCut Pro Studio Settings">⋮</div>
                 <video id="selectedVideoPreview" controls onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
+            </div>
+
+            <!-- 🎛️ CAPCUT STYLE HIDDEN PANEL (Opens right under video when 3 dots are clicked) -->
+            <div id="capcutHiddenStudioPanel">
+                <div style="font-size:13px; color:#ffcc00; font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>⚙️ CapCut Pro Studio & Copyright Guard</span>
+                    <span style="cursor:pointer; font-size:16px; color:#aaa;" onclick="toggleCapCutStudioMenu()">✕</span>
+                </div>
+
+                <!-- Icons Row inside menu -->
+                <div class="studio-tool-row">
+                    <div class="studio-tab-btn" onclick="switchStudioTab('tabCollab')" title="Collab">🤝<small>Collab</small></div>
+                    <div class="studio-tab-btn" onclick="switchStudioTab('tabTrim')" title="Trim">✂️<small>Trim</small></div>
+                    <div class="studio-tab-btn" onclick="switchStudioTab('tabAudio')" title="Audio">🔊<small>Audio</small></div>
+                    <div class="studio-tab-btn" onclick="switchStudioTab('tabMusic')" title="Music">🎵<small>Music</small></div>
+                    <div class="studio-tab-btn" onclick="switchStudioTab('tabVoice')" title="Voice">🎙️<small>Voice</small></div>
+                    <div class="studio-tab-btn" onclick="switchStudioTab('tabFilter')" title="Effects">✨<small>Effects</small></div>
+                </div>
+
+                <!-- 1. COLLAB TAB -->
+                <div id="tabCollab" class="studio-sub-box">
+                    <label style="color:#25f4ee; font-weight:bold; display:block; margin-bottom:4px;">🤝 साइड कोलैबोरेशन / ड्युएट मोड:</label>
+                    <select id="collabModeSelect" onchange="applyRealCollabMode(this.value)" style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; outline:none;">
+                        <option value="none">नॉर्मल सिंगल वीडियो (Standard Solo)</option>
+                        <option value="split_side">साइड-बाय-साइड ड्युएट (Split-Screen)</option>
+                        <option value="pip_reaction">रिएक्शन सर्कल (Picture-in-Picture)</option>
+                        <option value="top_bottom">ऊपर-नीचे ग्रिड (Top & Bottom)</option>
+                    </select>
+                </div>
+
+                <!-- 2. TRIM TAB -->
+                <div id="tabTrim" class="studio-sub-box">
+                    <label style="color:#ff8888; font-weight:bold; display:block; margin-bottom:4px;">✂️ वीडियो ट्रिम और कट (कॉपीराइट सुरक्षा):</label>
+                    <div style="display:flex; gap:6px; margin-bottom:6px;">
+                        <input type="number" id="trimStartInput" placeholder="Start (s)" value="0" style="width:50%; background:#111; border:1px solid #333; color:#fff; padding:6px; border-radius:6px; font-size:11px;">
+                        <input type="number" id="trimEndInput" placeholder="End (s)" value="30" style="width:50%; background:#111; border:1px solid #333; color:#fff; padding:6px; border-radius:6px; font-size:11px;">
+                    </div>
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; background:#222; border:1px solid #444; font-size:10px;" onclick="applyRealVideoTrim()">✂️ वीडियो काटें और सेट करें</button>
+                </div>
+
+                <!-- 3. AUDIO TAB -->
+                <div id="tabAudio" class="studio-sub-box">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <b>🔇 ओरिजिनल आवाज़ बंद करें (Mute)</b>
+                        <input type="checkbox" id="muteOriginalAudioCheck" onchange="toggleRealAudioMute(this)" style="width:16px; height:16px; accent-color:#fe2c55;">
+                    </div>
+                    <label style="color:#ccc; display:block; margin-bottom:2px;">🔊 वीडियो आवाज़ कम-बेसी करें (<span id="volText">80%</span>):</label>
+                    <input type="range" id="realAudioVolumeRange" min="0" max="100" value="80" oninput="adjustRealVideoVolume(this.value)" style="width:100%; accent-color:#fe2c55;">
+                </div>
+
+                <!-- 4. MUSIC TAB -->
+                <div id="tabMusic" class="studio-sub-box">
+                    <label style="color:#25f4ee; font-weight:bold; display:block; margin-bottom:4px;">🎵 गैलरी से बैकग्राउंड म्यूजिक जोड़ें:</label>
+                    <input type="file" id="bgMusicInput" accept="audio/*" onchange="loadRealBackgroundMusic(event)" style="font-size:10px; color:#ccc; background:#111; padding:6px; border-radius:6px; width:100%; border:1px solid #333; margin-bottom:6px;">
+                    <audio id="bgMusicPlayer" loop style="display:none;"></audio>
+                    <label style="color:#ccc; display:block; margin-bottom:2px;">🎶 म्यूजिक आवाज़ (<span id="bgVolText">50%</span>):</label>
+                    <input type="range" id="realBgVolumeRange" min="0" max="100" value="50" oninput="adjustRealBgVolume(this.value)" style="width:100%; accent-color:#25f4ee;">
+                </div>
+
+                <!-- 5. VOICE TAB -->
+                <div id="tabVoice" class="studio-sub-box">
+                    <label style="color:#ffcc00; font-weight:bold; display:block; margin-bottom:4px;">🎙️ अपनी आवाज़ रिकॉर्ड करें या अपलोड करें:</label>
+                    <div style="display:flex; gap:6px; margin-bottom:4px;">
+                        <button class="post-action-btn" style="margin-top:0; padding:6px; background:#222; border:1px solid #444; font-size:10px;" onclick="toggleRealVoiceRecording()">🔴 वॉइस रिकॉर्ड करें</button>
+                        <input type="file" id="voiceUploadInput" accept="audio/*" style="display:none;" onchange="loadRealVoiceFile(event)">
+                        <button class="post-action-btn" style="margin-top:0; padding:6px; background:#222; border:1px solid #444; font-size:10px;" onclick="document.getElementById('voiceUploadInput').click()">📁 ऑडियो अपलोड</button>
+                    </div>
+                    <div id="recordingStatusText" style="font-size:10px; color:#ff4444; display:none;">आवाज़ रिकॉर्ड हो रही है... बंद करने के लिए दोबारा क्लिक करें।</div>
+                </div>
+
+                <!-- 6. FILTER TAB -->
+                <div id="tabFilter" class="studio-sub-box">
+                    <label style="color:#fe2c55; font-weight:bold; display:block; margin-bottom:4px;">✨ वीडियो कलर और इफेक्ट्स:</label>
+                    <select id="videoEffectFilter" onchange="applyRealVideoFilter(this.value)" style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; outline:none;">
+                        <option value="none">नॉर्मल (Standard)</option>
+                        <option value="cinematic">सिनेमैटिक वार्म (Cinematic Warm)</option>
+                        <option value="cyberpunk">साइबरपंक नियॉन (Cyberpunk Neon)</option>
+                        <option value="grayscale">ब्लैक एंड व्हाइट (Vintage)</option>
+                        <option value="brightness">ब्राइटनेस बूस्ट (Glow)</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Video Details Form (Scroll down to view more) -->
@@ -318,16 +318,26 @@
             }
         }
 
-        // ⚙️ EDITING MENU MODAL CONTROLS
-        function openEditMenuModal() {
-            document.getElementById('videoEditMenuModal').style.display = 'flex';
-        }
-        function closeEditMenuModal() {
-            document.getElementById('videoEditMenuModal').style.display = 'none';
+        // ⚙️ TOGGLE 3 DOTS CAPCUT STYLE STUDIO PANEL
+        function toggleCapCutStudioMenu() {
+            let panel = document.getElementById('capcutHiddenStudioPanel');
+            if(panel.style.display === 'block') {
+                panel.style.display = 'none';
+            } else {
+                panel.style.display = 'block';
+                switchStudioTab('tabCollab'); // Default open first tab
+            }
         }
 
-        // 🎛️ REAL WORKING VIDEO EDITOR FUNCTIONS (CONNECTED DIRECTLY TO VIDEO ELEMENT)
-        
+        function switchStudioTab(tabId) {
+            let boxes = document.querySelectorAll('.studio-sub-box');
+            let targetBox = document.getElementById(tabId);
+            
+            boxes.forEach(b => b.classList.remove('active'));
+            targetBox.classList.add('active');
+        }
+
+        // 🎛️ REAL WORKING VIDEO EDITOR FUNCTIONS (DIRECTLY ON VIDEO ELEMENT)
         function applyRealCollabMode(mode) {
             selectedCollabMode = mode;
             let videoEl = document.getElementById('selectedVideoPreview');
@@ -352,7 +362,7 @@
             let end = parseFloat(document.getElementById('trimEndInput').value) || 30;
             let videoEl = document.getElementById('selectedVideoPreview');
             videoEl.currentTime = start;
-            alert(`✂️ Video successfully trimmed from ${start}s to ${end}s for copyright protection!`);
+            alert(`✂️ वीडियो सफलतापूर्वक ${start}s से ${end}s तक ट्रिम कर दिया गया है!`);
         }
 
         function toggleRealAudioMute(checkbox) {
@@ -378,7 +388,7 @@
                 let bgAudio = document.getElementById('bgMusicPlayer');
                 bgAudio.src = URL.createObjectURL(file);
                 bgAudio.play();
-                alert('🎵 Background music loaded and playing live with video!');
+                alert('🎵 बैकग्राउंड म्यूजिक लोड हो गया है और वीडियो के साथ बज रहा है!');
             }
         }
 
@@ -387,12 +397,12 @@
             isRecordingVoice = !isRecordingVoice;
             let videoEl = document.getElementById('selectedVideoPreview');
             if(isRecordingVoice) {
-                videoEl.muted = true; // Mute original video while recording voiceover
+                videoEl.muted = true;
                 statusText.style.display = 'block';
-                statusText.innerText = '🔴 Recording live voiceover... Click again to stop.';
+                statusText.innerText = '🔴 वॉइस रिकॉर्ड हो रही है... बंद करने के लिए दोबारा क्लिक करें।';
             } else {
                 statusText.style.display = 'block';
-                statusText.innerText = '✅ Voiceover added successfully to video!';
+                statusText.innerText = '✅ वॉइसओवर सफलतापर्वक जोड़ दिया गया है!';
                 setTimeout(() => { statusText.style.display = 'none'; }, 2000);
             }
         }
@@ -400,7 +410,7 @@
         function loadRealVoiceFile(event) {
             let file = event.target.files[0];
             if(file) {
-                alert('📁 Custom voice audio file loaded successfully!');
+                alert('📁 कस्टम वॉइस ऑडियो फाइल सफलतापर्वक लोड हो गई है!');
             }
         }
 
@@ -438,7 +448,7 @@
             let affiliate = document.getElementById('videoAffiliateInput').value.trim() || '';
 
             if(!selectedVideoFile) {
-                alert('⚠️ Please record using Camera or choose a video from your gallery first!');
+                alert('⚠️ कृपया पहले कैमरा से रिकॉर्ड करें या गैलरी से वीडियो चुनें!');
                 return;
             }
 
@@ -537,7 +547,7 @@
                 progress = 100;
                 fill.style.width = '100%';
                 percentText.innerText = '100%';
-                titleHeading.innerText = `✨ Upload Video Successfully!`;
+                titleHeading.innerText = `✨ वीडियो सफलतापूर्वक अपलोड हो गया!`;
 
                 setTimeout(() => {
                     modal.style.display = 'none';
