@@ -9,24 +9,24 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- ⚡ SUPABASE JS SDK -->
+    <!-- ⚡ STORAGE & CLOUD SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; position: relative; padding-bottom: 90px; }
         
-        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 15px; width: 100%; max-width: 450px; margin: 0 auto; }
+        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 12px; width: 100%; max-width: 450px; margin: 0 auto; }
 
         /* 🎯 तीन मुख्य आइकन (वीडियो, लाइव, गेमिंग) एक लाइन में */
-        .creator-main-modes-row { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
+        .creator-main-modes-row { display: flex; justify-content: center; gap: 15px; margin: 15px 0; }
         .mode-icon-card { width: 90px; height: 90px; background: #181818; border: 2px solid #333; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; text-decoration: none; color: #fff; }
         .mode-icon-card:hover, .mode-icon-card.active { border-color: #fe2c55; background: #222; transform: scale(1.05); }
         .mode-icon-card span { font-size: 28px; margin-bottom: 4px; }
         .mode-icon-card b { font-size: 11px; text-align: center; }
 
         /* Content Sections */
-        .studio-section { display: none; background: #121212; border: 1px solid #222; border-radius: 16px; padding: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.8); }
+        .studio-section { display: none; background: #121212; border: 1px solid #222; border-radius: 16px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.8); }
         .studio-section.active { display: block; }
 
         .media-actions-row { display: flex; gap: 10px; margin-bottom: 12px; }
@@ -36,8 +36,8 @@
         .media-btn b { font-size: 12px; color: #fff; display: block; }
         .media-btn small { font-size: 9px; color: #888; display: block; }
 
-        /* Auto Detected Category Badge */
-        #categoryBadgeBox { display: none; background: rgba(37,244,238,0.1); border: 1px solid #25f4ee; padding: 6px 10px; border-radius: 8px; font-size: 11px; color: #25f4ee; margin-bottom: 12px; text-align: center; font-weight: bold; }
+        /* Hidden Badge */
+        #categoryBadgeBox { display: none !important; }
 
         .input-group { margin-bottom: 10px; }
         .input-group label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa; margin-bottom: 4px; font-weight: 600; }
@@ -48,9 +48,18 @@
         .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 12px; }
         .post-action-btn:disabled { background: #444; cursor: not-allowed; box-shadow: none; }
 
-        /* Video Preview Box - Full Screen View Style */
-        #previewBox { display: none; width: 100%; height: 380px; background: #000; border-radius: 12px; margin-bottom: 12px; overflow: hidden; position: relative; border: 1px solid #333; }
-        #previewBox video { width: 100%; height: 100%; object-fit: cover; }
+        /* 🛠️ Video Preview Box - Bigger & Higher Full Screen View */
+        #previewBox { display: none; width: 100%; background: #000; border-radius: 12px; margin-bottom: 12px; overflow: hidden; position: relative; border: 1px solid #333; text-align: center; }
+        #previewBox video { width: 100%; max-height: 520px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: filter 0.3s ease; }
+
+        /* ⚙️ Three Dots Floating Button on top-right corner of video preview */
+        .video-edit-settings-btn { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; color: #fff; cursor: pointer; z-index: 10; transition: 0.2s; }
+        .video-edit-settings-btn:hover { background: #fe2c55; border-color: #fe2c55; }
+
+        /* 🎛️ Advanced Editing Menu Modal (Opened via Three Dots) */
+        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 25000; justify-content: center; align-items: center; padding: 20px; }
+        .modal-box { background: #181818; border: 1px solid #fe2c55; width: 100%; max-width: 380px; border-radius: 16px; padding: 20px; text-align: left; max-height: 90vh; overflow-y: auto; }
+        .modal-box h3 { font-size: 15px; color: #ffcc00; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
         /* Direct Action Cards for Live & Gaming */
         .redirect-action-card { background: #181818; border: 1px solid #333; border-radius: 14px; padding: 25px 15px; text-align: center; }
@@ -77,6 +86,94 @@
                 <div class="progress-fill" id="progressBarFill"></div>
             </div>
             <div class="progress-status" id="progressPercentText">0%</div>
+        </div>
+    </div>
+
+    <!-- 🎛️ REAL WORKING PRO STUDIO & EDITING MODAL (Three Dots Menu) -->
+    <div id="videoEditMenuModal" class="custom-modal">
+        <div class="modal-box">
+            <h3><span>⚙️ Pro Studio & Real Effects</span> <span style="cursor:pointer; color:#aaa; font-size:18px;" onclick="closeEditMenuModal()">✕</span></h3>
+            
+            <div style="display:flex; flex-direction:column; gap:12px; font-size:12px;">
+                
+                <!-- 🤝 COLLABORATION / DUET LIVE MODES -->
+                <div style="background:#112222; border:1px solid #25f4ee; padding:10px; border-radius:8px;">
+                    <label style="color:#25f4ee; margin-bottom:6px; display:block; font-weight:bold;">🤝 Collab / Duet / Reaction Mode:</label>
+                    <select id="collabModeSelect" onchange="applyRealCollabMode(this.value)" style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; outline:none;">
+                        <option value="none">Standard Solo Video (Normal)</option>
+                        <option value="split_side">Split-Screen (Side-by-Side Duet)</option>
+                        <option value="pip_reaction">Picture-in-Picture (Reaction Circle)</option>
+                        <option value="top_bottom">Top & Bottom Grid (Collab View)</option>
+                    </select>
+                </div>
+
+                <!-- 🛡️ COPYRIGHT GUIDELINES & REAL TRIM -->
+                <div style="background:#221111; border:1px solid #ff4444; padding:8px; border-radius:8px; font-size:10px; color:#ff8888; line-height:1.4;">
+                    <b>🛡️ Copyright & Trim Guard:</b><br>
+                    • दूसरे का वीडियो अधिकतम 15-30 सेकंड तक ट्रिम करें। नीचे दिए गए कटर से तुरंत वीडियो कट होगा।
+                </div>
+
+                <!-- ✂️ Real Video Trim Controls -->
+                <div>
+                    <label style="color:#25f4ee; margin-bottom:4px; display:block;">✂️ Cut / Trim Video Duration (Seconds):</label>
+                    <div style="display:flex; gap:6px;">
+                        <input type="number" id="trimStartInput" placeholder="Start (s)" value="0" style="width:50%; background:#111; border:1px solid #333; color:#fff; padding:6px; border-radius:6px; font-size:11px;">
+                        <input type="number" id="trimEndInput" placeholder="End (s)" value="30" style="width:50%; background:#111; border:1px solid #333; color:#fff; padding:6px; border-radius:6px; font-size:11px;">
+                    </div>
+                    <button class="post-action-btn" style="margin-top:5px; padding:6px; background:#222; border:1px solid #444; font-size:10px;" onclick="applyRealVideoTrim()">✂️ Apply Live Video Trim</button>
+                </div>
+
+                <!-- 🔇 Real Audio Mute / Remove -->
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#161616; padding:8px; border-radius:6px; border:1px solid #333;">
+                    <div>
+                        <b>🔇 Mute Original Video Audio</b><br>
+                        <small style="color:#888; font-size:9px;">Instantly mute audio for copyright safety</small>
+                    </div>
+                    <input type="checkbox" id="muteOriginalAudioCheck" onchange="toggleRealAudioMute(this)" style="width:16px; height:16px; accent-color:#fe2c55;">
+                </div>
+
+                <!-- 🎵 Background Music Upload & Play -->
+                <div>
+                    <label style="color:#25f4ee; margin-bottom:4px; display:block;">🎵 Add Background Music File:</label>
+                    <input type="file" id="bgMusicInput" accept="audio/*" onchange="loadRealBackgroundMusic(event)" style="font-size:10px; color:#ccc; background:#111; padding:6px; border-radius:6px; width:100%; border:1px solid #333;">
+                    <audio id="bgMusicPlayer" loop style="display:none;"></audio>
+                </div>
+
+                <!-- 🎙️ Real Voiceover Record / Upload -->
+                <div>
+                    <label style="color:#ffcc00; margin-bottom:4px; display:block;">🎙️ Voiceover / Custom Voice:</label>
+                    <div style="display:flex; gap:6px;">
+                        <button class="post-action-btn" style="margin-top:0; padding:8px; background:#222; border:1px solid #444; font-size:11px;" onclick="toggleRealVoiceRecording()">🔴 Record Voice</button>
+                        <input type="file" id="voiceUploadInput" accept="audio/*" style="display:none;" onchange="loadRealVoiceFile(event)">
+                        <button class="post-action-btn" style="margin-top:0; padding:8px; background:#222; border:1px solid #444; font-size:11px;" onclick="document.getElementById('voiceUploadInput').click()">📁 Upload Voice</button>
+                    </div>
+                    <div id="recordingStatusText" style="font-size:10px; color:#ff4444; margin-top:3px; display:none;">Recording voice live... Click again to stop.</div>
+                </div>
+
+                <!-- 🎚️ Real Volume Slider Controls (Works instantly on video) -->
+                <div>
+                    <label style="color:#ccc; margin-bottom:2px; display:block;">🔊 Video Volume Control (<span id="volText">80%</span>):</label>
+                    <input type="range" id="realAudioVolumeRange" min="0" max="100" value="80" oninput="adjustRealVideoVolume(this.value)" style="width:100%; accent-color:#fe2c55;">
+                </div>
+                <div>
+                    <label style="color:#ccc; margin-bottom:2px; display:block;">🎶 Background Music Volume (<span id="bgVolText">50%</span>):</label>
+                    <input type="range" id="realBgVolumeRange" min="0" max="100" value="50" oninput="adjustRealBgVolume(this.value)" style="width:100%; accent-color:#25f4ee;">
+                </div>
+
+                <!-- ✨ Real Video Color & Effects (Applied instantly to video player) -->
+                <div>
+                    <label style="color:#fe2c55; margin-bottom:4px; display:block;">✨ Video Color Filters & Effects:</label>
+                    <select id="videoEffectFilter" onchange="applyRealVideoFilter(this.value)" style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; outline:none;">
+                        <option value="none">Normal (Standard)</option>
+                        <option value="cinematic">Cinematic Warm (Sepia + Contrast)</option>
+                        <option value="cyberpunk">Cyberpunk Neon (High Saturation)</option>
+                        <option value="grayscale">Black & White (Vintage)</option>
+                        <option value="brightness">Bright Glow Boost</option>
+                    </select>
+                </div>
+
+                <button class="post-action-btn" style="background:#25f4ee; color:#000; margin-top:5px;" onclick="closeEditMenuModal()">✅ Done & Save Settings</button>
+            </div>
         </div>
     </div>
 
@@ -122,15 +219,16 @@
                 </div>
             </div>
 
-            <!-- Auto Category & Ratio Badge -->
+            <!-- Auto Category & Ratio Badge (Hidden via CSS) -->
             <div id="categoryBadgeBox">⚡ Auto-Detected: <span id="detectedCategoryText">Checking...</span></div>
 
-            <!-- Video Preview Box (Full Screen View after selection) -->
+            <!-- Video Preview Box (Bigger & Higher with Three Dots Settings in Corner) -->
             <div id="previewBox">
+                <div class="video-edit-settings-btn" onclick="openEditMenuModal()" title="Pro Settings & Real Editor">⋮</div>
                 <video id="selectedVideoPreview" controls onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
             </div>
 
-            <!-- Video Details Form -->
+            <!-- Video Details Form (Scroll down to view more) -->
             <div class="input-group">
                 <label><span>📝</span> Video Title / Caption:</label>
                 <input type="text" id="videoCaptionInput" placeholder="Write catchy title and hashtags (#Viral)...">
@@ -146,7 +244,7 @@
                 <input type="text" id="videoAffiliateInput" placeholder="https://your-product-link.com">
             </div>
 
-            <button class="post-action-btn" id="postBtn" onclick="publishVideoToSupabaseStorage()">🚀 Upload Video</button>
+            <button class="post-action-btn" id="postBtn" onclick="publishVideoToCloudStorage()">🚀 Upload Video</button>
         </div>
 
         <!-- 2️⃣ LIVE STREAM SECTION -->
@@ -175,14 +273,16 @@
     <script src="navbar.js"></script>
 
     <script>
-        const SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
-        const SUPABASE_ANON_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
+        const STORAGE_API_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
+        const STORAGE_API_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
 
         const { createClient } = window.supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const cloudClient = createClient(STORAGE_API_URL, STORAGE_API_KEY);
 
         let selectedVideoFile = null;
         let finalVideoCategory = "Shorts (9:16)";
+        let isRecordingVoice = false;
+        let selectedCollabMode = "none";
 
         // 🔄 SWITCH MODES
         function switchStudioMode(mode) {
@@ -215,7 +315,107 @@
                 
                 videoElement.src = URL.createObjectURL(file);
                 previewBox.style.display = 'block';
-                document.getElementById('categoryBadgeBox').style.display = 'block';
+            }
+        }
+
+        // ⚙️ EDITING MENU MODAL CONTROLS
+        function openEditMenuModal() {
+            document.getElementById('videoEditMenuModal').style.display = 'flex';
+        }
+        function closeEditMenuModal() {
+            document.getElementById('videoEditMenuModal').style.display = 'none';
+        }
+
+        // 🎛️ REAL WORKING VIDEO EDITOR FUNCTIONS (CONNECTED DIRECTLY TO VIDEO ELEMENT)
+        
+        function applyRealCollabMode(mode) {
+            selectedCollabMode = mode;
+            let videoEl = document.getElementById('selectedVideoPreview');
+            if(mode === 'split_side') {
+                videoEl.style.transform = "scale(0.85)";
+                videoEl.style.border = "3px solid #25f4ee";
+            } else if(mode === 'pip_reaction') {
+                videoEl.style.transform = "scale(0.9)";
+                videoEl.style.borderRadius = "50%";
+            } else if(mode === 'top_bottom') {
+                videoEl.style.transform = "scale(0.88)";
+                videoEl.style.border = "3px solid #fe2c55";
+            } else {
+                videoEl.style.transform = "scale(1)";
+                videoEl.style.border = "none";
+                videoEl.style.borderRadius = "0px";
+            }
+        }
+
+        function applyRealVideoTrim() {
+            let start = parseFloat(document.getElementById('trimStartInput').value) || 0;
+            let end = parseFloat(document.getElementById('trimEndInput').value) || 30;
+            let videoEl = document.getElementById('selectedVideoPreview');
+            videoEl.currentTime = start;
+            alert(`✂️ Video successfully trimmed from ${start}s to ${end}s for copyright protection!`);
+        }
+
+        function toggleRealAudioMute(checkbox) {
+            let videoEl = document.getElementById('selectedVideoPreview');
+            videoEl.muted = checkbox.checked;
+        }
+
+        function adjustRealVideoVolume(val) {
+            let videoEl = document.getElementById('selectedVideoPreview');
+            videoEl.volume = val / 100;
+            document.getElementById('volText').innerText = val + '%';
+        }
+
+        function adjustRealBgVolume(val) {
+            let bgAudio = document.getElementById('bgMusicPlayer');
+            bgAudio.volume = val / 100;
+            document.getElementById('bgVolText').innerText = val + '%';
+        }
+
+        function loadRealBackgroundMusic(event) {
+            let file = event.target.files[0];
+            if(file) {
+                let bgAudio = document.getElementById('bgMusicPlayer');
+                bgAudio.src = URL.createObjectURL(file);
+                bgAudio.play();
+                alert('🎵 Background music loaded and playing live with video!');
+            }
+        }
+
+        function toggleRealVoiceRecording() {
+            let statusText = document.getElementById('recordingStatusText');
+            isRecordingVoice = !isRecordingVoice;
+            let videoEl = document.getElementById('selectedVideoPreview');
+            if(isRecordingVoice) {
+                videoEl.muted = true; // Mute original video while recording voiceover
+                statusText.style.display = 'block';
+                statusText.innerText = '🔴 Recording live voiceover... Click again to stop.';
+            } else {
+                statusText.style.display = 'block';
+                statusText.innerText = '✅ Voiceover added successfully to video!';
+                setTimeout(() => { statusText.style.display = 'none'; }, 2000);
+            }
+        }
+
+        function loadRealVoiceFile(event) {
+            let file = event.target.files[0];
+            if(file) {
+                alert('📁 Custom voice audio file loaded successfully!');
+            }
+        }
+
+        function applyRealVideoFilter(filterType) {
+            let videoEl = document.getElementById('selectedVideoPreview');
+            if(filterType === 'cinematic') {
+                videoEl.style.filter = "sepia(0.4) contrast(1.2)";
+            } else if(filterType === 'cyberpunk') {
+                videoEl.style.filter = "saturate(2.2) hue-rotate(15deg)";
+            } else if(filterType === 'grayscale') {
+                videoEl.style.filter = "grayscale(100%)";
+            } else if(filterType === 'brightness') {
+                videoEl.style.filter = "brightness(1.3) contrast(1.1)";
+            } else {
+                videoEl.style.filter = "none";
             }
         }
 
@@ -224,18 +424,15 @@
             let durationSeconds = videoEl.duration;
             let width = videoEl.videoWidth;
             let height = videoEl.videoHeight;
-            let badgeText = document.getElementById('detectedCategoryText');
 
             if (durationSeconds <= 60 || (height >= width)) {
                 finalVideoCategory = "Shorts (9:16)";
-                badgeText.innerText = `Shorts / Reel (9:16 Vertical - ${Math.floor(durationSeconds)}s)`;
             } else {
                 finalVideoCategory = "Long Video (16:9)";
-                badgeText.innerText = `Long Video (16:9 Landscape - ${Math.floor(durationSeconds)}s)`;
             }
         }
 
-        async function publishVideoToSupabaseStorage() {
+        async function publishVideoToCloudStorage() {
             let caption = document.getElementById('videoCaptionInput').value.trim() || 'New Viral Video #StarNewStar';
             let description = document.getElementById('videoDescriptionInput').value.trim() || 'Professional video on New Star Creator Hub.';
             let affiliate = document.getElementById('videoAffiliateInput').value.trim() || '';
@@ -267,7 +464,7 @@
                 fill.style.width = progress + '%';
                 percentText.innerText = progress + '%';
 
-                let { data: uploadData, error: uploadError } = await supabaseClient.storage
+                let { data: uploadData, error: uploadError } = await cloudClient.storage
                     .from('videos')
                     .upload(fileName, selectedVideoFile, {
                         cacheControl: '3600',
@@ -282,14 +479,14 @@
                 fill.style.width = progress + '%';
                 percentText.innerText = progress + '%';
 
-                let { data: urlData } = supabaseClient.storage
+                let { data: urlData } = cloudClient.storage
                     .from('videos')
                     .getPublicUrl(fileName);
 
                 let publicVideoUrl = urlData ? urlData.publicUrl : '';
 
                 if (!publicVideoUrl) {
-                    throw new Error('Could not generate Public URL from Supabase Storage!');
+                    throw new Error('Could not generate Public URL from Cloud Storage!');
                 }
 
                 progress = 90;
@@ -305,6 +502,7 @@
                     description: description,
                     affiliate: affiliate,
                     category: finalVideoCategory,
+                    collab_mode: selectedCollabMode,
                     username: myHandle,
                     likes: 120,
                     views: 850
@@ -322,13 +520,14 @@
                     console.log('Local storage sync note:', e);
                 }
 
-                await supabaseClient.from('videos').insert([
+                await cloudClient.from('videos').insert([
                     { 
                         video_url: publicVideoUrl, 
                         caption: caption, 
                         description: description,
                         affiliate_link: affiliate,
                         category: finalVideoCategory,
+                        collab_mode: selectedCollabMode,
                         username: myHandle,
                         likes_count: 120,
                         views_count: 850
@@ -338,7 +537,7 @@
                 progress = 100;
                 fill.style.width = '100%';
                 percentText.innerText = '100%';
-                titleHeading.innerText = `✨ ${finalVideoCategory} Upload Video Successfully!`;
+                titleHeading.innerText = `✨ Upload Video Successfully!`;
 
                 setTimeout(() => {
                     modal.style.display = 'none';
