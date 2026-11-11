@@ -29,23 +29,24 @@
         .pulsing-dot { display: inline-block; width: 8px; height: 8px; background: #00b4d8; border-radius: 50%; animation: pulse 1.2s infinite; margin-right: 5px; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        /* FLOATING STAR LOGO */
-        .floating-profile-bubble { position: fixed; top: 20px; right: 20px; width: 50px; height: 50px; background: linear-gradient(135deg, #fe2c55, #ffcc00); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; z-index: 99999; box-shadow: 0 4px 20px rgba(0,0,0,0.9); border: 2px solid #fff; transition: 0.3s; touch-action: none; }
+        /* FLOATING STAR LOGO (Always stays on screen across phone menu & games) */
+        .floating-profile-bubble { position: fixed; top: 20px; right: 20px; width: 50px; height: 50px; background: linear-gradient(135deg, #fe2c55, #ffcc00); border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; z-index: 99999; box-shadow: 0 4px 20px rgba(0,0,0,0.9); border: 2px solid #fff; transition: 0.3s; touch-action: none; }
         .floating-profile-bubble:hover { transform: scale(1.1); }
 
-        /* 🎁 FLOATING DANCING TREASURE CHEST */
-        .floating-treasure-chest { position: fixed; top: 80px; right: 20px; background: linear-gradient(135deg, #ff4444, #ffcc00); border: 2px solid #fff; border-radius: 50px; padding: 6px 12px; display: none; align-items: center; gap: 6px; z-index: 99988; cursor: pointer; box-shadow: 0 4px 15px rgba(255,204,0,0.6); animation: bounceChest 1.2s infinite alternate; }
-        @keyframes bounceChest { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(-6px) scale(1.08); } }
-        .floating-treasure-chest span { font-size: 20px; }
-        .chest-info-text { font-size: 11px; font-weight: bold; color: #000; line-height: 1.1; text-align: left; }
+        /* FLOATING FACECAM (Movable front camera for user face) */
+        .floating-facecam { position: fixed; bottom: 90px; left: 20px; width: 90px; height: 120px; background: #222; border: 2px solid #00b4d8; border-radius: 8px; overflow: hidden; z-index: 99988; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.9); cursor: grab; touch-action: none; }
+        .floating-facecam:active { cursor: grabbing; }
+        #facecamVideoElement { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        .facecam-controls { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 99989; }
+        .fc-btn { background: rgba(0,0,0,0.8); color: #fff; border: none; font-size: 9px; padding: 2px 4px; border-radius: 3px; cursor: pointer; font-weight: bold; }
 
-        /* MODALS */
+        /* SETTINGS & CONTROL MODAL (Collapsible into Star) */
         .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200000; justify-content: center; align-items: center; }
-        .modal-box { background: #181818; border: 1px solid #00b4d8; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; text-align: left; max-height: 90vh; overflow-y: auto; }
+        .modal-box { background: #181818; border: 1px solid #00b4d8; width: 90%; max-width: 380px; padding: 20px; border-radius: 16px; text-align: left; max-height: 90vh; overflow-y: auto; }
         
-        .gift-grid-popup { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: 280px; overflow-y: auto; margin: 10px 0; padding: 5px; }
-        .gift-item-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 8px 4px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .gift-item-card:hover { border-color: #ffcc00; background: #2a2a2a; transform: scale(1.05); }
+        .gift-grid-popup { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 200px; overflow-y: auto; margin: 10px 0; }
+        .gift-item-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .gift-item-card:hover { border-color: #00b4d8; background: #2a2a2a; }
     </style>
 </head>
 <body>
@@ -58,62 +59,52 @@
     <!-- GAMING SETUP PANEL -->
     <div class="studio-card" id="gamingSetupPanel">
         <div class="section-title">Pro Gaming Screen Stream</div>
-        <div class="section-desc">Launch stream, open your game & enjoy TikTok-style live gifting, PK battles & dancing treasure boxes!</div>
+        <div class="section-desc">Launch full screen live stream, go to your phone menu, open Free Fire & stream seamlessly!</div>
         
-        <label>Select or Type Game Name:</label>
-        <select id="gameSelectDropdown" onchange="updateGameInput(this)">
-            <option value="Free Fire">🔥 Free Fire</option>
-            <option value="BGMI">🎯 BGMI / PUBG Mobile</option>
-            <option value="Call of Duty">🔫 Call of Duty Mobile</option>
-            <option value="Minecraft">🧱 Minecraft</option>
-            <option value="Other">✨ Other Custom Game</option>
-        </select>
-        <input type="text" id="gameNameInput" value="Free Fire" style="margin-top:5px;">
-
-        <div style="display:flex; gap:8px; margin-bottom:12px;">
-            <button class="btn" style="background:#25f4ee; color:#000; font-weight:bold;" onclick="launchInstalledGameApp()">📲 1. Open Game App</button>
-            <button class="btn" style="background:#333; color:#ffcc00; font-weight:bold;" onclick="openPlayStoreForGame()">📥 2. Play Store</button>
-        </div>
+        <label>Game Name (e.g., Free Fire, BGMI, PUBG):</label>
+        <input type="text" id="gameNameInput" value="Free Fire Mobile">
         
-        <button class="btn" style="background: linear-gradient(135deg, #00b4d8, #25f4ee); color:#000; margin-top:5px;" onclick="startProGamingStream()">🚀 3. Start Live Stream & Voice</button>
+        <button class="btn" onclick="startProGamingStream()">🚀 Launch Game Stream Live</button>
     </div>
 
-    <!-- FLOATING STAR LOGO (Always visible to open control panel) -->
-    <div class="floating-profile-bubble" id="starBubbleIcon" onclick="toggleControlModal()" title="Tap to Open Settings & Gifts">⭐</div>
+    <!-- FLOATING STAR LOGO (Tap to collapse/expand settings & all features) -->
+    <div class="floating-profile-bubble" id="starBubbleIcon" onclick="toggleControlModal()" title="Tap to Collapse/Expand Settings">⭐</div>
 
-    <!-- 🎁 FLOATING DANCING TREASURE CHEST -->
-    <div class="floating-treasure-chest" id="floatingChestWidget" onclick="openActiveChestModal()">
-        <span>🎁</span>
-        <div class="chest-info-text">
-            <div id="chestTimerDisplay">01:30</div>
-            <div id="chestStatusLabel" style="font-size:9px; color:#fff;">🎁 Treasure</div>
+    <!-- FLOATING FACECAM (Movable front camera) -->
+    <div class="floating-facecam" id="floatingFacecamBox">
+        <div class="facecam-controls">
+            <button class="fc-btn" onclick="toggleCameraPower()">📷 Cam</button>
+            <button class="fc-btn" onclick="closeFacecamPermanent()">✕</button>
         </div>
+        <video id="facecamVideoElement" autoplay playsinline muted></video>
     </div>
 
-    <!-- ACTIVE GAMING CONTROL PANEL MODAL -->
+    <!-- ACTIVE GAMING CONTROL PANEL MODAL (Contains Coins, Gifts, Chat, Treasure Box, PK Battle & Settings) -->
     <div id="activeGamingView" class="custom-modal">
         <div class="modal-box" style="border-color:#00b4d8; text-align:center;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                 <span style="color:#00b4d8; font-weight:bold; font-size:13px;"><span class="pulsing-dot"></span> <span id="activeGameNameTag">FREE FIRE</span> LIVE ACTIVE</span>
-                <span style="font-size:14px; cursor:pointer; color:#ffcc00; background:#222; padding:3px 8px; border-radius:6px;" onclick="toggleControlModal()">✕ Close</span>
+                <span style="font-size:14px; cursor:pointer; color:#ffcc00; background:#222; padding:3px 8px; border-radius:6px;" onclick="toggleControlModal()">⭐ Collapse</span>
             </div>
 
-            <div style="font-size:13px; color:#ffcc00; margin-bottom:12px; background:#111; padding:8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                <span>🪙 Wallet Coins: <b id="userWalletCoins">500</b></span>
-                <button onclick="window.location.href='wallet.html'" style="background:#fe2c55; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:11px; cursor:pointer; font-weight:bold;">+ Buy Coins</button>
-            </div>
+            <div style="font-size:12px; color:#ffcc00; margin-bottom:12px;">🪙 Coins: <b id="userWalletCoins">500</b> | 🔥 Rank: <b style="color:#00b4d8;">#1</b></div>
 
+            <!-- Audio & Facecam Settings -->
             <div style="background:#111; padding:10px; border-radius:10px; margin-bottom:12px; text-align:left; font-size:12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span>🎙️ Live Mic & Sound: <b id="micStateText" style="color:#00b4d8;">ACTIVE</b></span>
+                <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>🎙️ My Voice (Mic): <b id="micStateText" style="color:#00b4d8;">ON</b></span>
                     <button style="background:#333; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="toggleMyMicrophone()">Mute/Unmute</button>
                 </div>
-                <button class="btn" style="background:linear-gradient(135deg, #25f4ee, #fe2c55); color:#000; padding:10px; font-size:12px; font-weight:bold;" onclick="shareLiveToAllSocialMedia()">🌐 Share Live to WhatsApp & Social Apps</button>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>📹 Face Camera: <b id="camStateText" style="color:#00b4d8;">ACTIVE</b></span>
+                    <button style="background:#fe2c55; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="toggleCameraPower()">Toggle Cam</button>
+                </div>
             </div>
 
+            <!-- Feature Buttons Grid (Gifts, Treasure Box, PK Battle, Chat) -->
             <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom:12px;">
-                <button class="btn" style="background:#ffcc00; color:#000; padding:10px; font-size:12px;" onclick="openRealGiftModal()">🎁 TIKTOK GIFTS (50+)</button>
-                <button class="btn" style="background:#ff4444; color:#fff; padding:10px; font-size:12px;" onclick="openTreasureBoxModal()">📦 Treasure Box Setup</button>
+                <button class="btn" style="background:#ffcc00; color:#000; padding:10px; font-size:12px;" onclick="openRealGiftModal()">🎁 Send Gifts</button>
+                <button class="btn" style="background:#ff4444; color:#fff; padding:10px; font-size:12px;" onclick="openTreasureBoxModal()">📦 Treasure Box</button>
                 <button class="btn" style="background:#00b4d8; color:#000; padding:10px; font-size:12px;" onclick="openGamePkModal()">⚔️ PK Battle</button>
                 <button class="btn" style="background:#25f4ee; color:#000; padding:10px; font-size:12px;" onclick="openChatBoxModal()">💬 Live Chat</button>
             </div>
@@ -122,43 +113,32 @@
         </div>
     </div>
 
-    <!-- 🎁 TIKTOK STYLE 50+ GIFT POPUP MODAL -->
+    <!-- GIFTS MODAL -->
     <div id="realGiftModal" class="custom-modal">
-        <div class="modal-box" style="border-color:#ffcc00; max-width:380px;">
+        <div class="modal-box" style="max-width:360px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color: #ffcc00; font-size: 15px;">🎁 TikTok Live Mega Gifts (50+ Items)</h4>
+                <h4 style="color: #ffcc00; font-size: 15px;">🎁 Send Gaming Gift</h4>
                 <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('realGiftModal')">✕</span>
             </div>
-            <p style="font-size:11px; color:#aaa; margin-bottom:8px;">Tap any gift to send. Coins will be deducted from your wallet instantly!</p>
-            <div class="gift-grid-popup" id="megaGiftGridContainer"></div>
+            <div class="gift-grid-popup">
+                <div class="gift-item-card" onclick="sendRealGift('Rose 🌹', 1)"><div style="font-size:22px;">🌹</div><div style="font-size:10px;">Rose (1)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Coffee ☕', 5)"><div style="font-size:22px;">☕</div><div style="font-size:10px;">Coffee (5)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Car 🏎️', 100)"><div style="font-size:22px;">🏎️</div><div style="font-size:10px;">Car (100)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Dragon 🐉', 10000)"><div style="font-size:22px;">🐉</div><div style="font-size:10px;">Dragon (10k)</div></div>
+            </div>
         </div>
     </div>
 
-    <!-- 📦 ADVANCED TREASURE BOX SETUP MODAL -->
+    <!-- TREASURE BOX MODAL -->
     <div id="treasureBoxModal" class="custom-modal">
-        <div class="modal-box" style="border-color:#ff4444;">
+        <div class="modal-box" style="border-color:#ff4444; text-align:center;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color: #ff4444; font-size: 15px;">📦 Create Live Treasure Box</h4>
+                <h4 style="color: #ff4444; font-size: 15px;">📦 Live Treasure Box</h4>
                 <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('treasureBoxModal')">✕</span>
             </div>
-            
-            <label>Total Coins to put in Box:</label>
-            <input type="number" id="chestTotalCoins" value="100" min="10" placeholder="e.g. 100">
-
-            <label>Total Slots / Viewers limit:</label>
-            <input type="number" id="chestTotalSlots" value="30" min="1" placeholder="e.g. 30 viewers">
-
-            <label>Countdown Timer Duration:</label>
-            <select id="chestDurationSelect">
-                <option value="10">10 Seconds</option>
-                <option value="30">30 Seconds</option>
-                <option value="60" selected>1 Minute (60s)</option>
-                <option value="90">1 Minute 30 Seconds (90s)</option>
-                <option value="180">3 Minutes (180s)</option>
-                <option value="300">5 Minutes (300s)</option>
-            </select>
-
-            <button class="btn" style="background:#ff4444; color:#fff; margin-top:10px;" onclick="deployNewTreasureChest()">✨ Drop Treasure Box on Live</button>
+            <div style="font-size:35px; margin:15px 0;">🎁</div>
+            <p style="font-size:12px; color:#ccc; margin-bottom:15px;">Claim free coins & rewards from the treasure box!</p>
+            <button class="btn" style="background:#ff4444; color:#fff;" onclick="claimTreasureReward()">✨ Claim Reward (+50 Coins)</button>
         </div>
     </div>
 
@@ -180,248 +160,107 @@
         </div>
     </div>
 
-    <!-- ⚔️ PK BATTLE MODAL -->
+    <!-- PK BATTLE MODAL -->
     <div id="pkBattleModal" class="custom-modal">
-        <div class="modal-box" style="border-color:#ffcc00; text-align:center;">
+        <div class="modal-box" style="border-color:#ffcc00;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color: #ffcc00; font-size: 15px;">⚔️ Gamer PK Battle Arena</h4>
+                <h4 style="color: #ffcc00; font-size: 15px;">⚔️ Start Gamer PK Battle</h4>
                 <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('pkBattleModal')">✕</span>
             </div>
-            <p style="font-size:12px; color:#ccc; margin-bottom:15px;" id="pkStatusInfo">Challenge online gamers worldwide or invite your friends!</p>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold;" onclick="startGlobalPkAutoMatch()">🌐 Auto-Match Global Gamer</button>
-                <button class="btn" style="background:#25f4ee; color:#000; font-weight:bold;" onclick="inviteFriendToPkBattle()">👥 Invite Friend to Battle</button>
-            </div>
+            <label style="color:#ffcc00; margin-bottom:4px;">Select Battle Mode:</label>
+            <select id="pkModeSelect" style="margin-bottom:12px;">
+                <option value="1v1">⚔️ 1v1 Battle (2 Players)</option>
+                <option value="2v2" selected>👥 2v2 Battle (4 Rooms)</option>
+            </select>
+            <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold; margin-top:0;" onclick="startPkBattle()">🚀 Launch PK Battle Now</button>
         </div>
     </div>
 
+    <!-- 🌟 NAVBAR SCRIPT LOADER (Automatic Footer & Centered Plus) -->
     <script src="navbar.js"></script>
 
     <script>
         let screenStreamObj = null;
-        let micStreamObj = null;
+        let facecamStreamObj = null;
+        let isCamActive = true;
         let isMicMuted = false;
-
-        let activeChest = null;
-        let chestTimerInterval = null;
-
-        const tiktokGiftsList = [
-            { name: "Rose", icon: "🌹", cost: 1 }, { name: "Heart", icon: "❤️", cost: 5 },
-            { name: "Coffee", icon: "☕", cost: 10 }, { name: "Ice Cream", icon: "🍦", cost: 15 },
-            { name: "Donut", icon: "🍩", cost: 20 }, { name: "Sunglasses", icon: "🕶️", cost: 25 },
-            { name: "Cap", icon: "🧢", cost: 30 }, { name: "Mic", icon: "🎙️", cost: 40 },
-            { name: "Ring", icon: "💍", cost: 50 }, { name: "Perfume", icon: "🧪", cost: 60 },
-            { name: "Lipstick", icon: "💄", cost: 70 }, { name: "Shoes", icon: "👟", cost: 80 },
-            { name: "Handbag", icon: "👜", cost: 90 }, { name: "Car", icon: "🏎️", cost: 100 },
-            { name: "Guitar", icon: "🎸", cost: 120 }, { name: "Trophy", icon: "🏆", cost: 150 },
-            { name: "Crown", icon: "👑", cost: 200 }, { name: "Camera", icon: "📷", cost: 250 },
-            { name: "Phone", icon: "📱", cost: 300 }, { name: "Laptop", icon: "💻", cost: 400 },
-            { name: "Gamepad", icon: "🎮", cost: 450 }, { name: "Motorbike", icon: "🏍️", cost: 500 },
-            { name: "Robot", icon: "🤖", cost: 600 }, { name: "Basketball", icon: "🏀", cost: 700 },
-            { name: "Football", icon: "⚽", cost: 800 }, { name: "Tennis", icon: "🎾", cost: 900 },
-            { name: "Yacht", icon: "🛥️", cost: 1000 }, { name: "Helicopter", icon: "🚁", cost: 1500 },
-            { name: "Jet", icon: "✈️", cost: 2000 }, { name: "Rocket", icon: "🚀", cost: 3000 },
-            { name: "Castle", icon: "🏰", cost: 4000 }, { name: "Universe", icon: "🌌", cost: 5000 },
-            { name: "Diamond", icon: "💎", cost: 6000 }, { name: "Gold Bar", icon: "🥇", cost: 7000 },
-            { name: "Money Bag", icon: "💰", cost: 8000 }, { name: "Treasure", icon: "📦", cost: 9000 },
-            { name: "Dragon", icon: "🐉", cost: 10000 }, { name: "Phoenix", icon: "🔥", cost: 12000 },
-            { name: "Tiger", icon: "🐅", cost: 15000 }, { name: "Lion", icon: "🦁", cost: 20000 },
-            { name: "Star", icon: "⭐", cost: 25 }, { name: "Fire", icon: "🔥", cost: 35 },
-            { name: "Balloon", icon: "🎈", cost: 12 }, { name: "Cake", icon: "🎂", cost: 45 },
-            { name: "Teddy", icon: "🧸", cost: 55 }, { name: "Music", icon: "🎵", cost: 65 },
-            { name: "Lightning", icon: "⚡", cost: 75 }, { name: "Shield", icon: "🛡️", cost: 85 },
-            { name: "Sword", icon: "⚔️", cost: 95 }, { name: "Galaxy", icon: "🌀", cost: 25000 }
-        ];
+        let isLiveActive = false;
 
         window.onload = function() { 
-            loadUserWalletCoins();
-            renderMegaGiftGrid();
+            initDraggableBubble();
+            initDraggableFacecam();
         };
 
-        function loadUserWalletCoins() {
-            let savedCoins = localStorage.getItem('userWalletCoins') || '500';
-            document.getElementById('userWalletCoins').innerText = savedCoins;
-        }
-
-        function renderMegaGiftGrid() {
-            let container = document.getElementById('megaGiftGridContainer');
-            container.innerHTML = '';
-            tiktokGiftsList.forEach(g => {
-                container.innerHTML += `
-                    <div class="gift-item-card" onclick="sendTiktokGift('${g.name}', '${g.icon}', ${g.cost})">
-                        <div style="font-size:24px;">${g.icon}</div>
-                        <div style="font-size:10px; font-weight:bold; margin-top:2px;">${g.name}</div>
-                        <div style="font-size:9px; color:#ffcc00;">🪙 ${g.cost}</div>
-                    </div>
-                `;
-            });
-        }
-
-        function sendTiktokGift(giftName, giftIcon, giftCost) {
-            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
-            if (currentCoins < giftCost) {
-                closeModal('realGiftModal');
-                let buyMore = confirm(`⚠️ Insufficient Coins!\n\nYou need ${giftCost} coins, but your balance is ${currentCoins} coins.\n\nWould you like to buy more coins?`);
-                if(buyMore) window.location.href = 'wallet.html';
-                return;
-            }
-            currentCoins -= giftCost;
-            localStorage.setItem('userWalletCoins', currentCoins);
-            loadUserWalletCoins();
-            alert(`🎉 Success! You sent ${giftIcon} ${giftName} (Cost: ${giftCost} Coins)!`);
-            closeModal('realGiftModal');
-        }
-
-        function deployNewTreasureChest() {
-            let totalCoins = parseInt(document.getElementById('chestTotalCoins').value) || 100;
-            let totalSlots = parseInt(document.getElementById('chestTotalSlots').value) || 30;
-            let durationSeconds = parseInt(document.getElementById('chestDurationSelect').value) || 60;
-
-            activeChest = {
-                coinsLeft: totalCoins,
-                slotsLeft: totalSlots,
-                timeLeft: durationSeconds,
-                isOpen: false
-            };
-
-            closeModal('treasureBoxModal');
-            document.getElementById('floatingChestWidget').style.display = 'flex';
-            startChestCountdown();
-            alert('📦 Treasure Box dropped successfully on your live stream!');
-        }
-
-        function startChestCountdown() {
-            if(chestTimerInterval) clearInterval(chestTimerInterval);
-
-            chestTimerInterval = setInterval(() => {
-                if(!activeChest) return;
-
-                if(activeChest.timeLeft > 0) {
-                    activeChest.timeLeft--;
-                    let mins = Math.floor(activeChest.timeLeft / 60);
-                    let secs = activeChest.timeLeft % 60;
-                    document.getElementById('chestTimerDisplay').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-                    document.getElementById('chestStatusLabel').innerText = `🎁 ${activeChest.slotsLeft} slots`;
-                } else {
-                    activeChest.isOpen = true;
-                    document.getElementById('chestTimerDisplay').innerText = "OPEN!";
-                    document.getElementById('chestStatusLabel').innerText = `🪙 Tap to Loot!`;
-                }
-            }, 1000);
-        }
-
-        function openActiveChestModal() {
-            if(!activeChest) return;
-
-            if(!activeChest.isOpen) {
-                let mins = Math.floor(activeChest.timeLeft / 60);
-                let secs = activeChest.timeLeft % 60;
-                alert(`⏳ Treasure Box is locked! It will open in ${mins}m ${secs}s.`);
-                return;
-            }
-
-            if(activeChest.slotsLeft <= 0 || activeChest.coinsLeft <= 0) {
-                alert('❌ All treasure rewards have been looted!');
-                document.getElementById('floatingChestWidget').style.display = 'none';
-                activeChest = null;
-                return;
-            }
-
-            let rewardPerUser = Math.max(1, Math.floor(activeChest.coinsLeft / activeChest.slotsLeft));
-            
-            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
-            currentCoins += rewardPerUser;
-            localStorage.setItem('userWalletCoins', currentCoins);
-            loadUserWalletCoins();
-
-            activeChest.slotsLeft--;
-            activeChest.coinsLeft -= rewardPerUser;
-
-            alert(`🎉 Congratulations! You looted ${rewardPerUser} Free Coins from the Treasure Box!\nAdded to your main wallet balance.`);
-
-            if(activeChest.slotsLeft <= 0 || activeChest.coinsLeft <= 0) {
-                document.getElementById('floatingChestWidget').style.display = 'none';
-                activeChest = null;
-                if(chestTimerInterval) clearInterval(chestTimerInterval);
-                alert('📦 Treasure Box is now fully emptied and closed!');
-            }
-        }
-
-        function updateGameInput(sel) {
-            document.getElementById('gameNameInput').value = sel.value;
-        }
-
-        function launchInstalledGameApp() {
-            let game = document.getElementById('gameNameInput').value.toLowerCase();
-            let packageName = "com.dts.freefireth";
-            if(game.includes('bgmi') || game.includes('pubg')) packageName = "com.pubg.imobile";
-            else if(game.includes('cod')) packageName = "com.activision.callofduty.shooter";
-            else if(game.includes('minecraft')) packageName = "com.mojang.minecraftpe";
-
-            window.location.href = `intent://#Intent;package=${packageName};end;`;
-            setTimeout(() => {
-                alert("📲 If game didn't open automatically, please open your phone menu and launch " + document.getElementById('gameNameInput').value);
-            }, 1000);
-        }
-
-        function openPlayStoreForGame() {
-            let game = document.getElementById('gameNameInput').value;
-            let query = encodeURIComponent(game);
-            window.open(`https://play.google.com/store/search?q=${query}&c=apps`, '_blank');
-        }
-
         function startProGamingStream() {
-            let gameName = document.getElementById('gameNameInput').value || 'Free Fire';
+            let gameName = document.getElementById('gameNameInput').value || 'Free Fire Mobile';
             document.getElementById('activeGameNameTag').innerText = gameName.toUpperCase();
 
-            // Try screen capture, but even if it fails/unsupported, keep the studio card & controls active!
             if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
                 navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" }, audio: true })
-                .then(screenStream => {
-                    screenStreamObj = screenStream;
-                    screenStream.getVideoTracks()[0].onended = function() { stopGameStreamSession(); };
-                    
-                    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-                        .then(micStream => { micStreamObj = micStream; })
-                        .catch(e => console.log("Mic notice:", e));
-
-                    activateLiveBackground(gameName);
-                })
-                .catch(err => {
-                    // Fallback simulation mode without hiding the main setup card completely
-                    activateLiveBackground(gameName);
-                });
+                    .then(stream => {
+                        screenStreamObj = stream;
+                        stream.getVideoTracks()[0].onended = function() { stopGameStreamSession(); };
+                        activateLiveBackground(gameName);
+                    })
+                    .catch(err => {
+                        activateLiveBackground(gameName);
+                    });
             } else {
                 activateLiveBackground(gameName);
             }
         }
 
         function activateLiveBackground(gameName) {
-            // Keep setup panel visible or allow toggling via star icon so nothing disappears!
-            alert('✅ Live Stream & Screen Recording Active! 🎮\n\n👉 Now go to your phone menu, open ' + gameName + ' and start playing!\n⭐ Tap the floating star logo anytime to open gifts, treasure box & settings.');
+            document.getElementById('gamingSetupPanel').style.display = 'none';
+            document.getElementById('starBubbleIcon').style.display = 'flex';
+            
+            isLiveActive = true;
+            startFrontFacecam();
+
+            alert('✅ Live Stream Started! You can now go to your phone menu, open ' + gameName + ' and play. Tap the star logo anytime to open/collapse settings & gifts!');
         }
 
-        function shareLiveToAllSocialMedia() {
-            let gameName = document.getElementById('gameNameInput').value || 'Free Fire';
-            let shareData = {
-                title: 'Live Gaming on New Star',
-                text: `🔥 Come watch my live gameplay of ${gameName} on New Star Creator Hub! Join the stream now:`,
-                url: window.location.href
-            };
+        function startFrontFacecam() {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true })
+                .then(stream => {
+                    facecamStreamObj = stream;
+                    document.getElementById('facecamVideoElement').srcObject = stream;
+                    document.getElementById('floatingFacecamBox').style.display = 'block';
+                    isCamActive = true;
+                })
+                .catch(err => {
+                    document.getElementById('floatingFacecamBox').style.display = 'none';
+                });
+        }
 
-            if (navigator.share) {
-                navigator.share(shareData).catch((error) => console.log('Error sharing:', error));
+        function toggleCameraPower() {
+            let facebox = document.getElementById('floatingFacecamBox');
+            let statusText = document.getElementById('camStateText');
+            isCamActive = !isCamActive;
+            if(isCamActive) {
+                facebox.style.display = 'block';
+                statusText.innerText = 'ACTIVE';
+                statusText.style.color = '#00b4d8';
+                if(facecamStreamObj) facecamStreamObj.getTracks().forEach(t => t.enabled = true);
             } else {
-                navigator.clipboard.writeText(window.location.href);
-                alert('📋 Live Link Copied! Share it on WhatsApp, Facebook or any social app.');
+                facebox.style.display = 'none';
+                statusText.innerText = 'OFF (Logo Only)';
+                statusText.style.color = '#fe2c55';
+                if(facecamStreamObj) facecamStreamObj.getTracks().forEach(t => t.enabled = false);
             }
+        }
+
+        function closeFacecamPermanent() {
+            document.getElementById('floatingFacecamBox').style.display = 'none';
+            isCamActive = false;
+            document.getElementById('camStateText').innerText = 'CLOSED';
         }
 
         function toggleMyMicrophone() {
             isMicMuted = !isMicMuted;
-            document.getElementById('micStateText').innerText = isMicMuted ? 'MUTED' : 'ACTIVE';
-            if(micStreamObj && micStreamObj.getAudioTracks().length > 0) {
-                micStreamObj.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
+            document.getElementById('micStateText').innerText = isMicMuted ? 'MUTED' : 'ON';
+            if(facecamStreamObj && facecamStreamObj.getAudioTracks().length > 0) {
+                facecamStreamObj.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
             }
         }
 
@@ -430,13 +269,70 @@
             modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
         }
 
-        function openRealGiftModal() { 
-            loadUserWalletCoins();
-            document.getElementById('realGiftModal').style.display = 'flex'; 
+        function initDraggableBubble() {
+            let bubble = document.getElementById('starBubbleIcon');
+            let isDragging = false, startX, startY, initX, initY;
+            bubble.addEventListener('pointerdown', function(e) {
+                isDragging = true; startX = e.clientX; startY = e.clientY;
+                let rect = bubble.getBoundingClientRect();
+                initX = rect.left; initY = rect.top;
+                bubble.setPointerCapture(e.pointerId);
+            });
+            bubble.addEventListener('pointermove', function(e) {
+                if(!isDragging) return;
+                bubble.style.left = (initX + (e.clientX - startX)) + 'px';
+                bubble.style.top = (initY + (e.clientY - startY)) + 'px';
+                bubble.style.right = 'auto';
+            });
+            bubble.addEventListener('pointerup', function(e) {
+                if(Math.abs(e.clientX - startX) < 5 && Math.abs(e.clientY - startY) < 5) {
+                    toggleControlModal();
+                }
+                isDragging = false;
+            });
         }
+
+        function initDraggableFacecam() {
+            let box = document.getElementById('floatingFacecamBox');
+            let isDragging = false, startX, startY, initX, initY;
+            box.addEventListener('pointerdown', function(e) {
+                if(e.target.tagName === 'BUTTON') return;
+                isDragging = true; startX = e.clientX; startY = e.clientY;
+                let rect = box.getBoundingClientRect();
+                initX = rect.left; initY = rect.top;
+                box.setPointerCapture(e.pointerId);
+            });
+            box.addEventListener('pointermove', function(e) {
+                if(!isDragging) return;
+                box.style.left = (initX + (e.clientX - startX)) + 'px';
+                box.style.top = (initY + (e.clientY - startY)) + 'px';
+                box.style.right = 'auto';
+            });
+            box.addEventListener('pointerup', function() { isDragging = false; });
+        }
+
+        function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
         function openTreasureBoxModal() { document.getElementById('treasureBoxModal').style.display = 'flex'; }
         function openChatBoxModal() { document.getElementById('chatBoxModal').style.display = 'flex'; }
         function openGamePkModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
+
+        function sendRealGift(name, cost) {
+            let wallet = document.getElementById('userWalletCoins');
+            let coins = parseInt(wallet.innerText);
+            if(coins >= cost) {
+                wallet.innerText = coins - cost;
+                alert('🎉 Sent ' + name + ' successfully!');
+                closeModal('realGiftModal');
+            } else { alert('❌ Not enough coins in wallet!'); }
+        }
+
+        function claimTreasureReward() {
+            let wallet = document.getElementById('userWalletCoins');
+            let coins = parseInt(wallet.innerText) + 50;
+            wallet.innerText = coins;
+            alert('✨ Claimed 50 Free Coins from Treasure Box!');
+            closeModal('treasureBoxModal');
+        }
 
         function sendLiveChatMessage() {
             let input = document.getElementById('chatInputMsg');
@@ -449,34 +345,21 @@
             }
         }
         
-        function startGlobalPkAutoMatch() {
-            let info = document.getElementById('pkStatusInfo');
-            info.innerHTML = "🔍 Searching global online gamers for PK Battle...";
-            setTimeout(() => {
-                let opponentName = "ProGamer_X (USA)";
-                if(Math.random() > 0.5) opponentName = "DragonNinja (Nepal)";
-                info.innerHTML = `⚔️ Opponent Found: <b>${opponentName}</b>! Battle starting!`;
-                alert(`🎉 PK Battle Connected with ${opponentName}!`);
-                closeModal('pkBattleModal');
-                info.innerHTML = "Challenge online gamers worldwide or invite your friends!";
-            }, 2000);
-        }
-
-        function inviteFriendToPkBattle() {
-            let friendName = prompt("Enter your friend's username or ID to invite to PK Battle:", "@");
-            if(friendName) {
-                alert(`📤 PK Battle invitation sent to ${friendName} successfully!`);
-                closeModal('pkBattleModal');
-            }
+        function startPkBattle() {
+            alert('⚔️ PK Battle launched successfully!');
+            closeModal('pkBattleModal');
         }
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         
         function stopGameStreamSession() {
             if(screenStreamObj) screenStreamObj.getTracks().forEach(t => t.stop());
-            if(micStreamObj) micStreamObj.getTracks().forEach(t => t.stop());
-            document.getElementById('floatingChestWidget').style.display = 'none';
-            if(chestTimerInterval) clearInterval(chestTimerInterval);
+            if(facecamStreamObj) facecamStreamObj.getTracks().forEach(t => t.stop());
+            document.getElementById('floatingFacecamBox').style.display = 'none';
+            document.getElementById('starBubbleIcon').style.display = 'none';
+            document.getElementById('activeGamingView').style.display = 'none';
+            document.getElementById('gamingSetupPanel').style.display = 'block';
+            isLiveActive = false;
             alert('⏹️ Live stream ended successfully.');
         }
     </script>
