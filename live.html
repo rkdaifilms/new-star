@@ -35,25 +35,29 @@
         /* PK Battle Scoreboard */
         .pk-scoreboard { display: none; justify-content: space-between; align-items: center; background: #220000; border: 1px solid #ff4444; padding: 6px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; font-weight: bold; }
 
-        .stream-container { position: relative; width: 100%; height: 240px; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #333; margin-bottom: 8px; }
-        #liveStreamVideoElement { width: 100%; height: 100%; object-fit: cover; background: #000; }
-        .app-stream-logo { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); border: 1px solid #fe2c55; padding: 2px 8px; border-radius: 6px; font-size: 10px; color: #25f4ee; font-weight: bold; z-index: 5; }
-
-        /* 🎁 FLOATING ROTATING TREASURE BOX OVER THE VIDEO (NEAR COMMENTS) */
-        #activeTreasureBanner { display: none; position: absolute; bottom: 10px; left: 10px; right: 10px; background: linear-gradient(135deg, #ffcc00, #ff4444); padding: 8px 14px; border-radius: 14px; z-index: 25; color: #000; font-weight: bold; font-size: 12px; box-shadow: 0 4px 20px rgba(255,204,0,0.6); display: flex; justify-content: space-between; align-items: center; border: 2px solid #fff; }
-
-        /* Multi-Seat Grids & Invite Plus Button */
-        .live-seats-grid { display: grid; gap: 6px; margin-bottom: 8px; }
+        /* MULTI-SEAT GRID CONTAINER (ALL ROOMS EQUAL & SMALL INITIALLY) */
+        .live-rooms-grid { display: grid; gap: 8px; margin-bottom: 10px; width: 100%; }
         .grid-1 { grid-template-columns: 1fr; }
         .grid-4 { grid-template-columns: repeat(2, 1fr); }
         .grid-10 { grid-template-columns: repeat(3, 1fr); }
 
-        .live-seat-box { background: #1f1f1f; border: 1px dashed #555; height: 42px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #ccc; cursor: pointer; position: relative; }
-        .live-seat-box.active { border: 2px solid #25f4ee; background: #102a2a; color: #25f4ee; font-weight: bold; }
-        .seat-num { position: absolute; top: 2px; right: 6px; font-size: 8px; color: #ffcc00; }
+        .live-room-box { background: #181818; border: 2px dashed #444; height: 110px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #ccc; cursor: pointer; position: relative; overflow: hidden; transition: 0.3s; }
+        .live-room-box.active { border: 2px solid #25f4ee; background: #0b1a1a; color: #25f4ee; font-weight: bold; }
+        .live-room-box.fullscreen { grid-column: 1 / -1; height: 260px; border: 2px solid #fe2c55; }
+        
+        .room-video-el { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; background: #000; display: none; }
+        .room-info-overlay { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: rgba(0,0,0,0.4); width: 100%; height: 100%; }
+        .seat-num-badge { position: absolute; top: 4px; left: 6px; font-size: 9px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; color: #ffcc00; z-index: 3; }
+
+        /* 🎁 TIKTOK STYLE DANCING PIGGY BANK / TREASURE CHEST ON SIDE */
+        #activeTreasureBanner { display: none; position: absolute; top: 75px; right: 15px; width: 75px; height: 75px; background: linear-gradient(135deg, #ffcc00, #ff4444); border-radius: 50%; z-index: 30; color: #000; font-weight: bold; font-size: 10px; box-shadow: 0 4px 20px rgba(255,204,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid #fff; cursor: pointer; animation: danceGullak 1.2s ease-in-out infinite alternate; text-align: center; padding: 4px; }
+        @keyframes danceGullak { 
+            0% { transform: translateY(0) rotate(-8deg) scale(1); } 
+            100% { transform: translateY(-8px) rotate(8deg) scale(1.08); } 
+        }
 
         /* Floating Side Actions inside Live Room */
-        .live-side-actions { position: absolute; right: 10px; bottom: 120px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
+        .live-side-actions { position: absolute; right: 10px; bottom: 130px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
         .live-action-icon { width: 36px; height: 36px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 15px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); color: #fff; }
         .live-gift-btn { background: linear-gradient(135deg, #fe2c55, #ffcc00); border: none; }
         .live-share-btn { background: linear-gradient(135deg, #00b4d8, #25f4ee); color: #000; border: none; font-weight: bold; }
@@ -66,7 +70,6 @@
         .gift-item-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
         .gift-item-card:hover { border-color: #fe2c55; background: #2a2a2a; }
 
-        /* Invite Friends List Modal Style */
         .invite-user-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; }
     </style>
 </head>
@@ -88,8 +91,8 @@
         <label>Room Seats Capacity:</label>
         <select id="setupRoomSize">
             <option value="1">👤 1 Seat (Solo Live)</option>
-            <option value="4" selected>👥 4 Seats Grid</option>
-            <option value="10">👥 10 Seats Grid (Party Room)</option>
+            <option value="4" selected>👥 4 Rooms Grid (Host + 3 Seats)</option>
+            <option value="10">👥 10 Rooms Grid (Party Room)</option>
         </select>
         
         <button class="btn" onclick="startLiveBroadcastSession()">🔴 Go LIVE Now</button>
@@ -108,22 +111,15 @@
             <span style="color:#ff4444;">Opponent: <b id="rivalPkScore">0</b> pts</span>
         </div>
 
-        <div class="stream-container">
-            <div class="app-stream-logo">★ Star New Star LIVE</div>
-            <video id="liveStreamVideoElement" autoplay playsinline muted></video>
-            
-            <!-- 🎁 FLOATING ROTATING TREASURE BOX OVER THE VIDEO -->
-            <div id="activeTreasureBanner" onclick="claimTreasureBox()">
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <span style="font-size:20px;">🪙</span>
-                    <div>
-                        <div id="bannerTitle" style="font-size:11px; color:#000;">🎁 Treasure Box (5 People)</div>
-                        <div id="bannerTimer" style="font-size:13px; color:#b00; font-weight:900;">00:00</div>
-                    </div>
-                </div>
-                <div id="treasureActionBtn" style="background:#000; color:#ffcc00; padding:5px 10px; border-radius:8px; font-size:11px;">Loading...</div>
-            </div>
+        <!-- 🎁 DANCING PIGGY BANK / TREASURE CHEST ON THE SIDE -->
+        <div id="activeTreasureBanner" onclick="claimTreasureBox()">
+            <span style="font-size:22px;">🏺</span>
+            <div id="bannerTimer" style="font-size:11px; color:#000; font-weight:900;">00:00</div>
+            <div id="treasureActionText" style="font-size:9px; background:#000; color:#ffcc00; padding:1px 4px; border-radius:4px;">Gullak</div>
         </div>
+
+        <!-- MULTI-ROOM GRID CONTAINER -->
+        <div id="dynamicRoomsContainer" class="live-rooms-grid"></div>
 
         <!-- 🎙️ MIC CONTROL & SETTINGS BAR -->
         <div style="display:flex; justify-content:space-between; align-items:center; background:#1a1a1a; padding:6px 10px; border-radius:8px; margin-bottom:8px; font-size:11px;">
@@ -131,9 +127,6 @@
             <button style="background:#fe2c55; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="toggleLiveMicrophone()">🎙️ Toggle Mute</button>
             <button style="background:#ffcc00; color:#000; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="openModSettingsModal()">⚙️ Mod</button>
         </div>
-
-        <!-- DYNAMIC SEATS WITH (+) INVITE BUTTON -->
-        <div id="dynamicSeatsContainer" style="margin-bottom: 8px;"></div>
 
         <div style="background:#1a1a1a; border:1px solid #333; padding:6px; border-radius:8px; margin-bottom:8px; text-align:left;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
@@ -159,23 +152,21 @@
         <button class="btn" style="background: #333; color: #fff; margin-top:5px; padding:10px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room</button>
     </div>
 
-    <!-- 👥 INVITE FRIENDS & VIEWERS MODAL -->
+    <!-- 👥 INVITE FRIENDS MODAL -->
     <div id="inviteFriendsModal" class="custom-modal">
         <div class="modal-box" style="border-color: #25f4ee;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color: #25f4ee; font-size: 16px;">👥 Invite Friends & Viewers to Seat</h4>
+                <h4 style="color: #25f4ee; font-size: 16px;">👥 Invite Friend to Seat</h4>
                 <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('inviteFriendsModal')">✕</span>
             </div>
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Select online followers or viewer requests to bring on mic:</p>
-            
-            <div id="onlineFriendsListContainer" style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+            <div style="max-height:200px; overflow-y:auto;">
                 <div class="invite-user-row">
-                    <div><b style="font-size:13px;">Anjali Dance Hub</b><br><span style="font-size:10px; color:#25f4ee;">🟢 Online Follower</span></div>
-                    <button class="btn" style="width:auto; padding:6px 12px; font-size:11px; background:#25f4ee; color:#000;" onclick="sendSeatInvite('Anjali Dance Hub')">Invite 🎙️</button>
+                    <div><b>Anjali Dance Hub</b><br><span style="font-size:10px; color:#25f4ee;">🟢 Online Follower</span></div>
+                    <button class="btn" style="width:auto; padding:5px 10px; font-size:11px; background:#25f4ee; color:#000;" onclick="assignFriendToSeat('Anjali Dance Hub')">Invite</button>
                 </div>
                 <div class="invite-user-row">
-                    <div><b style="font-size:13px;">Rohit Painter</b><br><span style="font-size:10px; color:#ffcc00;">🙋‍♂️ Requested to Join</span></div>
-                    <button class="btn" style="width:auto; padding:6px 12px; font-size:11px; background:#fe2c55; color:#fff;" onclick="sendSeatInvite('Rohit Painter')">Accept 🎙️</button>
+                    <div><b>Rohit Painter</b><br><span style="font-size:10px; color:#ffcc00;">🙋‍♂️ Requested to Join</span></div>
+                    <button class="btn" style="width:auto; padding:5px 10px; font-size:11px; background:#fe2c55; color:#fff;" onclick="assignFriendToSeat('Rohit Painter')">Accept</button>
                 </div>
             </div>
         </div>
@@ -202,28 +193,28 @@
                 <div class="gift-item-card" onclick="sendRealGift('Crown 👑', 2000)"><div style="font-size:24px;">👑</div><div style="font-size:11px;">Crown (2k)</div></div>
                 <div class="gift-item-card" onclick="sendRealGift('Jet ✈️', 3000)"><div style="font-size:24px;">✈️</div><div style="font-size:11px;">Jet (3k)</div></div>
                 <div class="gift-item-card" onclick="sendRealGift('Castle 🏰', 5000)"><div style="font-size:24px;">🏰</div><div style="font-size:11px;">Castle (5k)</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Dragon 🐉', 10000)"><div style="font-size:24px;">🐉</div><div style="font-size:11px;">Dragon (10k)</div></div>
+                <div class="gift-item-card" onclick="sendRealGift('Dragon 🐉', 10000)"><div style="font-size:24px;">🐉</div><div style="font-size:10k;">Dragon (10k)</div></div>
                 <div class="gift-item-card" onclick="sendRealGift('Galaxy 🌌', 20000)"><div style="font-size:24px;">🌌</div><div style="font-size:11px;">Galaxy (20k)</div></div>
                 <div class="gift-item-card" onclick="sendRealGift('Universe 🪐', 50000)"><div style="font-size:24px;">🪐</div><div style="font-size:11px;">Universe (50k)</div></div>
             </div>
         </div>
     </div>
 
-    <!-- TREASURE BOX SETUP MODAL -->
+    <!-- TREASURE BOX MODAL -->
     <div id="treasureModal" class="custom-modal">
         <div class="modal-box" style="border-color: #ffcc00; max-width:350px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h4 style="color: #ffcc00; font-size: 16px;">🎁 Drop TikTok Treasure Box</h4>
+                <h4 style="color: #ffcc00; font-size: 16px;">🎁 Drop Gullak Treasure Box</h4>
                 <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeModal('treasureModal')">✕</span>
             </div>
             
-            <label>Total Coins in Box (Unlimited):</label>
-            <input type="number" id="boxCoinsInput" value="500" min="10" placeholder="e.g. 500, 1000, 5000">
+            <label>Total Coins in Gullak:</label>
+            <input type="number" id="boxCoinsInput" value="500" min="10">
 
             <label>Number of People (Winners):</label>
-            <input type="number" id="tbPeopleInput" value="5" min="1" max="100" placeholder="e.g. 5 or 10 people">
+            <input type="number" id="tbPeopleInput" value="5" min="1" max="100">
 
-            <label>Duration / Timer (10 Seconds to 5 Minutes):</label>
+            <label>Duration / Timer:</label>
             <select id="tbTimerSelect" style="width:100%; padding:10px; background:#111; border:1px solid #333; color:#fff; border-radius:10px; font-size:13px; outline:none; margin-bottom:15px;">
                 <option value="10">10 Seconds</option>
                 <option value="30">30 Seconds</option>
@@ -232,7 +223,7 @@
                 <option value="300">5 Minutes (300s)</option>
             </select>
 
-            <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold; margin-top:0;" onclick="deployTreasureBox()">🚀 Drop Treasure Box Now</button>
+            <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold; margin-top:0;" onclick="deployTreasureBox()">🚀 Drop Gullak Now</button>
         </div>
     </div>
 
@@ -264,6 +255,7 @@
         let likePoints = 0;
         let myPkPoints = 0;
         let isPkActive = false;
+        let selectedSeatForInvite = null;
 
         let activeTreasureData = {
             active: false,
@@ -299,41 +291,81 @@
             document.getElementById('liveSetupPanel').style.display = 'none';
             document.getElementById('activeLiveView').style.display = 'block';
             let size = document.getElementById('setupRoomSize').value;
-            renderLiveSeats(size);
+            renderLiveRooms(size);
 
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(stream => {
                     liveStreamObj = stream;
-                    document.getElementById('liveStreamVideoElement').srcObject = stream;
+                    // Attach to Host Room (Room 1)
+                    let hostVideo = document.getElementById('roomVideo_1');
+                    if(hostVideo) {
+                        hostVideo.srcObject = stream;
+                        hostVideo.style.display = 'block';
+                    }
                 })
                 .catch(err => alert('Camera & Microphone access required.'));
         }
 
-        function renderLiveSeats(size) {
-            let container = document.getElementById('dynamicSeatsContainer');
+        function renderLiveRooms(size) {
+            let container = document.getElementById('dynamicRoomsContainer');
             let sizeNum = parseInt(size);
             let gridClass = sizeNum === 1 ? 'grid-1' : (sizeNum === 4 ? 'grid-4' : 'grid-10');
-            let html = `<div class="live-seats-grid ${gridClass}">`;
+            container.className = `live-rooms-grid ${gridClass}`;
+            
+            let html = '';
             for(let i=1; i<=sizeNum; i++) {
-                if(i === 1) {
-                    html += `<div class="live-seat-box active"><span class="seat-num">1</span><span>👑 Host (Mic ON)</span></div>`;
-                } else {
-                    html += `<div class="live-seat-box" onclick="openInviteModal(${i})"><span class="seat-num">${i}</span><span>➕ Invite / Seat</span></div>`;
-                }
+                let title = (i === 1) ? '👑 Host (You)' : `+ Invite / Seat ${i}`;
+                let activeClass = (i === 1) ? 'active' : '';
+                html += `
+                    <div class="live-room-box ${activeClass}" id="roomBox_${i}" ondblclick="toggleRoomFullscreen(${i})" onclick="handleRoomClick(${i})">
+                        <span class="seat-num-badge">#${i}</span>
+                        <video class="room-video-el" id="roomVideo_${i}" autoplay playsinline muted></video>
+                        <div class="room-info-overlay" id="roomOverlay_${i}">
+                            <span style="font-size:16px;">${i===1?'👑':'➕'}</span>
+                            <span>${title}</span>
+                        </div>
+                    </div>
+                `;
             }
-            html += `</div>`;
             container.innerHTML = html;
         }
 
-        function openInviteModal(seatNum) {
-            document.getElementById('inviteFriendsModal').style.display = 'flex';
+        // 🔍 DOUBLE CLICK TO ENLARGE OR MINIMIZE ANY ROOM
+        function toggleRoomFullscreen(roomNum) {
+            let box = document.getElementById(`roomBox_${roomNum}`);
+            if (box.classList.contains('fullscreen')) {
+                box.classList.remove('fullscreen');
+            } else {
+                // remove fullscreen from all first
+                document.querySelectorAll('.live-room-box').forEach(b => b.classList.remove('fullscreen'));
+                box.classList.add('fullscreen');
+            }
         }
 
-        function sendSeatInvite(friendName) {
-            alert(`✅ Invitation sent successfully to ${friendName} to join the live mic seat! 🎙️`);
+        function handleRoomClick(roomNum) {
+            if (roomNum !== 1) {
+                selectedSeatForInvite = roomNum;
+                document.getElementById('inviteFriendsModal').style.display = 'flex';
+            }
+        }
+
+        function assignFriendToSeat(friendName) {
             closeModal('inviteFriendsModal');
+            let overlay = document.getElementById(`roomOverlay_${selectedSeatForInvite}`);
+            let box = document.getElementById(`roomBox_${selectedSeatForInvite}`);
+            let videoEl = document.getElementById(`roomVideo_${selectedSeatForInvite}`);
+            
+            overlay.innerHTML = `<span style="font-size:14px; color:#25f4ee; font-weight:bold;">🎙️ ${friendName}</span><span style="font-size:9px; color:#ffcc00;">Connected</span>`;
+            box.classList.add('active');
+            
+            // Mirror live stream for demo or use camera stream
+            if(liveStreamObj) {
+                videoEl.srcObject = liveStreamObj;
+                videoEl.style.display = 'block';
+            }
+
             let area = document.getElementById('liveChatScrollArea');
-            area.innerHTML += `<div style="color:#25f4ee;"><b>System:</b> Invited ${friendName} to live guest seat! 🎙️</div>`;
+            area.innerHTML += `<div style="color:#25f4ee;"><b>System:</b> ${friendName} joined room seat #${selectedSeatForInvite}! 🎙️</div>`;
             area.scrollTop = area.scrollHeight;
         }
 
@@ -370,12 +402,9 @@
         function openPkBattleModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
         function openModSettingsModal() { document.getElementById('modSettingsModal').style.display = 'flex'; }
 
-        // 🎁 SEND GIFT WITH SMART WALLET DEDUCTION
+        // 🎁 SEND GIFT WITH WALLET CHECK
         function sendRealGift(name, cost) {
-            if (!checkAndDeductCoins(cost)) {
-                return;
-            }
-
+            if (!checkAndDeductCoins(cost)) return;
             alert('🎉 Sent ' + name + ' (' + cost + ' Coins) successfully!');
             if(isPkActive) { myPkPoints += cost * 2; document.getElementById('myPkScore').innerText = myPkPoints; }
             
@@ -385,24 +414,18 @@
             closeModal('realGiftModal');
         }
 
-        // 🚀 DEPLOY TREASURE BOX OVER VIDEO WITH LIVE COUNTDOWN TIMER
+        // 🏺 DEPLOY DANCING GULLAK / TREASURE BOX WITH PERSISTENT TIMER
         function deployTreasureBox() {
             let coinsVal = parseInt(document.getElementById('boxCoinsInput').value);
             let peopleVal = parseInt(document.getElementById('tbPeopleInput').value);
             let timerSeconds = parseInt(document.getElementById('tbTimerSelect').value);
 
-            if (isNaN(coinsVal) || coinsVal <= 0) {
-                alert('⚠️ Please enter a valid number of coins!');
-                return;
-            }
-            if (isNaN(peopleVal) || peopleVal <= 0) {
-                alert('⚠️ Please enter a valid number of people!');
+            if (isNaN(coinsVal) || coinsVal <= 0 || isNaN(peopleVal) || peopleVal <= 0) {
+                alert('⚠️ Please enter valid coins and people!');
                 return;
             }
 
-            if (!checkAndDeductCoins(coinsVal)) {
-                return;
-            }
+            if (!checkAndDeductCoins(coinsVal)) return;
 
             closeModal('treasureModal');
 
@@ -414,12 +437,10 @@
             };
 
             let banner = document.getElementById('activeTreasureBanner');
-            let titleSpan = document.getElementById('bannerTitle');
             let timerSpan = document.getElementById('bannerTimer');
-            let actionBtn = document.getElementById('treasureActionBtn');
+            let actionText = document.getElementById('treasureActionText');
 
-            titleSpan.innerText = `🎁 Treasure Box (${peopleVal} People)`;
-            actionBtn.innerText = 'Wait...';
+            actionText.innerText = `Gullak`;
             banner.style.display = 'flex';
 
             if(activeTreasureData.timerInterval) clearInterval(activeTreasureData.timerInterval);
@@ -429,34 +450,31 @@
                     let mins = Math.floor(activeTreasureData.timeLeft / 60);
                     let secs = activeTreasureData.timeLeft % 60;
                     timerSpan.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-                    actionBtn.innerText = `${activeTreasureData.timeLeft}s`;
                     activeTreasureData.timeLeft--;
                 } else {
-                    clearInterval(activeTreasureData.timerInterval);
-                    timerSpan.innerText = "00:00";
-                    actionBtn.innerText = "OPEN 🎁";
-                    actionBtn.style.background = "#ff4444";
-                    actionBtn.style.color = "#fff";
+                    timerSpan.innerText = "OPEN 🎁";
+                    actionText.innerText = "CLAIM";
+                    actionText.style.background = "#ff4444";
+                    actionText.style.color = "#fff";
                 }
             }, 1000);
 
             let area = document.getElementById('liveChatScrollArea');
-            area.innerHTML += `<div style="color:#ffcc00;">🎁 <b>System:</b> Dropped Treasure Box of <b>${coinsVal.toLocaleString()} Coins</b> for ${peopleVal} people! 🔥</div>`;
+            area.innerHTML += `<div style="color:#ffcc00;">🏺 <b>System:</b> Dropped a Gullak Treasure Box of <b>${coinsVal.toLocaleString()} Coins</b>! 🔥</div>`;
             area.scrollTop = area.scrollHeight;
         }
 
         function claimTreasureBox() {
-            let actionBtn = document.getElementById('treasureActionBtn');
             if (activeTreasureData.timeLeft <= 0) {
                 let sharePerPerson = Math.floor(activeTreasureData.coins / activeTreasureData.people);
-                alert(`🎉 Congratulations! You successfully opened the Treasure Box and won ${sharePerPerson} Coins! 🪙`);
+                alert(`🎉 Congratulations! You successfully opened the Gullak and won ${sharePerPerson} Coins! 🪙`);
                 document.getElementById('activeTreasureBanner').style.display = 'none';
                 
                 let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500') + sharePerPerson;
                 localStorage.setItem('userWalletCoins', currentCoins);
                 document.getElementById('userWalletCoins').innerText = currentCoins.toLocaleString();
             } else {
-                alert(`⏳ Treasure Box is still locked! Please wait ${activeTreasureData.timeLeft} seconds until the timer ends.`);
+                alert(`⏳ Gullak is locked! Please wait ${activeTreasureData.timeLeft} seconds until the timer ends.`);
             }
         }
 
