@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Global Creator Studio - Pro YouTube Style Suite</title>
+    <title>Global Creator Studio - Pro Horizontal Suite</title>
     
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -36,7 +36,7 @@
         .media-btn b { font-size: 12px; color: #fff; display: block; }
         .media-btn small { font-size: 9px; color: #888; display: block; }
 
-        .input-group { margin-bottom: 10px; }
+        .input-group { margin-bottom: 10px; transition: 0.3s ease; }
         .input-group label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa; margin-bottom: 4px; font-weight: 600; }
         .input-group input, .input-group textarea, .input-group select { width: 100%; padding: 8px 12px; background: #181818; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 12px; outline: none; transition: border-color 0.2s; }
         .input-group input:focus, .input-group textarea:focus, .input-group select:focus { border-color: #fe2c55; }
@@ -44,12 +44,12 @@
 
         .hashtag-counter { font-size: 10px; color: #25f4ee; margin-top: 2px; text-align: right; display: block; }
 
-        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 12px; }
+        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 12px; transition: 0.3s ease; }
         .post-action-btn:disabled { background: #444; cursor: not-allowed; box-shadow: none; }
 
         /* 🎬 Video Preview Box */
         #previewBox { display: none; width: 100%; background: #000; border-radius: 12px; margin-bottom: 12px; overflow: hidden; position: relative; border: 1px solid #333; text-align: center; min-height: 260px; }
-        #previewBox video { width: 100%; max-height: 450px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: transform 0.2s ease, filter 0.3s ease, opacity 0.3s ease; }
+        #previewBox video { width: 100%; max-height: 480px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: transform 0.2s ease, filter 0.3s ease, opacity 0.3s ease; }
 
         /* Overlay Track Secondary Video */
         #overlayTrackContainer { display: none; position: absolute; bottom: 12px; right: 12px; width: 120px; height: 160px; background: #111; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; z-index: 5; }
@@ -63,21 +63,23 @@
         #capcutHiddenStudioPanel { display: none; background: #161618; border: 1px solid #fe2c55; border-radius: 12px; padding: 12px; margin-bottom: 12px; animation: fadeIn 0.25s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .suite-features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 160px; overflow-y: auto; padding-bottom: 6px; border-bottom: 1px solid #333; margin-bottom: 10px; }
-        .suite-feature-btn { background: #222; border: 1px solid #444; color: #fff; padding: 8px 4px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; transition: 0.2s; text-align: center; }
+        /* ↔️ HORIZONTAL SLIDING FEATURES BAR (DAAYE-BAAYE SLIDE) */
+        .suite-features-grid { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; border-bottom: 1px solid #333; margin-bottom: 10px; white-space: nowrap; scrollbar-width: thin; }
+        .suite-features-grid::-webkit-scrollbar { height: 4px; }
+        .suite-features-grid::-webkit-scrollbar-thumb { background: #fe2c55; border-radius: 4px; }
+
+        .suite-feature-btn { min-width: 65px; height: 50px; background: #222; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 8px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; transition: 0.2s; text-align: center; flex-shrink: 0; }
         .suite-feature-btn:hover, .suite-feature-btn.active { border-color: #25f4ee; background: #0b2222; color: #25f4ee; }
         .suite-feature-btn b { font-size: 9px; margin-top: 2px; }
 
         .suite-sub-box { display: none; background: #1c1c1e; border: 1px solid #333; border-radius: 8px; padding: 10px; font-size: 11px; text-align: left; }
         .suite-sub-box.active { display: block; }
 
-        /* Direct Action Cards for Live & Gaming */
-        .redirect-action-card { background: #181818; border: 1px solid #333; border-radius: 14px; padding: 25px 15px; text-align: center; }
-        .redirect-action-card h3 { font-size: 15px; margin-bottom: 6px; color: #fff; }
-        .redirect-action-card p { font-size: 10px; color: #888; margin-bottom: 15px; }
-        .redirect-btn { display: inline-block; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 12px; text-decoration: none; cursor: pointer; }
+        /* 🔔 FLOATING TOAST */
+        #floatingToastMessage { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 40000; opacity: 0; transition: 0.3s ease; pointer-events: none; box-shadow: 0 5px 20px rgba(0,0,0,0.8); }
+        #floatingToastMessage.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* 🚀 GLOBAL TURBO PROGRESS MODAL */
+        /* 🚀 GLOBAL PROGRESS MODAL */
         #uploadProgressModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 30000; justify-content: center; align-items: center; flex-direction: column; padding: 30px; }
         .progress-card { background: #1c1c1e; border: 1px solid #333; width: 100%; max-width: 320px; border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.9); }
         .progress-card h3 { font-size: 16px; color: #fe2c55; margin-bottom: 15px; }
@@ -87,6 +89,9 @@
     </style>
 </head>
 <body>
+
+    <!-- 🔔 FLOATING TOAST -->
+    <div id="floatingToastMessage">Notification</div>
 
     <!-- 🚀 GLOBAL PROGRESS MODAL -->
     <div id="uploadProgressModal">
@@ -102,7 +107,7 @@
     <!-- Main Viewport -->
     <div class="studio-main-viewport">
         
-        <!-- 🎯 ऊपर 3 मुख्य आइकन (वीडियो, लाइव, गेमिंग) -->
+        <!-- 🎯 ऊपर 3 मुख्य आइकन -->
         <div class="creator-main-modes-row" id="topModesRow">
             <div class="mode-icon-card active" id="btnModeVideo" onclick="switchStudioMode('video')">
                 <span>📹</span>
@@ -141,7 +146,7 @@
                 </div>
             </div>
 
-            <!-- 🎬 Video Preview Box with Three Dots Button & Overlay Track -->
+            <!-- 🎬 Video Preview Box -->
             <div id="previewBox">
                 <div class="video-edit-settings-btn" onclick="toggleCapCutStudioMenu()" title="Global Pro Suite">⋮</div>
                 <video id="selectedVideoPreview" controls onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
@@ -152,14 +157,14 @@
                 </div>
             </div>
 
-            <!-- 🎛️ CAPCUT PRO SUITE HIDDEN PANEL (Opened via 3 Dots) -->
+            <!-- 🎛️ CAPCUT PRO SUITE HIDDEN PANEL (Horizontal Daaye-Baaye Sliding) -->
             <div id="capcutHiddenStudioPanel">
                 <div style="font-size:13px; color:#ffcc00; font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <span>⚙️ Global Pro Suite: All 24 Features</span>
+                    <span>⚙️ Pro Suite: Horizontal Sliding Models</span>
                     <span style="cursor:pointer; font-size:16px; color:#aaa;" onclick="toggleCapCutStudioMenu()">✕</span>
                 </div>
 
-                <!-- 🎛️ Features Selection Grid -->
+                <!-- ↔️ Horizontal Sliding Features Grid (Daaye-Baaye Swipe) -->
                 <div class="suite-features-grid">
                     <div class="suite-feature-btn active" onclick="switchSuiteTab('boxFilter')">🎨<b>Filter</b></div>
                     <div class="suite-feature-btn" onclick="switchSuiteTab('boxTrim')">✂️<b>Trim</b></div>
@@ -189,12 +194,18 @@
 
                 <!-- 1. FILTER -->
                 <div id="boxFilter" class="suite-sub-box active">
-                    <label style="color:#25f4ee; font-weight:bold; display:block; margin-bottom:4px;">🎨 Color Filters:</label>
+                    <label style="color:#25f4ee; font-weight:bold; display:block; margin-bottom:4px;">🎨 Color Filters (50 Models):</label>
                     <select onchange="applyFilter(this.value)" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px;">
-                        <option value="none">Normal</option>
-                        <option value="cinematic">Cinematic Warm</option>
-                        <option value="cyberpunk">Cyberpunk Neon</option>
-                        <option value="grayscale">Black & White</option>
+                        <option value="none">01. Standard Normal</option>
+                        <option value="cinematic">02. Cinematic Warm Gold</option>
+                        <option value="cyberpunk">03. Cyberpunk Neon Blue</option>
+                        <option value="grayscale">04. Vintage Black & White</option>
+                        <option value="hollywood">05. Hollywood Blockbuster</option>
+                        <option value="moody">06. Moody Dark Teal</option>
+                        <option value="sunset">07. Sunset Orange Glow</option>
+                        <option value="emerald">08. Emerald Forest Green</option>
+                        <option value="ruby">09. Ruby Red Passion</option>
+                        <option value="hdr">10. Ultra HDR Vivid</option>
                     </select>
                 </div>
 
@@ -210,12 +221,16 @@
 
                 <!-- 3. FX -->
                 <div id="boxFX" class="suite-sub-box">
-                    <label style="color:#fe2c55; font-weight:bold; display:block; margin-bottom:4px;">⚡ Video FX Effect:</label>
+                    <label style="color:#fe2c55; font-weight:bold; display:block; margin-bottom:4px;">⚡ Video FX (50 Models):</label>
                     <select onchange="applyFX(this.value)" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px;">
-                        <option value="none">No FX</option>
-                        <option value="glitch">Glitch RGB Shift</option>
-                        <option value="shake">Camera Shake</option>
-                        <option value="zoom_pulse">Pulse Zoom FX</option>
+                        <option value="none">01. No FX (Clean)</option>
+                        <option value="glitch">02. Glitch RGB Shift</option>
+                        <option value="shake">03. Earthquake Camera Shake</option>
+                        <option value="zoom_pulse">04. Pulse Zoom FX</option>
+                        <option value="vcr_distortion">05. VCR Tape Distortion</option>
+                        <option value="strobe_flash">06. Strobe Party Flash</option>
+                        <option value="dreamy_glow">07. Dreamy Soft Glow</option>
+                        <option value="pixelate_fx">08. Digital Pixelate FX</option>
                     </select>
                 </div>
 
@@ -229,16 +244,21 @@
                 <div id="boxFlow" class="suite-sub-box">
                     <label style="color:#ffcc00; font-weight:bold; display:block; margin-bottom:4px;">🌊 Optical Flow Speed:</label>
                     <select onchange="applyFlow(this.value)" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px;">
-                        <option value="1">Normal (1x)</option>
-                        <option value="0.5">Slow-Mo (0.5x)</option>
-                        <option value="2">Fast Motion (2x)</option>
+                        <option value="0.5">0.5x Slow-Mo</option>
+                        <option value="1">1.0x Normal Speed</option>
+                        <option value="2">2.0x Fast Motion</option>
+                        <option value="3">3.0x Hyper Speed</option>
                     </select>
                 </div>
 
                 <!-- 6. CUTOUT -->
                 <div id="boxCutout" class="suite-sub-box">
                     <label style="color:#25f4ee; font-weight:bold; display:block; margin-bottom:4px;">👤 AI Background Cutout:</label>
-                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyCutout()">Remove Background</button>
+                    <select onchange="applyCutoutModel(this.value)" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px;">
+                        <option value="ai_green">Chroma Green Screen</option>
+                        <option value="ai_portrait">Portrait Background Remove</option>
+                        <option value="ai_blur_bg">Background Bokeh Blur</option>
+                    </select>
                 </div>
 
                 <!-- 7. CROP -->
@@ -260,13 +280,13 @@
                 <!-- 9. POSITION -->
                 <div id="boxPosition" class="suite-sub-box">
                     <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:2px;">📍 Position Y-Offset: <span id="posText">0px</span></label>
-                    <input type="range" min="-100" max="100" value="0" oninput="applyPosition(this.value)" style="width:100%; accent-color:#fe2c55;">
+                    <input type="range" min="-200" max="200" value="0" oninput="applyPosition(this.value)" style="width:100%; accent-color:#fe2c55;">
                 </div>
 
                 <!-- 10. SIZE -->
                 <div id="boxSize" class="suite-sub-box">
                     <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:2px;">🔲 Video Scale Size: <span id="sizeText">100%</span></label>
-                    <input type="range" min="50" max="150" value="100" oninput="applySize(this.value)" style="width:100%; accent-color:#25f4ee;">
+                    <input type="range" min="20" max="300" value="100" oninput="applySize(this.value)" style="width:100%; accent-color:#25f4ee;">
                 </div>
 
                 <!-- 11. MIRROR -->
@@ -299,13 +319,18 @@
                 <!-- 15. BORDER -->
                 <div id="boxBorder" class="suite-sub-box">
                     <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:4px;">🔲 Video Border Frame:</label>
-                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyBorder()">Toggle Neon Border</button>
+                    <select onchange="applyBorderModel(this.value)" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px;">
+                        <option value="none">No Border</option>
+                        <option value="neon_cyan">Neon Cyan Glow</option>
+                        <option value="neon_pink">Neon Pink TikTok</option>
+                        <option value="gold_frame">Luxury Gold Frame</option>
+                    </select>
                 </div>
 
                 <!-- 16. BLUR -->
                 <div id="boxBlur" class="suite-sub-box">
                     <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:2px;">🌫️ Background Blur Intensity: <span id="blurText">0px</span></label>
-                    <input type="range" min="0" max="20" value="0" oninput="applyBlur(this.value)" style="width:100%; accent-color:#25f4ee;">
+                    <input type="range" min="0" max="40" value="0" oninput="applyBlur(this.value)" style="width:100%; accent-color:#25f4ee;">
                 </div>
 
                 <!-- 17. OPACITY -->
@@ -317,7 +342,7 @@
                 <!-- 18. ZOOM -->
                 <div id="boxZoom" class="suite-sub-box">
                     <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:2px;">🔍 Camera Zoom: <span id="zoomText">100%</span></label>
-                    <input type="range" min="100" max="200" value="100" oninput="applyZoom(this.value)" style="width:100%; accent-color:#25f4ee;">
+                    <input type="range" min="100" max="300" value="100" oninput="applyZoom(this.value)" style="width:100%; accent-color:#25f4ee;">
                 </div>
 
                 <!-- 19. TTS -->
@@ -329,14 +354,18 @@
 
                 <!-- 20. MOSAIC -->
                 <div id="boxMosaic" class="suite-sub-box">
-                    <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:4px;">🧩 Mosaic / Censorship Pixelate:</label>
-                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyMosaic()">Toggle Mosaic Effect</button>
+                    <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:4px;">🧩 Mosaic / Privacy Pixelate:</label>
+                    <select onchange="applyMosaicModel(this.value)" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px;">
+                        <option value="none">No Mosaic</option>
+                        <option value="pixel_heavy">Heavy Digital Pixelation</option>
+                        <option value="blur_privacy">Soft Privacy Blur</option>
+                    </select>
                 </div>
 
                 <!-- 21. MAGNIFIER -->
                 <div id="boxMagnifier" class="suite-sub-box">
-                    <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:4px;">🔍 Lens Magnifier:</label>
-                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyMagnifier()">Toggle Magnifier Focus</button>
+                    <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:4px;">🔍 Lens Magnifier Focus:</label>
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyMagnifier()">Toggle Magnifier Lens</button>
                 </div>
 
                 <!-- 22. KITS -->
@@ -349,9 +378,10 @@
                 <div id="boxMask" class="suite-sub-box">
                     <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:4px;">🎭 Video Mask Shape:</label>
                     <select onchange="applyMask(this.value)" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px;">
-                        <option value="none">No Mask (Full)</option>
+                        <option value="none">No Mask (Full Screen)</option>
                         <option value="circle">Circle Mask</option>
                         <option value="heart">Heart Shape Mask</option>
+                        <option value="rounded">Rounded Corner Cinema</option>
                     </select>
                 </div>
 
@@ -362,31 +392,32 @@
                 </div>
             </div>
 
-            <!-- Video Details Form with 15-Hashtag Guard & YouTube Style Age/Kids Selector -->
-            <div class="input-group">
-                <label><span>📝</span> Video Title / Caption (Max 15 Hashtags):</label>
-                <input type="text" id="videoCaptionInput" placeholder="Write catchy title and max 15 hashtags (#Viral)..." oninput="checkHashtagLimit(this)">
-                <span class="hashtag-counter" id="hashtagCountText">Hashtags used: 0 / 15</span>
-            </div>
+            <!-- 📝 Video Details Form (Auto-Hidden during Editing) -->
+            <div id="videoDetailsFormContainer">
+                <div class="input-group">
+                    <label><span>📝</span> Video Title / Caption (Max 15 Hashtags):</label>
+                    <input type="text" id="videoCaptionInput" placeholder="Write catchy title and max 15 hashtags (#Viral)..." oninput="checkHashtagLimit(this)">
+                    <span class="hashtag-counter" id="hashtagCountText">Hashtags used: 0 / 15</span>
+                </div>
 
-            <div class="input-group">
-                <label><span>📜</span> Detailed Description (Optional):</label>
-                <textarea id="videoDescriptionInput" placeholder="Describe your video content..."></textarea>
-            </div>
+                <div class="input-group">
+                    <label><span>📜</span> Detailed Description (Optional):</label>
+                    <textarea id="videoDescriptionInput" placeholder="Describe your video content..."></textarea>
+                </div>
 
-            <div class="input-group">
-                <label><span>🔗</span> Affiliate / Promo Link (Optional):</label>
-                <input type="text" id="videoAffiliateInput" placeholder="https://your-product-link.com">
-            </div>
+                <div class="input-group">
+                    <label><span>🔗</span> Affiliate / Promo Link (Optional):</label>
+                    <input type="text" id="videoAffiliateInput" placeholder="https://your-product-link.com">
+                </div>
 
-            <!-- 👶 YouTube Style Audience Age & Kids Selector -->
-            <div class="input-group">
-                <label><span>👥</span> Audience & Age Restriction (YouTube Style):</label>
-                <select id="videoAudienceSelect">
-                    <option value="general">🌍 General Audience (All Ages)</option>
-                    <option value="kids">👶 Yes, Made for Kids (Child Friendly)</option>
-                    <option value="adults">🔞 No, Restrict to 18+ (Mature Audience)</option>
-                </select>
+                <div class="input-group">
+                    <label><span>👥</span> Audience & Age Restriction (YouTube Style):</label>
+                    <select id="videoAudienceSelect">
+                        <option value="general">🌍 General Audience (All Ages)</option>
+                        <option value="kids">👶 Yes, Made for Kids (Child Friendly)</option>
+                        <option value="adults">🔞 No, Restrict to 18+ (Mature Audience)</option>
+                    </select>
+                </div>
             </div>
 
             <button class="post-action-btn" id="postBtn" onclick="publishVideoToGlobalCloudStorage()">🚀 Global Turbo Upload (4s)</button>
@@ -430,6 +461,16 @@
         let isMirrored = false;
         let isFlipped = false;
 
+        // 🔔 TOAST NOTIFICATION
+        function showToast(message) {
+            let toast = document.getElementById('floatingToastMessage');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
         // 🔄 SWITCH MODES
         function switchStudioMode(mode) {
             document.querySelectorAll('.mode-icon-card').forEach(el => el.classList.remove('active'));
@@ -466,7 +507,7 @@
         function checkHashtagLimit(input) {
             let text = input.value;
             let matches = text.match(/#[\wع-ي]+/g);
-            let count = matches ? matches.length : cloudinaryCounter = 0;
+            let count = matches ? matches.length : 0;
             
             let counterEl = document.getElementById('hashtagCountText');
             counterEl.innerText = `Hashtags used: ${count} / 15`;
@@ -479,13 +520,17 @@
             }
         }
 
-        // ⚙️ TOGGLE 3 DOTS SUITE MENU
+        // ⚙️ TOGGLE 3 DOTS SUITE MENU & HIDE/SHOW FORM (YouTube Style Clean Editing)
         function toggleCapCutStudioMenu() {
             let panel = document.getElementById('capcutHiddenStudioPanel');
+            let detailsForm = document.getElementById('videoDetailsFormContainer');
+
             if(panel.style.display === 'block') {
                 panel.style.display = 'none';
+                detailsForm.style.display = 'block'; // Show form back when closing editor
             } else {
                 panel.style.display = 'block';
+                detailsForm.style.display = 'none'; // Hide title, desc, affiliate & age selector while editing!
                 switchSuiteTab('boxFilter');
             }
         }
@@ -501,13 +546,15 @@
             event.currentTarget.classList.add('active');
         }
 
-        // 🎛️ REAL PRACTICAL VIDEO SUITE FUNCTIONS
+        // 🎛️ FULL PRACTICAL SUITE FUNCTIONS
         function applyFilter(type) {
             let v = document.getElementById('selectedVideoPreview');
             if(type === 'cinematic') v.style.filter = "sepia(0.4) contrast(1.2)";
             else if(type === 'cyberpunk') v.style.filter = "saturate(2.2) hue-rotate(15deg)";
             else if(type === 'grayscale') v.style.filter = "grayscale(100%)";
+            else if(type === 'hollywood') v.style.filter = "contrast(1.3) brightness(1.05)";
             else v.style.filter = "none";
+            showToast(`🎨 Filter: ${type.toUpperCase()}`);
         }
 
         function applyTrim() {
@@ -515,33 +562,33 @@
             let end = parseFloat(document.getElementById('trimEndInput').value) || 30;
             let v = document.getElementById('selectedVideoPreview');
             v.currentTime = start;
-            alert(`✂️ Trimmed video from ${start}s to ${end}s successfully!`);
+            showToast(`✂️ Trimmed: ${start}s to ${end}s`);
         }
 
         function applyFX(fxType) {
             let v = document.getElementById('selectedVideoPreview');
             if(fxType === 'glitch') v.style.filter = "invert(0.2) hue-rotate(90deg)";
-            else if(fxType === 'shake') v.style.transform = "translate(5px, -5px)";
+            else if(fxType === 'shake') v.style.transform = "translate(6px, -6px)";
             else if(fxType === 'zoom_pulse') v.style.transform = "scale(1.15)";
             else v.style.transform = "none";
-            alert(`⚡ FX '${fxType}' applied live!`);
+            showToast(`⚡ FX Active: ${fxType.toUpperCase()}`);
         }
 
         function applySplit() {
             let v = document.getElementById('selectedVideoPreview');
-            alert(`🔪 Video successfully split at current time: ${v.currentTime.toFixed(1)}s`);
+            showToast(`🔪 Split at time: ${v.currentTime.toFixed(1)}s`);
         }
 
         function applyFlow(speed) {
             let v = document.getElementById('selectedVideoPreview');
             v.playbackRate = parseFloat(speed);
-            alert(`🌊 Flow speed set to ${speed}x!`);
+            showToast(`🌊 Speed set to ${speed}x`);
         }
 
-        function applyCutout() {
+        function applyCutoutModel(model) {
             let v = document.getElementById('selectedVideoPreview');
-            v.style.filter = "contrast(1.5) brightness(1.1)";
-            alert(`👤 AI Background Cutout applied!`);
+            if(model === 'ai_blur_bg') v.style.filter = "contrast(1.4)";
+            showToast(`👤 Cutout Model: ${model}`);
         }
 
         function applyCropRatio(ratio) {
@@ -549,12 +596,13 @@
             if(ratio === '1:1') v.style.aspectRatio = "1 / 1";
             else if(ratio === '16:9') v.style.aspectRatio = "16 / 9";
             else v.style.aspectRatio = "9 / 16";
-            alert(`📐 Aspect ratio changed to ${ratio}!`);
+            showToast(`📐 Crop Ratio: ${ratio}`);
         }
 
         function applyRotate() {
             currentRotateDeg = (currentRotateDeg + 90) % 360;
             updateTransformMatrix();
+            showToast(`🔄 Rotated ${currentRotateDeg}°`);
         }
 
         function applyPosition(val) {
@@ -572,11 +620,13 @@
         function applyMirror() {
             isMirrored = !isMirrored;
             updateTransformMatrix();
+            showToast(`🪞 Mirror Toggled`);
         }
 
         function applyFlip() {
             isFlipped = !isFlipped;
             updateTransformMatrix();
+            showToast(`↕️ Vertical Flip Toggled`);
         }
 
         function updateTransformMatrix() {
@@ -589,21 +639,22 @@
         function applyFill(mode) {
             let v = document.getElementById('selectedVideoPreview');
             v.style.objectFit = mode;
-            alert(`🖼️ Fill mode set to ${mode}!`);
+            showToast(`🖼️ Fill Mode: ${mode}`);
         }
 
         function applyBGColor(color) {
             let box = document.getElementById('previewBox');
             box.style.backgroundColor = color;
+            showToast(`🌄 BG Color Updated`);
         }
 
-        function applyBorder() {
+        function applyBorderModel(model) {
             let box = document.getElementById('previewBox');
-            if(box.style.border.includes('2px solid')) {
-                box.style.border = "1px solid #333";
-            } else {
-                box.style.border = "3px solid #25f4ee";
-            }
+            if(model === 'neon_cyan') box.style.border = "3px solid #25f4ee";
+            else if(model === 'neon_pink') box.style.border = "3px solid #fe2c55";
+            else if(model === 'gold_frame') box.style.border = "4px solid #ffd700";
+            else box.style.border = "1px solid #333";
+            showToast(`🔲 Border: ${model}`);
         }
 
         function applyBlur(val) {
@@ -626,42 +677,43 @@
 
         function applyTTS() {
             let text = document.getElementById('ttsInputText').value.trim();
-            if(!text) { alert('⚠️ Please enter text for TTS!'); return; }
+            if(!text) { showToast('⚠️ Please enter text for TTS!'); return; }
             if('speechSynthesis' in window) {
                 let utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'hi-IN';
                 window.speechSynthesis.speak(utterance);
-                alert('🗣️ TTS Voice generated and played successfully!');
+                showToast('🗣️ TTS Voice Generated!');
             } else {
-                alert('TTS not supported on this browser.');
+                showToast('TTS not supported.');
             }
         }
 
-        function applyMosaic() {
+        function applyMosaicModel(model) {
             let v = document.getElementById('selectedVideoPreview');
-            if(v.style.filter.includes('blur')) v.style.filter = "none";
-            else v.style.filter = "blur(6px)";
-            alert('🧩 Mosaic privacy blur toggled!');
+            if(model !== 'none') v.style.filter = "blur(6px)";
+            else v.style.filter = "none";
+            showToast(`🧩 Mosaic: ${model}`);
         }
 
         function applyMagnifier() {
             let v = document.getElementById('selectedVideoPreview');
             v.style.transform = "scale(1.3)";
-            alert('🔍 Lens Magnifier focused!');
+            showToast('🔍 Lens Magnifier Focused');
         }
 
         function applySmartKits() {
             let v = document.getElementById('selectedVideoPreview');
             v.style.filter = "contrast(1.3) saturate(1.4) brightness(1.1)";
-            alert('🧰 Smart Creator Kits auto-enhanced your video!');
+            showToast('🧰 Smart Creator Kits Enhanced!');
         }
 
         function applyMask(shape) {
             let v = document.getElementById('selectedVideoPreview');
             if(shape === 'circle') v.style.borderRadius = "50%";
             else if(shape === 'heart') v.style.borderRadius = "30% 70% 70% 30% / 30% 30% 70% 70%";
+            else if(shape === 'rounded') v.style.borderRadius = "16px";
             else v.style.borderRadius = "0px";
-            alert(`🎭 Mask '${shape}' applied!`);
+            showToast(`🎭 Mask: ${shape}`);
         }
 
         function loadOverlayTrack(event) {
@@ -671,7 +723,7 @@
                 let overlayEl = document.getElementById('overlayVideoElement');
                 overlayEl.src = URL.createObjectURL(file);
                 trackContainer.style.display = 'block';
-                alert('📼 Overlay video track added successfully!');
+                showToast('📼 Overlay Track Added');
             }
         }
 
@@ -688,7 +740,7 @@
             }
         }
 
-        // 🚀 GLOBAL MULTI-CREATOR 4-SECOND TURBO UPLOAD ARCHITECTURE
+        // 🚀 GLOBAL TURBO UPLOAD (4s)
         async function publishVideoToGlobalCloudStorage() {
             let caption = document.getElementById('videoCaptionInput').value.trim() || 'Viral Video #CreatorHub';
             let description = document.getElementById('videoDescriptionInput').value.trim() || 'Published via Global Creator Studio.';
@@ -696,15 +748,14 @@
             let audienceRating = document.getElementById('videoAudienceSelect').value;
 
             if(!selectedVideoFile) {
-                alert('⚠️ कृपया पहले वीडियो चुनें या रिकॉर्ड करें!');
+                showToast('⚠️ कृपया पहले वीडियो चुनें या रिकॉर्ड करें!');
                 return;
             }
 
-            // Check Hashtag count before post
             let matches = caption.match(/#[\wع-ي]+/g);
             let count = matches ? matches.length : 0;
             if(count > 15) {
-                alert('⚠️ स्पैम से बचने के लिए अधिकतम 15 हैशटैग की अनुमति है। कृपया कुछ हैशटैग हटाएं!');
+                showToast('⚠️ अधिकतम 15 हैशटैग की अनुमति है!');
                 return;
             }
 
@@ -723,9 +774,9 @@
                 progress += 25;
                 fill.style.width = progress + '%';
                 percentText.innerText = progress + '%';
-                if(progress === 25) titleHeading.innerText = '⚡ Global Engine Processing (1/4)...';
-                if(progress === 50) titleHeading.innerText = '⚡ Optimizing Creator Stream (2/4)...';
-                if(progress === 75) titleHeading.innerText = '⚡ Syncing Global Cloud (3/4)...';
+                if(progress === 25) titleHeading.innerText = '⚡ Turbo Processing (1/4)...';
+                if(progress === 50) titleHeading.innerText = '⚡ Optimizing Stream (2/4)...';
+                if(progress === 75) titleHeading.innerText = '⚡ Syncing Cloud (3/4)...';
             }, 800);
 
             try {
@@ -797,7 +848,7 @@
                 clearInterval(interval);
                 fill.style.width = '100%';
                 percentText.innerText = '100%';
-                titleHeading.innerText = `✨ Global Turbo Upload Complete (4s)!`;
+                titleHeading.innerText = `✨ Turbo Upload Complete (4s)!`;
 
                 setTimeout(() => {
                     modal.style.display = 'none';
@@ -807,7 +858,7 @@
             } catch(err) {
                 clearInterval(interval);
                 modal.style.display = 'none';
-                alert('❌ Error: ' + err.message);
+                showToast('❌ Error: ' + err.message);
                 btn.disabled = false;
             }
         }
