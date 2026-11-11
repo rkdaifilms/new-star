@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Global Creator Studio - Ultimate Real AI Suite</title>
+    <title>Global Creator Studio - Ultimate Real VFX & AI Suite</title>
     
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -48,7 +48,7 @@
 
         /* 🎬 Video Preview Box */
         #previewBox { display: none; width: 100%; background: #000; border-radius: 12px; margin-bottom: 12px; overflow: hidden; position: relative; border: 1px solid #333; text-align: center; min-height: 260px; }
-        #previewBox video { width: 100%; max-height: 480px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: transform 0.2s ease, filter 0.3s ease, opacity 0.3s ease; }
+        #previewBox video { width: 100%; max-height: 480px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), filter 0.3s ease; }
         #previewBox.duet-mode video { width: 50%; display: inline-block; vertical-align: middle; }
 
         /* Overlay Track */
@@ -184,13 +184,13 @@
                 <!-- SUB 1: VIDEO EDIT SUITE -->
                 <div id="sub_editSuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
-                        <span>✂️ CapCut Pro Editing Tools</span>
+                        <span>✂️ CapCut Pro & VFX Studio</span>
                         <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
                     </div>
                     <div class="suite-features-grid">
                         <div class="suite-feature-btn active" onclick="switchSuiteTab('boxFilter')">🎨<b>Filter</b></div>
                         <div class="suite-feature-btn" onclick="switchSuiteTab('boxTrim')">✂️<b>Trim</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxFX')">⚡<b>FX</b></div>
+                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxFX')">⚡<b>FX & VFX</b></div>
                         <div class="suite-feature-btn" onclick="switchSuiteTab('boxCrop')">📐<b>Crop</b></div>
                         <div class="suite-feature-btn" onclick="switchSuiteTab('boxRotate')">🔄<b>Rotate</b></div>
                         <div class="suite-feature-btn" onclick="switchSuiteTab('boxSize')">🔲<b>Size</b></div>
@@ -216,14 +216,22 @@
                         </div>
                         <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyTrim()">Apply Trim</button>
                     </div>
+
+                    <!-- ⚡ FX & VFX ZOOM SUITE (Updated with Real 200%-300% Zoom & VFX Animations) -->
                     <div id="boxFX" class="suite-sub-box">
-                        <label style="color:#fe2c55; font-weight:bold; display:block; margin-bottom:4px;">⚡ FX Models:</label>
-                        <select onchange="applyFX(this.value)" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px;">
-                            <option value="none">No FX</option>
-                            <option value="glitch">Glitch RGB Shift</option>
-                            <option value="shake">Earthquake Shake</option>
+                        <label style="color:#fe2c55; font-weight:bold; display:block; margin-bottom:4px;">⚡ FX, VFX & Zoom Styles:</label>
+                        <select id="vfxZoomSelect" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; margin-bottom:6px;">
+                            <option value="zoom_300">🔥 Cinematic Zoom 300% (महा ज़ूम)</option>
+                            <option value="zoom_200">⚡ Punch Zoom 200% (फास्ट ज़ूम)</option>
+                            <option value="shake_fx">💥 Earthquake Shake VFX (अर्थक्वेक शेक)</option>
+                            <option value="glitch_fx">🌀 RGB Cyberpunk Glitch VFX (ग्लिच इफ़ेक्ट)</option>
+                            <option value="epic_pan">🎬 Smooth Epic Pan Zoom (स्मूथ पैन)</option>
+                            <option value="neon_glow">🌟 Neon Glow Cinematic FX (नियोन ग्लो)</option>
                         </select>
+                        <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#fe2c55; color:#fff;" onclick="applyRealVfxZoom()">⚡ Apply VFX & Zoom Style</button>
+                        <div id="vfxResultText" style="margin-top:6px; font-size:10px; color:#25f4ee; font-weight:bold;"></div>
                     </div>
+
                     <div id="boxCrop" class="suite-sub-box">
                         <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:4px;">📐 Aspect Ratio:</label>
                         <select onchange="applyCropRatio(this.value)" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px;">
@@ -237,7 +245,7 @@
                     </div>
                     <div id="boxSize" class="suite-sub-box">
                         <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:2px;">🔲 Scale: <span id="sizeText">100%</span></label>
-                        <input type="range" min="50" max="200" value="100" oninput="applySize(this.value)" style="width:100%; accent-color:#25f4ee;">
+                        <input type="range" min="50" max="300" value="100" oninput="applySize(this.value)" style="width:100%; accent-color:#25f4ee;">
                     </div>
                     <div id="boxMirror" class="suite-sub-box">
                         <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyMirror()">Toggle Mirror</button>
@@ -255,7 +263,7 @@
                     </div>
                 </div>
 
-                <!-- SUB 2: 50+ REAL AI VOICE CHANGER MODELS (Direct Audio Conversion) -->
+                <!-- SUB 2: 50+ REAL AI VOICE CHANGER MODELS -->
                 <div id="sub_aiVoiceSuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#ffcc00; font-weight:bold;">
                         <span>🗣️ 50+ Real AI Voice Models</span>
@@ -273,7 +281,6 @@
                         <option value="energetic_vlog">08. High Energy Vlogger (एनर्जी व्लॉगर)</option>
                         <option value="mystery_thriller">09. Mystery Thriller Narrator (सस्पेंस नरेटर)</option>
                         <option value="robot_ai">10. Cyberpunk AI Robot (रोबोटिक आवाज़)</option>
-                        <!-- 11 से 50 तक सभी प्रोफेशनल एआई वॉइस मॉडल्स -->
                         <option value="voice_11">11. Desi Village Storyteller (देसी कहानीकार)</option>
                         <option value="voice_12">12. Royal Emperor Voice (शाही राजा की आवाज़)</option>
                         <option value="voice_13">13. Soft ASMR Whisper (सॉफ्ट एएसएमआर)</option>
@@ -299,7 +306,7 @@
                         <option value="voice_33">33. Space Astronaut (अंतरिक्ष यात्री)</option>
                         <option value="voice_34">34. Anime Warrior (एनीमे वॉरियर)</option>
                         <option value="voice_35">35. Detective Sleuth (डिटेक्टिव)</option>
-                        <option value="voice_36">36. Magical Fairy ( जादुई परी )</option>
+                        <option value="voice_36">36. Magical Fairy (जादुई परी)</option>
                         <option value="voice_37">37. Royal Prince (राजकुमार)</option>
                         <option value="voice_38">38. Street Fighter (स्ट्रीट फाइटर)</option>
                         <option value="voice_39">39. Cybernetic AI 2.0 (एआई एंड्रॉइड)</option>
@@ -556,7 +563,7 @@
             event.currentTarget.classList.add('active');
         }
 
-        // 🎛️ EDIT SUITE FUNCTIONS
+        // 🎛️ EDIT SUITE & REAL VFX ZOOM FUNCTIONS
         function applyFilter(type) {
             let v = document.getElementById('selectedVideoPreview');
             if(type === 'cinematic') v.style.filter = "sepia(0.4) contrast(1.2)";
@@ -574,12 +581,37 @@
             showToast(`✂️ Trimmed: ${start}s to ${end}s`);
         }
 
-        function applyFX(fxType) {
+        // ⚡ REAL VFX & ZOOM APPLIER (200%-300% Zoom & Dynamic Motion Styles)
+        function applyRealVfxZoom() {
+            let selectEl = document.getElementById('vfxZoomSelect');
+            let vfxType = selectEl.value;
+            let vfxName = selectEl.options[selectEl.selectedIndex].text;
             let v = document.getElementById('selectedVideoPreview');
-            if(fxType === 'glitch') v.style.filter = "invert(0.2) hue-rotate(90deg)";
-            else if(fxType === 'shake') v.style.transform = "translate(6px, -6px)";
-            else v.style.transform = "none";
-            showToast(`⚡ FX Active: ${fxType.toUpperCase()}`);
+            let resText = document.getElementById('vfxResultText');
+
+            if (vfxType === 'zoom_300') {
+                v.style.transform = "scale(3.0)";
+                resText.innerHTML = "✅ Cinematic 300% Zoom applied permanently!";
+            } else if (vfxType === 'zoom_200') {
+                v.style.transform = "scale(2.0)";
+                resText.innerHTML = "✅ Punch 200% Zoom applied permanently!";
+            } else if (vfxType === 'shake_fx') {
+                v.style.transform = "translate(10px, -10px) scale(1.1)";
+                setTimeout(() => { v.style.transform = "scale(1.1)"; }, 300);
+                resText.innerHTML = "✅ Earthquake Shake VFX applied!";
+            } else if (vfxType === 'glitch_fx') {
+                v.style.filter = "invert(0.3) hue-rotate(180deg) contrast(1.5)";
+                resText.innerHTML = "✅ Cyberpunk Glitch VFX applied!";
+            } else if (vfxType === 'epic_pan') {
+                v.style.transform = "scale(1.5) translate(20px, 0px)";
+                resText.innerHTML = "✅ Epic Pan Zoom applied!";
+            } else if (vfxType === 'neon_glow') {
+                v.style.filter = "drop-shadow(0px 0px 15px #25f4ee) saturate(1.8)";
+                resText.innerHTML = "✅ Neon Glow Cinematic FX applied!";
+            }
+
+            showToast(`⚡ ${vfxName} Applied!`);
+            speakMessage("वीएफएक्स और ज़ूम इफ़ेक्ट लागू कर दिया गया है।");
         }
 
         function applyCropRatio(ratio) {
