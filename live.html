@@ -28,18 +28,27 @@
         .btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; }
 
         /* FULLSCREEN ACTIVE LIVE ROOM */
-        #activeLiveView { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 999; flex-direction: column; justify-content: space-between; padding: 10px; }
+        #activeLiveView { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 999; flex-direction: column; justify-content: space-between; padding: 8px; overflow-y: auto; }
         
-        .fullscreen-video-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; background: #000; }
-        
-        .live-overlay-content { position: relative; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
-        .live-overlay-content > * { pointer-events: auto; }
-
         .pulsing-dot { display: inline-block; width: 7px; height: 7px; background: #fe2c55; border-radius: 50%; animation: pulse 1.2s infinite; margin-right: 4px; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
         /* PK Battle Scoreboard */
-        .pk-scoreboard { display: none; justify-content: space-between; align-items: center; background: rgba(34,0,0,0.85); border: 1px solid #ff4444; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; margin-top: 5px; }
+        .pk-scoreboard { display: none; justify-content: space-between; align-items: center; background: rgba(34,0,0,0.85); border: 1px solid #ff4444; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; margin-bottom: 6px; }
+
+        /* MULTI-ROOM GRID CONTAINER (Full screen span) */
+        .live-rooms-grid { display: grid; gap: 6px; margin-bottom: 6px; width: 100%; }
+        .grid-1 { grid-template-columns: 1fr; }
+        .grid-4 { grid-template-columns: repeat(2, 1fr); }
+        .grid-10 { grid-template-columns: repeat(3, 1fr); }
+
+        .live-room-box { background: #181818; border: 2px dashed #444; height: 120px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #ccc; cursor: pointer; position: relative; overflow: hidden; transition: 0.3s; }
+        .live-room-box.active { border: 2px solid #25f4ee; background: #0b1a1a; color: #25f4ee; font-weight: bold; }
+        .live-room-box.fullscreen { grid-column: 1 / -1; height: 280px; border: 2px solid #fe2c55; }
+        
+        .room-video-el { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; background: #000; display: none; }
+        .room-info-overlay { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: rgba(0,0,0,0.4); width: 100%; height: 100%; }
+        .seat-num-badge { position: absolute; top: 3px; left: 5px; font-size: 8px; background: rgba(0,0,0,0.7); padding: 2px 5px; border-radius: 4px; color: #ffcc00; z-index: 3; }
 
         /* 🏺 GULLAK (Spinning & Glowing golden when active, right beside chat) */
         #activeTreasureBanner { display: none; width: 48px; height: 48px; background: linear-gradient(135deg, #ffd700, #ff4500); border-radius: 50%; color: #000; font-weight: bold; font-size: 8px; box-shadow: 0 0 15px rgba(255,215,0,0.9); flex-direction: column; align-items: center; justify-content: center; border: 2px solid #fff; cursor: pointer; text-align: center; padding: 2px; flex-shrink: 0; }
@@ -63,6 +72,8 @@
         .gift-grid-popup { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 260px; overflow-y: auto; margin: 8px 0; padding: 3px; }
         .gift-item-card { background: #222; border: 1px solid #444; border-radius: 8px; padding: 6px 2px; text-align: center; cursor: pointer; transition: 0.2s; }
         .gift-item-card:hover { border-color: #ffcc00; background: #2a2a2a; transform: scale(1.05); }
+
+        .invite-user-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #333; }
     </style>
 </head>
 <body>
@@ -74,86 +85,106 @@
     <!-- LIVE ROOM SETUP PANEL -->
     <div class="studio-card" id="liveSetupPanel">
         <div class="section-title">Start Fullscreen Video LIVE</div>
-        <div class="section-desc">Go live in immersive full-screen mode with real-time gifts and Gullak!</div>
+        <div class="section-desc">Set your room title and seat capacity to go live with friends and fans!</div>
         
         <label>Live Room Title:</label>
         <input type="text" id="liveTitleInput" value="Night Dance Party 🎉">
+        
+        <label>Room Seats Capacity:</label>
+        <select id="setupRoomSize">
+            <option value="1">👤 1 Seat (Solo Live)</option>
+            <option value="4" selected>👥 4 Rooms Grid (Host + 3 Seats)</option>
+            <option value="10">👥 10 Rooms Grid (Party Room)</option>
+        </select>
         
         <button class="btn" onclick="startLiveBroadcastSession()">🔴 Go LIVE in Fullscreen</button>
     </div>
 
     <!-- ACTIVE FULLSCREEN LIVE ROOM -->
     <div id="activeLiveView">
-        <video class="fullscreen-video-bg" id="activeRoomVideo" autoplay playsinline muted></video>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="background:rgba(254,44,85,0.2); border:1px solid #fe2c55; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:bold; color:#fe2c55;"><span class="pulsing-dot"></span> LIVE ROOM ACTIVE</span>
+            <span style="font-size:11px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins">500</b> | 🔥 Rank: <b id="liveRoomRank" style="color:#25f4ee;">#1</b></span>
+        </div>
 
-        <div class="live-overlay-content">
-            <!-- TOP HEADER -->
-            <div style="display:flex; flex-direction:column; gap:4px; padding:5px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.5); padding:6px 10px; border-radius:20px; backdrop-filter:blur(5px);">
-                    <span style="background:rgba(254,44,85,0.3); border:1px solid #fe2c55; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:bold; color:#fe2c55;"><span class="pulsing-dot"></span> LIVE ACTIVE</span>
-                    <span style="font-size:11px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins">500</b> | 🔥 Rank: <b style="color:#25f4ee;">#1</b></span>
-                </div>
-                <!-- PK BATTLE SCOREBOARD -->
-                <div id="pkScoreboard" class="pk-scoreboard">
-                    <span style="color:#25f4ee;">⚔️ You: <b id="myPkScore">0</b> pts</span>
-                    <span style="color:#ffcc00; font-size:10px;">PK BATTLE</span>
-                    <span style="color:#ff4444;"><span id="rivalNameDisplay">Opponent</span>: <b id="rivalPkScore">0</b> pts</span>
-                </div>
+        <!-- PK BATTLE SCOREBOARD -->
+        <div id="pkScoreboard" class="pk-scoreboard">
+            <span style="color:#25f4ee;">⚔️ You: <b id="myPkScore">0</b> pts</span>
+            <span style="color:#ffcc00; font-size:10px;" id="pkBattleTitleStatus">PK BATTLE LIVE</span>
+            <span style="color:#ff4444;"><span id="rivalNameDisplay">Opponent</span>: <b id="rivalPkScore">0</b> pts</span>
+        </div>
+
+        <!-- MULTI-ROOM GRID CONTAINER -->
+        <div id="dynamicRoomsContainer" class="live-rooms-grid"></div>
+
+        <!-- 🎙️ MIC CONTROL & SETTINGS BAR -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#1a1a1a; padding:5px 8px; border-radius:6px; margin-bottom:6px; font-size:10px;">
+            <span>🎙️ Mic: <b id="micStatusText" style="color:#25f4ee;">ON</b></span>
+            <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="toggleLiveMicrophone()">🎙️ Mute</button>
+            <button style="background:#ffcc00; color:#000; border:none; padding:3px 6px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="openModSettingsModal()">⚙️ Mod</button>
+        </div>
+
+        <!-- LIVE CHAT & GULLAK ROW -->
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+            <!-- 🏺 GULLAK NEAR COMMENT AREA -->
+            <div id="activeTreasureBanner" onclick="openTreasureStatusModal()">
+                <span style="font-size:14px;">🏺</span>
+                <div id="bannerTimer" style="font-size:7px; color:#000; font-weight:900;">00:00</div>
+                <div id="treasureActionText" style="font-size:6px; background:#000; color:#ffcc00; padding:1px 3px; border-radius:2px;">Gullak</div>
             </div>
 
-            <!-- FLOATING SIDE ACTIONS -->
-            <div class="live-side-actions">
-                <div class="live-action-icon" onclick="sendLiveLike()" title="❤️ Like">❤️</div>
-                <div class="live-action-icon" style="background:#ffcc00; color:#000; font-weight:bold;" onclick="openPkBattleModal()" title="⚔️ PK">⚔️</div>
-                <div class="live-action-icon live-treasure-btn" onclick="openTreasureModal()" title="🎁 Treasure">🎁</div>
-                <div class="live-action-icon live-gift-btn" onclick="openRealGiftModal()" title="🎁 Gifts">🎁</div>
-                <div class="live-action-icon live-share-btn" onclick="nativeShareLiveRoom()" title="📤 Share">📤</div>
+            <div style="flex:1; background:#1a1a1a; border:1px solid #333; padding:5px; border-radius:6px; text-align:left;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                    <span style="font-size:9px; color:#25f4ee; font-weight:bold;">💬 Live Chat (Likes: <b id="likePointsCount" style="color:#ffcc00;">0</b>)</span>
+                </div>
+                <div id="liveChatScrollArea" style="max-height:45px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; margin-bottom:3px; font-size:10px; color:#aaa;">
+                    <div><b>Rohit Painter:</b> Mast live room hai bhai! 🔥</div>
+                </div>
+                <div style="display:flex; gap:3px;">
+                    <input type="text" id="liveCommentInput" placeholder="Say something..." style="margin-top:0; padding:4px; font-size:10px; margin-bottom:0;" onkeypress="handleLiveChatKey(event)">
+                    <button style="background:#fe2c55; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="sendLiveComment()">Send</button>
+                </div>
             </div>
+        </div>
 
-            <!-- BOTTOM DOCK (Chat & Gullak right beside it) -->
-            <div style="display:flex; flex-direction:column; gap:6px; background:linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding:10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:6px;">
-                    <span>🎙️ Mic: <b id="micStatusText" style="color:#25f4ee;">ON</b></span>
-                    <button style="background:#fe2c55; color:#fff; border:none; padding:2px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="toggleLiveMicrophone()">Mute</button>
-                    <button style="background:#ffcc00; color:#000; border:none; padding:2px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="openModSettingsModal()">Mod</button>
+        <!-- FLOATING SIDE ACTIONS -->
+        <div class="live-side-actions">
+            <div class="live-action-icon" onclick="sendLiveLike()" title="❤️ Like">❤️</div>
+            <div class="live-action-icon" style="background:#ffcc00; color:#000; font-weight:bold;" onclick="openPkBattleModal()" title="⚔️ PK">⚔️</div>
+            <div class="live-action-icon live-treasure-btn" onclick="openTreasureModal()" title="🎁 Treasure">🎁</div>
+            <div class="live-action-icon live-gift-btn" onclick="openRealGiftModal()" title="🎁 Gifts">🎁</div>
+            <div class="live-action-icon live-share-btn" onclick="nativeShareLiveRoom()" title="📤 Share">📤</div>
+        </div>
+
+        <button class="btn" style="background: rgba(255,68,68,0.2); color: #ff4444; border:1px solid #ff4444; padding:8px; font-size:11px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room</button>
+    </div>
+
+    <!-- 👥 INVITE FRIENDS MODAL -->
+    <div id="inviteFriendsModal" class="custom-modal">
+        <div class="modal-box" style="border-color: #25f4ee;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <h4 style="color: #25f4ee; font-size: 15px;">👥 Invite Friend to Seat</h4>
+                <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('inviteFriendsModal')">✕</span>
+            </div>
+            <div style="max-height:180px; overflow-y:auto;">
+                <div class="invite-user-row">
+                    <div><b>Anjali Dance Hub</b><br><span style="font-size:9px; color:#25f4ee;">🟢 Online Follower</span></div>
+                    <button class="btn" style="width:auto; padding:4px 8px; font-size:10px; background:#25f4ee; color:#000;" onclick="assignFriendToSeat('Anjali Dance Hub')">Invite</button>
                 </div>
-
-                <!-- CHAT & GULLAK ROW -->
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <!-- 🏺 GULLAK (Placed right beside chat) -->
-                    <div id="activeTreasureBanner" onclick="openTreasureStatusModal()">
-                        <span style="font-size:14px;">🏺</span>
-                        <div id="bannerTimer" style="font-size:7px; color:#000; font-weight:900;">00:00</div>
-                        <div id="treasureActionText" style="font-size:6px; background:#000; color:#ffcc00; padding:1px 3px; border-radius:2px;">Gullak</div>
-                    </div>
-
-                    <div style="flex:1; background:rgba(0,0,0,0.7); border:1px solid #333; padding:6px; border-radius:8px; text-align:left;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                            <span style="font-size:9px; color:#25f4ee; font-weight:bold;">💬 Live Chat (Likes: <b id="likePointsCount" style="color:#ffcc00;">0</b>)</span>
-                        </div>
-                        <div id="liveChatScrollArea" style="max-height:45px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; margin-bottom:4px; font-size:10px; color:#ddd;">
-                            <div><b>Rohit Painter:</b> Mast fullscreen live room hai bhai! 🔥</div>
-                        </div>
-                        <div style="display:flex; gap:4px;">
-                            <input type="text" id="liveCommentInput" placeholder="Say something..." style="margin-top:0; padding:5px; font-size:10px; margin-bottom:0;" onkeypress="handleLiveChatKey(event)">
-                            <button style="background:#fe2c55; color:#fff; border:none; padding:5px 10px; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="sendLiveComment()">Send</button>
-                        </div>
-                    </div>
+                <div class="invite-user-row">
+                    <div><b>Rohit Painter</b><br><span style="font-size:9px; color:#ffcc00;">🙋‍♂️ Requested to Join</span></div>
+                    <button class="btn" style="width:auto; padding:4px 8px; font-size:10px; background:#fe2c55; color:#fff;" onclick="assignFriendToSeat('Rohit Painter')">Accept</button>
                 </div>
-
-                <button class="btn" style="background: rgba(255,68,68,0.2); color: #ff4444; border:1px solid #ff4444; padding:8px; font-size:11px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room</button>
             </div>
         </div>
     </div>
 
-    <!-- 🎁 TREASURE STATUS / CLAIM MODAL (Detailed info of coins, winners, time) -->
+    <!-- 🎁 TREASURE STATUS MODAL -->
     <div id="treasureStatusModal" class="custom-modal">
         <div class="modal-box" style="border-color:#ffcc00; text-align:center;">
             <div style="font-size:32px; margin-bottom:5px;">🏺</div>
             <h4 style="color:#ffcc00; font-size:15px; margin-bottom:6px;">Gullak Treasure Box Status</h4>
-            <div id="treasureDetailInfo" style="font-size:12px; color:#ccc; margin-bottom:15px; line-height:1.4; background:#111; padding:10px; border-radius:8px;">
-                <!-- Filled dynamically -->
-            </div>
+            <div id="treasureDetailInfo" style="font-size:12px; color:#ccc; margin-bottom:15px; line-height:1.4; background:#111; padding:10px; border-radius:8px;"></div>
             <div style="display:flex; gap:8px;">
                 <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold;" id="modalClaimBtn" onclick="executeClaimTreasure()">Claim Coins 🪙</button>
                 <button class="btn" style="background:#333; color:#fff;" onclick="closeModal('treasureStatusModal')">Close</button>
@@ -188,7 +219,7 @@
         </div>
     </div>
 
-    <!-- ⚔️ PK BATTLE MODAL -->
+    <!-- ⚔️ PK BATTLE MATCHMAKING MODAL -->
     <div id="pkBattleModal" class="custom-modal">
         <div class="modal-box" style="border-color:#ffcc00; max-width:340px; text-align:center;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -229,6 +260,7 @@
         let likePoints = 0;
         let myPkPoints = 0;
         let isPkActive = false;
+        let selectedSeatForInvite = null;
 
         let activeTreasureData = {
             active: false,
@@ -303,14 +335,79 @@
             document.getElementById('liveSetupPanel').style.display = 'none';
             document.getElementById('setupTopBar').style.display = 'none';
             document.getElementById('activeLiveView').style.display = 'flex';
+            let size = document.getElementById('setupRoomSize').value;
+            renderLiveRooms(size);
 
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(stream => {
                     liveStreamObj = stream;
-                    let hostVideo = document.getElementById('activeRoomVideo');
-                    if(hostVideo) { hostVideo.srcObject = stream; }
+                    let hostVideo = document.getElementById('roomVideo_1');
+                    if(hostVideo) {
+                        hostVideo.srcObject = stream;
+                        hostVideo.style.display = 'block';
+                    }
                 })
                 .catch(err => alert('Camera & Microphone access required.'));
+        }
+
+        function renderLiveRooms(size) {
+            let container = document.getElementById('dynamicRoomsContainer');
+            let sizeNum = parseInt(size);
+            let gridClass = sizeNum === 1 ? 'grid-1' : (sizeNum === 4 ? 'grid-4' : 'grid-10');
+            container.className = `live-rooms-grid ${gridClass}`;
+            
+            let html = '';
+            for(let i=1; i<=sizeNum; i++) {
+                let title = (i === 1) ? '👑 Host (You)' : `+ Invite / Seat ${i}`;
+                let activeClass = (i === 1) ? 'active' : '';
+                html += `
+                    <div class="live-room-box ${activeClass}" id="roomBox_${i}" ondblclick="toggleRoomFullscreen(${i})" onclick="handleRoomClick(${i})">
+                        <span class="seat-num-badge">#${i}</span>
+                        <video class="room-video-el" id="roomVideo_${i}" autoplay playsinline muted></video>
+                        <div class="room-info-overlay" id="roomOverlay_${i}">
+                            <span style="font-size:15px;">${i===1?'👑':'➕'}</span>
+                            <span>${title}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function toggleRoomFullscreen(roomNum) {
+            let box = document.getElementById(`roomBox_${roomNum}`);
+            if (box.classList.contains('fullscreen')) {
+                box.classList.remove('fullscreen');
+            } else {
+                document.querySelectorAll('.live-room-box').forEach(b => b.classList.remove('fullscreen'));
+                box.classList.add('fullscreen');
+            }
+        }
+
+        function handleRoomClick(roomNum) {
+            if (roomNum !== 1) {
+                selectedSeatForInvite = roomNum;
+                document.getElementById('inviteFriendsModal').style.display = 'flex';
+            }
+        }
+
+        function assignFriendToSeat(friendName) {
+            closeModal('inviteFriendsModal');
+            let overlay = document.getElementById(`roomOverlay_${selectedSeatForInvite}`);
+            let box = document.getElementById(`roomBox_${selectedSeatForInvite}`);
+            let videoEl = document.getElementById(`roomVideo_${selectedSeatForInvite}`);
+            
+            overlay.innerHTML = `<span style="font-size:13px; color:#25f4ee; font-weight:bold;">🎙️ ${friendName}</span><span style="font-size:9px; color:#ffcc00;">Connected</span>`;
+            box.classList.add('active');
+            
+            if(liveStreamObj) {
+                videoEl.srcObject = liveStreamObj;
+                videoEl.style.display = 'block';
+            }
+
+            let area = document.getElementById('liveChatScrollArea');
+            area.innerHTML += `<div style="color:#25f4ee;"><b>System:</b> ${friendName} joined room seat #${selectedSeatForInvite}! 🎙️</div>`;
+            area.scrollTop = area.scrollHeight;
         }
 
         function nativeShareLiveRoom() {
