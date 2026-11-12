@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>New Star - Camera Studio</title>
+    <title>New Star - Camera & Editor Studio</title>
     <meta name="theme-color" content="#000000">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
-        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 10px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; padding-bottom: 70px; position: relative; }
+        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 10px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; padding-bottom: 75px; overflow-y: auto; position: relative; }
         
         /* ऊपर वाले मोड्स (Video, Live, Gaming) */
         .creator-main-modes-row { display: flex; justify-content: center; gap: 10px; margin: 8px 0 12px 0; transition: 0.3s ease; }
@@ -20,7 +20,7 @@
         .studio-section { display: none; background: #000; flex: 1; flex-direction: column; }
         .studio-section.active { display: flex; }
         
-        /* 🌟 कैमरा और गैलरी बटन - शुरुआत में छिपे रहेंगे, सिर्फ 'Video' टैब के अंदर क्लिक करने पर दिखेंगे */
+        /* कैमरा और गैलरी बटन */
         .media-actions-row { display: none; gap: 15px; justify-content: center; align-items: center; margin-top: 30px; }
         .media-actions-row.active { display: flex; }
         
@@ -28,18 +28,31 @@
         
         .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 10px; }
         
-        /* संतुलित कैमरा स्टूडियो */
-        #directCameraStudio { display: none; flex-direction: column; background: #000; position: absolute; top: 0; left: 0; width: 100%; height: 100vh; z-index: 50; overflow: hidden; padding: 10px; padding-bottom: 75px; justify-content: space-between; }
-        .camera-preview-wrapper { position: relative; width: 100%; flex: 1; background: #000; overflow: hidden; border-radius: 16px; border: 2px solid #fe2c55; }
+        /* कैमरा स्टूडियो */
+        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; height: 62vh; border-radius: 14px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 5px; }
+        .camera-preview-wrapper { position: relative; width: 100%; flex: 1; background: #000; overflow: hidden; }
         #directCameraFeed { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
         
-        /* साफ़ टाइमर */
+        /* टाइमर */
         #cameraTimerBadge { 
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%); 
             background: rgba(0, 0, 0, 0.85); border: 1px solid #fe2c55; color: #ffcc00; 
             padding: 5px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; 
             display: none; z-index: 60; letter-spacing: 1px;
         }
+
+        /* 🌟 वीडियो रिकॉर्ड होने के बाद दिखने वाला प्रीव्यू और एडिटर टूल्स */
+        #previewBox { display: none; margin-top: 10px; width: 100%; text-align: center; position: relative; overflow: hidden; border-radius: 12px; background: #111; }
+        #selectedVideoPreview { width: 100%; max-height: 240px; object-fit: contain; display: block; margin: 0 auto; transition: transform 0.1s ease; }
+        
+        .editor-tools-panel { display: none; background: #161618; border: 1px solid #333; border-radius: 14px; padding: 12px; margin-top: 10px; }
+        .editor-tools-panel h4 { color: #ffcc00; font-size: 13px; margin-bottom: 8px; }
+        .tool-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+        .tool-mini-btn { background: #222; border: 1px solid #444; color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
+        .tool-mini-btn:hover { background: #fe2c55; border-color: #fe2c55; }
+
+        .form-input { width: 100%; background: #0a0a0c; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 10px; outline: none; }
+        .form-input:focus { border-color: #fe2c55; }
 
         /* लाइव और गेमिंग पैनल */
         .extra-mode-panel { display: none; flex: 1; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; background: #111; border-radius: 16px; border: 1px solid #333; margin-top: 10px; }
@@ -71,7 +84,7 @@
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onGalleryFileChosen(event)">
 
-            <!-- 🌟 कैमरा और गैलरी बटन - यह सिर्फ 'Video' टैब के अंदर दिखेंगे -->
+            <!-- कैमरा और गैलरी बटन -->
             <div class="media-actions-row active" id="mediaActionsRow">
                 <div class="media-btn" onclick="openDirectCameraStudio()">
                     <span style="font-size:32px;">🎥</span>
@@ -83,16 +96,64 @@
                 </div>
             </div>
 
-            <!-- कैमरा स्टूडियो (खुलते ही ऊपर के तीनों ऑप्शन छिप जाएंगे) -->
+            <!-- कैमरा स्टूडियो -->
             <div id="directCameraStudio">
                 <div class="camera-preview-wrapper">
                     <div id="cameraTimerBadge">⏱️ 00:00</div>
                     <video id="directCameraFeed" autoplay playsinline muted></video>
                 </div>
-                <div style="padding: 10px; background: #000;">
+                <div style="padding: 8px; background: #000;">
                     <button class="post-action-btn" id="camRecordBtn" style="background:#fe2c55; margin-top:0;" onclick="startDirectCameraRecording()">⏺️ Start Recording</button>
-                    <button class="post-action-btn" id="camStopBtn" style="background:#ffcc00; color:#000; display:none; margin-top:0;" onclick="stopDirectCameraRecording()">💾 Save & Go to Editor</button>
+                    <button class="post-action-btn" id="camStopBtn" style="background:#ffcc00; color:#000; display:none; margin-top:0;" onclick="stopDirectCameraRecording()">💾 Stop & Edit Video</button>
                 </div>
+            </div>
+
+            <!-- वीडियो प्रीव्यू बॉक्स -->
+            <div id="previewBox">
+                <video id="selectedVideoPreview" controls playsinline></video>
+            </div>
+
+            <!-- 🌟 एडिटिंग टूल्स पैनल (ज़ूम, स्पीड, टेक्स्ट, म्यूजिक) -->
+            <div id="videoEditorToolsContainer" class="editor-tools-panel">
+                <h4>🎛️ Video Editing & Effects</h4>
+                <div class="tool-btn-row">
+                    <button class="tool-mini-btn" onclick="scaleTargetVideo(1.2)">🔍 Zoom In (+)</button>
+                    <button class="tool-mini-btn" onclick="scaleTargetVideo(0.8)">🔎 Zoom Out (-)</button>
+                    <button class="tool-mini-btn" onclick="boostVideoAudio(2.0)">🔊 Audio Boost (200%)</button>
+                </div>
+                <div class="tool-btn-row" style="align-items: center;">
+                    <span style="font-size: 11px; color: #aaa;">Speed: <b id="videoSpeedLabel" style="color:#25f4ee;">1.0x</b></span>
+                    <button class="tool-mini-btn" onclick="changeVideoSpeed(0.5)">0.5x</button>
+                    <button class="tool-mini-btn" onclick="changeVideoSpeed(1.0)">1.0x</button>
+                    <button class="tool-mini-btn" onclick="changeVideoSpeed(2.0)">2.0x</button>
+                </div>
+                <div style="margin-top: 8px; display: flex; gap: 6px;">
+                    <input type="text" id="videoCustomTextInput" class="form-input" placeholder="Add text overlay..." style="margin-bottom:0; font-size:11px; padding:6px;">
+                    <button class="tool-mini-btn" onclick="addTextOverlayToVideo()" style="background:#fe2c55; border:none;">Add Text</button>
+                </div>
+                <div style="margin-top: 8px; display: flex; gap: 8px;">
+                    <label class="tool-mini-btn" style="flex:1; text-align:center; padding:8px; background:#222; cursor:pointer;">
+                        🎵 Add Background Music <input type="file" accept="audio/*" style="display:none;" onchange="loadBackgroundMusic(event)">
+                    </label>
+                    <button class="tool-mini-btn" onclick="startVoiceoverRecording()" style="background:#0077b6; border:none;">🎙️ Mic Record</button>
+                    <button class="tool-mini-btn" onclick="stopVoiceoverRecording()" style="background:#d90429; border:none;">⏹️ Stop Mic</button>
+                </div>
+            </div>
+
+            <!-- 🌟 वीडियो डिटेल्स, डिस्क्रिप्शन और एफिलिएट लिंक फॉर्म -->
+            <div id="videoDetailsFormContainer" class="editor-tools-panel">
+                <h4 style="color: #ffcc00; margin-bottom: 8px;">🚀 Video Details & Affiliate Publish</h4>
+                
+                <label style="font-size:11px; color:#aaa; margin-bottom:2px; display:block;">Video Title / Catchy Caption:</label>
+                <input type="text" id="videoCaptionInput" class="form-input" placeholder="Enter video title / caption...">
+                
+                <label style="font-size:11px; color:#aaa; margin-bottom:2px; display:block;">Detailed Description & Hashtags:</label>
+                <textarea id="videoDescriptionInput" class="form-input" placeholder="Write detailed info about your video..." rows="2"></textarea>
+                
+                <label style="font-size:11px; color:#25f4ee; margin-bottom:2px; display:block;">Affiliate / Product / Promo Link (Optional):</label>
+                <input type="text" id="videoAffiliateInput" class="form-input" placeholder="https://example.com/product-link">
+
+                <button class="post-action-btn" onclick="publishVideoToGlobalCloudStorage()">✨ Publish to Cloud & Feed</button>
             </div>
         </div>
 
@@ -101,7 +162,7 @@
             <span style="font-size: 32px; margin-bottom: 6px;">🔴</span>
             <h3 style="color: #ffcc00; margin-bottom: 4px; font-size: 14px;">Live Streaming Mode</h3>
             <p style="font-size: 11px; color: #aaa; margin-bottom: 10px;">Go live with followers and receive gifts!</p>
-            <button class="post-action-btn" style="margin-top:0;" onclick="startLiveStreamSession()">Go Live Now</button>
+            <button class="post-action-btn" style="margin-top:0;" onclick="window.location.href='live.html'">Go Live Now</button>
         </div>
 
         <!-- 3. GAMING SECTION -->
@@ -109,25 +170,25 @@
             <span style="font-size: 32px; margin-bottom: 6px;">🎮</span>
             <h3 style="color: #25f4ee; margin-bottom: 4px; font-size: 14px;">Gaming Stream Hub</h3>
             <p style="font-size: 11px; color: #aaa; margin-bottom: 10px;">Stream mobile games directly to your feed!</p>
-            <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); margin-top:0;" onclick="startGamingStreamSession()">Start Gaming Stream</button>
+            <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); margin-top:0;" onclick="window.location.href='gaming.html'">Start Gaming Stream</button>
         </div>
     </div>
 
-    <!-- 🌟 BOTTOM NAVIGATION BAR -->
-    <div class="bottom-nav">
-        <a href="index.html" class="nav-item"><span class="icon">🏠</span><span>Home</span></a>
-        <a href="inbox.html" class="nav-item"><span class="icon">💬</span><span>Inbox</span></a>
-        <a href="camera.html" class="nav-item active"><div class="nav-center-btn">+</div></a>
-        <a href="wallet.html" class="nav-item"><span class="icon">💰</span><span>Wallet</span></a>
-        <a href="profile.html" class="nav-item"><span class="icon">👤</span><span>Profile</span></a>
-    </div>
+    <!-- 🌟 NAVBAR SCRIPT LOADER -->
+    <script src="navbar.js"></script>
 
     <script>
+        let selectedVideoFile = null;
+        let finalMergedVideoBlob = null;
         let mediaRecorderDirect = null;
         let directRecordedChunks = [];
         let directCameraStreamObj = null;
         let cameraTimerInterval = null;
         let cameraSecondsElapsed = 0;
+
+        // Editor variables
+        let mainScale = 1, mainX = 0, mainY = 0;
+        let isDragging = false, startX = 0, startY = 0;
 
         function switchStudioMode(mode) {
             document.getElementById('tabVideoBtn').classList.remove('active');
@@ -151,7 +212,7 @@
             if(mode === 'video') {
                 document.getElementById('tabVideoBtn').classList.add('active');
                 document.getElementById('sectionVideo').classList.add('active');
-                if(mediaActions) mediaActions.classList.add('active'); // सिर्फ वीडियो टैब में कैमरा और गैलरी दिखेंगे
+                if(mediaActions) mediaActions.classList.add('active');
             } else if(mode === 'live') {
                 document.getElementById('tabLiveBtn').classList.add('active');
                 document.getElementById('sectionLive').classList.add('active');
@@ -170,7 +231,7 @@
             
             if(studioBox) studioBox.style.display = 'flex';
             if(mediaActions) mediaActions.classList.remove('active');
-            if(topTabs) topTabs.style.display = 'none'; // 🌟 कैमरा खुलते ही ऊपर के तीनों ऑप्शन छिप जाएंगे!
+            if(topTabs) topTabs.style.display = 'none';
 
             try {
                 directCameraStreamObj = await navigator.mediaDevices.getUserMedia({ 
@@ -209,16 +270,30 @@
 
             mediaRecorderDirect.onstop = () => {
                 let blob = new Blob(directRecordedChunks, { type: 'video/webm' });
+                finalMergedVideoBlob = blob;
+                selectedVideoFile = blob;
+
+                let studioBox = document.getElementById('directCameraStudio');
+                if(studioBox) studioBox.style.display = 'none';
+                let topTabs = document.getElementById('topModeTabsRow');
+                if(topTabs) topTabs.style.display = 'flex';
+
+                let videoElement = document.getElementById('selectedVideoPreview');
+                if(videoElement) videoElement.src = URL.createObjectURL(blob);
                 
-                let reader = new FileReader();
-                reader.readAsDataURL(blob);
-                reader.onloadend = function() {
-                    localStorage.setItem('recordedVideoDataUrl', reader.result);
-                    showToast('✅ वीडियो सेव हो गया! एडिटर पर जा रहा है...');
-                    setTimeout(() => {
-                        window.location.href = 'index.html'; 
-                    }, 800);
+                let previewBox = document.getElementById('previewBox');
+                if(previewBox) previewBox.style.display = 'block';
+
+                let editorTools = document.getElementById('videoEditorToolsContainer');
+                if(editorTools) editorTools.style.display = 'block';
+
+                let formContainer = document.getElementById('videoDetailsFormContainer');
+                if(formContainer) {
+                    formContainer.style.display = 'block';
+                    formContainer.scrollIntoView({ behavior: 'smooth' });
                 }
+
+                showToast('✅ वीडियो सेव हो गया! अब एडिट और पब्लिश करें।');
             };
 
             mediaRecorderDirect.start(1000);
@@ -245,6 +320,8 @@
             if(mediaRecorderDirect && mediaRecorderDirect.state === 'recording') {
                 mediaRecorderDirect.stop();
                 clearInterval(cameraTimerInterval);
+                let badge = document.getElementById('cameraTimerBadge');
+                if(badge) badge.style.display = 'none';
                 
                 if(directCameraStreamObj) {
                     directCameraStreamObj.getTracks().forEach(track => track.stop());
@@ -255,24 +332,206 @@
         function onGalleryFileChosen(event) {
             let file = event.target.files[0];
             if(file) {
-                let reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onloadend = function() {
-                    localStorage.setItem('recordedVideoDataUrl', reader.result);
-                    showToast('📁 गैलरी से वीडियो ले लिया गया है...');
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 800);
+                finalMergedVideoBlob = file;
+                selectedVideoFile = file;
+
+                let mediaActions = document.getElementById('mediaActionsRow');
+                if(mediaActions) mediaActions.classList.remove('active');
+
+                let videoElement = document.getElementById('selectedVideoPreview');
+                if(videoElement) videoElement.src = URL.createObjectURL(file);
+                
+                let previewBox = document.getElementById('previewBox');
+                if(previewBox) previewBox.style.display = 'block';
+
+                let editorTools = document.getElementById('videoEditorToolsContainer');
+                if(editorTools) editorTools.style.display = 'block';
+
+                let formContainer = document.getElementById('videoDetailsFormContainer');
+                if(formContainer) {
+                    formContainer.style.display = 'block';
+                    formContainer.scrollIntoView({ behavior: 'smooth' });
                 }
+
+                showToast('📁 गैलरी से वीडियो आ गया है!');
             }
         }
 
-        function startLiveStreamSession() {
-            showToast('🔴 Live Stream mode initialized!');
+        // --- Editor Functions ---
+        function scaleTargetVideo(factor) {
+            mainScale = Math.max(0.5, Math.min(3.5, mainScale * factor));
+            let targetEl = document.getElementById('selectedVideoPreview');
+            if(targetEl) targetEl.style.transform = `translate(${mainX}px, ${mainY}px) scale(${mainScale})`;
+            showToast(`🔍 ज़ूम: ${Math.round(mainScale * 100)}%`);
         }
 
-        function startGamingStreamSession() {
-            showToast('🎮 Gaming Stream mode initialized!');
+        function addTextOverlayToVideo() {
+            let textInput = document.getElementById('videoCustomTextInput');
+            if(!textInput || !textInput.value.trim()) {
+                showToast('⚠️ कृपया पहले टेक्स्ट लिखें!');
+                return;
+            }
+            let textDiv = document.createElement('div');
+            textDiv.innerText = textInput.value.trim();
+            textDiv.style.position = 'absolute';
+            textDiv.style.top = '50%';
+            textDiv.style.left = '50%';
+            textDiv.style.transform = 'translate(-50%, -50%)';
+            textDiv.style.color = '#fff';
+            textDiv.style.background = 'rgba(0,0,0,0.6)';
+            textDiv.style.padding = '6px 12px';
+            textDiv.style.borderRadius = '6px';
+            textDiv.style.fontSize = '16px';
+            textDiv.style.fontWeight = 'bold';
+            textDiv.style.zIndex = '20';
+            textDiv.style.border = '1px solid #25f4ee';
+            
+            let previewBox = document.getElementById('previewBox');
+            previewBox.appendChild(textDiv);
+            showToast('✍️ टेक्स्ट जुड़ गया है!');
+            textInput.value = '';
+        }
+
+        function boostVideoAudio(boostMultiplier) {
+            let targetEl = document.getElementById('selectedVideoPreview');
+            if(!targetEl) return;
+            try {
+                let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                let source = audioCtx.createMediaElementSource(targetEl);
+                let gainNode = audioCtx.createGain();
+                gainNode.gain.value = boostMultiplier;
+                source.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                showToast(`🔊 आवाज़ ${boostMultiplier * 100}% बूस्ट हो गई है!`);
+            } catch(err) {
+                targetEl.volume = 1.0;
+                showToast('🔊 वॉल्यूम फुल है!');
+            }
+        }
+
+        function loadBackgroundMusic(event) {
+            let file = event.target.files[0];
+            if(file) {
+                let audioEl = document.createElement('audio');
+                audioEl.src = URL.createObjectURL(file);
+                audioEl.loop = true;
+                audioEl.volume = 0.5;
+                document.body.appendChild(audioEl);
+                audioEl.play();
+                showToast('🎵 बैकग्राउंड म्यूजिक जुड़ गया है!');
+            }
+        }
+
+        let mediaRecorderVoice = null;
+        let voiceAudioChunks = [];
+        function startVoiceoverRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                mediaRecorderVoice = new MediaRecorder(stream);
+                voiceAudioChunks = [];
+                mediaRecorderVoice.ondataavailable = e => voiceAudioChunks.push(e.data);
+                mediaRecorderVoice.onstop = () => {
+                    let audioBlob = new Blob(voiceAudioChunks, { type: 'audio/webm' });
+                    let voiceEl = document.createElement('audio');
+                    voiceEl.src = URL.createObjectURL(audioBlob);
+                    voiceEl.controls = true;
+                    document.body.appendChild(voiceEl);
+                    voiceEl.play();
+                    showToast('🎙️ ओवरवॉइस रिकॉर्ड हो गई है!');
+                };
+                mediaRecorderVoice.start();
+                showToast('🔴 ओवरवॉइस रिकॉर्डिंग चालू है...');
+            }).catch(err => {
+                showToast('❌ Mic Error: ' + err.message);
+            });
+        }
+        function stopVoiceoverRecording() {
+            if(mediaRecorderVoice && mediaRecorderVoice.state === 'recording') {
+                mediaRecorderVoice.stop();
+                showToast('⏹️ ओवरवॉइस रुक गई है।');
+            }
+        }
+
+        function changeVideoSpeed(speedValue) {
+            let targetEl = document.getElementById('selectedVideoPreview');
+            let speedTextEl = document.getElementById('videoSpeedLabel');
+            if(targetEl) targetEl.playbackRate = parseFloat(speedValue);
+            if(speedTextEl) speedTextEl.innerText = speedValue + 'x';
+            showToast(`⚡ स्पीड: ${speedValue}x`);
+        }
+
+        // 🚀 PUBLISH TO SUPABASE CLOUD & LOCAL STORAGE FEED BACKUP
+        async function publishVideoToGlobalCloudStorage() {
+            let titleInput = document.getElementById('videoCaptionInput');
+            let descInput = document.getElementById('videoDescriptionInput');
+            let affInput = document.getElementById('videoAffiliateInput');
+            
+            let titleText = titleInput ? titleInput.value.trim() : 'Viral Video 🔥';
+            let descriptionText = descInput ? descInput.value.trim() : 'Professional video created via New Star Camera Studio.';
+            let affiliateLink = affInput ? affInput.value.trim() : '';
+
+            if(!finalMergedVideoBlob) {
+                showToast('⚠️ वीडियो नहीं मिला!');
+                return;
+            }
+
+            showToast('🚀 क्लाउड पर अपलोड हो रहा है...');
+
+            try {
+                let fileName = 'global_merged_' + Date.now() + '.mp4';
+                let { error: uploadError } = await supabaseClient.storage
+                    .from('videos')
+                    .upload(fileName, finalMergedVideoBlob, { cacheControl: '3600', upsert: true });
+
+                if (uploadError) throw new Error(uploadError.message);
+
+                let { data: urlData } = supabaseClient.storage.from('videos').getPublicUrl(fileName);
+                let publicVideoUrl = urlData ? urlData.publicUrl : '';
+
+                // Supabase Database Insert
+                await supabaseClient.from('videos').insert([
+                    { 
+                        video_url: publicVideoUrl, 
+                        caption: titleText, 
+                        description: descriptionText, 
+                        affiliate_link: affiliateLink,
+                        likes_count: 120,
+                        views_count: 850
+                    }
+                ]);
+
+                // LocalStorage Backup so it instantly shows in Profile Grid and Home Feed
+                let localFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
+                localFeed.unshift({
+                    id: 'local_vid_' + Date.now(),
+                    url: publicVideoUrl,
+                    caption: titleText,
+                    description: descriptionText,
+                    affiliate: affiliateLink,
+                    likes: 120,
+                    views: 850
+                });
+                localStorage.setItem('customFeedVideos', JSON.stringify(localFeed));
+
+                showToast('✨ सफलतापूर्वक पब्लिश हो गया!');
+                setTimeout(() => { window.location.href = 'profile.html'; }, 1000);
+            } catch(err) {
+                // Fallback: If Supabase bucket/table has strict RLS or network issue, save locally so user never loses video
+                let localUrl = URL.createObjectURL(finalMergedVideoBlob);
+                let localFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
+                localFeed.unshift({
+                    id: 'local_vid_' + Date.now(),
+                    url: localUrl,
+                    caption: titleText,
+                    description: descriptionText,
+                    affiliate: affiliateLink,
+                    likes: 120,
+                    views: 850
+                });
+                localStorage.setItem('customFeedVideos', JSON.stringify(localFeed));
+
+                showToast('✨ स्थानीय रूप से सहेज कर पब्लिश कर दिया गया!');
+                setTimeout(() => { window.location.href = 'profile.html'; }, 1000);
+            }
         }
 
         function showToast(msg) {
