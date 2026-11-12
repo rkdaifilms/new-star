@@ -10,14 +10,18 @@ let directRecordedChunks = [];
 let directCameraStreamObj = null;
 let cameraTimerInterval = null;
 let cameraSecondsElapsed = 0;
-const MAX_RECORDING_SECONDS = 600; // 10 Minutes max
 
 function switchStudioMode(mode) {
     if(mode === 'video') {
-        document.getElementById('sectionVideo').classList.add('active');
-        if (!selectedVideoFile) document.getElementById('mediaActionsRow').style.display = 'flex';
+        let sec = document.getElementById('sectionVideo');
+        if(sec) sec.classList.add('active');
+        if (!selectedVideoFile) {
+            let mediaActions = document.getElementById('mediaActionsRow');
+            if(mediaActions) mediaActions.style.display = 'flex';
+        }
     } else {
-        document.getElementById('mediaActionsRow').style.display = 'none';
+        let mediaActions = document.getElementById('mediaActionsRow');
+        if(mediaActions) mediaActions.style.display = 'none';
     }
 }
 
@@ -26,29 +30,43 @@ function onVideoFileChosen(event) {
     if(file) {
         selectedVideoFile = file;
         finalMergedVideoBlob = file;
-        document.getElementById('mediaActionsRow').style.display = 'none';
+        
+        let mediaActions = document.getElementById('mediaActionsRow');
+        if(mediaActions) mediaActions.style.display = 'none';
+        
         let videoElement = document.getElementById('selectedVideoPreview');
-        videoElement.src = URL.createObjectURL(file);
-        document.getElementById('previewBox').style.display = 'block';
-        document.getElementById('videoDetailsFormContainer').style.display = 'block';
-        showToast('📁 वीडियो लोड हो गया है, अब पोस्ट करें!');
+        if(videoElement) videoElement.src = URL.createObjectURL(file);
+        
+        let previewBox = document.getElementById('previewBox');
+        if(previewBox) previewBox.style.display = 'block';
+        
+        let formContainer = document.getElementById('videoDetailsFormContainer');
+        if(formContainer) formContainer.style.display = 'block';
+        
+        showToast('📁 वीडियो लोड हो गया है, अब एडिट और पोस्ट करें!');
     }
 }
 
 async function openDirectCameraStudio() {
     let studioBox = document.getElementById('directCameraStudio');
-    studioBox.style.display = 'block';
+    if(studioBox) studioBox.style.display = 'flex';
     
-    // कैमरा चालू होते ही ऊपर वाले फालतू टैब और गैलरी बटन छिप जाएंगे
     let topTabs = document.getElementById('topModeTabsRow');
     if(topTabs) topTabs.style.display = 'none';
-    document.getElementById('mediaActionsRow').style.display = 'none';
+    
+    let mediaActions = document.getElementById('mediaActionsRow');
+    if(mediaActions) mediaActions.style.display = 'none';
 
     try {
-        directCameraStreamObj = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+        directCameraStreamObj = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, 
+            audio: true 
+        });
         let camVideoEl = document.getElementById('directCameraFeed');
-        camVideoEl.srcObject = directCameraStreamObj;
-        camVideoEl.play();
+        if(camVideoEl) {
+            camVideoEl.srcObject = directCameraStreamObj;
+            camVideoEl.play();
+        }
         showToast('🎥 कैमरा चालू है!');
     } catch(err) {
         showToast('❌ Camera Error: ' + err.message);
@@ -58,7 +76,17 @@ async function openDirectCameraStudio() {
 function startDirectCameraRecording() {
     if(!directCameraStreamObj) return;
     directRecordedChunks = [];
-    mediaRecorderDirect = new MediaRecorder(directCameraStreamObj, { mimeType: 'video/webm' });
+    
+    let options = { mimeType: 'video/webm;codecs=vp9,opus' };
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/webm' };
+    }
+
+    try {
+        mediaRecorderDirect = new MediaRecorder(directCameraStreamObj, options);
+    } catch (e) {
+        mediaRecorderDirect = new MediaRecorder(directCameraStreamObj);
+    }
 
     mediaRecorderDirect.ondataavailable = (e) => {
         if(e.data.size > 0) directRecordedChunks.push(e.data);
@@ -69,38 +97,45 @@ function startDirectCameraRecording() {
         selectedVideoFile = blob;
         finalMergedVideoBlob = blob;
 
-        // कैमरा बॉक्स को छिपाकर तुरंत वीडियो प्रीव्यू और मेन पोस्टिंग/अपलोड टैब पर ले जाएगा
-        document.getElementById('directCameraStudio').style.display = 'none';
+        // 1. कैमरा स्टूडियो बॉक्स को पूरी तरह छिपा दो
+        let studioBox = document.getElementById('directCameraStudio');
+        if(studioBox) studioBox.style.display = 'none';
+
+        // 2. वीडियो प्रीव्यू बॉक्स को चालू करो और रिकॉर्ड हुआ वीडियो सेट करो
         let videoElement = document.getElementById('selectedVideoPreview');
-        videoElement.src = URL.createObjectURL(blob);
-        document.getElementById('previewBox').style.display = 'block';
+        if(videoElement) videoElement.src = URL.createObjectURL(blob);
+
+        let previewBox = document.getElementById('previewBox');
+        if(previewBox) previewBox.style.display = 'block';
+
+        // 3. टाइटल, डिस्क्रिप्शन और एडिटर वाले फॉर्म को साफ़-साफ़ दिखाओ
+        let formContainer = document.getElementById('videoDetailsFormContainer');
+        if(formContainer) {
+            formContainer.style.display = 'block';
+            formContainer.scrollIntoView({ behavior: 'smooth' });
+        }
         
-        // सीधे अपलोड और एडिट वाले मेन फॉर्म पर पहुँच जाएगा
-        document.getElementById('videoDetailsFormContainer').style.display = 'block';
-        showToast('✅ वीडियो सेव होकर पोस्टिंग और एडिट सेक्शन में आ गया है!');
+        showToast('✅ वीडियो सेव होकर एडिटर और पब्लिशिंग सेक्शन में आ गया है!');
     };
 
-    mediaRecorderDirect.start();
+    mediaRecorderDirect.start(1000);
     cameraSecondsElapsed = 0;
     let badge = document.getElementById('cameraTimerBadge');
     if(badge) badge.style.display = 'block';
     
-    // टाइमर जो नीचे वीडियो पर सेकंड और मिनट दिखाएगा
     cameraTimerInterval = setInterval(() => {
         cameraSecondsElapsed++;
         let mins = Math.floor(cameraSecondsElapsed / 60);
         let secs = cameraSecondsElapsed % 60;
         if(badge) {
-            badge.innerText = `⏱️ ${mins < 10 ? '0' + mins : mins}:${secs < 10 ? '0' + secs : secs} / 10:00`;
-        }
-        
-        if (cameraSecondsElapsed >= MAX_RECORDING_SECONDS) {
-            stopDirectCameraRecording();
+            badge.innerText = `⏱️ ${mins < 10 ? '0' + mins : mins}:${secs < 10 ? '0' + secs : secs}`;
         }
     }, 1000);
 
-    document.getElementById('camRecordBtn').style.display = 'none';
-    document.getElementById('camStopBtn').style.display = 'block';
+    let recBtn = document.getElementById('camRecordBtn');
+    let stopBtn = document.getElementById('camStopBtn');
+    if(recBtn) recBtn.style.display = 'none';
+    if(stopBtn) stopBtn.style.display = 'block';
 }
 
 function stopDirectCameraRecording() {
@@ -117,13 +152,18 @@ function stopDirectCameraRecording() {
 }
 
 async function publishVideoToGlobalCloudStorage() {
-    let titleText = document.getElementById('videoCaptionInput').value.trim() || 'Viral Video';
-    let descriptionText = document.getElementById('videoDescriptionInput').value.trim() || '';
+    let titleInput = document.getElementById('videoCaptionInput');
+    let descInput = document.getElementById('videoDescriptionInput');
+    
+    let titleText = titleInput ? titleInput.value.trim() : 'Viral Video';
+    let descriptionText = descInput ? descInput.value.trim() : '';
 
     if(!finalMergedVideoBlob) {
         showToast('⚠️ वीडियो नहीं मिला!');
         return;
     }
+
+    showToast('🚀 क्लाउड पर अपलोड हो रहा है...');
 
     try {
         let fileName = 'global_merged_' + Date.now() + '.mp4';
@@ -147,7 +187,7 @@ async function publishVideoToGlobalCloudStorage() {
     }
 }
 
-function toggleMasterThreeDotMenu(type) {
+function toggleMasterThreeDotMenu() {
     let menu = document.getElementById('masterThreeDotMenu');
     if(!menu) return;
     menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
