@@ -102,9 +102,11 @@
         /* ⚙️ CREATOR SETTING / MANAGER PANEL */
         #creatorSettingsModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; box-shadow: 0 -5px 25px rgba(0,0,0,0.9); max-height: 85vh; overflow-y: auto; }
         
-        /* COMMENTS MODAL */
-        #commentModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 55vh; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; z-index: 1050; flex-direction: column; }
-        
+        /* 💬 COMMENTS MODAL */
+        #commentModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 60vh; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; z-index: 1050; flex-direction: column; justify-content: space-between; }
+        .comment-scroll-area { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .comment-input-bar { display: flex; padding: 12px 15px; background: #111; border-top: 1px solid #333; gap: 10px; align-items: center; width: 100%; }
+
         /* 🚫 COMMENT LONG-PRESS ACTION MODAL */
         #commentActionModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
         .comment-action-card { background: #222; border: 1px solid #444; width: 280px; border-radius: 12px; padding: 15px; text-align: center; }
@@ -224,7 +226,7 @@
         </div>
     </div>
 
-    <!-- ⚙️ CREATOR SETTING MANAGER (TITLE, DESC, GALLERY AUDIO & VOICE RECORDING) -->
+    <!-- ⚙️ CREATOR SETTING MANAGER -->
     <div id="creatorSettingsModal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="font-size:16px; color:#fe2c55;">⚙️ Video Edit, Audio & Voice Studio</h3>
@@ -264,18 +266,20 @@
         </div>
     </div>
 
-    <!-- COMMENTS MODAL -->
-    <div id="commentModal" style="display:none; flex-direction:column;">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #222;">
-            <h3>Comments & Permanent Gifts (Hold comment to Delete/Block)</h3>
-            <span style="cursor:pointer; font-size:18px;" onclick="closeCommentModal()">✕</span>
+    <!-- 💬 COMMENTS MODAL (CLEANED OF ALL DUMMY COMMENTS) -->
+    <div id="commentModal">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #222; background:#181818;">
+            <h3 style="font-size:14px; color:#fff;">💬 Comments & Replies (Hold comment to Delete/Block)</h3>
+            <span style="cursor:pointer; font-size:18px; color:#aaa;" onclick="closeCommentModal()">✕</span>
         </div>
-        <div style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column; gap:12px;" id="commentListArea">
-            <!-- Permanent Comments load here -->
+        
+        <div class="comment-scroll-area" id="commentListArea">
+            <!-- Real User Comments and Gifts load here dynamically -->
         </div>
-        <div style="display:flex; padding:10px; background:#111; border-top:1px solid #222; gap:8px;">
-            <input type="text" id="modalCommentInput" placeholder="Add comment..." style="flex:1; padding:8px 12px; background:#222; border:1px solid #444; color:#fff; border-radius:20px; outline:none; font-size:13px;">
-            <button onclick="postModalComment()" style="background:#fe2c55; color:#fff; border:none; padding:8px 16px; border-radius:20px; font-weight:bold; cursor:pointer;">Post</button>
+
+        <div class="comment-input-bar">
+            <input type="text" id="modalCommentInput" placeholder="Add comment or reply..." style="flex:1; padding:10px 14px; background:#222; border:1px solid #444; color:#fff; border-radius:20px; outline:none; font-size:13px;">
+            <button onclick="postModalComment()" style="background:#fe2c55; color:#fff; border:none; padding:10px 20px; border-radius:20px; font-weight:bold; cursor:pointer; font-size:13px;">Post</button>
         </div>
     </div>
 
@@ -555,7 +559,12 @@
         }
         function closeLikesListModal() { document.getElementById('likesListModal').style.display = 'none'; }
 
-        function openCommentModal() { document.getElementById('commentModal').style.display = 'flex'; }
+        function openCommentModal() { 
+            let currentVideo = activeVideoList[currentSelectedVideoIndex];
+            let videoUniqueId = currentVideo ? (currentVideo.id || ('vid_idx_' + currentSelectedVideoIndex)) : 'default_video';
+            loadPermanentInterests(videoUniqueId);
+            document.getElementById('commentModal').style.display = 'flex'; 
+        }
         function closeCommentModal() { document.getElementById('commentModal').style.display = 'none'; }
         function openShareModal() { document.getElementById('shareModal').style.display = 'block'; }
         function closeShareModal() { document.getElementById('shareModal').style.display = 'none'; }
@@ -566,17 +575,18 @@
             return 'global_permanent_video_data_' + (videoId || 'default_video');
         }
 
+        // 🔄 शुद्ध रूप से केवल असली यूज़र्स और गिफ्ट्स लोड करने का सिस्टम (डमी कमेंट्स हमेशा के लिए साफ़)
         function loadPermanentInterests(videoId) {
             let commentList = document.getElementById('commentListArea');
-            commentList.innerHTML = `
-                <div style="display:flex; gap:10px; align-items:center; background:#1f1f23; padding:8px 10px; border-radius:8px;" onmousedown="startCommentHold(event, '${videoId}', -1)" ontouchstart="startCommentHold(event, '${videoId}', -1)">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:30px;height:30px;border-radius:50%;">
-                    <div><h4 style="font-size:12px;color:#aaa;">New Star User</h4><p style="font-size:13px;color:#fff;">Super hit video bhai! 🔥</p></div>
-                </div>
-            `;
+            commentList.innerHTML = ''; // कोई भी फालतू डमी कमेंट नहीं रहेगा
 
             let storageKey = getGlobalStorageKey(videoId);
             let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
+
+            if(savedRecords.length === 0) {
+                commentList.innerHTML = '<div style="text-align:center; padding:30px; color:#888; font-size:13px;">No comments yet.<br>Be the first to comment!</div>';
+                return;
+            }
 
             savedRecords.forEach((record, recIdx) => {
                 if (record.type === 'gift') {
@@ -590,17 +600,23 @@
                         </div>
                     `;
                 } else if (record.type === 'comment') {
+                    let isCreator = record.sender === (localStorage.getItem('appName') || 'Ramkumar Dhobi');
+                    let badge = isCreator ? `<span style="font-size:10px; background:#fe2c55; color:#fff; padding:1px 6px; border-radius:4px; margin-left:6px;">Creator</span>` : '';
+                    let replyBtn = `<button onclick="setReplyToUser('${record.sender}')" style="background:transparent; color:#25f4ee; border:none; font-size:11px; cursor:pointer; margin-top:3px;">Reply</button>`;
+                    
                     commentList.innerHTML += `
-                        <div style="display:flex; gap:10px; align-items:center; background:#1f1f23; padding:8px 10px; border-radius:8px; cursor:pointer;" onmousedown="startCommentHold(event, '${videoId}', ${recIdx})" ontouchstart="startCommentHold(event, '${videoId}', ${recIdx})" title="Hold to Delete / Block">
-                            <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:30px;height:30px;border-radius:50%;">
+                        <div style="display:flex; gap:10px; align-items:flex-start; background:#1f1f23; padding:10px; border-radius:8px; cursor:pointer;" onmousedown="startCommentHold(event, '${videoId}', ${recIdx})" ontouchstart="startCommentHold(event, '${videoId}', ${recIdx})">
+                            <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:32px;height:32px;border-radius:50%;">
                             <div style="flex:1;">
-                                <h4 style="font-size:12px;color:#aaa;">${record.sender}</h4>
-                                <p style="font-size:13px;color:#fff;">${record.text}</p>
+                                <div style="display:flex; align-items:center;"><h4 style="font-size:12px;color:#aaa;">${record.sender}</h4>${badge}</div>
+                                <p style="font-size:13px;color:#fff; margin-top:2px;">${record.text}</p>
+                                ${replyBtn}
                             </div>
                         </div>
                     `;
                 }
             });
+            commentList.scrollTop = commentList.scrollHeight;
         }
 
         function saveRecordPermanently(videoId, recordObj) {
@@ -617,7 +633,7 @@
                 let storageKey = getGlobalStorageKey(videoId);
                 let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
                 
-                let senderText = recordIndex === -1 ? 'New Star User' : (savedRecords[recordIndex] ? savedRecords[recordIndex].sender : 'User');
+                let senderText = savedRecords[recordIndex] ? savedRecords[recordIndex].sender : 'User';
                 document.getElementById('actionCommentUserText').innerText = `Manage comment by: ${senderText}`;
                 document.getElementById('commentActionModal').style.display = 'flex';
             }, 600);
@@ -639,16 +655,12 @@
             if(!selectedCommentIndexForAction) return;
             let { videoId, recordIndex } = selectedCommentIndexForAction;
             
-            if(recordIndex === -1) {
-                alert('⚠️ Default comment cannot be deleted.');
-            } else {
-                let storageKey = getGlobalStorageKey(videoId);
-                let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                savedRecords.splice(recordIndex, 1);
-                localStorage.setItem(storageKey, JSON.stringify(savedRecords));
-                loadPermanentInterests(videoId);
-                alert('✅ Comment deleted successfully!');
-            }
+            let storageKey = getGlobalStorageKey(videoId);
+            let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            savedRecords.splice(recordIndex, 1);
+            localStorage.setItem(storageKey, JSON.stringify(savedRecords));
+            loadPermanentInterests(videoId);
+            alert('✅ Comment deleted successfully!');
             closeCommentActionModal();
         }
 
@@ -656,15 +668,41 @@
             if(!selectedCommentIndexForAction) return;
             let { videoId, recordIndex } = selectedCommentIndexForAction;
 
-            if(recordIndex !== -1) {
-                let storageKey = getGlobalStorageKey(videoId);
-                let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                savedRecords.splice(recordIndex, 1);
-                localStorage.setItem(storageKey, JSON.stringify(savedRecords));
-                loadPermanentInterests(videoId);
-            }
+            let storageKey = getGlobalStorageKey(videoId);
+            let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            savedRecords.splice(recordIndex, 1);
+            localStorage.setItem(storageKey, JSON.stringify(savedRecords));
+            loadPermanentInterests(videoId);
+
             alert('🚫 User blocked successfully and comments removed!');
             closeCommentActionModal();
+        }
+
+        function setReplyToUser(username) {
+            let input = document.getElementById('modalCommentInput');
+            input.value = `@${username} `;
+            input.focus();
+        }
+
+        function postModalComment() {
+            let input = document.getElementById('modalCommentInput');
+            let text = input.value.trim();
+            if(!text) return;
+
+            let senderName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
+            let currentVideo = activeVideoList[currentSelectedVideoIndex];
+            let videoUniqueId = currentVideo ? (currentVideo.id || ('vid_idx_' + currentSelectedVideoIndex)) : 'default_video';
+
+            let commentRecord = {
+                type: 'comment',
+                sender: senderName,
+                text: text,
+                time: Date.now()
+            };
+
+            saveRecordPermanently(videoUniqueId, commentRecord);
+            loadPermanentInterests(videoUniqueId);
+            input.value = '';
         }
 
         function sendRealGift(giftName, coinCost, emojiIcon) {
@@ -701,7 +739,9 @@
             };
 
             saveRecordPermanently(videoUniqueId, giftRecord);
-            loadPermanentInterests(videoUniqueId);
+            if(document.getElementById('commentModal').style.display === 'flex') {
+                loadPermanentInterests(videoUniqueId);
+            }
         }
 
         function openCreatorSettings(index) { 
@@ -718,7 +758,6 @@
 
         function closeCreatorSettings() { document.getElementById('creatorSettingsModal').style.display = 'none'; }
 
-        // 📁 गैलरी / फाइल मैनेजर से ऑडियो ट्रैक चुनना
         function onSettingMusicChosen(event) {
             let file = event.target.files[0];
             if(file) {
@@ -727,7 +766,6 @@
             }
         }
 
-        // 🎙️ खुद की आवाज़ (Voice Recording) रिकॉर्ड करने का सिस्टम
         async function startCustomVoiceRecording() {
             try {
                 let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -763,7 +801,6 @@
             }
         }
 
-        // 💾 वीडियो एडिट (टाइटल, डिस्क्रिप्शन और ऑडियो ट्रैक) सेव करना
         async function saveCreatorVideoSettings() {
             if(currentSelectedVideoIndex === null) return;
             let newCaption = document.getElementById('settingVideoCaption').value.trim();
@@ -794,27 +831,6 @@
                 fetchCreatorVideos();
                 alert('✅ Video successfully deleted!');
             }
-        }
-
-        function postModalComment() {
-            let input = document.getElementById('modalCommentInput');
-            let text = input.value.trim();
-            if(!text) return;
-
-            let senderName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
-            let currentVideo = activeVideoList[currentSelectedVideoIndex];
-            let videoUniqueId = currentVideo ? (currentVideo.id || ('vid_idx_' + currentSelectedVideoIndex)) : 'default_video';
-
-            let commentRecord = {
-                type: 'comment',
-                sender: senderName,
-                text: text,
-                time: Date.now()
-            };
-
-            saveRecordPermanently(videoUniqueId, commentRecord);
-            loadPermanentInterests(videoUniqueId);
-            input.value = '';
         }
 
         function nativePhoneShare() {
