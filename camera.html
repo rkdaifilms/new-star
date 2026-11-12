@@ -9,33 +9,43 @@
     <script src="supabase-config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 10px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; justify-content: space-between; }
+        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 12px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; padding-bottom: 70px; }
         
-        .creator-main-modes-row { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
-        .mode-icon-card { width: 80px; height: 80px; background: #181818; border: 2px solid #333; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; }
+        /* ऊपर वाले मोड्स (Video, Live, Gaming) और तीन डॉट मेनू */
+        .creator-top-bar { display: flex; justify-content: space-between; align-items: center; margin: 10px 0 15px 0; }
+        .creator-main-modes-row { display: flex; justify-content: center; gap: 12px; flex: 1; }
+        .mode-icon-card { width: 75px; height: 70px; background: #181818; border: 2px solid #333; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; transition: 0.2s; font-size: 11px; }
         .mode-icon-card.active { border-color: #fe2c55; background: #222; }
         
-        .studio-section { display: none; background: #000; flex: 1; flex-direction: column; justify-content: center; }
+        /* तीन डॉट मेनू बटन */
+        .three-dots-btn { width: 40px; height: 40px; background: #181818; border: 1px solid #333; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; color: #fff; }
+        
+        .studio-section { display: none; background: #000; flex: 1; flex-direction: column; }
         .studio-section.active { display: flex; }
         
-        #mediaActionsRow { display: flex; gap: 15px; justify-content: center; align-items: center; padding: 20px; }
-        .media-btn { width: 140px; background: #1a1a1a; border: 1px solid #333; border-radius: 16px; padding: 25px 15px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        /* वीडियो अपलोड / कैमरा सेक्शन के अंदर कैमरा और गैलरी बटन */
+        .media-actions-row { display: flex; gap: 15px; justify-content: center; align-items: center; margin-top: 15px; }
+        .media-btn { width: 140px; background: #1a1a1a; border: 1px solid #333; border-radius: 16px; padding: 20px 15px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
         
-        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 15px; }
+        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 10px; }
         
-        /* फुल स्क्रीन कैमरा स्टूडियो - संतुलित और साफ़ */
-        #directCameraStudio { display: none; flex: 1; flex-direction: column; background: #000; position: relative; width: 100%; height: 100vh; overflow: hidden; justify-content: space-between; padding-bottom: 20px; }
-        .camera-preview-wrapper { position: relative; width: 100%; flex: 1; background: #000; overflow: hidden; border-radius: 14px; }
+        /* डायरेक्ट कैमरा स्टूडियो */
+        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; max-height: 58vh; border-radius: 16px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 5px; }
+        .camera-preview-wrapper { position: relative; width: 100%; height: 42vh; background: #000; overflow: hidden; }
         #directCameraFeed { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
         
-        /* केवल साफ सुथरा टाइमर */
+        /* टाइमर बैज */
         #cameraTimerBadge { 
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
-            background: rgba(0, 0, 0, 0.75); border: 1px solid #fe2c55; color: #ffcc00; 
-            padding: 6px 18px; border-radius: 20px; font-size: 15px; font-weight: bold; 
+            position: absolute; top: 12px; left: 50%; transform: translateX(-50%); 
+            background: rgba(0, 0, 0, 0.8); border: 1px solid #fe2c55; color: #ffcc00; 
+            padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; 
             display: none; z-index: 30; letter-spacing: 1px;
         }
+
+        /* लाइव और गेमिंग पैनल */
+        .extra-mode-panel { display: none; flex: 1; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; background: #111; border-radius: 16px; border: 1px solid #333; margin-top: 10px; }
+        .extra-mode-panel.active { display: flex; }
 
         #floatingToastMessage { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 40000; opacity: 0; transition: 0.3s ease; pointer-events: none; }
         #floatingToastMessage.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -52,42 +62,60 @@
     <div id="floatingToastMessage">Notification</div>
 
     <div class="studio-main-viewport">
-        <!-- ऊपर वाले मोड्स -->
-        <div class="creator-main-modes-row" id="topModeTabsRow">
-            <div class="mode-icon-card active"><span>📹</span><b>Video</b></div>
-            <div class="mode-icon-card"><span>🔴</span><b>Live</b></div>
-            <div class="mode-icon-card"><span>🎮</span><b>Gaming</b></div>
+        <!-- ऊपर वाले मोड्स और तीन डॉट मेनू -->
+        <div class="creator-top-bar" id="topModeTabsRow">
+            <div class="creator-main-modes-row">
+                <div class="mode-icon-card active" id="tabVideoBtn" onclick="switchStudioMode('video')"><span>📹</span><b>Video</b></div>
+                <div class="mode-icon-card" id="tabLiveBtn" onclick="switchStudioMode('live')"><span>🔴</span><b>Live</b></div>
+                <div class="mode-icon-card" id="tabGamingBtn" onclick="switchStudioMode('gaming')"><span>🎮</span><b>Gaming</b></div>
+            </div>
+            <div class="three-dots-btn" onclick="toggleStudioOptionsMenu()">⋮</div>
         </div>
 
+        <!-- 1. VIDEO SECTION (वीडियो अपलोड और कैमरा स्टूडियो यहीं रहेगा) -->
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onGalleryFileChosen(event)">
 
-            <!-- शुरुआती मेनू - सिर्फ Camera और Gallery -->
+            <!-- वीडियो अपलोड के अंदर कैमरा और गैलरी बटन -->
             <div class="media-actions-row" id="mediaActionsRow">
                 <div class="media-btn" onclick="openDirectCameraStudio()">
-                    <span style="font-size:28px;">🎥</span>
-                    <div><b style="font-size:14px;">Camera</b></div>
+                    <span style="font-size:26px;">🎥</span>
+                    <div><b style="font-size:13px;">Camera</b></div>
                 </div>
                 <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()">
-                    <span style="font-size:28px;">📁</span>
-                    <div><b style="font-size:14px;">Gallery</b></div>
+                    <span style="font-size:26px;">📁</span>
+                    <div><b style="font-size:13px;">Gallery</b></div>
                 </div>
             </div>
 
-            <!-- डायरेक्ट फुल-स्क्रीन कैमरा रिकॉर्डर बॉक्स -->
+            <!-- डायरेक्ट कैमरा स्टूडियो -->
             <div id="directCameraStudio">
                 <div class="camera-preview-wrapper">
                     <div id="cameraTimerBadge">⏱️ 00:00</div>
                     <video id="directCameraFeed" autoplay playsinline muted></video>
                 </div>
-                <div style="padding: 10px; background: #000;">
+                <div style="padding: 8px; background: #000;">
                     <button class="post-action-btn" id="camRecordBtn" style="background:#fe2c55; margin-top:0;" onclick="startDirectCameraRecording()">⏺️ Start Recording</button>
                     <button class="post-action-btn" id="camStopBtn" style="background:#ffcc00; color:#000; display:none; margin-top:0;" onclick="stopDirectCameraRecording()">💾 Save & Go to Editor</button>
                 </div>
             </div>
         </div>
 
-        <div></div>
+        <!-- 2. LIVE SECTION -->
+        <div id="sectionLive" class="extra-mode-panel">
+            <span style="font-size: 35px; margin-bottom: 8px;">🔴</span>
+            <h3 style="color: #ffcc00; margin-bottom: 4px; font-size: 15px;">Live Streaming Mode</h3>
+            <p style="font-size: 11px; color: #aaa; margin-bottom: 12px;">Go live with followers and receive gifts!</p>
+            <button class="post-action-btn" onclick="startLiveStreamSession()">Go Live Now</button>
+        </div>
+
+        <!-- 3. GAMING SECTION -->
+        <div id="sectionGaming" class="extra-mode-panel">
+            <span style="font-size: 35px; margin-bottom: 8px;">🎮</span>
+            <h3 style="color: #25f4ee; margin-bottom: 4px; font-size: 15px;">Gaming Stream Hub</h3>
+            <p style="font-size: 11px; color: #aaa; margin-bottom: 12px;">Stream mobile games directly to your feed!</p>
+            <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6);" onclick="startGamingStreamSession()">Start Gaming Stream</button>
+        </div>
     </div>
 
     <!-- 🌟 BOTTOM NAVIGATION BAR -->
@@ -106,14 +134,46 @@
         let cameraTimerInterval = null;
         let cameraSecondsElapsed = 0;
 
+        function switchStudioMode(mode) {
+            document.getElementById('tabVideoBtn').classList.remove('active');
+            document.getElementById('tabLiveBtn').classList.remove('active');
+            document.getElementById('tabGamingBtn').classList.remove('active');
+
+            document.getElementById('sectionVideo').classList.remove('active');
+            document.getElementById('sectionLive').classList.remove('active');
+            document.getElementById('sectionGaming').classList.remove('active');
+
+            if(directCameraStreamObj) {
+                directCameraStreamObj.getTracks().forEach(track => track.stop());
+                directCameraStreamObj = null;
+            }
+            let studioBox = document.getElementById('directCameraStudio');
+            if(studioBox) studioBox.style.display = 'none';
+            let mediaActions = document.getElementById('mediaActionsRow');
+            if(mediaActions) mediaActions.style.display = 'flex';
+
+            if(mode === 'video') {
+                document.getElementById('tabVideoBtn').classList.add('active');
+                document.getElementById('sectionVideo').classList.add('active');
+            } else if(mode === 'live') {
+                document.getElementById('tabLiveBtn').classList.add('active');
+                document.getElementById('sectionLive').classList.add('active');
+            } else if(mode === 'gaming') {
+                document.getElementById('tabGamingBtn').classList.add('active');
+                document.getElementById('sectionGaming').classList.add('active');
+            }
+        }
+
+        function toggleStudioOptionsMenu() {
+            showToast('⚙️ Studio Options Menu opened');
+        }
+
         async function openDirectCameraStudio() {
             let studioBox = document.getElementById('directCameraStudio');
             let mediaActions = document.getElementById('mediaActionsRow');
-            let topTabs = document.getElementById('topModeTabsRow');
             
             if(studioBox) studioBox.style.display = 'flex';
             if(mediaActions) mediaActions.style.display = 'none';
-            if(topTabs) topTabs.style.display = 'none';
 
             try {
                 directCameraStreamObj = await navigator.mediaDevices.getUserMedia({ 
@@ -153,14 +213,13 @@
             mediaRecorderDirect.onstop = () => {
                 let blob = new Blob(directRecordedChunks, { type: 'video/webm' });
                 
-                // वीडियो को ब्राउज़र की मेमोरी में सेव करके सीधे एडिटर/अपलोड पेज पर भेज देंगे
                 let reader = new FileReader();
                 reader.readAsDataURL(blob);
                 reader.onloadend = function() {
                     localStorage.setItem('recordedVideoDataUrl', reader.result);
                     showToast('✅ वीडियो सेव हो गया! एडिटर पर जा रहा है...');
                     setTimeout(() => {
-                        window.location.href = 'editor.html'; // या आपका जो मुख्य एडिटर पेज है
+                        window.location.href = 'editor.html';
                     }, 800);
                 }
             };
@@ -209,6 +268,14 @@
                     }, 800);
                 }
             }
+        }
+
+        function startLiveStreamSession() {
+            showToast('🔴 Live Stream mode initialized!');
+        }
+
+        function startGamingStreamSession() {
+            showToast('🎮 Gaming Stream mode initialized!');
         }
 
         function showToast(msg) {
