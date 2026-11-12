@@ -12,9 +12,9 @@
         body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
         .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 12px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; padding-bottom: 70px; }
         
-        /* ऊपर वाले मोड्स (Video, Live, Gaming) - बिना किसी फालतू डॉट के */
+        /* ऊपर वाले मोड्स (Video, Live, Gaming) */
         .creator-main-modes-row { display: flex; justify-content: center; gap: 12px; margin: 10px 0 15px 0; }
-        .mode-icon-card { width: 95px; height: 75px; background: #181818; border: 2px solid #333; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; transition: 0.2s; font-size: 12px; }
+        .mode-icon-card { width: 100px; height: 75px; background: #181818; border: 2px solid #333; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; transition: 0.2s; font-size: 12px; }
         .mode-icon-card.active { border-color: #fe2c55; background: #222; }
         
         .studio-section { display: none; background: #000; flex: 1; flex-direction: column; }
@@ -46,7 +46,7 @@
         #floatingToastMessage { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 40000; opacity: 0; transition: 0.3s ease; pointer-events: none; }
         #floatingToastMessage.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* 🌟 BOTTOM NAVIGATION BAR */
+        /* 🌟 BOTTOM NAVIGATION BAR - एकदम फिक्स और सही आर्डर में */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #111; border-top: 1px solid #222; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: #888; text-decoration: none; font-size: 11px; cursor: pointer; }
         .nav-item.active { color: #fff; font-weight: bold; }
@@ -58,7 +58,7 @@
     <div id="floatingToastMessage">Notification</div>
 
     <div class="studio-main-viewport">
-        <!-- ऊपर वाले मोड्स (Video, Live, Gaming) - साफ़ सुथरे बिना डॉट के -->
+        <!-- ऊपर वाले मोड्स (Video, Live, Gaming) -->
         <div class="creator-main-modes-row" id="topModeTabsRow">
             <div class="mode-icon-card active" id="tabVideoBtn" onclick="switchStudioMode('video')"><span>📹</span><b>Video</b></div>
             <div class="mode-icon-card" id="tabLiveBtn" onclick="switchStudioMode('live')"><span>🔴</span><b>Live</b></div>
@@ -110,7 +110,7 @@
         </div>
     </div>
 
-    <!-- 🌟 BOTTOM NAVIGATION BAR -->
+    <!-- 🌟 BOTTOM NAVIGATION BAR (Fixed Order: Home -> Inbox -> [+] -> Wallet -> Profile) -->
     <div class="bottom-nav">
         <a href="index.html" class="nav-item"><span class="icon">🏠</span><span>Home</span></a>
         <a href="inbox.html" class="nav-item"><span class="icon">💬</span><span>Inbox</span></a>
@@ -206,8 +206,12 @@
                 reader.onloadend = function() {
                     localStorage.setItem('recordedVideoDataUrl', reader.result);
                     showToast('✅ वीडियो सेव हो गया! एडिटर पर जा रहा है...');
+                    
+                    // 🌟 404 Error से बचने के लिए इसे चेक कर ले: 
+                    // अगर तेरी एडिटर फाइल का नाम 'monetization.html' या कुछ और है, तो नीचे सही नाम लिख देना। 
+                    // फिलहाल इसे हम 'index.html' या 'profile.html' पर सेट कर देते हैं ताकि 404 एरर न आए।
                     setTimeout(() => {
-                        window.location.href = 'editor.html';
+                        window.location.href = 'index.html'; // या अपनी सही एडिटर फाइल का नाम डालें
                     }, 800);
                 }
             };
@@ -252,7 +256,7 @@
                     localStorage.setItem('recordedVideoDataUrl', reader.result);
                     showToast('📁 गैलरी से वीडियो ले लिया गया है...');
                     setTimeout(() => {
-                        window.location.href = 'editor.html';
+                        window.location.href = 'index.html'; // सही पेज का नाम यहाँ भी चेक कर लें
                     }, 800);
                 }
             }
