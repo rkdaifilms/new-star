@@ -11,7 +11,7 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #000; color: #fff; padding-bottom: 70px; }
+        body { background-color: #000; color: #fff; padding-bottom: 80px; }
         
         /* Clean Top Bar Studio */
         .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; }
@@ -127,6 +127,13 @@
         /* WHO LIKED THIS VIDEO MODAL */
         #likesListModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 1100; justify-content: center; align-items: center; }
         .likes-card { background: #181818; border: 1px solid #333; width: 85%; max-width: 350px; max-height: 70vh; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* 🌟 BOTTOM NAVIGATION BAR STYLE */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #111; border-top: 1px solid #222; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #888; text-decoration: none; font-size: 11px; cursor: pointer; }
+        .nav-item.active { color: #fff; font-weight: bold; }
+        .nav-item span.icon { font-size: 20px; margin-bottom: 2px; }
+        .nav-center-btn { width: 42px; height: 32px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #000; font-weight: bold; box-shadow: 0 2px 8px rgba(254,44,85,0.5); }
     </style>
 </head>
 <body>
@@ -266,7 +273,7 @@
         </div>
     </div>
 
-    <!-- 💬 TIKTOK STYLE COMPACT COMMENT MODAL (BOTTOM 50% HEIGHT, THIN & CLEAN) -->
+    <!-- 💬 TIKTOK STYLE COMPACT COMMENT MODAL -->
     <div id="commentModal">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border-bottom:1px solid #222; background:#181818; border-radius:16px 16px 0 0;">
             <h3 style="font-size:13px; color:#fff;">💬 Comments (Hold comment to Delete/Block)</h3>
@@ -328,6 +335,15 @@
             <div class="gift-card" onclick="sendRealGift('Galaxy 🌌', 20000, '🌌')"><div class="emoji">🌌</div><h4>Galaxy</h4><p>20,000 Coins</p></div>
             <div class="gift-card" onclick="sendRealGift('Universe 🪐', 50000, '🪐')"><div class="emoji">🪐</div><h4>Universe</h4><p>50,000 Coins</p></div>
         </div>
+    </div>
+
+    <!-- 🌟 BOTTOM NAVIGATION BAR -->
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item"><span class="icon">🏠</span><span>Home</span></a>
+        <a href="inbox.html" class="nav-item"><span class="icon">💬</span><span>Inbox</span></a>
+        <a href="upload.html" class="nav-item"><div class="nav-center-btn">+</div></a>
+        <a href="wallet.html" class="nav-item"><span class="icon">💰</span><span>Wallet</span></a>
+        <a href="profile.html" class="nav-item active"><span class="icon">👤</span><span>Profile</span></a>
     </div>
 
     <!-- 🌟 NAVBAR SCRIPT LOADER -->
