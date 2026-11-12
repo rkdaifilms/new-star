@@ -10,18 +10,31 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 90px; }
         .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 12px; width: 100%; max-width: 450px; margin: 0 auto; }
+        
         .creator-main-modes-row { display: flex; justify-content: center; gap: 15px; margin: 15px 0; }
         .mode-icon-card { width: 90px; height: 90px; background: #181818; border: 2px solid #333; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; }
         .mode-icon-card.active { border-color: #fe2c55; background: #222; }
+        
         .studio-section { display: none; background: #121212; border: 1px solid #222; border-radius: 16px; padding: 12px; }
         .studio-section.active { display: block; }
+        
         #mediaActionsRow { display: flex; gap: 10px; margin-bottom: 12px; }
         .media-btn { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        
         .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; margin-top: 12px; }
         
+        /* Direct Camera Studio Box */
         #directCameraStudio { display: none; margin-bottom: 12px; background: #161618; border: 2px solid #fe2c55; border-radius: 12px; padding: 10px; text-align: center; position: relative; }
-        #directCameraStudio video { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; transform: scaleX(-1); }
-        #cameraTimerBadge { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8); border: 1px solid #fe2c55; color: #fe2c55; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: none; }
+        .camera-preview-wrapper { position: relative; width: 100%; border-radius: 8px; overflow: hidden; background: #000; }
+        #directCameraFeed { width: 100%; max-height: 420px; object-fit: cover; display: block; transform: scaleX(-1); }
+        
+        /* टाइमर नीचे वीडियो पर साफ़ दिखेगा */
+        #cameraTimerBadge { 
+            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); 
+            background: rgba(0, 0, 0, 0.85); border: 1px solid #fe2c55; color: #ffcc00; 
+            padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; 
+            display: none; z-index: 30; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        }
 
         #previewBox { display: none; width: 100%; background: #000; border-radius: 12px; margin-bottom: 12px; overflow: hidden; position: relative; border: 2px solid #333; min-height: 380px; touch-action: none; }
         #previewBox video { width: 100%; height: 100%; max-height: 560px; object-fit: contain; display: block; margin: 0 auto; pointer-events: none; }
@@ -31,7 +44,6 @@
         .master-menu-card { background: #222; border: 1px solid #444; color: #fff; padding: 12px 8px; border-radius: 10px; text-align: center; cursor: pointer; font-size: 11px; display: flex; flex-direction: column; align-items: center; }
         .three-dot-sub-section { display: none; background: #1c1c1e; border: 1px solid #333; border-radius: 8px; padding: 10px; font-size: 11px; }
         .three-dot-sub-section.active { display: block; }
-        .video-edit-settings-btn { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #fff; cursor: pointer; z-index: 20; }
         
         #floatingToastMessage { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 40000; opacity: 0; transition: 0.3s ease; pointer-events: none; }
         #floatingToastMessage.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -41,7 +53,8 @@
     <div id="floatingToastMessage">Notification</div>
 
     <div class="studio-main-viewport">
-        <div class="creator-main-modes-row">
+        <!-- ऊपर वाले मोड्स - कैमरा चालू होने पर ये पूरी तरह छिप जाएंगे -->
+        <div class="creator-main-modes-row" id="topModeTabsRow">
             <div class="mode-icon-card active" onclick="switchStudioMode('video')"><span>📹</span><b>Video</b></div>
             <div class="mode-icon-card" onclick="switchStudioMode('live')"><span>🔴</span><b>Live</b></div>
             <div class="mode-icon-card" onclick="switchStudioMode('gaming')"><span>🎮</span><b>Gaming</b></div>
@@ -50,6 +63,7 @@
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
 
+            <!-- शुरुआती मेनू -->
             <div class="media-actions-row" id="mediaActionsRow">
                 <div class="media-btn" onclick="openDirectCameraStudio()">
                     <span>🎥</span>
@@ -61,67 +75,54 @@
                 </div>
             </div>
 
+            <!-- डायरेक्ट कैमरा रिकॉर्डर बॉक्स -->
             <div id="directCameraStudio">
-                <div id="cameraTimerBadge">⏱️ 00:00 / 10:00</div>
-                <div style="font-size:12px; color:#fe2c55; font-weight:bold; margin-bottom:6px;">🎥 Live Camera Recorder:</div>
-                <video id="directCameraFeed" autoplay playsinline muted></video>
-                <div style="display:flex; gap:8px; margin-top:8px;">
+                <div class="camera-preview-wrapper">
+                    <div id="cameraTimerBadge">⏱️ 00:00 / 10:00</div>
+                    <video id="directCameraFeed" autoplay playsinline muted></video>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:10px;">
                     <button class="post-action-btn" id="camRecordBtn" style="margin-top:0; background:#fe2c55;" onclick="startDirectCameraRecording()">⏺️ Start Recording</button>
-                    <button class="post-action-btn" id="camStopBtn" style="margin-top:0; background:#333; display:none;" onclick="stopDirectCameraRecording()">⏹️ Stop & Go to Post/Edit</button>
+                    <!-- रिकॉर्डिंग रोकते ही सीधा सेव होकर अपलोड/एडिट पेज पर ले जाएगा -->
+                    <button class="post-action-btn" id="camStopBtn" style="margin-top:0; background:#ffcc00; color:#000; display:none;" onclick="stopDirectCameraRecording()">💾 Save & Go to Upload/Edit</button>
                 </div>
             </div>
 
+            <!-- वीडियो प्रीव्यू बॉक्स -->
             <div id="previewBox">
-                <div class="video-edit-settings-btn" onclick="event.stopPropagation(); toggleMasterThreeDotMenu('main')">⋮</div>
                 <video id="selectedVideoPreview" controls crossorigin="anonymous" playsinline></video>
             </div>
 
-            <div id="masterThreeDotMenu">
-                <div style="font-size:13px; color:#ffcc00; font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between;">
-                    <span id="activeHubTitle">⚙️ Main Video Hub</span>
-                    <span style="cursor:pointer;" onclick="toggleMasterThreeDotMenu()">✕</span>
-                </div>
-                <div class="master-menu-grid">
-                    <div class="master-menu-card" onclick="openThreeDotSub('editSuite')"><span>✂️</span><b>Video Edit</b></div>
-                </div>
-                <div id="sub_editSuite" class="three-dot-sub-section active">
-                    <span style="color:#25f4ee; font-weight:bold; display:block; margin-bottom:6px;">✨ Pro Tools & Effects:</span>
-                    
-                    <!-- Text Overlay Input -->
-                    <input type="text" id="videoCustomTextInput" placeholder="वीडियो पर लिखने के लिए टेक्स्ट..." style="width:100%; padding:6px; background:#111; color:#fff; border:1px solid #333; border-radius:6px; margin-bottom:6px; font-size:11px;">
-                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#25f4ee; color:#000; margin-bottom:8px;" onclick="addTextOverlayToVideo()">✍️ Add Text to Video</button>
-
-                    <!-- Audio Booster & Music -->
-                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#ffcc00; color:#000; margin-bottom:6px;" onclick="boostVideoAudio(2.0)">🔊 Audio Boost (200%)</button>
-                    
-                    <input type="file" id="bgMusicInput" accept="audio/*" style="display:none;" onchange="loadBackgroundMusic(event)">
-                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; margin-bottom:6px;" onclick="document.getElementById('bgMusicInput').click()">🎵 Add Music / SFX</button>
-
-                    <!-- Voiceover Buttons -->
-                    <div style="display:flex; gap:4px; margin-bottom:8px;">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:9px; background:#fe2c55;" onclick="startVoiceoverRecording()">🎙️ Start Voice</button>
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:9px; background:#333;" onclick="stopVoiceoverRecording()">⏹️ Stop Voice</button>
-                    </div>
-
-                    <!-- Speed Slider Line -->
-                    <label style="color: #25f4ee; font-size: 10px; display: flex; justify-content: space-between; margin-bottom: 2px;">
-                        <span>⚡ Speed:</span><span id="videoSpeedLabel" style="color: #ffcc00;">1.0x</span>
-                    </label>
-                    <input type="range" min="0.2" max="3.0" step="0.1" value="1.0" oninput="changeVideoSpeed(this.value)" style="width: 100%; accent-color: #fe2c55;">
-                </div>
-            </div>
-
+            <!-- अपलोड डिटेल्स, टाइटल, डिस्क्रिप्शन और ऊपर Edit बटन -->
             <div id="videoDetailsFormContainer" style="display: none;">
-                <div style="background: #181818; border: 1px solid #25f4ee; border-radius: 10px; padding: 10px; margin-bottom: 12px; text-align: center;">
-                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;">✨ वीडियो तैयार है! विवरण भरकर पब्लिश करें</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; background: #181818; border: 1px solid #25f4ee; border-radius: 10px; padding: 10px; margin-bottom: 12px;">
+                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;">✨ वीडियो तैयार है!</span>
+                    <button onclick="toggleMasterThreeDotMenu('main')" style="background:#fe2c55; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:11px; cursor:pointer; font-weight:bold;">✏️ Edit Video</button>
                 </div>
+
+                <!-- एडिट करने वाले टूल्स (जब Edit पर क्लिक होगा) -->
+                <div id="masterThreeDotMenu">
+                    <div style="font-size:13px; color:#ffcc00; font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between;">
+                        <span>⚙️ Video Editor Tools</span>
+                        <span style="cursor:pointer;" onclick="toggleMasterThreeDotMenu()">✕ Close</span>
+                    </div>
+                    <div class="master-menu-grid">
+                        <div class="master-menu-card" onclick="openThreeDotSub('editSuite')"><span>✂️</span><b>Effects</b></div>
+                    </div>
+                    <div id="sub_editSuite" class="three-dot-sub-section active" style="margin-top:8px;">
+                        <input type="text" id="videoCustomTextInput" placeholder="वीडियो पर टेक्स्ट लिखें..." style="width:100%; padding:6px; background:#111; color:#fff; border:1px solid #333; border-radius:6px; margin-bottom:6px; font-size:11px;">
+                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#25f4ee; color:#000; margin-bottom:8px;" onclick="addTextOverlayToVideo()">✍️ Add Text</button>
+                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#ffcc00; color:#000; margin-bottom:6px;" onclick="boostVideoAudio(2.0)">🔊 Audio Boost (200%)</button>
+                    </div>
+                </div>
+
                 <div class="input-group" style="margin-bottom:8px;">
                     <input type="text" id="videoCaptionInput" placeholder="Enter video title..." style="width:100%; padding:8px; background:#181818; color:#fff; border:1px solid #333; border-radius:8px;">
                 </div>
                 <div class="input-group" style="margin-bottom:8px;">
                     <textarea id="videoDescriptionInput" placeholder="Description & hashtags..." style="width:100%; height:60px; background:#181818; color:#fff; border:1px solid #333; border-radius:8px; resize:none;"></textarea>
                 </div>
-                <button class="post-action-btn" onclick="publishVideoToGlobalCloudStorage()">🚀 Publish / Post to Cloud</button>
+                <button class="post-action-btn" onclick="publishVideoToGlobalCloudStorage()">🚀 Upload to Cloud</button>
             </div>
         </div>
     </div>
