@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>New Star - Home Feed, Comments & Share</title>
+    <title>New Star - Home Feed, Search & Unlimited Viral Algorithm</title>
     
     <!-- 📱 PWA APP METAS & CORRECT ICONS -->
     <meta name="theme-color" content="#fe2c55">
@@ -26,17 +26,30 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; overflow-x: hidden; height: 100vh; touch-action: manipulation; }
         
+        /* 🔍 TOP SEARCH BAR & CATEGORY CHIPS OVER SHORT FEED */
+        .feed-top-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent); padding: 10px 15px; display: flex; flex-direction: column; gap: 8px; }
+        .feed-search-input { width: 100%; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); padding: 9px 15px; border-radius: 22px; color: #fff; font-size: 13px; outline: none; backdrop-filter: blur(8px); }
+        .feed-search-input::placeholder { color: #ddd; }
+
+        /* Category Filter Chips Bar */
+        .category-chips-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 3px; }
+        .category-chips-row::-webkit-scrollbar { display: none; }
+        .f-chip { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 4px 12px; border-radius: 14px; font-size: 11px; cursor: pointer; white-space: nowrap; backdrop-filter: blur(5px); transition: 0.2s; }
+        .f-chip.active { background: #fe2c55; font-weight: bold; }
+
         /* Clean Global Top Bar */
-        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; position: absolute; top: 0; left: 0; right: 0; z-index: 20; min-height: 40px; }
+        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; position: absolute; top: 65px; left: 0; right: 0; z-index: 20; min-height: 40px; pointer-events: none; }
 
         /* Video Feed Container */
-        .feed-container { height: calc(100vh - 60px); width: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: #111; }
-        .feed-video { width: 100%; height: 100%; object-fit: cover; }
+        .feed-container { height: 100vh; width: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: #111; }
+        .feed-video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
         
-        .video-info { position: absolute; bottom: 20px; left: 15px; z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.8); right: 80px; }
+        .video-info { position: absolute; bottom: 25px; left: 15px; z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.8); right: 80px; }
         .video-info h3 { font-size: 16px; margin-bottom: 4px; color: #fff; }
         .video-info p { font-size: 13px; color: #ddd; margin-bottom: 4px; }
-        .video-views { font-size: 11px; color: #25f4ee; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 10px; display: inline-block; font-weight: bold; border: 1px solid rgba(37, 244, 238, 0.3); }
+        
+        /* 🚀 UNLIMITED VIRAL TIER REACH BADGE (करोड़ों, अरबों तक) */
+        .algo-tier-badge { display: inline-block; background: linear-gradient(135deg, #fe2c55, #ffcc00, #00f2fe); color: #000; font-size: 10px; font-weight: bold; padding: 3px 10px; border-radius: 8px; margin-top: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
 
         /* Right Side Actions */
         .side-actions { position: absolute; right: 15px; bottom: 80px; display: flex; flex-direction: column; align-items: center; gap: 16px; z-index: 10; }
@@ -108,7 +121,20 @@
 
     <div id="floatingToastMessage">Notification</div>
 
-    <!-- Clean Top Bar -->
+    <!-- 🔍 TOP SEARCH BAR & CATEGORY CHIPS -->
+    <div class="feed-top-header">
+        <input type="text" id="feedSearchBox" class="feed-search-input" placeholder="🔍 Search creators, dance, viral categories..." oninput="filterShortFeedVideos()">
+        
+        <div class="category-chips-row">
+            <button class="f-chip active" onclick="selectCategoryFilter('All', this)">🔥 For You</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Dance', this)">💃 Girls Dance</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Viral', this)">⚡ Viral</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Music', this)">🎵 Music</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Trending', this)">🌟 Trending</button>
+        </div>
+    </div>
+
+    <!-- Clean Global Top Bar -->
     <div class="top-bar">
         <div></div>
         <div></div>
@@ -124,7 +150,8 @@
             <div id="feedAffiliateBox" style="margin-top:4px; display:none;">
                 <a id="feedAffiliateLink" href="#" target="_blank" style="font-size:12px; color:#25f4ee; text-decoration:underline;">🛒 Product / Affiliate Link</a>
             </div>
-            <span class="video-views" id="feedViewsNum">👁️ 2.4M Views</span>
+            <!-- 🚀 UNLIMITED VIRAL TIER REACH BADGE (करोड़ों, अरबों तक) -->
+            <div id="algoReachBadge" class="algo-tier-badge">🚀 Tier: 200 Feed Reach (👁️ 150 Views)</div>
         </div>
 
         <div class="side-actions">
@@ -245,9 +272,11 @@
     <script src="merger.js"></script>
 
     <script>
-        let feedVideoList = [];
+        let rawFeedList = [];
+        let filteredFeedList = [];
         let currentFeedIndex = 0;
         let touchStartY = 0;
+        let currentCategory = 'All';
 
         window.onload = async function() {
             let savedHandle = localStorage.getItem('appHandle');
@@ -265,22 +294,61 @@
                     .order('created_at', { ascending: false });
 
                 if (!error && data && data.length > 0) {
-                    feedVideoList = data.map((v, i) => ({
+                    rawFeedList = data.map((v, i) => ({
                         id: v.id || ('feed_vid_' + i),
                         url: v.video_url,
                         caption: v.caption || 'New Viral Reel 🔥',
+                        category: v.category || 'Dance',
                         description: v.description || '',
                         affiliate: v.affiliate_link || '',
                         username: v.username || localStorage.getItem('appHandle') || '@ramram981152',
                         likes: v.likes_count || 195,
-                        views: v.views_count || 850
+                        views: v.views_count || 210
                     }));
-
-                    renderCurrentFeedVideo();
+                } else {
+                    // Fallback default demo item if database is empty
+                    rawFeedList = [{
+                        id: 'demo_1',
+                        url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4',
+                        caption: 'New Star Viral Dance Reel - Creator Hub 🔥',
+                        category: 'Dance',
+                        username: '@ramram981152',
+                        likes: 195,
+                        views: 2400000,
+                        affiliate: ''
+                    }];
                 }
+
+                filteredFeedList = [...rawFeedList];
+                renderCurrentFeedVideo();
             } catch (err) {
                 console.error('Feed video load error:', err);
             }
+        }
+
+        // 🚀 UNLIMITED VIRAL TIER CALCULATOR (करोड़ों, अरबों तक)
+        function getAlgorithmTierStatus(views, likes) {
+            let reachText = '';
+            if (views < 500) reachText = '🚀 Tier: 200 Feed Reach';
+            else if (views < 1000) reachText = '🔥 Tier: 500 Feed Reach';
+            else if (views < 2000) reachText = '⚡ Tier: 1,000 Feed Reach';
+            else if (views < 5000) reachText = '🌟 Tier: 2,000 Feed Reach';
+            else if (views < 10000) reachText = '💎 Tier: 5,000 Feed Reach';
+            else if (views < 20000) reachText = '👑 Tier: 10,000 Feed Reach';
+            else if (views < 50000) reachText = '🚀 Tier: 20,000 Feed Reach';
+            else if (views < 100000) reachText = '🔥 Tier: 50,000 Feed Reach';
+            else if (views < 1000000) reachText = '🌍 Tier: 1 Lakh+ Viral Reach';
+            else if (views < 10000000) reachText = '💥 Tier: 10 Lakh+ Mega Reach';
+            else if (views < 100000000) reachText = '🌟 Tier: 1 Crore+ Super Star Reach';
+            else if (views < 1000000000) reachText = '🏆 Tier: 10 Crore+ Global Viral Reach';
+            else reachText = '🪐 Tier: 1 Arab+ UNLIMITED UNIVERSE REACH! 🚀🔥';
+
+            let formattedViews = views;
+            if (views >= 10000000) formattedViews = (views / 10000000).toFixed(1) + 'Cr';
+            else if (views >= 100000) formattedViews = (views / 100000).toFixed(1) + 'L';
+            else if (views >= 1000) formattedViews = (views / 1000).toFixed(1) + 'K';
+
+            return `${reachText} (👁️ ${formattedViews} Views)`;
         }
 
         // 📱 Swipe Up / Down Touch Listeners for Feed Reels
@@ -295,38 +363,24 @@
                 let diff = touchStartY - touchEndY;
 
                 if (diff > 50) {
-                    // Swipe Up -> Next Video
-                    playNextFeedVideo();
+                    currentFeedIndex++;
+                    if (currentFeedIndex >= filteredFeedList.length) currentFeedIndex = 0;
+                    renderCurrentFeedVideo();
                 } else if (diff < -50) {
-                    // Swipe Down -> Previous Video
-                    playPreviousFeedVideo();
+                    currentFeedIndex--;
+                    if (currentFeedIndex < 0) currentFeedIndex = filteredFeedList.length - 1;
+                    renderCurrentFeedVideo();
                 }
             }, {passive: true});
         }
 
-        function playNextFeedVideo() {
-            if (feedVideoList && feedVideoList.length > 0) {
-                currentFeedIndex++;
-                if (currentFeedIndex >= feedVideoList.length) {
-                    currentFeedIndex = 0; // लूप घूमकर वापस पहले वीडियो पर आ जाएगा
-                }
-                renderCurrentFeedVideo();
-            }
-        }
-
-        function playPreviousFeedVideo() {
-            if (feedVideoList && feedVideoList.length > 0) {
-                currentFeedIndex--;
-                if (currentFeedIndex < 0) {
-                    currentFeedIndex = feedVideoList.length - 1;
-                }
-                renderCurrentFeedVideo();
-            }
-        }
-
         function renderCurrentFeedVideo() {
-            if(!feedVideoList || feedVideoList.length === 0) return;
-            let vData = feedVideoList[currentFeedIndex];
+            if(!filteredFeedList || filteredFeedList.length === 0) return;
+
+            if (currentFeedIndex >= filteredFeedList.length) currentFeedIndex = 0;
+            if (currentFeedIndex < 0) currentFeedIndex = filteredFeedList.length - 1;
+
+            let vData = filteredFeedList[currentFeedIndex];
             if(!vData) return;
 
             let activeVid = document.getElementById('activeFeedVideo');
@@ -335,7 +389,9 @@
             
             document.getElementById('feedUsername').innerText = vData.username;
             document.getElementById('feedCaptionText').innerText = vData.caption;
-            document.getElementById('feedViewsNum').innerText = `👁️ ${vData.views} Views`;
+            document.getElementById('likeCount').innerText = vData.likes;
+            
+            document.getElementById('algoReachBadge').innerText = getAlgorithmTierStatus(vData.views, vData.likes);
 
             let affBox = document.getElementById('feedAffiliateBox');
             let affLink = document.getElementById('feedAffiliateLink');
@@ -346,8 +402,35 @@
             } else {
                 affBox.style.display = 'none';
             }
+        }
 
-            showToast(`📱 वीडियो ${currentFeedIndex + 1} / ${feedVideoList.length}`);
+        // 🔍 Super Fast Search Bar Filter (2-3 seconds response)
+        function filterShortFeedVideos() {
+            let keyword = document.getElementById('feedSearchBox').value.toLowerCase().trim();
+            
+            filteredFeedList = rawFeedList.filter(v => {
+                let matchKeyword = (v.caption && v.caption.toLowerCase().includes(keyword)) ||
+                                   (v.username && v.username.toLowerCase().includes(keyword)) ||
+                                   (v.category && v.category.toLowerCase().includes(keyword));
+                
+                let matchCat = (currentCategory === 'All') || 
+                               (v.category && v.category.toLowerCase() === currentCategory.toLowerCase()) ||
+                               (v.caption && v.caption.toLowerCase().includes(currentCategory.toLowerCase()));
+
+                return keyword ? matchKeyword : matchCat;
+            });
+
+            currentFeedIndex = 0;
+            renderCurrentFeedVideo();
+        }
+
+        function selectCategoryFilter(catName, chipEl) {
+            document.querySelectorAll('.f-chip').forEach(c => c.classList.remove('active'));
+            chipEl.classList.add('active');
+            currentCategory = catName;
+
+            document.getElementById('feedSearchBox').value = '';
+            filterShortFeedVideos();
         }
 
         let isLiked = false;
@@ -358,6 +441,7 @@
             if(isLiked) {
                 icon.style.color = '#fe2c55';
                 countSpan.innerText = '195.5K';
+                showToast('❤️ Liked! Engagement counted for unlimited viral tier boost.');
             } else {
                 icon.style.color = '#fff';
                 countSpan.innerText = '195K';
@@ -394,6 +478,7 @@
             commentTotalCount += 1;
             document.getElementById('commentHeaderTitle').innerText = commentTotalCount + ' comments';
             document.getElementById('commentCountBadge').innerText = commentTotalCount;
+            showToast('💬 Comment posted! 5% engagement counted.');
         }
 
         function handleCommentKey(e) {
@@ -415,7 +500,7 @@
             localStorage.setItem('userWalletCoins', currentCoins);
             toggleGiftModal();
 
-            alert(`🎉 Success! You sent ${emojiIcon} ${giftName} (-${coinCost} Coins) to the creator!`);
+            showToast(`🎉 Success! Sent ${emojiIcon} ${giftName} (-${coinCost} Coins)!`);
             
             let listArea = document.getElementById('commentListArea');
             let myName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
@@ -466,7 +551,7 @@
                 }).catch((error) => console.log('Error sharing:', error));
             } else {
                 navigator.clipboard.writeText(window.location.href);
-                alert('📋 Link copied to clipboard!');
+                showToast('📋 Link copied to clipboard!');
             }
             toggleShareModal();
         }
