@@ -1,4 +1,4 @@
-;<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
@@ -520,6 +520,8 @@
                 let previewBox = document.getElementById('previewBox');
                 let videoElement = document.getElementById('selectedVideoPreview');
                 
+                // ओरिजिनल वीडियो का ऑडियो म्यूट न हो, यह सुनिश्चित करना
+                videoElement.muted = false;
                 videoElement.src = URL.createObjectURL(file);
                 previewBox.style.display = 'block';
                 showToast('📁 वीडियो लोड हो गया है!');
@@ -533,6 +535,7 @@
                 selectedVideoFile = file;
                 finalMergedVideoBlob = file;
                 let videoElement = document.getElementById('selectedVideoPreview');
+                videoElement.muted = false;
                 videoElement.src = URL.createObjectURL(file);
                 document.getElementById('copyrightScanResult').innerHTML = "✅ नया वीडियो अपलोड हो गया है। अब यह पूरी तरह सुरक्षित है।";
                 showToast('✅ नया वीडियो सफलतापूर्वक बदल दिया गया है!');
@@ -574,11 +577,15 @@
             speakMessage('वीडियो सफलतापूर्वक मर्ज हो गए हैं। अब विवरण भरें।');
         }
 
-        // 🎬 CANVAS VIDEO MERGER (Combines Main & Duet into 1 Single Video File)
+        // 🎬 CANVAS VIDEO MERGER (Combines Main & Duet into 1 Single Video File with Audio Preserved)
         function mergeVideosUsingCanvas() {
             return new Promise((resolve) => {
                 let mainVid = document.getElementById('selectedVideoPreview');
                 let overlayVid = document.getElementById('overlayVideoElement');
+
+                // ऑडियो प्रिजर्व करने के लिए सुनिश्चित करें कि दोनों अनम्यूट हैं
+                mainVid.muted = false;
+                overlayVid.muted = false;
 
                 let canvas = document.createElement('canvas');
                 canvas.width = 720;
@@ -866,13 +873,13 @@
                     res.innerHTML = `⚠️ <b>कॉपीराइट चेतावनी (Copyright Match Found!):</b><br>` +
                                     `• फाइल नाम: ${fileName} (${fileSize})<br>` +
                                     `• ओनर / ओथॉरटी: <b>Global Media Rights Ltd.</b><br>` +
-                                    `• स्टेटस: इस वीडियो पर कॉपीराइट मैच है! इसे अपलोड करने पर स्ट्राइक आ सकती है।<br>` +
+                                    `• स्टेटस: इस वीडियो पर कॉपीराइट मैच है! इसे अपलोड करने पर स्ट्राइक आ सकती है。<br>` +
                                     `<span style="color:#ff4444;">सुझाव: नीचे दिए गए बटन से तुरंत दूसरा वीडियो बदल लें।</span>`;
                     speakMessage("चेतावनी! इस वीडियो पर कॉपीराइट मौजूद है। कृपया दूसरा वीडियो बदल लें।");
                 } else {
                     res.innerHTML = `✅ <b>कॉपीराइट क्लियरेंस पास (Clean Video):</b><br>` +
                                     `• फाइल नाम: ${fileName} (${fileSize})<br>` +
-                                    `• ग्लोबल डेटाबेस (YouTube / TikTok / Meta): कोई कॉपीराइट क्लेम नहीं मिला।<br>` +
+                                    `• ग्लोबल डेटाबेस (YouTube / TikTok / Meta): कोई कॉपीराइट क्लेम नहीं मिला。<br>` +
                                     `<span style="color:#25f4ee;">स्टेटस: यह वीडियो मोनेटाइजेशन और पब्लिशिंग के लिए पूरी तरह सुरक्षित है!</span>`;
                     speakMessage("वीडियो पूरी तरह साफ है। कोई कॉपीराइट नहीं मिला।");
                 }
@@ -895,6 +902,7 @@
                 selectedOverlayFile = file;
                 let trackContainer = document.getElementById('overlayTrackContainer');
                 let overlayEl = document.getElementById('overlayVideoElement');
+                overlayEl.muted = false; // डुएट वीडियो का ऑडियो भी खुला रहे
                 overlayEl.src = URL.createObjectURL(file);
                 trackContainer.style.display = 'block';
                 showToast('👥 Partner Collab Video Added Successfully!');
