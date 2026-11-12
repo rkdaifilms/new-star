@@ -387,7 +387,7 @@
                 </div>
             </div>
 
-            <!-- 📝 Video Details Form (Originally Hidden until Edit is Saved/Merged) -->
+            <!-- 📝 Video Details Form (Originally Hidden until Edit is Saved) -->
             <div id="videoDetailsFormContainer" style="display: none;">
                 <div style="background: #181818; border: 1px solid #25f4ee; border-radius: 10px; padding: 10px; margin-bottom: 12px; text-align: center; display:flex; justify-content:space-between; align-items:center;">
                     <span style="color: #25f4ee; font-size: 11px; font-weight: bold;" id="successEditNotice">✅ Video & Duet Merged Successfully!</span>
@@ -521,14 +521,8 @@
                 let videoElement = document.getElementById('selectedVideoPreview');
                 
                 videoElement.muted = false;
-                videoElement.volume = 1.0;
                 videoElement.src = URL.createObjectURL(file);
-                
                 previewBox.style.display = 'block';
-                // ✅ जब तक सेव न हो, तब तक डिटेल्स फॉर्म छिपा रहे, सिर्फ वीडियो और एडिट/सेव बटन दिखे
-                document.getElementById('videoDetailsFormContainer').style.display = 'none';
-                document.getElementById('saveEditBtn').style.display = 'block';
-                
                 showToast('📁 वीडियो लोड हो गया है!');
             }
         }
@@ -541,7 +535,6 @@
                 finalMergedVideoBlob = file;
                 let videoElement = document.getElementById('selectedVideoPreview');
                 videoElement.muted = false;
-                videoElement.volume = 1.0;
                 videoElement.src = URL.createObjectURL(file);
                 document.getElementById('copyrightScanResult').innerHTML = "✅ नया वीडियो अपलोड हो गया है। अब यह पूरी तरह सुरक्षित है।";
                 showToast('✅ नया वीडियो सफलतापूर्वक बदल दिया गया है!');
@@ -549,7 +542,7 @@
             }
         }
 
-        // 💾 SAVE & MERGE VIDEO (DO-IT) & PROCEED TO DETAILS (अडío मिक्सिंग के साथ)
+        // 💾 SAVE & MERGE VIDEO (DO-IT) & PROCEED TO DETAILS
         async function saveEditedVideoAndShowDetails() {
             if(!selectedVideoFile) {
                 showToast('⚠️ कृपया पहले मुख्य वीडियो चुनें!');
@@ -572,18 +565,17 @@
                 finalMergedVideoBlob = selectedVideoFile;
             }
 
-            // ✅ सेव होने के बाद एडिट/सेव बटन और मेनू छिप जाएं, और टाइटल/डिस्क्रिप्शन वाला फॉर्म सामने आ जाए
             document.getElementById('saveEditBtn').style.display = 'none';
             document.getElementById('masterThreeDotMenu').style.display = 'none';
             document.getElementById('overlayThreeDotMenu').style.display = 'none';
             document.getElementById('videoDetailsFormContainer').style.display = 'block';
             document.getElementById('successEditNotice').innerText = `✅ Video & Duet Merged Successfully!`;
 
-            showToast('✅ वीडियो सेव हो गया है! अब विवरण भरें।');
-            speakMessage('वीडियो सेव हो गया है। अब विवरण भरें।');
+            showToast('✅ वीडियो और ड्युएट मर्ज हो गए हैं! अब विवरण भरें।');
+            speakMessage('वीडियो सफलतापूर्वक मर्ज हो गए हैं। अब विवरण भरें।');
         }
 
-        // 🎬 CANVAS VIDEO & AUDIO MIXER (डुएट और ओरिजिनल दोनों की आवाज़ साथ में मिलाने के लिए)
+        // 🎬 CANVAS VIDEO & AUDIO MIXER (Preserves both Main & Duet Audio Tracks)
         function mergeVideosUsingCanvas() {
             return new Promise((resolve) => {
                 let mainVid = document.getElementById('selectedVideoPreview');
@@ -940,7 +932,6 @@
                 let trackContainer = document.getElementById('overlayTrackContainer');
                 let overlayEl = document.getElementById('overlayVideoElement');
                 overlayEl.muted = false; 
-                overlayEl.volume = 1.0;
                 overlayEl.src = URL.createObjectURL(file);
                 trackContainer.style.display = 'block';
                 showToast('👥 Partner Collab Video Added Successfully!');
@@ -960,7 +951,7 @@
             }
         }
 
-        // 🚀 GLOBAL TURBO UPLOAD (4s) - UPLOADS THE MERGED SINGLE VIDEO FILE
+        // 🚀 GLOBAL TURBO UPLOAD (4s) - UPLOADS AND REDIRECTS STRAIGHT TO PROFILE/FEED
         async function publishVideoToGlobalCloudStorage() {
             let caption = document.getElementById('videoCaptionInput').value.trim() || 'Viral Video #CreatorHub';
             let description = document.getElementById('videoDescriptionInput').value.trim() || 'Published via Global Creator Studio.';
@@ -1057,8 +1048,9 @@
                 clearInterval(interval);
                 fill.style.width = '100%';
                 percentText.innerText = '100%';
-                titleHeading.innerText = `✨ Turbo Upload Complete (4s)!`;
+                titleHeading.innerText = `✨ Turbo Upload Complete!`;
 
+                // ✅ पब्लिश होते ही सीधे प्रोफाइल पेज (profile.html) पर भेज देगा ताकि यूजर अपना पोस्ट देख सके!
                 setTimeout(() => {
                     modal.style.display = 'none';
                     window.location.href = 'profile.html';
