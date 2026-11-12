@@ -55,14 +55,17 @@
         .grid-overlay { position: relative; z-index: 2; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 8px; font-size: 11px; }
         .grid-overlay p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; margin-bottom: 2px; }
 
-        /* 🎬 TIKTOK STYLE FULL VIDEO PLAYER MODAL */
-        #videoPlayerModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.96); z-index: 999; justify-content: center; align-items: center; }
-        .modal-player-card { width: 100%; max-width: 420px; height: 100vh; background: #000; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+        /* 🎬 TIKTOK STYLE FULL VERTICAL SNAP SCROLL PLAYER MODAL */
+        #videoPlayerModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 999; overflow: hidden; }
+        .modal-scroll-container { width: 100%; height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; position: relative; }
+        .modal-scroll-container::-webkit-scrollbar { display: none; }
+
+        .reel-slide-card { width: 100%; height: 100vh; scroll-snap-align: start; scroll-snap-stop: always; position: relative; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         
         .modal-top-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px; position: absolute; top: 0; left: 0; right: 0; z-index: 30; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
         .modal-top-bar h3 { font-size: 14px; color: #fff; }
         
-        .modal-video-box { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; background: #111; }
+        .modal-video-box { width: 100%; height: 100%; position: absolute; top: 0; left: 0; display: flex; justify-content: center; align-items: center; background: #000; }
         .modal-video-box video { width: 100%; height: 100%; object-fit: cover; }
 
         .modal-side-actions { position: absolute; right: 15px; bottom: 120px; display: flex; flex-direction: column; align-items: center; gap: 16px; z-index: 25; }
@@ -82,7 +85,7 @@
         }
 
         /* ✨ TIKTOK FLYING GIFT ANIMATION OVERLAY */
-        #flyingGiftOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .flying-gift-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .flying-gift-box { font-size: 65px; animation: flyUpGift 1.8s ease-out forwards; text-align: center; text-shadow: 0 5px 20px rgba(0,0,0,0.9); }
         .flying-gift-box span { display: block; font-size: 14px; color: #ffcc00; font-weight: bold; background: rgba(0,0,0,0.7); padding: 4px 12px; border-radius: 12px; margin-top: 5px; border: 1px solid #fe2c55; }
         @keyframes flyUpGift {
@@ -185,53 +188,16 @@
         <div class="grid-item" style="justify-content: center; align-items: center; color: #777; grid-column: span 3;">Loading videos...</div>
     </div>
 
-    <!-- 🎬 TIKTOK STYLE FULL VIDEO PLAYER MODAL -->
+    <!-- 🎬 TIKTOK STYLE FULL VERTICAL SNAP SCROLL PLAYER MODAL -->
     <div id="videoPlayerModal">
-        <div class="modal-player-card">
-            
-            <div class="modal-top-bar">
-                <button onclick="closeVideoPlayer()" style="background:rgba(0,0,0,0.5); border:1px solid #444; color:#fff; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;">←</button>
-                <h3>New Star Reel</h3>
-                <button onclick="openCreatorSettings()" style="background:rgba(254,44,85,0.8); border:none; color:#fff; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;" title="Creator Settings">⚙️</button>
-            </div>
-            
-            <div class="modal-video-box" onclick="togglePlayPause()">
-                <video id="modalActiveVideo" loop playsinline autoplay></video>
-                <div id="flyingGiftOverlay"></div>
-            </div>
+        <div class="modal-top-bar" style="z-index: 50;">
+            <button onclick="closeVideoPlayer()" style="background:rgba(0,0,0,0.5); border:1px solid #444; color:#fff; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;">←</button>
+            <h3>New Star Reel</h3>
+            <button onclick="openCreatorSettings()" style="background:rgba(254,44,85,0.8); border:none; color:#fff; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;" title="Creator Settings">⚙️</button>
+        </div>
 
-            <div class="modal-side-actions">
-                <div class="m-action-btn" id="likeButtonWrapper" onmousedown="startLikeHold()" onmouseup="endLikeHold()" ontouchstart="startLikeHold()" ontouchend="endLikeHold()">
-                    <div class="m-action-icon" id="modalLikeIcon">❤️</div>
-                    <span id="modalLikesNum">120K</span>
-                </div>
-                <div class="m-action-btn" onclick="openCommentModal()">
-                    <div class="m-action-icon">💬</div>
-                    <span id="modalCommentsNum">2.4K</span>
-                </div>
-                <div class="m-action-btn" onclick="openGiftModal()">
-                    <div class="m-action-icon" style="background:linear-gradient(135deg, #fe2c55, #ffcc00);">🎁</div>
-                    <span>Gift</span>
-                </div>
-                <div class="m-action-btn" onclick="openShareModal()">
-                    <div class="m-action-icon">↗️</div>
-                    <span>Share</span>
-                </div>
-            </div>
-
-            <div class="modal-video-info">
-                <h4 id="modalCreatorHandle">@ramram981152</h4>
-                <p id="modalVideoCaptionText">New Viral Dance Reel 🔥 #StarNewStar</p>
-                <!-- 📝 DETAILED DESCRIPTION DISPLAY -->
-                <p id="modalVideoDescText" style="font-size:11px; color:#bbb; margin-top:2px;">Professional video uploaded via New Star Creator Hub studio.</p>
-                
-                <!-- 🔗 VIDEO AFFILIATE / PROMOTION LINK DISPLAY -->
-                <div id="modalVideoAffiliateBox" style="margin-top:4px; display:none;">
-                    <a id="modalVideoAffiliateLink" href="#" target="_blank" style="font-size:11px; color:#25f4ee; text-decoration:underline;">🛒 Check out Affiliate / Product Link</a>
-                </div>
-
-                <span style="font-size:10px; color:#25f4ee; background:rgba(0,0,0,0.5); padding:2px 8px; border-radius:8px; display:inline-block; margin-top:6px;">👁️ Views: <b id="modalViewsNum">850K</b></span>
-            </div>
+        <div class="modal-scroll-container" id="modalScrollFeed" onscroll="handleReelScroll()">
+            <!-- Dynamic Reel Slides will load here -->
         </div>
     </div>
 
@@ -251,7 +217,7 @@
         </div>
     </div>
 
-    <!-- ⚙️ CREATOR SETTING / MANAGER PANEL (WITH DESCRIPTION & AFFILIATE INPUT) -->
+    <!-- ⚙️ CREATOR SETTING / MANAGER PANEL -->
     <div id="creatorSettingsModal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="font-size:16px; color:#fe2c55;">⚙️ Creator Video Manager & Details</h3>
@@ -294,7 +260,7 @@
         </div>
     </div>
 
-    <!-- SHARE MODAL (DIRECT MOBILE SHARE TO ALL SOCIAL APPS & FRIENDS) -->
+    <!-- SHARE MODAL -->
     <div id="shareModal" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3>Share Video with Friends</h3>
@@ -304,7 +270,7 @@
         <button onclick="copyLink()" style="width:100%; background:#222; color:#fff; border:1px solid #444; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;">📋 Copy Video Link</button>
     </div>
 
-    <!-- GIFT MODAL (FULL 16 OPTIONS) -->
+    <!-- GIFT MODAL -->
     <div id="giftModal" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="color:#ffcc00;">🎁 Send Creator Gift (16 Options)</h3>
@@ -335,7 +301,7 @@
 
     <script>
         let activeVideoList = [];
-        let currentSelectedVideoIndex = null;
+        let currentSelectedVideoIndex = 0;
 
         window.onload = async function() {
             loadProfileDetails();
@@ -425,77 +391,134 @@
             }
         }
 
-        function openVideoPlayer(index) {
-            currentSelectedVideoIndex = index;
-            let video = activeVideoList[index];
+        // 🎬 टिक टॉक की तरह वर्टिकल स्क्रॉलिंग फीड तैयार करना
+        function openVideoPlayer(startIndex) {
+            currentSelectedVideoIndex = startIndex;
+            let container = document.getElementById('modalScrollFeed');
+            container.innerHTML = '';
 
-            let player = document.getElementById('modalActiveVideo');
-            player.src = video.url;
-            player.play();
+            activeVideoList.forEach((video, index) => {
+                let affHtml = video.affiliate ? `<div style="margin-top:4px;"><a href="${video.affiliate}" target="_blank" style="font-size:11px; color:#25f4ee; text-decoration:underline;">🛒 Check out Affiliate / Product Link</a></div>` : '';
+                
+                let slide = document.createElement('div');
+                slide.className = 'reel-slide-card';
+                slide.innerHTML = `
+                    <div class="modal-video-box" onclick="togglePlayPause(this)">
+                        <video class="reel-video-item" src="${video.url}" loop playsinline preload="auto"></video>
+                        <div class="flying-gift-overlay"></div>
+                    </div>
 
-            document.getElementById('modalVideoCaptionText').innerText = video.caption || 'New Viral Dance Reel 🔥';
-            document.getElementById('modalVideoDescText').innerText = video.description || 'Professional video uploaded via New Star Creator Hub studio.';
-            
-            let affLinkEl = document.getElementById('modalVideoAffiliateLink');
-            let affBoxEl = document.getElementById('modalVideoAffiliateBox');
-            if(video.affiliate) {
-                affLinkEl.href = video.affiliate;
-                affLinkEl.innerText = `🛒 Product / Affiliate Link: ${video.affiliate}`;
-                affBoxEl.style.display = 'block';
-            } else {
-                affBoxEl.style.display = 'none';
-            }
+                    <div class="modal-side-actions">
+                        <div class="m-action-btn" id="likeBtn_${index}" onmousedown="startLikeHold(${index})" onmouseup="endLikeHold(${index})" ontouchstart="startLikeHold(${index})" ontouchend="endLikeHold(${index})">
+                            <div class="m-action-icon" id="likeIcon_${index}">❤️</div>
+                            <span>${video.likes || '120K'}</span>
+                        </div>
+                        <div class="m-action-btn" onclick="openCommentModal()">
+                            <div class="m-action-icon">💬</div>
+                            <span>2.4K</span>
+                        </div>
+                        <div class="m-action-btn" onclick="openGiftModal()">
+                            <div class="m-action-icon" style="background:linear-gradient(135deg, #fe2c55, #ffcc00);">🎁</div>
+                            <span>Gift</span>
+                        </div>
+                        <div class="m-action-btn" onclick="openShareModal()">
+                            <div class="m-action-icon">↗️</div>
+                            <span>Share</span>
+                        </div>
+                    </div>
 
-            document.getElementById('modalCreatorHandle').innerText = localStorage.getItem('appHandle') || '@ramram981152';
-            document.getElementById('modalLikesNum').innerText = video.likes || '120K';
-            document.getElementById('modalViewsNum').innerText = video.views || '850K';
+                    <div class="modal-video-info">
+                        <h4>${localStorage.getItem('appHandle') || '@ramram981152'}</h4>
+                        <p>${video.caption || 'New Viral Dance Reel 🔥'}</p>
+                        <p style="font-size:11px; color:#bbb; margin-top:2px;">${video.description || 'Professional video uploaded via New Star Creator Hub studio.'}</p>
+                        ${affHtml}
+                        <span style="font-size:10px; color:#25f4ee; background:rgba(0,0,0,0.5); padding:2px 8px; border-radius:8px; display:inline-block; margin-top:6px;">👁️ Views: <b>${video.views || '850K'}</b></span>
+                    </div>
+                `;
+                container.appendChild(slide);
+            });
 
-            document.getElementById('settingVideoCaption').value = video.caption || '';
-            document.getElementById('settingVideoDesc').value = video.description || '';
-            document.getElementById('settingVideoAffiliate').value = video.affiliate || '';
+            document.getElementById('videoPlayerModal').style.display = 'block';
 
-            loadPermanentInterests(video.id || ('vid_index_' + index));
-            document.getElementById('videoPlayerModal').style.display = 'flex';
+            // तुरंत उस वीडियो पर स्क्रॉल करें जिसपर यूजर ने क्लिक किया है
+            setTimeout(() => {
+                let targetSlide = container.children[startIndex];
+                if(targetSlide) {
+                    targetSlide.scrollIntoView({ behavior: 'auto' });
+                }
+                playActiveVideoInView();
+            }, 50);
         }
 
         function closeVideoPlayer() {
-            let player = document.getElementById('modalActiveVideo');
-            player.pause();
-            player.src = '';
+            let videos = document.querySelectorAll('.reel-video-item');
+            videos.forEach(v => { v.pause(); v.src = ''; });
             document.getElementById('videoPlayerModal').style.display = 'none';
         }
 
-        function togglePlayPause() {
-            let player = document.getElementById('modalActiveVideo');
-            if (player.paused) player.play();
-            else player.pause();
-        }
-
-        let isLikedModal = false;
-        function toggleModalLike() {
-            isLikedModal = !isLikedModal;
-            let icon = document.getElementById('modalLikeIcon');
-            icon.style.color = isLikedModal ? '#fe2c55' : '#fff';
-
-            if (isLikedModal) {
-                let btnWrapper = document.getElementById('likeButtonWrapper');
-                let heart = document.createElement('div');
-                heart.className = 'flying-heart';
-                heart.innerHTML = '❤️';
-                btnWrapper.appendChild(heart);
-                setTimeout(() => { heart.remove(); }, 1000);
+        function togglePlayPause(boxEl) {
+            let video = boxEl.querySelector('video');
+            if (video) {
+                if (video.paused) video.play();
+                else video.pause();
             }
         }
 
+        // 🔄 स्क्रॉल करने पर जो वीडियो सामने दिखेगा, सिर्फ वही प्ले होगा बाकी पॉज हो जाएंगे
+        function handleReelScroll() {
+            playActiveVideoInView();
+        }
+
+        function playActiveVideoInView() {
+            let container = document.getElementById('modalScrollFeed');
+            let slides = container.children;
+            let scrollPosition = container.scrollTop;
+            let slideHeight = container.clientHeight;
+
+            let activeIndex = Math.round(scrollPosition / slideHeight);
+            currentSelectedVideoIndex = activeIndex;
+
+            for(let i=0; i<slides.length; i++) {
+                let video = slides[i].querySelector('video');
+                if(video) {
+                    if(i === activeIndex) {
+                        video.play().catch(e => console.log(e));
+                    } else {
+                        video.pause();
+                    }
+                }
+            }
+
+            let currentVideo = activeVideoList[activeIndex];
+            if(currentVideo) {
+                document.getElementById('settingVideoCaption').value = currentVideo.caption || '';
+                document.getElementById('settingVideoDesc').value = currentVideo.description || '';
+                document.getElementById('settingVideoAffiliate').value = currentVideo.affiliate || '';
+                loadPermanentInterests(currentVideo.id || ('vid_idx_' + activeIndex));
+            }
+        }
+
+        let isLikedModal = false;
+        function toggleModalLike(index) {
+            let icon = document.getElementById(`likeIcon_${index}`);
+            let btnWrapper = document.getElementById(`likeBtn_${index}`);
+            
+            let heart = document.createElement('div');
+            heart.className = 'flying-heart';
+            heart.innerHTML = '❤️';
+            btnWrapper.appendChild(heart);
+            setTimeout(() => { heart.remove(); }, 1000);
+        }
+
         let holdTimer = null;
-        function startLikeHold() {
+        function startLikeHold(index) {
             holdTimer = setTimeout(() => {
                 document.getElementById('likesListModal').style.display = 'flex';
             }, 600);
         }
-        function endLikeHold() {
+        function endLikeHold(index) {
             clearTimeout(holdTimer);
-            toggleModalLike();
+            toggleModalLike(index);
         }
         function closeLikesListModal() { document.getElementById('likesListModal').style.display = 'none'; }
 
@@ -559,12 +582,15 @@
             localStorage.setItem('userWalletCoins', currentCoins);
             closeGiftModal();
 
-            let overlay = document.getElementById('flyingGiftOverlay');
-            let giftDiv = document.createElement('div');
-            giftDiv.className = 'flying-gift-box';
-            giftDiv.innerHTML = `${emojiIcon}<span>Sent ${giftName} (-${coinCost} Coins)</span>`;
-            overlay.appendChild(giftDiv);
-            setTimeout(() => { giftDiv.remove(); }, 1800);
+            let activeSlide = document.querySelectorAll('.reel-slide-card')[currentSelectedVideoIndex];
+            let overlay = activeSlide ? activeSlide.querySelector('.flying-gift-overlay') : null;
+            if(overlay) {
+                let giftDiv = document.createElement('div');
+                giftDiv.className = 'flying-gift-box';
+                giftDiv.innerHTML = `${emojiIcon}<span>Sent ${giftName} (-${coinCost} Coins)</span>`;
+                overlay.appendChild(giftDiv);
+                setTimeout(() => { giftDiv.remove(); }, 1800);
+            }
 
             let senderName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
             let currentVideo = activeVideoList[currentSelectedVideoIndex];
@@ -580,17 +606,7 @@
             };
 
             saveRecordPermanently(videoUniqueId, giftRecord);
-
-            let commentList = document.getElementById('commentListArea');
-            commentList.innerHTML += `
-                <div style="display:flex; gap:10px; background:rgba(254,44,85,0.18); padding:10px; border-radius:10px; border-left:4px solid #fe2c55; align-items:center;">
-                    <span style="font-size:28px;">${emojiIcon}</span>
-                    <div style="flex:1;">
-                        <h4 style="font-size:12px; color:#ffcc00;">🎁 ${senderName} sent a Gift!</h4>
-                        <p style="font-size:13px; color:#fff;">Sent <b>${giftName}</b> (${coinCost} Coins) 🔥</p>
-                    </div>
-                </div>
-            `;
+            loadPermanentInterests(videoUniqueId);
         }
 
         function openCreatorSettings() { document.getElementById('creatorSettingsModal').style.display = 'block'; }
@@ -642,17 +658,7 @@
             };
 
             saveRecordPermanently(videoUniqueId, commentRecord);
-
-            let list = document.getElementById('commentListArea');
-            list.innerHTML += `
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:30px;height:30px;border-radius:50%;">
-                    <div>
-                        <h4 style="font-size:12px;color:#aaa;">${senderName}</h4>
-                        <p style="font-size:13px;">${text}</p>
-                    </div>
-                </div>
-            `;
+            loadPermanentInterests(videoUniqueId);
             input.value = '';
         }
 
