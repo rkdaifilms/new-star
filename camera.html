@@ -159,12 +159,12 @@
             <!-- 🎬 Video Preview Box -->
             <div id="previewBox">
                 <div class="video-edit-settings-btn" onclick="toggleMasterThreeDotMenu()" title="Advanced Studio Menu">⋮</div>
-                <video id="selectedVideoPreview" controls crossorigin="anonymous" onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
+                <video id="selectedVideoPreview" controls crossorigin="anonymous" playsinline onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
                 
                 <!-- Overlay Track (Small Duet / Partner Video with independent zoom/position) -->
                 <div id="overlayTrackContainer">
                     <div class="overlay-edit-settings-btn" onclick="toggleOverlayThreeDotMenu()" title="Duet Video Settings">⋮</div>
-                    <video id="overlayVideoElement" controls crossorigin="anonymous"></video>
+                    <video id="overlayVideoElement" controls crossorigin="anonymous" playsinline></video>
                 </div>
             </div>
 
@@ -387,10 +387,10 @@
                 </div>
             </div>
 
-            <!-- 📝 Video Details Form (Originally Hidden until Edit is Saved) -->
+            <!-- 📝 Video Details Form (Originally Hidden until Edit is Saved/Merged) -->
             <div id="videoDetailsFormContainer" style="display: none;">
                 <div style="background: #181818; border: 1px solid #25f4ee; border-radius: 10px; padding: 10px; margin-bottom: 12px; text-align: center; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;" id="successEditNotice">✅ Video & Duet Merged & Saved!</span>
+                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;" id="successEditNotice">✅ Video & Duet Merged Successfully!</span>
                     <button style="background: #333; color: #ffcc00; border: 1px solid #555; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;" onclick="goBackToEditingStudio()">✏️ Edit Again</button>
                 </div>
 
@@ -460,7 +460,7 @@
 
         let selectedVideoFile = null;
         let selectedOverlayFile = null;
-        let finalMergedVideoBlob = null; // ✅ Merged single video file ready for post
+        let finalMergedVideoBlob = null; 
         let finalVideoCategory = "Shorts (9:16)";
         let currentRotateDeg = 0;
         let isMirrored = false;
@@ -513,17 +513,22 @@
             let file = event.target.files[0];
             if(file) {
                 selectedVideoFile = file;
-                finalMergedVideoBlob = file; // default if no duet
+                finalMergedVideoBlob = file; 
                 document.getElementById('topModesRow').style.display = 'none';
                 document.getElementById('mediaActionsRow').style.display = 'none';
 
                 let previewBox = document.getElementById('previewBox');
                 let videoElement = document.getElementById('selectedVideoPreview');
                 
-                // ओरिजिनल वीडियो का ऑडियो म्यूट न हो, यह सुनिश्चित करना
                 videoElement.muted = false;
+                videoElement.volume = 1.0;
                 videoElement.src = URL.createObjectURL(file);
+                
                 previewBox.style.display = 'block';
+                // ✅ जब तक सेव न हो, तब तक डिटेल्स फॉर्म छिपा रहे, सिर्फ वीडियो और एडिट/सेव बटन दिखे
+                document.getElementById('videoDetailsFormContainer').style.display = 'none';
+                document.getElementById('saveEditBtn').style.display = 'block';
+                
                 showToast('📁 वीडियो लोड हो गया है!');
             }
         }
@@ -536,6 +541,7 @@
                 finalMergedVideoBlob = file;
                 let videoElement = document.getElementById('selectedVideoPreview');
                 videoElement.muted = false;
+                videoElement.volume = 1.0;
                 videoElement.src = URL.createObjectURL(file);
                 document.getElementById('copyrightScanResult').innerHTML = "✅ नया वीडियो अपलोड हो गया है। अब यह पूरी तरह सुरक्षित है।";
                 showToast('✅ नया वीडियो सफलतापूर्वक बदल दिया गया है!');
@@ -543,17 +549,16 @@
             }
         }
 
-        // 💾 SAVE & MERGE VIDEO (DO-IT) & PROCEED TO DETAILS
+        // 💾 SAVE & MERGE VIDEO (DO-IT) & PROCEED TO DETAILS (अडío मिक्सिंग के साथ)
         async function saveEditedVideoAndShowDetails() {
             if(!selectedVideoFile) {
                 showToast('⚠️ कृपया पहले मुख्य वीडियो चुनें!');
                 return;
             }
 
-            showToast('⏳ वीडियो और ड्युएट को आपस में मर्ज (Join) किया जा रहा है...');
+            showToast('⏳ वीडियो और ड्युएट को आपस में मर्ज किया जा रहा है...');
             speakMessage('वीडियो मर्ज किया जा रहा है। कृपया प्रतीक्षा करें।');
 
-            // If duet/overlay video is selected, we combine them into a single blob/file using Canvas Recorder
             if (selectedOverlayFile) {
                 try {
                     let mergedBlob = await mergeVideosUsingCanvas();
@@ -567,33 +572,65 @@
                 finalMergedVideoBlob = selectedVideoFile;
             }
 
+            // ✅ सेव होने के बाद एडिट/सेव बटन और मेनू छिप जाएं, और टाइटल/डिस्क्रिप्शन वाला फॉर्म सामने आ जाए
             document.getElementById('saveEditBtn').style.display = 'none';
             document.getElementById('masterThreeDotMenu').style.display = 'none';
             document.getElementById('overlayThreeDotMenu').style.display = 'none';
             document.getElementById('videoDetailsFormContainer').style.display = 'block';
             document.getElementById('successEditNotice').innerText = `✅ Video & Duet Merged Successfully!`;
 
-            showToast('✅ दोनों वीडियो एक साथ मर्ज हो गए हैं! अब विवरण भरें।');
-            speakMessage('वीडियो सफलतापूर्वक मर्ज हो गए हैं। अब विवरण भरें।');
+            showToast('✅ वीडियो सेव हो गया है! अब विवरण भरें।');
+            speakMessage('वीडियो सेव हो गया है। अब विवरण भरें।');
         }
 
-        // 🎬 CANVAS VIDEO MERGER (Combines Main & Duet into 1 Single Video File with Audio Preserved)
+        // 🎬 CANVAS VIDEO & AUDIO MIXER (डुएट और ओरिजिनल दोनों की आवाज़ साथ में मिलाने के लिए)
         function mergeVideosUsingCanvas() {
             return new Promise((resolve) => {
                 let mainVid = document.getElementById('selectedVideoPreview');
                 let overlayVid = document.getElementById('overlayVideoElement');
 
-                // ऑडियो प्रिजर्व करने के लिए सुनिश्चित करें कि दोनों अनम्यूट हैं
                 mainVid.muted = false;
-                overlayVid.muted = false;
+                mainVid.volume = 1.0;
+                if(overlayVid) {
+                    overlayVid.muted = false;
+                    overlayVid.volume = 1.0;
+                }
 
                 let canvas = document.createElement('canvas');
                 canvas.width = 720;
                 canvas.height = 1280;
                 let ctx = canvas.getContext('2d');
 
-                let stream = canvas.captureStream(30);
-                let recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+                let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                let dest = audioCtx.createMediaStreamDestination();
+
+                try {
+                    if (mainVid.captureStream) {
+                        let mainStream = mainVid.captureStream();
+                        if (mainStream.getAudioTracks().length > 0) {
+                            let source1 = audioCtx.createMediaStreamSource(mainStream);
+                            source1.connect(dest);
+                        }
+                    }
+                    if (overlayVid && overlayVid.captureStream) {
+                        let overlayStream = overlayVid.captureStream();
+                        if (overlayStream.getAudioTracks().length > 0) {
+                            let source2 = audioCtx.createMediaStreamSource(overlayStream);
+                            source2.connect(dest);
+                        }
+                    }
+                } catch(err) {
+                    console.log('Audio stream merge fallback:', err);
+                }
+
+                let canvasStream = canvas.captureStream(30);
+                let combinedTracks = [...canvasStream.getVideoTracks()];
+                if (dest.stream.getAudioTracks().length > 0) {
+                    combinedTracks.push(dest.stream.getAudioTracks()[0]);
+                }
+                let finalCombinedStream = new MediaStream(combinedTracks);
+
+                let recorder = new MediaRecorder(finalCombinedStream, { mimeType: 'video/webm;codecs=vp9,opus' });
                 let chunks = [];
 
                 recorder.ondataavailable = (e) => chunks.push(e.data);
@@ -604,41 +641,41 @@
 
                 recorder.start();
                 mainVid.currentTime = 0;
-                overlayVid.currentTime = 0;
+                if(overlayVid) overlayVid.currentTime = 0;
+                
                 mainVid.play();
-                overlayVid.play();
+                if(overlayVid) overlayVid.play();
 
                 let drawInterval = setInterval(() => {
                     ctx.fillStyle = "#000";
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // Draw Main Video (Left or Full)
                     if (document.getElementById('previewBox').classList.contains('duet-mode')) {
                         ctx.drawImage(mainVid, 0, 0, canvas.width / 2, canvas.height);
-                        ctx.drawImage(overlayVid, canvas.width / 2, 0, canvas.width / 2, canvas.height);
+                        if(overlayVid) ctx.drawImage(overlayVid, canvas.width / 2, 0, canvas.width / 2, canvas.height);
                     } else {
                         ctx.drawImage(mainVid, 0, 0, canvas.width, canvas.height);
-                        // Draw Duet Overlay at Bottom Right
-                        let ow = 220, oh = 300;
-                        let ox = canvas.width - ow - 30;
-                        let oy = canvas.height - oh - 60;
-                        ctx.drawImage(overlayVid, ox, oy, ow, oh);
+                        if(overlayVid) {
+                            let ow = 220, oh = 300;
+                            let ox = canvas.width - ow - 30;
+                            let oy = canvas.height - oh - 60;
+                            ctx.drawImage(overlayVid, ox, oy, ow, oh);
+                        }
                     }
 
                     if (mainVid.ended) {
                         clearInterval(drawInterval);
                         mainVid.pause();
-                        overlayVid.pause();
+                        if(overlayVid) overlayVid.pause();
                         recorder.stop();
                     }
                 }, 33);
 
-                // Safety timeout if video is too long or doesn't end
                 setTimeout(() => {
                     if (recorder.state === 'recording') {
                         clearInterval(drawInterval);
                         mainVid.pause();
-                        overlayVid.pause();
+                        if(overlayVid) overlayVid.pause();
                         recorder.stop();
                     }
                 }, 15000);
@@ -902,7 +939,8 @@
                 selectedOverlayFile = file;
                 let trackContainer = document.getElementById('overlayTrackContainer');
                 let overlayEl = document.getElementById('overlayVideoElement');
-                overlayEl.muted = false; // डुएट वीडियो का ऑडियो भी खुला रहे
+                overlayEl.muted = false; 
+                overlayEl.volume = 1.0;
                 overlayEl.src = URL.createObjectURL(file);
                 trackContainer.style.display = 'block';
                 showToast('👥 Partner Collab Video Added Successfully!');
