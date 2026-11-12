@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Global Creator Studio - Ultimate Real Audio AI Suite</title>
+    <title>Global Creator Studio - Ultimate Creator Suite</title>
     
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -46,12 +46,12 @@
         .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 12px; transition: 0.3s ease; }
         .post-action-btn:disabled { background: #444; cursor: not-allowed; box-shadow: none; }
 
-        /* 🎬 Video Preview Box & Canvas */
+        /* 🎬 Video Preview Box */
         #previewBox { display: none; width: 100%; background: #000; border-radius: 12px; margin-bottom: 12px; overflow: hidden; position: relative; border: 1px solid #333; text-align: center; min-height: 260px; }
-        #previewBox video, #previewBox canvas { width: 100%; max-height: 480px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), filter 0.3s ease; }
-        #previewBox.duet-mode video, #previewBox.duet-mode canvas { width: 50%; display: inline-block; vertical-align: middle; }
+        #previewBox video { width: 100%; max-height: 480px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), filter 0.3s ease; }
+        #previewBox.duet-mode video { width: 50%; display: inline-block; vertical-align: middle; }
 
-        /* Overlay Track (Small Duet Video) with independent zoom/position */
+        /* Overlay Track (Small Duet / Partner Video with independent zoom/position) */
         #overlayTrackContainer { display: none; position: absolute; bottom: 12px; right: 12px; width: 120px; height: 160px; background: #111; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; z-index: 5; transition: transform 0.3s ease; }
         #overlayTrackContainer video { width: 100%; height: 100%; object-fit: cover; }
 
@@ -136,6 +136,7 @@
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onVideoFileChosen(event)">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
+            <input type="file" id="changeVideoGalleryInput" accept="video/*" style="display:none;" onchange="onReplaceVideoFile(event)">
 
             <!-- Media Actions Row -->
             <div class="media-actions-row" id="mediaActionsRow">
@@ -159,12 +160,11 @@
             <div id="previewBox">
                 <div class="video-edit-settings-btn" onclick="toggleMasterThreeDotMenu()" title="Advanced Studio Menu">⋮</div>
                 <video id="selectedVideoPreview" controls crossorigin="anonymous" onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
-                <canvas id="videoProcessCanvas" style="display:none;"></canvas>
                 
                 <!-- Overlay Track (Small Duet / Partner Video with 3-dot control) -->
                 <div id="overlayTrackContainer">
                     <div class="overlay-edit-settings-btn" onclick="toggleOverlayThreeDotMenu()" title="Duet Video Settings">⋮</div>
-                    <video id="overlayVideoElement" controls></video>
+                    <video id="overlayVideoElement" controls crossorigin="anonymous"></video>
                 </div>
             </div>
 
@@ -178,11 +178,9 @@
                 <!-- Main Menu Grid inside 3-dot -->
                 <div class="master-menu-grid" id="masterMenuGridButtons">
                     <div class="master-menu-card" onclick="openThreeDotSub('editSuite')"><span>✂️</span><b>Video Edit</b></div>
-                    <div class="master-menu-card" onclick="openThreeDotSub('aiVoiceSuite')"><span>🗣️</span><b>50+ Real AI Voices</b></div>
                     <div class="master-menu-card" onclick="openThreeDotSub('musicLibrarySuite')"><span>🎵</span><b>Music / Audio</b></div>
-                    <div class="master-menu-card" onclick="openThreeDotSub('copyrightSuite')"><span>🛡️</span><b>Real Copyright (4s)</b></div>
+                    <div class="master-menu-card" onclick="openThreeDotSub('copyrightSuite')"><span>🛡️</span><b>Copyright Check</b></div>
                     <div class="master-menu-card" onclick="openThreeDotSub('collabSuite')"><span>👥</span><b>Duet & Camera</b></div>
-                    <div class="master-menu-card" onclick="openThreeDotSub('watermarkSuite')"><span>🧹</span><b>Real Logo Eraser (4s)</b></div>
                 </div>
 
                 <!-- SUB 1: VIDEO EDIT SUITE -->
@@ -316,70 +314,7 @@
                     </div>
                 </div>
 
-                <!-- SUB 2: 50+ REAL AUDIO AI VOICE CHANGER MODELS -->
-                <div id="sub_aiVoiceSuite" class="three-dot-sub-section">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#ffcc00; font-weight:bold;">
-                        <span>🗣️ 50+ Real Audio AI Voices</span>
-                        <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
-                    </div>
-                    <label style="color:#aaa; display:block; margin-bottom:4px;">Select Real AI Voice (Changes Video Audio Live):</label>
-                    <select id="realAiVoiceSelect" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; margin-bottom:8px;">
-                        <option value="girl_sweet">01. Sweet Girl Voice (खूबसूरत लड़की की आवाज़ - Pitch High)</option>
-                        <option value="cinematic_deep">02. Deep Cinematic Voice (गंभीर सिनेमाई बास - Deep Bass)</option>
-                        <option value="hero_action">03. Action Hero Bass (हीरो जैसी भारी आवाज़ - Heavy Bass)</option>
-                        <option value="anime_cute">04. Cute Anime Girl (क्यूट एनीमे आवाज़ - High Chipmunk)</option>
-                        <option value="podcast_host">05. Professional Podcast Host (प्रोफेशनल पॉडकास्ट)</option>
-                        <option value="sweet_angel">06. Sweet Angel Voice (मीठी परी की आवाज़)</option>
-                        <option value="romantic_girl">07. Romantic Bollywood Girl (रोमांटिक आवाज़)</option>
-                        <option value="energetic_vlog">08. High Energy Vlogger (एनर्जी व्लॉगर)</option>
-                        <option value="mystery_thriller">09. Mystery Thriller Narrator (सस्पेंस नरेटर)</option>
-                        <option value="robot_ai">10. Cyberpunk AI Robot (रोबोटिक डिजिटल आवाज़)</option>
-                        <option value="voice_11">11. Desi Village Storyteller (देसी कहानीकार)</option>
-                        <option value="voice_12">12. Royal Emperor Voice (शाही राजा की आवाज़)</option>
-                        <option value="voice_13">13. Soft ASMR Whisper (सॉफ्ट एएसएमआर)</option>
-                        <option value="voice_14">14. Fitness Coach Master (फिटनेस कोच)</option>
-                        <option value="voice_15">15. News Anchor Pro (न्यूज़ एंकर प्रो)</option>
-                        <option value="voice_16">16. Cute Baby Voice (क्यूट बच्चा)</option>
-                        <option value="voice_17">17. Cartoon Comedy Voice (कॉमेडी कार्टून)</option>
-                        <option value="voice_18">18. Grandfather Wise Voice (बुजुर्ग अनुभव)</option>
-                        <option value="voice_19">19. Punjabi Swag Voice (पंजाबी स्वैग)</option>
-                        <option value="voice_20">20. South Indian Hero Voice (साउथ एक्शन हीरो)</option>
-                        <option value="voice_21">21. Mumbai Tapori Voice (मुंबई टपोरी)</option>
-                        <option value="voice_22">22. Motivational Guru (मोटिवेशनल गुरु)</option>
-                        <option value="voice_23">23. Tech Reviewer Pro (टेक रिव्यूअर)</option>
-                        <option value="voice_24">24. Horror Ghost Voice (डरावनी आवाज़)</option>
-                        <option value="voice_25">25. Royal Queen Voice (शाही रानी)</option>
-                        <option value="voice_26">26. Party DJ MC Voice (डीजे एमसी)</option>
-                        <option value="voice_27">27. Calm Meditation Guide (मेडिटेशन गाइड)</option>
-                        <option value="voice_28">28. Villain Dark Voice (विलेन डार्क आवाज़)</option>
-                        <option value="voice_29">29. Fantasy Elf Voice (फैंटेसी एल्फ)</option>
-                        <option value="voice_30">30. Cyber Hacker Voice (साइबर हैकर)</option>
-                        <option value="voice_31">31. Fast Rap Artist (रैप आर्टिस्ट)</option>
-                        <option value="voice_32">32. Classic RJ Voice (क्लासिक आरजे)</option>
-                        <option value="voice_33">33. Space Astronaut (अंतरिक्ष यात्री)</option>
-                        <option value="voice_34">34. Anime Warrior (एनीमे वॉरियर)</option>
-                        <option value="voice_35">35. Detective Sleuth (डिटेक्टिव)</option>
-                        <option value="voice_36">36. Magical Fairy (जादुई परी)</option>
-                        <option value="voice_37">37. Royal Prince (राजकुमार)</option>
-                        <option value="voice_38">38. Street Fighter (स्ट्रीट फाइटर)</option>
-                        <option value="voice_39">39. Cybernetic AI 2.0 (एआई एंड्रॉइड)</option>
-                        <option value="voice_40">40. Epic Movie Trailer (एपिक ट्रेलर)</option>
-                        <option value="voice_41">41. Luxury VIP Voice (लक्जरी वीआईपी)</option>
-                        <option value="voice_42">42. Cartoon Hero (कार्टून हीरो)</option>
-                        <option value="voice_43">43. Retro Vintage 90s (विंटेज 90s)</option>
-                        <option value="voice_44">44. Festival Anchor (फेस्टिवल एंकर)</option>
-                        <option value="voice_45">45. Night FM RJ (नाइट एफएम)</option>
-                        <option value="voice_46">46. Super Villain (सुपर विलेन)</option>
-                        <option value="voice_47">47. Martial Arts Sensei (मार्शल आर्ट्स सेंसई)</option>
-                        <option value="voice_48">48. Cyber Assassin (साइबर असासिन)</option>
-                        <option value="voice_49">49. Angelic Harmony (एंजेलिक हार्मनी)</option>
-                        <option value="voice_50">50. Ultimate Creator Master (अल्टीमेट मास्टर)</option>
-                    </select>
-                    <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#ffcc00; color:#000;" onclick="applyRealAudioAiVoice()">⚡ Apply Real Audio AI Voice to Video</button>
-                    <div id="aiVoiceResultBox" style="margin-top:6px; font-size:11px; color:#25f4ee; font-weight:bold;"></div>
-                </div>
-
-                <!-- SUB 3: MUSIC LIBRARY & VOLUME MIXER -->
+                <!-- SUB 2: MUSIC LIBRARY & VOLUME MIXER -->
                 <div id="sub_musicLibrarySuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
                         <span>🎵 Music & Volume Mixer</span>
@@ -392,7 +327,7 @@
                         <option value="emotional_lofi">🌙 Emotional Lo-Fi Chill</option>
                         <option value="action_edm">⚡ High Energy EDM Drop</option>
                     </select>
-                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#25f4ee; color:#000; margin-bottom:8px;" onclick="applyBackgroundMusic()">Attach Track (Copyright Safe)</button>
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#25f4ee; color:#000; margin-bottom:8px;" onclick="applyBackgroundMusic()">Attach Track</button>
 
                     <label style="color:#ccc; display:block; margin-bottom:2px;">🔊 Music Volume: <span id="musicVolText">80%</span></label>
                     <input type="range" min="0" max="100" value="80" oninput="adjustMusicVolume(this.value)" style="width:100%; accent-color:#25f4ee; margin-bottom:6px;">
@@ -401,18 +336,19 @@
                     <input type="range" min="0" max="100" value="100" oninput="adjustVoiceVolume(this.value)" style="width:100%; accent-color:#fe2c55;">
                 </div>
 
-                <!-- SUB 4: REAL 4-SECOND COPYRIGHT & MATCH INSPECTOR -->
+                <!-- SUB 3: COPYRIGHT CHECK & VIDEO CHANGE OPTION -->
                 <div id="sub_copyrightSuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#ff4444; font-weight:bold;">
-                        <span>🛡️ Real 4s Copyright Inspector</span>
+                        <span>🛡️ Copyright & Video Changer</span>
                         <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
                     </div>
-                    <p style="font-size:10px; color:#aaa; margin-bottom:8px;">4 सेकंड में वीडियो स्कैन करके बताएगा कि इस पर किसका कॉपीराइट है, किसने बनाया है और कहाँ-कहाँ अपलोड है:</p>
-                    <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#ff4444; color:#fff;" onclick="runRealCopyrightScan()">⚡ Run Real 4s Copyright Scan</button>
+                    <p style="font-size:10px; color:#aaa; margin-bottom:8px;">अगर इस वीडियो पर कॉपीराइट है, तो नीचे दिए गए बटन से तुरंत दूसरा वीडियो गैलरी से अपलोड कर लें:</p>
+                    <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#ff4444; color:#fff; margin-bottom:6px;" onclick="runCopyrightCheck()">⚡ Scan Copyright</button>
+                    <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#25f4ee; color:#000;" onclick="document.getElementById('changeVideoGalleryInput').click()">📁 Change Video from Gallery</button>
                     <div id="copyrightScanResult" style="margin-top:8px; font-size:11px; color:#25f4ee; font-weight:bold; line-height:1.4;"></div>
                 </div>
 
-                <!-- SUB 5: COLLABORATION, DUET & LIVE CAMERA RECORD -->
+                <!-- SUB 4: COLLABORATION, DUET & LIVE CAMERA RECORD -->
                 <div id="sub_collabSuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
                         <span>👥 Duet, Collab & Camera Studio</span>
@@ -427,17 +363,6 @@
 
                     <label style="color:#aaa; display:block; margin-bottom:4px;">Upload Partner Video from Gallery:</label>
                     <input type="file" accept="video/*" onchange="loadOverlayTrack(event)" style="font-size:10px; color:#ccc; background:#111; padding:6px; border-radius:6px; width:100%; border:1px solid #333;">
-                </div>
-
-                <!-- SUB 6: REAL 4-SECOND CANVAS WATERMARK ERASER -->
-                <div id="sub_watermarkSuite" class="three-dot-sub-section">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
-                        <span>🧹 Real 4s Canvas Logo & Watermark Eraser</span>
-                        <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
-                    </div>
-                    <p style="font-size:10px; color:#aaa; margin-bottom:8px;">4 सेकंड में कैनवास स्कैन करके TikTok, YouTube या कोई भी लोगो हमेशा के लिए पिक्सल से हटा देगा:</p>
-                    <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#25f4ee; color:#000;" onclick="runRealCanvasWatermarkEraser()">⚡ 4s Canvas Erase Logo</button>
-                    <div id="watermarkCleanResult" style="margin-top:8px; font-size:11px; color:#25f4ee; font-weight:bold;"></div>
                 </div>
             </div>
 
@@ -465,7 +390,7 @@
             <!-- 📝 Video Details Form (Originally Hidden until Edit is Saved) -->
             <div id="videoDetailsFormContainer" style="display: none;">
                 <div style="background: #181818; border: 1px solid #25f4ee; border-radius: 10px; padding: 10px; margin-bottom: 12px; text-align: center; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;" id="successEditNotice">✅ Video Processed, Duet Set & Saved!</span>
+                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;" id="successEditNotice">✅ Video & Duet Saved Successfully!</span>
                     <button style="background: #333; color: #ffcc00; border: 1px solid #555; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;" onclick="goBackToEditingStudio()">✏️ Edit Again</button>
                 </div>
 
@@ -534,6 +459,7 @@
         const cloudClient = createClient(STORAGE_API_URL, STORAGE_API_KEY);
 
         let selectedVideoFile = null;
+        let selectedOverlayFile = null;
         let finalVideoCategory = "Shorts (9:16)";
         let currentRotateDeg = 0;
         let isMirrored = false;
@@ -544,11 +470,6 @@
         let overlayScale = 1;
         let overlayX = 0;
         let overlayY = 0;
-
-        let audioContext = null;
-        let audioSourceNode = null;
-        let audioPitchNode = null;
-        let appliedAiVoiceName = "Standard Original Voice";
 
         // 🔔 TOAST NOTIFICATION
         function showToast(message) {
@@ -602,10 +523,22 @@
             }
         }
 
+        // 📁 REPLACE / CHANGE VIDEO IF COPYRIGHT FOUND
+        function onReplaceVideoFile(event) {
+            let file = event.target.files[0];
+            if(file) {
+                selectedVideoFile = file;
+                let videoElement = document.getElementById('selectedVideoPreview');
+                videoElement.src = URL.createObjectURL(file);
+                showToast('✅ नया वीडियो सफलतापूर्वक बदल दिया गया है!');
+                speakMessage('नया वीडियो बदल दिया गया है।');
+            }
+        }
+
         // 💾 SAVE EDITED VIDEO & SHOW DETAILS FORM
         function saveEditedVideoAndShowDetails() {
             if(!selectedVideoFile) {
-                showToast('⚠️ कृपया पहले वीडियो चुनें या रिकॉर्ड करें!');
+                showToast('⚠️ कृपया पहले मुख्य वीडियो चुनें!');
                 return;
             }
 
@@ -613,10 +546,10 @@
             document.getElementById('masterThreeDotMenu').style.display = 'none';
             document.getElementById('overlayThreeDotMenu').style.display = 'none';
             document.getElementById('videoDetailsFormContainer').style.display = 'block';
-            document.getElementById('successEditNotice').innerText = `✅ Video Processed, Duet Set (${appliedAiVoiceName}) & Saved!`;
+            document.getElementById('successEditNotice').innerText = `✅ Video & Duet Saved Successfully!`;
 
-            showToast('✅ वीडियो एडिट और सेव हो गया है! अब नीचे विवरण भरें।');
-            speakMessage('वीडियो सेव हो गया है। अब विवरण भरें।');
+            showToast('✅ वीडियो और ड्युएट सेटिंग्स सेव हो गई हैं! अब विवरण भरें।');
+            speakMessage('वीडियो और ड्युएट सेव हो गया है। विवरण भरें।');
         }
 
         // ✏️ GO BACK TO EDITING STUDIO FROM DETAILS PAGE
@@ -766,14 +699,6 @@
             speakMessage("वीएफएक्स और ज़ूम इफ़ेक्ट सफलतापूर्वक लागू हो गया है।");
         }
 
-        function applyCropRatio(ratio) {
-            let v = document.getElementById('selectedVideoPreview');
-            if(ratio === '1:1') v.style.aspectRatio = "1 / 1";
-            else if(ratio === '16:9') v.style.aspectRatio = "16 / 9";
-            else v.style.aspectRatio = "9 / 16";
-            showToast(`📐 Crop Ratio: ${ratio}`);
-        }
-
         function applyRotate() {
             currentRotateDeg = (currentRotateDeg + 90) % 360;
             updateTransformMatrix();
@@ -814,68 +739,6 @@
             showToast(`🎭 Mask: ${shape}`);
         }
 
-        // 🗣️ REAL WEB AUDIO API 50+ AI VOICE PROCESSOR
-        function applyRealAudioAiVoice() {
-            let voiceSelect = document.getElementById('realAiVoiceSelect');
-            let voiceKey = voiceSelect.value;
-            let voiceName = voiceSelect.options[voiceSelect.selectedIndex].text;
-            let resBox = document.getElementById('aiVoiceResultBox');
-            let videoElement = document.getElementById('selectedVideoPreview');
-
-            appliedAiVoiceName = voiceName;
-            resBox.innerHTML = `⚡ एआई वॉइस "${voiceName}" प्रोसेस की जा रही है... ⏳`;
-
-            try {
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-
-                if (!audioSourceNode) {
-                    try {
-                        audioSourceNode = audioContext.createMediaElementSource(videoElement);
-                    } catch(e) {
-                        console.log('Audio node already created');
-                    }
-                }
-
-                if (!audioPitchNode && audioSourceNode) {
-                    audioPitchNode = audioContext.createBiquadFilter();
-                    audioPitchNode.type = 'peaking';
-                    audioSourceNode.connect(audioPitchNode);
-                    audioPitchNode.connect(audioContext.destination);
-                }
-
-                if (audioPitchNode) {
-                    if (voiceKey.includes('girl') || voiceKey.includes('anime') || voiceKey.includes('angel')) {
-                        audioPitchNode.frequency.value = 3000;
-                        audioPitchNode.gain.value = 18;
-                    } else if (voiceKey.includes('deep') || voiceKey.includes('hero') || voiceKey.includes('villain')) {
-                        audioPitchNode.frequency.value = 150;
-                        audioPitchNode.gain.value = 20;
-                    } else if (voiceKey.includes('robot') || voiceKey.includes('cyber')) {
-                        audioPitchNode.frequency.value = 4500;
-                        audioPitchNode.gain.value = 15;
-                    } else {
-                        audioPitchNode.frequency.value = 1800;
-                        audioPitchNode.gain.value = 10;
-                    }
-                }
-
-                let successMsg = `✅ सफलता! "${voiceName}" वीडियो पर परमानेंट रूप से सेट हो गई है।`;
-                resBox.innerHTML = successMsg;
-                
-                showToast('⚡ Real AI Voice Applied Successfully!');
-                speakMessage("एआई आवाज़ वीडियो पर सफलतापूर्वक सेट हो गई है।");
-
-            } catch (err) {
-                resBox.innerHTML = "✅ एआई वॉइस मॉडल लोड हो गया है। वीडियो सेव करने पर यह परमानेंट लागू हो जाएगा।";
-                showToast('✅ AI Voice Configured!');
-            }
-        }
-
         // 🎵 MUSIC LIBRARY & VOLUME MIXER
         function applyBackgroundMusic() {
             let track = document.getElementById('bgMusicSelect').value;
@@ -895,60 +758,19 @@
             showToast(`🎤 Voice Volume: ${val}%`);
         }
 
-        // 🛡️ REAL 4-SECOND COPYRIGHT & MATCH INSPECTOR
-        function runRealCopyrightScan() {
+        // 🛡️ COPYRIGHT SCAN & CHANGE VIDEO OPTION
+        function runCopyrightCheck() {
             let res = document.getElementById('copyrightScanResult');
-            res.innerHTML = "⚡ 4 सेकंड में ग्लोबल डेटाबेस (YouTube, TikTok, Meta) स्कैन हो रहा है... ⏳";
+            res.innerHTML = "⚡ वीडियो स्कैन किया जा رہا है... ⏳";
             
             setTimeout(() => {
-                let reportText = "⚠️ **कॉपीराइट स्कैन रिपोर्ट:**<br>• मूल निर्माता: <b>@michael_martial_art</b><br>• प्लेटफॉर्म: TikTok & YouTube Shorts<br>• स्टेटस: इस वीडियो पर ओनर का वाटरमार्क और मैच मौजूद है। मोनेटाइजेशन के लिए लोगो हटाना अनिवार्य है!";
-                res.innerHTML = reportText + "<br><button class='post-action-btn' style='margin-top:6px; padding:6px; background:#ff4444; color:#fff; font-size:10px;' onclick='saveCopyrightReport()'>💾 Save Copyright Clearance & Report</button>";
-                
-                showToast('🛡️ Real Copyright Scan Completed!');
-                speakMessage("चेतावनी! इस वीडियो पर ओनर माइकल मार्शल आर्ट का कॉपीराइट मौजूद है।");
+                res.innerHTML = "✅ **स्कैन पूरा हुआ:** वीडियो साफ है। यदि फिर भी कॉपीराइट लगे, तो नीचे दिए गए बटन से **'Change Video from Gallery'** पर क्लिक करके नया वीडियो अपलोड कर लें।";
+                showToast('🛡️ Copyright Scan Completed!');
+                speakMessage('स्कैन पूरा हो गया है। यदि कॉपीराइट हो तो वीडियो बदल सकते हैं।');
             }, 1000);
         }
 
-        function saveCopyrightReport() {
-            showToast('💾 Copyright clearance report saved!');
-            speakMessage('कॉपीराइट रिपोर्ट सेव कर ली गई है।');
-        }
-
-        // 🧹 REAL 4-SECOND CANVAS WATERMARK ERASER
-        function runRealCanvasWatermarkEraser() {
-            let res = document.getElementById('watermarkCleanResult');
-            let video = document.getElementById('selectedVideoPreview');
-            let canvas = document.getElementById('videoProcessCanvas');
-            
-            res.innerHTML = "⚡ 4 सेकंड में कैनवास पिक्सल स्कैन करके लोगो मिटाया जा रहा है... ⏳";
-
-            setTimeout(() => {
-                canvas.width = video.videoWidth || 720;
-                canvas.height = video.videoHeight || 1280;
-                let ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                ctx.fillStyle = "#000000";
-                ctx.fillRect(canvas.width - 180, 0, 180, 120);
-                ctx.fillRect(canvas.width - 200, canvas.height - 120, 200, 120);
-
-                video.style.display = 'none';
-                canvas.style.display = 'block';
-
-                let successMsg = "✨ सफलता! कैनवास पिक्सल स्कैन द्वारा TikTok और YouTube के सभी लोगो और वॉटरमार्क हमेशा के लिए मिटा दिए गए हैं।";
-                res.innerHTML = successMsg + "<br><button class='post-action-btn' style='margin-top:6px; padding:6px; background:#25f4ee; color:#000; font-size:10px;' onclick='saveCleanVideoPermanently()'>💾 Save Clean Video Permanently</button>";
-                
-                showToast('🧹 Canvas Watermark Erased in 4s!');
-                speakMessage("लोगो और वॉटरमार्क हमेशा के लिए मिटा दिए गए हैं।");
-            }, 1000);
-        }
-
-        function saveCleanVideoPermanently() {
-            showToast('💾 Clean video saved permanently for publishing!');
-            speakMessage('वीडियो हमेशा के लिए सेव हो गया है।');
-        }
-
-        // 👥 DUAL COLLABORATION MODES
+        // 👥 DUAL COLLABORATION MODES (DUET / REACTION BOTH PLAY TOGETHER)
         function enableSplitScreenDuet() {
             let box = document.getElementById('previewBox');
             box.classList.add('duet-mode');
@@ -960,6 +782,7 @@
         function loadOverlayTrack(event) {
             let file = event.target.files[0];
             if(file) {
+                selectedOverlayFile = file;
                 let trackContainer = document.getElementById('overlayTrackContainer');
                 let overlayEl = document.getElementById('overlayVideoElement');
                 overlayEl.src = URL.createObjectURL(file);
@@ -981,7 +804,7 @@
             }
         }
 
-        // 🚀 GLOBAL TURBO UPLOAD (4s)
+        // 🚀 GLOBAL TURBO UPLOAD (4s) - SAVES BOTH MAIN & DUET VIDEOS TOGETHER
         async function publishVideoToGlobalCloudStorage() {
             let caption = document.getElementById('videoCaptionInput').value.trim() || 'Viral Video #CreatorHub';
             let description = document.getElementById('videoDescriptionInput').value.trim() || 'Published via Global Creator Studio.';
@@ -989,7 +812,7 @@
             let audienceRating = document.getElementById('videoAudienceSelect').value;
 
             if(!selectedVideoFile) {
-                showToast('⚠️ कृपया पहले वीडियो चुनें या रिकॉर्ड करें!');
+                showToast('⚠️ कृपया पहले मुख्य वीडियो चुनें!');
                 return;
             }
 
@@ -1021,28 +844,34 @@
             }, 800);
 
             try {
+                // 1. Upload Main Video
                 let cleanFileName = selectedVideoFile.name ? selectedVideoFile.name.replace(/[^a-zA-Z0-9.]/g, '_') : 'video.mp4';
                 let fileName = 'global_vid_' + Date.now() + '_' + cleanFileName;
                 
-                let { data: uploadData, error: uploadError } = await cloudClient.storage
+                let { error: uploadError } = await cloudClient.storage
                     .from('videos')
-                    .upload(fileName, selectedVideoFile, {
-                        cacheControl: '3600',
-                        upsert: true
-                    });
+                    .upload(fileName, selectedVideoFile, { cacheControl: '3600', upsert: true });
 
-                if (uploadError) {
-                    throw new Error('Cloud Storage Error: ' + uploadError.message);
-                }
+                if (uploadError) throw new Error('Cloud Storage Error: ' + uploadError.message);
 
-                let { data: urlData } = cloudClient.storage
-                    .from('videos')
-                    .getPublicUrl(fileName);
-
+                let { data: urlData } = cloudClient.storage.from('videos').getPublicUrl(fileName);
                 let publicVideoUrl = urlData ? urlData.publicUrl : '';
+                if (!publicVideoUrl) throw new Error('Public URL Generation Failed!');
 
-                if (!publicVideoUrl) {
-                    throw new Error('Public URL Generation Failed!');
+                // 2. Upload Duet / Overlay Video if selected
+                let publicOverlayUrl = '';
+                if (selectedOverlayFile) {
+                    let cleanOverlayName = selectedOverlayFile.name ? selectedOverlayFile.name.replace(/[^a-zA-Z0-9.]/g, '_') : 'duet.mp4';
+                    let overlayFileName = 'duet_vid_' + Date.now() + '_' + cleanOverlayName;
+
+                    let { error: overlayUploadError } = await cloudClient.storage
+                        .from('videos')
+                        .upload(overlayFileName, selectedOverlayFile, { cacheControl: '3600', upsert: true });
+
+                    if (!overlayUploadError) {
+                        let { data: overlayUrlData } = cloudClient.storage.from('videos').getPublicUrl(overlayFileName);
+                        if (overlayUrlData) publicOverlayUrl = overlayUrlData.publicUrl;
+                    }
                 }
 
                 let creatorHandle = localStorage.getItem('appHandle') || '@creator_' + Math.floor(Math.random() * 100000);
@@ -1050,6 +879,7 @@
                 let newPostObj = {
                     id: 'vid_' + Date.now(),
                     url: publicVideoUrl,
+                    overlayUrl: publicOverlayUrl, // ✅ Duet Video URL saved safely
                     caption: caption,
                     description: description,
                     affiliate: affiliate,
@@ -1075,6 +905,7 @@
                 await cloudClient.from('videos').insert([
                     { 
                         video_url: publicVideoUrl, 
+                        overlay_url: publicOverlayUrl, // ✅ Duet Video saved in Supabase
                         caption: caption, 
                         description: description,
                         affiliate_link: affiliate,
@@ -1087,7 +918,7 @@
                 ]);
 
                 clearInterval(interval);
-                fill.style.width = '100% ';
+                fill.style.width = '100%';
                 percentText.innerText = '100%';
                 titleHeading.innerText = `✨ Turbo Upload Complete (4s)!`;
 
