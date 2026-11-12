@@ -25,8 +25,8 @@
         
         .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 8px; }
         
-        /* 🎥 बहुत बड़ा कैमरा स्टूडियो स्क्रीन (ऊपर से नीचे तक फैला हुआ) */
-        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; height: 78vh; border-radius: 12px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 2px; }
+        /* 🎥 बहुत बड़ा कैमरा स्टूडियो स्क्रीन */
+        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; height: 82vh; border-radius: 12px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 2px; }
         .camera-preview-wrapper { position: relative; width: 100%; flex: 1; background: #000; overflow: hidden; }
         #directCameraFeed { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
         
@@ -40,8 +40,8 @@
             display: none; z-index: 60; letter-spacing: 1px;
         }
 
-        /* 🌟 बहुत बड़ा वीडियो प्रीव्यू बॉक्स (ऊपर से नीचे तक बड़ा व्यू) */
-        #previewBox { display: none; margin-top: 2px; width: 100%; height: 78vh; text-align: center; position: relative; overflow: hidden; border-radius: 12px; background: #111; border: 2px solid #25f4ee; }
+        /* 🌟 एकदम बड़ा वीडियो प्रीव्यू बॉक्स (पूरा फुल स्क्रीन व्यू) */
+        #previewBox { display: none; margin-top: 2px; width: 100%; height: 82vh; text-align: center; position: relative; overflow: hidden; border-radius: 12px; background: #111; border: 2px solid #25f4ee; }
         .duet-workspace { width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
         
         .video-corner-toolbar { position: absolute; top: 12px; right: 12px; z-index: 50; }
@@ -162,6 +162,7 @@
     </div>
 
     <div class="studio-main-viewport">
+        <!-- ऊपर वाले मोड्स (अब वीडियो चालू होते ही छुप जाएंगे) -->
         <div class="creator-main-modes-row" id="topModeTabsRow">
             <div class="mode-icon-card active" id="tabVideoBtn" onclick="switchStudioMode('video')"><span>📹</span><b>Video</b></div>
             <div class="mode-icon-card" id="tabLiveBtn" onclick="switchStudioMode('live')"><span>🔴</span><b>Live</b></div>
@@ -184,7 +185,7 @@
                 </div>
             </div>
 
-            <!-- 🎥 बहुत बड़ा कैमरा स्टूडियो स्क्रीन -->
+            <!-- 🎥 बहुत बड़ा कैमरा स्टूडियो स्क्रीन (फुल हाइट) -->
             <div id="directCameraStudio">
                 <div class="camera-preview-wrapper">
                     <div class="camera-top-toolbar">
@@ -199,7 +200,7 @@
                 </div>
             </div>
 
-            <!-- 🌟 बहुत बड़ा वीडियो प्रीव्यू बॉक्स (डुएट और सिंगल दोनों के कोने में थ्री-डॉट) -->
+            <!-- 🌟 बहुत बड़ा वीडियो प्रीव्यू बॉक्स (फुल हाइट और कोने में थ्री-डॉट) -->
             <div id="previewBox">
                 <div class="duet-workspace">
                     <div id="mainVideoWrapper">
@@ -310,7 +311,7 @@
             
             if(studioBox) studioBox.style.display = 'flex';
             if(mediaActions) mediaActions.classList.remove('active');
-            if(topTabs) topTabs.style.display = 'none';
+            if(topTabs) topTabs.style.display = 'none'; // ऊपर वाले टैब छुप जाएंगे
 
             try {
                 directCameraStreamObj = await navigator.mediaDevices.getUserMedia({ 
@@ -342,7 +343,7 @@
                 selectedVideoFile = blob;
 
                 document.getElementById('directCameraStudio').style.display = 'none';
-                document.getElementById('topModeTabsRow').style.display = 'flex';
+                document.getElementById('topModeTabsRow').style.display = 'none'; // ऊपर वाले टैब पूरी तरह गायब
 
                 let mainVid = document.getElementById('selectedVideoPreview');
                 mainVid.src = URL.createObjectURL(blob);
@@ -384,6 +385,7 @@
                 finalMergedVideoBlob = file;
                 selectedVideoFile = file;
                 document.getElementById('mediaActionsRow').classList.remove('active');
+                document.getElementById('topModeTabsRow').style.display = 'none'; // ऊपर वाले टैब पूरी तरह गायब
 
                 let mainVid = document.getElementById('selectedVideoPreview');
                 mainVid.src = URL.createObjectURL(file);
