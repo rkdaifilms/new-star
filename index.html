@@ -26,7 +26,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; overflow-x: hidden; height: 100vh; touch-action: manipulation; }
         
-        /* Clean Global Top Bar (No Unwanted Icons) */
+        /* Clean Global Top Bar */
         .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; position: absolute; top: 0; left: 0; right: 0; z-index: 20; min-height: 40px; }
 
         /* Video Feed Container */
@@ -92,6 +92,10 @@
         .share-app-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; margin: 0 auto 5px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-decoration: none; color: #fff; }
         .share-app-item span { font-size: 11px; color: #ccc; }
 
+        /* FLOATING TOAST */
+        #floatingToastMessage { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 40000; opacity: 0; transition: 0.3s ease; pointer-events: none; }
+        #floatingToastMessage.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
         /* BOTTOM NAVBAR STYLE */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #111; border-top: 1px solid #222; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: #888; text-decoration: none; font-size: 11px; cursor: pointer; }
@@ -102,6 +106,8 @@
 </head>
 <body>
 
+    <div id="floatingToastMessage">Notification</div>
+
     <!-- Clean Top Bar -->
     <div class="top-bar">
         <div></div>
@@ -109,7 +115,7 @@
     </div>
 
     <!-- Main Video Feed Section -->
-    <div class="feed-container">
+    <div class="feed-container" id="feedSwipeContainer">
         <video class="feed-video" id="activeFeedVideo" autoplay loop muted playsinline src="https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4"></video>
 
         <div class="video-info">
@@ -241,6 +247,7 @@
     <script>
         let feedVideoList = [];
         let currentFeedIndex = 0;
+        let touchStartY = 0;
 
         window.onload = async function() {
             let savedHandle = localStorage.getItem('appHandle');
@@ -269,27 +276,78 @@
                         views: v.views_count || 850
                     }));
 
-                    let activeVid = document.getElementById('activeFeedVideo');
-                    activeVid.src = feedVideoList[0].url;
-                    activeVid.play();
-                    
-                    document.getElementById('feedUsername').innerText = feedVideoList[0].username;
-                    document.getElementById('feedCaptionText').innerText = feedVideoList[0].caption;
-                    document.getElementById('feedViewsNum').innerText = `👁️ ${feedVideoList[0].views} Views`;
-
-                    let affBox = document.getElementById('feedAffiliateBox');
-                    let affLink = document.getElementById('feedAffiliateLink');
-                    if(feedVideoList[0].affiliate) {
-                        affLink.href = feedVideoList[0].affiliate;
-                        affLink.innerText = `🛒 Product / Affiliate Link: ${feedVideoList[0].affiliate}`;
-                        affBox.style.display = 'block';
-                    } else {
-                        affBox.style.display = 'none';
-                    }
+                    renderCurrentFeedVideo();
                 }
             } catch (err) {
                 console.error('Feed video load error:', err);
             }
+        }
+
+        // 📱 Swipe Up / Down Touch Listeners for Feed Reels
+        const feedContainerEl = document.getElementById('feedSwipeContainer');
+        if(feedContainerEl) {
+            feedContainerEl.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+            }, {passive: true});
+
+            feedContainerEl.addEventListener('touchend', (e) => {
+                let touchEndY = e.changedTouches[0].clientY;
+                let diff = touchStartY - touchEndY;
+
+                if (diff > 50) {
+                    // Swipe Up -> Next Video
+                    playNextFeedVideo();
+                } else if (diff < -50) {
+                    // Swipe Down -> Previous Video
+                    playPreviousFeedVideo();
+                }
+            }, {passive: true});
+        }
+
+        function playNextFeedVideo() {
+            if (feedVideoList && feedVideoList.length > 0) {
+                currentFeedIndex++;
+                if (currentFeedIndex >= feedVideoList.length) {
+                    currentFeedIndex = 0; // लूप घूमकर वापस पहले वीडियो पर आ जाएगा
+                }
+                renderCurrentFeedVideo();
+            }
+        }
+
+        function playPreviousFeedVideo() {
+            if (feedVideoList && feedVideoList.length > 0) {
+                currentFeedIndex--;
+                if (currentFeedIndex < 0) {
+                    currentFeedIndex = feedVideoList.length - 1;
+                }
+                renderCurrentFeedVideo();
+            }
+        }
+
+        function renderCurrentFeedVideo() {
+            if(!feedVideoList || feedVideoList.length === 0) return;
+            let vData = feedVideoList[currentFeedIndex];
+            if(!vData) return;
+
+            let activeVid = document.getElementById('activeFeedVideo');
+            activeVid.src = vData.url;
+            activeVid.play().catch(e => console.log('Autoplay restricted:', e));
+            
+            document.getElementById('feedUsername').innerText = vData.username;
+            document.getElementById('feedCaptionText').innerText = vData.caption;
+            document.getElementById('feedViewsNum').innerText = `👁️ ${vData.views} Views`;
+
+            let affBox = document.getElementById('feedAffiliateBox');
+            let affLink = document.getElementById('feedAffiliateLink');
+            if(vData.affiliate) {
+                affLink.href = vData.affiliate;
+                affLink.innerText = `🛒 Product / Affiliate Link: ${vData.affiliate}`;
+                affBox.style.display = 'block';
+            } else {
+                affBox.style.display = 'none';
+            }
+
+            showToast(`📱 वीडियो ${currentFeedIndex + 1} / ${feedVideoList.length}`);
         }
 
         let isLiked = false;
@@ -417,6 +475,14 @@
             navigator.clipboard.writeText(window.location.href);
             alert('📋 Video link copied to clipboard successfully!');
             toggleShareModal();
+        }
+
+        function showToast(msg) {
+            let toast = document.getElementById('floatingToastMessage');
+            if(!toast) return;
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 2000);
         }
     </script>
 </body>
