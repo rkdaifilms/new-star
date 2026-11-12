@@ -39,9 +39,7 @@
         .input-group label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa; margin-bottom: 4px; font-weight: 600; }
         .input-group input, .input-group textarea, .input-group select { width: 100%; padding: 8px 12px; background: #181818; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 12px; outline: none; transition: border-color 0.2s; }
         .input-group input:focus, .input-group textarea:focus, .input-group select:focus { border-color: #fe2c55; }
-        .input-group textarea { resize: none; height: 50px; }
-
-        .hashtag-counter { font-size: 10px; color: #25f4ee; margin-top: 2px; text-align: right; display: block; }
+        .input-group textarea { resize: none; height: 70px; }
 
         .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 12px; transition: 0.3s ease; }
         .post-action-btn:disabled { background: #444; cursor: not-allowed; box-shadow: none; }
@@ -387,22 +385,21 @@
                 </div>
             </div>
 
-            <!-- 📝 Video Details Form -->
+            <!-- 📝 Video Details Form (YouTube Style: Clean Title, Description with Auto 15 Hashtags & Links Support) -->
             <div id="videoDetailsFormContainer" style="display: none;">
                 <div style="background: #181818; border: 1px solid #25f4ee; border-radius: 10px; padding: 10px; margin-bottom: 12px; text-align: center; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;" id="successEditNotice">✅ Video & Duet Merged Successfully!</span>
+                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;" id="successEditNotice">✅ Video Ready!</span>
                     <button style="background: #333; color: #ffcc00; border: 1px solid #555; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;" onclick="goBackToEditingStudio()">✏️ Edit Again</button>
                 </div>
 
                 <div class="input-group">
-                    <label><span>📝</span> Video Title / Caption (Max 15 Hashtags):</label>
-                    <input type="text" id="videoCaptionInput" placeholder="Write catchy title and max 15 hashtags (#Viral)..." oninput="checkHashtagLimit(this)">
-                    <span class="hashtag-counter" id="hashtagCountText">Hashtags used: 0 / 15</span>
+                    <label><span>📝</span> Video Title (Clean & Catchy):</label>
+                    <input type="text" id="videoCaptionInput" placeholder="Enter title (No hashtags needed here)...">
                 </div>
 
                 <div class="input-group">
-                    <label><span>📜</span> Detailed Description (Optional):</label>
-                    <textarea id="videoDescriptionInput" placeholder="Describe your video content..."></textarea>
+                    <label><span>📜</span> Description (Links & 15 Hashtags at the bottom):</label>
+                    <textarea id="videoDescriptionInput" placeholder="Describe your video. Add your links and 15 hashtags at the bottom like YouTube..."></textarea>
                 </div>
 
                 <div class="input-group">
@@ -547,7 +544,6 @@
                 return;
             }
 
-            // अगर ड्युएट या ए इफ़ेक्ट नहीं है, तो बिना रेंडर किए डायरेक्ट सुपर-फास्ट फाइल पास कर देगा (कोई लैग या रुक-रुक कर चलने की समस्या खत्म!)
             if (!selectedOverlayFile && currentRotateDeg === 0 && !isMirrored) {
                 finalMergedVideoBlob = selectedVideoFile;
                 document.getElementById('saveEditBtn').style.display = 'none';
@@ -586,7 +582,7 @@
             speakMessage('वीडियो सफलतापूर्वक तैयार हो गया है।');
         }
 
-        // 🎬 HIGH-SPEED SMOOTH VIDEO MERGER (FIXES STUTTERING & GLITCHES)
+        // 🎬 BUTTERY SMOOTH 60 FPS MERGER (NO LAG / NO STUTTER)
         function mergeVideosSmoothly() {
             return new Promise((resolve) => {
                 let mainVid = document.getElementById('selectedVideoPreview');
@@ -624,7 +620,7 @@
                     console.log('Audio sync note:', err);
                 }
 
-                let canvasStream = canvas.captureStream(60); // 60 FPS for ultra-smooth buttery playback (no lagging)
+                let canvasStream = canvas.captureStream(60);
                 let combinedTracks = [...canvasStream.getVideoTracks()];
                 if (dest.stream.getAudioTracks().length > 0) {
                     combinedTracks.push(dest.stream.getAudioTracks()[0]);
@@ -658,9 +654,7 @@
                 if(overlayVid) overlayVid.play();
 
                 let renderLoop = () => {
-                    if (mainVid.ended || mainVid.paused) {
-                        return;
-                    }
+                    if (mainVid.ended || mainVid.paused) return;
                     ctx.fillStyle = "#000";
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -693,7 +687,6 @@
                     }, 500);
                 };
 
-                // Safety timeout matching video length
                 let maxDuration = (mainVid.duration && !isNaN(mainVid.duration)) ? mainVid.duration * 1000 : 15000;
                 setTimeout(() => {
                     if (recorder.state === 'recording') {
@@ -709,22 +702,6 @@
             document.getElementById('videoDetailsFormContainer').style.display = 'none';
             document.getElementById('saveEditBtn').style.display = 'block';
             showToast('✏️ Back to Editing Studio');
-        }
-
-        function checkHashtagLimit(input) {
-            let text = input.value;
-            let matches = text.match(/#[\wع-ي]+/g);
-            let count = matches ? matches.length : 0;
-            
-            let counterEl = document.getElementById('hashtagCountText');
-            counterEl.innerText = `Hashtags used: ${count} / 15`;
-
-            if(count > 15) {
-                counterEl.style.color = '#ff4444';
-                counterEl.innerText = `⚠️ Limit exceeded! Max 15 hashtags allowed (${count}/15)`;
-            } else {
-                counterEl.style.color = '#25f4ee';
-            }
         }
 
         function toggleMasterThreeDotMenu() {
@@ -903,7 +880,7 @@
             showToast(`🎤 Voice Volume: ${val}%`);
         }
 
-        // 🛡️ 4-SECOND ADVANCED DEEP COPYRIGHT, MUSIC & WATERMARK INSPECTOR
+        // 🛡️ 4-SECOND DEEP COPYRIGHT INSPECTOR
         function runRealCopyrightScan() {
             let res = document.getElementById('copyrightScanResult');
             if (!selectedVideoFile) {
@@ -979,20 +956,20 @@
         }
 
         async function publishVideoToGlobalCloudStorage() {
-            let caption = document.getElementById('videoCaptionInput').value.trim() || 'Viral Video #CreatorHub';
-            let description = document.getElementById('videoDescriptionInput').value.trim() || 'Published via Global Creator Studio.';
+            let titleText = document.getElementById('videoCaptionInput').value.trim() || 'Viral Video';
+            let descriptionText = document.getElementById('videoDescriptionInput').value.trim() || 'Published via Global Creator Studio.';
             let affiliate = document.getElementById('videoAffiliateInput').value.trim() || '';
             let audienceRating = document.getElementById('videoAudienceSelect').value;
 
-            if(!finalMergedVideoBlob) {
-                showToast('⚠️ कृपया पहले वीडियो मर्ज करें!');
-                return;
+            // Automatic integration of caption and description following YouTube format
+            let fullCaption = titleText;
+            let fullDescription = descriptionText;
+            if (affiliate) {
+                fullDescription += "\n\nPromo Link: " + affiliate;
             }
 
-            let matches = caption.match(/#[\wع-ي]+/g);
-            let count = matches ? matches.length : 0;
-            if(count > 15) {
-                showToast('⚠️ अधिकतम 15 हैशटैग की अनुमति है!');
+            if(!finalMergedVideoBlob) {
+                showToast('⚠️ कृपया पहले वीडियो मर्ज करें!');
                 return;
             }
 
@@ -1035,8 +1012,8 @@
                 let newPostObj = {
                     id: 'vid_' + Date.now(),
                     url: publicVideoUrl,
-                    caption: caption,
-                    description: description,
+                    caption: fullCaption,
+                    description: fullDescription,
                     affiliate: affiliate,
                     category: finalVideoCategory,
                     audience: audienceRating,
@@ -1060,8 +1037,8 @@
                 await cloudClient.from('videos').insert([
                     { 
                         video_url: publicVideoUrl, 
-                        caption: caption, 
-                        description: description,
+                        caption: fullCaption, 
+                        description: fullDescription,
                         affiliate_link: affiliate,
                         category: finalVideoCategory,
                         audience_rating: audienceRating,
