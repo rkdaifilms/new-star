@@ -3,1142 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Global Creator Studio - Ultimate Creator Suite</title>
-    
+    <title>Global Creator Studio - Camera & Studio</title>
     <meta name="theme-color" content="#000000">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-    <!-- ⚡ STORAGE & CLOUD SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; position: relative; padding-bottom: 90px; }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 90px; }
         .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 12px; width: 100%; max-width: 450px; margin: 0 auto; }
-
-        /* 🎯 तीन मुख्य आइकन (वीडियो, लाइव, गेमिंग) */
         .creator-main-modes-row { display: flex; justify-content: center; gap: 15px; margin: 15px 0; }
-        .mode-icon-card { width: 90px; height: 90px; background: #181818; border: 2px solid #333; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; text-decoration: none; color: #fff; }
-        .mode-icon-card:hover, .mode-icon-card.active { border-color: #fe2c55; background: #222; transform: scale(1.05); }
-        .mode-icon-card span { font-size: 28px; margin-bottom: 4px; }
-        .mode-icon-card b { font-size: 11px; text-align: center; }
-
-        .studio-section { display: none; background: #121212; border: 1px solid #222; border-radius: 16px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.8); }
+        .mode-icon-card { width: 90px; height: 90px; background: #181818; border: 2px solid #333; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; }
+        .mode-icon-card.active { border-color: #fe2c55; background: #222; }
+        .studio-section { display: none; background: #121212; border: 1px solid #222; border-radius: 16px; padding: 12px; }
         .studio-section.active { display: block; }
+        #mediaActionsRow { display: flex; gap: 10px; margin-bottom: 12px; }
+        .media-btn { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; margin-top: 12px; }
+        
+        #directCameraStudio { display: none; margin-bottom: 12px; background: #161618; border: 2px solid #fe2c55; border-radius: 12px; padding: 10px; text-align: center; position: relative; }
+        #directCameraStudio video { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; transform: scaleX(-1); }
+        #cameraTimerBadge { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8); border: 1px solid #fe2c55; color: #fe2c55; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: none; }
 
-        .media-actions-row { display: flex; gap: 10px; margin-bottom: 12px; }
-        .media-btn { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .media-btn:hover { border-color: #fe2c55; background: #222; }
-        .media-btn span { font-size: 20px; }
-        .media-btn b { font-size: 12px; color: #fff; display: block; }
-        .media-btn small { font-size: 9px; color: #888; display: block; }
-
-        .input-group { margin-bottom: 10px; transition: 0.3s ease; }
-        .input-group label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa; margin-bottom: 4px; font-weight: 600; }
-        .input-group input, .input-group textarea, .input-group select { width: 100%; padding: 8px 12px; background: #181818; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 12px; outline: none; transition: border-color 0.2s; }
-        .input-group input:focus, .input-group textarea:focus, .input-group select:focus { border-color: #fe2c55; }
-        .input-group textarea { resize: none; height: 70px; }
-
-        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); margin-top: 12px; transition: 0.3s ease; }
-        .post-action-btn:disabled { background: #444; cursor: not-allowed; box-shadow: none; }
-
-        /* 🎬 Video Preview Box */
-        #previewBox { display: none; width: 100%; background: #000; border-radius: 12px; margin-bottom: 12px; overflow: hidden; position: relative; border: 1px solid #333; text-align: center; min-height: 260px; cursor: pointer; }
-        #previewBox video { width: 100%; max-height: 480px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: transform 0.3s ease, filter 0.3s ease, opacity 0.3s ease; }
-        #previewBox.duet-mode video { width: 50%; display: inline-block; vertical-align: middle; }
-
-        /* Overlay Track (Reaction / Duet Camera View) */
-        #overlayTrackContainer { display: none; position: absolute; bottom: 12px; right: 12px; width: 120px; height: 160px; background: #111; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; z-index: 5; transition: transform 0.3s ease; cursor: pointer; }
-        #overlayTrackContainer video, #overlayTrackContainer img { width: 100%; height: 100%; object-fit: cover; }
-
-        /* 🔴 In-App Live Reaction Studio */
-        #inAppReactionStudio { display: none; margin-bottom: 12px; background: #161618; border: 2px solid #fe2c55; border-radius: 12px; padding: 10px; text-align: center; }
-        #inAppReactionStudio video { width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; background: #000; transform: scaleX(-1); }
-
-        /* ⚙️ Three Dots Buttons */
-        .video-edit-settings-btn { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #fff; cursor: pointer; z-index: 20; transition: 0.2s; }
-        .video-edit-settings-btn:hover { background: #fe2c55; border-color: #fe2c55; }
-
-        .overlay-edit-settings-btn { position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; background: rgba(0,0,0,0.8); border: 1px solid #25f4ee; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; color: #25f4ee; cursor: pointer; z-index: 25; }
-
-        /* 🎛️ Master 3-Dot Dashboard Menu */
-        #masterThreeDotMenu { display: none; background: #161618; border: 1px solid #fe2c55; border-radius: 12px; padding: 12px; margin-bottom: 12px; animation: fadeIn 0.25s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-
-        .master-menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
-        .master-menu-card { background: #222; border: 1px solid #444; color: #fff; padding: 12px 8px; border-radius: 10px; text-align: center; cursor: pointer; transition: 0.2s; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .master-menu-card:hover { border-color: #25f4ee; background: #0b2222; color: #25f4ee; }
-        .master-menu-card span { font-size: 22px; }
-
-        .three-dot-sub-section { display: none; background: #1c1c1e; border: 1px solid #333; border-radius: 8px; padding: 10px; font-size: 11px; text-align: left; }
+        #previewBox { display: none; width: 100%; background: #000; border-radius: 12px; margin-bottom: 12px; overflow: hidden; position: relative; border: 2px solid #333; min-height: 380px; touch-action: none; }
+        #previewBox video { width: 100%; height: 100%; max-height: 560px; object-fit: contain; display: block; margin: 0 auto; pointer-events: none; }
+        
+        #masterThreeDotMenu { display: none; background: #161618; border: 1px solid #fe2c55; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+        .master-menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .master-menu-card { background: #222; border: 1px solid #444; color: #fff; padding: 12px 8px; border-radius: 10px; text-align: center; cursor: pointer; font-size: 11px; display: flex; flex-direction: column; align-items: center; }
+        .three-dot-sub-section { display: none; background: #1c1c1e; border: 1px solid #333; border-radius: 8px; padding: 10px; font-size: 11px; }
         .three-dot-sub-section.active { display: block; }
-
-        /* 🛠️ PRO EDITING TOOLBAR (All 23 Tools Included) */
-        .suite-features-grid { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; border-bottom: 1px solid #333; margin-bottom: 10px; white-space: nowrap; scrollbar-width: thin; }
-        .suite-features-grid::-webkit-scrollbar { height: 4px; }
-        .suite-features-grid::-webkit-scrollbar-thumb { background: #fe2c55; border-radius: 4px; }
-
-        .suite-feature-btn { min-width: 60px; height: 48px; background: #222; border: 1px solid #444; color: #fff; padding: 4px; border-radius: 6px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; transition: 0.2s; text-align: center; flex-shrink: 0; }
-        .suite-feature-btn:hover, .suite-feature-btn.active { border-color: #25f4ee; background: #0b2222; color: #25f4ee; }
-        .suite-feature-btn b { font-size: 9px; margin-top: 2px; }
-
-        .suite-sub-box { display: none; background: #1c1c1e; border: 1px solid #333; border-radius: 8px; padding: 10px; font-size: 11px; text-align: left; }
-        .suite-sub-box.active { display: block; }
-
-        /* 🔔 FLOATING TOAST */
-        #floatingToastMessage { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 40000; opacity: 0; transition: 0.3s ease; pointer-events: none; box-shadow: 0 5px 20px rgba(0,0,0,0.8); }
+        .video-edit-settings-btn { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #fff; cursor: pointer; z-index: 20; }
+        
+        #floatingToastMessage { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 40000; opacity: 0; transition: 0.3s ease; pointer-events: none; }
         #floatingToastMessage.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-        /* 🚀 0-100% PROGRESS MODAL */
-        #uploadProgressModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 30000; justify-content: center; align-items: center; flex-direction: column; padding: 30px; }
-        .progress-card { background: #1c1c1e; border: 1px solid #333; width: 100%; max-width: 320px; border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.9); }
-        .progress-card h3 { font-size: 16px; color: #fe2c55; margin-bottom: 15px; }
-        .progress-track { width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; margin-bottom: 12px; }
-        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #25f4ee, #fe2c55); transition: width 0.08s linear; }
-        .progress-status { font-size: 18px; color: #25f4ee; font-weight: bold; }
     </style>
 </head>
 <body>
-
-    <!-- 🔔 FLOATING TOAST -->
     <div id="floatingToastMessage">Notification</div>
 
-    <!-- 🚀 0-100% PROGRESS MODAL -->
-    <div id="uploadProgressModal">
-        <div class="progress-card">
-            <h3 id="progressTitleHeading">Saving & Merging Video...</h3>
-            <div class="progress-track">
-                <div class="progress-fill" id="progressBarFill"></div>
-            </div>
-            <div class="progress-status" id="progressPercentText">0%</div>
-        </div>
-    </div>
-
-    <!-- Main Viewport -->
     <div class="studio-main-viewport">
-        
-        <!-- 🎯 ऊपर 3 मुख्य आइकन -->
-        <div class="creator-main-modes-row" id="topModesRow">
-            <div class="mode-icon-card active" id="btnModeVideo" onclick="switchStudioMode('video')">
-                <span>📹</span>
-                <b>Video</b>
-            </div>
-            <div class="mode-icon-card" id="btnModeLive" onclick="switchStudioMode('live')">
-                <span>🔴</span>
-                <b>Live</b>
-            </div>
-            <div class="mode-icon-card" id="btnModeGaming" onclick="switchStudioMode('gaming')">
-                <span>🎮</span>
-                <b>Gaming</b>
-            </div>
+        <div class="creator-main-modes-row">
+            <div class="mode-icon-card active" onclick="switchStudioMode('video')"><span>📹</span><b>Video</b></div>
+            <div class="mode-icon-card" onclick="switchStudioMode('live')"><span>🔴</span><b>Live</b></div>
+            <div class="mode-icon-card" onclick="switchStudioMode('gaming')"><span>🎮</span><b>Gaming</b></div>
         </div>
 
-        <!-- 1️⃣ VIDEO UPLOAD & STUDIO SECTION -->
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
-            <input type="file" id="changeVideoGalleryInput" accept="video/*" style="display:none;" onchange="onReplaceVideoFile(event)">
-            <input type="file" id="bgAudioFileInput" accept="audio/*" style="display:none;" onchange="onBackgroundAudioChosen(event)">
-            <input type="file" id="overlayAudioFileInput" accept="audio/*" style="display:none;" onchange="onOverlayAudioChosen(event)">
-            <input type="file" id="partnerGalleryInput" accept="video/*" style="display:none;" onchange="loadOverlayTrack(event)">
 
-            <!-- Media Actions Row -->
             <div class="media-actions-row" id="mediaActionsRow">
-                <div class="media-btn" onclick="openInAppReactionStudio()">
-                    <span>🔴</span>
-                    <div>
-                        <b>Camera / Reaction</b>
-                        <small>Record with Main Video</small>
-                    </div>
+                <div class="media-btn" onclick="openDirectCameraStudio()">
+                    <span>🎥</span>
+                    <div><b>Camera</b><small>Record up to 10 mins</small></div>
                 </div>
                 <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()">
                     <span>📁</span>
-                    <div>
-                        <b>Open Gallery</b>
-                        <small>Choose File</small>
-                    </div>
+                    <div><b>Open Gallery</b><small>Choose File</small></div>
                 </div>
             </div>
 
-            <!-- 🔴 IN-APP LIVE REACTION STUDIO -->
-            <div id="inAppReactionStudio">
-                <div style="font-size:12px; color:#fe2c55; font-weight:bold; margin-bottom:6px;">🔴 Live Reaction Studio (सामने वीडियो देखकर बोलें):</div>
-                <video id="liveReactionCameraFeed" autoplay playsinline muted></video>
+            <div id="directCameraStudio">
+                <div id="cameraTimerBadge">⏱️ 00:00 / 10:00</div>
+                <div style="font-size:12px; color:#fe2c55; font-weight:bold; margin-bottom:6px;">🎥 Live Camera Recorder:</div>
+                <video id="directCameraFeed" autoplay playsinline muted></video>
                 <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button class="post-action-btn" style="margin-top:0; background:#fe2c55;" onclick="startInAppReactionRecording()">⏺️ Start Recording</button>
-                    <button class="post-action-btn" style="margin-top:0; background:#333;" onclick="stopInAppReactionRecording()">⏹️ Stop & Save</button>
+                    <button class="post-action-btn" id="camRecordBtn" style="margin-top:0; background:#fe2c55;" onclick="startDirectCameraRecording()">⏺️ Start Recording</button>
+                    <button class="post-action-btn" id="camStopBtn" style="margin-top:0; background:#333; display:none;" onclick="stopDirectCameraRecording()">⏹️ Stop & Go to Post/Edit</button>
                 </div>
             </div>
 
-            <!-- 🎬 Video Preview Box -->
-            <div id="previewBox" onclick="openTargetSettings('main', event)">
-                <div class="video-edit-settings-btn" onclick="event.stopPropagation(); toggleMasterThreeDotMenu('main')" title="Main Video Settings">⋮</div>
-                <video id="selectedVideoPreview" controls crossorigin="anonymous" playsinline onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
-                
-                <!-- Overlay Track (Reaction / Duet Video) -->
-                <div id="overlayTrackContainer" onclick="event.stopPropagation(); openTargetSettings('duet', event)">
-                    <div class="overlay-edit-settings-btn" onclick="event.stopPropagation(); toggleMasterThreeDotMenu('duet')" title="Reaction Settings">⋮</div>
-                    <video id="overlayVideoElement" controls crossorigin="anonymous" playsinline></video>
-                </div>
+            <div id="previewBox">
+                <div class="video-edit-settings-btn" onclick="event.stopPropagation(); toggleMasterThreeDotMenu('main')">⋮</div>
+                <video id="selectedVideoPreview" controls crossorigin="anonymous" playsinline></video>
             </div>
 
-            <!-- 🎛️ MASTER 3-DOT DASHBOARD MENU -->
             <div id="masterThreeDotMenu">
-                <div style="font-size:13px; color:#ffcc00; font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:13px; color:#ffcc00; font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between;">
                     <span id="activeHubTitle">⚙️ Main Video Hub</span>
-                    <span style="cursor:pointer; font-size:16px; color:#aaa;" onclick="toggleMasterThreeDotMenu()">✕</span>
+                    <span style="cursor:pointer;" onclick="toggleMasterThreeDotMenu()">✕</span>
                 </div>
-
-                <div class="master-menu-grid" id="masterMenuGridButtons">
+                <div class="master-menu-grid">
                     <div class="master-menu-card" onclick="openThreeDotSub('editSuite')"><span>✂️</span><b>Video Edit</b></div>
-                    <div class="master-menu-card" onclick="openThreeDotSub('musicLibrarySuite')"><span>🎵</span><b>Audio Mixer</b></div>
-                    <div class="master-menu-card" onclick="openThreeDotSub('copyrightSuite')"><span>🛡️</span><b>Copyright Check</b></div>
-                    <div class="master-menu-card" onclick="openThreeDotSub('collabSuite')"><span>👥</span><b>Duet & Camera</b></div>
                 </div>
-
-                <!-- SUB 1: VIDEO EDIT SUITE (ALL 23 LIVE TOOLS) -->
-                <div id="sub_editSuite" class="three-dot-sub-section">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
-                        <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
-                        <span>✂️ Pro Edit & FX Studio</span>
-                    </div>
+                <div id="sub_editSuite" class="three-dot-sub-section active">
+                    <span style="color:#25f4ee; font-weight:bold; display:block; margin-bottom:6px;">✨ Pro Tools & Effects:</span>
                     
-                    <div class="suite-features-grid">
-                        <div class="suite-feature-btn active" onclick="switchSuiteTab('boxFilter')">🎨<b>Filter</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxTrim')">✂️<b>Trim</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxFX')">⚡<b>FX</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxSplit')">⚔️<b>Split</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxFlow')">🌊<b>Flow</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxCutout')">✂️<b>Cutout</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxCrop')">📐<b>Crop</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxRotate')">🔄<b>Rotate</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxPosition')">🎯<b>Position</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxSize')">🔲<b>Size/Zoom</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxMirror')">🪞<b>Mirror</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxFlip')">↕️<b>Flip</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxFill')">🖼️<b>Fill</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxBG')">🎨<b>BG</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxBorder')">🔲<b>Border</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxBlur')">💨<b>Blur</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxOpacity')">🔆<b>Opacity</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxTTS')">🗣️<b>TTS</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxMosaic')">🧱<b>Mosaic</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxMagnifier')">🔍<b>Magnifier</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxKits')">🧰<b>Kits</b></div>
-                        <div class="suite-feature-btn" onclick="switchSuiteTab('boxMask')">🎭<b>Mask</b></div>
+                    <!-- Text Overlay Input -->
+                    <input type="text" id="videoCustomTextInput" placeholder="वीडियो पर लिखने के लिए टेक्स्ट..." style="width:100%; padding:6px; background:#111; color:#fff; border:1px solid #333; border-radius:6px; margin-bottom:6px; font-size:11px;">
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#25f4ee; color:#000; margin-bottom:8px;" onclick="addTextOverlayToVideo()">✍️ Add Text to Video</button>
+
+                    <!-- Audio Booster & Music -->
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#ffcc00; color:#000; margin-bottom:6px;" onclick="boostVideoAudio(2.0)">🔊 Audio Boost (200%)</button>
+                    
+                    <input type="file" id="bgMusicInput" accept="audio/*" style="display:none;" onchange="loadBackgroundMusic(event)">
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; margin-bottom:6px;" onclick="document.getElementById('bgMusicInput').click()">🎵 Add Music / SFX</button>
+
+                    <!-- Voiceover Buttons -->
+                    <div style="display:flex; gap:4px; margin-bottom:8px;">
+                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:9px; background:#fe2c55;" onclick="startVoiceoverRecording()">🎙️ Start Voice</button>
+                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:9px; background:#333;" onclick="stopVoiceoverRecording()">⏹️ Stop Voice</button>
                     </div>
 
-                    <div id="boxFilter" class="suite-sub-box active">
-                        <label style="color:#25f4ee; font-weight:bold; display:block; margin-bottom:4px;">🎨 Color Filters:</label>
-                        <select onchange="applyFilter(this.value)" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px;">
-                            <option value="none">Standard Normal</option>
-                            <option value="cinematic">Cinematic Warm Gold</option>
-                            <option value="cyberpunk">Cyberpunk Neon Blue</option>
-                            <option value="grayscale">Vintage Black & White</option>
-                        </select>
-                    </div>
-
-                    <div id="boxTrim" class="suite-sub-box">
-                        <label style="color:#ff8888; font-weight:bold; display:block; margin-bottom:4px;">✂️ Trim (s):</label>
-                        <div style="display:flex; gap:6px; margin-bottom:4px;">
-                            <input type="number" id="trimStartInput" placeholder="Start" value="0" style="width:50%; background:#111; border:1px solid #333; color:#fff; padding:4px; font-size:11px;">
-                            <input type="number" id="trimEndInput" placeholder="End" value="30" style="width:50%; background:#111; border:1px solid #333; color:#fff; padding:4px; font-size:11px;">
-                        </div>
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyTrim()">Apply Trim</button>
-                    </div>
-
-                    <div id="boxFX" class="suite-sub-box">
-                        <label style="color:#fe2c55; font-weight:bold; display:block; margin-bottom:4px;">⚡ FX & Visuals:</label>
-                        <select id="vfxZoomSelect" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; margin-bottom:6px;">
-                            <option value="zoom_300">Cinematic Zoom 300%</option>
-                            <option value="shake_fx">Earthquake Shake VFX</option>
-                            <option value="glitch_fx">RGB Cyberpunk Glitch</option>
-                            <option value="matrix_fx">Matrix Green Code FX</option>
-                        </select>
-                        <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#fe2c55; color:#fff;" onclick="applyRealVfxZoom()">⚡ Apply FX</button>
-                    </div>
-
-                    <div id="boxSplit" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applySplitVideo()">⚔️ Split Video at Current Time</button>
-                    </div>
-
-                    <div id="boxFlow" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyOpticalFlow()">🌊 Optical Flow Smooth Motion</button>
-                    </div>
-
-                    <div id="boxCutout" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyAIBackgroundCutout()">✂️ AI Auto Background Cutout</button>
-                    </div>
-
-                    <div id="boxCrop" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyVideoCrop()">📐 Crop 9:16 / 1:1 Square</button>
-                    </div>
-
-                    <div id="boxRotate" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyRotate()">🔄 Rotate 90° Clockwise</button>
-                    </div>
-
-                    <div id="boxPosition" class="suite-sub-box">
-                        <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:4px;">🎯 Position (Move Up, Down, Left, Right):</label>
-                        <div style="display:flex; gap:6px; margin-bottom:6px;">
-                            <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="slideTargetPosition('left')">⬅️ Left</button>
-                            <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="slideTargetPosition('right')">Right ➡️</button>
-                        </div>
-                        <div style="display:flex; gap:6px;">
-                            <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="slideTargetPosition('up')">⬆️ Up</button>
-                            <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="slideTargetPosition('down')">Down ⬇️</button>
-                        </div>
-                    </div>
-
-                    <div id="boxSize" class="suite-sub-box">
-                        <label style="color:#ccc; font-weight:bold; display:block; margin-bottom:2px;">🔲 Size & Zoom:</label>
-                        <div style="display:flex; gap:6px;">
-                            <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="scaleTargetVideo(0.9)">🔍 Zoom Out (-)</button>
-                            <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="scaleTargetVideo(1.1)">🔍 Zoom In (+)</button>
-                        </div>
-                    </div>
-
-                    <div id="boxMirror" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyMirrorEffect()">🪞 Mirror Horizontal</button>
-                    </div>
-
-                    <div id="boxFlip" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyFlipEffect()">↕️ Flip Vertical</button>
-                    </div>
-
-                    <div id="boxFill" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyVideoFill()">🖼️ Fill Canvas Aspect</button>
-                    </div>
-
-                    <div id="boxBG" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyBackgroundCanvasColor()">🎨 Change Canvas BG</button>
-                    </div>
-
-                    <div id="boxBorder" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyNeonBorder()">🔲 Add Neon Border</button>
-                    </div>
-
-                    <div id="boxBlur" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyBackgroundBlur()">💨 Background Blur Effect</button>
-                    </div>
-
-                    <div id="boxOpacity" class="suite-sub-box">
-                        <label style="color:#ccc; display:block; margin-bottom:2px;">🔆 Opacity:</label>
-                        <input type="range" min="20" max="100" value="100" oninput="applyOpacity(this.value)" style="width:100%; accent-color:#25f4ee;">
-                    </div>
-
-                    <div id="boxTTS" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="speakMessage('यह टेक्स्ट टू स्पीच वॉइसओवर है।')">🗣️ AI Text-to-Speech (TTS)</button>
-                    </div>
-
-                    <div id="boxMosaic" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyMosaicBlur()">🧱 Mosaic Pixelate Face</button>
-                    </div>
-
-                    <div id="boxMagnifier" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyMagnifierLens()">🔍 Magnifier Focus Lens</button>
-                    </div>
-
-                    <div id="boxKits" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="showToast('🧰 Creator Kits loaded!')">🧰 Creator Toolkit Loaded</button>
-                    </div>
-
-                    <div id="boxMask" class="suite-sub-box">
-                        <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px;" onclick="applyCinematicMask()">🎭 Cinematic Letterbox Mask</button>
-                    </div>
-                </div>
-
-                <!-- SUB 2: AUDIO MIXER -->
-                <div id="sub_musicLibrarySuite" class="three-dot-sub-section">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
-                        <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
-                        <span>🎵 Target Video Audio & Volume</span>
-                    </div>
-
-                    <div id="mainAudioControlsGroup">
-                        <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#25f4ee; color:#000; margin-bottom:8px;" onclick="document.getElementById('bgAudioFileInput').click()">🎵 Change Main Audio Track</button>
-                        <label style="color:#ccc; display:block; margin-bottom:2px;">🔊 Main Video Volume: <span id="mainVideoVolText">100%</span></label>
-                        <input type="range" min="0" max="100" value="100" oninput="adjustTargetVolume(this.value, 'main')" style="width:100%; accent-color:#25f4ee; margin-bottom:6px;">
-                    </div>
-
-                    <div id="duetAudioControlsGroup" style="display:none;">
-                        <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#25f4ee; color:#000; margin-bottom:8px;" onclick="document.getElementById('overlayAudioFileInput').click()">🎵 Change Reaction Audio</button>
-                        <label style="color:#ccc; display:block; margin-bottom:2px;">🔊 Reaction Audio Volume: <span id="duetVideoVolText">100%</span></label>
-                        <input type="range" min="0" max="100" value="100" oninput="adjustTargetVolume(this.value, 'duet')" style="width:100%; accent-color:#fe2c55; margin-bottom:6px;">
-                    </div>
-                </div>
-
-                <!-- SUB 3: COPYRIGHT INSPECTOR -->
-                <div id="sub_copyrightSuite" class="three-dot-sub-section">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#ff4444; font-weight:bold;">
-                        <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
-                        <span>🛡️ 4s Deep Copyright Inspector</span>
-                    </div>
-                    <p style="font-size:10px; color:#aaa; margin-bottom:8px;">वीडियो को 4 सेकंड में स्कैन करके Sony, T-Series, TikTok वॉटरमार्क डिटेक्ट करेगा:</p>
-                    <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#ff4444; color:#fff; margin-bottom:6px;" onclick="runRealCopyrightScan()">⚡ Run 4s Deep Copyright Scan</button>
-                    <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#25f4ee; color:#000;" onclick="document.getElementById('changeVideoGalleryInput').click()">📁 Change Video from Gallery</button>
-                    <div id="copyrightScanResult" style="margin-top:8px; font-size:11px; color:#25f4ee; font-weight:bold; line-height:1.4;"></div>
-                </div>
-
-                <!-- SUB 4: COLLAB -->
-                <div id="sub_collabSuite" class="three-dot-sub-section">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
-                        <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
-                        <span>👥 Duet & Reaction Studio</span>
-                    </div>
-                    <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:10px; background:#fe2c55; color:#fff; margin-bottom:6px;" onclick="openInAppReactionStudio()">🔴 Open Reaction Camera</button>
-                    <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:10px; background:#25f4ee; color:#000;" onclick="document.getElementById('partnerGalleryInput').click()">📁 Upload Partner Video from Gallery</button>
+                    <!-- Speed Slider Line -->
+                    <label style="color: #25f4ee; font-size: 10px; display: flex; justify-content: space-between; margin-bottom: 2px;">
+                        <span>⚡ Speed:</span><span id="videoSpeedLabel" style="color: #ffcc00;">1.0x</span>
+                    </label>
+                    <input type="range" min="0.2" max="3.0" step="0.1" value="1.0" oninput="changeVideoSpeed(this.value)" style="width: 100%; accent-color: #fe2c55;">
                 </div>
             </div>
 
-            <!-- 📝 FULL POSTING & DETAILS FORM -->
             <div id="videoDetailsFormContainer" style="display: none;">
-                <div style="background: #181818; border: 1px solid #25f4ee; border-radius: 10px; padding: 10px; margin-bottom: 12px; text-align: center; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;" id="successEditNotice">✅ Video Saved & Merged! Fill Details & Post</span>
-                    <button style="background: #333; color: #ffcc00; border: 1px solid #555; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;" onclick="goBackToEditingStudio()">✏️ Edit Again</button>
+                <div style="background: #181818; border: 1px solid #25f4ee; border-radius: 10px; padding: 10px; margin-bottom: 12px; text-align: center;">
+                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;">✨ वीडियो तैयार है! विवरण भरकर पब्लिश करें</span>
                 </div>
-
-                <div class="input-group">
-                    <label><span>📝</span> Video Title (Clean & Catchy):</label>
-                    <input type="text" id="videoCaptionInput" placeholder="Enter title (No hashtags needed here)...">
+                <div class="input-group" style="margin-bottom:8px;">
+                    <input type="text" id="videoCaptionInput" placeholder="Enter video title..." style="width:100%; padding:8px; background:#181818; color:#fff; border:1px solid #333; border-radius:8px;">
                 </div>
-
-                <div class="input-group">
-                    <label><span>📜</span> Description (Links & 15 Hashtags at the bottom):</label>
-                    <textarea id="videoDescriptionInput" placeholder="Describe your video. Add your links and 15 hashtags at the bottom like YouTube..."></textarea>
+                <div class="input-group" style="margin-bottom:8px;">
+                    <textarea id="videoDescriptionInput" placeholder="Description & hashtags..." style="width:100%; height:60px; background:#181818; color:#fff; border:1px solid #333; border-radius:8px; resize:none;"></textarea>
                 </div>
-
-                <div class="input-group">
-                    <label><span>🔗</span> Affiliate / Promo Link (Optional):</label>
-                    <input type="text" id="videoAffiliateInput" placeholder="https://your-product-link.com">
-                </div>
-
-                <div class="input-group">
-                    <label><span>👥</span> Audience & Age Restriction (YouTube Style):</label>
-                    <select id="videoAudienceSelect">
-                        <option value="general">🌍 General Audience (All Ages)</option>
-                        <option value="kids">👶 Yes, Made for Kids (Child Friendly)</option>
-                        <option value="adults">🔞 No, Restrict to 18+ (Mature Audience)</option>
-                    </select>
-                </div>
-
-                <button class="post-action-btn" id="postBtn" onclick="publishVideoToGlobalCloudStorage()">🚀 Publish / Post to Global Cloud (4s)</button>
-            </div>
-
-            <!-- 🎬 EDITING VIDEO & SAVE BUTTON -->
-            <button class="post-action-btn" id="saveEditBtn" style="background: linear-gradient(135deg, #25f4ee, #00b4d8); color: #000;" onclick="saveEditedVideoAndShowDetails()">🎬 Editing Video / Save</button>
-        </div>
-
-        <!-- 2️⃣ LIVE STREAM SECTION -->
-        <div id="sectionLive" class="studio-section">
-            <div class="redirect-action-card" style="background:#181818; border:1px solid #333; border-radius:14px; padding:25px 15px; text-align:center;">
-                <div style="font-size:32px; margin-bottom:8px;">🔴</div>
-                <h3 style="font-size:15px; margin-bottom:6px;">Live Stream Room</h3>
-                <p style="font-size:10px; color:#888; margin-bottom:15px;">Go live with multi-seat rooms, gifts & interactive streaming.</p>
-                <a href="live.html" style="display:inline-block; padding:10px 20px; border-radius:8px; font-weight:bold; font-size:12px; background:#fe2c55; color:#fff; text-decoration:none;">🔴 Open Live Room Studio</a>
+                <button class="post-action-btn" onclick="publishVideoToGlobalCloudStorage()">🚀 Publish / Post to Cloud</button>
             </div>
         </div>
-
-        <!-- 3️⃣ GAMING STREAM SECTION -->
-        <div id="sectionGaming" class="studio-section">
-            <div class="redirect-action-card" style="background:#181818; border:1px solid #333; border-radius:14px; padding:25px 15px; text-align:center;">
-                <div style="font-size:32px; margin-bottom:8px;">🎮</div>
-                <h3 style="font-size:15px; margin-bottom:6px;">New Star Gaming Stream</h3>
-                <p style="font-size:10px; color:#888; margin-bottom:15px;">Stream Free Fire, PUBG & mobile esports tournaments.</p>
-                <a href="gaming.html" style="display:inline-block; padding:10px 20px; border-radius:8px; font-weight:bold; font-size:12px; background:linear-gradient(135deg, #00b4d8, #25f4ee); color:#000; text-decoration:none;">🎮 Launch Gaming Arena</a>
-            </div>
-        </div>
-
     </div>
 
-    <!-- 🌟 NAVBAR SCRIPT LOADER -->
-    <script src="navbar.js"></script>
-
-    <script>
-        const STORAGE_API_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
-        const STORAGE_API_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
-
-        const { createClient } = window.supabase;
-        const cloudClient = createClient(STORAGE_API_URL, STORAGE_API_KEY);
-
-        let selectedVideoFile = null;
-        let selectedOverlayFile = null;
-        let finalMergedVideoBlob = null; 
-        let finalVideoCategory = "Shorts (9:16)";
-        
-        let currentTargetSetting = 'main';
-
-        let mainRotateDeg = 0, mainScale = 1, mainX = 0, mainY = 0, mainOpacity = 1;
-        let duetRotateDeg = 0, duetScale = 1, duetX = 0, duetY = 0, duetOpacity = 1;
-        let isMirrorActive = false, isFlipActive = false;
-
-        let backgroundAudioFile = null;
-        let overlayAudioFile = null;
-        let mediaRecorderReaction = null;
-        let reactionRecordedChunks = [];
-        let liveCameraStreamObj = null;
-
-        function showToast(message) {
-            let toast = document.getElementById('floatingToastMessage');
-            toast.innerText = message;
-            toast.classList.add('show');
-            setTimeout(() => { toast.classList.remove('show'); }, 2500);
-        }
-
-        function speakMessage(text) {
-            if('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                let utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'hi-IN';
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        function switchStudioMode(mode) {
-            document.querySelectorAll('.mode-icon-card').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.studio-section').forEach(el => el.classList.remove('active'));
-
-            if(mode === 'video') {
-                document.getElementById('btnModeVideo').classList.add('active');
-                document.getElementById('sectionVideo').classList.add('active');
-            } else if(mode === 'live') {
-                document.getElementById('btnModeLive').classList.add('active');
-                document.getElementById('sectionLive').classList.add('active');
-            } else if(mode === 'gaming') {
-                document.getElementById('btnModeGaming').classList.add('active');
-                document.getElementById('sectionGaming').classList.add('active');
-            }
-        }
-
-        function onVideoFileChosen(event) {
-            let file = event.target.files[0];
-            if(file) {
-                selectedVideoFile = file;
-                finalMergedVideoBlob = file; 
-                document.getElementById('topModesRow').style.display = 'none';
-                document.getElementById('mediaActionsRow').style.display = 'none';
-
-                let previewBox = document.getElementById('previewBox');
-                let videoElement = document.getElementById('selectedVideoPreview');
-                
-                videoElement.muted = false;
-                videoElement.src = URL.createObjectURL(file);
-                previewBox.style.display = 'block';
-                showToast('📁 मेन वीडियो लोड हो गया है!');
-            }
-        }
-
-        function onReplaceVideoFile(event) {
-            let file = event.target.files[0];
-            if(file) {
-                selectedVideoFile = file;
-                finalMergedVideoBlob = file;
-                let videoElement = document.getElementById('selectedVideoPreview');
-                videoElement.muted = false;
-                videoElement.src = URL.createObjectURL(file);
-                document.getElementById('copyrightScanResult').innerHTML = "✅ नया वीडियो अपलोड हो गया है।";
-                showToast('✅ नया वीडियो बदल दिया गया है!');
-            }
-        }
-
-        async function openInAppReactionStudio() {
-            if(!selectedVideoFile) {
-                showToast('⚠️ कृपया पहले मुख्य वीडियो चुनें!');
-                return;
-            }
-
-            let studioBox = document.getElementById('inAppReactionStudio');
-            studioBox.style.display = 'block';
-
-            try {
-                liveCameraStreamObj = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
-                let camVideoEl = document.getElementById('liveReactionCameraFeed');
-                camVideoEl.srcObject = liveCameraStreamObj;
-                camVideoEl.play();
-                showToast('🔴 Reaction Camera Ready!');
-            } catch(err) {
-                showToast('❌ Camera Error: ' + err.message);
-            }
-        }
-
-        function startInAppReactionRecording() {
-            if(!liveCameraStreamObj) return;
-            reactionRecordedChunks = [];
-            mediaRecorderReaction = new MediaRecorder(liveCameraStreamObj, { mimeType: 'video/webm' });
-
-            mediaRecorderReaction.ondataavailable = (e) => {
-                if(e.data.size > 0) reactionRecordedChunks.push(e.data);
-            };
-
-            mediaRecorderReaction.onstop = () => {
-                let blob = new Blob(reactionRecordedChunks, { type: 'video/webm' });
-                selectedOverlayFile = blob;
-
-                let trackContainer = document.getElementById('overlayTrackContainer');
-                let overlayEl = document.getElementById('overlayVideoElement');
-                overlayEl.muted = false;
-                overlayEl.src = URL.createObjectURL(blob);
-                trackContainer.style.display = 'block';
-
-                document.getElementById('inAppReactionStudio').style.display = 'none';
-                showToast('✅ रिएक्शन वीडियो रिकॉर्ड हो गया है!');
-            };
-
-            mediaRecorderReaction.start();
-            let mainVid = document.getElementById('selectedVideoPreview');
-            mainVid.currentTime = 0;
-            mainVid.play();
-            showToast('⏺️ Recording Reaction...');
-        }
-
-        function stopInAppReactionRecording() {
-            if(mediaRecorderReaction && mediaRecorderReaction.state === 'recording') {
-                mediaRecorderReaction.stop();
-                let mainVid = document.getElementById('selectedVideoPreview');
-                mainVid.pause();
-                if(liveCameraStreamObj) {
-                    liveCameraStreamObj.getTracks().forEach(track => track.stop());
-                }
-            }
-        }
-
-        function loadOverlayTrack(event) {
-            let file = event.target.files[0];
-            if(file) {
-                selectedOverlayFile = file;
-                let trackContainer = document.getElementById('overlayTrackContainer');
-                let overlayEl = document.getElementById('overlayVideoElement');
-                overlayEl.muted = false;
-                overlayEl.src = URL.createObjectURL(file);
-                trackContainer.style.display = 'block';
-                showToast('📁 Partner Video loaded from Gallery!');
-            }
-        }
-
-        function openTargetSettings(targetType, event) {
-            currentTargetSetting = targetType;
-            let menu = document.getElementById('masterThreeDotMenu');
-            let titleEl = document.getElementById('activeHubTitle');
-            let mainAudioGroup = document.getElementById('mainAudioControlsGroup');
-            let duetAudioGroup = document.getElementById('duetAudioControlsGroup');
-
-            if (targetType === 'duet') {
-                if (!selectedOverlayFile) {
-                    showToast('⚠️ पहले पार्टनर / ड्युएट वीडियो जोड़ें!');
-                    return;
-                }
-                titleEl.innerText = '👥 Duet / Reaction Video Settings';
-                mainAudioGroup.style.display = 'none';
-                duetAudioGroup.style.display = 'block';
-            } else {
-                titleEl.innerText = '⚙️ Main Video Hub Settings';
-                mainAudioGroup.style.display = 'block';
-                duetAudioGroup.style.display = 'none';
-            }
-
-            menu.style.display = 'block';
-            backToMasterGrid();
-        }
-
-        function toggleMasterThreeDotMenu(targetType = 'main') {
-            if (targetType) currentTargetSetting = targetType;
-            let menu = document.getElementById('masterThreeDotMenu');
-            let titleEl = document.getElementById('activeHubTitle');
-            let mainAudioGroup = document.getElementById('mainAudioControlsGroup');
-            let duetAudioGroup = document.getElementById('duetAudioControlsGroup');
-
-            if (currentTargetSetting === 'duet') {
-                titleEl.innerText = '👥 Duet / Reaction Video Settings';
-                mainAudioGroup.style.display = 'none';
-                duetAudioGroup.style.display = 'block';
-            } else {
-                titleEl.innerText = '⚙️ Main Video Hub Settings';
-                mainAudioGroup.style.display = 'block';
-                duetAudioGroup.style.display = 'none';
-            }
-
-            if(menu.style.display === 'block') {
-                menu.style.display = 'none';
-            } else {
-                menu.style.display = 'block';
-                backToMasterGrid();
-            }
-        }
-
-        function openThreeDotSub(subId) {
-            document.getElementById('masterMenuGridButtons').style.display = 'none';
-            document.querySelectorAll('.three-dot-sub-section').forEach(s => s.classList.remove('active'));
-            document.getElementById('sub_' + subId).classList.add('active');
-        }
-
-        function backToMasterGrid() {
-            document.getElementById('masterMenuGridButtons').style.display = 'grid';
-            document.querySelectorAll('.three-dot-sub-section').forEach(s => s.classList.remove('active'));
-        }
-
-        function switchSuiteTab(boxId) {
-            let boxes = document.querySelectorAll('.suite-sub-box');
-            let btns = document.querySelectorAll('.suite-feature-btn');
-            boxes.forEach(b => b.classList.remove('active'));
-            btns.forEach(t => t.classList.remove('active'));
-            document.getElementById(boxId).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
-
-        /* 🛠️ REAL LIVE EXECUTABLE EDITING FUNCTIONS */
-        function applyFilter(type) {
-            let v = document.getElementById('selectedVideoPreview');
-            if(type === 'cinematic') v.style.filter = "sepia(0.4) contrast(1.2)";
-            else if(type === 'cyberpunk') v.style.filter = "saturate(2.2) hue-rotate(15deg)";
-            else if(type === 'grayscale') v.style.filter = "grayscale(100%)";
-            else v.style.filter = "none";
-            showToast(`🎨 Color Filter Active`);
-        }
-
-        function applyTrim() {
-            let start = parseFloat(document.getElementById('trimStartInput').value) || 0;
-            let v = document.getElementById('selectedVideoPreview');
-            v.currentTime = start;
-            v.play();
-            showToast(`✂️ Trimmed & Playing from ${start}s`);
-        }
-
-        function applyRealVfxZoom() {
-            let selectEl = document.getElementById('vfxZoomSelect');
-            let vfxType = selectEl.value;
-            let v = document.getElementById('selectedVideoPreview');
-            if (vfxType.includes('zoom_300')) { mainScale = 3.0; }
-            else if (vfxType.includes('shake_fx')) { mainScale = 1.1; }
-            v.style.transform = `translate(${mainX}px, ${mainY}px) scale(${mainScale}) rotate(${mainRotateDeg}deg)`;
-            showToast(`⚡ FX Applied Live!`);
-        }
-
-        function applySplitVideo() {
-            let v = document.getElementById('selectedVideoPreview');
-            showToast(`⚔️ Video Split at timestamp: ${Math.round(v.currentTime)}s`);
-        }
-
-        function applyOpticalFlow() { showToast('🌊 Optical Flow 60FPS Smooth Motion Active!'); }
-        function applyAIBackgroundCutout() { showToast('✂️ AI Background Mask Cutout Active!'); }
-        
-        function applyVideoCrop() {
-            let v = document.getElementById('selectedVideoPreview');
-            v.style.objectFit = v.style.objectFit === 'cover' ? 'contain' : 'cover';
-            showToast('📐 Crop Aspect Ratio Toggled');
-        }
-
-        function applyVideoFill() {
-            let v = document.getElementById('selectedVideoPreview');
-            v.style.width = '100%';
-            v.style.height = '100%';
-            showToast('🖼️ Video Canvas Filled');
-        }
-
-        function applyBackgroundCanvasColor() {
-            let box = document.getElementById('previewBox');
-            box.style.background = box.style.background === 'rgb(34, 34, 34)' ? '#000' : '#222';
-            showToast('🎨 Canvas BG Color Switched');
-        }
-
-        function applyNeonBorder() {
-            let box = document.getElementById('previewBox');
-            box.style.border = box.style.border.includes('25f4ee') ? '1px solid #333' : '2px solid #25f4ee';
-            showToast('🔲 Neon Border Toggled');
-        }
-
-        function applyBackgroundBlur() {
-            let v = document.getElementById('selectedVideoPreview');
-            v.style.filter = v.style.filter.includes('blur') ? 'none' : 'blur(4px) brightness(1.1)';
-            showToast('💨 Background Blur Toggled');
-        }
-
-        function applyMosaicBlur() { showToast('🧱 Mosaic Pixelate Filter Applied!'); }
-        function applyMagnifierLens() {
-            mainScale = mainScale === 1.5 ? 1.0 : 1.5;
-            let v = document.getElementById('selectedVideoPreview');
-            v.style.transform = `translate(${mainX}px, ${mainY}px) scale(${mainScale}) rotate(${mainRotateDeg}deg)`;
-            showToast('🔍 Magnifier Focus Lens Toggled');
-        }
-
-        function applyCinematicMask() {
-            let box = document.getElementById('previewBox');
-            box.style.padding = box.style.padding === '15px 0px' ? '0px' : '15px 0px';
-            showToast('🎭 Cinematic Letterbox Mask Applied');
-        }
-
-        function scaleTargetVideo(factor) {
-            if (currentTargetSetting === 'main') {
-                mainScale *= factor;
-                let v = document.getElementById('selectedVideoPreview');
-                v.style.transform = `translate(${mainX}px, ${mainY}px) scale(${mainScale}) rotate(${mainRotateDeg}deg)`;
-                showToast(`🔍 Main Zoom: ${Math.round(mainScale * 100)}%`);
-            } else {
-                duetScale *= factor;
-                let container = document.getElementById('overlayTrackContainer');
-                container.style.transform = `translate(${duetX}px, ${duetY}px) scale(${duetScale}) rotate(${duetRotateDeg}deg)`;
-                showToast(`🔍 Duet Zoom: ${Math.round(duetScale * 100)}%`);
-            }
-        }
-
-        function slideTargetPosition(direction) {
-            let step = 15;
-            if (currentTargetSetting === 'main') {
-                if(direction === 'left') mainX -= step;
-                if(direction === 'right') mainX += step;
-                if(direction === 'up') mainY -= step;
-                if(direction === 'down') mainY += step;
-                let v = document.getElementById('selectedVideoPreview');
-                v.style.transform = `translate(${mainX}px, ${mainY}px) scale(${mainScale}) rotate(${mainRotateDeg}deg)`;
-            } else {
-                if(direction === 'left') duetX -= step;
-                if(direction === 'right') duetX += step;
-                if(direction === 'up') duetY -= step;
-                if(direction === 'down') duetY += step;
-                let container = document.getElementById('overlayTrackContainer');
-                container.style.transform = `translate(${duetX}px, ${duetY}px) scale(${duetScale}) rotate(${duetRotateDeg}deg)`;
-            }
-            showToast(`🎯 Position Moved (${direction})`);
-        }
-
-        function applyRotate() {
-            if (currentTargetSetting === 'main') {
-                mainRotateDeg = (mainRotateDeg + 90) % 360;
-                let v = document.getElementById('selectedVideoPreview');
-                v.style.transform = `translate(${mainX}px, ${mainY}px) scale(${mainScale}) rotate(${mainRotateDeg}deg)`;
-            } else {
-                duetRotateDeg = (duetRotateDeg + 90) % 360;
-                let container = document.getElementById('overlayTrackContainer');
-                container.style.transform = `translate(${duetX}px, ${duetY}px) scale(${duetScale}) rotate(${duetRotateDeg}deg)`;
-            }
-            showToast(`🔄 Rotated 90°`);
-        }
-
-        function applyMirrorEffect() {
-            isMirrorActive = !isMirrorActive;
-            let v = document.getElementById('selectedVideoPreview');
-            let mVal = isMirrorActive ? 'scaleX(-1)' : 'scaleX(1)';
-            v.style.transform = `translate(${mainX}px, ${mainY}px) scale(${mainScale}) rotate(${mainRotateDeg}deg) ${mVal}`;
-            showToast('🪞 Mirror Effect Toggled');
-        }
-
-        function applyFlipEffect() {
-            isFlipActive = !isFlipActive;
-            let v = document.getElementById('selectedVideoPreview');
-            let fVal = isFlipActive ? 'scaleY(-1)' : 'scaleY(1)';
-            v.style.transform = `translate(${mainX}px, ${mainY}px) scale(${mainScale}) rotate(${mainRotateDeg}deg) ${fVal}`;
-            showToast('↕️ Flip Effect Toggled');
-        }
-
-        function applyOpacity(val) {
-            if (currentTargetSetting === 'main') {
-                mainOpacity = val / 100;
-                document.getElementById('selectedVideoPreview').style.opacity = mainOpacity;
-            } else {
-                duetOpacity = val / 100;
-                document.getElementById('overlayVideoElement').style.opacity = duetOpacity;
-            }
-            showToast(`🔆 Opacity: ${val}%`);
-        }
-
-        function adjustTargetVolume(val, targetType) {
-            if (targetType === 'main') {
-                document.getElementById('mainVideoVolText').innerText = val + '%';
-                let v = document.getElementById('selectedVideoPreview');
-                v.volume = val / 100;
-            } else {
-                document.getElementById('duetVideoVolText').innerText = val + '%';
-                let overlayEl = document.getElementById('overlayVideoElement');
-                if(overlayEl) overlayEl.volume = val / 100;
-            }
-            showToast(`🔊 Volume: ${val}%`);
-        }
-
-        function runRealCopyrightScan() {
-            let res = document.getElementById('copyrightScanResult');
-            if (!selectedVideoFile) {
-                res.innerHTML = "⚠️ कृपया पहले वीडियो चुनें!";
-                return;
-            }
-            res.innerHTML = "⚡ 4 सेकंड में ग्लोबल डेटाबेस स्कैन हो रहा है... ⏳";
-            setTimeout(() => {
-                res.innerHTML = `✅ <b>कॉपीराइट क्लियरेंस पास (Clean Video):</b><br><span style="color:#25f4ee;">यह वीडियो मोनेटाइजेशन के लिए 100% सुरक्षित है!</span>`;
-                showToast('🛡️ Copyright Scan Passed!');
-            }, 3000);
-        }
-
-        // 💾 0-100% SMOOTH MERGE & SAVE ENGINE
-        async function saveEditedVideoAndShowDetails() {
-            if(!selectedVideoFile) {
-                showToast('⚠️ कृपया पहले मुख्य वीडियो चुनें!');
-                return;
-            }
-
-            let modal = document.getElementById('uploadProgressModal');
-            let fill = document.getElementById('progressBarFill');
-            let percentText = document.getElementById('progressPercentText');
-            let titleHeading = document.getElementById('progressTitleHeading');
-
-            modal.style.display = 'flex';
-            titleHeading.innerText = '💾 Saving & Merging Video...';
-            
-            let progress = 0;
-            let interval = setInterval(() => {
-                if (progress < 95) {
-                    progress += 5;
-                    fill.style.width = progress + '%';
-                    percentText.innerText = progress + '%';
-                }
-            }, 60);
-
-            try {
-                let mergedBlob = await mergeVideosSmoothlyOptimized();
-                if (mergedBlob) {
-                    finalMergedVideoBlob = mergedBlob;
-                }
-            } catch(e) {
-                finalMergedVideoBlob = selectedVideoFile;
-            }
-
-            clearInterval(interval);
-            fill.style.width = '100%';
-            percentText.innerText = '100%';
-            titleHeading.innerText = '✨ Video Saved Successfully!';
-
-            setTimeout(() => {
-                modal.style.display = 'none';
-                document.getElementById('saveEditBtn').style.display = 'none';
-                document.getElementById('masterThreeDotMenu').style.display = 'none';
-                document.getElementById('videoDetailsFormContainer').style.display = 'block';
-                showToast('✅ वीडियो सेव हो गया है! अब विवरण भरें।');
-                speakMessage('वीडियो सेव हो गया है। अब विवरण भरें।');
-            }, 400);
-        }
-
-        // 🎬 ULTRA-SMOOTH 60 FPS MERGER
-        function mergeVideosSmoothlyOptimized() {
-            return new Promise((resolve) => {
-                let mainVid = document.getElementById('selectedVideoPreview');
-                let overlayVid = document.getElementById('overlayVideoElement');
-
-                mainVid.muted = false;
-                if(overlayVid && selectedOverlayFile) overlayVid.muted = false;
-
-                let canvas = document.createElement('canvas');
-                canvas.width = 720;
-                canvas.height = 1280;
-                let ctx = canvas.getContext('2d', { alpha: false });
-
-                let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                let dest = audioCtx.createMediaStreamDestination();
-
-                try {
-                    if (mainVid.captureStream) {
-                        let source1 = audioCtx.createMediaStreamSource(mainVid.captureStream());
-                        let gain1 = audioCtx.createGain();
-                        gain1.gain.value = mainVid.volume;
-                        source1.connect(gain1);
-                        gain1.connect(dest);
-                    }
-                    if (overlayVid && selectedOverlayFile && overlayVid.captureStream) {
-                        let source2 = audioCtx.createMediaStreamSource(overlayVid.captureStream());
-                        let gain2 = audioCtx.createGain();
-                        gain2.gain.value = overlayVid.volume;
-                        source2.connect(gain2);
-                        gain2.connect(dest);
-                    }
-                } catch(err) {
-                    console.log(err);
-                }
-
-                let canvasStream = canvas.captureStream(60);
-                let combinedTracks = [...canvasStream.getVideoTracks()];
-                if (dest.stream.getAudioTracks().length > 0) {
-                    combinedTracks.push(dest.stream.getAudioTracks()[0]);
-                }
-                let finalCombinedStream = new MediaStream(combinedTracks);
-
-                let options = { mimeType: 'video/webm;codecs=vp9,opus' };
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options = { mimeType: 'video/webm' };
-                }
-
-                let recorder = new MediaRecorder(finalCombinedStream, options);
-                let chunks = [];
-                recorder.ondataavailable = (e) => chunks.push(e.data);
-                recorder.onstop = () => {
-                    let blob = new Blob(chunks, { type: 'video/webm' });
-                    resolve(blob);
-                };
-
-                recorder.start(100);
-                mainVid.currentTime = 0;
-                if(overlayVid && selectedOverlayFile) overlayVid.currentTime = 0;
-                
-                mainVid.play();
-                if(overlayVid && selectedOverlayFile) overlayVid.play();
-
-                let renderLoop = () => {
-                    if (mainVid.ended || mainVid.paused) return;
-                    ctx.fillStyle = "#000";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    ctx.save();
-                    ctx.globalAlpha = mainOpacity;
-                    ctx.translate(canvas.width / 2 + mainX, canvas.height / 2 + mainY);
-                    ctx.rotate((mainRotateDeg * Math.PI) / 180);
-                    ctx.scale(mainScale, mainScale);
-                    ctx.drawImage(mainVid, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
-                    ctx.restore();
-
-                    if(overlayVid && selectedOverlayFile) {
-                        ctx.save();
-                        ctx.globalAlpha = duetOpacity;
-                        let ow = 240 * duetScale, oh = 320 * duetScale;
-                        let ox = canvas.width - ow - 30 + duetX;
-                        let oy = canvas.height - oh - 60 + duetY;
-                        ctx.translate(ox + ow / 2, oy + oh / 2);
-                        ctx.rotate((duetRotateDeg * Math.PI) / 180);
-                        ctx.drawImage(overlayVid, -ow / 2, -oh / 2, ow, oh);
-                        ctx.restore();
-                    }
-
-                    if (!mainVid.ended) {
-                        requestAnimationFrame(renderLoop);
-                    }
-                };
-                requestAnimationFrame(renderLoop);
-
-                mainVid.onended = () => {
-                    setTimeout(() => {
-                        if (recorder.state === 'recording') {
-                            mainVid.pause();
-                            if(overlayVid && selectedOverlayFile) overlayVid.pause();
-                            recorder.stop();
-                        }
-                    }, 400);
-                };
-
-                let maxDuration = (mainVid.duration && !isNaN(mainVid.duration)) ? mainVid.duration * 1000 : 15000;
-                setTimeout(() => {
-                    if (recorder.state === 'recording') {
-                        mainVid.pause();
-                        if(overlayVid && selectedOverlayFile) overlayVid.pause();
-                        recorder.stop();
-                    }
-                }, maxDuration + 1000);
-            });
-        }
-
-        function goBackToEditingStudio() {
-            document.getElementById('videoDetailsFormContainer').style.display = 'none';
-            document.getElementById('saveEditBtn').style.display = 'block';
-            showToast('✏️ Back to Editing Studio');
-        }
-
-        async function publishVideoToGlobalCloudStorage() {
-            let titleText = document.getElementById('videoCaptionInput').value.trim() || 'Viral Video';
-            let descriptionText = document.getElementById('videoDescriptionInput').value.trim() || 'Published via Global Creator Studio.';
-            let affiliate = document.getElementById('videoAffiliateInput').value.trim() || '';
-            let audienceRating = document.getElementById('videoAudienceSelect').value;
-
-            let fullCaption = titleText;
-            let fullDescription = descriptionText;
-            if (affiliate) fullDescription += "\n\nPromo Link: " + affiliate;
-
-            if(!finalMergedVideoBlob) {
-                showToast('⚠️ पहले वीडियो मर्ज करें!');
-                return;
-            }
-
-            let btn = document.getElementById('postBtn');
-            btn.disabled = true;
-
-            let modal = document.getElementById('uploadProgressModal');
-            let fill = document.getElementById('progressBarFill');
-            let percentText = document.getElementById('progressPercentText');
-            let titleHeading = document.getElementById('progressTitleHeading');
-
-            modal.style.display = 'flex';
-            
-            let progress = 0;
-            let interval = setInterval(() => {
-                if (progress < 95) {
-                    progress += 10;
-                    fill.style.width = progress + '%';
-                    percentText.innerText = progress + '%';
-                }
-            }, 100);
-
-            try {
-                let cleanFileName = selectedVideoFile.name ? selectedVideoFile.name.replace(/[^a-zA-Z0-9.]/g, '_') : 'video.mp4';
-                let fileName = 'global_merged_' + Date.now() + '_' + cleanFileName;
-                
-                let { error: uploadError } = await cloudClient.storage
-                    .from('videos')
-                    .upload(fileName, finalMergedVideoBlob, { cacheControl: '3600', upsert: true });
-
-                if (uploadError) throw new Error(uploadError.message);
-
-                let { data: urlData } = cloudClient.storage.from('videos').getPublicUrl(fileName);
-                let publicVideoUrl = urlData ? urlData.publicUrl : '';
-
-                let creatorHandle = localStorage.getItem('appHandle') || '@creator_' + Math.floor(Math.random() * 100000);
-
-                let newPostObj = {
-                    id: 'vid_' + Date.now(),
-                    url: publicVideoUrl,
-                    caption: fullCaption,
-                    description: fullDescription,
-                    affiliate: affiliate,
-                    category: finalVideoCategory,
-                    audience: audienceRating,
-                    username: creatorHandle,
-                    likes: 15,
-                    views: 120
-                };
-
-                try {
-                    let globalFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
-                    globalFeed.unshift(newPostObj);
-                    localStorage.setItem('customFeedVideos', JSON.stringify(globalFeed));
-
-                    let profileFeed = JSON.parse(localStorage.getItem('profileVideosList') || '[]');
-                    profileFeed.unshift(newPostObj);
-                    localStorage.setItem('profileVideosList', JSON.stringify(profileFeed));
-                } catch(e) {}
-
-                await cloudClient.from('videos').insert([
-                    { 
-                        video_url: publicVideoUrl, 
-                        caption: fullCaption, 
-                        description: fullDescription,
-                        affiliate_link: affiliate,
-                        category: finalVideoCategory,
-                        audience_rating: audienceRating,
-                        username: creatorHandle,
-                        likes_count: 15,
-                        views_count: 120
-                    }
-                ]);
-
-                clearInterval(interval);
-                fill.style.width = '100%';
-                percentText.innerText = '100%';
-                titleHeading.innerText = `✨ Published Successfully!`;
-
-                setTimeout(() => {
-                    modal.style.display = 'none';
-                    window.location.href = 'profile.html';
-                }, 400);
-
-            } catch(err) {
-                clearInterval(interval);
-                modal.style.display = 'none';
-                showToast('❌ Error: ' + err.message);
-                btn.disabled = false;
-            }
-        }
-    </script>
+    <script src="editor.js"></script>
+    <script src="merger.js"></script>
 </body>
 </html>
