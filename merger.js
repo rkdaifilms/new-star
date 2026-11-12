@@ -38,6 +38,10 @@ function onVideoFileChosen(event) {
 async function openDirectCameraStudio() {
     let studioBox = document.getElementById('directCameraStudio');
     studioBox.style.display = 'block';
+    
+    // कैमरा चालू होते ही ऊपर वाले फालतू टैब और गैलरी बटन छिप जाएंगे
+    let topTabs = document.getElementById('topModeTabsRow');
+    if(topTabs) topTabs.style.display = 'none';
     document.getElementById('mediaActionsRow').style.display = 'none';
 
     try {
@@ -65,24 +69,30 @@ function startDirectCameraRecording() {
         selectedVideoFile = blob;
         finalMergedVideoBlob = blob;
 
+        // कैमरा बॉक्स को छिपाकर तुरंत वीडियो प्रीव्यू और मेन पोस्टिंग/अपलोड टैब पर ले जाएगा
         document.getElementById('directCameraStudio').style.display = 'none';
         let videoElement = document.getElementById('selectedVideoPreview');
         videoElement.src = URL.createObjectURL(blob);
         document.getElementById('previewBox').style.display = 'block';
+        
+        // सीधे अपलोड और एडिट वाले मेन फॉर्म पर पहुँच जाएगा
         document.getElementById('videoDetailsFormContainer').style.display = 'block';
-        showToast('✅ वीडियो रिकॉर्ड होकर पब्लिशिंग सेक्शन में आ गया है!');
+        showToast('✅ वीडियो सेव होकर पोस्टिंग और एडिट सेक्शन में आ गया है!');
     };
 
     mediaRecorderDirect.start();
     cameraSecondsElapsed = 0;
     let badge = document.getElementById('cameraTimerBadge');
-    badge.style.display = 'block';
+    if(badge) badge.style.display = 'block';
     
+    // टाइमर जो नीचे वीडियो पर सेकंड और मिनट दिखाएगा
     cameraTimerInterval = setInterval(() => {
         cameraSecondsElapsed++;
         let mins = Math.floor(cameraSecondsElapsed / 60);
         let secs = cameraSecondsElapsed % 60;
-        badge.innerText = `⏱️ ${mins < 10 ? '0' + mins : mins}:${secs < 10 ? '0' + secs : secs} / 10:00`;
+        if(badge) {
+            badge.innerText = `⏱️ ${mins < 10 ? '0' + mins : mins}:${secs < 10 ? '0' + secs : secs} / 10:00`;
+        }
         
         if (cameraSecondsElapsed >= MAX_RECORDING_SECONDS) {
             stopDirectCameraRecording();
@@ -97,7 +107,9 @@ function stopDirectCameraRecording() {
     if(mediaRecorderDirect && mediaRecorderDirect.state === 'recording') {
         mediaRecorderDirect.stop();
         clearInterval(cameraTimerInterval);
-        document.getElementById('cameraTimerBadge').style.display = 'none';
+        let badge = document.getElementById('cameraTimerBadge');
+        if(badge) badge.style.display = 'none';
+        
         if(directCameraStreamObj) {
             directCameraStreamObj.getTracks().forEach(track => track.stop());
         }
@@ -133,4 +145,24 @@ async function publishVideoToGlobalCloudStorage() {
     } catch(err) {
         showToast('❌ Error: ' + err.message);
     }
+}
+
+function toggleMasterThreeDotMenu(type) {
+    let menu = document.getElementById('masterThreeDotMenu');
+    if(!menu) return;
+    menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+}
+
+function openThreeDotSub(subName) {
+    document.querySelectorAll('.three-dot-sub-section').forEach(el => el.classList.remove('active'));
+    let target = document.getElementById('sub_' + subName);
+    if(target) target.classList.add('active');
+}
+
+function showToast(msg) {
+    let toast = document.getElementById('floatingToastMessage');
+    if(!toast) return;
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => { toast.classList.remove('show'); }, 3000);
 }
