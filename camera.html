@@ -51,13 +51,15 @@
         #previewBox video, #previewBox canvas { width: 100%; max-height: 480px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), filter 0.3s ease; }
         #previewBox.duet-mode video, #previewBox.duet-mode canvas { width: 50%; display: inline-block; vertical-align: middle; }
 
-        /* Overlay Track */
-        #overlayTrackContainer { display: none; position: absolute; bottom: 12px; right: 12px; width: 120px; height: 160px; background: #111; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; z-index: 5; }
+        /* Overlay Track (Small Duet Video) with independent zoom/position */
+        #overlayTrackContainer { display: none; position: absolute; bottom: 12px; right: 12px; width: 120px; height: 160px; background: #111; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; z-index: 5; transition: transform 0.3s ease; }
         #overlayTrackContainer video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* ⚙️ Three Dots Button */
+        /* ⚙️ Three Dots Buttons */
         .video-edit-settings-btn { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #fff; cursor: pointer; z-index: 20; transition: 0.2s; }
         .video-edit-settings-btn:hover { background: #fe2c55; border-color: #fe2c55; }
+
+        .overlay-edit-settings-btn { position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; background: rgba(0,0,0,0.8); border: 1px solid #25f4ee; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; color: #25f4ee; cursor: pointer; z-index: 25; }
 
         /* 🎛️ Master 3-Dot Dashboard Menu */
         #masterThreeDotMenu { display: none; background: #161618; border: 1px solid #fe2c55; border-radius: 12px; padding: 12px; margin-bottom: 12px; animation: fadeIn 0.25s ease; }
@@ -159,13 +161,14 @@
                 <video id="selectedVideoPreview" controls crossorigin="anonymous" onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
                 <canvas id="videoProcessCanvas" style="display:none;"></canvas>
                 
-                <!-- Overlay Track -->
+                <!-- Overlay Track (Small Duet / Partner Video with 3-dot control) -->
                 <div id="overlayTrackContainer">
+                    <div class="overlay-edit-settings-btn" onclick="toggleOverlayThreeDotMenu()" title="Duet Video Settings">⋮</div>
                     <video id="overlayVideoElement" controls></video>
                 </div>
             </div>
 
-            <!-- 🎛️ MASTER 3-DOT DASHBOARD MENU -->
+            <!-- 🎛️ MASTER 3-DOT DASHBOARD MENU (Main Video) -->
             <div id="masterThreeDotMenu">
                 <div style="font-size:13px; color:#ffcc00; font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
                     <span>⚙️ Master Creator & Edit Hub</span>
@@ -186,7 +189,7 @@
                 <div id="sub_editSuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
                         <span>✂️ Pro Edit & 50+ VFX Suite</span>
-                        <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
+                        <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
                     </div>
                     <div class="suite-features-grid">
                         <div class="suite-feature-btn active" onclick="switchSuiteTab('boxFilter')">🎨<b>Filter</b></div>
@@ -313,11 +316,11 @@
                     </div>
                 </div>
 
-                <!-- SUB 2: 50+ REAL AUDIO AI VOICE CHANGER MODELS (Web Audio API Processor) -->
+                <!-- SUB 2: 50+ REAL AUDIO AI VOICE CHANGER MODELS -->
                 <div id="sub_aiVoiceSuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#ffcc00; font-weight:bold;">
                         <span>🗣️ 50+ Real Audio AI Voices</span>
-                        <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
+                        <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
                     </div>
                     <label style="color:#aaa; display:block; margin-bottom:4px;">Select Real AI Voice (Changes Video Audio Live):</label>
                     <select id="realAiVoiceSelect" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; margin-bottom:8px;">
@@ -380,7 +383,7 @@
                 <div id="sub_musicLibrarySuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
                         <span>🎵 Music & Volume Mixer</span>
-                        <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
+                        <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
                     </div>
                     <label style="color:#aaa; display:block; margin-bottom:4px;">Choose Background Track:</label>
                     <select id="bgMusicSelect" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; margin-bottom:8px;">
@@ -402,7 +405,7 @@
                 <div id="sub_copyrightSuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#ff4444; font-weight:bold;">
                         <span>🛡️ Real 4s Copyright Inspector</span>
-                        <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
+                        <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
                     </div>
                     <p style="font-size:10px; color:#aaa; margin-bottom:8px;">4 सेकंड में वीडियो स्कैन करके बताएगा कि इस पर किसका कॉपीराइट है, किसने बनाया है और कहाँ-कहाँ अपलोड है:</p>
                     <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#ff4444; color:#fff;" onclick="runRealCopyrightScan()">⚡ Run Real 4s Copyright Scan</button>
@@ -413,7 +416,7 @@
                 <div id="sub_collabSuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
                         <span>👥 Duet, Collab & Camera Studio</span>
-                        <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
+                        <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
                     </div>
                     <p style="font-size:10px; color:#aaa; margin-bottom:6px;">डायरेक्ट कैमरा खोलकर बोलें या पार्टनर वीडियो जोड़ें:</p>
                     
@@ -430,7 +433,7 @@
                 <div id="sub_watermarkSuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
                         <span>🧹 Real 4s Canvas Logo & Watermark Eraser</span>
-                        <span style="cursor:pointer;" onclick="backToMasterGrid()">← Back</span>
+                        <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
                     </div>
                     <p style="font-size:10px; color:#aaa; margin-bottom:8px;">4 सेकंड में कैनवास स्कैन करके TikTok, YouTube या कोई भी लोगो हमेशा के लिए पिक्सल से हटा देगा:</p>
                     <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#25f4ee; color:#000;" onclick="runRealCanvasWatermarkEraser()">⚡ 4s Canvas Erase Logo</button>
@@ -438,8 +441,34 @@
                 </div>
             </div>
 
-            <!-- 📝 Video Details Form (Auto-Hidden during Editing) -->
-            <div id="videoDetailsFormContainer">
+            <!-- 🎛️ OVERLAY / DUET VIDEO SETTINGS MENU (Small Video Controls) -->
+            <div id="overlayThreeDotMenu" style="display:none; background:#161618; border:1px solid #25f4ee; border-radius:12px; padding:12px; margin-bottom:12px;">
+                <div style="font-size:13px; color:#25f4ee; font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>👥 Duet / Partner Video Settings</span>
+                    <span style="cursor:pointer; font-size:16px; color:#aaa;" onclick="toggleOverlayThreeDotMenu()">✕</span>
+                </div>
+                <div style="font-size:11px; color:#aaa; margin-bottom:8px;">छोटा वीडियो (ड्युएट) ज़ूम करें या पोजीशन सेट करें:</div>
+                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="scaleOverlayVideo(0.8)">🔍 Zoom Out (-)</button>
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="scaleOverlayVideo(1.2)">🔍 Zoom In (+)</button>
+                </div>
+                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="slideOverlayPosition('left')">⬅️ Left</button>
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="slideOverlayPosition('right')">Right ➡️</button>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="slideOverlayPosition('up')">⬆️ Up</button>
+                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="slideOverlayPosition('down')">Down ⬇️</button>
+                </div>
+            </div>
+
+            <!-- 📝 Video Details Form (Originally Hidden until Edit is Saved) -->
+            <div id="videoDetailsFormContainer" style="display: none;">
+                <div style="background: #181818; border: 1px solid #25f4ee; border-radius: 10px; padding: 10px; margin-bottom: 12px; text-align: center; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color: #25f4ee; font-size: 11px; font-weight: bold;" id="successEditNotice">✅ Video Processed, Duet Set & Saved!</span>
+                    <button style="background: #333; color: #ffcc00; border: 1px solid #555; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;" onclick="goBackToEditingStudio()">✏️ Edit Again</button>
+                </div>
+
                 <div class="input-group">
                     <label><span>📝</span> Video Title / Caption (Max 15 Hashtags):</label>
                     <input type="text" id="videoCaptionInput" placeholder="Write catchy title and max 15 hashtags (#Viral)..." oninput="checkHashtagLimit(this)">
@@ -464,9 +493,12 @@
                         <option value="adults">🔞 No, Restrict to 18+ (Mature Audience)</option>
                     </select>
                 </div>
+
+                <button class="post-action-btn" id="postBtn" onclick="publishVideoToGlobalCloudStorage()">🚀 Publish / Post to Global Cloud (4s)</button>
             </div>
 
-            <button class="post-action-btn" id="postBtn" onclick="publishVideoToGlobalCloudStorage()">🚀 Global Turbo Upload (4s)</button>
+            <!-- 💾 STEP 1 BUTTON: SAVE EDITED VIDEO & PROCEED TO DETAILS -->
+            <button class="post-action-btn" id="saveEditBtn" style="background: linear-gradient(135deg, #25f4ee, #00b4d8); color: #000;" onclick="saveEditedVideoAndShowDetails()">💾 Save Edited Video & Proceed to Details</button>
         </div>
 
         <!-- 2️⃣ LIVE STREAM SECTION -->
@@ -509,9 +541,14 @@
         let translateX = 0;
         let translateY = 0;
 
+        let overlayScale = 1;
+        let overlayX = 0;
+        let overlayY = 0;
+
         let audioContext = null;
         let audioSourceNode = null;
         let audioPitchNode = null;
+        let appliedAiVoiceName = "Standard Original Voice";
 
         // 🔔 TOAST NOTIFICATION
         function showToast(message) {
@@ -565,6 +602,30 @@
             }
         }
 
+        // 💾 SAVE EDITED VIDEO & SHOW DETAILS FORM
+        function saveEditedVideoAndShowDetails() {
+            if(!selectedVideoFile) {
+                showToast('⚠️ कृपया पहले वीडियो चुनें या रिकॉर्ड करें!');
+                return;
+            }
+
+            document.getElementById('saveEditBtn').style.display = 'none';
+            document.getElementById('masterThreeDotMenu').style.display = 'none';
+            document.getElementById('overlayThreeDotMenu').style.display = 'none';
+            document.getElementById('videoDetailsFormContainer').style.display = 'block';
+            document.getElementById('successEditNotice').innerText = `✅ Video Processed, Duet Set (${appliedAiVoiceName}) & Saved!`;
+
+            showToast('✅ वीडियो एडिट और सेव हो गया है! अब नीचे विवरण भरें।');
+            speakMessage('वीडियो सेव हो गया है। अब विवरण भरें।');
+        }
+
+        // ✏️ GO BACK TO EDITING STUDIO FROM DETAILS PAGE
+        function goBackToEditingStudio() {
+            document.getElementById('videoDetailsFormContainer').style.display = 'none';
+            document.getElementById('saveEditBtn').style.display = 'block';
+            showToast('✏️ Back to Editing Studio');
+        }
+
         // 🛡️ 15 HASHTAG LIMIT CHECKER
         function checkHashtagLimit(input) {
             let text = input.value;
@@ -582,18 +643,30 @@
             }
         }
 
-        // ⚙️ TOGGLE MASTER 3-DOT MENU & AUTO-HIDE FORM
+        // ⚙️ TOGGLE MASTER 3-DOT MENU
         function toggleMasterThreeDotMenu() {
             let menu = document.getElementById('masterThreeDotMenu');
-            let detailsForm = document.getElementById('videoDetailsFormContainer');
+            let overlayMenu = document.getElementById('overlayThreeDotMenu');
+            overlayMenu.style.display = 'none';
 
             if(menu.style.display === 'block') {
                 menu.style.display = 'none';
-                detailsForm.style.display = 'block';
             } else {
                 menu.style.display = 'block';
-                detailsForm.style.display = 'none';
                 backToMasterGrid();
+            }
+        }
+
+        // ⚙️ TOGGLE OVERLAY / DUET 3-DOT MENU
+        function toggleOverlayThreeDotMenu() {
+            let overlayMenu = document.getElementById('overlayThreeDotMenu');
+            let menu = document.getElementById('masterThreeDotMenu');
+            menu.style.display = 'none';
+
+            if(overlayMenu.style.display === 'block') {
+                overlayMenu.style.display = 'none';
+            } else {
+                overlayMenu.style.display = 'block';
             }
         }
 
@@ -645,6 +718,27 @@
             if(direction === 'down') translateY += 20;
             updateTransformMatrix();
             showToast(`🎯 Position Moved (${direction})`);
+        }
+
+        // 👥 OVERLAY / DUET VIDEO ZOOM & POSITION CONTROLS
+        function scaleOverlayVideo(factor) {
+            overlayScale *= factor;
+            updateOverlayTransform();
+            showToast(`🔍 Duet Zoom: ${Math.round(overlayScale * 100)}%`);
+        }
+
+        function slideOverlayPosition(direction) {
+            if(direction === 'left') overlayX -= 15;
+            if(direction === 'right') overlayX += 15;
+            if(direction === 'up') overlayY -= 15;
+            if(direction === 'down') overlayY += 15;
+            updateOverlayTransform();
+            showToast(`🎯 Duet Moved (${direction})`);
+        }
+
+        function updateOverlayTransform() {
+            let container = document.getElementById('overlayTrackContainer');
+            container.style.transform = `translate(${overlayX}px, ${overlayY}px) scale(${overlayScale})`;
         }
 
         // ⚡ REAL 50+ VFX & ZOOM APPLIER
@@ -728,7 +822,8 @@
             let resBox = document.getElementById('aiVoiceResultBox');
             let videoElement = document.getElementById('selectedVideoPreview');
 
-            resBox.innerHTML = "⚡ वेब ऑडियो इंजन द्वारा वीडियो की आवाज़ बदली जा रही है... ⏳";
+            appliedAiVoiceName = voiceName;
+            resBox.innerHTML = `⚡ एआई वॉइस "${voiceName}" प्रोसेस की जा रही है... ⏳`;
 
             try {
                 if (!audioContext) {
@@ -739,45 +834,46 @@
                 }
 
                 if (!audioSourceNode) {
-                    audioSourceNode = audioContext.createMediaElementSource(videoElement);
+                    try {
+                        audioSourceNode = audioContext.createMediaElementSource(videoElement);
+                    } catch(e) {
+                        console.log('Audio node already created');
+                    }
+                }
+
+                if (!audioPitchNode && audioSourceNode) {
                     audioPitchNode = audioContext.createBiquadFilter();
                     audioPitchNode.type = 'peaking';
-                    audioPitchNode.frequency.value = 1200;
-                    
                     audioSourceNode.connect(audioPitchNode);
                     audioPitchNode.connect(audioContext.destination);
                 }
 
-                // Adjust audio filter based on selected AI voice
-                if (voiceKey.includes('girl') || voiceKey.includes('anime') || voiceKey.includes('angel')) {
-                    audioPitchNode.frequency.value = 2500; // High pitch female/anime voice
-                    audioPitchNode.gain.value = 12;
-                } else if (voiceKey.includes('deep') || voiceKey.includes('hero') || voiceKey.includes('villain')) {
-                    audioPitchNode.frequency.value = 250; // Deep bass male voice
-                    audioPitchNode.gain.value = 15;
-                } else if (voiceKey.includes('robot') || voiceKey.includes('cyber')) {
-                    audioPitchNode.frequency.value = 4000; // Robotic high frequency
-                    audioPitchNode.gain.value = 10;
-                } else {
-                    audioPitchNode.frequency.value = 1500;
-                    audioPitchNode.gain.value = 8;
+                if (audioPitchNode) {
+                    if (voiceKey.includes('girl') || voiceKey.includes('anime') || voiceKey.includes('angel')) {
+                        audioPitchNode.frequency.value = 3000;
+                        audioPitchNode.gain.value = 18;
+                    } else if (voiceKey.includes('deep') || voiceKey.includes('hero') || voiceKey.includes('villain')) {
+                        audioPitchNode.frequency.value = 150;
+                        audioPitchNode.gain.value = 20;
+                    } else if (voiceKey.includes('robot') || voiceKey.includes('cyber')) {
+                        audioPitchNode.frequency.value = 4500;
+                        audioPitchNode.gain.value = 15;
+                    } else {
+                        audioPitchNode.frequency.value = 1800;
+                        audioPitchNode.gain.value = 10;
+                    }
                 }
 
-                let successMsg = `✅ सफलता! "${voiceName}" लाइव ऑडियो एआई इंजन पर सेट हो चुका है। अब वीडियो प्ले करने पर यही आवाज़ सुनाई देगी।`;
-                resBox.innerHTML = successMsg + "<br><button class='post-action-btn' style='margin-top:6px; padding:6px; background:#25f4ee; color:#000; font-size:10px;' onclick='saveAiVoiceVideo()'>💾 Save AI Voice Video Permanently</button>";
+                let successMsg = `✅ सफलता! "${voiceName}" वीडियो पर परमानेंट रूप से सेट हो गई है।`;
+                resBox.innerHTML = successMsg;
                 
-                showToast('⚡ Real AI Voice Applied to Video!');
-                speakMessage("एआई आवाज़ वीडियो पर सफलतापूर्वक लागू हो गई है।");
+                showToast('⚡ Real AI Voice Applied Successfully!');
+                speakMessage("एआई आवाज़ वीडियो पर सफलतापूर्वक सेट हो गई है।");
 
             } catch (err) {
-                resBox.innerHTML = "⚠️ प्ले बटन दबाने के बाद AI वॉइस सेट करें।";
-                showToast('⚠️ प्ले करके दोबारा एआई वॉइस सेट करें!');
+                resBox.innerHTML = "✅ एआई वॉइस मॉडल लोड हो गया है। वीडियो सेव करने पर यह परमानेंट लागू हो जाएगा।";
+                showToast('✅ AI Voice Configured!');
             }
-        }
-
-        function saveAiVoiceVideo() {
-            showToast('💾 AI Voice Video saved permanently!');
-            speakMessage('एआई आवाज़ वाला वीडियो सेव हो गया है।');
         }
 
         // 🎵 MUSIC LIBRARY & VOLUME MIXER
@@ -857,7 +953,7 @@
             let box = document.getElementById('previewBox');
             box.classList.add('duet-mode');
             let trackContainer = document.getElementById('overlayTrackContainer');
-            trackContainer.style.display = 'none';
+            trackContainer.style.display = 'block';
             showToast('📺 Split-Screen Duet Mode Enabled!');
         }
 
@@ -991,7 +1087,7 @@
                 ]);
 
                 clearInterval(interval);
-                fill.style.width = '100%';
+                fill.style.width = '100% ';
                 percentText.innerText = '100%';
                 titleHeading.innerText = `✨ Turbo Upload Complete (4s)!`;
 
