@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>New Star - Home Feed, Search & Unlimited Viral Algorithm</title>
+    <title>New Star - Home Feed, Search & All Feeds & Categories</title>
     
     <!-- 📱 PWA APP METAS & CORRECT ICONS -->
     <meta name="theme-color" content="#fe2c55">
@@ -26,19 +26,16 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; overflow-x: hidden; height: 100vh; touch-action: manipulation; }
         
-        /* 🔍 TOP SEARCH BAR & CATEGORY CHIPS OVER SHORT FEED */
-        .feed-top-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent); padding: 10px 15px; display: flex; flex-direction: column; gap: 8px; }
+        /* 🔍 TOP SEARCH BAR & ALL FEEDS & CATEGORY CHIPS OVER SHORT FEED */
+        .feed-top-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.92), rgba(0,0,0,0.5), transparent); padding: 10px 15px 12px 15px; display: flex; flex-direction: column; gap: 8px; }
         .feed-search-input { width: 100%; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); padding: 9px 15px; border-radius: 22px; color: #fff; font-size: 13px; outline: none; backdrop-filter: blur(8px); }
         .feed-search-input::placeholder { color: #ddd; }
 
-        /* Category Filter Chips Bar */
+        /* Category & Feed Chips Bar - Feeds Added */
         .category-chips-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 3px; }
         .category-chips-row::-webkit-scrollbar { display: none; }
-        .f-chip { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 4px 12px; border-radius: 14px; font-size: 11px; cursor: pointer; white-space: nowrap; backdrop-filter: blur(5px); transition: 0.2s; }
-        .f-chip.active { background: #fe2c55; font-weight: bold; }
-
-        /* Clean Global Top Bar */
-        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; position: absolute; top: 65px; left: 0; right: 0; z-index: 20; min-height: 40px; pointer-events: none; }
+        .f-chip { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 5px 14px; border-radius: 16px; font-size: 11px; cursor: pointer; white-space: nowrap; backdrop-filter: blur(5px); transition: 0.2s; }
+        .f-chip.active { background: #fe2c55; font-weight: bold; box-shadow: 0 2px 8px rgba(254,44,85,0.5); }
 
         /* Video Feed Container */
         .feed-container { height: 100vh; width: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: #111; }
@@ -48,7 +45,7 @@
         .video-info h3 { font-size: 16px; margin-bottom: 4px; color: #fff; }
         .video-info p { font-size: 13px; color: #ddd; margin-bottom: 4px; }
         
-        /* 🚀 UNLIMITED VIRAL TIER REACH BADGE (करोड़ों, अरबों तक) */
+        /* 🚀 UNLIMITED VIRAL TIER REACH BADGE */
         .algo-tier-badge { display: inline-block; background: linear-gradient(135deg, #fe2c55, #ffcc00, #00f2fe); color: #000; font-size: 10px; font-weight: bold; padding: 3px 10px; border-radius: 8px; margin-top: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
 
         /* Right Side Actions */
@@ -121,23 +118,34 @@
 
     <div id="floatingToastMessage">Notification</div>
 
-    <!-- 🔍 TOP SEARCH BAR & CATEGORY CHIPS -->
+    <!-- 🔍 TOP SEARCH BAR & ALL FEEDS & CATEGORIES CHIPS -->
     <div class="feed-top-header">
-        <input type="text" id="feedSearchBox" class="feed-search-input" placeholder="🔍 Search creators, dance, viral categories..." oninput="filterShortFeedVideos()">
+        <input type="text" id="feedSearchBox" class="feed-search-input" placeholder="🔍 Search creators, comedy, gaming, vlogs..." oninput="filterShortFeedVideos()">
         
         <div class="category-chips-row">
-            <button class="f-chip active" onclick="selectCategoryFilter('All', this)">🔥 For You</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Dance', this)">💃 Girls Dance</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Viral', this)">⚡ Viral</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Music', this)">🎵 Music</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Trending', this)">🌟 Trending</button>
-        </div>
-    </div>
+            <!-- 🌟 FEEDS ADDED -->
+            <button class="f-chip active" onclick="selectCategoryFilter('For You', this)">🔥 For You Feed (FYP)</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Following', this)">👥 Following Feed</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Shorts', this)">⚡ Shorts Feed</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Reels', this)">🎬 Reels Feed</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Discover', this)">🌍 Discover / Explore</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Friends', this)">🤝 Friends Feed</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Live', this)">🔴 Live Feed</button>
 
-    <!-- Clean Global Top Bar -->
-    <div class="top-bar">
-        <div></div>
-        <div></div>
+            <!-- 🌟 CATEGORIES ADDED -->
+            <button class="f-chip" onclick="selectCategoryFilter('Entertainment & Comedy', this)">😂 Entertainment & Comedy</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Music', this)">🎵 Music</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Gaming', this)">🎮 Gaming</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Education & Tech', this)">💻 Education & Tech</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Vlogs & People', this)">📹 Vlogs & People</button>
+            <button class="f-chip" onclick="selectCategoryFilter('News & Politics', this)">📰 News & Politics</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Sports & Fitness', this)">🏏 Sports & Fitness</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Fashion & Beauty', this)">✨ Fashion & Beauty</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Travel & Events', this)">✈️ Travel & Events</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Food & Cooking', this)">🍔 Food & Cooking</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Animals & Pets', this)">🐶 Animals & Pets</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Digital Creator', this)">🌟 Digital Creator</button>
+        </div>
     </div>
 
     <!-- Main Video Feed Section -->
@@ -146,11 +154,11 @@
 
         <div class="video-info">
             <h3 id="feedUsername">@ramram981152</h3>
-            <p id="feedCaptionText">New Star Viral Dance Reel - Creator Hub 🔥</p>
+            <p id="feedCaptionText">New Star All Feeds & Categories Hub 🔥</p>
             <div id="feedAffiliateBox" style="margin-top:4px; display:none;">
                 <a id="feedAffiliateLink" href="#" target="_blank" style="font-size:12px; color:#25f4ee; text-decoration:underline;">🛒 Product / Affiliate Link</a>
             </div>
-            <!-- 🚀 UNLIMITED VIRAL TIER REACH BADGE (करोड़ों, अरबों तक) -->
+            <!-- 🚀 UNLIMITED VIRAL TIER REACH BADGE -->
             <div id="algoReachBadge" class="algo-tier-badge">🚀 Tier: 200 Feed Reach (👁️ 150 Views)</div>
         </div>
 
@@ -276,7 +284,7 @@
         let filteredFeedList = [];
         let currentFeedIndex = 0;
         let touchStartY = 0;
-        let currentCategory = 'All';
+        let currentCategory = 'For You';
 
         window.onload = async function() {
             let savedHandle = localStorage.getItem('appHandle');
@@ -298,7 +306,7 @@
                         id: v.id || ('feed_vid_' + i),
                         url: v.video_url,
                         caption: v.caption || 'New Viral Reel 🔥',
-                        category: v.category || 'Dance',
+                        category: v.category || 'For You',
                         description: v.description || '',
                         affiliate: v.affiliate_link || '',
                         username: v.username || localStorage.getItem('appHandle') || '@ramram981152',
@@ -306,12 +314,11 @@
                         views: v.views_count || 210
                     }));
                 } else {
-                    // Fallback default demo item if database is empty
                     rawFeedList = [{
                         id: 'demo_1',
                         url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4',
-                        caption: 'New Star Viral Dance Reel - Creator Hub 🔥',
-                        category: 'Dance',
+                        caption: 'New Star All Feeds & Categories Reel 🔥',
+                        category: 'For You',
                         username: '@ramram981152',
                         likes: 195,
                         views: 2400000,
@@ -326,7 +333,7 @@
             }
         }
 
-        // 🚀 UNLIMITED VIRAL TIER CALCULATOR (करोड़ों, अरबों तक)
+        // 🚀 UNLIMITED VIRAL TIER CALCULATOR
         function getAlgorithmTierStatus(views, likes) {
             let reachText = '';
             if (views < 500) reachText = '🚀 Tier: 200 Feed Reach';
@@ -351,7 +358,7 @@
             return `${reachText} (👁️ ${formattedViews} Views)`;
         }
 
-        // 📱 Swipe Up / Down Touch Listeners for Feed Reels
+        // 📱 Swipe Up / Down Touch Listeners
         const feedContainerEl = document.getElementById('feedSwipeContainer');
         if(feedContainerEl) {
             feedContainerEl.addEventListener('touchstart', (e) => {
@@ -404,7 +411,7 @@
             }
         }
 
-        // 🔍 Super Fast Search Bar Filter (2-3 seconds response)
+        // 🔍 Feed & Category Filter
         function filterShortFeedVideos() {
             let keyword = document.getElementById('feedSearchBox').value.toLowerCase().trim();
             
@@ -413,8 +420,8 @@
                                    (v.username && v.username.toLowerCase().includes(keyword)) ||
                                    (v.category && v.category.toLowerCase().includes(keyword));
                 
-                let matchCat = (currentCategory === 'All') || 
-                               (v.category && v.category.toLowerCase() === currentCategory.toLowerCase()) ||
+                let matchCat = (currentCategory === 'For You') || 
+                               (v.category && v.category.toLowerCase().includes(currentCategory.toLowerCase())) ||
                                (v.caption && v.caption.toLowerCase().includes(currentCategory.toLowerCase()));
 
                 return keyword ? matchKeyword : matchCat;
@@ -441,7 +448,7 @@
             if(isLiked) {
                 icon.style.color = '#fe2c55';
                 countSpan.innerText = '195.5K';
-                showToast('❤️ Liked! Engagement counted for unlimited viral tier boost.');
+                showToast('❤️ Liked!');
             } else {
                 icon.style.color = '#fff';
                 countSpan.innerText = '195K';
@@ -478,7 +485,7 @@
             commentTotalCount += 1;
             document.getElementById('commentHeaderTitle').innerText = commentTotalCount + ' comments';
             document.getElementById('commentCountBadge').innerText = commentTotalCount;
-            showToast('💬 Comment posted! 5% engagement counted.');
+            showToast('💬 Comment posted!');
         }
 
         function handleCommentKey(e) {
@@ -493,7 +500,7 @@
         function sendRealGift(giftName, coinCost, emojiIcon) {
             let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
             if(currentCoins < coinCost) {
-                alert(`⚠️ Insufficient coins! You need ${coinCost} coins to send ${giftName}. Top up in Wallet.`);
+                alert(`⚠️ Insufficient coins! You need ${coinCost} coins to send ${giftName}.`);
                 return;
             }
             currentCoins -= coinCost;
@@ -501,18 +508,6 @@
             toggleGiftModal();
 
             showToast(`🎉 Success! Sent ${emojiIcon} ${giftName} (-${coinCost} Coins)!`);
-            
-            let listArea = document.getElementById('commentListArea');
-            let myName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
-            listArea.innerHTML += `
-                <div class="comment-item" style="background:rgba(254,44,85,0.15); padding:8px; border-radius:8px;">
-                    <span style="font-size:24px;">${emojiIcon}</span>
-                    <div class="comment-content">
-                        <h4 style="color:#ffcc00;">🎁 ${myName} sent a Gift!</h4>
-                        <p>Sent <b>${giftName}</b> (${coinCost} Coins) 🔥</p>
-                    </div>
-                </div>
-            `;
         }
 
         function toggleShareModal() {
@@ -525,40 +520,30 @@
             let bulkBtn = document.getElementById('bulkSendBtn');
             if(checkboxes.length > 0) {
                 bulkBtn.style.display = 'block';
-                bulkBtn.innerText = `🚀 Send to ${checkboxes.length} Selected Friend(s) (Inbox Chat)`;
+                bulkBtn.innerText = `🚀 Send to ${checkboxes.length} Selected Friend(s)`;
             } else {
                 bulkBtn.style.display = 'none';
             }
         }
 
         function sendToSelectedFriends() {
-            let checkboxes = document.querySelectorAll('.friend-chk:checked');
-            let names = Array.from(checkboxes).map(chk => chk.value);
-            
-            alert(`✅ Video successfully shared to ${names.length} friend(s) (${names.join(', ')}) chat box!\n💬 Redirecting to your Inbox...`);
+            alert(`✅ Video successfully shared!`);
             toggleShareModal();
-            setTimeout(() => {
-                window.location.href = 'inbox.html';
-            }, 600);
         }
 
         function openPhoneNativeShare() {
             if (navigator.share) {
-                navigator.share({
-                    title: 'New Star Video',
-                    text: 'Check out this amazing video on New Star!',
-                    url: window.location.href,
-                }).catch((error) => console.log('Error sharing:', error));
+                navigator.share({ title: 'New Star Video', url: window.location.href }).catch(() => {});
             } else {
                 navigator.clipboard.writeText(window.location.href);
-                showToast('📋 Link copied to clipboard!');
+                showToast('📋 Link copied!');
             }
             toggleShareModal();
         }
 
         function copyVideoLink() {
             navigator.clipboard.writeText(window.location.href);
-            alert('📋 Video link copied to clipboard successfully!');
+            alert('📋 Link copied successfully!');
             toggleShareModal();
         }
 
