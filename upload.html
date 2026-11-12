@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>New Star - Real Video Studio & Upload</title>
+    
+    <meta name="theme-color" content="#fe2c55">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #000; color: #fff; padding: 20px; padding-bottom: 90px; }
+        
+        .upload-card { max-width: 420px; margin: 0 auto; background: #121214; border: 1px solid #222; border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        .upload-card h2 { font-size: 20px; color: #fe2c55; text-align: center; margin-bottom: 20px; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 12px; color: #aaa; margin-bottom: 5px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; background: #1e1e24; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 14px; outline: none; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #fe2c55; }
+        
+        .file-drop-zone { border: 2px dashed #444; padding: 25px; text-align: center; border-radius: 10px; cursor: pointer; background: #18181c; margin-bottom: 15px; transition: 0.2s; }
+        .file-drop-zone:hover { border-color: #fe2c55; }
+        
+        .publish-btn { width: 100%; background: linear-gradient(135deg, #fe2c55, #ffcc00); color: #000; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 4px 15px rgba(254,44,85,0.4); }
+        .publish-btn:active { transform: scale(0.98); }
+
+        /* BOTTOM NAVBAR LINKED WITH INDEX */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #111; border-top: 1px solid #222; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #888; text-decoration: none; font-size: 11px; cursor: pointer; }
+        .nav-item.active { color: #fff; font-weight: bold; }
+        .nav-item span.icon { font-size: 20px; margin-bottom: 2px; }
+        .nav-center-btn { width: 42px; height: 32px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #000; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="upload-card">
+        <h2>🚀 Upload Original Video</h2>
+        
+        <div class="form-group">
+            <label>Select Video File</label>
+            <div class="file-drop-zone" onclick="document.getElementById('videoFile').click()">
+                <span style="font-size: 28px;">📹</span>
+                <p id="fileNameDisplay" style="font-size: 13px; color: #ccc; margin-top: 5px;">Click to browse video from phone</p>
+            </div>
+            <input type="file" id="videoFile" accept="video/*" style="display: none;" onchange="handleFileSelect(event)">
+        </div>
+
+        <div class="form-group">
+            <label>Select Category / Feed</label>
+            <select id="videoCategory">
+                <option value="For You">🔥 For You (FYP)</option>
+                <option value="Entertainment & Comedy">😂 Entertainment & Comedy</option>
+                <option value="Music">🎵 Music</option>
+                <option value="Gaming">🎮 Gaming</option>
+                <option value="Education & Tech">💻 Education & Tech</option>
+                <option value="Vlogs & People">📹 Vlogs & People</option>
+                <option value="Shorts">⚡ Shorts</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Caption & Hashtags</label>
+            <textarea id="videoCaption" rows="3" placeholder="Write an awesome caption... #NewStar #Viral"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Affiliate Link (Optional)</label>
+            <input type="text" id="videoAffiliate" placeholder="https://...">
+        </div>
+
+        <button class="publish-btn" onclick="uploadVideoToSupabase()">🚀 Publish Now</button>
+    </div>
+
+    <!-- BOTTOM NAVBAR -->
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item"><span class="icon">🏠</span><span>Home</span></a>
+        <a href="inbox.html" class="nav-item"><span class="icon">💬</span><span>Inbox</span></a>
+        <a href="camera.html" class="nav-item active"><div class="nav-center-btn">+</div></a>
+        <a href="wallet.html" class="nav-item"><span class="icon">💰</span><span>Wallet</span></a>
+        <a href="profile.html" class="nav-item"><span class="icon">👤</span><span>Profile</span></a>
+    </div>
+
+    <script src="navbar.js"></script>
+    <script>
+        let selectedFile = null;
+
+        function handleFileSelect(e) {
+            selectedFile = e.target.files[0];
+            if(selectedFile) {
+                document.getElementById('fileNameDisplay').innerText = `✅ Selected: ${selectedFile.name}`;
+            }
+        }
+
+        async function uploadVideoToSupabase() {
+            if(!selectedFile) {
+                alert('⚠️ Please select a video file first!');
+                return;
+            }
+
+            let caption = document.getElementById('videoCaption').value.trim();
+            let category = document.getElementById('videoCategory').value;
+            let affiliate = document.getElementById('videoAffiliate').value.trim();
+            let username = localStorage.getItem('appHandle') || '@ramram981152';
+
+            alert('⏳ Uploading video to Supabase cloud... Please wait.');
+
+            try {
+                let fileName = 'vid_' + Date.now() + '_' + selectedFile.name;
+                let { data: uploadData, error: uploadError } = await supabaseClient.storage
+                    .from('videos')
+                    .upload(fileName, selectedFile);
+
+                if(uploadError) {
+                    alert('❌ Storage Upload Error: ' + uploadError.message);
+                    return;
+                }
+
+                let { data: publicUrlData } = supabaseClient.storage
+                    .from('videos')
+                    .getPublicUrl(fileName);
+
+                let videoUrl = publicUrlData.publicUrl;
+
+                let { error: dbError } = await supabaseClient
+                    .from('videos')
+                    .insert([{
+                        video_url: videoUrl,
+                        caption: caption || 'New Viral Reel 🔥',
+                        category: category,
+                        affiliate_link: affiliate,
+                        username: username,
+                        likes_count: 0,
+                        views_count: 1
+                    }]);
+
+                if(dbError) {
+                    alert('❌ Database Error: ' + dbError.message);
+                } else {
+                    alert('🎉 Success! Your video is live on New Star feed!');
+                    window.location.href = 'index.html';
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert('❌ Unexpected error during upload.');
+            }
+        }
+    </script>
+</body>
+</html>
