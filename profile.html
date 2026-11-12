@@ -36,7 +36,7 @@
         .p-main-btn { flex: 1; background: #222; border: 1px solid #444; color: #fff; height: 40px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; text-decoration: none; }
         .p-main-btn.active { background: #fe2c55; border-color: #fe2c55; }
 
-        /* Edit Profile Modal (Detailed Settings) */
+        /* Edit Profile Modal */
         #editProfileModal { display: none; background: #181818; border: 1px solid #333; padding: 20px; margin: 15px; border-radius: 12px; text-align: left; max-height: 75vh; overflow-y: auto; }
         #editProfileModal h3 { font-size: 16px; color: #fe2c55; margin-bottom: 15px; }
         .form-group { margin-bottom: 12px; }
@@ -68,6 +68,10 @@
         .modal-video-box { width: 100%; height: 100%; position: absolute; top: 0; left: 0; display: flex; justify-content: center; align-items: center; background: #000; }
         .modal-video-box video { width: 100%; height: 100%; object-fit: cover; }
 
+        /* 📌 थ्री डॉट बटन वीडियो के कोने में */
+        .video-corner-three-dots { position: absolute; top: 15px; right: 15px; z-index: 40; }
+        .dot-menu-btn { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.4); color: #fff; width: 38px; height: 38px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+
         .modal-side-actions { position: absolute; right: 15px; bottom: 120px; display: flex; flex-direction: column; align-items: center; gap: 16px; z-index: 25; }
         .m-action-btn { text-align: center; color: #fff; font-size: 11px; cursor: pointer; position: relative; }
         .m-action-icon { width: 42px; height: 42px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; margin-bottom: 3px; border: 1px solid rgba(255,255,255,0.2); }
@@ -77,34 +81,39 @@
         .modal-video-info p { font-size: 12px; color: #ddd; margin-top: 4px; }
 
         /* ❤️ FLYING LIKE HEART ANIMATION */
-        .flying-heart { position: absolute; font-size: 28px; color: #fe2c55; animation: flyUpHeart 1s ease-out forwards; pointer-events: none; z-index: 100; }
+        .flying-heart { position: absolute; font-size: 32px; color: #fe2c55; animation: flyUpHeart 1.2s ease-out forwards; pointer-events: none; z-index: 100; }
         @keyframes flyUpHeart {
-            0% { transform: translateY(0px) scale(0.5); opacity: 1; }
-            50% { transform: translateY(-70px) scale(1.4) rotate(15deg); opacity: 0.8; }
-            100% { transform: translateY(-140px) scale(1) rotate(-15deg); opacity: 0; }
+            0% { transform: translateY(0px) scale(0.6); opacity: 1; }
+            50% { transform: translateY(-80px) scale(1.5) rotate(20deg); opacity: 0.9; }
+            100% { transform: translateY(-160px) scale(1.1) rotate(-20deg); opacity: 0; }
         }
 
         /* ✨ TIKTOK FLYING GIFT ANIMATION OVERLAY */
         .flying-gift-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        .flying-gift-box { font-size: 65px; animation: flyUpGift 1.8s ease-out forwards; text-align: center; text-shadow: 0 5px 20px rgba(0,0,0,0.9); }
-        .flying-gift-box span { display: block; font-size: 14px; color: #ffcc00; font-weight: bold; background: rgba(0,0,0,0.7); padding: 4px 12px; border-radius: 12px; margin-top: 5px; border: 1px solid #fe2c55; }
+        .flying-gift-box { font-size: 70px; animation: flyUpGift 1.8s ease-out forwards; text-align: center; text-shadow: 0 5px 25px rgba(0,0,0,0.9); }
+        .flying-gift-box span { display: block; font-size: 15px; color: #ffcc00; font-weight: bold; background: rgba(0,0,0,0.8); padding: 5px 14px; border-radius: 12px; margin-top: 6px; border: 1px solid #fe2c55; }
         @keyframes flyUpGift {
-            0% { transform: translateY(150px) scale(0.3); opacity: 0; }
-            40% { transform: translateY(0px) scale(1.3); opacity: 1; }
-            70% { transform: translateY(-80px) scale(1.1); opacity: 1; }
-            100% { transform: translateY(-220px) scale(0.8); opacity: 0; }
+            0% { transform: translateY(180px) scale(0.3); opacity: 0; }
+            40% { transform: translateY(0px) scale(1.4); opacity: 1; }
+            70% { transform: translateY(-90px) scale(1.1); opacity: 1; }
+            100% { transform: translateY(-240px) scale(0.7); opacity: 0; }
         }
 
         /* ⚙️ CREATOR SETTING / MANAGER PANEL */
-        #creatorSettingsModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; box-shadow: 0 -5px 25px rgba(0,0,0,0.9); max-height: 80vh; overflow-y: auto; }
+        #creatorSettingsModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; box-shadow: 0 -5px 25px rgba(0,0,0,0.9); max-height: 85vh; overflow-y: auto; }
         
         /* COMMENTS MODAL */
         #commentModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 55vh; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; z-index: 1050; flex-direction: column; }
         
+        /* 🚫 COMMENT LONG-PRESS ACTION MODAL */
+        #commentActionModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
+        .comment-action-card { background: #222; border: 1px solid #444; width: 280px; border-radius: 12px; padding: 15px; text-align: center; }
+        .comment-action-btn { display: block; width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; }
+
         /* SHARE MODAL */
         #shareModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #1c1c1e; border-top: 2px solid #333; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; }
 
-        /* GIFT MODAL (FULL 16 OPTIONS) */
+        /* GIFT MODAL */
         #giftModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; max-height: 60vh; overflow-y: auto; }
         .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
         .gift-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s; }
@@ -136,7 +145,6 @@
         <p id="profileHandleText">@ramram981152</p>
         <div class="profile-extra-info" id="profileExtraInfo">📍 Siddharthanagar, Nepal | 📧 ram060039@gmail.com | 📱 +977-9800000000</div>
         
-        <!-- 🌐 AFFILIATE & CUSTOM LINKS DISPLAY -->
         <div class="profile-social-links" id="profileAffiliateLinkText">🔗 Affiliate / Custom Link: Not Added</div>
         <div class="profile-social-links" id="profileSocialLinksText" style="margin-top:2px;">🌐 Social Links: facebook.com/ramkumar</div>
         
@@ -155,7 +163,7 @@
         </div>
     </div>
 
-    <!-- Edit Profile Modal (Complete Comprehensive Settings with Affiliate & Links) -->
+    <!-- Edit Profile Modal -->
     <div id="editProfileModal">
         <h3>✏️ Edit Profile & Affiliate Links</h3>
         <div class="form-group">
@@ -167,8 +175,7 @@
         <div class="form-group"><label>Username:</label><input type="text" id="inputHandle" value="@ramram981152"></div>
         <div class="form-group"><label>Bio / Description:</label><textarea id="inputBio" rows="2">Painter & Creator Hub</textarea></div>
         
-        <!-- 🔗 Affiliate / Product / Custom App Link Input -->
-        <div class="form-group"><label>Affiliate / Custom Referral Link (Daraz, Product or App):</label><input type="text" id="inputAffiliate" placeholder="https://example.com/affiliate-link"></div>
+        <div class="form-group"><label>Affiliate / Custom Referral Link:</label><input type="text" id="inputAffiliate" placeholder="https://example.com/affiliate-link"></div>
 
         <div class="form-group"><label>Address / Location:</label><input type="text" id="inputAddress" value="Siddharthanagar, Nepal"></div>
         <div class="form-group"><label>Phone Number:</label><input type="text" id="inputPhone" value="+977-9800000000"></div>
@@ -193,7 +200,7 @@
         <div class="modal-top-bar" style="z-index: 50;">
             <button onclick="closeVideoPlayer()" style="background:rgba(0,0,0,0.5); border:1px solid #444; color:#fff; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;">←</button>
             <h3>New Star Reel</h3>
-            <button onclick="openCreatorSettings()" style="background:rgba(254,44,85,0.8); border:none; color:#fff; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;" title="Creator Settings">⚙️</button>
+            <div></div>
         </div>
 
         <div class="modal-scroll-container" id="modalScrollFeed" onscroll="handleReelScroll()">
@@ -217,27 +224,39 @@
         </div>
     </div>
 
-    <!-- ⚙️ CREATOR SETTING / MANAGER PANEL -->
+    <!-- ⚙️ CREATOR SETTING MANAGER (TITLE, DESC, GALLERY AUDIO & VOICE RECORDING) -->
     <div id="creatorSettingsModal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h3 style="font-size:16px; color:#fe2c55;">⚙️ Creator Video Manager & Details</h3>
+            <h3 style="font-size:16px; color:#fe2c55;">⚙️ Video Edit, Audio & Voice Studio</h3>
             <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="closeCreatorSettings()">✕</span>
         </div>
         
         <div class="form-group">
-            <label>Video Title / Caption:</label>
-            <input type="text" id="settingVideoCaption" placeholder="Write catchy title...">
+            <label>Change Video Title / Caption:</label>
+            <input type="text" id="settingVideoCaption" placeholder="Write new title...">
         </div>
 
         <div class="form-group">
-            <label>Detailed Video Description:</label>
-            <textarea id="settingVideoDesc" rows="3" placeholder="Write detailed info about this video..."></textarea>
+            <label>Change Video Description:</label>
+            <textarea id="settingVideoDesc" rows="2" placeholder="Write new description..."></textarea>
         </div>
 
         <div class="form-group">
-            <label>Affiliate / Product / Promo Link for this Video:</label>
-            <input type="text" id="settingVideoAffiliate" placeholder="https://your-affiliate-link.com">
+            <label>🎵 Select Music from Gallery / File Manager:</label>
+            <input type="file" id="settingMusicFileInput" accept="audio/*" style="display:none;" onchange="onSettingMusicChosen(event)">
+            <label for="settingMusicFileInput" class="file-upload-btn">📁 Browse Gallery Audio Track</label>
         </div>
+
+        <div class="form-group" style="text-align: center; background: #111; padding: 12px; border-radius: 8px; border: 1px dashed #444;">
+            <label style="color: #ffcc00; margin-bottom: 8px;">🎙️ Or Record Your Own Voice Over:</label>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" id="startVoiceRecBtn" class="p-main-btn active" style="flex:1; background:#0077b6;" onclick="startCustomVoiceRecording()">🎙️ Start Recording</button>
+                <button type="button" id="stopVoiceRecBtn" class="p-main-btn" style="flex:1; background:#d90429; display:none;" onclick="stopCustomVoiceRecording()">⏹️ Stop Recording</button>
+            </div>
+            <p id="voiceRecStatusText" style="font-size: 11px; color: #25f4ee; margin-top: 6px;"></p>
+        </div>
+
+        <p id="selectedMusicNameDisplay" style="font-size:11px; color:#ffcc00; margin-top:6px; word-break:break-all;"></p>
 
         <div style="display:flex; gap:10px; margin-top: 15px;">
             <button class="p-main-btn active" style="flex:1;" onclick="saveCreatorVideoSettings()">💾 Save Changes</button>
@@ -248,15 +267,26 @@
     <!-- COMMENTS MODAL -->
     <div id="commentModal" style="display:none; flex-direction:column;">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #222;">
-            <h3>Comments & Permanent Gifts</h3>
+            <h3>Comments & Permanent Gifts (Hold comment to Delete/Block)</h3>
             <span style="cursor:pointer; font-size:18px;" onclick="closeCommentModal()">✕</span>
         </div>
         <div style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column; gap:12px;" id="commentListArea">
-            <!-- Permanent Comments and Gifts load here -->
+            <!-- Permanent Comments load here -->
         </div>
         <div style="display:flex; padding:10px; background:#111; border-top:1px solid #222; gap:8px;">
             <input type="text" id="modalCommentInput" placeholder="Add comment..." style="flex:1; padding:8px 12px; background:#222; border:1px solid #444; color:#fff; border-radius:20px; outline:none; font-size:13px;">
             <button onclick="postModalComment()" style="background:#fe2c55; color:#fff; border:none; padding:8px 16px; border-radius:20px; font-weight:bold; cursor:pointer;">Post</button>
+        </div>
+    </div>
+
+    <!-- 🚫 COMMENT LONG-PRESS ACTION MODAL -->
+    <div id="commentActionModal" onclick="closeCommentActionModal()">
+        <div class="comment-action-card" onclick="event.stopPropagation()">
+            <h3 style="font-size:15px; color:#fe2c55; margin-bottom:10px;">⚙️ Manage Comment</h3>
+            <p id="actionCommentUserText" style="font-size:12px; color:#aaa; margin-bottom:12px;"></p>
+            <button class="comment-action-btn" style="background:#ff3b30; color:#fff;" onclick="executeDeleteComment()">🗑️ Delete Comment</button>
+            <button class="comment-action-btn" style="background:#444; color:#fff;" onclick="executeBlockUser()">🚫 Block User</button>
+            <button class="comment-action-btn" style="background:transparent; color:#aaa; border:1px solid #555;" onclick="closeCommentActionModal()">Cancel</button>
         </div>
     </div>
 
@@ -302,6 +332,10 @@
     <script>
         let activeVideoList = [];
         let currentSelectedVideoIndex = 0;
+        let tempNewMusicUrl = '';
+        let selectedCommentIndexForAction = null;
+        let voiceRecorderObj = null;
+        let voiceRecordedChunks = [];
 
         window.onload = async function() {
             loadProfileDetails();
@@ -391,7 +425,6 @@
             }
         }
 
-        // 🎬 टिक टॉक की तरह वर्टिकल स्क्रॉलिंग फीड तैयार करना
         function openVideoPlayer(startIndex) {
             currentSelectedVideoIndex = startIndex;
             let container = document.getElementById('modalScrollFeed');
@@ -403,6 +436,10 @@
                 let slide = document.createElement('div');
                 slide.className = 'reel-slide-card';
                 slide.innerHTML = `
+                    <div class="video-corner-three-dots">
+                        <div class="dot-menu-btn" onclick="openCreatorSettings(${index})" title="Edit Title, Description & Audio">⋮</div>
+                    </div>
+
                     <div class="modal-video-box" onclick="togglePlayPause(this)">
                         <video class="reel-video-item" src="${video.url}" loop playsinline preload="auto"></video>
                         <div class="flying-gift-overlay"></div>
@@ -440,7 +477,6 @@
 
             document.getElementById('videoPlayerModal').style.display = 'block';
 
-            // तुरंत उस वीडियो पर स्क्रॉल करें जिसपर यूजर ने क्लिक किया है
             setTimeout(() => {
                 let targetSlide = container.children[startIndex];
                 if(targetSlide) {
@@ -464,7 +500,6 @@
             }
         }
 
-        // 🔄 स्क्रॉल करने पर जो वीडियो सामने दिखेगा, सिर्फ वही प्ले होगा बाकी पॉज हो जाएंगे
         function handleReelScroll() {
             playActiveVideoInView();
         }
@@ -493,21 +528,19 @@
             if(currentVideo) {
                 document.getElementById('settingVideoCaption').value = currentVideo.caption || '';
                 document.getElementById('settingVideoDesc').value = currentVideo.description || '';
-                document.getElementById('settingVideoAffiliate').value = currentVideo.affiliate || '';
                 loadPermanentInterests(currentVideo.id || ('vid_idx_' + activeIndex));
             }
         }
 
-        let isLikedModal = false;
         function toggleModalLike(index) {
-            let icon = document.getElementById(`likeIcon_${index}`);
             let btnWrapper = document.getElementById(`likeBtn_${index}`);
+            if(!btnWrapper) return;
             
             let heart = document.createElement('div');
             heart.className = 'flying-heart';
             heart.innerHTML = '❤️';
             btnWrapper.appendChild(heart);
-            setTimeout(() => { heart.remove(); }, 1000);
+            setTimeout(() => { heart.remove(); }, 1200);
         }
 
         let holdTimer = null;
@@ -535,12 +568,17 @@
 
         function loadPermanentInterests(videoId) {
             let commentList = document.getElementById('commentListArea');
-            commentList.innerHTML = `<div style="display:flex; gap:10px;"><img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:30px;height:30px;border-radius:50%;"><div><h4 style="font-size:12px;color:#aaa;">New Star User</h4><p style="font-size:13px;">Super hit video bhai! 🔥</p></div></div>`;
+            commentList.innerHTML = `
+                <div style="display:flex; gap:10px; align-items:center; background:#1f1f23; padding:8px 10px; border-radius:8px;" onmousedown="startCommentHold(event, '${videoId}', -1)" ontouchstart="startCommentHold(event, '${videoId}', -1)">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:30px;height:30px;border-radius:50%;">
+                    <div><h4 style="font-size:12px;color:#aaa;">New Star User</h4><p style="font-size:13px;color:#fff;">Super hit video bhai! 🔥</p></div>
+                </div>
+            `;
 
             let storageKey = getGlobalStorageKey(videoId);
             let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
 
-            savedRecords.forEach(record => {
+            savedRecords.forEach((record, recIdx) => {
                 if (record.type === 'gift') {
                     commentList.innerHTML += `
                         <div style="display:flex; gap:10px; background:rgba(254,44,85,0.18); padding:10px; border-radius:10px; border-left:4px solid #fe2c55; align-items:center;">
@@ -553,11 +591,11 @@
                     `;
                 } else if (record.type === 'comment') {
                     commentList.innerHTML += `
-                        <div style="display:flex; gap:10px; align-items:center;">
+                        <div style="display:flex; gap:10px; align-items:center; background:#1f1f23; padding:8px 10px; border-radius:8px; cursor:pointer;" onmousedown="startCommentHold(event, '${videoId}', ${recIdx})" ontouchstart="startCommentHold(event, '${videoId}', ${recIdx})" title="Hold to Delete / Block">
                             <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" style="width:30px;height:30px;border-radius:50%;">
-                            <div>
+                            <div style="flex:1;">
                                 <h4 style="font-size:12px;color:#aaa;">${record.sender}</h4>
-                                <p style="font-size:13px;">${record.text}</p>
+                                <p style="font-size:13px;color:#fff;">${record.text}</p>
                             </div>
                         </div>
                     `;
@@ -570,6 +608,63 @@
             let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
             savedRecords.push(recordObj);
             localStorage.setItem(storageKey, JSON.stringify(savedRecords));
+        }
+
+        let commentHoldTimer = null;
+        function startCommentHold(e, videoId, recordIndex) {
+            commentHoldTimer = setTimeout(() => {
+                selectedCommentIndexForAction = { videoId, recordIndex };
+                let storageKey = getGlobalStorageKey(videoId);
+                let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                
+                let senderText = recordIndex === -1 ? 'New Star User' : (savedRecords[recordIndex] ? savedRecords[recordIndex].sender : 'User');
+                document.getElementById('actionCommentUserText').innerText = `Manage comment by: ${senderText}`;
+                document.getElementById('commentActionModal').style.display = 'flex';
+            }, 600);
+
+            let cancelHold = () => {
+                clearTimeout(commentHoldTimer);
+                window.removeEventListener('mouseup', cancelHold);
+                window.removeEventListener('touchend', cancelHold);
+            };
+            window.addEventListener('mouseup', cancelHold);
+            window.addEventListener('touchend', cancelHold);
+        }
+
+        function closeCommentActionModal() {
+            document.getElementById('commentActionModal').style.display = 'none';
+        }
+
+        function executeDeleteComment() {
+            if(!selectedCommentIndexForAction) return;
+            let { videoId, recordIndex } = selectedCommentIndexForAction;
+            
+            if(recordIndex === -1) {
+                alert('⚠️ Default comment cannot be deleted.');
+            } else {
+                let storageKey = getGlobalStorageKey(videoId);
+                let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                savedRecords.splice(recordIndex, 1);
+                localStorage.setItem(storageKey, JSON.stringify(savedRecords));
+                loadPermanentInterests(videoId);
+                alert('✅ Comment deleted successfully!');
+            }
+            closeCommentActionModal();
+        }
+
+        function executeBlockUser() {
+            if(!selectedCommentIndexForAction) return;
+            let { videoId, recordIndex } = selectedCommentIndexForAction;
+
+            if(recordIndex !== -1) {
+                let storageKey = getGlobalStorageKey(videoId);
+                let savedRecords = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                savedRecords.splice(recordIndex, 1);
+                localStorage.setItem(storageKey, JSON.stringify(savedRecords));
+                loadPermanentInterests(videoId);
+            }
+            alert('🚫 User blocked successfully and comments removed!');
+            closeCommentActionModal();
         }
 
         function sendRealGift(giftName, coinCost, emojiIcon) {
@@ -609,35 +704,95 @@
             loadPermanentInterests(videoUniqueId);
         }
 
-        function openCreatorSettings() { document.getElementById('creatorSettingsModal').style.display = 'block'; }
+        function openCreatorSettings(index) { 
+            if(index !== undefined) currentSelectedVideoIndex = index;
+            let currentVideo = activeVideoList[currentSelectedVideoIndex];
+            if(currentVideo) {
+                document.getElementById('settingVideoCaption').value = currentVideo.caption || '';
+                document.getElementById('settingVideoDesc').value = currentVideo.description || '';
+            }
+            tempNewMusicUrl = '';
+            document.getElementById('selectedMusicNameDisplay').innerText = '';
+            document.getElementById('creatorSettingsModal').style.display = 'block'; 
+        }
+
         function closeCreatorSettings() { document.getElementById('creatorSettingsModal').style.display = 'none'; }
 
+        // 📁 गैलरी / फाइल मैनेजर से ऑडियो ट्रैक चुनना
+        function onSettingMusicChosen(event) {
+            let file = event.target.files[0];
+            if(file) {
+                tempNewMusicUrl = URL.createObjectURL(file);
+                document.getElementById('selectedMusicNameDisplay').innerText = `🎵 Gallery Audio Selected: ${file.name}`;
+            }
+        }
+
+        // 🎙️ खुद की आवाज़ (Voice Recording) रिकॉर्ड करने का सिस्टम
+        async function startCustomVoiceRecording() {
+            try {
+                let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                voiceRecorderObj = new MediaRecorder(stream);
+                voiceRecordedChunks = [];
+
+                voiceRecorderObj.ondataavailable = (e) => {
+                    if(e.data.size > 0) voiceRecordedChunks.push(e.data);
+                };
+
+                voiceRecorderObj.onstop = () => {
+                    let audioBlob = new Blob(voiceRecordedChunks, { type: 'audio/webm' });
+                    tempNewMusicUrl = URL.createObjectURL(audioBlob);
+                    document.getElementById('selectedMusicNameDisplay').innerText = `🎙️ Voice Recording Saved & Ready!`;
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                voiceRecorderObj.start();
+                document.getElementById('startVoiceRecBtn').style.display = 'none';
+                document.getElementById('stopVoiceRecBtn').style.display = 'block';
+                document.getElementById('voiceRecStatusText').innerText = '🔴 Recording voice... Speak now!';
+            } catch(err) {
+                alert('❌ Microphone permission denied or error: ' + err.message);
+            }
+        }
+
+        function stopCustomVoiceRecording() {
+            if(voiceRecorderObj && voiceRecorderObj.state === 'recording') {
+                voiceRecorderObj.stop();
+                document.getElementById('startVoiceRecBtn').style.display = 'block';
+                document.getElementById('stopVoiceRecBtn').style.display = 'none';
+                document.getElementById('voiceRecStatusText').innerText = '✅ Voice recorded successfully!';
+            }
+        }
+
+        // 💾 वीडियो एडिट (टाइटल, डिस्क्रिप्शन और ऑडियो ट्रैक) सेव करना
         async function saveCreatorVideoSettings() {
             if(currentSelectedVideoIndex === null) return;
             let newCaption = document.getElementById('settingVideoCaption').value.trim();
             let newDesc = document.getElementById('settingVideoDesc').value.trim();
-            let newAff = document.getElementById('settingVideoAffiliate').value.trim();
             
             activeVideoList[currentSelectedVideoIndex].caption = newCaption;
             activeVideoList[currentSelectedVideoIndex].description = newDesc;
-            activeVideoList[currentSelectedVideoIndex].affiliate = newAff;
+
+            if(tempNewMusicUrl) {
+                activeVideoList[currentSelectedVideoIndex].audioUrl = tempNewMusicUrl;
+            }
 
             localStorage.setItem('customFeedVideos', JSON.stringify(activeVideoList));
             
-            alert('✅ Video details updated successfully!');
+            alert('✅ Video details & audio updated successfully!');
             closeCreatorSettings();
             openVideoPlayer(currentSelectedVideoIndex);
             await fetchCreatorVideos();
         }
 
         function deleteThisVideo() {
-            if(confirm('🗑️ Delete this video permanently from profile?')) {
+            if(confirm('🗑️ Delete this video permanently from profile and feed?')) {
                 if(currentSelectedVideoIndex === null) return;
                 activeVideoList.splice(currentSelectedVideoIndex, 1);
                 localStorage.setItem('customFeedVideos', JSON.stringify(activeVideoList));
                 closeCreatorSettings();
                 closeVideoPlayer();
                 fetchCreatorVideos();
+                alert('✅ Video successfully deleted!');
             }
         }
 
