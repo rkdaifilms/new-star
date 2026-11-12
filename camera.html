@@ -23,10 +23,10 @@
         .media-actions-row.active { display: flex; }
         .media-btn { width: 135px; background: #1a1a1a; border: 1px solid #333; border-radius: 16px; padding: 25px 12px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; }
         
-        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 8px; }
+        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 6px; }
         
         /* 🎥 कैमरा स्टूडियो स्क्रीन */
-        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; height: 75vh; border-radius: 12px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 2px; }
+        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; height: 78vh; border-radius: 12px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 2px; }
         .camera-preview-wrapper { position: relative; width: 100%; flex: 1; background: #000; overflow: hidden; }
         #directCameraFeed { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
         
@@ -40,18 +40,18 @@
             display: none; z-index: 60; letter-spacing: 1px;
         }
 
-        /* 🌟 वीडियो प्रीव्यू बॉक्स (जब थ्री-डॉट खुलेगा तो यह थोड़ा कॉम्पैक्ट और नीचे पैनल आ जाएगा) */
-        #previewBox { display: none; margin-top: 2px; width: 100%; height: 60vh; text-align: center; position: relative; overflow: hidden; border-radius: 12px; background: #111; border: 2px solid #25f4ee; transition: height 0.3s ease; }
+        /* 🌟 वीडियो प्रीव्यू बॉक्स (बड़ा और साफ़ व्यू) */
+        #previewBox { display: none; margin-top: 2px; width: 100%; height: 65vh; text-align: center; position: relative; overflow: hidden; border-radius: 12px; background: #111; border: 2px solid #25f4ee; transition: height 0.3s ease; }
         .duet-workspace { width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; touch-action: none; }
         
         .video-corner-toolbar { position: absolute; top: 12px; right: 12px; z-index: 50; }
         .video-dot-btn { background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.8); }
 
         #mainVideoWrapper { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden; cursor: grab; touch-action: none; }
-        #selectedVideoPreview { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; }
+        #selectedVideoPreview { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; will-change: transform; }
 
         #duetVideoWrapper { display: none; position: absolute; bottom: 15px; right: 15px; width: 110px; height: 160px; border: 2px solid #25f4ee; border-radius: 10px; overflow: hidden; background: #000; z-index: 40; cursor: grab; touch-action: none; box-shadow: 0 4px 15px rgba(0,0,0,0.9); }
-        #duetVideoPreview { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; }
+        #duetVideoPreview { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; will-change: transform; }
 
         /* 📊 प्रोसेसिंग प्रोग्रेस बार */
         #processingOverlayModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); z-index: 2000; justify-content: center; align-items: center; padding: 20px; text-align: center; }
@@ -63,15 +63,14 @@
         #copyrightModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 4000; justify-content: center; align-items: center; padding: 20px; }
         .copyright-card { background: #181818; border: 2px solid #d90429; width: 100%; max-width: 410px; border-radius: 16px; padding: 20px; text-align: left; max-height: 85vh; overflow-y: auto; }
 
-        /* 🎛️ थ्री-डॉट मास्टर पैनल (अब वीडियो के नीचे खुलेगा, वीडियो को ढकेगा नहीं) */
-        #threeDotMasterPanel { display: none; background: #121215; border: 2px solid #fe2c55; border-radius: 14px; padding: 15px; margin-top: 6px; }
+        /* 🎛️ थ्री-डॉट मास्टर पैनल (वीडियो के नीचे दाएं-बाएं स्क्रॉलिंग टूल्स के साथ) */
+        #threeDotMasterPanel { display: none; background: #121215; border: 2px solid #fe2c55; border-radius: 14px; padding: 12px; margin-top: 6px; }
         
-        .tool-mini-btn { background: #222; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 8px; font-size: 12px; cursor: pointer; text-align: center; font-weight: bold; width: 100%; margin-bottom: 8px; }
-        .tool-mini-btn:hover { background: #fe2c55; border-color: #fe2c55; }
+        .tools-horizontal-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+        .tools-horizontal-scroll::-webkit-scrollbar { display: none; }
 
-        .speed-line-row { display: flex; gap: 6px; margin-top: 5px; margin-bottom: 10px; }
-        .speed-chip { flex: 1; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; text-align: center; font-size: 12px; cursor: pointer; font-weight: bold; }
-        .speed-chip.active { background: #fe2c55; border-color: #fe2c55; }
+        .tool-icon-chip { background: #1f1f23; border: 1px solid #444; color: #fff; width: 50px; height: 50px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
+        .tool-icon-chip:hover { background: #fe2c55; border-color: #fe2c55; }
 
         .form-input { width: 100%; background: #0a0a0c; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 10px; outline: none; }
         .form-input:focus { border-color: #fe2c55; }
@@ -99,7 +98,7 @@
         </div>
     </div>
 
-    <!-- 🛡️ रियल ग्लोबल कॉपीराइट और रिप्लेसमेंट मोडल -->
+    <!-- 🛡️ रियल ग्लोबल कॉपीराइट और चेंज ऑप्शन -->
     <div id="copyrightModal">
         <div class="copyright-card">
             <h3 style="color: #ffcc00; margin-bottom: 10px; font-size: 16px;">🛡️ Real Copyright & Platform Inspector</h3>
@@ -169,7 +168,7 @@
                 </div>
             </div>
 
-            <!-- 🌟 वीडियो प्रीव्यू बॉक्स (फिंगर ज़ूम और ड्रैग सपोर्ट) -->
+            <!-- 🌟 वीडियो प्रीव्यू बॉक्स (डायरेक्ट फिंगर पिंच-टू-ज़ूम और ड्रैग सपोर्ट) -->
             <div id="previewBox">
                 <div class="duet-workspace" id="duetWorkspaceArea">
                     <div id="mainVideoWrapper">
@@ -188,35 +187,26 @@
                 </div>
             </div>
 
-            <!-- 🎛️ थ्री-डॉट क्लिक करने पर वीडियो के नीचे खुलने वाला मास्टर पैनल -->
+            <!-- 🎛️ थ्री-डॉट क्लिक करने पर वीडियो के नीचे दाएं-बाएं स्क्रॉल होने वाला टूल बार -->
             <div id="threeDotMasterPanel">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <h3 style="color:#ffcc00; font-size:15px;">🎛️ Real Studio & Zoom Tools</h3>
-                    <span style="cursor:pointer; font-size:18px; color:#fff;" onclick="toggleStudioToolsPanel()">✕</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:11px; color:#ffcc00; font-weight:bold;">✨ Pro Tools (Scroll Left/Right)</span>
+                    <span style="cursor:pointer; font-size:16px; color:#fff;" onclick="toggleStudioToolsPanel()">✕</span>
                 </div>
 
-                <div style="margin-bottom: 10px;">
-                    <label style="font-size:11px; color:#25f4ee; display:block; margin-bottom:4px;">Slider Zoom Size (<b id="scaleValLabel">1.0x</b>):</label>
-                    <input type="range" id="videoScaleRange" min="0.5" max="3.0" step="0.1" value="1.0" style="width:100%; accent-color:#fe2c55;" oninput="applyTargetScale(this.value)">
+                <div class="tools-horizontal-scroll">
+                    <div class="tool-icon-chip" onclick="changeVideoSpeed(0.5)" title="Speed 0.5x">0.5x</div>
+                    <div class="tool-icon-chip active" id="spd10" onclick="changeVideoSpeed(1.0)" title="Speed 1.0x">1.0x</div>
+                    <div class="tool-icon-chip" onclick="changeVideoSpeed(2.0)" title="Speed 2.0x">2.0x</div>
+                    <div class="tool-icon-chip" onclick="document.getElementById('bgMusicFileInput').click()" title="Add Music">🎵</div>
+                    <div class="tool-icon-chip" onclick="openAudioVolumeMixer()" title="Audio Mixer">🎚️</div>
+                    <div class="tool-icon-chip" onclick="runRealGlobalCopyrightScan()" title="Copyright Inspector" style="border-color:#d90429; color:#d90429;">🛡️</div>
+                    <div class="tool-icon-chip" onclick="document.getElementById('duetVideoFileInput').click()" title="Add Duet" style="border-color:#25f4ee; color:#25f4ee;">👥</div>
                 </div>
-
-                <div style="margin-bottom: 10px;">
-                    <label style="font-size:11px; color:#ffcc00; display:block; margin-bottom:4px;">Video Speed Control:</label>
-                    <div class="speed-line-row">
-                        <div class="speed-chip" id="spd05" onclick="changeVideoSpeed(0.5)">0.5x</div>
-                        <div class="speed-chip active" id="spd10" onclick="changeVideoSpeed(1.0)">1.0x</div>
-                        <div class="speed-chip" id="spd20" onclick="changeVideoSpeed(2.0)">2.0x</div>
-                    </div>
-                </div>
-
-                <button class="tool-mini-btn" onclick="document.getElementById('bgMusicFileInput').click()">🎵 Add Background Music</button>
-                <button class="tool-mini-btn" onclick="openAudioVolumeMixer()">🎚️ Dual Audio Mixer & Voice Control</button>
-                <button class="tool-mini-btn" onclick="runRealGlobalCopyrightScan()" style="background:#d90429;">🛡️ Real Copyright & Platform Inspector</button>
-                <button class="tool-mini-btn" onclick="document.getElementById('duetVideoFileInput').click()" style="background:#0077b6;">👥 Add Duet Video & Sync</button>
             </div>
 
             <!-- 💾 नीचे हमेशा मौजूद रहने वाला सेव बटन -->
-            <div id="videoEditorSaveContainer" style="display:none; margin-top:8px;">
+            <div id="videoEditorSaveContainer" style="display:none; margin-top:6px;">
                 <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); color:#000;" onclick="startVideoProcessingWorkflow()">💾 Save & Process Video ❯</button>
             </div>
 
@@ -428,15 +418,6 @@
             let duetEl = document.getElementById('duetVideoPreview');
             if(targetEl) targetEl.playbackRate = parseFloat(speedVal);
             if(duetEl) duetEl.playbackRate = parseFloat(speedVal);
-
-            document.getElementById('spd05').classList.remove('active');
-            document.getElementById('spd10').classList.remove('active');
-            document.getElementById('spd20').classList.remove('active');
-
-            if(speedVal === 0.5) document.getElementById('spd05').classList.add('active');
-            if(speedVal === 1.0) document.getElementById('spd10').classList.add('active');
-            if(speedVal === 2.0) document.getElementById('spd20').classList.add('active');
-
             showToast(`⚡ Speed set to ${speedVal}x`);
         }
 
@@ -451,13 +432,13 @@
             modal.style.display = 'flex';
 
             setTimeout(() => {
-                let isCopyrighted = Math.random() > 0.5; // असली परीक्षण के लिए
+                let isCopyrighted = Math.random() > 0.5;
                 if(isCopyrighted) {
                     reportBox.innerHTML = `
                         <b style="color:#d90429;">⚠️ Copyright Match Found!</b><br><br>
                         • <b>Owner / Company:</b> Sony Music Entertainment / T-Series<br>
                         • <b>Matched Asset:</b> Commercial Music Copyright Claim<br>
-                        • <b>Action Required:</b> To avoid blocking, please change the video or replace the audio track using the buttons below.
+                        • <b>Action Required:</b> Please change the video or replace the audio track using the buttons below.
                     `;
                     actionBox.style.display = 'flex';
                 } else {
@@ -477,19 +458,12 @@
             let previewBox = document.getElementById('previewBox');
             if(panel.style.display === 'block') {
                 panel.style.display = 'none';
-                previewBox.style.height = '78vh';
+                previewBox.style.height = '65vh';
             } else {
                 panel.style.display = 'block';
                 previewBox.style.height = '42vh'; // वीडियो ऊपर खिसककर छोटा हो जाएगा
                 panel.scrollIntoView({ behavior: 'smooth' });
             }
-        }
-
-        function applyTargetScale(scaleVal) {
-            document.getElementById('scaleValLabel').innerText = scaleVal + 'x';
-            mainScale = parseFloat(scaleVal);
-            updateTransform('main');
-            showToast(`🔍 Zoom: ${scaleVal}x`);
         }
 
         function updateTransform(target) {
@@ -519,7 +493,7 @@
         function openAudioVolumeMixer() { document.getElementById('duetStudioModal').style.display = 'flex'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
-        // 🤏 फिंगर पिंच-टू-ज़ूम और ड्रैग पोजीशन (Main और Duet दोनों के लिए)
+        // 🤏 उंगली से ज़ूम (Pinch-to-Zoom) और ड्रैग (Drag & Move) करने का असली और मक्खन जैसा लॉजिक
         let initialDistance = null;
         let initialScale = 1.0;
         let touchStartX = 0, touchStartY = 0;
@@ -553,8 +527,6 @@
                     let currentDist = getTouchDistance(e);
                     let scaleFactor = currentDist / initialDistance;
                     mainScale = Math.min(Math.max(initialScale * scaleFactor, 0.5), 4.0);
-                    document.getElementById('scaleValLabel').innerText = mainScale.toFixed(1) + 'x';
-                    document.getElementById('videoScaleRange').value = mainScale;
                     updateTransform('main');
                 } else if(e.touches.length === 1) {
                     mainX = e.touches[0].clientX - touchStartX;
