@@ -12,27 +12,23 @@
         body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
         .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 12px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; padding-bottom: 70px; }
         
-        /* ऊपर वाले मोड्स (Video, Live, Gaming) और तीन डॉट मेनू */
-        .creator-top-bar { display: flex; justify-content: space-between; align-items: center; margin: 10px 0 15px 0; }
-        .creator-main-modes-row { display: flex; justify-content: center; gap: 12px; flex: 1; }
-        .mode-icon-card { width: 75px; height: 70px; background: #181818; border: 2px solid #333; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; transition: 0.2s; font-size: 11px; }
+        /* ऊपर वाले मोड्स (Video, Live, Gaming) - बिना किसी फालतू डॉट के */
+        .creator-main-modes-row { display: flex; justify-content: center; gap: 12px; margin: 10px 0 15px 0; }
+        .mode-icon-card { width: 95px; height: 75px; background: #181818; border: 2px solid #333; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; transition: 0.2s; font-size: 12px; }
         .mode-icon-card.active { border-color: #fe2c55; background: #222; }
-        
-        /* तीन डॉट मेनू बटन */
-        .three-dots-btn { width: 40px; height: 40px; background: #181818; border: 1px solid #333; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; color: #fff; }
         
         .studio-section { display: none; background: #000; flex: 1; flex-direction: column; }
         .studio-section.active { display: flex; }
         
-        /* वीडियो अपलोड / कैमरा सेक्शन के अंदर कैमरा और गैलरी बटन */
-        .media-actions-row { display: flex; gap: 15px; justify-content: center; align-items: center; margin-top: 15px; }
-        .media-btn { width: 140px; background: #1a1a1a; border: 1px solid #333; border-radius: 16px; padding: 20px 15px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        /* वीडियो टैब के अंदर कैमरा और गैलरी बटन */
+        .media-actions-row { display: flex; gap: 15px; justify-content: center; align-items: center; margin-top: 20px; }
+        .media-btn { width: 140px; background: #1a1a1a; border: 1px solid #333; border-radius: 16px; padding: 25px 15px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; }
         
-        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 10px; }
+        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 10px; }
         
-        /* डायरेक्ट कैमरा स्टूडियो */
-        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; max-height: 58vh; border-radius: 16px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 5px; }
-        .camera-preview-wrapper { position: relative; width: 100%; height: 42vh; background: #000; overflow: hidden; }
+        /* कॉम्पैक्ट कैमरा स्टूडियो */
+        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; max-height: 60vh; border-radius: 16px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 5px; }
+        .camera-preview-wrapper { position: relative; width: 100%; height: 44vh; background: #000; overflow: hidden; }
         #directCameraFeed { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
         
         /* टाइमर बैज */
@@ -62,29 +58,25 @@
     <div id="floatingToastMessage">Notification</div>
 
     <div class="studio-main-viewport">
-        <!-- ऊपर वाले मोड्स और तीन डॉट मेनू -->
-        <div class="creator-top-bar" id="topModeTabsRow">
-            <div class="creator-main-modes-row">
-                <div class="mode-icon-card active" id="tabVideoBtn" onclick="switchStudioMode('video')"><span>📹</span><b>Video</b></div>
-                <div class="mode-icon-card" id="tabLiveBtn" onclick="switchStudioMode('live')"><span>🔴</span><b>Live</b></div>
-                <div class="mode-icon-card" id="tabGamingBtn" onclick="switchStudioMode('gaming')"><span>🎮</span><b>Gaming</b></div>
-            </div>
-            <div class="three-dots-btn" onclick="toggleStudioOptionsMenu()">⋮</div>
+        <!-- ऊपर वाले मोड्स (Video, Live, Gaming) - साफ़ सुथरे बिना डॉट के -->
+        <div class="creator-main-modes-row" id="topModeTabsRow">
+            <div class="mode-icon-card active" id="tabVideoBtn" onclick="switchStudioMode('video')"><span>📹</span><b>Video</b></div>
+            <div class="mode-icon-card" id="tabLiveBtn" onclick="switchStudioMode('live')"><span>🔴</span><b>Live</b></div>
+            <div class="mode-icon-card" id="tabGamingBtn" onclick="switchStudioMode('gaming')"><span>🎮</span><b>Gaming</b></div>
         </div>
 
-        <!-- 1. VIDEO SECTION (वीडियो अपलोड और कैमरा स्टूडियो यहीं रहेगा) -->
+        <!-- 1. VIDEO SECTION (कैमरा और गैलरी सिर्फ इसी वीडियो विकल्प के अंदर हैं) -->
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onGalleryFileChosen(event)">
 
-            <!-- वीडियो अपलोड के अंदर कैमरा और गैलरी बटन -->
             <div class="media-actions-row" id="mediaActionsRow">
                 <div class="media-btn" onclick="openDirectCameraStudio()">
-                    <span style="font-size:26px;">🎥</span>
-                    <div><b style="font-size:13px;">Camera</b></div>
+                    <span style="font-size:30px;">🎥</span>
+                    <div><b style="font-size:14px;">Camera</b></div>
                 </div>
                 <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()">
-                    <span style="font-size:26px;">📁</span>
-                    <div><b style="font-size:13px;">Gallery</b></div>
+                    <span style="font-size:30px;">📁</span>
+                    <div><b style="font-size:14px;">Gallery</b></div>
                 </div>
             </div>
 
@@ -94,7 +86,7 @@
                     <div id="cameraTimerBadge">⏱️ 00:00</div>
                     <video id="directCameraFeed" autoplay playsinline muted></video>
                 </div>
-                <div style="padding: 8px; background: #000;">
+                <div style="padding: 10px; background: #000;">
                     <button class="post-action-btn" id="camRecordBtn" style="background:#fe2c55; margin-top:0;" onclick="startDirectCameraRecording()">⏺️ Start Recording</button>
                     <button class="post-action-btn" id="camStopBtn" style="background:#ffcc00; color:#000; display:none; margin-top:0;" onclick="stopDirectCameraRecording()">💾 Save & Go to Editor</button>
                 </div>
@@ -162,10 +154,6 @@
                 document.getElementById('tabGamingBtn').classList.add('active');
                 document.getElementById('sectionGaming').classList.add('active');
             }
-        }
-
-        function toggleStudioOptionsMenu() {
-            showToast('⚙️ Studio Options Menu opened');
         }
 
         async function openDirectCameraStudio() {
