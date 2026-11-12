@@ -9,33 +9,35 @@
     <script src="supabase-config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 10px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; padding-bottom: 65px; position: relative; }
+        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 10px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; padding-bottom: 70px; position: relative; }
         
         /* ऊपर वाले मोड्स (Video, Live, Gaming) */
-        .creator-main-modes-row { display: flex; justify-content: center; gap: 12px; margin: 8px 0 12px 0; transition: 0.3s ease; }
-        .mode-icon-card { width: 100px; height: 65px; background: #181818; border: 2px solid #333; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; font-size: 11px; }
+        .creator-main-modes-row { display: flex; justify-content: center; gap: 10px; margin: 8px 0 12px 0; transition: 0.3s ease; }
+        .mode-icon-card { width: 95px; height: 60px; background: #181818; border: 2px solid #333; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; font-size: 11px; }
         .mode-icon-card.active { border-color: #fe2c55; background: #222; }
         
         .studio-section { display: none; background: #000; flex: 1; flex-direction: column; }
         .studio-section.active { display: flex; }
         
-        /* वीडियो टैब के अंदर कैमरा और गैलरी बटन */
-        .media-actions-row { display: flex; gap: 15px; justify-content: center; align-items: center; margin-top: 20px; }
-        .media-btn { width: 140px; background: #1a1a1a; border: 1px solid #333; border-radius: 16px; padding: 25px 15px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        /* 🌟 कैमरा और गैलरी बटन - शुरुआत में छिपे रहेंगे, सिर्फ 'Video' टैब के अंदर क्लिक करने पर दिखेंगे */
+        .media-actions-row { display: none; gap: 15px; justify-content: center; align-items: center; margin-top: 30px; }
+        .media-actions-row.active { display: flex; }
         
-        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 10px; }
+        .media-btn { width: 135px; background: #1a1a1a; border: 1px solid #333; border-radius: 16px; padding: 25px 12px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; }
         
-        /* 🌟 बड़ा और फुल-स्क्रीन कैमरा स्टूडियो */
-        #directCameraStudio { display: none; flex: 1; flex-direction: column; background: #000; position: absolute; top: 0; left: 0; width: 100%; height: 100vh; z-index: 50; overflow: hidden; padding: 10px; padding-bottom: 75px; justify-content: space-between; }
+        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 10px; }
+        
+        /* संतुलित कैमरा स्टूडियो */
+        #directCameraStudio { display: none; flex-direction: column; background: #000; position: absolute; top: 0; left: 0; width: 100%; height: 100vh; z-index: 50; overflow: hidden; padding: 10px; padding-bottom: 75px; justify-content: space-between; }
         .camera-preview-wrapper { position: relative; width: 100%; flex: 1; background: #000; overflow: hidden; border-radius: 16px; border: 2px solid #fe2c55; }
         #directCameraFeed { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
         
         /* साफ़ टाइमर */
         #cameraTimerBadge { 
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%); 
             background: rgba(0, 0, 0, 0.85); border: 1px solid #fe2c55; color: #ffcc00; 
-            padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; 
+            padding: 5px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; 
             display: none; z-index: 60; letter-spacing: 1px;
         }
 
@@ -69,18 +71,19 @@
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onGalleryFileChosen(event)">
 
-            <div class="media-actions-row" id="mediaActionsRow">
+            <!-- 🌟 कैमरा और गैलरी बटन - यह सिर्फ 'Video' टैब के अंदर दिखेंगे -->
+            <div class="media-actions-row active" id="mediaActionsRow">
                 <div class="media-btn" onclick="openDirectCameraStudio()">
                     <span style="font-size:32px;">🎥</span>
-                    <div><b style="font-size:14px;">Camera</b></div>
+                    <div><b style="font-size:13px;">Camera</b></div>
                 </div>
                 <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()">
                     <span style="font-size:32px;">📁</span>
-                    <div><b style="font-size:14px;">Gallery</b></div>
+                    <div><b style="font-size:13px;">Gallery</b></div>
                 </div>
             </div>
 
-            <!-- 🌟 फुल-स्क्रीन कैमरा स्टूडियो (जैसे ही खुलेगा, ऊपर के टैब छिप जाएंगे) -->
+            <!-- कैमरा स्टूडियो (खुलते ही ऊपर के तीनों ऑप्शन छिप जाएंगे) -->
             <div id="directCameraStudio">
                 <div class="camera-preview-wrapper">
                     <div id="cameraTimerBadge">⏱️ 00:00</div>
@@ -95,18 +98,18 @@
 
         <!-- 2. LIVE SECTION -->
         <div id="sectionLive" class="extra-mode-panel">
-            <span style="font-size: 35px; margin-bottom: 8px;">🔴</span>
-            <h3 style="color: #ffcc00; margin-bottom: 4px; font-size: 15px;">Live Streaming Mode</h3>
-            <p style="font-size: 11px; color: #aaa; margin-bottom: 12px;">Go live with followers and receive gifts!</p>
-            <button class="post-action-btn" onclick="startLiveStreamSession()">Go Live Now</button>
+            <span style="font-size: 32px; margin-bottom: 6px;">🔴</span>
+            <h3 style="color: #ffcc00; margin-bottom: 4px; font-size: 14px;">Live Streaming Mode</h3>
+            <p style="font-size: 11px; color: #aaa; margin-bottom: 10px;">Go live with followers and receive gifts!</p>
+            <button class="post-action-btn" style="margin-top:0;" onclick="startLiveStreamSession()">Go Live Now</button>
         </div>
 
         <!-- 3. GAMING SECTION -->
         <div id="sectionGaming" class="extra-mode-panel">
-            <span style="font-size: 35px; margin-bottom: 8px;">🎮</span>
-            <h3 style="color: #25f4ee; margin-bottom: 4px; font-size: 15px;">Gaming Stream Hub</h3>
-            <p style="font-size: 11px; color: #aaa; margin-bottom: 12px;">Stream mobile games directly to your feed!</p>
-            <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6);" onclick="startGamingStreamSession()">Start Gaming Stream</button>
+            <span style="font-size: 32px; margin-bottom: 6px;">🎮</span>
+            <h3 style="color: #25f4ee; margin-bottom: 4px; font-size: 14px;">Gaming Stream Hub</h3>
+            <p style="font-size: 11px; color: #aaa; margin-bottom: 10px;">Stream mobile games directly to your feed!</p>
+            <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); margin-top:0;" onclick="startGamingStreamSession()">Start Gaming Stream</button>
         </div>
     </div>
 
@@ -144,17 +147,19 @@
             let topTabs = document.getElementById('topModeTabsRow');
             if(topTabs) topTabs.style.display = 'flex';
             let mediaActions = document.getElementById('mediaActionsRow');
-            if(mediaActions) mediaActions.style.display = 'flex';
 
             if(mode === 'video') {
                 document.getElementById('tabVideoBtn').classList.add('active');
                 document.getElementById('sectionVideo').classList.add('active');
+                if(mediaActions) mediaActions.classList.add('active'); // सिर्फ वीडियो टैब में कैमरा और गैलरी दिखेंगे
             } else if(mode === 'live') {
                 document.getElementById('tabLiveBtn').classList.add('active');
                 document.getElementById('sectionLive').classList.add('active');
+                if(mediaActions) mediaActions.classList.remove('active');
             } else if(mode === 'gaming') {
                 document.getElementById('tabGamingBtn').classList.add('active');
                 document.getElementById('sectionGaming').classList.add('active');
+                if(mediaActions) mediaActions.classList.remove('active');
             }
         }
 
@@ -164,7 +169,7 @@
             let topTabs = document.getElementById('topModeTabsRow');
             
             if(studioBox) studioBox.style.display = 'flex';
-            if(mediaActions) mediaActions.style.display = 'none';
+            if(mediaActions) mediaActions.classList.remove('active');
             if(topTabs) topTabs.style.display = 'none'; // 🌟 कैमरा खुलते ही ऊपर के तीनों ऑप्शन छिप जाएंगे!
 
             try {
@@ -211,7 +216,7 @@
                     localStorage.setItem('recordedVideoDataUrl', reader.result);
                     showToast('✅ वीडियो सेव हो गया! एडिटर पर जा रहा है...');
                     setTimeout(() => {
-                        window.location.href = 'index.html'; // यहाँ अपनी एडिटर फाइल का सही नाम लिख सकते हैं
+                        window.location.href = 'index.html'; 
                     }, 800);
                 }
             };
