@@ -102,13 +102,13 @@
         /* ⚙️ CREATOR SETTING / MANAGER PANEL */
         #creatorSettingsModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 1050; box-shadow: 0 -5px 25px rgba(0,0,0,0.9); max-height: 85vh; overflow-y: auto; }
         
-        /* 💬 TIKTOK STYLE COMPACT COMMENT MODAL (ONLY BOTTOM 50% AREA, CLEAN & THIN) */
-        #commentModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 50vh; background: #181818; border-top: 2px solid #fe2c55; border-radius: 16px 16px 0 0; z-index: 2000; flex-direction: column; justify-content: space-between; box-shadow: 0 -10px 30px rgba(0,0,0,0.9); }
-        .comment-scroll-area { flex: 1; overflow-y: auto; padding: 12px 15px; display: flex; flex-direction: column; gap: 10px; }
-        .comment-input-bar { display: flex; padding: 10px 12px; background: #111; border-top: 1px solid #333; gap: 8px; align-items: center; width: 100%; z-index: 2010; }
+        /* 💬 TIKTOK STYLE COMPACT COMMENT MODAL (BOTTOM 50% AREA, CLEAN & THIN) */
+        #commentModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 50vh; background: #181818; border-top: 2px solid #fe2c55; border-radius: 16px 16px 0 0; z-index: 3000; flex-direction: column; justify-content: space-between; box-shadow: 0 -10px 30px rgba(0,0,0,0.9); }
+        .comment-scroll-area { flex: 1; overflow-y: auto; padding: 10px 15px; display: flex; flex-direction: column; gap: 8px; }
+        .comment-input-bar { display: flex; padding: 10px 12px; background: #111; border-top: 1px solid #333; gap: 8px; align-items: center; width: 100%; z-index: 3010; }
 
         /* 🚫 COMMENT LONG-PRESS ACTION MODAL */
-        #commentActionModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 2500; justify-content: center; align-items: center; }
+        #commentActionModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 3500; justify-content: center; align-items: center; }
         .comment-action-card { background: #222; border: 1px solid #444; width: 280px; border-radius: 12px; padding: 15px; text-align: center; }
         .comment-action-btn { display: block; width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; }
 
@@ -269,7 +269,7 @@
     <!-- 💬 TIKTOK STYLE COMPACT COMMENT MODAL (BOTTOM 50% HEIGHT, THIN & CLEAN) -->
     <div id="commentModal">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border-bottom:1px solid #222; background:#181818; border-radius:16px 16px 0 0;">
-            <h3 style="font-size:13px; color:#fff;">💬 Comments (Hold to Delete)</h3>
+            <h3 style="font-size:13px; color:#fff;">💬 Comments (Hold comment to Delete/Block)</h3>
             <span style="cursor:pointer; font-size:18px; color:#fff; padding:0 5px;" onclick="closeCommentModal()">✕</span>
         </div>
         
@@ -445,7 +445,7 @@
                     </div>
 
                     <div class="modal-video-box" onclick="togglePlayPause(this)">
-                        <video class="reel-video-item" src="${video.url}" loop playsinline preload="auto"></video>
+                        <video class="reel-video-item" src="${video.url}" ${video.audioUrl ? '' : ''} loop playsinline preload="auto"></video>
                         <div class="flying-gift-overlay"></div>
                     </div>
 
