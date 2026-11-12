@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>New Star - Login & Signup</title>
+    
+    <meta name="theme-color" content="#fe2c55">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px; padding-bottom: 80px; }
+        
+        .auth-container { width: 100%; max-width: 380px; background: #121214; padding: 30px; border-radius: 16px; border: 1px solid #222; box-shadow: 0 8px 24px rgba(0,0,0,0.8); }
+        .auth-container h2 { text-align: center; margin-bottom: 20px; color: #fe2c55; font-size: 24px; }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 12px; color: #aaa; margin-bottom: 5px; }
+        .input-group input { width: 100%; padding: 12px; background: #1e1e24; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 14px; outline: none; }
+        .input-group input:focus { border-color: #fe2c55; }
+        
+        .auth-btn { width: 100%; background: #fe2c55; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .auth-btn:hover { background: #e0244a; }
+        
+        .toggle-text { text-align: center; margin-top: 15px; font-size: 13px; color: #aaa; cursor: pointer; }
+        .toggle-text span { color: #25f4ee; font-weight: bold; }
+
+        /* BOTTOM NAVBAR LINKED WITH INDEX */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #111; border-top: 1px solid #222; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #888; text-decoration: none; font-size: 11px; cursor: pointer; }
+        .nav-item.active { color: #fff; font-weight: bold; }
+        .nav-item span.icon { font-size: 20px; margin-bottom: 2px; }
+        .nav-center-btn { width: 42px; height: 32px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #000; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <h2 id="formTitle">🌟 New Star Login</h2>
+        
+        <div class="input-group">
+            <label>Email Address</label>
+            <input type="email" id="userEmail" placeholder="Enter your email">
+        </div>
+        
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="userPassword" placeholder="Enter password">
+        </div>
+
+        <button class="auth-btn" id="actionBtn" onclick="handleAuthAction()">Login</button>
+        
+        <div class="toggle-text" onclick="toggleAuthMode()">
+            Don't have an account? <span id="toggleLinkText">Sign Up</span>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAVBAR -->
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item"><span class="icon">🏠</span><span>Home</span></a>
+        <a href="inbox.html" class="nav-item"><span class="icon">💬</span><span>Inbox</span></a>
+        <a href="camera.html" class="nav-item"><div class="nav-center-btn">+</div></a>
+        <a href="wallet.html" class="nav-item"><span class="icon">💰</span><span>Wallet</span></a>
+        <a href="profile.html" class="nav-item active"><span class="icon">👤</span><span>Profile</span></a>
+    </div>
+
+    <script src="navbar.js"></script>
+    <script>
+        let isSignupMode = false;
+
+        function toggleAuthMode() {
+            isSignupMode = !isSignupMode;
+            document.getElementById('formTitle').innerText = isSignupMode ? '🌟 New Star Sign Up' : '🌟 New Star Login';
+            document.getElementById('actionBtn').innerText = isSignupMode ? 'Sign Up' : 'Login';
+            document.getElementById('toggleLinkText').innerText = isSignupMode ? 'Login' : 'Sign Up';
+        }
+
+        async function handleAuthAction() {
+            let email = document.getElementById('userEmail').value.trim();
+            let password = document.getElementById('userPassword').value.trim();
+
+            if(!email || !password) {
+                alert('⚠️ Please enter both email and password!');
+                return;
+            }
+
+            if(isSignupMode) {
+                let { data, error } = await supabaseClient.auth.signUp({ email, password });
+                if(error) {
+                    alert('❌ Signup Error: ' + error.message);
+                } else {
+                    alert('✅ Signup successful! Please login now.');
+                    toggleAuthMode();
+                }
+            } else {
+                let { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if(error) {
+                    alert('❌ Login Error: ' + error.message);
+                } else {
+                    alert('🎉 Login Successful!');
+                    localStorage.setItem('userEmail', email);
+                    window.location.href = 'index.html';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
