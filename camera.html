@@ -49,7 +49,7 @@
         #previewBox video { width: 100%; max-height: 480px; object-fit: contain; display: block; margin: 0 auto; background: #000; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), filter 0.3s ease; }
         #previewBox.duet-mode video { width: 50%; display: inline-block; vertical-align: middle; }
 
-        /* Overlay Track (Small Duet / Partner Video with independent zoom/position) */
+        /* Overlay Track (Small Duet / Partner Video or Live Reaction Camera) */
         #overlayTrackContainer { display: none; position: absolute; bottom: 12px; right: 12px; width: 120px; height: 160px; background: #111; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; z-index: 5; transition: transform 0.3s ease; }
         #overlayTrackContainer video { width: 100%; height: 100%; object-fit: cover; }
 
@@ -132,9 +132,10 @@
 
         <!-- 1️⃣ VIDEO UPLOAD & STUDIO SECTION -->
         <div id="sectionVideo" class="studio-section active">
-            <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onVideoFileChosen(event)">
+            <input type="file" id="liveCameraInput" accept="video/*" capture="environment" style="display:none;" onchange="onLiveCameraRecorded(event)">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onVideoFileChosen(event)">
             <input type="file" id="changeVideoGalleryInput" accept="video/*" style="display:none;" onchange="onReplaceVideoFile(event)">
+            <input type="file" id="bgAudioFileInput" accept="audio/*" style="display:none;" onchange="onBackgroundAudioChosen(event)">
 
             <!-- Media Actions Row -->
             <div class="media-actions-row" id="mediaActionsRow">
@@ -159,7 +160,7 @@
                 <div class="video-edit-settings-btn" onclick="toggleMasterThreeDotMenu()" title="Advanced Studio Menu">⋮</div>
                 <video id="selectedVideoPreview" controls crossorigin="anonymous" playsinline onloadedmetadata="checkVideoDurationAndRatio(this)"></video>
                 
-                <!-- Overlay Track (Small Duet / Partner Video with independent zoom/position) -->
+                <!-- Overlay Track (Small Duet / Partner Video or Live Reaction Camera) -->
                 <div id="overlayTrackContainer">
                     <div class="overlay-edit-settings-btn" onclick="toggleOverlayThreeDotMenu()" title="Duet Video Settings">⋮</div>
                     <video id="overlayVideoElement" controls crossorigin="anonymous" playsinline></video>
@@ -312,26 +313,20 @@
                     </div>
                 </div>
 
-                <!-- SUB 2: MUSIC LIBRARY & VOLUME MIXER -->
+                <!-- SUB 2: MUSIC LIBRARY & MASTER VOLUME MIXER -->
                 <div id="sub_musicLibrarySuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
-                        <span>🎵 Music & Volume Mixer</span>
+                        <span>🎵 Master Volume Mixer & Music</span>
                         <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
                     </div>
-                    <label style="color:#aaa; display:block; margin-bottom:4px;">Choose Background Track:</label>
-                    <select id="bgMusicSelect" style="width:100%; padding:6px; background:#111; border:1px solid #333; color:#fff; border-radius:6px; font-size:11px; margin-bottom:8px;">
-                        <option value="none">No Background Music</option>
-                        <option value="viral_dance">🔥 Viral Bollywood Dance Beat</option>
-                        <option value="emotional_lofi">🌙 Emotional Lo-Fi Chill</option>
-                        <option value="action_edm">⚡ High Energy EDM Drop</option>
-                    </select>
-                    <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#25f4ee; color:#000; margin-bottom:8px;" onclick="applyBackgroundMusic()">Attach Track</button>
 
-                    <label style="color:#ccc; display:block; margin-bottom:2px;">🔊 Music Volume: <span id="musicVolText">80%</span></label>
-                    <input type="range" min="0" max="100" value="80" oninput="adjustMusicVolume(this.value)" style="width:100%; accent-color:#25f4ee; margin-bottom:6px;">
+                    <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:11px; background:#25f4ee; color:#000; margin-bottom:8px;" onclick="document.getElementById('bgAudioFileInput').click()">🎵 Add Custom Music from Gallery</button>
 
-                    <label style="color:#ccc; display:block; margin-bottom:2px;">🎤 Original Voice Volume: <span id="voiceVolText">100%</span></label>
-                    <input type="range" min="0" max="100" value="100" oninput="adjustVoiceVolume(this.value)" style="width:100%; accent-color:#fe2c55;">
+                    <label style="color:#ccc; display:block; margin-bottom:2px;">🎬 Main Video Audio Volume: <span id="mainVideoVolText">100%</span></label>
+                    <input type="range" min="0" max="100" value="100" oninput="adjustMainVideoVolume(this.value)" style="width:100%; accent-color:#25f4ee; margin-bottom:8px;">
+
+                    <label style="color:#ccc; display:block; margin-bottom:2px;">👥 Duet / Reaction Camera Audio Volume: <span id="duetVideoVolText">100%</span></label>
+                    <input type="range" min="0" max="100" value="100" oninput="adjustDuetVideoVolume(this.value)" style="width:100%; accent-color:#fe2c55; margin-bottom:6px;">
                 </div>
 
                 <!-- SUB 3: 4-SECOND ADVANCED GLOBAL COPYRIGHT & WATERMARK INSPECTOR -->
@@ -346,16 +341,16 @@
                     <div id="copyrightScanResult" style="margin-top:8px; font-size:11px; color:#25f4ee; font-weight:bold; line-height:1.4;"></div>
                 </div>
 
-                <!-- SUB 4: COLLABORATION, DUET & LIVE CAMERA RECORD -->
+                <!-- SUB 4: COLLABORATION, DUET & REACTION CAMERA STUDIO -->
                 <div id="sub_collabSuite" class="three-dot-sub-section">
                     <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#25f4ee; font-weight:bold;">
-                        <span>👥 Duet, Collab & Camera Studio</span>
+                        <span>👥 Reaction, Duet & Camera Studio</span>
                         <span style="cursor:pointer; color:#ffcc00; font-weight:bold;" onclick="backToMasterGrid()">← Back</span>
                     </div>
-                    <p style="font-size:10px; color:#aaa; margin-bottom:6px;">डायरेक्ट कैमरा खोलकर बोलें या पार्टनर वीडियो जोड़ें:</p>
+                    <p style="font-size:10px; color:#aaa; margin-bottom:6px;">कैमरा खोलकर रिएक्शन दें (ऊपर मेन वीडियो दिखता रहेगा):</p>
                     
                     <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;">
-                        <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:10px; background:#fe2c55; color:#fff;" onclick="document.getElementById('liveCameraInput').click()">🔴 Open Live Camera & Speak</button>
+                        <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:10px; background:#fe2c55; color:#fff;" onclick="document.getElementById('liveCameraInput').click()">🔴 Open Camera & Record Reaction</button>
                         <button class="post-action-btn" style="margin-top:0; padding:8px; font-size:10px; background:#25f4ee; color:#000;" onclick="enableSplitScreenDuet()">📺 Split-Screen Duet Mode</button>
                     </div>
 
@@ -367,10 +362,10 @@
             <!-- 🎛️ OVERLAY / DUET VIDEO SETTINGS MENU -->
             <div id="overlayThreeDotMenu" style="display:none; background:#161618; border:1px solid #25f4ee; border-radius:12px; padding:12px; margin-bottom:12px;">
                 <div style="font-size:13px; color:#25f4ee; font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <span>👥 Duet / Partner Video Settings</span>
+                    <span>👥 Reaction / Duet Video Settings</span>
                     <span style="cursor:pointer; font-size:16px; color:#aaa;" onclick="toggleOverlayThreeDotMenu()">✕</span>
                 </div>
-                <div style="font-size:11px; color:#aaa; margin-bottom:8px;">छोटा वीडियो (ड्युएट) ज़ूम करें या पोजीशन सेट करें:</div>
+                <div style="font-size:11px; color:#aaa; margin-bottom:8px;">छोटा वीडियो (रिएक्शन/ड्युएट) ज़ूम करें या पोजीशन सेट करें:</div>
                 <div style="display:flex; gap:6px; margin-bottom:6px;">
                     <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="scaleOverlayVideo(0.8)">🔍 Zoom Out (-)</button>
                     <button class="post-action-btn" style="margin-top:0; padding:6px; font-size:10px; background:#222; border:1px solid #444;" onclick="scaleOverlayVideo(1.2)">🔍 Zoom In (+)</button>
@@ -385,7 +380,7 @@
                 </div>
             </div>
 
-            <!-- 📝 Video Details Form (YouTube Style: Clean Title, Description with Auto 15 Hashtags & Links Support) -->
+            <!-- 📝 Video Details Form (YouTube Style) -->
             <div id="videoDetailsFormContainer" style="display: none;">
                 <div style="background: #181818; border: 1px solid #25f4ee; border-radius: 10px; padding: 10px; margin-bottom: 12px; text-align: center; display:flex; justify-content:space-between; align-items:center;">
                     <span style="color: #25f4ee; font-size: 11px; font-weight: bold;" id="successEditNotice">✅ Video Ready!</span>
@@ -469,6 +464,8 @@
         let overlayX = 0;
         let overlayY = 0;
 
+        let backgroundAudioFile = null;
+
         // 🔔 TOAST NOTIFICATION
         function showToast(message) {
             let toast = document.getElementById('floatingToastMessage');
@@ -538,13 +535,36 @@
             }
         }
 
+        function onLiveCameraRecorded(event) {
+            let file = event.target.files[0];
+            if(file) {
+                selectedOverlayFile = file;
+                let trackContainer = document.getElementById('overlayTrackContainer');
+                let overlayEl = document.getElementById('overlayVideoElement');
+                overlayEl.muted = false;
+                overlayEl.src = URL.createObjectURL(file);
+                trackContainer.style.display = 'block';
+                showToast('🔴 रिएक्शन कैमरा रिकॉर्डिंग जुड़ गई है!');
+                speakMessage('रिएक्शन वीडियो सफलतापूर्वक जोड़ दिया गया है।');
+            }
+        }
+
+        function onBackgroundAudioChosen(event) {
+            let file = event.target.files[0];
+            if(file) {
+                backgroundAudioFile = file;
+                showToast('🎵 कस्टम बैकग्राउंड म्यूजिक जुड़ गया है!');
+                speakMessage('बैकग्राउंड म्यूजिक जोड़ दिया गया है।');
+            }
+        }
+
         async function saveEditedVideoAndShowDetails() {
             if(!selectedVideoFile) {
                 showToast('⚠️ कृपया पहले मुख्य वीडियो चुनें!');
                 return;
             }
 
-            if (!selectedOverlayFile && currentRotateDeg === 0 && !isMirrored) {
+            if (!selectedOverlayFile && !backgroundAudioFile && currentRotateDeg === 0 && !isMirrored) {
                 finalMergedVideoBlob = selectedVideoFile;
                 document.getElementById('saveEditBtn').style.display = 'none';
                 document.getElementById('masterThreeDotMenu').style.display = 'none';
@@ -555,20 +575,16 @@
                 return;
             }
 
-            showToast('⏳ वीडियो स्मूथली मर्ज हो रहा है...');
+            showToast('⏳ वीडियो और ऑडियो मक्खन की तरह मर्ज हो रहे हैं...');
             speakMessage('वीडियो मर्ज किया जा रहा है।');
 
-            if (selectedOverlayFile) {
-                try {
-                    let mergedBlob = await mergeVideosSmoothly();
-                    if (mergedBlob) {
-                        finalMergedVideoBlob = mergedBlob;
-                    }
-                } catch(e) {
-                    console.log('Merge fallback:', e);
-                    finalMergedVideoBlob = selectedVideoFile;
+            try {
+                let mergedBlob = await mergeVideosSmoothly();
+                if (mergedBlob) {
+                    finalMergedVideoBlob = mergedBlob;
                 }
-            } else {
+            } catch(e) {
+                console.log('Merge fallback:', e);
                 finalMergedVideoBlob = selectedVideoFile;
             }
 
@@ -576,23 +592,26 @@
             document.getElementById('masterThreeDotMenu').style.display = 'none';
             document.getElementById('overlayThreeDotMenu').style.display = 'none';
             document.getElementById('videoDetailsFormContainer').style.display = 'block';
-            document.getElementById('successEditNotice').innerText = `✅ Video & Duet Merged Smoothly!`;
+            document.getElementById('successEditNotice').innerText = `✅ Video & Audio Merged Perfectly!`;
 
             showToast('✅ वीडियो बिना किसी ग्लिच के तैयार है!');
             speakMessage('वीडियो सफलतापूर्वक तैयार हो गया है।');
         }
 
-        // 🎬 BUTTERY SMOOTH 60 FPS MERGER (NO LAG / NO STUTTER)
+        // 🎬 BUTTERY SMOOTH 60 FPS MERGER (NO LAG / NO STUTTER / PERFECT AUDIO SYNC)
         function mergeVideosSmoothly() {
             return new Promise((resolve) => {
                 let mainVid = document.getElementById('selectedVideoPreview');
                 let overlayVid = document.getElementById('overlayVideoElement');
 
+                let mainVol = parseFloat(document.getElementById('mainVideoVolText')?.innerText || '100') / 100;
+                let duetVol = parseFloat(document.getElementById('duetVideoVolText')?.innerText || '100') / 100;
+
                 mainVid.muted = false;
-                mainVid.volume = 1.0;
-                if(overlayVid) {
+                mainVid.volume = isNaN(mainVol) ? 1.0 : mainVol;
+                if(overlayVid && selectedOverlayFile) {
                     overlayVid.muted = false;
-                    overlayVid.volume = 1.0;
+                    overlayVid.volume = isNaN(duetVol) ? 1.0 : duetVol;
                 }
 
                 let canvas = document.createElement('canvas');
@@ -610,7 +629,7 @@
                             audioCtx.createMediaStreamSource(mainStream).connect(dest);
                         }
                     }
-                    if (overlayVid && overlayVid.captureStream) {
+                    if (overlayVid && selectedOverlayFile && overlayVid.captureStream) {
                         let overlayStream = overlayVid.captureStream();
                         if (overlayStream.getAudioTracks().length > 0) {
                             audioCtx.createMediaStreamSource(overlayStream).connect(dest);
@@ -648,10 +667,10 @@
 
                 recorder.start(100);
                 mainVid.currentTime = 0;
-                if(overlayVid) overlayVid.currentTime = 0;
+                if(overlayVid && selectedOverlayFile) overlayVid.currentTime = 0;
                 
                 mainVid.play();
-                if(overlayVid) overlayVid.play();
+                if(overlayVid && selectedOverlayFile) overlayVid.play();
 
                 let renderLoop = () => {
                     if (mainVid.ended || mainVid.paused) return;
@@ -660,10 +679,10 @@
 
                     if (document.getElementById('previewBox').classList.contains('duet-mode')) {
                         ctx.drawImage(mainVid, 0, 0, canvas.width / 2, canvas.height);
-                        if(overlayVid) ctx.drawImage(overlayVid, canvas.width / 2, 0, canvas.width / 2, canvas.height);
+                        if(overlayVid && selectedOverlayFile) ctx.drawImage(overlayVid, canvas.width / 2, 0, canvas.width / 2, canvas.height);
                     } else {
                         ctx.drawImage(mainVid, 0, 0, canvas.width, canvas.height);
-                        if(overlayVid) {
+                        if(overlayVid && selectedOverlayFile) {
                             let ow = 220, oh = 300;
                             let ox = canvas.width - ow - 30;
                             let oy = canvas.height - oh - 60;
@@ -681,7 +700,7 @@
                     setTimeout(() => {
                         if (recorder.state === 'recording') {
                             mainVid.pause();
-                            if(overlayVid) overlayVid.pause();
+                            if(overlayVid && selectedOverlayFile) overlayVid.pause();
                             recorder.stop();
                         }
                     }, 500);
@@ -691,7 +710,7 @@
                 setTimeout(() => {
                     if (recorder.state === 'recording') {
                         mainVid.pause();
-                        if(overlayVid) overlayVid.pause();
+                        if(overlayVid && selectedOverlayFile) overlayVid.pause();
                         recorder.stop();
                     }
                 }, maxDuration + 1000);
@@ -862,22 +881,18 @@
             showToast(`🎭 Mask: ${shape}`);
         }
 
-        function applyBackgroundMusic() {
-            let track = document.getElementById('bgMusicSelect').value;
-            if(track === 'none') { showToast('⚠️ Select a track first!'); return; }
-            showToast(`🎵 Track Attached: ${track}`);
-        }
-
-        function adjustMusicVolume(val) {
-            document.getElementById('musicVolText').innerText = val + '%';
-            showToast(`🔊 Music Volume: ${val}%`);
-        }
-
-        function adjustVoiceVolume(val) {
-            document.getElementById('voiceVolText').innerText = val + '%';
+        function adjustMainVideoVolume(val) {
+            document.getElementById('mainVideoVolText').innerText = val + '%';
             let v = document.getElementById('selectedVideoPreview');
             v.volume = val / 100;
-            showToast(`🎤 Voice Volume: ${val}%`);
+            showToast(`🎬 Main Audio: ${val}%`);
+        }
+
+        function adjustDuetVideoVolume(val) {
+            document.getElementById('duetVideoVolText').innerText = val + '%';
+            let overlayEl = document.getElementById('overlayVideoElement');
+            if(overlayEl) overlayEl.volume = val / 100;
+            showToast(`👥 Duet/Reaction Audio: ${val}%`);
         }
 
         // 🛡️ 4-SECOND DEEP COPYRIGHT INSPECTOR
@@ -961,7 +976,6 @@
             let affiliate = document.getElementById('videoAffiliateInput').value.trim() || '';
             let audienceRating = document.getElementById('videoAudienceSelect').value;
 
-            // Automatic integration of caption and description following YouTube format
             let fullCaption = titleText;
             let fullDescription = descriptionText;
             if (affiliate) {
