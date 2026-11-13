@@ -94,7 +94,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
   <div class="card" style="text-align:center;padding:25px 15px">
     <div style="font-size:42px">🎬</div>
     <h3 style="margin-top:10px; font-size:18px;">New Star Video Studio</h3>
-    <p class="muted" style="margin-bottom:12px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें[span_1](start_span)[span_1](end_span).</p>
+    <p class="muted" style="margin-bottom:12px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें[span_2](start_span)[span_2](end_span).</p>
     <button class="primary" onclick="openCamera()">🎥 Open Camera Studio</button>
     <button class="secondary" onclick="document.getElementById('videoInput').click()">📁 Select Gallery Video</button>
     <input id="videoInput" type="file" accept="video/*" class="hidden">
@@ -130,7 +130,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
   </div>
 </section>
 
-<!-- EDITOR (चाहे कैमरा से आओ या गैलरी से, दोनों यहीं काम करेंगे) -->
+<!-- EDITOR -->
 <section id="editorScreen" class="hidden">
   <div class="preview" id="previewArea">
     <video id="editorVideo" playsinline controls></video>
@@ -377,8 +377,8 @@ function setFilter(value){
 function updateOverlay(){
   const text=$('overlayInput').value;
   $('previewText').textContent=text;
-  $('previewText'].style.fontSize=$('textSize').value+'px';
-  $('previewText'].style.color=$('textColor').value;
+  $('previewText').style.fontSize=$('textSize').value+'px';
+  $('previewText').style.color=$('textColor').value;
 }
 
 async function openCamera(){
@@ -393,7 +393,7 @@ async function openCamera(){
       audio:true
     });
     $('cameraVideo').srcObject=cameraStream;
-    await $('cameraVideo'].play();
+    await $('cameraVideo').play();
     $('cameraStatus').textContent='Camera ready.';
   }catch(e){
     $('cameraStatus').textContent='Camera error: '+e.message;
@@ -435,7 +435,6 @@ function stopCameraRecording(){
   }
 }
 
-/* 📁 गैलरी से वीडियो लोड होने पर सीधे एडिटर स्टूडियो में भेजना */
 $('videoInput').addEventListener('change',e=>{
   const file=e.target.files?.[0];
   if(file)loadVideo(file);
@@ -541,13 +540,13 @@ function runSolidCopyrightEngine(){
       <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #25f4ee; font-size:12px; line-height:1.6;">
         <b style="color:#25f4ee; font-size:13px;">🛡️ AI Copyright & Creator Verification Report</b><br><br>
         • <b>Video File Name:</b> ${fileName} (${fileSize})<br>
-        • <b>Verified Creator / Owner:</b> Ramkumar Dhobi (90s_rk_creation)[span_2](start_span)[span_2](end_span)<br>
+        • <b>Verified Creator / Owner:</b> Ramkumar Dhobi (90s_rk_creation)[span_3](start_span)[span_3](end_span)<br>
         • <b>Registered Platform ID:</b> New Star Official Channel / Studio ID #9041<br>
         • <b>Video Watermark / Logo:</b> Detected & Verified (Creator Branded Asset)<br>
         • <b>Audio Track & Music Company:</b> Original Clean Audio Stream / Independent Production<br>
-        • <b>Multi-Platform Cross-Check:</b> Scanned across YouTube Shorts, TikTok & Facebook Reels (No duplicate claims found)[span_3](start_span)[span_3](end_span)<br>
-        • <b>Content ID Status:</b> 0% Copyright Match (Clean & Safe)[span_4](start_span)[span_4](end_span)<br>
-        • <b>Monetization & Ad Eligibility:</b> 100% Fully Cleared for Public Distribution & Ads[span_5](start_span)[span_5](end_span)
+        • <b>Multi-Platform Cross-Check:</b> Scanned across YouTube Shorts, TikTok & Facebook Reels (No duplicate claims found)[span_4](start_span)[span_4](end_span)<br>
+        • <b>Content ID Status:</b> 0% Copyright Match (Clean & Safe)[span_5](start_span)[span_5](end_span)<br>
+        • <b>Monetization & Ad Eligibility:</b> 100% Fully Cleared for Public Distribution & Ads[span_6](start_span)[span_6](end_span)
       </div>
     `;
     toast('🛡️ Solid Copyright Scan Completed Successfully!');
