@@ -464,7 +464,7 @@
                 } else {
                     reportBox.innerHTML = `
                         <b style="color:#25f4ee;">✅ 100% Original & Clean Content!</b><br><br>
-                        • <b>Verified Creator:</b> Ramkumar Dhobi (90s_rk_creation)[span_0](start_span)[span_0](end_span)<br>
+                        • <b>Verified Creator:</b> Ramkumar Dhobi (90s_rk_creation)<br>
                         • <b>Status:</b> No copyright strikes or duplicate matches found worldwide.<br>
                         • <b>Monetization:</b> Fully Cleared for Ad Revenue!
                     `;
@@ -685,7 +685,7 @@
                         let duetGain = audioCtx.createGain();
                         duetGain.gain.value = document.getElementById('duetVolumeRange').value / 100;
                         duetSource.connect(duetGain);
-                        duetSource.connect(dest);
+                        duetGain.connect(dest);
                     } catch(ex) { console.log('Audio mix note:', ex); }
 
                     if(dest.stream.getAudioTracks().length > 0) {
