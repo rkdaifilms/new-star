@@ -8,10 +8,10 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
-body{background:#000;color:white;padding-bottom:80px;overflow-x:hidden}
+body{background:#000;color:white;padding-bottom:70px;overflow-x:hidden}
 button,select,input,textarea{font:inherit}
 button{cursor:pointer}
-.studio{max-width:600px;margin:auto;min-height:100vh;background:#080808;position:relative;padding-bottom:80px;}
+.studio{max-width:600px;margin:auto;min-height:100vh;background:#080808;position:relative;padding-bottom:70px;}
 
 .screen{padding:12px}
 .hidden{display:none!important}
@@ -26,7 +26,7 @@ button.secondary{background:#262630;color:white;border:1px solid #555;padding:12
 label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 .muted{font-size:11px;color:#aaa;line-height:1.6}
 
-/* वीडियो प्रीव्यू लेआउट एकदम बड़ा और फुल स्क्रीन */
+/* वीडियो प्रीव्यू लेआउट */
 .preview{height:min(85vh,760px);background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
 #editorVideo{width:100%;height:100%;object-fit:contain}
 
@@ -77,25 +77,25 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 .home-mode-card { background: #15151b; border: 1px solid #333; border-radius: 12px; padding: 16px 8px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; transition: 0.2s; }
 .home-mode-card:hover { border-color: #25f4ee; background: #1c1c24; }
 
-/* ⚓ मास्टर बॉटम नेविगेशन बार (अब यह पूरी तरह नीचे फिक्स है और क्लिक नहीं रोकेगा) */
+/* ⚓ मास्टर बॉटम नेविगेशन बार (अब क्लिक में रुकावट नहीं डालेगा) */
 .master-tiktok-final-nav {
-    position: fixed !important; bottom: 0 !important; left: 0 !important; width: 100% !important; height: 55px !important;
+    position: fixed !important; bottom: 0 !important; left: 0 !important; width: 100% !important; height: 50px !important;
     background: #000 !important; display: flex !important; justify-content: space-around !important; align-items: center !important;
-    border-top: 1px solid #222 !important; z-index: 1 !important; box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
+    border-top: 1px solid #222 !important; z-index: 10 !important; box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
 }
 .mfn-item {
     display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;
-    color: rgba(255,255,255,0.5) !important; cursor: pointer !important; text-decoration: none !important; font-size: 11px !important; flex: 1 !important; text-align: center !important; background: transparent !important; border: none !important;
+    color: rgba(255,255,255,0.5) !important; cursor: pointer !important; text-decoration: none !important; font-size: 10px !important; flex: 1 !important; text-align: center !important; background: transparent !important; border: none !important;
 }
 .mfn-item.active { color: #fff !important; font-weight: bold !important; }
-.mfn-item i { font-size: 16px !important; margin-bottom: 2px !important; font-style: normal !important; }
+.mfn-item i { font-size: 15px !important; margin-bottom: 1px !important; font-style: normal !important; }
 .mfn-center-plus {
-    width: 40px !important; height: 28px !important; background: linear-gradient(135deg, #25f4ee, #fe2c55) !important;
+    width: 38px !important; height: 26px !important; background: linear-gradient(135deg, #25f4ee, #fe2c55) !important;
     border-radius: 6px !important; display: flex !important; justify-content: center !important; align-items: center !important;
-    color: #fff !important; font-size: 20px !important; font-weight: bold !important; box-shadow: 0 2px 10px rgba(254,44,85,0.7) !important; margin: 0 auto !important;
+    color: #fff !important; font-size: 18px !important; font-weight: bold !important; box-shadow: 0 2px 8px rgba(254,44,85,0.7) !important; margin: 0 auto !important;
 }
 
-#toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#222;border:1px solid #25f4ee;padding:10px 16px;border-radius:20px;display:none;z-index:9999;font-size:12px;max-width:90%}
+#toast{position:fixed;bottom:65px;left:50%;transform:translateX(-50%);background:#222;border:1px solid #25f4ee;padding:10px 16px;border-radius:20px;display:none;z-index:9999;font-size:12px;max-width:90%}
 .status{padding:10px;background:#101014;border:1px solid #444;border-radius:8px;font-size:12px;line-height:1.7}
 </style>
 </head>
@@ -104,11 +104,11 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 <div class="studio">
 
 <!-- होम / सोर्स स्क्रीन -->
-<section id="sourceScreen" class="screen" style="padding-top:20px;">
-  <div class="card" style="text-align:center;padding:25px 15px">
-    <div style="font-size:42px">🎬</div>
-    <h3 style="margin-top:10px; font-size:18px;">New Star Video Studio</h3>
-    <p class="muted" style="margin-bottom:12px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें[span_0](start_span)[span_0](end_span).</p>
+<section id="sourceScreen" class="screen" style="padding-top:15px;">
+  <div class="card" style="text-align:center;padding:22px 15px">
+    <div style="font-size:38px">🎬</div>
+    <h3 style="margin-top:8px; font-size:17px;">New Star Video Studio</h3>
+    <p class="muted" style="margin-bottom:10px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें[span_0](start_span)[span_0](end_span).</p>
     <button class="primary" onclick="openCamera()">🎥 Open Camera Studio</button>
     <button class="secondary" onclick="document.getElementById('videoInput').click()">📁 Select Gallery Video</button>
     <input id="videoInput" type="file" accept="video/*" class="hidden">
@@ -116,15 +116,15 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 
   <div class="home-modes-container">
     <div class="home-mode-card" onclick="selectPlusMode('video')" style="border-color:#25f4ee;">
-      <span style="font-size:26px;">📹</span>
+      <span style="font-size:24px;">📹</span>
       <b style="font-size:12px; color:#25f4ee;">Video Studio</b>
     </div>
     <div class="home-mode-card" onclick="selectPlusMode('live')">
-      <span style="font-size:26px;">🔴</span>
+      <span style="font-size:24px;">🔴</span>
       <b style="font-size:12px;">Live Stream</b>
     </div>
     <div class="home-mode-card" onclick="selectPlusMode('gaming')">
-      <span style="font-size:26px;">🎮</span>
+      <span style="font-size:24px;">🎮</span>
       <b style="font-size:12px;">Gaming</b>
     </div>
   </div>
@@ -134,7 +134,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 <section id="cameraScreen" class="screen hidden">
   <div class="card">
     <h3>🎥 Camera Studio</h3>
-    <video id="cameraVideo" autoplay muted playsinline style="width:100%;max-height:55vh;background:#000;object-fit:contain"></video>
+    <video id="cameraVideo" autoplay muted playsinline style="width:100%;max-height:50vh;background:#000;object-fit:contain"></video>
     <div class="row" style="margin-top:8px;">
       <button class="primary" id="startCameraRecord" onclick="startCameraRecording()">⏺ Record</button>
       <button class="secondary" id="stopCameraRecord" onclick="stopCameraRecording()" disabled>■ Stop</button>
@@ -311,7 +311,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <label>Affiliate / Promotion Link</label>
     <input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
 
-    <!-- 🎯 ऑडियंस / एज रिस्ट्रिक्शन चयन -->
+    <!-- 🎯 ऑडियंस चयन -->
     <label>👥 Audience Selection</label>
     <select class="select" id="audienceType">
       <option value="all">Public / Everyone (General Audience)</option>
@@ -319,7 +319,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
       <option value="adult">18+ Restricted Content (Mature)</option>
     </select>
 
-    <!-- 🎚 प्रोफेशनल एक्सपोर्ट रेजोल्यूशन और सेटिंग्स -->
+    <!-- 🎚 प्रोफेशनल एक्सपोर्ट सेटिंग्स -->
     <label>⚙️ Professional Export Engine (Resolution, FPS & Bitrate)</label>
     <select class="select" id="videoQuality">
       <option value="1080p">1080p Full HD (Best Standard)</option>
@@ -477,7 +477,7 @@ function setFilter(value){
   toast('Filter applied');
 }
 
-/* ✍️ टेक्स्ट ओवरले अपडेट और कलर सिलेक्शन फंक्शन */
+/* ✍️ टेक्स्ट ओवरले अपडेट और कलर सिलेक्शन */
 let activeTextColor = '#ffffff';
 
 function updateOverlay(){
@@ -500,7 +500,7 @@ function selectTextColor(color, element){
   toast('Color selected!');
 }
 
-/* 👆 टच और माउस से टेक्स्ट को स्क्रीन पर कहीं भी ड्रैग करने का सॉलिड लॉजिक */
+/* 👆 टच और माउस से टेक्स्ट को ड्रैग करने का लॉजिक */
 const previewText = $('previewText');
 let isDragging = false;
 let startX, startY, posX = 0, posY = 0;
@@ -671,7 +671,7 @@ function stopVoiceRecording(){
   }
 }
 
-/* 🛡️ सॉलिड AI कॉपीराइट और ओनरशिप चेकिंग इंजन */
+/* 🛡️ सॉलिड AI कॉपीराइट चेकिंग इंजन */
 function runSolidCopyrightEngine(){
   const file=selectedVideoFile;
   const fileName = file ? escapeHtml(file.name) : 'Camera_Recording.mp4';
