@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>New Star Creator Hub - Profile</title>
+<title>New Star Creator Hub - Profile & Studio</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#101014;color:#fff;font-family:Arial,sans-serif}
-header{padding:15px;background:#191920;display:flex;justify-content:space-between;align-items:center}
+body{margin:0;background:#101014;color:#fff;font-family:Arial,sans-serif;padding-bottom:80px}
+header{padding:15px;background:#191920;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
 .wrap{max-width:850px;margin:auto;padding:15px}
 .card{background:#1c1c24;border:1px solid #383844;border-radius:15px;padding:16px;margin:14px 0}
 input,textarea,button{font:inherit;border-radius:10px;padding:12px;width:100%;margin:6px 0}
@@ -31,12 +30,13 @@ button:disabled{opacity:.5}
 <body>
 <header>
 <b>⭐ New Star Creator Hub</b>
-<div class="row" style="max-width:230px">
-<button class="secondary" onclick="location.href='camera.html'">Camera</button>
+<div class="row" style="max-width:230px; margin:0;">
+<button class="secondary" onclick="location.href='camera.html'">🎥 Camera</button>
 <button onclick="logout()">Logout</button>
 </div>
 </header>
 
+<!-- 🔐 LOGIN & AUTH SECTION -->
 <section id="auth" class="card">
 <h2>अपने अकाउंट में Login करें</h2>
 <button onclick="googleLogin()">🌐 Continue with Google</button>
@@ -58,17 +58,28 @@ button:disabled{opacity:.5}
 <p id="authStatus" class="status"></p>
 </section>
 
+<!-- 👤 MAIN CREATOR DASHBOARD -->
 <main id="app" class="wrap">
 <section class="card">
-<h2>👤 My Profile</h2>
+<h2>👤 My Profile Studio</h2>
 <p id="accountInfo" class="muted"></p>
 <input id="profileName" placeholder="आपका नाम">
-<input id="profileUsername" placeholder="Username">
+<input id="profileUsername" placeholder="Username (@username)">
 <textarea id="profileBio" rows="3" placeholder="अपने बारे में लिखें"></textarea>
 <button onclick="saveProfile()">Save Profile</button>
 <p id="profileStatus" class="status"></p>
 </section>
 
+<!-- 📤 UPLOAD VIDEO SECTION -->
+<section class="card">
+<h2>📤 Upload New Video / Reel</h2>
+<input type="file" id="videoFileInput" accept="video/*">
+<input id="videoCaptionInput" placeholder="वीडियो का टाइटल या कैप्शन लिखें...">
+<button id="uploadButton" onclick="uploadCreatorVideo()">🚀 Upload Video to Cloud</button>
+<p id="uploadStatus" class="status"></p>
+</section>
+
+<!-- 🎬 MY UPLOADED VIDEOS -->
 <section class="card">
 <div class="row" style="align-items:center">
 <h2 style="flex:1">🎬 My Videos</h2>
@@ -84,32 +95,34 @@ const $=id=>document.getElementById(id);
 const db=(typeof supabaseClient!=="undefined")?supabaseClient:window.supabaseClient;
 
 if(!db){
- $("authStatus").textContent="Supabase client नहीं मिला। Config जांचें।";
+ alert("Supabase client नहीं मिला! कृपया supabase-config.js चेक करें।");
  throw new Error("Supabase client missing");
 }
 
 let currentUser=null;
 let loadingVideos=false;
 
-function authMessage(t){$("authStatus").textContent=t;}
+function authMessage(t){if($("authStatus"))$("authStatus").textContent=t;}
+
 function showLogin(){
- $("auth").style.display="block";
- $("app").style.display="none";
+ if($("auth"))$("auth").style.display="block";
+ if($("app"))$("app").style.display="none";
 }
+
 function showProfile(user){
  currentUser=user;
- $("auth").style.display="none";
- $("app").style.display="block";
- $("accountInfo").textContent="Logged in: "+(user.email||user.phone||user.id);
+ if($("auth"))$("auth").style.display="none";
+ if($("app"))$("app").style.display="block";
+ if($("accountInfo"))$("accountInfo").textContent="Logged in: "+(user.email||user.phone||user.id);
  const meta=user.user_metadata||{};
- $("profileName").value=meta.full_name||"";
- $("profileUsername").value=meta.username||"";
- $("profileBio").value=meta.bio||"";
+ if($("profileName"))$("profileName").value=meta.full_name||"";
+ if($("profileUsername"))$("profileUsername").value=meta.username||"";
+ if($("profileBio"))$("profileBio").value=meta.bio||"";
  loadVideos();
 }
 
 async function googleLogin(){
- authMessage("Google अकाउंट चुनने के लिए खोला जा रहा है...");
+ authMessage("Google अकाउंट खोलने के लिए रीडायरेक्ट किया जा रहा है...");
  const {error}=await db.auth.signInWithOAuth({
   provider:"google",
   options:{
@@ -158,7 +171,7 @@ async function emailSignup(){
  });
  if(error)authMessage("Signup Error: "+error.message);
  else if(data.session&&data.user)showProfile(data.user);
- else authMessage("Signup सफल। Email verification लिंक खोलें, फिर Login करें।");
+ else authMessage("Signup सफल। अब Login बटन दबाएं।");
 }
 
 async function emailLogin(){
@@ -174,7 +187,7 @@ async function emailLogin(){
 async function logout(){
  await db.auth.signOut();
  currentUser=null;
- $("videoGrid").innerHTML="";
+ if($("videoGrid"))$("videoGrid").innerHTML="";
  showLogin();
 }
 
@@ -195,11 +208,60 @@ async function saveProfile(){
  $("profileStatus").textContent="✅ Profile सफलतापूर्वक Save हो गई।";
 }
 
+async function uploadCreatorVideo(){
+ if(!currentUser){alert("पहले लॉगिन करें!");return;}
+ const fileInput=$("videoFileInput");
+ const captionInput=$("videoCaptionInput");
+ const statusBox=$("uploadStatus");
+
+ if(fileInput.files.length===0){
+  statusBox.textContent="⚠️ कृपया अपलोड करने के लिए एक वीडियो चुनें।";
+  return;
+}
+
+ const file=fileInput.files[0];
+ const fileName=`video_${Date.now()}_${file.name}`;
+ statusBox.textContent="⏳ वीडियो अपलोड हो रहा है, कृपया प्रतीक्षा करें...";
+
+try{
+ const {data: uploadData, error: uploadError}=await db.storage
+  .from('videos')
+  .upload(fileName, file);
+
+ if(uploadError) throw uploadError;
+
+ const {data: publicUrlData}=db.storage
+  .from('videos')
+  .getPublicUrl(fileName);
+
+ const videoUrl=publicUrlData.publicUrl;
+
+ const {error: dbError}=await db.from('videos').insert([
+  {
+   user_id: currentUser.id,
+   video_url: videoUrl,
+   caption: captionInput.value.trim() || 'New Reel',
+   created_at: new Date()
+  }
+ ]);
+
+ if(dbError) throw dbError;
+
+ statusBox.textContent="🎉 वीडियो सफलतापूर्वक अपलोड और सेव हो गया!";
+ fileInput.value="";
+ captionInput.value="";
+ loadVideos();
+
+}catch(err){
+ statusBox.textContent="❌ Upload Error: "+err.message;
+}
+}
+
 async function loadVideos(){
  if(!currentUser||loadingVideos)return;
  loadingVideos=true;
- $("videoStatus").textContent="वीडियो लोड हो रहे हैं...";
- $("videoGrid").innerHTML="";
+ if($("videoStatus"))$("videoStatus").textContent="वीडियो लोड हो रहे हैं...";
+ if($("videoGrid"))$("videoGrid").innerHTML="";
 
  try{
   const {data,error}=await db.from("videos")
@@ -210,11 +272,11 @@ async function loadVideos(){
   if(error)throw error;
 
   if(!data||data.length===0){
-   $("videoStatus").textContent="अभी कोई वीडियो अपलोड नहीं किया गया है।";
+   if($("videoStatus"))$("videoStatus").textContent="अभी कोई वीडियो अपलोड नहीं किया गया है।";
    return;
   }
 
-  $("videoStatus").textContent="कुल वीडियो: "+data.length;
+  if($("videoStatus"))$("videoStatus").textContent="कुल वीडियो: "+data.length;
 
   data.forEach(item=>{
    const card=document.createElement("article");
@@ -239,14 +301,16 @@ async function loadVideos(){
    link.href=item.video_url;
    link.target="_blank";
    link.rel="noopener noreferrer";
-   link.textContent="Open Video";
+   link.textContent="Open Video Link";
    link.style.color="#ff6682";
+   link.style.display="block";
+   link.style.marginTop="5px";
 
    card.append(video,caption,date,link);
-   $("videoGrid").appendChild(card);
+   if($("videoGrid"))$("videoGrid").appendChild(card);
   });
  }catch(error){
-  $("videoStatus").textContent="Video Load Error: "+error.message;
+  if($("videoStatus"))$("videoStatus").textContent="Video Load Error: "+error.message;
  }finally{
   loadingVideos=false;
  }
@@ -257,6 +321,7 @@ db.auth.onAuthStateChange((event,session)=>{
   showProfile(session.user);
  }else if(event==="SIGNED_OUT"){
   currentUser=null;
+  if($("videoGrid"))$("videoGrid").innerHTML="";
   showLogin();
  }
 });
