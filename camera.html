@@ -1,15 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>New Star Creator Hub - Camera</title>
+<title>New Star Creator Hub - Camera Studio</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#101014;color:#fff;font-family:Arial,sans-serif}
+body{margin:0;background:#101014;color:#fff;font-family:Arial,sans-serif;padding-bottom:70px}
 header{background:#191920;padding:15px;display:flex;justify-content:space-between;align-items:center}
 main{max-width:760px;margin:auto;padding:15px}
 .card{background:#1c1c24;border:1px solid #383844;border-radius:15px;padding:16px;margin:14px 0}
@@ -29,9 +28,10 @@ video{width:100%;max-height:65vh;background:#000;border-radius:12px}
 <body>
 <header>
 <b>⭐ New Star Creator Hub</b>
-<button class="secondary" style="width:auto" onclick="location.href='profile.html'">My Profile</button>
+<button class="secondary" style="width:auto" onclick="location.href='profile.html'">👤 My Profile</button>
 </header>
 
+<!-- 🔐 LOGIN & AUTH SECTION -->
 <section id="auth" class="card">
 <h2>अपने अकाउंट में Login करें</h2>
 <button onclick="googleLogin()">🌐 Continue with Google</button>
@@ -53,34 +53,35 @@ video{width:100%;max-height:65vh;background:#000;border-radius:12px}
 <p id="authStatus" class="status"></p>
 </section>
 
+<!-- 🎥 LIVE CAMERA & UPLOAD STUDIO -->
 <main id="app">
 <div class="card">
-<h2>🎥 New Star Camera</h2>
+<h2>🎥 New Star Live Camera Studio</h2>
 <p id="userInfo" class="muted"></p>
 <div class="row">
-<button onclick="startCamera()">Open Camera</button>
-<button class="secondary" onclick="stopCamera()">Stop Camera</button>
+<button onclick="startCamera()">📷 Open Camera</button>
+<button class="secondary" onclick="stopCamera()">⏹️ Stop Camera</button>
 </div>
 <video id="preview" controls playsinline></video>
 <div class="row">
-<button onclick="startRecording()">● Start Recording</button>
-<button class="secondary" onclick="stopRecording()">■ Stop Recording</button>
+<button onclick="startRecording()">🔴 Start Recording</button>
+<button class="secondary" onclick="stopRecording()">⏹️ Stop Recording</button>
 </div>
-<label class="muted">Gallery से वीडियो चुनें</label>
+<label class="muted" style="display:block; margin-top:10px;">📁 Gallery से वीडियो चुनें:</label>
 <input id="gallery" type="file" accept="video/*">
 <p id="fileInfo" class="muted">कोई वीडियो नहीं चुना गया।</p>
 </div>
 
 <div class="card">
-<h2>📝 Video Upload</h2>
-<input id="title" maxlength="120" placeholder="वीडियो का Title">
-<textarea id="caption" rows="3" placeholder="वीडियो Description"></textarea>
-<button id="uploadButton" onclick="uploadVideo()">Upload Video</button>
+<h2>📝 Video Upload to Cloud</h2>
+<input id="title" maxlength="120" placeholder="वीडियो का Title या Caption">
+<textarea id="caption" rows="3" placeholder="वीडियो Description लिखें..."></textarea>
+<button id="uploadButton" onclick="uploadVideo()">🚀 Upload Video</button>
 <p id="uploadStatus" class="status"></p>
 </div>
 
 <div class="card">
-<button class="secondary" onclick="logout()">Logout</button>
+<button class="secondary" onclick="logout()">🚪 Logout</button>
 </div>
 </main>
 
@@ -169,7 +170,7 @@ async function emailSignup(){
  });
  if(error)authMessage("Signup Error: "+error.message);
  else if(data.session&&data.user)showCameraApp(data.user);
- else authMessage("अकाउंट बन गया। Email verification लिंक खोलकर पुष्टि करें, फिर Login करें।");
+ else authMessage("अकाउंट बन गया। अब Login करें।");
 }
 
 async function emailLogin(){
@@ -198,9 +199,9 @@ async function startCamera(){
   });
   $("preview").srcObject=cameraStream;
   $("preview").muted=true;
-  uploadMessage("कैमरा चालू है।");
+  uploadMessage("📷 कैमरा चालू है। अब Recording शुरू कर सकते हैं।");
  }catch(e){
-  uploadMessage("Camera Error: "+e.message+" HTTPS पर खोलकर अनुमति दें।");
+  uploadMessage("Camera Error: "+e.message+". कृपया सुनिश्चित करें कि यह HTTPS पर खुला है और कैमरे की अनुमति दी गई है।");
  }
 }
 
@@ -213,8 +214,8 @@ function stopCamera(){
 }
 
 function startRecording(){
- if(!cameraStream){uploadMessage("पहले Open Camera दबाएँ।");return;}
- if(!window.MediaRecorder){uploadMessage("इस Browser में Recording समर्थित नहीं है।");return;}
+ if(!cameraStream){uploadMessage("⚠️ पहले 'Open Camera' बटन दबाएँ।");return;}
+ if(!window.MediaRecorder){uploadMessage("⚠️ इस Browser में Recording समर्थित नहीं है।");return;}
  chunks=[];
  try{
   const mime=MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
@@ -225,10 +226,10 @@ function startRecording(){
    selectedVideo=new File(chunks,"new-star-"+Date.now()+".webm",{type:"video/webm"});
    showSelectedVideo(selectedVideo);
    stopCamera();
-   uploadMessage("Recording तैयार है। अब Upload करें।");
+   uploadMessage("✅ Recording तैयार है। अब Title लिखकर Upload करें।");
   };
   recorder.start();
-  uploadMessage("Recording शुरू हो गई है...");
+  uploadMessage("🔴 Recording शुरू हो गई है...");
  }catch(e){uploadMessage("Recording Error: "+e.message);}
 }
 
@@ -249,28 +250,28 @@ $("gallery").addEventListener("change",e=>{
  const file=e.target.files[0];
  if(!file)return;
  if(!file.type.startsWith("video/")){
-  uploadMessage("कृपया वीडियो फाइल चुनें।");return;
+  uploadMessage("⚠️ कृपया केवल वीडियो फाइल चुनें।");return;
  }
  selectedVideo=file;
  stopCamera();
  showSelectedVideo(file);
- uploadMessage("Gallery वीडियो तैयार है।");
+ uploadMessage("📁 Gallery वीडियो चयन सफल। अब Upload करें।");
 });
 
 async function uploadVideo(){
- if(!currentUser){uploadMessage("पहले Login करें।");return;}
- if(!selectedVideo){uploadMessage("पहले वीडियो रिकॉर्ड या Select करें।");return;}
+ if(!currentUser){uploadMessage("⚠️ कृपया पहले Login करें।");return;}
+ if(!selectedVideo){uploadMessage("⚠️ पहले वीडियो रिकॉर्ड करें या Gallery से चुनें।");return;}
  const title=$("title").value.trim();
  const caption=$("caption").value.trim();
- if(!title){uploadMessage("वीडियो का Title लिखें।");return;}
+ if(!title){uploadMessage("⚠️ वीडियो का Title लिखना जरूरी है।");return;}
 
  const button=$("uploadButton");
  button.disabled=true;
- button.textContent="Uploading...";
+ button.textContent="⏳ Uploading to Cloud...";
  let path=null;
 
  try{
-  uploadMessage("वीडियो Storage में Upload हो रहा है...");
+  uploadMessage("⏳ वीडियो Storage में Upload हो रहा है...");
   const ext=(selectedVideo.name.split(".").pop()||"mp4").toLowerCase().replace(/[^a-z0-9]/g,"")||"mp4";
   path=currentUser.id+"/"+Date.now()+"-"+Math.random().toString(36).slice(2)+"."+ext;
 
@@ -293,18 +294,18 @@ async function uploadVideo(){
   });
   if(dbError)throw dbError;
 
-  uploadMessage("✅ वीडियो सफलतापूर्वक अपलोड हो गया। Profile में जाकर देख सकते हैं।");
+  uploadMessage("🎉 वीडियो सफलतापूर्वक अपलोड हो गया! अब आप Profile पेज पर जाकर देख सकते हैं।");
   $("title").value="";
   $("caption").value="";
   $("gallery").value="";
   $("fileInfo").textContent="Upload पूरा हुआ।";
   selectedVideo=null;
  }catch(e){
-  if(path)await db.storage.from("videos").remove([path]);
-  uploadMessage("Upload Error: "+(e.message||String(e)));
+  if(path)await db.storage.from("videos").remove([path]).catch(()=>{});
+  uploadMessage("❌ Upload Error: "+(e.message||String(e)));
  }finally{
   button.disabled=false;
-  button.textContent="Upload Video";
+  button.textContent="🚀 Upload Video";
  }
 }
 
