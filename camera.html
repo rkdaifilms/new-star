@@ -77,11 +77,11 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 .home-mode-card { background: #15151b; border: 1px solid #333; border-radius: 12px; padding: 16px 8px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; transition: 0.2s; }
 .home-mode-card:hover { border-color: #25f4ee; background: #1c1c24; }
 
-/* ⚓ मास्टर बॉटम नेविगेशन बार (अब क्लिक में रुकावट नहीं डालेगा) */
+/* ⚓ मास्टर बॉटम नेविगेशन बार */
 .master-tiktok-final-nav {
     position: fixed !important; bottom: 0 !important; left: 0 !important; width: 100% !important; height: 50px !important;
     background: #000 !important; display: flex !important; justify-content: space-around !important; align-items: center !important;
-    border-top: 1px solid #222 !important; z-index: 10 !important; box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
+    border-top: 1px solid #222 !important; z-index: 1 !important; box-sizing: border-box !important; margin: 0 !important; padding: 0 !important; pointer-events: auto !important;
 }
 .mfn-item {
     display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;
@@ -108,7 +108,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
   <div class="card" style="text-align:center;padding:22px 15px">
     <div style="font-size:38px">🎬</div>
     <h3 style="margin-top:8px; font-size:17px;">New Star Video Studio</h3>
-    <p class="muted" style="margin-bottom:10px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें[span_0](start_span)[span_0](end_span).</p>
+    <p class="muted" style="margin-bottom:10px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें।</p>
     <button class="primary" onclick="openCamera()">🎥 Open Camera Studio</button>
     <button class="secondary" onclick="document.getElementById('videoInput').click()">📁 Select Gallery Video</button>
     <input id="videoInput" type="file" accept="video/*" class="hidden">
@@ -684,13 +684,13 @@ function runSolidCopyrightEngine(){
       <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #25f4ee; font-size:12px; line-height:1.6;">
         <b style="color:#25f4ee; font-size:13px;">🛡️ AI Copyright & Creator Verification Report</b><br><br>
         • <b>Video File Name:</b> ${fileName} (${fileSize})<br>
-        • <b>Verified Creator / Owner:</b> Ramkumar Dhobi (90s_rk_creation)[span_1](start_span)[span_1](end_span)<br>
+        • <b>Verified Creator / Owner:</b> Ramkumar Dhobi (90s_rk_creation)<br>
         • <b>Registered Platform ID:</b> New Star Official Channel / Studio ID #9041<br>
         • <b>Video Watermark / Logo:</b> Detected & Verified (Creator Branded Asset)<br>
         • <b>Audio Track & Music Company:</b> Original Clean Audio Stream / Independent Production<br>
-        • <b>Multi-Platform Cross-Check:</b> Scanned across YouTube Shorts, TikTok & Facebook Reels (No duplicate claims found)[span_2](start_span)[span_2](end_span)<br>
-        • <b>Content ID Status:</b> 0% Copyright Match (Clean & Safe)[span_3](start_span)[span_3](end_span)<br>
-        • <b>Monetization & Ad Eligibility:</b> 100% Fully Cleared for Public Distribution & Ads[span_4](start_span)[span_4](end_span)
+        • <b>Multi-Platform Cross-Check:</b> Scanned across YouTube Shorts, TikTok & Facebook Reels (No duplicate claims found)<br>
+        • <b>Content ID Status:</b> 0% Copyright Match (Clean & Safe)<br>
+        • <b>Monetization & Ad Eligibility:</b> 100% Fully Cleared for Public Distribution & Ads
       </div>
     `;
     toast('🛡️ Solid Copyright Scan Completed Successfully!');
