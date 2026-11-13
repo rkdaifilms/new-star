@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>New Star - Home Feed Clean Search & Mic</title>
+    <title>New Star - Camera & Video Recorder</title>
     
     <!-- 📱 PWA APP METAS & CORRECT ICONS -->
     <meta name="theme-color" content="#fe2c55">
@@ -25,92 +25,33 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; overflow-x: hidden; height: 100vh; touch-action: manipulation; }
+
+        /* Camera Viewport Container */
+        .camera-container { position: relative; width: 100%; height: calc(100vh - 60px); background: #111; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        #cameraPreview { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; background: #000; }
+
+        /* Top Controls Bar */
+        .camera-top-bar { position: absolute; top: 15px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; z-index: 20; }
+        .cam-top-btn { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; backdrop-filter: blur(5px); }
+
+        /* Right Side Filter & Tools Panel */
+        .camera-side-tools { position: absolute; right: 15px; top: 80px; display: flex; flex-direction: column; gap: 15px; z-index: 20; }
+        .tool-icon-btn { width: 42px; height: 42px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; color: #fff; cursor: pointer; backdrop-filter: blur(5px); }
+
+        /* Bottom Recording Controls */
+        .camera-bottom-controls { position: absolute; bottom: 30px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; z-index: 20; }
         
-        /* 🔍 CLEAN YOUTUBE STYLE TOP SEARCH BAR (ICON + INPUT + MIC) */
-        .feed-top-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.92), rgba(0,0,0,0.5), transparent); padding: 10px 15px 12px 15px; display: flex; flex-direction: column; gap: 8px; }
+        .timer-display { font-size: 14px; font-weight: bold; background: rgba(0,0,0,0.6); padding: 4px 12px; border-radius: 12px; color: #fe2c55; display: none; border: 1px solid #fe2c55; }
+
+        .shutter-row { display: flex; align-items: center; justify-content: space-around; width: 80%; max-width: 350px; }
         
-        .search-box-wrapper { position: relative; width: 100%; display: flex; align-items: center; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); border-radius: 22px; padding: 0 12px; backdrop-filter: blur(8px); }
-        .search-icon-left { font-size: 15px; margin-right: 8px; color: #ddd; flex-shrink: 0; }
+        .gallery-preview-thumb { width: 45px; height: 45px; border-radius: 10px; border: 2px solid #fff; object-fit: cover; background: #333; cursor: pointer; }
         
-        .feed-search-input { flex: 1; background: transparent; border: none; padding: 9px 0; color: #fff; font-size: 13px; outline: none; }
-        .feed-search-input::placeholder { color: #ddd; }
+        .shutter-btn { width: 75px; height: 75px; border-radius: 50%; background: transparent; border: 4px solid #fff; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative; }
+        .shutter-inner { width: 60px; height: 60px; border-radius: 50%; background: #fe2c55; transition: 0.2s; }
+        .shutter-btn.recording .shutter-inner { border-radius: 8px; width: 35px; height: 35px; background: #ff0000; }
 
-        .mic-btn-right { background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-
-        /* Category & Feed Chips Bar */
-        .category-chips-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 3px; }
-        .category-chips-row::-webkit-scrollbar { display: none; }
-        .f-chip { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 5px 14px; border-radius: 16px; font-size: 11px; cursor: pointer; white-space: nowrap; backdrop-filter: blur(5px); transition: 0.2s; }
-        .f-chip.active { background: #fe2c55; font-weight: bold; box-shadow: 0 2px 8px rgba(254,44,85,0.5); }
-
-        /* Video Feed Container */
-        .feed-container { height: 100vh; width: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: #111; }
-        .feed-video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; background: #000; }
-        
-        .video-info { position: absolute; bottom: 25px; left: 15px; z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.8); right: 80px; }
-        .video-info h3 { font-size: 16px; margin-bottom: 4px; color: #fff; }
-        .video-info p { font-size: 13px; color: #ddd; margin-bottom: 4px; }
-        
-        /* 🚀 UNLIMITED VIRAL TIER REACH BADGE */
-        .algo-tier-badge { display: inline-block; background: linear-gradient(135deg, #fe2c55, #ffcc00, #00f2fe); color: #000; font-size: 10px; font-weight: bold; padding: 3px 10px; border-radius: 8px; margin-top: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
-
-        /* Right Side Actions */
-        .side-actions { position: absolute; right: 15px; bottom: 80px; display: flex; flex-direction: column; align-items: center; gap: 16px; z-index: 10; }
-        .action-btn { text-align: center; color: #fff; font-size: 12px; cursor: pointer; }
-        .action-icon { width: 45px; height: 45px; background: rgba(0,0,0,0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.2); }
-        .gift-icon-btn { background: linear-gradient(135deg, #fe2c55, #ffcc00); border: none; }
-
-        /* TIKTOK STYLE COMMENT MODAL */
-        #commentModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; height: 60vh; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; z-index: 150; flex-direction: column; box-shadow: 0 -5px 20px rgba(0,0,0,0.9); }
-        .comment-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; }
-        .comment-header h3 { font-size: 15px; color: #fff; }
-        
-        .comment-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .comment-item { display: flex; gap: 10px; align-items: flex-start; }
-        .comment-avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; }
-        .comment-content h4 { font-size: 13px; color: #aaa; margin-bottom: 2px; }
-        .comment-content p { font-size: 13px; color: #fff; }
-
-        .comment-input-area { display: flex; padding: 12px 15px; background: #111; border-top: 1px solid #222; gap: 10px; align-items: center; flex-shrink: 0; }
-        .comment-input-area input { flex: 1; padding: 10px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
-        .comment-send-btn { background: #fe2c55; color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-
-        /* TikTok Live Coin Gift Panel (16 Options) */
-        #giftModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 150; box-shadow: 0 -5px 20px rgba(0,0,0,0.8); max-height: 50vh; overflow-y: auto; }
-        .gift-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .gift-header h3 { font-size: 16px; color: #ffcc00; }
-        .close-gift { font-size: 18px; cursor: pointer; color: #aaa; }
-        
-        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
-        .gift-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .gift-card:hover { border-color: #fe2c55; background: #2a2a2a; }
-        .gift-card .emoji { font-size: 26px; margin-bottom: 4px; }
-        .gift-card h4 { font-size: 12px; color: #fff; margin-bottom: 2px; }
-        .gift-card p { font-size: 11px; color: #ffcc00; }
-
-        /* SHARE SHEET */
-        #shareModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; background: #1c1c1e; border-top: 2px solid #333; border-radius: 20px 20px 0 0; padding: 15px 20px 20px 20px; z-index: 150; box-shadow: 0 -5px 20px rgba(0,0,0,0.9); max-height: 80vh; overflow-y: auto; }
-        .share-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .share-header h3 { font-size: 15px; color: #fff; }
-        
-        .friends-multi-container { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 12px; scrollbar-width: none; }
-        .friends-multi-container::-webkit-scrollbar { display: none; }
-        .friend-checkbox-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 65px; text-align: center; position: relative; }
-        .friend-avatar-wrap { position: relative; width: 50px; height: 50px; }
-        .friend-share-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #444; }
-        .friend-checkbox-item input[type="checkbox"] { position: absolute; bottom: 0; right: 0; width: 18px; height: 18px; accent-color: #fe2c55; cursor: pointer; border-radius: 50%; }
-        .friend-checkbox-item span { font-size: 11px; color: #ccc; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65px; }
-
-        .bulk-send-btn { background: #fe2c55; color: #fff; border: none; width: 100%; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; margin-bottom: 12px; display: none; }
-        .native-share-main-btn { width: 100%; background: linear-gradient(135deg, #00b4d8, #0077b6); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; }
-
-        .share-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center; }
-        .share-app-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; margin: 0 auto 5px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-decoration: none; color: #fff; }
-        .share-app-item span { font-size: 11px; color: #ccc; }
-
-        /* FLOATING TOAST */
-        #floatingToastMessage { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 40000; opacity: 0; transition: 0.3s ease; pointer-events: none; }
-        #floatingToastMessage.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .flip-cam-btn { width: 45px; height: 45px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); display: flex; justify-content: center; align-items: center; font-size: 20px; color: #fff; cursor: pointer; }
 
         /* BOTTOM NAVBAR STYLE */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #111; border-top: 1px solid #222; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
@@ -118,405 +59,193 @@
         .nav-item.active { color: #fff; font-weight: bold; }
         .nav-item span.icon { font-size: 20px; margin-bottom: 2px; }
         .nav-center-btn { width: 42px; height: 32px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #000; font-weight: bold; box-shadow: 0 2px 8px rgba(254,44,85,0.5); }
+
+        /* FLOATING TOAST */
+        #floatingToastMessage { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 40000; opacity: 0; transition: 0.3s ease; pointer-events: none; }
+        #floatingToastMessage.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
 
     <div id="floatingToastMessage">Notification</div>
 
-    <!-- 🔍 TOP CLEAN SEARCH BAR -->
-    <div class="feed-top-header">
-        <div class="search-box-wrapper">
-            <span class="search-icon-left">🔍</span>
-            <input type="text" id="feedSearchBox" class="feed-search-input" placeholder="Search creators, comedy, dancing, vlogs..." oninput="filterShortFeedVideos()" onkeypress="handleSearchKey(event)">
-            <button class="mic-btn-right" onclick="startVoiceSearch()" title="Search with Voice">🎙️</button>
-        </div>
-        
-        <div class="category-chips-row">
-            <button class="f-chip active" onclick="selectCategoryFilter('For You', this)">🔥 For You (FYP)</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Following', this)">👥 Following</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Shorts', this)">⚡ Shorts</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Reels', this)">🎬 Reels</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Discover', this)">🌍 Discover</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Girls Dance', this)">💃 Girls Dance</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Entertainment & Comedy', this)">😂 Comedy</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Music', this)">🎵 Music</button>
-            <button class="f-chip" onclick="selectCategoryFilter('Gaming', this)">🎮 Gaming</button>
-        </div>
-    </div>
+    <!-- Camera Viewport Section -->
+    <div class="camera-container">
+        <video id="cameraPreview" autoplay playsinline muted></video>
 
-    <!-- Main Video Feed Container -->
-    <div class="feed-container" id="feedSwipeContainer">
-        <video class="feed-video" id="activeFeedVideo" autoplay loop muted playsinline></video>
-
-        <div class="video-info">
-            <h3 id="feedUsername">@ramram981152</h3>
-            <p id="feedCaptionText">Loading your original feed...</p>
-            <div id="feedAffiliateBox" style="margin-top:4px; display:none;">
-                <a id="feedAffiliateLink" href="#" target="_blank" style="font-size:12px; color:#25f4ee; text-decoration:underline;">🛒 Product / Affiliate Link</a>
-            </div>
-            <!-- 🚀 UNLIMITED VIRAL TIER REACH BADGE -->
-            <div id="algoReachBadge" class="algo-tier-badge">🚀 Tier: 200 Feed Reach (👁️ 150 Views)</div>
+        <!-- Top Controls -->
+        <div class="camera-top-bar">
+            <button class="cam-top-btn" onclick="toggleFlash()">⚡ Flash: Off</button>
+            <button class="cam-top-btn" onclick="selectDuration('60s')">⏱️ 60s Max</button>
+            <button class="cam-top-btn" onclick="openAudioLibrary()">🎵 Sounds</button>
         </div>
 
-        <div class="side-actions">
-            <div class="action-btn" onclick="toggleLike(this)">
-                <div class="action-icon" id="likeIcon">❤️</div>
-                <span id="likeCount">195K</span>
-            </div>
-            <div class="action-btn" onclick="toggleCommentModal()">
-                <div class="action-icon">💬</div>
-                <span id="commentCountBadge">2,150</span>
-            </div>
-            <div class="action-btn" onclick="toggleGiftModal()">
-                <div class="action-icon gift-icon-btn">🎁</div>
-                <span>Gift</span>
-            </div>
-            <div class="action-btn" onclick="toggleShareModal()">
-                <div class="action-icon">↗️</div>
-                <span>Share</span>
-            </div>
+        <!-- Right Side Tools -->
+        <div class="camera-side-tools">
+            <div class="tool-icon-btn" onclick="toggleFilters()" title="Filters">✨</div>
+            <div class="tool-icon-btn" onclick="toggleTimer()" title="Timer">⏲️</div>
+            <div class="tool-icon-btn" onclick="toggleSpeed()" title="Speed">⚡</div>
         </div>
-    </div>
 
-    <!-- COMMENT MODAL -->
-    <div id="commentModal">
-        <div class="comment-header">
-            <h3 id="commentHeaderTitle">2,150 comments</h3>
-            <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="toggleCommentModal()">✕</span>
-        </div>
-        
-        <div class="comment-list" id="commentListArea">
-            <div class="comment-item">
-                <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" class="comment-avatar">
-                <div class="comment-content">
-                    <h4>Ramkumar Dhobi</h4>
-                    <p>Super hit video bhai! 🔥</p>
+        <!-- Bottom Shutter & Controls -->
+        <div class="camera-bottom-controls">
+            <div class="timer-display" id="recTimerDisplay">00:00</div>
+
+            <div class="shutter-row">
+                <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" class="gallery-preview-thumb" id="galleryThumb" onclick="goToUploadPage()" title="Upload / Gallery">
+                
+                <div class="shutter-btn" id="shutterBtn" onclick="toggleRecordVideo()">
+                    <div class="shutter-inner"></div>
                 </div>
-            </div>
-        </div>
 
-        <div class="comment-input-area">
-            <input type="text" id="commentInput" placeholder="Add a comment..." onkeypress="handleCommentKey(event)">
-            <button class="comment-send-btn" onclick="postComment()">Post</button>
-        </div>
-    </div>
-
-    <!-- GIFT PANEL -->
-    <div id="giftModal">
-        <div class="gift-header">
-            <h3>🎁 Send Creator Gift (16 Options)</h3>
-            <span class="close-gift" onclick="toggleGiftModal()">✕ Close</span>
-        </div>
-        <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Select a coin gift to support New Star Creator:</p>
-        
-        <div class="gift-grid">
-            <div class="gift-card" onclick="sendRealGift('Rose 🌹', 1, '🌹')"><div class="emoji">🌹</div><h4>Rose</h4><p>1 Coin</p></div>
-            <div class="gift-card" onclick="sendRealGift('Coffee ☕', 5, '☕')"><div class="emoji">☕</div><h4>Coffee</h4><p>5 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Finger Heart 🫶', 10, '🫶')"><div class="emoji">🫶</div><h4>Heart</h4><p>10 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Sunglasses 🕶️', 20, '🕶️')"><div class="emoji">🕶️</div><h4>Glasses</h4><p>20 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('TikTok Icon 🪙', 50, '🪙')"><div class="emoji">🪙</div><h4>TikTok</h4><p>50 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Sports Car 🏎️', 100, '🏎️')"><div class="emoji">🏎️</div><h4>Car</h4><p>100 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Magic Ring 💍', 200, '💍')"><div class="emoji">💍</div><h4>Ring</h4><p>200 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Yacht 🛥️', 500, '🛥️')"><div class="emoji">🛥️</div><h4>Yacht</h4><p>500 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Lion 🦁', 1000, '🦁')"><div class="emoji">🦁</div><h4>Lion</h4><p>1,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Diamond 💎', 1500, '💎')"><div class="emoji">💎</div><h4>Diamond</h4><p>1,500 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Golden Crown 👑', 2000, '👑')"><div class="emoji">👑</div><h4>Crown</h4><p>2,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Private Jet ✈️', 3000, '✈️')"><div class="emoji">✈️</div><h4>Jet</h4><p>3,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Castle 🏰', 5000, '🏰')"><div class="emoji">🏰</div><h4>Castle</h4><p>5,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Dragon 🐉', 10000, '🐉')"><div class="emoji">🐉</div><h4>Dragon</h4><p>10,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Galaxy 🌌', 20000, '🌌')"><div class="emoji">🌌</div><h4>Galaxy</h4><p>20,000 Coins</p></div>
-            <div class="gift-card" onclick="sendRealGift('Universe 🪐', 50000, '🪐')"><div class="emoji">🪐</div><h4>Universe</h4><p>50,000 Coins</p></div>
-        </div>
-    </div>
-
-    <!-- SHARE MODAL -->
-    <div id="shareModal">
-        <div class="share-header">
-            <h3>Share to Friends & Social Media</h3>
-            <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="toggleShareModal()">✕</span>
-        </div>
-
-        <p style="font-size: 11px; color: #888; margin-bottom: 6px;">Select multiple friends to share instantly:</p>
-        
-        <div class="friends-multi-container" id="friendsListContainer">
-            <label class="friend-checkbox-item">
-                <div class="friend-avatar-wrap">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" class="friend-share-avatar">
-                    <input type="checkbox" class="friend-chk" value="New Star Official" onchange="checkBulkButton()">
-                </div>
-                <span>New Star</span>
-            </label>
-        </div>
-
-        <button class="bulk-send-btn" id="bulkSendBtn" onclick="sendToSelectedFriends()">🚀 Send to Selected Friends (Inbox Chat)</button>
-        <button class="native-share-main-btn" onclick="openPhoneNativeShare()"><span>🌐 Open Phone Share (WhatsApp, All Apps...)</span></button>
-
-        <div class="share-grid">
-            <div class="share-app-item" onclick="copyVideoLink()">
-                <div class="share-app-icon" style="background:#ff7700;">🔗</div>
-                <span>Copy Link</span>
+                <div class="flip-cam-btn" onclick="switchCameraFacing()">🔄</div>
             </div>
         </div>
     </div>
 
     <!-- 🌟 BOTTOM NAVIGATION BAR -->
     <div class="bottom-nav">
-        <a href="index.html" class="nav-item active"><span class="icon">🏠</span><span>Home</span></a>
+        <a href="index.html" class="nav-item"><span class="icon">🏠</span><span>Home</span></a>
         <a href="inbox.html" class="nav-item"><span class="icon">💬</span><span>Inbox</span></a>
-        <a href="camera.html" class="nav-item"><div class="nav-center-btn">+</div></a>
+        <a href="camera.html" class="nav-item active"><div class="nav-center-btn">+</div></a>
         <a href="wallet.html" class="nav-item"><span class="icon">💰</span><span>Wallet</span></a>
         <a href="profile.html" class="nav-item"><span class="icon">👤</span><span>Profile</span></a>
     </div>
 
     <!-- 🌟 NAVBAR SCRIPT LOADER -->
     <script src="navbar.js"></script>
-    <script src="editor.js"></script>
-    <script src="merger.js"></script>
 
     <script>
-        let rawFeedList = [];
-        let filteredFeedList = [];
-        let currentFeedIndex = 0;
-        let touchStartY = 0;
-        let currentCategory = 'For You';
+        let mediaStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let useFrontCamera = true;
+        let recordTimerInterval = null;
+        let recordSeconds = 0;
 
         window.onload = async function() {
-            let savedHandle = localStorage.getItem('appHandle') || '@ramram981152';
-            document.getElementById('feedUsername').innerText = savedHandle;
-            await fetchSupabaseFeedVideos();
+            await initCameraStream();
         };
 
-        // 🚀 FETCH REAL SUPABASE VIDEOS (NO DUMMY)
-        async function fetchSupabaseFeedVideos() {
+        async function initCameraStream() {
             try {
-                let { data, error } = await supabaseClient
-                    .from('videos')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (!error && data && data.length > 0) {
-                    rawFeedList = data.map((v, i) => ({
-                        id: v.id || ('feed_vid_' + i),
-                        url: v.video_url || v.url,
-                        caption: v.caption || 'Girls Dance Viral Short 🔥',
-                        category: v.category || 'Girls Dance',
-                        description: v.description || '',
-                        affiliate: v.affiliate_link || '',
-                        username: v.username || localStorage.getItem('appHandle') || '@ramram981152',
-                        likes: v.likes_count || 195,
-                        views: v.views_count || 210
-                    }));
-                    filteredFeedList = [...rawFeedList];
-                    renderCurrentFeedVideo();
-                } else {
-                    document.getElementById('feedCaptionText').innerText = "⚠️ No videos found in Supabase! Upload a video from (+) camera button.";
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
                 }
+
+                let constraints = {
+                    video: { facingMode: useFrontCamera ? 'user' : 'environment', width: {ideal: 1280}, height: {ideal: 720} },
+                    audio: true
+                };
+
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                let previewEl = document.getElementById('cameraPreview');
+                previewEl.srcObject = mediaStream;
+                previewEl.play();
             } catch (err) {
-                console.error('Supabase fetch error:', err);
-                document.getElementById('feedCaptionText').innerText = "⚠️ Database connection error.";
+                console.error('Camera access error:', err);
+                showToast('⚠️ Camera access denied or not supported.');
             }
         }
 
-        // 🎙️ VOICE SEARCH
-        function startVoiceSearch() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('⚠️ Voice search is not supported on this browser.');
-                return;
-            }
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'hi-IN';
-            showToast('🎙️ Listening...');
-            recognition.start();
-
-            recognition.onresult = function(event) {
-                let speechResult = event.results[0][0].transcript;
-                document.getElementById('feedSearchBox').value = speechResult;
-                filterShortFeedVideos();
-                showToast(`🔍 Searched: "${speechResult}"`);
-            };
+        function switchCameraFacing() {
+            useFrontCamera = !useFrontCamera;
+            initCameraStream();
+            showToast(useFrontCamera ? '🔄 Front Camera' : '🔄 Rear Camera');
         }
 
-        function handleSearchKey(e) {
-            if (e.key === 'Enter') { filterShortFeedVideos(); }
-        }
+        function toggleRecordVideo() {
+            let shutterBtn = document.getElementById('shutterBtn');
+            let timerDisplay = document.getElementById('recTimerDisplay');
 
-        function getAlgorithmTierStatus(views, likes) {
-            let reachText = views < 500 ? '🚀 Tier: 200 Feed Reach' : '🔥 Tier: Viral Reach Active';
-            let formattedViews = views >= 1000 ? (views / 1000).toFixed(1) + 'K' : views;
-            return `${reachText} (👁️ ${formattedViews} Views)`;
-        }
-
-        // 📱 SWIPE NAVIGATION
-        const feedContainerEl = document.getElementById('feedSwipeContainer');
-        if(feedContainerEl) {
-            feedContainerEl.addEventListener('touchstart', (e) => {
-                touchStartY = e.touches[0].clientY;
-            }, {passive: true});
-
-            feedContainerEl.addEventListener('touchend', (e) => {
-                let diff = touchStartY - e.changedTouches[0].clientY;
-                if (Math.abs(diff) > 50) {
-                    if (diff > 0) {
-                        currentFeedIndex = (currentFeedIndex + 1) % filteredFeedList.length;
-                    } else {
-                        currentFeedIndex = (currentFeedIndex - 1 + filteredFeedList.length) % filteredFeedList.length;
+            if (!isRecording) {
+                // Start Recording
+                recordedChunks = [];
+                try {
+                    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm;codecs=vp9,opus' });
+                } catch (e) {
+                    try {
+                        mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/mp4' });
+                    } catch (err) {
+                        mediaRecorder = new MediaRecorder(mediaStream);
                     }
-                    renderCurrentFeedVideo();
                 }
-            }, {passive: true});
-        }
 
-        function renderCurrentFeedVideo() {
-            if(!filteredFeedList || filteredFeedList.length === 0) return;
-            if (currentFeedIndex >= filteredFeedList.length) currentFeedIndex = 0;
-            if (currentFeedIndex < 0) currentFeedIndex = filteredFeedList.length - 1;
+                mediaRecorder.ondataavailable = function(e) {
+                    if (e.data && e.data.size > 0) {
+                        recordedChunks.push(e.data);
+                    }
+                };
 
-            let vData = filteredFeedList[currentFeedIndex];
-            if(!vData) return;
+                mediaRecorder.onstop = async function() {
+                    let blob = new Blob(recordedChunks, { type: 'video/mp4' });
+                    let videoUrl = URL.createObjectURL(blob);
+                    
+                    // Save temporarily for upload page or Supabase processing
+                    localStorage.setItem('recordedVideoBlobUrl', videoUrl);
+                    
+                    showToast('✅ Video recorded successfully! Redirecting...');
+                    setTimeout(() => {
+                        window.location.href = 'upload.html';
+                    }, 1000);
+                };
 
-            let activeVid = document.getElementById('activeFeedVideo');
-            activeVid.src = vData.url;
-            activeVid.load();
-            activeVid.play().catch(e => console.log('Autoplay blocked:', e));
-            
-            document.getElementById('feedUsername').innerText = vData.username;
-            document.getElementById('feedCaptionText').innerText = vData.caption;
-            document.getElementById('likeCount').innerText = vData.likes;
-            document.getElementById('algoReachBadge').innerText = getAlgorithmTierStatus(vData.views, vData.likes);
+                mediaRecorder.start();
+                isRecording = true;
+                shutterBtn.classList.add('recording');
+                timerDisplay.style.display = 'block';
 
-            let affBox = document.getElementById('feedAffiliateBox');
-            let affLink = document.getElementById('feedAffiliateLink');
-            if(vData.affiliate) {
-                affLink.href = vData.affiliate;
-                affLink.innerText = `🛒 Product Link: ${vData.affiliate}`;
-                affBox.style.display = 'block';
+                recordSeconds = 0;
+                timerDisplay.innerText = '00:00';
+                recordTimerInterval = setInterval(() => {
+                    recordSeconds++;
+                    let mins = Math.floor(recordSeconds / 60).toString().padStart(2, '0');
+                    let secs = (recordSeconds % 60).toString().padStart(2, '0');
+                    timerDisplay.innerText = `${mins}:${secs}`;
+
+                    if (recordSeconds >= 60) {
+                        toggleRecordVideo(); // Auto stop at 60s
+                    }
+                }, 1000);
+
+                showToast('🔴 Recording started...');
             } else {
-                affBox.style.display = 'none';
+                // Stop Recording
+                mediaRecorder.stop();
+                isRecording = false;
+                shutterBtn.classList.remove('recording');
+                timerDisplay.style.display = 'none';
+                clearInterval(recordTimerInterval);
             }
         }
 
-        function filterShortFeedVideos() {
-            let keyword = document.getElementById('feedSearchBox').value.toLowerCase().trim();
-            filteredFeedList = rawFeedList.filter(v => {
-                let matchKeyword = (v.caption && v.caption.toLowerCase().includes(keyword)) ||
-                                   (v.username && v.username.toLowerCase().includes(keyword));
-                let matchCat = (currentCategory === 'For You') || (v.category && v.category.toLowerCase().includes(currentCategory.toLowerCase()));
-                return keyword ? matchKeyword : matchCat;
-            });
-            currentFeedIndex = 0;
-            renderCurrentFeedVideo();
+        function toggleFlash() {
+            showToast('⚡ Flash feature toggled');
         }
 
-        function selectCategoryFilter(catName, chipEl) {
-            document.querySelectorAll('.f-chip').forEach(c => c.classList.remove('active'));
-            chipEl.classList.add('active');
-            currentCategory = catName;
-            document.getElementById('feedSearchBox').value = '';
-            filterShortFeedVideos();
+        function selectDuration(dur) {
+            showToast(`⏱️ Duration set to ${dur}`);
         }
 
-        let isLiked = false;
-        function toggleLike(el) {
-            isLiked = !isLiked;
-            let icon = document.getElementById('likeIcon');
-            let countSpan = document.getElementById('likeCount');
-            if(isLiked) {
-                icon.style.color = '#fe2c55';
-                countSpan.innerText = '195.5K';
-                showToast('❤️ Liked!');
-            } else {
-                icon.style.color = '#fff';
-                countSpan.innerText = '195K';
-            }
+        function openAudioLibrary() {
+            showToast('🎵 Opening Sound Library...');
         }
 
-        function toggleCommentModal() {
-            let modal = document.getElementById('commentModal');
-            modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+        function toggleFilters() {
+            showToast('✨ Filters applied');
         }
 
-        let commentTotalCount = 2150;
-        function postComment() {
-            let input = document.getElementById('commentInput');
-            let text = input.value.trim();
-            if(text === '') return;
-
-            let listArea = document.getElementById('commentListArea');
-            let myName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
-            let myPic = localStorage.getItem('appPic') || 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png';
-
-            listArea.innerHTML += `
-                <div class="comment-item">
-                    <img src="${myPic}" class="comment-avatar">
-                    <div class="comment-content">
-                        <h4>${myName}</h4>
-                        <p>${text}</p>
-                    </div>
-                </div>
-            `;
-            input.value = '';
-            listArea.scrollTop = listArea.scrollHeight;
-
-            commentTotalCount += 1;
-            document.getElementById('commentHeaderTitle').innerText = commentTotalCount + ' comments';
-            document.getElementById('commentCountBadge').innerText = commentTotalCount;
-            showToast('💬 Comment posted successfully!');
+        function toggleTimer() {
+            showToast('⏲️ Timer set (3s)');
         }
 
-        function handleCommentKey(e) {
-            if(e.key === 'Enter') { postComment(); }
+        function toggleSpeed() {
+            showToast('⚡ Speed: 1x Standard');
         }
 
-        function toggleGiftModal() {
-            let modal = document.getElementById('giftModal');
-            modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
-        }
-
-        function sendRealGift(giftName, coinCost, emojiIcon) {
-            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
-            if(currentCoins < coinCost) {
-                alert(`⚠️ Insufficient coins! You need ${coinCost} coins.`);
-                return;
-            }
-            currentCoins -= coinCost;
-            localStorage.setItem('userWalletCoins', currentCoins);
-            toggleGiftModal();
-            showToast(`🎉 Sent ${emojiIcon} ${giftName} (-${coinCost} Coins)!`);
-        }
-
-        function toggleShareModal() {
-            let modal = document.getElementById('shareModal');
-            modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
-        }
-
-        function checkBulkButton() {
-            let checkboxes = document.querySelectorAll('.friend-chk:checked');
-            let bulkBtn = document.getElementById('bulkSendBtn');
-            bulkBtn.style.display = checkboxes.length > 0 ? 'block' : 'none';
-            bulkBtn.innerText = `🚀 Send to ${checkboxes.length} Selected Friend(s)`;
-        }
-
-        function sendToSelectedFriends() {
-            showToast('✅ Video successfully shared with friends!');
-            toggleShareModal();
-        }
-
-        function openPhoneNativeShare() {
-            if (navigator.share) {
-                navigator.share({ title: 'New Star Video', url: window.location.href }).catch(() => {});
-            } else {
-                navigator.clipboard.writeText(window.location.href);
-                showToast('📋 Link copied to clipboard!');
-            }
-            toggleShareModal();
-        }
-
-        function copyVideoLink() {
-            navigator.clipboard.writeText(window.location.href);
-            showToast('📋 Link copied!');
-            toggleShareModal();
+        function goToUploadPage() {
+            window.location.href = 'upload.html';
         }
 
         function showToast(msg) {
