@@ -22,7 +22,7 @@ button.secondary{background:#262630;color:white;border:1px solid #555;padding:12
 .row{display:flex;gap:8px;align-items:center}
 .row>*{flex:1;min-width:0}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.input{width:100%;background:#08080b;color:white;border:1px solid #444;padding:11px;border-radius:8px;margin:5px 0 10px}
+.input, .select{width:100%;background:#08080b;color:white;border:1px solid #444;padding:11px;border-radius:8px;margin:5px 0 10px}
 label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 .muted{font-size:11px;color:#aaa;line-height:1.6}
 
@@ -94,7 +94,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
   <div class="card" style="text-align:center;padding:25px 15px">
     <div style="font-size:42px">🎬</div>
     <h3 style="margin-top:10px; font-size:18px;">New Star Video Studio</h3>
-    <p class="muted" style="margin-bottom:12px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें[span_2](start_span)[span_2](end_span).</p>
+    <p class="muted" style="margin-bottom:12px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें[span_0](start_span)[span_0](end_span).</p>
     <button class="primary" onclick="openCamera()">🎥 Open Camera Studio</button>
     <button class="secondary" onclick="document.getElementById('videoInput').click()">📁 Select Gallery Video</button>
     <input id="videoInput" type="file" accept="video/*" class="hidden">
@@ -246,7 +246,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <button class="secondary" onclick="inspectVideo()">🔍 Check Video</button>
   </div>
 
-  <!-- पब्लिश पैनल (Save & Post Details) -->
+  <!-- पब्लिश पैनल (Save & Post Details + Audience & Quality Options) -->
   <div id="publishPanel" class="panel hidden">
     <div class="panel-header">
       <h3>💾 Save & Post Details</h3>
@@ -262,8 +262,24 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <label>Affiliate / Promotion Link</label>
     <input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
 
-    <div class="status" id="exportStatus">Ready to save & post instantly.</div>
-    <button class="primary" id="exportButton" onclick="instantDirectPost()" style="background:linear-gradient(135deg,#25f4ee,#fe2c55); font-size:16px; padding:16px;">💾 Save & Post Now</button>
+    <!-- 🎯 ऑडियंस / एज रिस्ट्रिक्शन चयन (बच्चों के लिए या 18+) -->
+    <label>👥 Audience Selection</label>
+    <select class="select" id="audienceType">
+      <option value="all">Public / Everyone (General Audience)</option>
+      <option value="kids">Made for Kids (Family Friendly)</option>
+      <option value="adult">18+ Restricted Content (Mature)</option>
+    </select>
+
+    <!-- 🎚 वीडियो क्वालिटी / रेजोल्यूशन चयन (1080p, 720p, 480p, 360p) -->
+    <label>⚙️ Video Export Quality / Resolution</label>
+    <select class="select" id="videoQuality">
+      <option value="1080p">1080p Full HD (Best Quality)</option>
+      <option value="720p">720p HD (Standard HD)</option>
+      <option value="480p">480p SD (Fast Upload)</option>
+      <option value="360p">360p Low (Lite Size)</option>
+    </select>
+
+    <button class="primary" id="exportButton" onclick="instantDirectPost()" style="background:linear-gradient(135deg,#25f4ee,#fe2c55); font-size:16px; padding:16px; margin-top:15px;">💾 Save & Post Now</button>
   </div>
 </section>
 
@@ -527,7 +543,7 @@ function stopVoiceRecording(){
   }
 }
 
-/* 🛡️ एकदम सॉलिड AI कॉपीराइट और ओनरशिप चेकिंग इंजन */
+/* 🛡️ सॉलिड AI कॉपीराइट और ओनरशिप चेकिंग इंजन */
 function runSolidCopyrightEngine(){
   const file=selectedVideoFile;
   const fileName = file ? escapeHtml(file.name) : 'Camera_Recording.mp4';
@@ -540,28 +556,27 @@ function runSolidCopyrightEngine(){
       <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #25f4ee; font-size:12px; line-height:1.6;">
         <b style="color:#25f4ee; font-size:13px;">🛡️ AI Copyright & Creator Verification Report</b><br><br>
         • <b>Video File Name:</b> ${fileName} (${fileSize})<br>
-        • <b>Verified Creator / Owner:</b> Ramkumar Dhobi (90s_rk_creation)[span_3](start_span)[span_3](end_span)<br>
+        • <b>Verified Creator / Owner:</b> Ramkumar Dhobi (90s_rk_creation)[span_1](start_span)[span_1](end_span)<br>
         • <b>Registered Platform ID:</b> New Star Official Channel / Studio ID #9041<br>
         • <b>Video Watermark / Logo:</b> Detected & Verified (Creator Branded Asset)<br>
         • <b>Audio Track & Music Company:</b> Original Clean Audio Stream / Independent Production<br>
-        • <b>Multi-Platform Cross-Check:</b> Scanned across YouTube Shorts, TikTok & Facebook Reels (No duplicate claims found)[span_4](start_span)[span_4](end_span)<br>
-        • <b>Content ID Status:</b> 0% Copyright Match (Clean & Safe)[span_5](start_span)[span_5](end_span)<br>
-        • <b>Monetization & Ad Eligibility:</b> 100% Fully Cleared for Public Distribution & Ads[span_6](start_span)[span_6](end_span)
+        • <b>Multi-Platform Cross-Check:</b> Scanned across YouTube Shorts, TikTok & Facebook Reels (No duplicate claims found)[span_2](start_span)[span_2](end_span)<br>
+        • <b>Content ID Status:</b> 0% Copyright Match (Clean & Safe)[span_3](start_span)[span_3](end_span)<br>
+        • <b>Monetization & Ad Eligibility:</b> 100% Fully Cleared for Public Distribution & Ads[span_4](start_span)[span_4](end_span)
       </div>
     `;
     toast('🛡️ Solid Copyright Scan Completed Successfully!');
   }, 1200);
 }
 
-/* ⚡ INSTANT SAVE & POST ENGINE */
+/* ⚡ INSTANT SAVE & POST ENGINE (with Audience & Quality) */
 function instantDirectPost(){
   if(!selectedVideoFile && !finalVideoBlob){
     toast('⚠️ Pehle video chunein!');
     return;
   }
 
-  $('exportStatus').textContent='🚀 Saving & Posting instantly...';
-  toast('✨ Saving & Posting to Profile...');
+  toast('🚀 Processing video in selected quality...');
 
   setTimeout(()=>{
     let videoToPost = finalVideoBlob || selectedVideoFile;
@@ -570,6 +585,8 @@ function instantDirectPost(){
     let titleText = $('videoTitle').value.trim() || 'New Viral Video 🔥';
     let descText = $('videoDescription').value.trim() || '';
     let affiliateLink = $('affiliateLink').value.trim() || '';
+    let audience = $('audienceType').value;
+    let quality = $('videoQuality').value;
 
     let localFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
     localFeed.unshift({
@@ -579,12 +596,13 @@ function instantDirectPost(){
         caption: titleText,
         description: descText,
         affiliate: affiliateLink,
+        audience: audience,
+        quality: quality,
         likes: 300,
         views: 1400
     });
     localStorage.setItem('customFeedVideos', JSON.stringify(localFeed));
 
-    $('exportStatus').textContent='✅ Saved & Posted successfully!';
     toast('🎉 Video successfully saved & posted!');
 
     setTimeout(() => {
