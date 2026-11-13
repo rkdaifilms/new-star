@@ -91,8 +91,23 @@
         function handleFileSelect(e) {
             selectedFile = e.target.files[0];
             if(selectedFile) {
+                const maxSizeMB = 50;
+                if (selectedFile.size > maxSizeMB * 1024 * 1024) {
+                    alert(`⚠️ Warning: Video size is ${(selectedFile.size / (1024*1024)).toFixed(1)}MB. Consider uploading under ${maxSizeMB}MB.`);
+                }
                 document.getElementById('fileNameDisplay').innerText = `✅ Selected: ${selectedFile.name}`;
             }
+        }
+
+        function validateAndCompressVideo(file) {
+            return new Promise((resolve, reject) => {
+                if (!file.type.startsWith('video/')) {
+                    alert('⚠️ Please select a valid video file!');
+                    reject('Invalid file type');
+                    return;
+                }
+                resolve(file);
+            });
         }
 
         async function uploadVideoToSupabase() {
@@ -101,30 +116,36 @@
                 return;
             }
 
-            let caption = document.getElementById('videoCaption').value.trim();
-            let category = document.getElementById('videoCategory').value;
-            let affiliate = document.getElementById('videoAffiliate').value.trim();
-            let username = localStorage.getItem('appHandle') || '@ramram981152';
-
-            alert('⏳ Uploading video to Supabase cloud... Please wait.');
-
             try {
-                let fileName = 'vid_' + Date.now() + '_' + selectedFile.name;
+                let cleanFile = await validateAndCompressVideo(selectedFile);
+
+                let caption = document.getElementById('videoCaption').value.trim();
+                let category = document.getElementById('videoCategory').value;
+                let affiliate = document.getElementById('videoAffiliate').value.trim();
+                let username = localStorage.getItem('appHandle') || '@ramram981152';
+
+                alert('⏳ Uploading video to Supabase cloud... Please wait.');
+
+                let fileName = 'vid_' + Date.now() + '_' + cleanFile.name;
+                
+                // 1. Upload video to Supabase Storage
                 let { data: uploadData, error: uploadError } = await supabaseClient.storage
                     .from('videos')
-                    .upload(fileName, selectedFile);
+                    .upload(fileName, cleanFile);
 
                 if(uploadError) {
                     alert('❌ Storage Upload Error: ' + uploadError.message);
                     return;
                 }
 
+                // 2. Get Public URL of the uploaded video
                 let { data: publicUrlData } = supabaseClient.storage
                     .from('videos')
                     .getPublicUrl(fileName);
 
                 let videoUrl = publicUrlData.publicUrl;
 
+                // 3. Insert video record into Supabase Database table 'videos'
                 let { error: dbError } = await supabaseClient
                     .from('videos')
                     .insert([{
