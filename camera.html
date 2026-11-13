@@ -19,9 +19,20 @@
         .studio-section { display: none; background: #000; flex: 1; flex-direction: column; width: 100%; height: 100%; position: relative; }
         .studio-section.active { display: flex; }
         
-        .media-actions-row { display: none; gap: 15px; justify-content: center; align-items: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 50; }
-        .media-actions-row.active { display: flex; }
-        .media-btn { width: 135px; background: #18181c; border: 1px solid #333; border-radius: 14px; padding: 24px 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        /* ➕ प्लस (+) बटन दबाने पर दिखने वाले 3 मुख्य ऑप्शन्स (Video, Live, Gaming) */
+        #plusPopupModal { display: none; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #18181c; border: 2px solid #fe2c55; border-radius: 16px; padding: 16px; z-index: 2000; width: 90%; max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.9); }
+        #plusPopupModal.active { display: block; }
+
+        .popup-modes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+        .popup-mode-btn { background: #22222b; border: 1px solid #444; border-radius: 12px; padding: 14px 4px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #fff; font-size: 11px; }
+        .popup-mode-btn:hover { border-color: #fe2c55; background: #2c2c38; }
+
+        /* वीडियो चुनने पर दिखने वाले कैमरा और गैलरी ऑप्शन्स */
+        #videoSourceSubPanel { display: none; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 20px; text-align: center; background: #000; }
+        #videoSourceSubPanel.active { display: flex; }
+
+        .media-actions-row { display: flex; gap: 15px; justify-content: center; align-items: center; margin-top: 15px; }
+        .media-btn { width: 130px; background: #18181c; border: 1px solid #333; border-radius: 14px; padding: 20px 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
         
         .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; margin-top: 10px; }
         
@@ -29,9 +40,6 @@
         .camera-preview-wrapper { position: relative; width: 100%; flex: 1; background: #000; overflow: hidden; }
         #directCameraFeed { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
         
-        .camera-top-toolbar { position: absolute; top: 45px; right: 10px; z-index: 70; display: flex; gap: 6px; }
-        .toolbar-icon-btn { background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.4); color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; }
-
         #cameraTimerBadge { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); border: 1px solid #fe2c55; color: #ffcc00; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; display: none; z-index: 60; }
 
         /* 🎬 Star Editor Master Studio Workspace */
@@ -43,9 +51,12 @@
         #vnEditorVideoElement.mode-short { object-fit: cover; width: 100%; height: 100%; }
         #vnEditorVideoElement.mode-long { object-fit: contain; width: 100%; height: 100%; }
 
-        /* केवल थ्री-डॉट बटन (कोने पर बिल्कुल साफ़ सुथरा) */
-        .video-corner-toolbar { position: absolute; top: 15px; right: 15px; z-index: 70; display: flex; gap: 6px; }
+        /* कोने पर बैक एरो (✕) और थ्री-डॉट बटन */
+        .video-corner-toolbar { position: absolute; top: 15px; left: 15px; right: 15px; z-index: 70; display: flex; justify-content: space-between; align-items: center; }
         .video-dot-btn { background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+
+        /* स्क्रीन पर डायरेक्ट पब्लिश बटन */
+        .direct-screen-publish-btn { position: absolute; bottom: 20px; right: 20px; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; padding: 10px 18px; border-radius: 25px; font-size: 12px; font-weight: bold; border: 2px solid #fff; cursor: pointer; z-index: 70; box-shadow: 0 4px 15px rgba(254,44,85,0.6); display: flex; align-items: center; gap: 5px; }
 
         #previewTextOverlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; font-weight: bold; color: #fff; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); z-index: 25; pointer-events: none; text-align: center; }
 
@@ -91,6 +102,29 @@
 <body>
     <div id="floatingToastMessage">Notification</div>
 
+    <!-- ➕ प्लस (+) बटन दबाने पर दिखने वाला 3 ऑप्शन्स का पॉपअप (Video, Live, Gaming) -->
+    <div id="plusPopupModal">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h3 style="color:#fe2c55; font-size:14px;">🚀 New Post / Stream</h3>
+            <span style="cursor:pointer; font-size:18px; color:#fff;" onclick="togglePlusPopup(false)">✕</span>
+        </div>
+        <div class="popup-modes-grid">
+            <div class="popup-mode-btn" onclick="selectPlusMode('video')">
+                <span style="font-size:24px;">📹</span>
+                <b>Video</b>
+            </div>
+            <div class="popup-mode-btn" onclick="selectPlusMode('live')">
+                <span style="font-size:24px;">🔴</span>
+                <b>Live</b>
+            </div>
+            <div class="popup-mode-btn" onclick="selectPlusMode('gaming')">
+                <span style="font-size:24px;">🎮</span>
+                <b>Gaming</b>
+            </div>
+        </div>
+        <button class="post-action-btn" style="background:#333; margin-top:10px; padding:8px;" onclick="togglePlusPopup(false)">Cancel</button>
+    </div>
+
     <!-- 🛡️ YouTube जैसा बड़ा एडवांस कॉपीराइट चेकिंग इंजन -->
     <div id="copyrightModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:6000; justify-content:center; align-items:center; padding:15px;">
         <div style="background:#18181c; border:2px solid #d90429; width:100%; max-width:440px; border-radius:16px; padding:20px; max-height:90vh; overflow-y:auto;">
@@ -100,7 +134,7 @@
             </div>
             
             <div id="copyrightReportContent" style="font-size: 12px; color: #ddd; line-height: 1.6;">
-                <p><b>Status:</b> Scanning YouTube Content ID & Universal Creator Registry...[span_3](start_span)[span_3](end_span)</p>
+                <p><b>Status:</b> Scanning YouTube Content ID & Universal Creator Registry...[span_0](start_span)[span_0](end_span)</p>
             </div>
 
             <div style="margin-top:15px; background:#111; padding:10px; border-radius:8px; border:1px solid #333;">
@@ -166,28 +200,32 @@
     </div>
 
     <div class="studio-main-viewport">
-        <div class="creator-main-modes-row" id="topModeTabsRow">
-            <div class="mode-icon-card active" id="tabVideoBtn" onclick="switchStudioMode('video')"><span>📹</span><b>Video</b></div>
-            <div class="mode-icon-card" id="tabLiveBtn" onclick="switchStudioMode('live')"><span>🔴</span><b>Live</b></div>
-            <div class="mode-icon-card" id="tabGamingBtn" onclick="switchStudioMode('gaming')"><span>🎮</span><b>Gaming</b></div>
-        </div>
-
+        <!-- जब ऐप खुलेगा तो सीधे प्रोफाइल/इंडेक्स व्यू दिखेगा -->
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onGalleryFileChosen(event)">
             <input type="file" id="bgMusicFileInput" accept="audio/*" style="display:none;" onchange="onBgMusicChosen(event)">
             <input type="file" id="overlayFileInput" accept="video/*,image/*" style="display:none;" onchange="onOverlayFileChosen(event)">
 
-            <div class="media-actions-row active" id="mediaActionsRow">
-                <div class="media-btn" onclick="openDirectCameraStudio()">
-                    <span style="font-size:32px;">🎥</span>
-                    <div><b style="font-size:12px;">Camera Studio</b></div>
+            <!-- 📁 जब वीडियो पर क्लिक करेंगे तब दिखेगा कैमरा और गैलरी -->
+            <div id="videoSourceSubPanel">
+                <span style="font-size: 40px; margin-bottom: 10px;">📹</span>
+                <h3 style="color: #fe2c55; margin-bottom: 6px; font-size: 16px;">Video Studio Mode</h3>
+                <p style="font-size: 11px; color: #aaa; margin-bottom: 16px;">शूट करने के लिए कैमरा चुनें या गैलरी से वीडियो अपलोड करें</p>
+                
+                <div class="media-actions-row">
+                    <div class="media-btn" onclick="openDirectCameraStudio()">
+                        <span style="font-size:30px;">🎥</span>
+                        <div><b style="font-size:11px;">Camera Studio</b></div>
+                    </div>
+                    <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()">
+                        <span style="font-size:30px;">📁</span>
+                        <div><b style="font-size:11px;">Gallery</b></div>
+                    </div>
                 </div>
-                <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()">
-                    <span style="font-size:32px;">📁</span>
-                    <div><b style="font-size:12px;">Gallery</b></div>
-                </div>
+                <button class="post-action-btn" style="background:#333; margin-top:20px; width:160px;" onclick="goBackToHomeStudio()">⬅️ Back</button>
             </div>
 
+            <!-- डायरेक्ट कैमरा रिकॉर्डिंग स्क्रीन -->
             <div id="directCameraStudio">
                 <div class="camera-preview-wrapper">
                     <div id="cameraTimerBadge">⏱️ 00:00</div>
@@ -202,10 +240,15 @@
             <!-- 🎬 Master Star Editor Studio Workspace -->
             <div id="vnEditorStudioBox">
                 <div class="vn-video-preview-area" id="videoPreviewArea">
-                    <!-- कोने पर केवल यह सिंगल थ्री-डॉट बटन रहेगा (बाकी सारा लाल टेक्स्ट और क्यूआर पूरी तरह गायब) -->
+                    <!-- कोने पर बैक एरो (✕) और थ्री-डॉट बटन -->
                     <div class="video-corner-toolbar">
+                        <div class="video-dot-btn" onclick="goBackToHomeStudio()" title="Back / Close">✕</div>
                         <div class="video-dot-btn" onclick="toggleStudioToolsPanel()" title="Toggle Star Editor">⋮</div>
                     </div>
+                    
+                    <!-- स्क्रीन पर डायरेक्ट पब्लिश बटन -->
+                    <button class="direct-screen-publish-btn" onclick="proceedToPublishForm()">🚀 Publish</button>
+
                     <div id="previewTextOverlay"></div>
                     <video id="vnEditorVideoElement" autoplay loop playsinline controls></video>
                 </div>
@@ -314,7 +357,7 @@
                 <label style="font-size:11px; color:#ffcc00; margin-bottom:2px; display:block;">Detailed Description & Hashtags:</label>
                 <textarea id="videoDescriptionInput" class="form-input" placeholder="Write detailed info..." rows="2"></textarea>
                 
-                <label style="font-size:11px; color:#ffcc00; margin-bottom:2px; display:block;">Affiliate / Promo Link:</label>
+                <label style="font-size:11px; color:#25f4ee; margin-bottom:2px; display:block;">Affiliate / Promo Link:</label>
                 <input type="text" id="videoAffiliateInput" class="form-input" placeholder="https://example.com/affiliate-link">
 
                 <label style="font-size:11px; color:#ffcc00; margin-bottom:2px; display:block;">Audience Age Group:</label>
@@ -357,7 +400,76 @@
         let currentZoomScale = 1.0;
         let currentRotateDegree = 0;
 
-        // 🔄 ऑटो-रोटेट सेंसर (फोन घुमाते ही वीडियो ऑटोमैटिक लैंडस्केप/पोर्ट्रेट होगा)
+        // ➕ प्लस (+) बटन क्लिक पर 3 ऑप्शन्स (Video, Live, Gaming) वाला पॉपअप खोलने का फंक्शन
+        function openStudioPlusMenu() {
+            let modal = document.getElementById('plusPopupModal');
+            if(modal) modal.classList.toggle('active');
+        }
+
+        function togglePlusPopup(show) {
+            let modal = document.getElementById('plusPopupModal');
+            if(modal) {
+                if(show) modal.classList.add('active');
+                else modal.classList.remove('active');
+            }
+        }
+
+        // 🎯 प्लस पॉपअप से मोड चुनने पर (Video, Live, Gaming)
+        function selectPlusMode(mode) {
+            togglePlusPopup(false);
+            
+            let videoSub = document.getElementById('videoSourceSubPanel');
+            let camStudio = document.getElementById('directCameraStudio');
+            let editorBox = document.getElementById('vnEditorStudioBox');
+            let pubForm = document.getElementById('finalPostPublishContainer');
+            
+            // सब कुछ बंद करके नया मोड खोलें
+            if(camStudio) camStudio.style.display = 'none';
+            if(editorBox) editorBox.style.display = 'none';
+            if(pubForm) pubForm.style.display = 'none';
+
+            if(mode === 'video') {
+                // वीडियो चुनने पर अब कैमरा और गैलरी दिखेंगे
+                if(videoSub) videoSub.classList.add('active');
+                showToast('📹 Video Mode: कैमरा या गैलरी चुनें');
+            } else if(mode === 'live') {
+                if(videoSub) videoSub.classList.remove('active');
+                window.location.href = 'live.html';
+            } else if(mode === 'gaming') {
+                if(videoSub) videoSub.classList.remove('active');
+                window.location.href = 'gaming.html';
+            }
+        }
+
+        // 🔙 बैक एरो (✕) दबाने पर पिछले लेआउट पर जाने का फंक्शन (डेटा बिना कटे)
+        function goBackToHomeStudio() {
+            let pubForm = document.getElementById('finalPostPublishContainer');
+            let editorBox = document.getElementById('vnEditorStudioBox');
+            let camStudio = document.getElementById('directCameraStudio');
+            let videoSub = document.getElementById('videoSourceSubPanel');
+
+            if(pubForm && pubForm.style.display === 'block') {
+                pubForm.style.display = 'none';
+                if(editorBox) editorBox.style.display = 'flex';
+                showToast('⬅️ Back to Star Editor');
+            } else if(editorBox && editorBox.style.display === 'flex') {
+                let confirmExit = confirm('क्या आप एडिटर से बाहर जाना चाहते हैं? (वीडियो सुरक्षित रहेगा)');
+                if(confirmExit) {
+                    editorBox.style.display = 'none';
+                    if(videoSub) videoSub.classList.add('active');
+                    showToast('⬅️ Video Options');
+                }
+            } else if(camStudio && camStudio.style.display === 'flex') {
+                camStudio.style.display = 'none';
+                if(videoSub) videoSub.classList.add('active');
+                showToast('⬅️ Video Options');
+            } else {
+                if(videoSub) videoSub.classList.remove('active');
+                showToast('🏠 Home Profile Active');
+            }
+        }
+
+        // 🔄 ऑटो-रोटेट सेंसर
         window.addEventListener("orientationchange", function() {
             let vnVid = document.getElementById('vnEditorVideoElement');
             if (window.orientation === 90 || window.orientation === -90) {
@@ -397,45 +509,12 @@
             previewAreaEl.addEventListener('touchend', () => { initialPinchDistance = null; });
         }
 
-        function switchStudioMode(mode) {
-            document.getElementById('tabVideoBtn').classList.remove('active');
-            document.getElementById('tabLiveBtn').classList.remove('active');
-            document.getElementById('tabGamingBtn').classList.remove('active');
-            document.getElementById('sectionVideo').classList.remove('active');
-            document.getElementById('sectionLive').classList.remove('active');
-            document.getElementById('sectionGaming').classList.remove('active');
-
-            if(directCameraStreamObj) {
-                directCameraStreamObj.getTracks().forEach(track => track.stop());
-                directCameraStreamObj = null;
-            }
-            let studioBox = document.getElementById('directCameraStudio');
-            if(studioBox) studioBox.style.display = 'none';
-            let topTabs = document.getElementById('topModeTabsRow');
-            if(topTabs) topTabs.style.display = 'flex';
-            let mediaActions = document.getElementById('mediaActionsRow');
-
-            if(mode === 'video') {
-                document.getElementById('tabVideoBtn').classList.add('active');
-                document.getElementById('sectionVideo').classList.add('active');
-                if(mediaActions) mediaActions.classList.add('active');
-            } else if(mode === 'live') {
-                document.getElementById('tabLiveBtn').classList.add('active');
-                document.getElementById('sectionLive').classList.add('active');
-            } else if(mode === 'gaming') {
-                document.getElementById('tabGamingBtn').classList.add('active');
-                document.getElementById('sectionGaming').classList.add('active');
-            }
-        }
-
         async function openDirectCameraStudio() {
+            let videoSub = document.getElementById('videoSourceSubPanel');
             let studioBox = document.getElementById('directCameraStudio');
-            let mediaActions = document.getElementById('mediaActionsRow');
-            let topTabs = document.getElementById('topModeTabsRow');
             
+            if(videoSub) videoSub.classList.remove('active');
             if(studioBox) studioBox.style.display = 'flex';
-            if(mediaActions) mediaActions.classList.remove('active');
-            if(topTabs) topTabs.style.display = 'none';
 
             try {
                 directCameraStreamObj = await navigator.mediaDevices.getUserMedia({ 
@@ -501,9 +580,10 @@
         function handleVideoFileLoaded(fileObj) {
             finalVideoBlob = fileObj;
             selectedVideoFile = fileObj;
-            document.getElementById('mediaActionsRow').classList.remove('active');
-            document.getElementById('topModeTabsRow').style.display = 'none';
-            document.getElementById('directCameraStudio').style.display = 'none';
+            let videoSub = document.getElementById('videoSourceSubPanel');
+            if(videoSub) videoSub.classList.remove('active');
+            let camStudio = document.getElementById('directCameraStudio');
+            if(camStudio) camStudio.style.display = 'none';
 
             let vnVid = document.getElementById('vnEditorVideoElement');
             let blobUrl = URL.createObjectURL(fileObj);
@@ -566,21 +646,21 @@
             let reportBox = document.getElementById('copyrightReportContent');
             let detailsTable = document.getElementById('detailedCopyrightTable');
             
-            reportBox.innerHTML = "<p>🔍 Connecting to YouTube Content ID & Universal Creator Registry...[span_4](start_span)[span_4](end_span)</p>";
+            reportBox.innerHTML = "<p>🔍 Connecting to YouTube Content ID & Universal Creator Registry...[span_1](start_span)[span_1](end_span)</p>";
             detailsTable.innerHTML = "<div>Scanning audio frequencies and video visual hashes...</div>";
             modal.style.display = 'flex';
 
             setTimeout(() => {
                 reportBox.innerHTML = `
                     <p style="color:#25f4ee; font-weight:bold; font-size:13px;">✅ 100% Original Content Verified (Clean)</p>
-                    <p style="margin-top:6px;">• <b>Registered Owner / Creator:</b> Ramkumar Dhobi (90s_rk_creation)[span_5](start_span)[span_5](end_span)</p>
-                    <p>• <b>Content ID Status:</b> No matching copyrighted audio or video found.[span_6](start_span)[span_6](end_span)</p>
-                    <p>• <b>Monetization Eligibility:</b> Fully monetizable across YouTube, TikTok & Facebook.[span_7](start_span)[span_7](end_span)</p>
+                    <p style="margin-top:6px;">• <b>Registered Owner / Creator:</b> Ramkumar Dhobi (90s_rk_creation)[span_2](start_span)[span_2](end_span)</p>
+                    <p>• <b>Content ID Status:</b> No matching copyrighted audio or video found.[span_3](start_span)[span_3](end_span)</p>
+                    <p>• <b>Monetization Eligibility:</b> Fully monetizable across YouTube, TikTok & Facebook.[span_4](start_span)[span_4](end_span)</p>
                 `;
                 detailsTable.innerHTML = `
                     <div>• <b>Audio Track Match:</b> None (Original Voice / Uploaded Music Cleared)</div>
                     <div>• <b>Video Visual Match:</b> 0% Third-party match found</div>
-                    <div>• <b>Copyright Holder Name:</b> Ramkumar Dhobi (Self)[span_8](start_span)[span_8](end_span)</div>
+                    <div>• <b>Copyright Holder Name:</b> Ramkumar Dhobi (Self)[span_5](start_span)[span_5](end_span)</div>
                     <div>• <b>Platform Restrictions:</b> None (Public & Safe)</div>
                 `;
             }, 2000);
