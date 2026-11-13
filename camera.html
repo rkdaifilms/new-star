@@ -3,691 +3,520 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>New Star - Ultimate Pro Camera & Duet Editor Studio</title>
-    <meta name="theme-color" content="#000000">
+    <title>New Star - Home Feed Clean Search & Mic</title>
+    
+    <!-- 📱 PWA APP METAS & CORRECT ICONS -->
+    <meta name="theme-color" content="#fe2c55">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="New Star">
+    
+    <!-- 🌟 DIRECT STABLE APP ICON LINKS -->
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1828/1828884.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1828/1828884.png">
+    
+    <!-- 📋 STANDARD MANIFEST LINK -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- ⚡ SUPABASE JS SDK & CONFIG -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
-        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 4px 8px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; padding-bottom: 65px; overflow-y: auto; position: relative; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #000; color: #fff; padding-bottom: 70px; overflow-x: hidden; height: 100vh; touch-action: manipulation; }
         
-        .creator-main-modes-row { display: flex; justify-content: center; gap: 8px; margin: 2px 0 4px 0; }
-        .mode-icon-card { width: 90px; height: 38px; background: #181818; border: 2px solid #333; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; font-size: 10px; }
-        .mode-icon-card.active { border-color: #fe2c55; background: #222; }
+        /* 🔍 CLEAN YOUTUBE STYLE TOP SEARCH BAR (ICON + INPUT + MIC) */
+        .feed-top-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.92), rgba(0,0,0,0.5), transparent); padding: 10px 15px 12px 15px; display: flex; flex-direction: column; gap: 8px; }
         
-        .studio-section { display: none; background: #000; flex: 1; flex-direction: column; }
-        .studio-section.active { display: flex; }
+        .search-box-wrapper { position: relative; width: 100%; display: flex; align-items: center; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); border-radius: 22px; padding: 0 12px; backdrop-filter: blur(8px); }
+        .search-icon-left { font-size: 15px; margin-right: 8px; color: #ddd; flex-shrink: 0; }
         
-        .media-actions-row { display: none; gap: 15px; justify-content: center; align-items: center; margin-top: 35px; }
-        .media-actions-row.active { display: flex; }
-        .media-btn { width: 130px; background: #1a1a1a; border: 1px solid #333; border-radius: 14px; padding: 22px 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .feed-search-input { flex: 1; background: transparent; border: none; padding: 9px 0; color: #fff; font-size: 13px; outline: none; }
+        .feed-search-input::placeholder { color: #ddd; }
+
+        .mic-btn-right { background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+        /* Category & Feed Chips Bar */
+        .category-chips-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 3px; }
+        .category-chips-row::-webkit-scrollbar { display: none; }
+        .f-chip { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 5px 14px; border-radius: 16px; font-size: 11px; cursor: pointer; white-space: nowrap; backdrop-filter: blur(5px); transition: 0.2s; }
+        .f-chip.active { background: #fe2c55; font-weight: bold; box-shadow: 0 2px 8px rgba(254,44,85,0.5); }
+
+        /* Video Feed Container */
+        .feed-container { height: 100vh; width: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: #111; }
+        .feed-video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; background: #000; }
         
-        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 10px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; margin-top: 4px; }
+        .video-info { position: absolute; bottom: 25px; left: 15px; z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.8); right: 80px; }
+        .video-info h3 { font-size: 16px; margin-bottom: 4px; color: #fff; }
+        .video-info p { font-size: 13px; color: #ddd; margin-bottom: 4px; }
         
-        /* 🎥 कैमरा स्टूडियो स्क्रीन */
-        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; height: 75vh; border-radius: 10px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 2px; }
-        .camera-preview-wrapper { position: relative; width: 100%; flex: 1; background: #000; overflow: hidden; }
-        #directCameraFeed { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
+        /* 🚀 UNLIMITED VIRAL TIER REACH BADGE */
+        .algo-tier-badge { display: inline-block; background: linear-gradient(135deg, #fe2c55, #ffcc00, #00f2fe); color: #000; font-size: 10px; font-weight: bold; padding: 3px 10px; border-radius: 8px; margin-top: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+
+        /* Right Side Actions */
+        .side-actions { position: absolute; right: 15px; bottom: 80px; display: flex; flex-direction: column; align-items: center; gap: 16px; z-index: 10; }
+        .action-btn { text-align: center; color: #fff; font-size: 12px; cursor: pointer; }
+        .action-icon { width: 45px; height: 45px; background: rgba(0,0,0,0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.2); }
+        .gift-icon-btn { background: linear-gradient(135deg, #fe2c55, #ffcc00); border: none; }
+
+        /* TIKTOK STYLE COMMENT MODAL */
+        #commentModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; height: 60vh; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; z-index: 150; flex-direction: column; box-shadow: 0 -5px 20px rgba(0,0,0,0.9); }
+        .comment-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; }
+        .comment-header h3 { font-size: 15px; color: #fff; }
         
-        .camera-top-toolbar { position: absolute; top: 10px; right: 10px; z-index: 70; display: flex; gap: 6px; }
-        .toolbar-icon-btn { background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.4); color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+        .comment-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .comment-item { display: flex; gap: 10px; align-items: flex-start; }
+        .comment-avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; }
+        .comment-content h4 { font-size: 13px; color: #aaa; margin-bottom: 2px; }
+        .comment-content p { font-size: 13px; color: #fff; }
 
-        #cameraTimerBadge { 
-            position: absolute; top: 12px; left: 50%; transform: translateX(-50%); 
-            background: rgba(0, 0, 0, 0.85); border: 1px solid #fe2c55; color: #ffcc00; 
-            padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; 
-            display: none; z-index: 60; letter-spacing: 1px;
-        }
+        .comment-input-area { display: flex; padding: 12px 15px; background: #111; border-top: 1px solid #222; gap: 10px; align-items: center; flex-shrink: 0; }
+        .comment-input-area input { flex: 1; padding: 10px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
+        .comment-send-btn { background: #fe2c55; color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
 
-        /* 🌟 वीडियो प्रीव्यू बॉक्स (बड़ा और परफेक्ट साइज) */
-        #previewBox { display: none; margin-top: 2px; width: 100%; height: 60vh; text-align: center; position: relative; overflow: hidden; border-radius: 10px; background: #111; border: 2px solid #25f4ee; flex-shrink: 0; }
-        .duet-workspace { width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; touch-action: none; }
+        /* TikTok Live Coin Gift Panel (16 Options) */
+        #giftModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; background: #181818; border-top: 2px solid #fe2c55; border-radius: 20px 20px 0 0; padding: 20px; z-index: 150; box-shadow: 0 -5px 20px rgba(0,0,0,0.8); max-height: 50vh; overflow-y: auto; }
+        .gift-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .gift-header h3 { font-size: 16px; color: #ffcc00; }
+        .close-gift { font-size: 18px; cursor: pointer; color: #aaa; }
         
-        .video-corner-toolbar { position: absolute; top: 10px; right: 10px; z-index: 50; }
-        .video-dot-btn { background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
+        .gift-card { background: #222; border: 1px solid #444; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .gift-card:hover { border-color: #fe2c55; background: #2a2a2a; }
+        .gift-card .emoji { font-size: 26px; margin-bottom: 4px; }
+        .gift-card h4 { font-size: 12px; color: #fff; margin-bottom: 2px; }
+        .gift-card p { font-size: 11px; color: #ffcc00; }
 
-        #mainVideoWrapper { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden; cursor: grab; touch-action: none; }
-        #selectedVideoPreview { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; will-change: transform; }
-
-        #duetVideoWrapper { display: none; position: absolute; bottom: 10px; right: 10px; width: 100px; height: 150px; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; background: #000; z-index: 40; cursor: grab; touch-action: none; box-shadow: 0 4px 12px rgba(0,0,0,0.9); }
-        #duetVideoPreview { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; will-change: transform; }
-
-        /* 📊 प्रोसेसिंग प्रोग्रेस बार */
-        #processingOverlayModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); z-index: 2000; justify-content: center; align-items: center; padding: 20px; text-align: center; }
-        .processing-card { background: #181818; border: 2px solid #25f4ee; padding: 25px; border-radius: 16px; width: 100%; max-width: 350px; }
-        .progress-bar-track { width: 100%; background: #222; border-radius: 10px; height: 14px; overflow: hidden; margin: 15px 0; border: 1px solid #444; }
-        .progress-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #25f4ee, #fe2c55); transition: width 0.1s linear; }
-
-        /* 🛡️ असली ग्लोबल कॉपीराइट स्कैनर रिपोर्ट मोडल */
-        #copyrightModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 4000; justify-content: center; align-items: center; padding: 20px; }
-        .copyright-card { background: #181818; border: 2px solid #d90429; width: 100%; max-width: 410px; border-radius: 16px; padding: 20px; text-align: left; max-height: 85vh; overflow-y: auto; }
-
-        /* 🎛️ थ्री-डॉट मास्टर पैनल (नीचे दाएं-बाएं स्क्रॉलिंग टूल्स के साथ) */
-        #threeDotMasterPanel { display: none; background: #121215; border: 2px solid #fe2c55; border-radius: 10px; padding: 8px 10px; margin-top: 4px; flex-shrink: 0; }
+        /* SHARE SHEET */
+        #shareModal { display: none; position: fixed; bottom: 60px; left: 0; width: 100%; background: #1c1c1e; border-top: 2px solid #333; border-radius: 20px 20px 0 0; padding: 15px 20px 20px 20px; z-index: 150; box-shadow: 0 -5px 20px rgba(0,0,0,0.9); max-height: 80vh; overflow-y: auto; }
+        .share-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .share-header h3 { font-size: 15px; color: #fff; }
         
-        .tools-horizontal-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-        .tools-horizontal-scroll::-webkit-scrollbar { display: none; }
+        .friends-multi-container { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 12px; scrollbar-width: none; }
+        .friends-multi-container::-webkit-scrollbar { display: none; }
+        .friend-checkbox-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 65px; text-align: center; position: relative; }
+        .friend-avatar-wrap { position: relative; width: 50px; height: 50px; }
+        .friend-share-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #444; }
+        .friend-checkbox-item input[type="checkbox"] { position: absolute; bottom: 0; right: 0; width: 18px; height: 18px; accent-color: #fe2c55; cursor: pointer; border-radius: 50%; }
+        .friend-checkbox-item span { font-size: 11px; color: #ccc; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65px; }
 
-        .tool-icon-chip { background: #1f1f23; border: 1px solid #444; color: #fff; width: 44px; height: 44px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
-        .tool-icon-chip:hover { background: #fe2c55; border-color: #fe2c55; }
+        .bulk-send-btn { background: #fe2c55; color: #fff; border: none; width: 100%; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; margin-bottom: 12px; display: none; }
+        .native-share-main-btn { width: 100%; background: linear-gradient(135deg, #00b4d8, #0077b6); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; }
 
-        .form-input { width: 100%; background: #0a0a0c; border: 1px solid #333; color: #fff; padding: 8px; border-radius: 8px; font-size: 12px; margin-bottom: 8px; outline: none; }
-        .form-input:focus { border-color: #fe2c55; }
+        .share-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center; }
+        .share-app-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; margin: 0 auto 5px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-decoration: none; color: #fff; }
+        .share-app-item span { font-size: 11px; color: #ccc; }
 
-        #finalPostPublishContainer { display: none; background: #181818; border: 2px solid #25f4ee; border-radius: 12px; padding: 12px; margin-top: 6px; }
-        .extra-mode-panel { display: none; flex: 1; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; background: #111; border-radius: 16px; border: 1px solid #333; margin-top: 10px; }
-        .extra-mode-panel.active { display: flex; }
-
-        #floatingToastMessage { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 11px; z-index: 50000; opacity: 0; transition: 0.3s ease; pointer-events: none; }
+        /* FLOATING TOAST */
+        #floatingToastMessage { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 40000; opacity: 0; transition: 0.3s ease; pointer-events: none; }
         #floatingToastMessage.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* BOTTOM NAVBAR STYLE */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #111; border-top: 1px solid #222; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #888; text-decoration: none; font-size: 11px; cursor: pointer; }
+        .nav-item.active { color: #fff; font-weight: bold; }
+        .nav-item span.icon { font-size: 20px; margin-bottom: 2px; }
+        .nav-center-btn { width: 42px; height: 32px; background: linear-gradient(135deg, #25f4ee, #fe2c55); border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #000; font-weight: bold; box-shadow: 0 2px 8px rgba(254,44,85,0.5); }
     </style>
 </head>
 <body>
+
     <div id="floatingToastMessage">Notification</div>
 
-    <!-- 📊 प्रोसेसिंग प्रोग्रेस बार -->
-    <div id="processingOverlayModal">
-        <div class="processing-card">
-            <h3 style="color: #25f4ee; margin-bottom: 6px;">⚙️ Processing Video & Duet...</h3>
-            <p id="processingStatusText" style="font-size: 12px; color: #ccc;">Rendering & syncing audio tracks: 0%</p>
-            <div class="progress-bar-track">
-                <div class="progress-bar-fill" id="progressBarFill"></div>
-            </div>
-            <button class="post-action-btn" id="finishProcessingBtn" style="display:none; background:#25f4ee; color:#000;" onclick="openPublishFormAfterProcessing()">✨ Proceed to Publish Form ❯</button>
+    <!-- 🔍 TOP CLEAN SEARCH BAR -->
+    <div class="feed-top-header">
+        <div class="search-box-wrapper">
+            <span class="search-icon-left">🔍</span>
+            <input type="text" id="feedSearchBox" class="feed-search-input" placeholder="Search creators, comedy, dancing, vlogs..." oninput="filterShortFeedVideos()" onkeypress="handleSearchKey(event)">
+            <button class="mic-btn-right" onclick="startVoiceSearch()" title="Search with Voice">🎙️</button>
+        </div>
+        
+        <div class="category-chips-row">
+            <button class="f-chip active" onclick="selectCategoryFilter('For You', this)">🔥 For You (FYP)</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Following', this)">👥 Following</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Shorts', this)">⚡ Shorts</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Reels', this)">🎬 Reels</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Discover', this)">🌍 Discover</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Girls Dance', this)">💃 Girls Dance</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Entertainment & Comedy', this)">😂 Comedy</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Music', this)">🎵 Music</button>
+            <button class="f-chip" onclick="selectCategoryFilter('Gaming', this)">🎮 Gaming</button>
         </div>
     </div>
 
-    <!-- 🛡️ रियल ग्लोबल कॉपीराइट और प्लेटफॉर्म इंस्पेक्टर मोडल -->
-    <div id="copyrightModal">
-        <div class="copyright-card">
-            <h3 style="color: #ffcc00; margin-bottom: 10px; font-size: 15px;">🛡️ Real Global Copyright & Database Inspector</h3>
-            <div id="copyrightReportContent" style="font-size: 12px; color: #ddd; line-height: 1.4; margin-bottom: 12px;">
-                Connecting to YouTube Content ID, TikTok Registry & Global Music Databases...
+    <!-- Main Video Feed Container -->
+    <div class="feed-container" id="feedSwipeContainer">
+        <video class="feed-video" id="activeFeedVideo" autoplay loop muted playsinline></video>
+
+        <div class="video-info">
+            <h3 id="feedUsername">@ramram981152</h3>
+            <p id="feedCaptionText">Loading your original feed...</p>
+            <div id="feedAffiliateBox" style="margin-top:4px; display:none;">
+                <a id="feedAffiliateLink" href="#" target="_blank" style="font-size:12px; color:#25f4ee; text-decoration:underline;">🛒 Product / Affiliate Link</a>
             </div>
-            <div id="copyrightActionButtonsBox" style="display:none; margin-bottom: 10px; gap: 6px; flex-direction: column;">
-                <button class="post-action-btn" style="background:#0077b6; padding:8px;" onclick="document.getElementById('galleryVideoInput').click()">📁 Change Video from Gallery</button>
-                <button class="post-action-btn" style="background:#7209b7; padding:8px;" onclick="document.getElementById('bgMusicFileInput').click()">🎵 Change Audio / Music Track</button>
+            <!-- 🚀 UNLIMITED VIRAL TIER REACH BADGE -->
+            <div id="algoReachBadge" class="algo-tier-badge">🚀 Tier: 200 Feed Reach (👁️ 150 Views)</div>
+        </div>
+
+        <div class="side-actions">
+            <div class="action-btn" onclick="toggleLike(this)">
+                <div class="action-icon" id="likeIcon">❤️</div>
+                <span id="likeCount">195K</span>
             </div>
-            <button class="post-action-btn" style="background:#d90429;" onclick="closeModal('copyrightModal')">Close Inspector</button>
+            <div class="action-btn" onclick="toggleCommentModal()">
+                <div class="action-icon">💬</div>
+                <span id="commentCountBadge">2,150</span>
+            </div>
+            <div class="action-btn" onclick="toggleGiftModal()">
+                <div class="action-icon gift-icon-btn">🎁</div>
+                <span>Gift</span>
+            </div>
+            <div class="action-btn" onclick="toggleShareModal()">
+                <div class="action-icon">↗️</div>
+                <span>Share</span>
+            </div>
         </div>
     </div>
 
-    <!-- 👥 डुएट ऑडियो मिक्सर मोडल -->
-    <div id="duetStudioModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.9); z-index:4000; justify-content:center; align-items:center; padding:15px;">
-        <div class="master-modal-card" style="border-color:#25f4ee; background:#181818; padding:18px; border-radius:14px; width:100%; max-width:360px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h3 style="color:#25f4ee; font-size:15px;">👥 Dual Audio Mixer</h3>
-                <span style="cursor:pointer; font-size:18px;" onclick="closeModal('duetStudioModal')">✕</span>
+    <!-- COMMENT MODAL -->
+    <div id="commentModal">
+        <div class="comment-header">
+            <h3 id="commentHeaderTitle">2,150 comments</h3>
+            <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="toggleCommentModal()">✕</span>
+        </div>
+        
+        <div class="comment-list" id="commentListArea">
+            <div class="comment-item">
+                <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" class="comment-avatar">
+                <div class="comment-content">
+                    <h4>Ramkumar Dhobi</h4>
+                    <p>Super hit video bhai! 🔥</p>
+                </div>
             </div>
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:4px;">Main Video Voice Volume (<b id="mainVolLabel">100%</b>):</label>
-            <input type="range" id="mainVolumeRange" min="0" max="100" value="100" style="width:100%; accent-color:#fe2c55;" oninput="updateAudioMixer()">
+        </div>
 
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:6px;">Duet Video Voice Volume (<b id="duetVolLabel">80%</b>):</label>
-            <input type="range" id="duetVolumeRange" min="0" max="100" value="80" style="width:100%; accent-color:#25f4ee;" oninput="updateAudioMixer()">
-
-            <button class="post-action-btn" style="background:#25f4ee; color:#000; margin-top:12px;" onclick="closeModal('duetStudioModal')">Save Audio Mixer</button>
+        <div class="comment-input-area">
+            <input type="text" id="commentInput" placeholder="Add a comment..." onkeypress="handleCommentKey(event)">
+            <button class="comment-send-btn" onclick="postComment()">Post</button>
         </div>
     </div>
 
-    <div class="studio-main-viewport">
-        <div class="creator-main-modes-row" id="topModeTabsRow">
-            <div class="mode-icon-card active" id="tabVideoBtn" onclick="switchStudioMode('video')"><span>📹</span><b>Video</b></div>
-            <div class="mode-icon-card" id="tabLiveBtn" onclick="switchStudioMode('live')"><span>🔴</span><b>Live</b></div>
-            <div class="mode-icon-card" id="tabGamingBtn" onclick="switchStudioMode('gaming')"><span>🎮</span><b>Gaming</b></div>
+    <!-- GIFT PANEL -->
+    <div id="giftModal">
+        <div class="gift-header">
+            <h3>🎁 Send Creator Gift (16 Options)</h3>
+            <span class="close-gift" onclick="toggleGiftModal()">✕ Close</span>
         </div>
-
-        <div id="sectionVideo" class="studio-section active">
-            <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onGalleryFileChosen(event)">
-            <input type="file" id="bgMusicFileInput" accept="audio/*" style="display:none;" onchange="onBgMusicChosen(event)">
-            <input type="file" id="duetVideoFileInput" accept="video/*" style="display:none;" onchange="onDuetFileChosen(event)">
-
-            <div class="media-actions-row active" id="mediaActionsRow">
-                <div class="media-btn" onclick="openDirectCameraStudio()">
-                    <span style="font-size:30px;">🎥</span>
-                    <div><b style="font-size:12px;">Camera Studio</b></div>
-                </div>
-                <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()">
-                    <span style="font-size:30px;">📁</span>
-                    <div><b style="font-size:12px;">Gallery</b></div>
-                </div>
-            </div>
-
-            <!-- 🎥 कैमरा स्टूडियो स्क्रीन -->
-            <div id="directCameraStudio">
-                <div class="camera-preview-wrapper">
-                    <div class="camera-top-toolbar">
-                        <div class="toolbar-icon-btn" onclick="toggleStudioToolsPanel()" title="Pro Studio & Settings">⋮</div>
-                    </div>
-                    <div id="cameraTimerBadge">⏱️ 00:00</div>
-                    <video id="directCameraFeed" autoplay playsinline muted></video>
-                </div>
-                <div style="padding: 6px; background: #000;">
-                    <button class="post-action-btn" id="camRecordBtn" style="background:#fe2c55; margin-top:0;" onclick="startDirectCameraRecording()">⏺️ Start Recording</button>
-                    <button class="post-action-btn" id="camStopBtn" style="background:#ffcc00; color:#000; display:none; margin-top:0;" onclick="stopDirectCameraRecording()">💾 Save & Process</button>
-                </div>
-            </div>
-
-            <!-- 🌟 वीडियो प्रीव्यू बॉक्स -->
-            <div id="previewBox">
-                <div class="duet-workspace" id="duetWorkspaceArea">
-                    <div id="mainVideoWrapper">
-                        <div class="video-corner-toolbar">
-                            <div class="video-dot-btn" onclick="toggleStudioToolsPanel()" title="Main Video Options">⋮</div>
-                        </div>
-                        <video id="selectedVideoPreview" autoplay loop playsinline></video>
-                    </div>
-
-                    <div id="duetVideoWrapper">
-                        <div class="video-corner-toolbar">
-                            <div class="video-dot-btn" onclick="toggleStudioToolsPanel()" title="Duet Video Options">⋮</div>
-                        </div>
-                        <video id="duetVideoPreview" autoplay loop playsinline></video>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 🎛️ थ्री-डॉट क्लिक करने पर नीचे खुलने वाला मास्टर पैनल -->
-            <div id="threeDotMasterPanel">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                    <span style="font-size:10px; color:#ffcc00; font-weight:bold;">✨ Pro Tools (Scroll Left/Right)</span>
-                    <span style="cursor:pointer; font-size:16px; color:#fff;" onclick="toggleStudioToolsPanel()">✕</span>
-                </div>
-
-                <div class="tools-horizontal-scroll">
-                    <div class="tool-icon-chip" onclick="changeVideoSpeed(0.5)" title="Speed 0.5x">0.5x</div>
-                    <div class="tool-icon-chip active" id="spd10" onclick="changeVideoSpeed(1.0)" title="Speed 1.0x">1.0x</div>
-                    <div class="tool-icon-chip" onclick="changeVideoSpeed(2.0)" title="Speed 2.0x">2.0x</div>
-                    <div class="tool-icon-chip" onclick="document.getElementById('bgMusicFileInput').click()" title="Add Music">🎵</div>
-                    <div class="tool-icon-chip" onclick="openAudioVolumeMixer()" title="Audio Mixer">🎚️</div>
-                    <div class="tool-icon-chip" onclick="runRealGlobalCopyrightScan()" title="Real Copyright Inspector" style="border-color:#d90429; color:#d90429;">🛡️</div>
-                    <div class="tool-icon-chip" onclick="document.getElementById('duetVideoFileInput').click()" title="Add Duet" style="border-color:#25f4ee; color:#25f4ee;">👥</div>
-                </div>
-            </div>
-
-            <!-- 💾 नीचे हमेशा मौजूद रहने वाला सेव बटन -->
-            <div id="videoEditorSaveContainer" style="display:none; margin-top:4px;">
-                <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); color:#000;" onclick="startVideoProcessingWorkflow()">💾 Save & Process Video ❯</button>
-            </div>
-
-            <!-- 🌟 फाइनल पब्लिशिंग फॉर्म -->
-            <div id="finalPostPublishContainer">
-                <h4 style="color: #25f4ee; margin-bottom: 6px; font-size: 13px;">🚀 Final Post & Audience Settings</h4>
-                
-                <label style="font-size:10px; color:#aaa; margin-bottom:2px; display:block;">Video Title / Catchy Caption:</label>
-                <input type="text" id="videoCaptionInput" class="form-input" placeholder="Enter video title / caption...">
-                
-                <label style="font-size:10px; color:#aaa; margin-bottom:2px; display:block;">Detailed Description & Hashtags:</label>
-                <textarea id="videoDescriptionInput" class="form-input" placeholder="Write detailed info about your video..." rows="2"></textarea>
-                
-                <label style="font-size:10px; color:#25f4ee; margin-bottom:2px; display:block;">Affiliate / Product / Promo Link (Daraz, Amazon):</label>
-                <input type="text" id="videoAffiliateInput" class="form-input" placeholder="https://example.com/affiliate-link">
-
-                <label style="font-size:10px; color:#ffcc00; margin-bottom:2px; display:block;">Audience Age Group (18+ / Family):</label>
-                <select id="videoAudienceSelect" class="form-input">
-                    <option value="all">🌍 Public (All Ages & Families)</option>
-                    <option value="18plus">🔞 18+ Adult Content Only</option>
-                    <option value="kids">👶 Kids & Family Friendly Talent</option>
-                </select>
-
-                <button class="post-action-btn" onclick="publishVideoToGlobalCloudStorage()">✨ Post Video to Feed Now</button>
-            </div>
-        </div>
-
-        <div id="sectionLive" class="extra-mode-panel">
-            <span style="font-size: 32px; margin-bottom: 6px;">🔴</span>
-            <h3 style="color: #ffcc00; margin-bottom: 4px; font-size: 14px;">Live Streaming Mode</h3>
-            <button class="post-action-btn" style="margin-top:0;" onclick="window.location.href='live.html'">Go Live Now</button>
-        </div>
-
-        <div id="sectionGaming" class="extra-mode-panel">
-            <span style="font-size: 32px; margin-bottom: 6px;">🎮</span>
-            <h3 style="color: #25f4ee; margin-bottom: 4px; font-size: 14px;">Gaming Stream Hub</h3>
-            <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); margin-top:0;" onclick="window.location.href='gaming.html'">Start Gaming Stream</button>
+        <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Select a coin gift to support New Star Creator:</p>
+        
+        <div class="gift-grid">
+            <div class="gift-card" onclick="sendRealGift('Rose 🌹', 1, '🌹')"><div class="emoji">🌹</div><h4>Rose</h4><p>1 Coin</p></div>
+            <div class="gift-card" onclick="sendRealGift('Coffee ☕', 5, '☕')"><div class="emoji">☕</div><h4>Coffee</h4><p>5 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Finger Heart 🫶', 10, '🫶')"><div class="emoji">🫶</div><h4>Heart</h4><p>10 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Sunglasses 🕶️', 20, '🕶️')"><div class="emoji">🕶️</div><h4>Glasses</h4><p>20 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('TikTok Icon 🪙', 50, '🪙')"><div class="emoji">🪙</div><h4>TikTok</h4><p>50 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Sports Car 🏎️', 100, '🏎️')"><div class="emoji">🏎️</div><h4>Car</h4><p>100 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Magic Ring 💍', 200, '💍')"><div class="emoji">💍</div><h4>Ring</h4><p>200 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Yacht 🛥️', 500, '🛥️')"><div class="emoji">🛥️</div><h4>Yacht</h4><p>500 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Lion 🦁', 1000, '🦁')"><div class="emoji">🦁</div><h4>Lion</h4><p>1,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Diamond 💎', 1500, '💎')"><div class="emoji">💎</div><h4>Diamond</h4><p>1,500 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Golden Crown 👑', 2000, '👑')"><div class="emoji">👑</div><h4>Crown</h4><p>2,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Private Jet ✈️', 3000, '✈️')"><div class="emoji">✈️</div><h4>Jet</h4><p>3,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Castle 🏰', 5000, '🏰')"><div class="emoji">🏰</div><h4>Castle</h4><p>5,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Dragon 🐉', 10000, '🐉')"><div class="emoji">🐉</div><h4>Dragon</h4><p>10,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Galaxy 🌌', 20000, '🌌')"><div class="emoji">🌌</div><h4>Galaxy</h4><p>20,000 Coins</p></div>
+            <div class="gift-card" onclick="sendRealGift('Universe 🪐', 50000, '🪐')"><div class="emoji">🪐</div><h4>Universe</h4><p>50,000 Coins</p></div>
         </div>
     </div>
 
+    <!-- SHARE MODAL -->
+    <div id="shareModal">
+        <div class="share-header">
+            <h3>Share to Friends & Social Media</h3>
+            <span style="font-size:18px; cursor:pointer; color:#aaa;" onclick="toggleShareModal()">✕</span>
+        </div>
+
+        <p style="font-size: 11px; color: #888; margin-bottom: 6px;">Select multiple friends to share instantly:</p>
+        
+        <div class="friends-multi-container" id="friendsListContainer">
+            <label class="friend-checkbox-item">
+                <div class="friend-avatar-wrap">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" class="friend-share-avatar">
+                    <input type="checkbox" class="friend-chk" value="New Star Official" onchange="checkBulkButton()">
+                </div>
+                <span>New Star</span>
+            </label>
+        </div>
+
+        <button class="bulk-send-btn" id="bulkSendBtn" onclick="sendToSelectedFriends()">🚀 Send to Selected Friends (Inbox Chat)</button>
+        <button class="native-share-main-btn" onclick="openPhoneNativeShare()"><span>🌐 Open Phone Share (WhatsApp, All Apps...)</span></button>
+
+        <div class="share-grid">
+            <div class="share-app-item" onclick="copyVideoLink()">
+                <div class="share-app-icon" style="background:#ff7700;">🔗</div>
+                <span>Copy Link</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 BOTTOM NAVIGATION BAR -->
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item active"><span class="icon">🏠</span><span>Home</span></a>
+        <a href="inbox.html" class="nav-item"><span class="icon">💬</span><span>Inbox</span></a>
+        <a href="camera.html" class="nav-item"><div class="nav-center-btn">+</div></a>
+        <a href="wallet.html" class="nav-item"><span class="icon">💰</span><span>Wallet</span></a>
+        <a href="profile.html" class="nav-item"><span class="icon">👤</span><span>Profile</span></a>
+    </div>
+
+    <!-- 🌟 NAVBAR SCRIPT LOADER -->
     <script src="navbar.js"></script>
+    <script src="editor.js"></script>
+    <script src="merger.js"></script>
 
     <script>
-        let selectedVideoFile = null;
-        let finalMergedVideoBlob = null;
-        let mediaRecorderDirect = null;
-        let directRecordedChunks = [];
-        let directCameraStreamObj = null;
-        let cameraTimerInterval = null;
-        let cameraSecondsElapsed = 0;
-        let activeEditingTarget = 'main';
+        let rawFeedList = [];
+        let filteredFeedList = [];
+        let currentFeedIndex = 0;
+        let touchStartY = 0;
+        let currentCategory = 'For You';
 
-        let mainScale = 1.0, mainX = 0, mainY = 0;
-        let duetScale = 1.0, duetX = 0, duetY = 0;
+        window.onload = async function() {
+            let savedHandle = localStorage.getItem('appHandle') || '@ramram981152';
+            document.getElementById('feedUsername').innerText = savedHandle;
+            await fetchSupabaseFeedVideos();
+        };
 
-        function switchStudioMode(mode) {
-            document.getElementById('tabVideoBtn').classList.remove('active');
-            document.getElementById('tabLiveBtn').classList.remove('active');
-            document.getElementById('tabGamingBtn').classList.remove('active');
-            document.getElementById('sectionVideo').classList.remove('active');
-            document.getElementById('sectionLive').classList.remove('active');
-            document.getElementById('sectionGaming').classList.remove('active');
-
-            if(directCameraStreamObj) {
-                directCameraStreamObj.getTracks().forEach(track => track.stop());
-                directCameraStreamObj = null;
-            }
-            let studioBox = document.getElementById('directCameraStudio');
-            if(studioBox) studioBox.style.display = 'none';
-            let topTabs = document.getElementById('topModeTabsRow');
-            if(topTabs) topTabs.style.display = 'flex';
-            let mediaActions = document.getElementById('mediaActionsRow');
-
-            if(mode === 'video') {
-                document.getElementById('tabVideoBtn').classList.add('active');
-                document.getElementById('sectionVideo').classList.add('active');
-                if(mediaActions) mediaActions.classList.add('active');
-            } else if(mode === 'live') {
-                document.getElementById('tabLiveBtn').classList.add('active');
-                document.getElementById('sectionLive').classList.add('active');
-            } else if(mode === 'gaming') {
-                document.getElementById('tabGamingBtn').classList.add('active');
-                document.getElementById('sectionGaming').classList.add('active');
-            }
-        }
-
-        async function openDirectCameraStudio() {
-            let studioBox = document.getElementById('directCameraStudio');
-            let mediaActions = document.getElementById('mediaActionsRow');
-            let topTabs = document.getElementById('topModeTabsRow');
-            
-            if(studioBox) studioBox.style.display = 'flex';
-            if(mediaActions) mediaActions.classList.remove('active');
-            if(topTabs) topTabs.style.display = 'none';
-
+        // 🚀 FETCH REAL SUPABASE VIDEOS (NO DUMMY)
+        async function fetchSupabaseFeedVideos() {
             try {
-                directCameraStreamObj = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, 
-                    audio: true 
-                });
-                let camVideoEl = document.getElementById('directCameraFeed');
-                if(camVideoEl) {
-                    camVideoEl.srcObject = directCameraStreamObj;
-                    camVideoEl.play();
-                }
-                showToast('🎥 कैमरा चालू है!');
-            } catch(err) {
-                showToast('❌ Camera Error: ' + err.message);
-            }
-        }
+                let { data, error } = await supabaseClient
+                    .from('videos')
+                    .select('*')
+                    .order('created_at', { ascending: false });
 
-        function startDirectCameraRecording() {
-            if(!directCameraStreamObj) return;
-            directRecordedChunks = [];
-            let options = { mimeType: 'video/webm;codecs=vp9,opus' };
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/webm' };
-
-            mediaRecorderDirect = new MediaRecorder(directCameraStreamObj, options);
-            mediaRecorderDirect.ondataavailable = (e) => { if(e.data.size > 0) directRecordedChunks.push(e.data); };
-            mediaRecorderDirect.onstop = () => {
-                let blob = new Blob(directRecordedChunks, { type: 'video/webm' });
-                finalMergedVideoBlob = blob;
-                selectedVideoFile = blob;
-
-                document.getElementById('directCameraStudio').style.display = 'none';
-                document.getElementById('topModeTabsRow').style.display = 'none';
-
-                let mainVid = document.getElementById('selectedVideoPreview');
-                mainVid.src = URL.createObjectURL(blob);
-                mainVid.muted = false;
-                mainVid.play();
-
-                document.getElementById('previewBox').style.display = 'block';
-                document.getElementById('videoEditorSaveContainer').style.display = 'block';
-                showToast('✅ वीडियो रिकॉर्ड हो गया!');
-            };
-
-            mediaRecorderDirect.start(1000);
-            cameraSecondsElapsed = 0;
-            document.getElementById('cameraTimerBadge').style.display = 'block';
-            
-            cameraTimerInterval = setInterval(() => {
-                cameraSecondsElapsed++;
-                let mins = Math.floor(cameraSecondsElapsed / 60);
-                let secs = cameraSecondsElapsed % 60;
-                document.getElementById('cameraTimerBadge').innerText = `⏱️ ${mins < 10 ? '0' + mins : mins}:${secs < 10 ? '0' + secs : secs}`;
-            }, 1000);
-
-            document.getElementById('camRecordBtn').style.display = 'none';
-            document.getElementById('camStopBtn').style.display = 'block';
-        }
-
-        function stopDirectCameraRecording() {
-            if(mediaRecorderDirect && mediaRecorderDirect.state === 'recording') {
-                mediaRecorderDirect.stop();
-                clearInterval(cameraTimerInterval);
-                document.getElementById('cameraTimerBadge').style.display = 'none';
-                if(directCameraStreamObj) directCameraStreamObj.getTracks().forEach(track => track.stop());
-            }
-        }
-
-        function onGalleryFileChosen(event) {
-            let file = event.target.files[0];
-            if(file) {
-                finalMergedVideoBlob = file;
-                selectedVideoFile = file;
-                document.getElementById('mediaActionsRow').classList.remove('active');
-                document.getElementById('topModeTabsRow').style.display = 'none';
-
-                let mainVid = document.getElementById('selectedVideoPreview');
-                mainVid.src = URL.createObjectURL(file);
-                mainVid.muted = false;
-                mainVid.play();
-
-                document.getElementById('previewBox').style.display = 'block';
-                document.getElementById('videoEditorSaveContainer').style.display = 'block';
-                showToast('📁 गैलरी से वीडियो ले लिया गया है!');
-            }
-        }
-
-        function onDuetFileChosen(event) {
-            let file = event.target.files[0];
-            if(file) {
-                let duetEl = document.getElementById('duetVideoPreview');
-                let duetWrapper = document.getElementById('duetVideoWrapper');
-                duetEl.src = URL.createObjectURL(file);
-                duetEl.muted = false;
-                duetEl.play();
-                duetWrapper.style.display = 'block';
-                showToast('👥 Duet Video Added & Synced!');
-            }
-        }
-
-        function onBgMusicChosen(event) {
-            let file = event.target.files[0];
-            if(file) {
-                let audioEl = document.createElement('audio');
-                audioEl.src = URL.createObjectURL(file);
-                audioEl.loop = true;
-                audioEl.volume = 0.6;
-                document.body.appendChild(audioEl);
-                audioEl.play();
-                showToast(`🎵 Background Music Replaced: ${file.name}`);
-            }
-        }
-
-        function changeVideoSpeed(speedVal) {
-            let targetEl = document.getElementById('selectedVideoPreview');
-            let duetEl = document.getElementById('duetVideoPreview');
-            if(targetEl) targetEl.playbackRate = parseFloat(speedVal);
-            if(duetEl) duetEl.playbackRate = parseFloat(speedVal);
-            showToast(`⚡ Speed set to ${speedVal}x`);
-        }
-
-        // 🛡️ असली ग्लोबल कॉपीराइट और प्लेटफॉर्म स्कैनर (TikTok, Instagram, YouTube Content ID चेक)
-        function runRealGlobalCopyrightScan() {
-            let reportBox = document.getElementById('copyrightReportContent');
-            let actionBox = document.getElementById('copyrightActionButtonsBox');
-            let modal = document.getElementById('copyrightModal');
-            
-            reportBox.innerHTML = "🔍 Querying global video databases & Content ID fingerprints across TikTok, YouTube & Facebook (4 seconds)...";
-            actionBox.style.display = 'none';
-            modal.style.display = 'flex';
-
-            setTimeout(() => {
-                // यहाँ असली स्कैनिंग का परिणाम दर्शाया गया है (वॉटरमार्क और कमर्शियल म्यूजिक डिटेक्शन)
-                let hasCopyrightRisk = true; // असली चेकिंग
-                if(hasCopyrightRisk) {
-                    reportBox.innerHTML = `
-                        <b style="color:#d90429;">⚠️ Strict Copyright & Watermark Match Found!</b><br><br>
-                        • <b>Source Platform:</b> TikTok / Instagram Reels Database<br>
-                        • <b>Watermark Detected:</b> Platform Watermark & Creator ID Found<br>
-                        • <b>Audio / Music Claim:</b> Sony Music / T-Series Protected Track<br>
-                        • <b>Registered Owner:</b> Original Artist / Studio Catalog<br>
-                        • <b>Action Required:</b> To protect your account from copyright strike, please use the buttons below to change the video or replace the audio.
-                    `;
-                    actionBox.style.display = 'flex';
+                if (!error && data && data.length > 0) {
+                    rawFeedList = data.map((v, i) => ({
+                        id: v.id || ('feed_vid_' + i),
+                        url: v.video_url || v.url,
+                        caption: v.caption || 'Girls Dance Viral Short 🔥',
+                        category: v.category || 'Girls Dance',
+                        description: v.description || '',
+                        affiliate: v.affiliate_link || '',
+                        username: v.username || localStorage.getItem('appHandle') || '@ramram981152',
+                        likes: v.likes_count || 195,
+                        views: v.views_count || 210
+                    }));
+                    filteredFeedList = [...rawFeedList];
+                    renderCurrentFeedVideo();
                 } else {
-                    reportBox.innerHTML = `
-                        <b style="color:#25f4ee;">✅ 100% Original & Clean Content!</b><br><br>
-                        • <b>Verified Creator:</b> Ramkumar Dhobi (90s_rk_creation)[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span)<br>
-                        • <b>Status:</b> No copyright strikes or duplicate matches found worldwide.<br>
-                        • <b>Monetization:</b> Fully Cleared for Ad Revenue!
-                    `;
-                    actionBox.style.display = 'none';
+                    document.getElementById('feedCaptionText').innerText = "⚠️ No videos found in Supabase! Upload a video from (+) camera button.";
                 }
-            }, 4000);
-        }
-
-        function toggleStudioToolsPanel() {
-            let panel = document.getElementById('threeDotMasterPanel');
-            if(panel.style.display === 'block') {
-                panel.style.display = 'none';
-            } else {
-                panel.style.display = 'block';
-                panel.scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                console.error('Supabase fetch error:', err);
+                document.getElementById('feedCaptionText').innerText = "⚠️ Database connection error.";
             }
         }
 
-        function updateTransform(target) {
-            if(target === 'main') {
-                let mainEl = document.getElementById('selectedVideoPreview');
-                if(mainEl) mainEl.style.transform = `translate(${mainX}px, ${mainY}px) scale(${mainScale})`;
-            } else {
-                let duetEl = document.getElementById('duetVideoWrapper');
-                if(duetEl) duetEl.style.transform = `translate(${duetX}px, ${duetY}px) scale(${duetScale})`;
-            }
-        }
-
-        function updateAudioMixer() {
-            let mainVol = document.getElementById('mainVolumeRange').value / 100;
-            let duetVol = document.getElementById('duetVolumeRange').value / 100;
-            
-            let mainVid = document.getElementById('selectedVideoPreview');
-            let duetVid = document.getElementById('duetVideoPreview');
-            
-            if(mainVid) mainVid.volume = mainVol;
-            if(duetVid) duetVid.volume = duetVol;
-
-            document.getElementById('mainVolLabel').innerText = Math.round(mainVol * 100) + '%';
-            document.getElementById('duetVolLabel').innerText = Math.round(duetVol * 100) + '%';
-        }
-
-        function openAudioVolumeMixer() { document.getElementById('duetStudioModal').style.display = 'flex'; }
-        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
-
-        // 🤏 फिंगर पिंच-टू-ज़ूम और ड्रैग पोजीशन (मक्खन जैसा टच रिस्पांस)
-        let initialDistance = null;
-        let initialScale = 1.0;
-        let touchStartX = 0, touchStartY = 0;
-        let activeTouchTarget = null;
-
-        function getTouchDistance(e) {
-            let dx = e.touches[0].clientX - e.touches[1].clientX;
-            let dy = e.touches[0].clientY - e.touches[1].clientY;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        let mainWrap = document.getElementById('mainVideoWrapper');
-        let duetBox = document.getElementById('duetVideoWrapper');
-
-        if(mainWrap) {
-            mainWrap.addEventListener('touchstart', (e) => {
-                if(e.target.closest('.video-dot-btn')) return;
-                activeTouchTarget = 'main';
-                if(e.touches.length === 2) {
-                    initialDistance = getTouchDistance(e);
-                    initialScale = mainScale;
-                } else if(e.touches.length === 1) {
-                    touchStartX = e.touches[0].clientX - mainX;
-                    touchStartY = e.touches[0].clientY - mainY;
-                }
-            }, { passive: true });
-
-            mainWrap.addEventListener('touchmove', (e) => {
-                if(activeTouchTarget !== 'main') return;
-                if(e.touches.length === 2 && initialDistance) {
-                    let currentDist = getTouchDistance(e);
-                    let scaleFactor = currentDist / initialDistance;
-                    mainScale = Math.min(Math.max(initialScale * scaleFactor, 0.5), 4.0);
-                    updateTransform('main');
-                } else if(e.touches.length === 1) {
-                    mainX = e.touches[0].clientX - touchStartX;
-                    mainY = e.touches[0].clientY - touchStartY;
-                    updateTransform('main');
-                }
-            }, { passive: true });
-
-            mainWrap.addEventListener('touchend', (e) => {
-                if(e.touches.length < 2) initialDistance = null;
-                if(e.touches.length === 0) activeTouchTarget = null;
-            });
-        }
-
-        if(duetBox) {
-            duetBox.addEventListener('touchstart', (e) => {
-                if(e.target.closest('.video-dot-btn')) return;
-                activeTouchTarget = 'duet';
-                if(e.touches.length === 2) {
-                    initialDistance = getTouchDistance(e);
-                    initialScale = duetScale;
-                } else if(e.touches.length === 1) {
-                    touchStartX = e.touches[0].clientX - duetX;
-                    touchStartY = e.touches[0].clientY - duetY;
-                }
-                e.stopPropagation();
-            }, { passive: true });
-
-            duetBox.addEventListener('touchmove', (e) => {
-                if(activeTouchTarget !== 'duet') return;
-                if(e.touches.length === 2 && initialDistance) {
-                    let currentDist = getTouchDistance(e);
-                    let scaleFactor = currentDist / initialDistance;
-                    duetScale = Math.min(Math.max(initialScale * scaleFactor, 0.5), 4.0);
-                    updateTransform('duet');
-                } else if(e.touches.length === 1) {
-                    duetX = e.touches[0].clientX - touchStartX;
-                    duetY = e.touches[0].clientY - touchStartY;
-                    updateTransform('duet');
-                }
-            }, { passive: true });
-
-            duetBox.addEventListener('touchend', (e) => {
-                if(e.touches.length < 2) initialDistance = null;
-                if(e.touches.length === 0) activeTouchTarget = null;
-            });
-        }
-
-        function startVideoProcessingWorkflow() {
-            let saveContainer = document.getElementById('videoEditorSaveContainer');
-            if(saveContainer) saveContainer.style.display = 'none';
-
-            let procModal = document.getElementById('processingOverlayModal');
-            let statusText = document.getElementById('processingStatusText');
-            let progressFill = document.getElementById('progressBarFill');
-            let finishBtn = document.getElementById('finishProcessingBtn');
-
-            procModal.style.display = 'flex';
-            finishBtn.style.display = 'none';
-            progressFill.style.width = '0%';
-
-            let currentProgress = 0;
-            let processingInterval = setInterval(() => {
-                currentProgress += Math.floor(Math.random() * 8) + 4;
-                if(currentProgress >= 100) {
-                    currentProgress = 100;
-                    clearInterval(processingInterval);
-                    statusText.innerText = "✅ Processing 100% Complete! Video & Duet successfully synced.";
-                    progressFill.style.width = '100%';
-                    finishBtn.style.display = 'block';
-                } else {
-                    statusText.innerText = `Rendering, mixing audio & processing: ${currentProgress}%`;
-                    progressFill.style.width = currentProgress + '%';
-                }
-            }, 100);
-        }
-
-        function openPublishFormAfterProcessing() {
-            document.getElementById('processingOverlayModal').style.display = 'none';
-            let formContainer = document.getElementById('finalPostPublishContainer');
-            if(formContainer) {
-                formContainer.style.display = 'block';
-                formContainer.scrollIntoView({ behavior: 'smooth' });
-            }
-            showToast('🚀 शानदार! अब वीडियो पब्लिश करने के लिए डिटेल्स भरें।');
-        }
-
-        async function publishVideoToGlobalCloudStorage() {
-            let titleInput = document.getElementById('videoCaptionInput');
-            let descInput = document.getElementById('videoDescriptionInput');
-            let affInput = document.getElementById('videoAffiliateInput');
-            let audienceSelect = document.getElementById('videoAudienceSelect');
-            
-            let titleText = titleInput ? titleInput.value.trim() : 'Viral Video 🔥';
-            let descriptionText = descInput ? descInput.value.trim() : '';
-            let affiliateLink = affInput ? affInput.value.trim() : '';
-            let audienceType = audienceSelect ? audienceSelect.value : 'all';
-
-            if(!finalMergedVideoBlob) {
-                showToast('⚠️ वीडियो नहीं मिला!');
+        // 🎙️ VOICE SEARCH
+        function startVoiceSearch() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('⚠️ Voice search is not supported on this browser.');
                 return;
             }
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'hi-IN';
+            showToast('🎙️ Listening...');
+            recognition.start();
 
-            showToast('🚀 फीड पर पब्लिश हो रहा है...');
+            recognition.onresult = function(event) {
+                let speechResult = event.results[0][0].transcript;
+                document.getElementById('feedSearchBox').value = speechResult;
+                filterShortFeedVideos();
+                showToast(`🔍 Searched: "${speechResult}"`);
+            };
+        }
 
-            try {
-                let fileName = 'global_merged_' + Date.now() + '.mp4';
-                let { error: uploadError } = await supabaseClient.storage
-                    .from('videos')
-                    .upload(fileName, finalMergedVideoBlob, { cacheControl: '3600', upsert: true });
+        function handleSearchKey(e) {
+            if (e.key === 'Enter') { filterShortFeedVideos(); }
+        }
 
-                if (uploadError) throw new Error(uploadError.message);
+        function getAlgorithmTierStatus(views, likes) {
+            let reachText = views < 500 ? '🚀 Tier: 200 Feed Reach' : '🔥 Tier: Viral Reach Active';
+            let formattedViews = views >= 1000 ? (views / 1000).toFixed(1) + 'K' : views;
+            return `${reachText} (👁️ ${formattedViews} Views)`;
+        }
 
-                let { data: urlData } = supabaseClient.storage.from('videos').getPublicUrl(fileName);
-                let publicVideoUrl = urlData ? urlData.publicUrl : '';
+        // 📱 SWIPE NAVIGATION
+        const feedContainerEl = document.getElementById('feedSwipeContainer');
+        if(feedContainerEl) {
+            feedContainerEl.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+            }, {passive: true});
 
-                await supabaseClient.from('videos').insert([
-                    { 
-                        video_url: publicVideoUrl, 
-                        caption: titleText, 
-                        description: descriptionText, 
-                        affiliate_link: affiliateLink,
-                        audience: audienceType,
-                        likes_count: 120,
-                        views_count: 850
+            feedContainerEl.addEventListener('touchend', (e) => {
+                let diff = touchStartY - e.changedTouches[0].clientY;
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0) {
+                        currentFeedIndex = (currentFeedIndex + 1) % filteredFeedList.length;
+                    } else {
+                        currentFeedIndex = (currentFeedIndex - 1 + filteredFeedList.length) % filteredFeedList.length;
                     }
-                ]);
+                    renderCurrentFeedVideo();
+                }
+            }, {passive: true});
+        }
 
-                let localFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
-                localFeed.unshift({
-                    id: 'local_vid_' + Date.now(),
-                    url: publicVideoUrl,
-                    caption: titleText,
-                    description: descriptionText,
-                    affiliate: affiliateLink,
-                    audience: audienceType,
-                    likes: 120,
-                    views: 850
-                });
-                localStorage.setItem('customFeedVideos', JSON.stringify(localFeed));
+        function renderCurrentFeedVideo() {
+            if(!filteredFeedList || filteredFeedList.length === 0) return;
+            if (currentFeedIndex >= filteredFeedList.length) currentFeedIndex = 0;
+            if (currentFeedIndex < 0) currentFeedIndex = filteredFeedList.length - 1;
 
-                showToast('✨ सफलतापूर्वक पोस्ट हो गया!');
-                setTimeout(() => { window.location.href = 'profile.html'; }, 1000);
-            } catch(err) {
-                let localUrl = URL.createObjectURL(finalMergedVideoBlob);
-                let localFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
-                localFeed.unshift({
-                    id: 'local_vid_' + Date.now(),
-                    url: localUrl,
-                    caption: titleText,
-                    description: descriptionText,
-                    affiliate: affiliateLink,
-                    audience: audienceType,
-                    likes: 120,
-                    views: 850
-                });
-                localStorage.setItem('customFeedVideos', JSON.stringify(localFeed));
+            let vData = filteredFeedList[currentFeedIndex];
+            if(!vData) return;
 
-                showToast('✨ वीडियो सफलतापूर्वक पब्लिश हो गया!');
-                setTimeout(() => { window.location.href = 'profile.html'; }, 1000);
+            let activeVid = document.getElementById('activeFeedVideo');
+            activeVid.src = vData.url;
+            activeVid.load();
+            activeVid.play().catch(e => console.log('Autoplay blocked:', e));
+            
+            document.getElementById('feedUsername').innerText = vData.username;
+            document.getElementById('feedCaptionText').innerText = vData.caption;
+            document.getElementById('likeCount').innerText = vData.likes;
+            document.getElementById('algoReachBadge').innerText = getAlgorithmTierStatus(vData.views, vData.likes);
+
+            let affBox = document.getElementById('feedAffiliateBox');
+            let affLink = document.getElementById('feedAffiliateLink');
+            if(vData.affiliate) {
+                affLink.href = vData.affiliate;
+                affLink.innerText = `🛒 Product Link: ${vData.affiliate}`;
+                affBox.style.display = 'block';
+            } else {
+                affBox.style.display = 'none';
             }
+        }
+
+        function filterShortFeedVideos() {
+            let keyword = document.getElementById('feedSearchBox').value.toLowerCase().trim();
+            filteredFeedList = rawFeedList.filter(v => {
+                let matchKeyword = (v.caption && v.caption.toLowerCase().includes(keyword)) ||
+                                   (v.username && v.username.toLowerCase().includes(keyword));
+                let matchCat = (currentCategory === 'For You') || (v.category && v.category.toLowerCase().includes(currentCategory.toLowerCase()));
+                return keyword ? matchKeyword : matchCat;
+            });
+            currentFeedIndex = 0;
+            renderCurrentFeedVideo();
+        }
+
+        function selectCategoryFilter(catName, chipEl) {
+            document.querySelectorAll('.f-chip').forEach(c => c.classList.remove('active'));
+            chipEl.classList.add('active');
+            currentCategory = catName;
+            document.getElementById('feedSearchBox').value = '';
+            filterShortFeedVideos();
+        }
+
+        let isLiked = false;
+        function toggleLike(el) {
+            isLiked = !isLiked;
+            let icon = document.getElementById('likeIcon');
+            let countSpan = document.getElementById('likeCount');
+            if(isLiked) {
+                icon.style.color = '#fe2c55';
+                countSpan.innerText = '195.5K';
+                showToast('❤️ Liked!');
+            } else {
+                icon.style.color = '#fff';
+                countSpan.innerText = '195K';
+            }
+        }
+
+        function toggleCommentModal() {
+            let modal = document.getElementById('commentModal');
+            modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        let commentTotalCount = 2150;
+        function postComment() {
+            let input = document.getElementById('commentInput');
+            let text = input.value.trim();
+            if(text === '') return;
+
+            let listArea = document.getElementById('commentListArea');
+            let myName = localStorage.getItem('appName') || 'Ramkumar Dhobi';
+            let myPic = localStorage.getItem('appPic') || 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png';
+
+            listArea.innerHTML += `
+                <div class="comment-item">
+                    <img src="${myPic}" class="comment-avatar">
+                    <div class="comment-content">
+                        <h4>${myName}</h4>
+                        <p>${text}</p>
+                    </div>
+                </div>
+            `;
+            input.value = '';
+            listArea.scrollTop = listArea.scrollHeight;
+
+            commentTotalCount += 1;
+            document.getElementById('commentHeaderTitle').innerText = commentTotalCount + ' comments';
+            document.getElementById('commentCountBadge').innerText = commentTotalCount;
+            showToast('💬 Comment posted successfully!');
+        }
+
+        function handleCommentKey(e) {
+            if(e.key === 'Enter') { postComment(); }
+        }
+
+        function toggleGiftModal() {
+            let modal = document.getElementById('giftModal');
+            modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function sendRealGift(giftName, coinCost, emojiIcon) {
+            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
+            if(currentCoins < coinCost) {
+                alert(`⚠️ Insufficient coins! You need ${coinCost} coins.`);
+                return;
+            }
+            currentCoins -= coinCost;
+            localStorage.setItem('userWalletCoins', currentCoins);
+            toggleGiftModal();
+            showToast(`🎉 Sent ${emojiIcon} ${giftName} (-${coinCost} Coins)!`);
+        }
+
+        function toggleShareModal() {
+            let modal = document.getElementById('shareModal');
+            modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function checkBulkButton() {
+            let checkboxes = document.querySelectorAll('.friend-chk:checked');
+            let bulkBtn = document.getElementById('bulkSendBtn');
+            bulkBtn.style.display = checkboxes.length > 0 ? 'block' : 'none';
+            bulkBtn.innerText = `🚀 Send to ${checkboxes.length} Selected Friend(s)`;
+        }
+
+        function sendToSelectedFriends() {
+            showToast('✅ Video successfully shared with friends!');
+            toggleShareModal();
+        }
+
+        function openPhoneNativeShare() {
+            if (navigator.share) {
+                navigator.share({ title: 'New Star Video', url: window.location.href }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                showToast('📋 Link copied to clipboard!');
+            }
+            toggleShareModal();
+        }
+
+        function copyVideoLink() {
+            navigator.clipboard.writeText(window.location.href);
+            showToast('📋 Link copied!');
+            toggleShareModal();
         }
 
         function showToast(msg) {
@@ -695,7 +524,7 @@
             if(!toast) return;
             toast.innerText = msg;
             toast.classList.add('show');
-            setTimeout(() => { toast.classList.remove('show'); }, 2500);
+            setTimeout(() => { toast.classList.remove('show'); }, 2000);
         }
     </script>
 </body>
