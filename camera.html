@@ -26,16 +26,17 @@ button.secondary{background:#262630;color:white;border:1px solid #555;padding:12
 label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 .muted{font-size:11px;color:#aaa;line-height:1.6}
 
-/* वीडियो प्रीव्यू और थ्री-डॉट (⋮) मेनू की स्टाइल */
-.preview{height:min(60vh,500px);background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* वीडियो प्रीव्यू बड़ा और साफ़ */
+.preview{height:min(72vh,620px);background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
 #editorVideo{width:100%;height:100%;object-fit:contain}
 #previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;pointer-events:none;text-align:center;max-width:90%;overflow-wrap:anywhere}
 
-.editor-top-bar { position: absolute; top: 10px; right: 10px; z-index: 50; }
-.three-dots-btn { background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; font-size: 20px; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+/* थ्री-डॉट बटन कोने पर */
+.editor-top-bar { position: absolute; top: 12px; right: 12px; z-index: 50; }
+.three-dots-btn { background: rgba(0,0,0,0.75); border: 1px solid #555; color: #fff; font-size: 20px; padding: 6px 14px; border-radius: 8px; cursor: pointer; }
 
 /* थ्री-डॉट ड्रॉपडाउन मेनू */
-.dropdown-menu { display: none; position: absolute; top: 50px; right: 10px; background: #18181c; border: 1px solid #444; border-radius: 10px; width: 180px; z-index: 100; box-shadow: 0 5px 20px rgba(0,0,0,0.8); overflow: hidden; }
+.dropdown-menu { display: none; position: absolute; top: 50px; right: 0; background: #18181c; border: 1px solid #444; border-radius: 10px; width: 190px; z-index: 100; box-shadow: 0 5px 20px rgba(0,0,0,0.8); overflow: hidden; }
 .dropdown-menu.active { display: block; }
 .dropdown-item { padding: 12px 15px; font-size: 13px; color: #fff; border-bottom: 1px solid #282830; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; display: block; cursor: pointer; }
 .dropdown-item:hover { background: #25f4ee; color: #000; font-weight: bold; }
@@ -47,7 +48,6 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 
 .range{width:100%;accent-color:#fe2c55}
 
-/* 🚀 होम स्क्रीन पर तीनों मोड्स (Video, Live, Gaming) का सुंदर लेआउट */
 .home-modes-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
 .home-mode-card { background: #15151b; border: 1px solid #333; border-radius: 12px; padding: 16px 8px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; transition: 0.2s; }
 .home-mode-card:hover { border-color: #25f4ee; background: #1c1c24; }
@@ -78,7 +78,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 <body>
 <div class="studio">
 
-<!-- होम / सोर्स स्क्रीन (अब यहीं पर Video Studio, Live और Gaming तीनों एक साथ मिलेंगे) -->
+<!-- होम / सोर्स स्क्रीन -->
 <section id="sourceScreen" class="screen" style="padding-top:20px;">
   <div class="card" style="text-align:center;padding:25px 15px">
     <div style="font-size:42px">🎬</div>
@@ -89,7 +89,6 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <input id="videoInput" type="file" accept="video/*" class="hidden">
   </div>
 
-  <!-- नीचे Live और Gaming के डायरेक्ट शॉर्टकट कार्ड्स -->
   <div class="home-modes-container">
     <div class="home-mode-card" onclick="selectPlusMode('video')" style="border-color:#25f4ee;">
       <span style="font-size:26px;">📹</span>
@@ -115,7 +114,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
       <button class="primary" id="startCameraRecord" onclick="startCameraRecording()">⏺ Record</button>
       <button class="secondary" id="stopCameraRecord" onclick="stopCameraRecording()" disabled>■ Stop</button>
     </div>
-    <button class="secondary" onclick="closeCamera()">Back</button>
+    <button class="secondary" onclick="closeCameraSession()">✕ Back</button>
     <p class="muted" id="cameraStatus" style="margin-top:6px;">Camera permission required.</p>
   </div>
 </section>
@@ -126,22 +125,19 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <video id="editorVideo" playsinline controls></video>
     <div id="previewText"></div>
 
-    <!-- वीडियो के कोने पर थ्री-डॉट (⋮) मेनू बटन -->
+    <!-- थ्री-डॉट बटन कोने पर -->
     <div class="editor-top-bar">
       <button class="three-dots-btn" onclick="toggleThreeDotsMenu(event)">⋮</button>
       <div id="threeDotsDropdown" class="dropdown-menu">
-        <button class="dropdown-item" onclick="showPanelFromMenu('zoomPanel')">🔍 Zoom Settings</button>
-        <button class="dropdown-item" onclick="showPanelFromMenu('filterPanel')">✨ Video Filters</button>
-        <button class="dropdown-item" onclick="showPanelFromMenu('textPanel')">✍️ Text Overlay</button>
-        <button class="dropdown-item" onclick="showPanelFromMenu('audioPanel')">🔊 Audio Mixer</button>
-        <button class="dropdown-item" onclick="showPanelFromMenu('copyrightPanel')">🛡 Copyright Check</button>
-        <button class="dropdown-item" onclick="showPanelFromMenu('infoPanel')">📊 Video Info</button>
+        <button class="dropdown-item" onclick="showPanel('zoomPanel')">🔍 Zoom Settings</button>
+        <button class="dropdown-item" onclick="showPanel('filterPanel')">✨ Video Filters</button>
+        <button class="dropdown-item" onclick="showPanel('textPanel')">✍️ Text Overlay</button>
+        <button class="dropdown-item" onclick="showPanel('audioPanel')">🔊 Audio Mixer</button>
+        <button class="dropdown-item" onclick="showPanel('copyrightPanel')">🛡 Copyright Check</button>
+        <button class="dropdown-item" onclick="showPanel('infoPanel')">📊 Video Info</button>
+        <button class="dropdown-item" onclick="showPanel('publishPanel')" style="color:#25f4ee; font-weight:bold;">💾 Save & Post Options</button>
       </div>
     </div>
-  </div>
-
-  <div style="padding:15px; background:#111; text-align:center;">
-    <button class="primary" style="font-size:16px; padding:16px;" onclick="showPanel('publishPanel')">🚀 Post Settings & Options</button>
   </div>
 
   <!-- ज़ूम पैनल -->
@@ -235,10 +231,10 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <button class="secondary" onclick="inspectVideo()">🔍 Check Video</button>
   </div>
 
-  <!-- पब्लिश पैनल -->
+  <!-- पब्लिश पैनल (Save & Post) -->
   <div id="publishPanel" class="panel hidden">
     <div class="panel-header">
-      <h3>🚀 Video Details & Post</h3>
+      <h3>💾 Save & Post Options</h3>
       <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
     </div>
 
@@ -251,13 +247,12 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <label>Affiliate / Promotion Link</label>
     <input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
 
-    <div class="status" id="exportStatus">Ready to post instantly.</div>
-    <button class="primary" id="exportButton" onclick="instantDirectPost()" style="background:linear-gradient(135deg,#25f4ee,#fe2c55); font-size:16px; padding:16px;">🚀 Post</button>
-    <button class="secondary" onclick="saveDraft()">💾 Save Local Draft</button>
+    <div class="status" id="exportStatus">Ready to save & post instantly.</div>
+    <button class="primary" id="exportButton" onclick="instantDirectPost()" style="background:linear-gradient(135deg,#25f4ee,#fe2c55); font-size:16px; padding:16px;">💾 Save & Post</button>
   </div>
 
   <div class="card" style="margin-top:10px;">
-    <button class="secondary" onclick="backToSource()">✕ Close Editor Studio</button>
+    <button class="secondary" onclick="backToSourceSession()">✕ Close Editor Studio</button>
   </div>
 </section>
 
@@ -265,7 +260,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 
 <div id="toast"></div>
 
-<!-- ⚓ मास्टर बॉटम नेविगेशन बार (अब प्लस (+) पर क्लिक करते ही तुरंत होम/स्टूडियो स्क्रीन पर आ जाएगा) -->
+<!-- ⚓ मास्टर बॉटम नेविगेशन बार -->
 <div class="master-tiktok-final-nav">
     <a href="index.html" class="mfn-item"><i>🏠</i><span>Home</span></a>
     <a href="wallet.html" class="mfn-item"><i>🪙</i><span>Wallet</span></a>
@@ -304,13 +299,24 @@ function toast(message){
   toast.timer=setTimeout(()=>el.style.display='none',3000);
 }
 
+/* 🔄 स्टेप-बाय-स्टेप हिस्ट्री नेविगेशन सिस्टम (एक-एक करके पीछे जाने के लिए) */
 function showScreen(id){
   ['sourceScreen','cameraScreen','editorScreen'].forEach(x=>$(x).classList.add('hidden'));
   $(id).classList.remove('hidden');
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
-function backToSource(){
+function closeCameraSession(){
+  if(cameraRecorder?.state==='recording') cameraRecorder.stop();
+  if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
+  cameraStream=null;
+  $('cameraVideo').srcObject=null;
+  showScreen('sourceScreen');
+}
+
+function backToSourceSession(){
   video.pause();
+  closeActivePanels();
   showScreen('sourceScreen');
 }
 
@@ -325,32 +331,28 @@ window.addEventListener('click', ()=>{
   if(menu) menu.classList.remove('active');
 });
 
-function showPanelFromMenu(id){
-  $('threeDotsDropdown').classList.remove('active');
-  showPanel(id);
-}
-
+/* पैनल एक-एक करके खुलने और बंद होने का लॉजिक */
 function showPanel(id){
+  $('threeDotsDropdown').classList.remove('active');
   if($('editorScreen').classList.contains('hidden')){
     toast('पहले वीडियो चुनें।');
     return;
   }
+  // पहले बाकी सारे पैनल छुपाओ
   ['zoomPanel','filterPanel','textPanel','audioPanel','copyrightPanel','infoPanel','publishPanel']
     .forEach(x=>$(x).classList.add('hidden'));
+  // सिर्फ चुड़ा हुआ पैनल दिखाओ
   $(id).classList.remove('hidden');
 }
 
 function closeActivePanels(){
   ['zoomPanel','filterPanel','textPanel','audioPanel','copyrightPanel','infoPanel','publishPanel']
     .forEach(x=>$(x).classList.add('hidden'));
-  toast('Back to Editor');
 }
 
-/* ⚡ प्लस (+) बटन या वीडियो मोड पर क्लिक करते ही सीधे होम/स्टूडियो स्क्रीन पर आ जाएगा */
 function selectPlusMode(mode){
   if(mode === 'video'){
     showScreen('sourceScreen');
-    window.scrollTo({top:0, behavior:'smooth'});
     toast('📹 Video Studio Active');
   } else if(mode === 'live'){
     window.location.href = 'live.html';
@@ -398,14 +400,6 @@ async function openCamera(){
   }
 }
 
-function closeCamera(){
-  if(cameraRecorder?.state==='recording') cameraRecorder.stop();
-  if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
-  cameraStream=null;
-  $('cameraVideo').srcObject=null;
-  showScreen('sourceScreen');
-}
-
 function startCameraRecording(){
   if(!cameraStream)return;
   cameraChunks=[];
@@ -422,7 +416,7 @@ function startCameraRecording(){
     };
     cameraRecorder.onstop=()=>{
       const blob=new Blob(cameraChunks,{type:cameraRecorder.mimeType||'video/webm'});
-      closeCamera();
+      closeCameraSession();
       loadVideo(blob);
     };
     cameraRecorder.start(1000);
@@ -532,15 +526,15 @@ function stopVoiceRecording(){
   }
 }
 
-/* ⚡ INSTANT POST ENGINE */
+/* ⚡ INSTANT SAVE & POST ENGINE */
 function instantDirectPost(){
   if(!selectedVideoFile && !finalVideoBlob){
     toast('⚠️ Pehle video chunein!');
     return;
   }
 
-  $('exportStatus').textContent='🚀 Processing & Posting instantly...';
-  toast('✨ Posting to Profile...');
+  $('exportStatus').textContent='🚀 Saving & Posting instantly...';
+  toast('✨ Saving & Posting to Profile...');
 
   setTimeout(()=>{
     let videoToPost = finalVideoBlob || selectedVideoFile;
@@ -558,13 +552,13 @@ function instantDirectPost(){
         caption: titleText,
         description: descText,
         affiliate: affiliateLink,
-        likes: 250,
-        views: 1250
+        likes: 300,
+        views: 1400
     });
     localStorage.setItem('customFeedVideos', JSON.stringify(localFeed));
 
-    $('exportStatus').textContent='✅ Posted successfully!';
-    toast('🎉 Video successfully posted!');
+    $('exportStatus').textContent='✅ Saved & Posted successfully!';
+    toast('🎉 Video successfully saved & posted!');
 
     setTimeout(() => {
         window.location.href = 'profile.html';
@@ -596,36 +590,11 @@ function runRealCopyrightScan(){
   }, 1000);
 }
 
-function saveDraft(){
-  const draft={
-    title:$('videoTitle').value,
-    description:$('videoDescription').value,
-    affiliate:$('affiliateLink').value,
-    savedAt:new Date().toISOString()
-  };
-  try{
-    localStorage.setItem('newStarStudioDraft',JSON.stringify(draft));
-    toast('Draft settings saved.');
-  }catch(e){toast('Could not save draft.')}
-}
-
-function loadDraft(){
-  try{
-    const d=JSON.parse(localStorage.getItem('newStarStudioDraft')||'null');
-    if(!d)return;
-    $('videoTitle').value=d.title||'';
-    $('videoDescription').value=d.description||'';
-    $('affiliateLink').value=d.affiliate||'';
-  }catch(e){}
-}
-
 window.addEventListener('beforeunload',()=>{
   activeObjectUrls.forEach(url=>URL.revokeObjectURL(url));
   if(cameraStream)cameraStream.getTracks().forEach(t=>t.stop());
   if(voiceStream)voiceStream.getTracks().forEach(t=>t.stop());
 });
-
-loadDraft();
 </script>
 </body>
 </html>
