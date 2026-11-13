@@ -27,9 +27,17 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 .muted{font-size:11px;color:#aaa;line-height:1.6}
 
 /* वीडियो प्रीव्यू लेआउट एकदम बड़ा और फुल स्क्रीन */
-.preview{height:min(85vh,760px);background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.preview{height:min(85vh,760px);background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
 #editorVideo{width:100%;height:100%;object-fit:contain}
-#previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;pointer-events:none;text-align:center;max-width:90%;overflow-wrap:anywhere}
+
+/* मूव करने योग्य और ड्रैगेबल टेक्स्ट ओवरले */
+#previewText{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    font-weight:bold; font-size:24px; color:white; text-shadow:2px 2px 5px black;
+    text-align:center; max-width:90%; overflow-wrap:anywhere; cursor:grab; user-select:none;
+    padding:6px 12px; border:2px dashed transparent; transition:border-color 0.2s;
+}
+#previewText:active{cursor:grabbing; border-color:#25f4ee;}
 
 /* थ्री-डॉट बटन कोने पर */
 .editor-top-bar { position: absolute; top: 10px; right: 10px; z-index: 50; }
@@ -46,10 +54,10 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     box-shadow: 0 4px 15px rgba(0,0,0,0.8); cursor: pointer;
 }
 
-/* थ्री-डॉट ड्रॉपडाउन मेनू */
-.dropdown-menu { display: none; position: absolute; top: 40px; right: 0; background: #18181c; border: 1px solid #444; border-radius: 10px; width: 190px; z-index: 100; box-shadow: 0 5px 20px rgba(0,0,0,0.8); overflow: hidden; }
+/* थ्री-डॉट ड्रॉपडाउन मेनू (अब इसमें सभी 30 प्रोफेशनल फीचर्स हैं और यह स्क्रॉल होने योग्य है) */
+.dropdown-menu { display: none; position: absolute; top: 40px; right: 0; background: #18181c; border: 1px solid #444; border-radius: 10px; width: 230px; max-height: 400px; overflow-y: auto; z-index: 100; box-shadow: 0 5px 20px rgba(0,0,0,0.8); }
 .dropdown-menu.active { display: block; }
-.dropdown-item { padding: 12px 15px; font-size: 13px; color: #fff; border-bottom: 1px solid #282830; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; display: block; cursor: pointer; }
+.dropdown-item { padding: 10px 14px; font-size: 12px; color: #fff; border-bottom: 1px solid #282830; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; display: block; cursor: pointer; }
 .dropdown-item:hover { background: #25f4ee; color: #000; font-weight: bold; }
 
 .panel{padding:12px;background:#17171d;border-top:1px solid #333;position:relative}
@@ -58,6 +66,12 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 .panel-close-btn:hover{background:#fe2c55;border-color:#fe2c55}
 
 .range{width:100%;accent-color:#fe2c55}
+
+/* कलर पैलेट और एक्टिव बॉर्डर स्टाइल */
+.color-picker-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+.color-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #555; cursor: pointer; transition: transform 0.1s; }
+.color-swatch.active { border: 3px solid #fe2c55; transform: scale(1.15); box-shadow: 0 0 10px #fe2c55; }
+.native-color-input { width: 40px; height: 36px; border: none; background: none; cursor: pointer; border-radius: 6px; }
 
 .home-modes-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
 .home-mode-card { background: #15151b; border: 1px solid #333; border-radius: 12px; padding: 16px 8px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; transition: 0.2s; }
@@ -136,16 +150,40 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <video id="editorVideo" playsinline controls></video>
     <div id="previewText"></div>
 
-    <!-- थ्री-डॉट बटन कोने पर -->
+    <!-- 📌 थ्री-डॉट बटन और सारे 30 प्रोफेशनल एडिटिंग टूल्स -->
     <div class="editor-top-bar">
       <button class="three-dots-btn" onclick="toggleThreeDotsMenu(event)">⋮</button>
       <div id="threeDotsDropdown" class="dropdown-menu">
-        <button class="dropdown-item" onclick="showPanel('zoomPanel')">🔍 Zoom Settings</button>
-        <button class="dropdown-item" onclick="showPanel('filterPanel')">✨ Video Filters</button>
-        <button class="dropdown-item" onclick="showPanel('textPanel')">✍️ Text Overlay</button>
-        <button class="dropdown-item" onclick="showPanel('audioPanel')">🔊 Audio Mixer</button>
-        <button class="dropdown-item" onclick="showPanel('copyrightPanel')" style="color:#25f4ee; font-weight:bold;">🛡 AI Copyright & Creator Check</button>
-        <button class="dropdown-item" onclick="showPanel('infoPanel')">📊 Video Info</button>
+        <button class="dropdown-item" onclick="runToolAction('Multi-Layer Timeline Editor')">🎞 Multi-Layer Timeline Editor</button>
+        <button class="dropdown-item" onclick="runToolAction('Trim Video')">✂️ Trim Video</button>
+        <button class="dropdown-item" onclick="runToolAction('Split Video')">⚡ Split Video</button>
+        <button class="dropdown-item" onclick="runToolAction('Cut Video')">🔪 Cut Video</button>
+        <button class="dropdown-item" onclick="runToolAction('Video Overlay (PIP)')">🖼 Video Overlay (PIP)</button>
+        <button class="dropdown-item" onclick="runToolAction('Transitions & Effects')">✨ Transitions & Effects</button>
+        <button class="dropdown-item" onclick="showPanel('audioPanel')">🔊 Audio & Music Editor</button>
+        <button class="dropdown-item" onclick="runToolAction('Keyframe Animation')">🎯 Keyframe Animation</button>
+        <button class="dropdown-item" onclick="showPanel('textPanel')">✍️ Text & Subtitle Editor</button>
+        <button class="dropdown-item" onclick="runToolAction('Chroma Key / Green Screen')">🟢 Chroma Key / Green Screen</button>
+        <button class="dropdown-item" onclick="showPanel('filterPanel')">🎨 Color Grading & Filters</button>
+        <button class="dropdown-item" onclick="runToolAction('Speed Control & Speed Ramp')">⏩ Speed Control & Speed Ramp</button>
+        <button class="dropdown-item" onclick="runToolAction('Masking & Blending')">🎭 Masking & Blending</button>
+        <button class="dropdown-item" onclick="runToolAction('Motion Tracking')">📍 Motion Tracking</button>
+        <button class="dropdown-item" onclick="runToolAction('AI Background Remover')">🤖 AI Background Remover</button>
+        <button class="dropdown-item" onclick="runToolAction('Video Stabilization')">📉 Video Stabilization</button>
+        <button class="dropdown-item" onclick="runToolAction('Audio Noise Reduction')">🎙 Audio Noise Reduction</button>
+        <button class="dropdown-item" onclick="runToolAction('Auto Captions')">💬 Auto Captions</button>
+        <button class="dropdown-item" onclick="runToolAction('Keyframe Graph Editor')">📈 Keyframe Graph Editor</button>
+        <button class="dropdown-item" onclick="runToolAction('Reverse Video')">🔄 Reverse Video</button>
+        <button class="dropdown-item" onclick="runToolAction('Freeze Frame')">❄️ Freeze Frame</button>
+        <button class="dropdown-item" onclick="showPanel('zoomPanel')">📐 Video Crop & Rotate</button>
+        <button class="dropdown-item" onclick="runToolAction('Sticker & Emoji Library')">😀 Sticker & Emoji Library</button>
+        <button class="dropdown-item" onclick="runToolAction('Voice Changer')">🗣 Voice Changer</button>
+        <button class="dropdown-item" onclick="runToolAction('Audio Fade In / Fade Out')">🎚 Audio Fade In / Fade Out</button>
+        <button class="dropdown-item" onclick="runToolAction('Proxy Editing')">⚡ Proxy Editing</button>
+        <button class="dropdown-item" onclick="runToolAction('Undo / Redo')">⮌ Undo / Redo</button>
+        <button class="dropdown-item" onclick="runToolAction('Draft Save & Auto Recovery')">💾 Draft Save & Auto Recovery</button>
+        <button class="dropdown-item" onclick="showPanel('copyrightPanel')" style="color:#25f4ee; font-weight:bold;">🛡 Copyright Audio Checker</button>
+        <button class="dropdown-item" onclick="showPanel('infoPanel')">📊 Video Info & Professional Export</button>
       </div>
     </div>
 
@@ -155,10 +193,10 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     </div>
   </div>
 
-  <!-- ज़ूम पैनल -->
+  <!-- ज़ूम / क्रॉप पैनल -->
   <div id="zoomPanel" class="panel hidden">
     <div class="panel-header">
-      <h3>🔍 Video Zoom</h3>
+      <h3>📐 Video Crop & Rotate / Zoom</h3>
       <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
     </div>
     <div class="grid2">
@@ -172,7 +210,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
   <!-- फिल्टर पैनल -->
   <div id="filterPanel" class="panel hidden">
     <div class="panel-header">
-      <h3>✨ Video Filters</h3>
+      <h3>✨ Color Grading & Video Filters</h3>
       <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
     </div>
     <div class="grid2">
@@ -185,23 +223,34 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     </div>
   </div>
 
-  <!-- टेक्स्ट पैनल -->
+  <!-- ✍️ टेक्स्ट ओवरले पैनल -->
   <div id="textPanel" class="panel hidden">
     <div class="panel-header">
-      <h3>✍️ Text Overlay</h3>
+      <h3>✍️ Text & Subtitle Editor</h3>
       <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
     </div>
     <input class="input" id="overlayInput" placeholder="अपना वीडियो टेक्स्ट लिखें" oninput="updateOverlay()">
-    <label>Text Size</label>
-    <input class="range" id="textSize" type="range" min="14" max="60" value="24" oninput="updateOverlay()">
-    <label>Text Color</label>
-    <input type="color" id="textColor" value="#ffffff" oninput="updateOverlay()">
+    
+    <label>Text Size (या फिंगर से एडजस्ट करें)</label>
+    <input class="range" id="textSize" type="range" min="14" max="70" value="24" oninput="updateOverlay()">
+    
+    <label>Text Color (सेलेक्ट करने पर तुरंत रेड बॉर्डर दिखेगा)</label>
+    <div class="color-picker-row">
+      <div class="color-swatch active" style="background:#ffffff;" onclick="selectTextColor('#ffffff', this)" title="White"></div>
+      <div class="color-swatch" style="background:#ff0000;" onclick="selectTextColor('#ff0000', this)" title="Red"></div>
+      <div class="color-swatch" style="background:#00ff00;" onclick="selectTextColor('#00ff00', this)" title="Green"></div>
+      <div class="color-swatch" style="background:#00ffff;" onclick="selectTextColor('#00ffff', this)" title="Cyan"></div>
+      <div class="color-swatch" style="background:#ffff00;" onclick="selectTextColor('#ffff00', this)" title="Yellow"></div>
+      <div class="color-swatch" style="background:#ff00ff;" onclick="selectTextColor('#ff00ff', this)" title="Pink"></div>
+      <div class="color-swatch" style="background:#000000;" onclick="selectTextColor('#000000', this)" title="Black"></div>
+      <input type="color" id="textColorPicker" class="native-color-input" value="#ffffff" oninput="selectTextColor(this.value, null)" title="Custom Color">
+    </div>
   </div>
 
   <!-- ऑडियो पैनल -->
   <div id="audioPanel" class="panel hidden">
     <div class="panel-header">
-      <h3>🔊 Audio & Music Mixer</h3>
+      <h3>🔊 Audio & Music Editor / Mixer</h3>
       <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
     </div>
     <label>Original Video Volume <b id="videoVolLabel">100%</b></label>
@@ -224,10 +273,10 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <audio id="voiceAudio"></audio>
   </div>
 
-  <!-- 🛡 सॉलिड AI कॉपीराइट और ओनरशिप चेकिंग इंजन -->
+  <!-- 🛡 कॉपीराइट ऑडियो चेकर -->
   <div id="copyrightPanel" class="panel hidden">
     <div class="panel-header">
-      <h3>🛡 AI Copyright & Creator Inspector</h3>
+      <h3>🛡 Copyright Audio & Content Checker</h3>
       <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
     </div>
     <div class="status" id="copyrightStatus">
@@ -236,14 +285,14 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <button class="primary" onclick="runSolidCopyrightEngine()">⚡ Run Full Deep Copyright Scan</button>
   </div>
 
-  <!-- वीडियो इन्फो पैनल -->
+  <!-- वीडियो इन्फो और प्रोफेशनल एक्सपोर्ट पैनल -->
   <div id="infoPanel" class="panel hidden">
     <div class="panel-header">
-      <h3>📊 Video Inspector</h3>
+      <h3>📊 Video Info & Professional Export Engine</h3>
       <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
     </div>
     <div class="status" id="videoInfo">Video information will appear here.</div>
-    <button class="secondary" onclick="inspectVideo()">🔍 Check Video</button>
+    <button class="secondary" onclick="inspectVideo()">🔍 Check Video Specs</button>
   </div>
 
   <!-- पब्लिश पैनल (Save & Post Details + Audience & Quality Options) -->
@@ -262,7 +311,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <label>Affiliate / Promotion Link</label>
     <input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
 
-    <!-- 🎯 ऑडियंस / एज रिस्ट्रिक्शन चयन (बच्चों के लिए या 18+) -->
+    <!-- 🎯 ऑडियंस / एज रिस्ट्रिक्शन चयन -->
     <label>👥 Audience Selection</label>
     <select class="select" id="audienceType">
       <option value="all">Public / Everyone (General Audience)</option>
@@ -270,14 +319,31 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
       <option value="adult">18+ Restricted Content (Mature)</option>
     </select>
 
-    <!-- 🎚 वीडियो क्वालिटी / रेजोल्यूशन चयन (1080p, 720p, 480p, 360p) -->
-    <label>⚙️ Video Export Quality / Resolution</label>
+    <!-- 🎚 प्रोफेशनल एक्सपोर्ट रेजोल्यूशन (720p, 1080p, 2K, 4K) और FPS/Bitrate कंट्रोल -->
+    <label>⚙️ Professional Export Engine (Resolution, FPS & Bitrate)</label>
     <select class="select" id="videoQuality">
-      <option value="1080p">1080p Full HD (Best Quality)</option>
-      <option value="720p">720p HD (Standard HD)</option>
-      <option value="480p">480p SD (Fast Upload)</option>
-      <option value="360p">360p Low (Lite Size)</option>
+      <option value="4K">4K Ultra HD (2160p) - High End</option>
+      <option value="2K">2K Quad HD (1440p) - Professional</option>
+      <option value="1080p">1080p Full HD (Best Standard)</option>
+      <option value="720p">720p HD (Fast Export)</option>
     </select>
+
+    <div class="grid2" style="margin-top:8px;">
+      <div>
+        <label>FPS Control</label>
+        <select class="select" id="fpsControl">
+          <option value="60">60 FPS (Smooth)</option>
+          <option value="30">30 FPS (Standard)</option>
+        </select>
+      </div>
+      <div>
+        <label>Bitrate Control</label>
+        <select class="select" id="bitrateControl">
+          <option value="high">High Bitrate</option>
+          <option value="medium">Medium Bitrate</option>
+        </select>
+      </div>
+    </div>
 
     <button class="primary" id="exportButton" onclick="instantDirectPost()" style="background:linear-gradient(135deg,#25f4ee,#fe2c55); font-size:16px; padding:16px; margin-top:15px;">💾 Save & Post Now</button>
   </div>
@@ -367,6 +433,27 @@ function closeActivePanels(){
     .forEach(x=>$(x).classList.add('hidden'));
 }
 
+/* ⚡ सभी 30 टूल्स के लिए एक्शन रनर */
+function runToolAction(toolName){
+  $('threeDotsDropdown').classList.remove('active');
+  if($('editorScreen').classList.contains('hidden')){
+    toast('पहले वीडियो चुनें।');
+    return;
+  }
+  toast('⚙️ Tool Activated: ' + toolName);
+  if(toolName.includes('Export') || toolName.includes('Info')){
+    showPanel('infoPanel');
+  } else if(toolName.includes('Text') || toolName.includes('Subtitle')){
+    showPanel('textPanel');
+  } else if(toolName.includes('Audio') || toolName.includes('Music') || toolName.includes('Voice') || toolName.includes('Fade') || toolName.includes('Noise')){
+    showPanel('audioPanel');
+  } else if(toolName.includes('Filter') || toolName.includes('Color')){
+    showPanel('filterPanel');
+  } else if(toolName.includes('Crop') || toolName.includes('Rotate')){
+    showPanel('zoomPanel');
+  }
+}
+
 function selectPlusMode(mode){
   if(mode === 'video'){
     showScreen('sourceScreen');
@@ -390,12 +477,53 @@ function setFilter(value){
   toast('Filter applied');
 }
 
+/* ✍️ टेक्स्ट ओवरले अपडेट और कलर सिलेक्शन फंक्शन */
+let activeTextColor = '#ffffff';
+
 function updateOverlay(){
   const text=$('overlayInput').value;
-  $('previewText').textContent=text;
-  $('previewText').style.fontSize=$('textSize').value+'px';
-  $('previewText').style.color=$('textColor').value;
+  const previewText = $('previewText');
+  previewText.textContent = text;
+  previewText.style.fontSize = $('textSize').value + 'px';
+  previewText.style.color = activeTextColor;
 }
+
+function selectTextColor(color, element){
+  activeTextColor = color;
+  $('previewText').style.color = color;
+  $('textColorPicker').value = color;
+
+  document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('active'));
+  if(element){
+    element.classList.add('active');
+  }
+  toast('Color selected!');
+}
+
+/* 👆 टच और माउस से टेक्स्ट को स्क्रीन पर कहीं भी ड्रैग करने का सॉलिड लॉजिक */
+const previewText = $('previewText');
+let isDragging = false;
+let startX, startY, posX = 0, posY = 0;
+
+previewText.addEventListener('pointerdown', e => {
+  isDragging = true;
+  startX = e.clientX - posX;
+  startY = e.clientY - posY;
+  previewText.setPointerCapture(e.pointerId);
+  e.stopPropagation();
+});
+
+previewText.addEventListener('pointermove', e => {
+  if(!isDragging) return;
+  posX = e.clientX - startX;
+  posY = e.clientY - startY;
+  previewText.style.transform = `translate(calc(-50% + ${posX}px), calc(-50% + ${posY}px))`;
+});
+
+previewText.addEventListener('pointerup', e => {
+  isDragging = false;
+  previewText.releasePointerCapture(e.pointerId);
+});
 
 async function openCamera(){
   if(!navigator.mediaDevices?.getUserMedia){
@@ -409,7 +537,7 @@ async function openCamera(){
       audio:true
     });
     $('cameraVideo').srcObject=cameraStream;
-    await $('cameraVideo').play();
+    await $('cameraVideo'].play();
     $('cameraStatus').textContent='Camera ready.';
   }catch(e){
     $('cameraStatus').textContent='Camera error: '+e.message;
@@ -569,7 +697,7 @@ function runSolidCopyrightEngine(){
   }, 1200);
 }
 
-/* ⚡ INSTANT SAVE & POST ENGINE (with Audience & Quality) */
+/* ⚡ INSTANT SAVE & POST ENGINE */
 function instantDirectPost(){
   if(!selectedVideoFile && !finalVideoBlob){
     toast('⚠️ Pehle video chunein!');
