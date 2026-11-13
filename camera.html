@@ -111,7 +111,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <p class="muted" style="margin-bottom:10px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें।</p>
     <button class="primary" onclick="openCamera()">🎥 Open Camera Studio</button>
     <button class="secondary" onclick="document.getElementById('videoInput').click()">📁 Select Gallery Video</button>
-    <input id="videoInput" type="file" accept="video/*" class="hidden">
+    <input id="videoInput" type="file" accept="video/*,video/mp4,video/webm,video/ogg,video/quicktime" class="hidden">
   </div>
 
   <div class="home-modes-container">
@@ -581,35 +581,32 @@ function stopCameraRecording(){
 
 $('videoInput').addEventListener('change',e=>{
   const file=e.target.files?.[0];
-  if(file)loadVideo(file);
+  if(!file) return;
+  loadVideo(file);
   e.target.value='';
 });
 
 function loadVideo(file){
-  if(!file.type.startsWith('video/') && !file.type.includes('octet-stream')){
-    toast('Please choose a video file.');
-    return;
-  }
   selectedVideoFile=file;
   finalVideoBlob=file;
   const url=URL.createObjectURL(file);
   activeObjectUrls.push(url);
   video.src=url;
-  video.onloadedmetadata=()=>{
-    video.currentTime=0;
-    video.play().catch(()=>{});
-    showScreen('editorScreen');
-    inspectVideo();
-    toast('Video loaded instantly');
-  };
-  video.onerror=()=>toast('This video format cannot be previewed.');
+  
+  // ⚡ अब मेटाडाटा का इंतज़ार किए बिना तुरंत एडिटर स्क्रीन पर भेजेंगे ताकि अटके नहीं
+  showScreen('editorScreen');
+  video.currentTime=0;
+  video.play().catch(()=>{});
+  inspectVideo();
+  toast('Video loaded successfully!');
+  
+  video.onerror=()=>toast('Warning: Video format preview might be restricted.');
 }
 
 function inspectVideo(){
   const file=selectedVideoFile;
   if(!file)return;
-  const w=video.videoWidth,h=video.videoHeight;
-  if(!w||!h)return;
+  const w=video.videoWidth||1280,h=video.videoHeight||720;
   const ratio=(w/h).toFixed(3);
   const mb=(file.size/1048576).toFixed(2);
   const duration=Number.isFinite(video.duration)?video.duration:0;
@@ -620,7 +617,7 @@ function inspectVideo(){
     `<b>File Size:</b> ${mb} MB<br>`+
     `<b>Duration:</b> ${fmt(duration)}<br>`+
     `<b>Format:</b> ${file.type||'Unknown'}<br>`+
-    `<b>File Name:</b> ${escapeHtml(file.name||'Camera Video')}`;
+    `<b>File Name:</b> ${escapeHtml(file.name||'Selected Video')}`;
 }
 
 function escapeHtml(str){
