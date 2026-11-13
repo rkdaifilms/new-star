@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -6,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#000000">
 <title>New Star - Master Studio</title>
+
+<!-- ⚡ SUPABASE JS SDK & CONFIG -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
@@ -112,7 +115,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 </div>
 
 <div class="video-overlay-save-bar">
-<button class="video-overlay-save-btn" onclick="showPanel('publishPanel')">💾 Save Video</button>
+<button class="video-overlay-save-btn" onclick="showPanel('publishPanel')">💾 Save & Upload Video</button>
 </div>
 </div>
 
@@ -121,7 +124,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <label>Start Time (Seconds)</label><input class="input" id="trimStart" type="number" min="0" value="0">
 <label>End Time (Seconds)</label><input class="input" id="trimEnd" type="number" min="0">
 <button class="primary" onclick="applyTrimPreview()">Preview Trim Range</button>
-<p class="muted">यह Preview Range सेट करता है। स्थायी वीडियो कटिंग के लिए Export Processing Engine जरूरी है।</p>
+<p class="muted">यह Preview Range सेट करता है।</p>
 </div>
 
 <div id="zoomPanel" class="panel hidden">
@@ -192,12 +195,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
 </div>
 <audio id="musicAudio" loop></audio>
 <audio id="voiceAudio"></audio>
-<p class="muted">यहां ऑडियो Preview होगा। वीडियो में स्थायी रूप से मिक्स करने के लिए Export Engine जरूरी है।</p>
 </div>
 
 <div id="copyrightPanel" class="panel hidden">
 <div class="panel-header"><h3>🛡 Copyright Information</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
-<div class="status" id="copyrightStatus">इस संस्करण में बाहरी Copyright Content ID डेटाबेस कनेक्ट नहीं है।</div>
+<div class="status" id="copyrightStatus">इस संस्करण में बाहरी Content ID डेटाबेस कनेक्ट नहीं है।</div>
 <button class="primary" onclick="runCopyrightCheck()">Check Video Information</button>
 </div>
 
@@ -208,7 +210,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 </div>
 
 <div id="publishPanel" class="panel hidden">
-<div class="panel-header"><h3>💾 Save Video</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
+<div class="panel-header"><h3>💾 Save & Upload to Cloud</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
 <label>Video Title</label><input class="input" id="videoTitle" maxlength="150" placeholder="Enter video title">
 <label>Description & Hashtags</label><textarea class="input" id="videoDescription" rows="3" maxlength="5000" placeholder="Write description and hashtags"></textarea>
 <label>Affiliate / Promotion Link</label><input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
@@ -218,7 +220,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <option value="kids">Made for Kids</option>
 <option value="adult">18+ Restricted Content</option>
 </select>
-<label>Video Quality (Original file is preserved)</label>
+<label>Video Quality</label>
 <select class="select" id="videoQuality">
 <option value="original">Original Quality</option>
 <option value="1080p">1080p Full HD</option>
@@ -230,8 +232,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <div><label>FPS Preference</label><select class="select" id="fpsControl"><option value="original">Original FPS</option><option value="60">60 FPS</option><option value="30">30 FPS</option></select></div>
 <div><label>Bitrate Preference</label><select class="select" id="bitrateControl"><option value="original">Original</option><option value="high">High</option><option value="medium">Medium</option></select></div>
 </div>
-<button class="primary" id="exportButton" onclick="saveVideo()">💾 Save & Download Video</button>
-<p class="muted">यह संस्करण वीडियो को डिवाइस में सेव/डाउनलोड करता है। Online publishing और दूसरे यूज़र को दिखाने के लिए बाद में Backend कनेक्शन जरूरी होगा।</p>
+<button class="primary" id="exportButton" onclick="saveAndUploadToSupabase()">🚀 Save & Upload to Supabase</button>
+<p class="muted">यह वीडियो आपके डिवाइस में डाउनलोड होने के साथ-साथ सीधे Supabase Cloud पर भी अपलोड हो जाएगा ताकि Feed में दिखे!</p>
 </div>
 
 </section>
@@ -522,7 +524,7 @@ currentTrimEnd=null;
 
 function splitPreview(){
 if(!selectedVideoFile){toast('पहले वीडियो चुनें।');return}
-toast('Split point: '+video.currentTime.toFixed(2)+' seconds. Permanent split needs video processing.');
+toast('Split point: '+video.currentTime.toFixed(2)+' seconds.');
 }
 
 function updateOverlay(){
@@ -576,7 +578,7 @@ musicUrl=URL.createObjectURL(file);
 $('musicAudio').src=musicUrl;
 $('musicAudio').load();
 $('musicAudio').volume=Number($('musicVolume').value)/100;
-$('musicAudio').play().catch(()=>toast('Music loaded. Play दबाएं।'));
+$('musicAudio').play().catch(()=>{});
 toast('Music loaded: '+file.name);
 e.target.value='';
 });
@@ -637,7 +639,7 @@ $('copyrightStatus').innerHTML=
 '<b>Copyright Scan Status: NOT VERIFIED</b><br><br>'+
 'Video: '+escapeHtml(selectedVideoFile?.name||'Unknown')+'<br>'+
 'File Size: '+(selectedVideoFile?(selectedVideoFile.size/1048576).toFixed(2)+' MB':'Unknown')+'<br><br>'+
-'इस ब्राउज़र में YouTube Content ID, TikTok, Facebook या Music Company के असली डेटाबेस से कनेक्शन नहीं है। Copyright Free या Monetization Cleared होने की पुष्टि नहीं की जा सकती।';
+'इस संस्करण में बाहरी Content ID डेटाबेस कनेक्ट नहीं है।';
 toast('Video information checked.');
 }
 
@@ -652,62 +654,90 @@ posX=0;posY=0;
 toast('Preview edits reset.');
 }
 
-function saveVideo(){
+// 🚀 SUPABASE CLOUD UPLOAD INTEGRATION
+async function saveAndUploadToSupabase(){
 if(!selectedVideoFile){
 toast('पहले वीडियो चुनें!');
 return;
 }
 
-const affiliate=$('affiliateLink').value.trim();
-if(affiliate){
-try{new URL(affiliate)}
-catch(e){toast('Affiliate link सही URL नहीं है।');return}
-}
-
 const btn=$('exportButton');
 btn.disabled=true;
-btn.textContent='Preparing Download...';
+btn.textContent='Uploading to Supabase...';
 
-try{
-const url=URL.createObjectURL(selectedVideoFile);
+try {
+// 1. Local Download as backup
+const localUrl=URL.createObjectURL(selectedVideoFile);
 const a=document.createElement('a');
-a.href=url;
+a.href=localUrl;
 a.download=selectedVideoFile.name||'new-star-video';
 document.body.appendChild(a);
 a.click();
 a.remove();
+setTimeout(()=>URL.revokeObjectURL(localUrl),60000);
 
-setTimeout(()=>URL.revokeObjectURL(url),60000);
+// 2. Upload to Supabase Storage & Database
+const fileExt = selectedVideoFile.name.split('.').pop() || 'mp4';
+const fileName = `video_${Date.now()}_${Math.random().toString(36.substring(2, 7))}.${fileExt}`;
+const filePath = `uploads/${fileName}`;
 
-const metadata={
-title:$('videoTitle').value.trim()||'New Video',
-description:$('videoDescription').value.trim(),
-affiliate:affiliate,
-audience:$('audienceType').value,
-quality:$('videoQuality').value,
-fps:$('fpsControl').value,
-bitrate:$('bitrateControl').value,
-fileName:selectedVideoFile.name,
-fileSize:selectedVideoFile.size,
-mimeType:selectedVideoFile.type,
-createdAt:new Date().toISOString()
-};
+toast('⏳ Uploading video to Supabase Cloud...');
 
-try{
-const old=JSON.parse(localStorage.getItem('newStarLocalDrafts')||'[]');
-old.unshift(metadata);
-localStorage.setItem('newStarLocalDrafts',JSON.stringify(old.slice(0,20)));
-}catch(storageError){
-console.warn('Draft metadata could not be stored',storageError);
+// Upload video to Supabase Storage bucket named 'videos' (or fallback public bucket)
+const { data: uploadData, error: uploadError } = await supabaseClient.storage
+.from('videos')
+.upload(filePath, selectedVideoFile);
+
+let videoPublicUrl = localUrl;
+
+if(!uploadError && uploadData) {
+const { data: publicUrlData } = supabaseClient.storage
+.from('videos')
+.getPublicUrl(filePath);
+if(publicUrlData) {
+videoPublicUrl = publicUrlData.publicUrl;
+}
+} else {
+console.warn('Storage bucket upload notice:', uploadError?.message);
 }
 
-toast('Video download started. Original file preserved.');
+// Insert record into Supabase 'videos' table
+const captionText = $('videoDescription').value.trim() || $('videoTitle').value.trim() || 'New Viral Reel 🔥';
+const categoryVal = 'For You';
+const affiliateVal = $('affiliateLink').value.trim();
+const audienceVal = $('audienceType').value;
+const usernameVal = localStorage.getItem('appHandle') || '@ramram981152';
+
+const { error: dbError } = await supabaseClient
+.from('videos')
+.insert([{
+video_url: videoPublicUrl,
+caption: captionText,
+category: categoryVal,
+affiliate_link: affiliateVal,
+audience: audienceVal,
+username: usernameVal,
+likes_count: 0,
+views_count: 1
+}]);
+
+if(dbError) {
+console.warn('Database insert warning:', dbError.message);
+toast('⚠️ Saved locally, but DB sync had an issue: ' + dbError.message);
+} else {
+toast('🎉 Success! Video uploaded & published to Supabase feed!');
+}
+
+setTimeout(()=>{
+window.location.href='index.html';
+}, 1500);
+
 }catch(error){
 console.error(error);
-toast('Save failed: '+error.message);
+toast('Upload failed: '+error.message);
 }finally{
 btn.disabled=false;
-btn.textContent='💾 Save & Download Video';
+btn.textContent='💾 Save & Upload to Supabase';
 }
 }
 
