@@ -1,12 +1,12 @@
-// navbar.js - Ultimate Master Navigation with Center Header Title & Clean Top Bar
+// navbar.js - Ultimate Master Navigation linking all pages together
 document.addEventListener("DOMContentLoaded", function() {
     let currentPage = window.location.pathname.split("/").pop() || "index.html";
 
-    // 1. पुराना नेविगेशन तुरंत हटाओ ताकि डुप्लीकेट न बने
+    // 1. पुराना नेविगेशन हटाओ ताकि डुप्लीकेट न बने
     let oldNavs = document.querySelectorAll('.bottom-nav, .app-global-bottom-nav, .master-tiktok-final-nav, .top-left-live-wrapper');
     oldNavs.forEach(el => el.remove());
 
-    // 2. ⚙️ ऊपर हेडर के टाइटल को बिल्कुल बीच में (Center) और सेटिंग गियर को दाहिने कोने में सेट करने का कोड (ऊपर का लाइव बटन पूरी तरह हटा दिया गया है)
+    // 2. हेडर टाइटल को बीच में और सेटिंग गियर को दाहिने कोने में सेट करना
     function fixHeaderTitleAndGear() {
         let topBars = document.querySelectorAll('.top-bar');
         topBars.forEach(bar => {
@@ -29,7 +29,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     e.preventDefault();
                     window.location.href = 'settings.html';
                 };
-
                 bar.appendChild(gearBtn);
             }
         });
@@ -37,70 +36,27 @@ document.addEventListener("DOMContentLoaded", function() {
 
     fixHeaderTitleAndGear();
     setTimeout(fixHeaderTitleAndGear, 50);
-    setTimeout(fixHeaderTitleAndGear, 200);
-    setTimeout(fixHeaderTitleAndGear, 500);
 
-    // 3. टिकटॉक जैसा नीचे का नेविगेशन बार (बिना किसी ऊपर वाले लाइव बटन के)
+    // 3. मास्टर बॉटम नेविगेशन बार जो सभी पेजों को आपस में जोड़ता है
     let finalNavHTML = `
     <style>
         .master-tiktok-final-nav {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 60px !important;
-            background: #000 !important;
-            display: flex !important;
-            justify-content: space-around !important;
-            align-items: center !important;
-            border-top: 1px solid #222 !important;
-            z-index: 9999999 !important;
-            box-sizing: border-box !important;
-            margin: 0 !important;
-            padding: 0 !important;
+            position: fixed !important; bottom: 0 !important; left: 0 !important; width: 100% !important; height: 60px !important;
+            background: #000 !important; display: flex !important; justify-content: space-around !important; align-items: center !important;
+            border-top: 1px solid #222 !important; z-index: 9999999 !important; box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
         }
         .mfn-item {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: rgba(255,255,255,0.5) !important;
-            cursor: pointer !important;
-            text-decoration: none !important;
-            font-size: 11px !important;
-            flex: 1 !important;
-            text-align: center !important;
-            background: transparent !important;
-            border: none !important;
+            display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;
+            color: rgba(255,255,255,0.5) !important; cursor: pointer !important; text-decoration: none !important; font-size: 11px !important; flex: 1 !important; text-align: center !important; background: transparent !important; border: none !important;
         }
-        .mfn-item.active {
-            color: #fff !important;
-            font-weight: bold !important;
-        }
-        .mfn-item i {
-            font-size: 18px !important;
-            margin-bottom: 2px !important;
-            font-style: normal !important;
-        }
-        
-        /* ➕ बीच वाला चमकता हुआ प्लस बटन जो सीधा camera.html पर ले जाएगा */
+        .mfn-item.active { color: #fff !important; font-weight: bold !important; }
+        .mfn-item i { font-size: 18px !important; margin-bottom: 2px !important; font-style: normal !important; }
         .mfn-center-plus {
-            width: 46px !important;
-            height: 32px !important;
-            background: linear-gradient(135deg, #25f4ee, #fe2c55) !important;
-            border-radius: 8px !important;
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-            color: #fff !important;
-            font-size: 24px !important;
-            font-weight: bold !important;
-            box-shadow: 0 2px 12px rgba(254,44,85,0.7) !important;
-            margin: 0 auto !important;
+            width: 46px !important; height: 32px !important; background: linear-gradient(135deg, #25f4ee, #fe2c55) !important;
+            border-radius: 8px !important; display: flex !important; justify-content: center !important; align-items: center !important;
+            color: #fff !important; font-size: 24px !important; font-weight: bold !important; box-shadow: 0 2px 12px rgba(254,44,85,0.7) !important; margin: 0 auto !important;
         }
     </style>
-
-    <!-- नीचे का फिक्स नेविगेशन बार -->
     <div class="master-tiktok-final-nav">
         <a href="index.html" class="mfn-item ${currentPage === 'index.html' || currentPage === '' ? 'active' : ''}"><i>🏠</i><span>Home</span></a>
         <a href="wallet.html" class="mfn-item ${currentPage === 'wallet.html' ? 'active' : ''}"><i>🪙</i><span>Wallet</span></a>
@@ -114,16 +70,9 @@ document.addEventListener("DOMContentLoaded", function() {
     wrap.innerHTML = finalNavHTML;
     document.body.appendChild(wrap);
 
-    // 🔔 4. PUSH NOTIFICATION SYSTEM INTEGRATED (Global Browser Alert Support)
+    // 🔔 4. पुश नोटिफिकेशन सिस्टम
     function requestPushNotificationPermission() {
-        if (!("Notification" in window)) {
-            console.log("Browser does not support notifications");
-            return;
-        }
-
-        if (Notification.permission === "granted") {
-            console.log("Push notifications active.");
-        } else if (Notification.permission !== "denied") {
+        if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
             Notification.requestPermission().then(permission => {
                 if (permission === "granted") {
                     new Notification("🌟 New Star Notifications Enabled!", {
@@ -134,7 +83,5 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         }
     }
-
-    // Trigger permission prompt when navbar loads across pages
     setTimeout(requestPushNotificationPermission, 1500);
 });
