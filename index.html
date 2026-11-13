@@ -294,12 +294,14 @@
             await fetchSupabaseFeedVideos();
         };
 
+        // 🚀 SMART RECOMMENDATION ALGORITHM INTEGRATED HERE
         async function fetchSupabaseFeedVideos() {
             try {
                 let { data, error } = await supabaseClient
                     .from('videos')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('views_count', { ascending: false })
+                    .order('likes_count', { ascending: false });
 
                 if (!error && data && data.length > 0) {
                     rawFeedList = data.map((v, i) => ({
@@ -317,7 +319,7 @@
                     rawFeedList = [{
                         id: 'demo_1',
                         url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-dancing-in-a-room-41653-large.mp4',
-                        caption: 'New Star Clean Search Hub 🔥',
+                        caption: 'New Star Smart Algorithm Feed 🔥',
                         category: 'For You',
                         username: '@ramram981152',
                         likes: 195,
