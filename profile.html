@@ -1,262 +1,228 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#000000">
-<title>New Star - Profile</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>New Star Creator Hub - Profile</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
-body{background:#000;color:#fff;padding-bottom:70px}
-button,input{font:inherit}
-button{cursor:pointer}
-.container{max-width:600px;margin:auto;min-height:100vh;background:#080808;padding:15px 12px 80px}
-.hidden{display:none!important}
-.card{background:#15151b;border:1px solid #333;border-radius:12px;padding:16px;margin-bottom:12px}
-h2,h3{color:#25f4ee;margin-bottom:12px}
-h2{font-size:20px}h3{font-size:15px}
-label{display:block;color:#ccc;font-size:12px;margin:10px 0 5px}
-.input{width:100%;background:#08080b;color:white;border:1px solid #444;padding:12px;border-radius:8px;margin-bottom:8px}
-.primary,.secondary{width:100%;padding:12px;border-radius:8px;margin-top:8px;font-weight:bold}
-.primary{background:linear-gradient(120deg,#fe2c55,#ff6b8b);border:0;color:white}
-.secondary{background:#262630;border:1px solid #555;color:white}
-.row{display:flex;gap:8px;align-items:center}
-.row>*{flex:1;min-width:0}
-.muted{color:#aaa;font-size:12px;line-height:1.6}
-.profile-head{display:flex;gap:15px;align-items:center}
-.avatar{width:82px;height:82px;border-radius:50%;background:#252530;border:2px solid #25f4ee;display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;flex-shrink:0}
-.avatar img{width:100%;height:100%;object-fit:cover}
-.profile-name{font-size:19px;font-weight:bold;overflow-wrap:anywhere}
-.profile-email{font-size:12px;color:#aaa;margin-top:5px;overflow-wrap:anywhere}
-.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:16px}
-.stat{background:#0b0b10;border:1px solid #333;border-radius:9px;text-align:center;padding:12px}
-.stat b{font-size:18px;color:#25f4ee;display:block}
-.stat span{font-size:11px;color:#aaa}
-.video-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.video-card{background:#111;border:1px solid #333;border-radius:10px;overflow:hidden;min-width:0}
-.video-card video{width:100%;aspect-ratio:9/14;object-fit:cover;background:#000;display:block}
-.video-caption{padding:9px;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
-.video-date{font-size:10px;color:#999;margin-top:5px}
-.status{background:#101014;border:1px solid #444;border-radius:8px;padding:12px;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
-.nav{position:fixed;bottom:0;left:0;width:100%;height:55px;background:#000;border-top:1px solid #222;display:flex;justify-content:space-around;align-items:center;z-index:100}
-.nav a{flex:1;text-align:center;color:#aaa;text-decoration:none;font-size:11px}
-button:disabled{opacity:.5}
+*{box-sizing:border-box}body{margin:0;background:#101014;color:#fff;font-family:Arial,sans-serif}
+header{padding:16px;background:#191920;display:flex;justify-content:space-between;align-items:center}
+.wrap{max-width:850px;margin:auto;padding:16px}.card{background:#1c1c24;border:1px solid #353540;border-radius:16px;padding:16px;margin:14px 0}
+input,textarea,button{font:inherit;border-radius:10px;padding:12px;width:100%;margin:6px 0}
+input,textarea{background:#111118;border:1px solid #454550;color:white}
+button{border:0;background:#ff3158;color:white;font-weight:bold;cursor:pointer}
+button.secondary{background:#30303b}.row{display:flex;gap:8px}.row>*{flex:1}
+.muted{color:#aaa;font-size:13px}#auth{max-width:480px;margin:7vh auto;padding:16px}
+#app{display:none}.videoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.videoCard{background:#121218;border:1px solid #393943;border-radius:12px;padding:10px;overflow:hidden}
+.videoCard video{width:100%;max-height:360px;background:#000;border-radius:8px}
+#authStatus,#profileStatus{white-space:pre-wrap;color:#ffd36a;font-size:14px}
 </style>
 </head>
 <body>
-<div class="container">
-
-<section id="authBox" class="card hidden">
-  <h2>⭐ New Star Login</h2>
-  <p class="muted">अपनी प्रोफाइल और अपलोड किए हुए वीडियो देखने के लिए Login करें।</p>
-  <label>Email</label>
-  <input id="email" class="input" type="email" autocomplete="email" placeholder="Email address">
-  <label>Password</label>
-  <input id="password" class="input" type="password" autocomplete="current-password" placeholder="Password">
-  <button class="primary" id="loginBtn" onclick="login()">Login</button>
-  <p id="authMessage" class="muted" style="margin-top:10px"></p>
-  <button class="secondary" onclick="location.href='camera.html'">Camera Studio खोलें</button>
-</section>
-
-<section id="profileBox" class="hidden">
-  <div class="card">
-    <div class="profile-head">
-      <div class="avatar" id="avatar">⭐</div>
-      <div style="min-width:0">
-        <div class="profile-name" id="profileName">Creator</div>
-        <div class="profile-email" id="profileEmail"></div>
-        <div class="muted" id="profileUsername"></div>
-      </div>
-    </div>
-    <div class="stats">
-      <div class="stat"><b id="videoCount">0</b><span>Uploaded Videos</span></div>
-      <div class="stat"><b id="accountStatus">Active</b><span>Account Status</span></div>
-    </div>
-    <button class="secondary" onclick="editProfile()">✏️ Edit Profile</button>
-    <button class="secondary" onclick="location.href='camera.html'">🎬 Open Camera Studio</button>
-    <button class="secondary" onclick="loadMyVideos()">🔄 Refresh Videos</button>
-    <button class="secondary" onclick="logout()">Logout</button>
-  </div>
-
-  <div id="editBox" class="card hidden">
-    <h3>Edit Profile</h3>
-    <label>Full Name</label>
-    <input id="editName" class="input" maxlength="80" placeholder="Your name">
-    <label>Username</label>
-    <input id="editUsername" class="input" maxlength="30" placeholder="username">
-    <label>Bio</label>
-    <input id="editBio" class="input" maxlength="250" placeholder="About you">
-    <button class="primary" onclick="saveProfile()">Save Profile</button>
-    <button class="secondary" onclick="$('editBox').classList.add('hidden')">Cancel</button>
-  </div>
-
-  <div class="card">
-    <h3>🎥 My Uploaded Videos</h3>
-    <div id="videoStatus" class="status">वीडियो लोड हो रहे हैं...</div>
-    <div id="videoGrid" class="video-grid" style="margin-top:12px"></div>
-  </div>
-</section>
+<header>
+<b>⭐ New Star Creator Hub</b>
+<div class="row" style="max-width:240px">
+<button class="secondary" onclick="location.href='camera.html'">Camera</button>
+<button onclick="logout()">Logout</button>
 </div>
+</header>
 
-<nav class="nav">
-  <a href="index.html">🏠<br>Home</a>
-  <a href="wallet.html">🪙<br>Wallet</a>
-  <a href="camera.html">＋<br>Create</a>
-  <a href="inbox.html">💬<br>Inbox</a>
-  <a href="profile.html">⭐<br>Profile</a>
-</nav>
+<section id="auth" class="card">
+<h2>अपने अकाउंट में लॉगिन करें</h2>
+<button onclick="googleLogin()">🌐 Continue with Google</button>
+<hr>
+<h3>मोबाइल नंबर से</h3>
+<input id="phone" placeholder="+97798XXXXXXXX" autocomplete="tel">
+<button class="secondary" onclick="sendOTP()">OTP भेजें</button>
+<input id="otp" placeholder="SMS में आया OTP">
+<button onclick="verifyOTP()">OTP Verify करके Login</button>
+<hr>
+<h3>Email से</h3>
+<input id="email" type="email" placeholder="Email address">
+<input id="password" type="password" placeholder="Password (कम से कम 6 अक्षर)">
+<input id="fullName" placeholder="आपका नाम (नए अकाउंट के लिए)">
+<div class="row">
+<button onclick="emailLogin()">Login</button>
+<button class="secondary" onclick="emailSignup()">Sign Up</button>
+</div>
+<p id="authStatus" class="muted"></p>
+</section>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
+<main id="app" class="wrap">
+<section class="card">
+<h2>👤 My Profile</h2>
+<p id="accountInfo" class="muted"></p>
+<input id="profileName" placeholder="आपका नाम">
+<input id="profileUsername" placeholder="Username">
+<textarea id="profileBio" rows="3" placeholder="अपने बारे में लिखें..."></textarea>
+<button onclick="saveProfile()">प्रोफाइल Save करें</button>
+<p id="profileStatus"></p>
+</section>
+
+<section class="card">
+<div class="row" style="align-items:center">
+<h2 style="flex:1">🎬 My Videos</h2>
+<button class="secondary" style="max-width:150px" onclick="loadVideos()">Refresh</button>
+</div>
+<p id="videoStatus" class="muted">आपके वीडियो लोड हो रहे हैं...</p>
+<div id="videoGrid" class="videoGrid"></div>
+</section>
+</main>
+
 <script>
-'use strict';
 const $=id=>document.getElementById(id);
-let db=null,currentUser=null;
+const db=window.supabaseClient||window.supabaseDB||window.cloudClient;
+if(!db){
+  $("authStatus").textContent="Supabase client नहीं मिला। supabase-config.js में client का नाम जाँचें।";
+  throw new Error("Supabase client missing");
+}
+let currentUser=null;
 
-function getClient(){
-  if(typeof supabaseClient!=='undefined')return supabaseClient;
-  if(window.supabaseClient)return window.supabaseClient;
-  throw new Error('supabase-config.js में supabaseClient नहीं मिला।');
+function authMessage(message){$("authStatus").textContent=message;}
+function showAuth(){
+  $("auth").style.display="block";
+  $("app").style.display="none";
 }
-function showAuth(message=''){
-  $('authBox').classList.remove('hidden');
-  $('profileBox').classList.add('hidden');
-  $('authMessage').textContent=message;
+function showApp(user){
+  currentUser=user;
+  $("auth").style.display="none";
+  $("app").style.display="block";
+  $("accountInfo").textContent="लॉगिन: "+(user.email||user.phone||user.id);
+  const meta=user.user_metadata||{};
+  $("profileName").value=meta.full_name||"";
+  $("profileUsername").value=meta.username||"";
+  $("profileBio").value=meta.bio||"";
+  loadVideos();
 }
-function showProfile(){
-  $('authBox').classList.add('hidden');
-  $('profileBox').classList.remove('hidden');
-  const meta=currentUser.user_metadata||{};
-  const name=meta.full_name||meta.name||'New Star Creator';
-  const username=meta.username||'';
-  $('profileName').textContent=name;
-  $('profileEmail').textContent=currentUser.email||'';
-  $('profileUsername').textContent=username?'@'+username:'';
-  $('editName').value=name;
-  $('editUsername').value=username;
-  $('editBio').value=meta.bio||'';
-  loadMyVideos();
+
+async function googleLogin(){
+  authMessage("Google अकाउंट खुल रहा है...");
+  const {error}=await db.auth.signInWithOAuth({
+    provider:"google",
+    options:{
+      redirectTo:location.href.split("#")[0],
+      queryParams:{prompt:"select_account"}
+    }
+  });
+  if(error)authMessage(error.message);
 }
-async function login(){
-  try{
-    const email=$('email').value.trim(),password=$('password').value;
-    if(!email||!password)throw new Error('Email और Password भरें।');
-    $('loginBtn').disabled=true;
-    $('authMessage').textContent='Login हो रहा है...';
-    const {data,error}=await db.auth.signInWithPassword({email,password});
-    if(error)throw error;
-    currentUser=data.user;
-    showProfile();
-  }catch(e){$('authMessage').textContent=e.message}
-  finally{$('loginBtn').disabled=false}
+async function sendOTP(){
+  const phone=$("phone").value.trim();
+  if(!/^\+[1-9]\d{7,14}$/.test(phone)){
+    authMessage("नंबर country code के साथ लिखें, जैसे +97798XXXXXXXX");return;
+  }
+  authMessage("OTP भेजा जा रहा है...");
+  const {error}=await db.auth.signInWithOtp({phone});
+  authMessage(error?error.message:"OTP भेज दिया गया है। SMS चेक करें।");
+}
+async function verifyOTP(){
+  const phone=$("phone").value.trim(),token=$("otp").value.trim();
+  if(!phone||!token){authMessage("मोबाइल नंबर और OTP भरें।");return;}
+  const {error}=await db.auth.verifyOtp({phone,token,type:"sms"});
+  authMessage(error?error.message:"लॉगिन सफल!");
+}
+async function emailLogin(){
+  const email=$("email").value.trim(),password=$("password").value;
+  if(!email||!password){authMessage("Email और Password भरें।");return;}
+  const {error}=await db.auth.signInWithPassword({email,password});
+  authMessage(error?error.message:"लॉगिन सफल!");
+}
+async function emailSignup(){
+  const email=$("email").value.trim(),password=$("password").value;
+  const fullName=$("fullName").value.trim();
+  if(!email||password.length<6){authMessage("सही Email और कम से कम 6 अक्षर का Password भरें।");return;}
+  const {data,error}=await db.auth.signUp({
+    email,password,options:{data:{full_name:fullName}}
+  });
+  if(error){authMessage(error.message);return;}
+  authMessage(data.session?"अकाउंट बन गया!":"अकाउंट बन गया। Email verification लिंक खोलकर पुष्टि करें।");
 }
 async function logout(){
-  const {error}=await db.auth.signOut();
-  if(error){alert('Logout error: '+error.message);return}
-  currentUser=null;showAuth('आप Logout हो गए हैं।');
+  await db.auth.signOut();
+  currentUser=null;
+  showAuth();
 }
-function editProfile(){$('editBox').classList.toggle('hidden')}
+
 async function saveProfile(){
-  try{
-    if(!currentUser)throw new Error('पहले Login करें।');
-    const full_name=$('editName').value.trim();
-    const username=$('editUsername').value.trim().replace(/^@/,'').toLowerCase();
-    const bio=$('editBio').value.trim();
-    if(!full_name)throw new Error('नाम खाली नहीं हो सकता।');
-    if(username&&!/^[a-z0-9_.]{3,30}$/.test(username)){
-      throw new Error('Username में 3-30 अक्षर, नंबर, _ या . इस्तेमाल करें।');
-    }
-    const {data,error}=await db.auth.updateUser({
-      data:{...currentUser.user_metadata,full_name,username,bio}
-    });
-    if(error)throw error;
-    currentUser=data.user;
-    showProfile();
-    $('editBox').classList.add('hidden');
-    alert('Profile updated successfully');
-  }catch(e){alert('Profile save error: '+e.message)}
-}
-function safeHttpUrl(value){
-  try{
-    const u=new URL(value);
-    return ['http:','https:'].includes(u.protocol)?u.href:null;
-  }catch{return null}
-}
-function makeVideoCard(item){
-  const card=document.createElement('article');
-  card.className='video-card';
-
-  const url=safeHttpUrl(item.video_url);
-  if(url){
-    const player=document.createElement('video');
-    player.src=url;
-    player.controls=true;
-    player.playsInline=true;
-    player.preload='metadata';
-    player.setAttribute('controlsList','nodownload');
-    card.appendChild(player);
-  }else{
-    const missing=document.createElement('div');
-    missing.className='status';
-    missing.textContent='Video URL उपलब्ध नहीं है।';
-    card.appendChild(missing);
-  }
-
-  const caption=document.createElement('div');
-  caption.className='video-caption';
-  caption.textContent=item.caption||'Untitled Video';
-  card.appendChild(caption);
-
-  const date=document.createElement('div');
-  date.className='video-date';
-  date.textContent=item.created_at?
-    new Date(item.created_at).toLocaleString():'';
-  caption.appendChild(date);
-
-  return card;
-}
-async function loadMyVideos(){
   if(!currentUser)return;
-  const grid=$('videoGrid'),status=$('videoStatus');
-  grid.replaceChildren();
-  status.textContent='Supabase से वीडियो लोड हो रहे हैं...';
+  const full_name=$("profileName").value.trim();
+  const username=$("profileUsername").value.trim();
+  const bio=$("profileBio").value.trim();
+  $("profileStatus").textContent="प्रोफाइल सेव हो रही है...";
+  const {data,error}=await db.auth.updateUser({
+    data:{full_name,username,bio}
+  });
+  if(error){
+    $("profileStatus").textContent="सेव नहीं हुआ: "+error.message;
+    return;
+  }
+  currentUser=data.user;
+  $("profileStatus").textContent="✅ प्रोफाइल सेव हो गई।";
+}
 
-  try{
-    const {data,error}=await db.from('videos')
-      .select('id,user_id,video_url,caption,created_at')
-      .eq('user_id',currentUser.id)
-      .order('created_at',{ascending:false});
+async function loadVideos(){
+  if(!currentUser)return;
+  $("videoStatus").textContent="वीडियो लोड हो रहे हैं...";
+  $("videoGrid").innerHTML="";
+  const {data,error}=await db.from("videos")
+    .select("id,user_id,video_url,caption,created_at")
+    .eq("user_id",currentUser.id)
+    .order("created_at",{ascending:false});
 
-    if(error)throw error;
-    $('videoCount').textContent=(data||[]).length;
+  if(error){
+    $("videoStatus").textContent="वीडियो लोड नहीं हुए: "+error.message;
+    return;
+  }
+  if(!data||data.length===0){
+    $("videoStatus").textContent="अभी आपने कोई वीडियो अपलोड नहीं किया है।";
+    return;
+  }
 
-    if(!data||data.length===0){
-      status.textContent='अभी तक आपने कोई वीडियो अपलोड नहीं किया है।';
-      return;
-    }
+  $("videoStatus").textContent="आपके कुल "+data.length+" वीडियो";
+  for(const item of data){
+    const card=document.createElement("article");
+    card.className="videoCard";
 
-    status.textContent='आपके '+data.length+' वीडियो लोड हो गए।';
-    data.forEach(item=>grid.appendChild(makeVideoCard(item)));
-  }catch(e){
-    console.error('Video fetch error:',e);
-    status.textContent='वीडियो लोड नहीं हुए: '+e.message;
+    const video=document.createElement("video");
+    video.src=item.video_url;
+    video.controls=true;
+    video.playsInline=true;
+    video.preload="metadata";
+
+    const caption=document.createElement("p");
+    caption.textContent=item.caption||"Untitled video";
+
+    const date=document.createElement("p");
+    date.className="muted";
+    date.textContent=item.created_at
+      ?new Date(item.created_at).toLocaleString()
+      :"";
+
+    const link=document.createElement("a");
+    link.href=item.video_url;
+    link.target="_blank";
+    link.rel="noopener";
+    link.textContent="वीडियो खोलें";
+    link.style.color="#ff6682";
+
+    card.append(video,caption,date,link);
+    $("videoGrid").appendChild(card);
   }
 }
-async function init(){
-  try{
-    db=getClient();
-    const {data,error}=await db.auth.getSession();
-    if(error)throw error;
-    if(data.session){
-      currentUser=data.session.user;showProfile();
-    }else showAuth();
-    db.auth.onAuthStateChange((_event,session)=>{
-      currentUser=session?.user||null;
-      if(currentUser)showProfile();else showAuth();
-    });
-  }catch(e){showAuth('Supabase connection error: '+e.message)}
-}
-init();
+
+db.auth.onAuthStateChange((_event,session)=>{
+  if(session&&session.user)showApp(session.user);
+  else showAuth();
+});
+db.auth.getSession().then(({data,error})=>{
+  if(error){authMessage(error.message);return;}
+  if(data.session)showApp(data.session.user);
+  else showAuth();
+});
 </script>
 </body>
 </html>
