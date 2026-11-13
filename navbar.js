@@ -113,4 +113,28 @@ document.addEventListener("DOMContentLoaded", function() {
     let wrap = document.createElement('div');
     wrap.innerHTML = finalNavHTML;
     document.body.appendChild(wrap);
+
+    // 🔔 4. PUSH NOTIFICATION SYSTEM INTEGRATED (Global Browser Alert Support)
+    function requestPushNotificationPermission() {
+        if (!("Notification" in window)) {
+            console.log("Browser does not support notifications");
+            return;
+        }
+
+        if (Notification.permission === "granted") {
+            console.log("Push notifications active.");
+        } else if (Notification.permission !== "denied") {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    new Notification("🌟 New Star Notifications Enabled!", {
+                        body: "You will receive alerts for comments, likes & gifts!",
+                        icon: "https://cdn-icons-png.flaticon.com/512/1828/1828884.png"
+                    });
+                }
+            });
+        }
+    }
+
+    // Trigger permission prompt when navbar loads across pages
+    setTimeout(requestPushNotificationPermission, 1500);
 });
