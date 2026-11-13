@@ -1,4 +1,4 @@
-// navbar.js - Ultimate Master Navigation linking all pages together
+navbar.js - Ultimate Master Navigation linking all pages together
 document.addEventListener("DOMContentLoaded", function() {
     let currentPage = window.location.pathname.split("/").pop() || "index.html";
 
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function() {
     fixHeaderTitleAndGear();
     setTimeout(fixHeaderTitleAndGear, 50);
 
-    // 3. मास्टर बॉटम नेविगेशन बार जो सभी पेजों को आपस में जोड़ता है
+    // 3. मास्टर बॉटम नेविगेशन बार (प्लस बटन अब सीधे पॉपअप खोलेगा)
     let finalNavHTML = `
     <style>
         .master-tiktok-final-nav {
@@ -60,7 +60,9 @@ document.addEventListener("DOMContentLoaded", function() {
     <div class="master-tiktok-final-nav">
         <a href="index.html" class="mfn-item ${currentPage === 'index.html' || currentPage === '' ? 'active' : ''}"><i>🏠</i><span>Home</span></a>
         <a href="wallet.html" class="mfn-item ${currentPage === 'wallet.html' ? 'active' : ''}"><i>🪙</i><span>Wallet</span></a>
-        <a href="camera.html" class="mfn-item" style="flex: 1.5;"><div class="mfn-center-plus">+</div></a>
+        <div class="mfn-item" style="flex: 1.5; cursor: pointer;" onclick="if(typeof openStudioPlusMenu === 'function') { openStudioPlusMenu(); } else { window.location.href='camera.html'; }">
+            <div class="mfn-center-plus">+</div>
+        </div>
         <a href="inbox.html" class="mfn-item ${currentPage === 'inbox.html' ? 'active' : ''}"><i>💬</i><span>Inbox</span></a>
         <a href="profile.html" class="mfn-item ${currentPage === 'profile.html' ? 'active' : ''}"><i>⭐</i><span>Profile</span></a>
     </div>
