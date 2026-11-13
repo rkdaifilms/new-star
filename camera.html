@@ -83,8 +83,8 @@
 
     <div id="processingOverlayModal">
         <div class="processing-card">
-            <h3 style="color: #25f4ee; margin-bottom: 6px;">⚙️ Capturing Thumbnail & Rendering...</h3>
-            <p id="processingStatusText" style="font-size: 12px; color: #ccc;">Generating first frame thumbnail & optimizing 720p/1080p stream: 0%</p>
+            <h3 style="color: #25f4ee; margin-bottom: 6px;">⚡ Ultra-Fast Duet Engine Active...</h3>
+            <p id="processingStatusText" style="font-size: 12px; color: #ccc;">Fast-rendering full video length & mixing dual audio: 0%</p>
             <div class="progress-bar-track">
                 <div class="progress-bar-fill" id="progressBarFill"></div>
             </div>
@@ -464,7 +464,7 @@
                 } else {
                     reportBox.innerHTML = `
                         <b style="color:#25f4ee;">✅ 100% Original & Clean Content!</b><br><br>
-                        • <b>Verified Creator:</b> Ramkumar Dhobi (90s_rk_creation)[span_2](start_span)[span_2](end_span)<br>
+                        • <b>Verified Creator:</b> Ramkumar Dhobi (90s_rk_creation)[span_0](start_span)[span_0](end_span)<br>
                         • <b>Status:</b> No copyright strikes or duplicate matches found worldwide.<br>
                         • <b>Monetization:</b> Fully Cleared for Ad Revenue!
                     `;
@@ -612,7 +612,7 @@
             duetBox.addEventListener('touchend', () => { duetInitialDist = null; });
         }
 
-        // 🌟 वीडियो प्रोसेसिंग और ऑटो थंबनेल कैप्चर (ग्लिच-फ्री और स्मूथ)
+        // 🚀 अल्ट्रा-फास्ट और ग्लिच-फ्री डुएट कंपोजिटिंग इंजन (पूरा वीडियो बिना कटे फुल लेंथ तक रेंडर होगा)
         async function startVideoProcessingWorkflow() {
             let saveContainer = document.getElementById('videoEditorSaveContainer');
             if(saveContainer) saveContainer.style.display = 'none';
@@ -624,28 +624,33 @@
 
             procModal.style.display = 'flex';
             finishBtn.style.display = 'none';
-            progressFill.style.width = '20%';
-            statusText.innerText = "⚙️ Capturing thumbnail & optimizing 720p/1080p stream...";
+            progressFill.style.width = '15%';
+            statusText.innerText = "⚡ Initializing Ultra-Fast Duet Engine...";
 
             try {
                 let mainVideoEl = document.getElementById('selectedVideoPreview');
                 let duetVideoEl = document.getElementById('duetVideoPreview');
                 let isDuetActive = window.getComputedStyle(document.getElementById('duetVideoWrapper')).display !== 'none';
 
+                let maxDuration = mainVideoEl.duration || 10;
+                if(isDuetActive && duetVideoEl.duration) {
+                    maxDuration = Math.max(mainVideoEl.duration, duetVideoEl.duration);
+                }
+
                 let targetWidth = 720;
                 let targetHeight = 1280;
-                if (mainVideoEl.duration > 60) {
+                if (maxDuration > 60) {
                     targetWidth = 1280;
                     targetHeight = 720;
                 }
 
-                // थंबनेल कैप्चर करने के लिए कैनवास स्नैपशॉट
+                // थंबनेल कैप्चर
                 let thumbCanvas = document.createElement('canvas');
                 thumbCanvas.width = targetWidth;
                 thumbCanvas.height = targetHeight;
                 let thumbCtx = thumbCanvas.getContext('2d');
-                mainVideoEl.currentTime = 0.5; // पहला फ्रेम थंबनेल के लिए
-                await new Promise(resolve => setTimeout(resolve, 300));
+                mainVideoEl.currentTime = 0.5;
+                await new Promise(resolve => setTimeout(resolve, 200));
                 thumbCtx.drawImage(mainVideoEl, 0, 0, targetWidth, targetHeight);
                 
                 await new Promise(resolve => {
@@ -655,8 +660,8 @@
                     }, 'image/jpeg', 0.85);
                 });
 
-                progressFill.style.width = '50%';
-                statusText.innerText = "⚙️ Mixing dual audio & rendering video without glitches...";
+                progressFill.style.width = '40%';
+                statusText.innerText = "⚡ Fast-rendering full video length without glitches...";
 
                 if (isDuetActive && duetVideoEl.src) {
                     let canvas = document.createElement('canvas');
@@ -693,7 +698,7 @@
                     recorder.onstop = () => {
                         finalMergedVideoBlob = new Blob(chunks, { type: 'video/webm' });
                         progressFill.style.width = '100%';
-                        statusText.innerText = "✅ Video, Thumbnail & Duet Successfully Ready!";
+                        statusText.innerText = "✅ Duet Rendered Successfully!";
                         finishBtn.style.display = 'block';
                     };
 
@@ -721,7 +726,7 @@
                             ctx.drawImage(duetVideoEl, dx, dy, dw, dh);
                         }
 
-                        if(mainVideoEl.ended || duetVideoEl.ended) {
+                        if(mainVideoEl.ended || duetVideoEl.ended || mainVideoEl.currentTime >= maxDuration) {
                             clearInterval(drawInterval);
                             recorder.stop();
                             mainVideoEl.pause();
@@ -729,6 +734,7 @@
                         }
                     }, 33);
 
+                    // सुरक्षा के लिए वीडियो की असली लंबाई का टाइमआउट
                     setTimeout(() => {
                         if(recorder.state === 'recording') {
                             clearInterval(drawInterval);
@@ -736,15 +742,15 @@
                             mainVideoEl.pause();
                             duetVideoEl.pause();
                         }
-                    }, 8000);
+                    }, (maxDuration * 1000) + 1500);
 
                 } else {
                     setTimeout(() => {
                         finalMergedVideoBlob = selectedVideoFile;
                         progressFill.style.width = '100%';
-                        statusText.innerText = "✅ Video & Thumbnail Processed Successfully!";
+                        statusText.innerText = "✅ Video Ready Successfully!";
                         finishBtn.style.display = 'block';
-                    }, 1200);
+                    }, 1000);
                 }
 
             } catch(err) {
@@ -774,7 +780,6 @@
             showToast('🚀 वीडियो सेव हो गया! अब नीचे डिटेल्स भरें।');
         }
 
-        // 🌟 सुपरबेस में वीडियो, थंबनेल, लाइक्स और कमेंट्स डेटाबेस सेव करना
         async function publishVideoToGlobalCloudStorage() {
             let titleInput = document.getElementById('videoCaptionInput');
             let descInput = document.getElementById('videoDescriptionInput');
@@ -802,7 +807,6 @@
                 let videoFileName = 'global_merged_' + fileId + '.mp4';
                 let thumbFileName = 'thumb_' + fileId + '.jpg';
 
-                // 1. सुपरबेस स्टोरेज में वीडियो अपलोड
                 let { error: uploadError } = await supabaseClient.storage
                     .from('videos')
                     .upload(videoFileName, finalMergedVideoBlob, { cacheControl: '3600', upsert: true });
@@ -811,7 +815,6 @@
                 let { data: urlData } = supabaseClient.storage.from('videos').getPublicUrl(videoFileName);
                 let publicVideoUrl = urlData ? urlData.publicUrl : '';
 
-                // 2. सुपरबेस स्टोरेज में थंबनेल अपलोड (अगर है)
                 let publicThumbUrl = '';
                 if(generatedThumbnailBlob) {
                     await supabaseClient.storage.from('videos').upload(thumbFileName, generatedThumbnailBlob, { cacheControl: '3600', upsert: true });
@@ -819,7 +822,6 @@
                     publicThumbUrl = thumbData ? thumbData.publicUrl : '';
                 }
 
-                // 3. सुपरबेस डेटाबेस (Table: videos) में रिकॉर्ड इंसर्ट (लाइक, कमेंट्स, व्यूज के साथ)
                 await supabaseClient.from('videos').insert([
                     { 
                         video_url: publicVideoUrl,
@@ -833,7 +835,6 @@
                     }
                 ]);
 
-                // लोकल स्टोरेज बैकअप भी अपडेट करना
                 let localFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
                 localFeed.unshift({
                     id: 'local_vid_' + fileId,
@@ -852,7 +853,6 @@
                 setTimeout(() => { window.location.href = 'profile.html'; }, 1000);
 
             } catch(err) {
-                // अगर सुपरबेस नेटवर्क एरर दे तो लोकल स्टोरेज में सेव कर के प्रोफाइल पर भेजें
                 let localUrl = URL.createObjectURL(finalMergedVideoBlob);
                 let localFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
                 localFeed.unshift({
