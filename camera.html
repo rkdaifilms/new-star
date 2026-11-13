@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -8,364 +9,267 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
-body{background:#000;color:white;padding-bottom:70px;overflow-x:hidden}
-button,select,input,textarea{font:inherit}
+body{background:#000;color:#fff;padding-bottom:65px;overflow-x:hidden}
+button,input,select,textarea{font:inherit}
 button{cursor:pointer}
-.studio{max-width:600px;margin:auto;min-height:100vh;background:#080808;position:relative;padding-bottom:70px;}
-
+.studio{max-width:600px;margin:auto;min-height:100vh;background:#080808;padding-bottom:70px}
 .screen{padding:12px}
 .hidden{display:none!important}
 .card{background:#15151b;border:1px solid #333;border-radius:12px;padding:16px;margin-bottom:12px}
 h3{font-size:14px;color:#25f4ee;margin-bottom:10px}
-button.primary{background:linear-gradient(120deg,#fe2c55,#ff6b8b);border:0;color:white;padding:14px;border-radius:9px;font-weight:bold;width:100%;margin-top:8px}
-button.secondary{background:#262630;color:white;border:1px solid #555;padding:12px;border-radius:8px;width:100%;margin-top:8px}
+.primary{background:linear-gradient(120deg,#fe2c55,#ff6b8b);border:0;color:#fff;padding:14px;border-radius:9px;font-weight:bold;width:100%;margin-top:8px}
+.secondary{background:#262630;color:#fff;border:1px solid #555;padding:12px;border-radius:8px;width:100%;margin-top:8px}
 .row{display:flex;gap:8px;align-items:center}
 .row>*{flex:1;min-width:0}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.input, .select{width:100%;background:#08080b;color:white;border:1px solid #444;padding:11px;border-radius:8px;margin:5px 0 10px}
+.input,.select{width:100%;background:#08080b;color:white;border:1px solid #444;padding:11px;border-radius:8px;margin:5px 0 10px}
 label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 .muted{font-size:11px;color:#aaa;line-height:1.6}
-
-/* वीडियो प्रीव्यू लेआउट */
-.preview{height:min(85vh,760px);background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
-#editorVideo{width:100%;height:100%;object-fit:contain}
-
-/* मूव करने योग्य और ड्रैगेबल टेक्स्ट ओवरले */
-#previewText{
-    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    font-weight:bold; font-size:24px; color:white; text-shadow:2px 2px 5px black;
-    text-align:center; max-width:90%; overflow-wrap:anywhere; cursor:grab; user-select:none;
-    padding:6px 12px; border:2px dashed transparent; transition:border-color 0.2s;
-}
-#previewText:active{cursor:grabbing; border-color:#25f4ee;}
-
-/* थ्री-डॉट बटन कोने पर */
-.editor-top-bar { position: absolute; top: 10px; right: 10px; z-index: 50; }
-.three-dots-btn { background: transparent; border: none; color: #fff; font-size: 24px; padding: 4px 10px; cursor: pointer; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
-
-/* वीडियो के अंदर नीचे फिक्स किया गया 'Save & Post' बटन */
-.video-overlay-save-bar {
-    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
-    width: 90%; z-index: 40; text-align: center;
-}
-.video-overlay-save-btn {
-    background: linear-gradient(135deg, #25f4ee, #fe2c55); border: none; color: #000;
-    font-weight: bold; font-size: 15px; padding: 12px 20px; border-radius: 30px; width: 100%;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.8); cursor: pointer;
-}
-
-/* थ्री-डॉट ड्रॉपडाउन मेनू */
-.dropdown-menu { display: none; position: absolute; top: 40px; right: 0; background: #18181c; border: 1px solid #444; border-radius: 10px; width: 230px; max-height: 400px; overflow-y: auto; z-index: 1000; box-shadow: 0 5px 20px rgba(0,0,0,0.9); }
-.dropdown-menu.active { display: block; }
-.dropdown-item { padding: 11px 14px; font-size: 12px; color: #fff; border-bottom: 1px solid #282830; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; display: block; cursor: pointer; }
-.dropdown-item:hover { background: #25f4ee; color: #000; font-weight: bold; }
-
-.panel{padding:12px;background:#17171d;border-top:1px solid #333;position:relative; z-index: 500;}
+.preview{height:min(85vh,760px);background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y}
+#editorVideo{width:100%;height:100%;object-fit:contain;transform-origin:center}
+#previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;text-align:center;max-width:90%;overflow-wrap:anywhere;cursor:grab;user-select:none;padding:6px 12px;border:2px dashed transparent;touch-action:none;z-index:10}
+#previewText:active{cursor:grabbing;border-color:#25f4ee}
+.editor-top-bar{position:absolute;top:10px;right:10px;z-index:50}
+.three-dots-btn{background:#111b;border:1px solid #555;color:white;font-size:24px;padding:4px 12px;border-radius:8px}
+.dropdown-menu{display:none;position:absolute;top:42px;right:0;background:#18181c;border:1px solid #444;border-radius:10px;width:250px;max-height:65vh;overflow-y:auto;z-index:1000;box-shadow:0 5px 20px #000}
+.dropdown-menu.active{display:block}
+.dropdown-item{padding:12px 14px;font-size:12px;color:white;border:0;border-bottom:1px solid #282830;background:none;width:100%;text-align:left;display:block}
+.dropdown-item:hover{background:#25f4ee;color:#000}
+.video-overlay-save-bar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:90%;z-index:40}
+.video-overlay-save-btn{background:linear-gradient(135deg,#25f4ee,#fe2c55);border:0;color:#000;font-weight:bold;font-size:15px;padding:13px;border-radius:30px;width:100%}
+.panel{padding:12px;background:#17171d;border-top:1px solid #333;position:relative;z-index:500}
 .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.panel-close-btn{background:rgba(255,255,255,0.1);border:1px solid #555;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer}
-.panel-close-btn:hover{background:#fe2c55;border-color:#fe2c55}
-
+.panel-close-btn{background:#333;border:1px solid #555;color:white;width:30px;height:30px;border-radius:50%}
 .range{width:100%;accent-color:#fe2c55}
-
-/* कलर पैलेट और एक्टिव बॉर्डर स्टाइल */
-.color-picker-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
-.color-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #555; cursor: pointer; transition: transform 0.1s; }
-.color-swatch.active { border: 3px solid #fe2c55; transform: scale(1.15); box-shadow: 0 0 10px #fe2c55; }
-.native-color-input { width: 40px; height: 36px; border: none; background: none; cursor: pointer; border-radius: 6px; }
-
-.home-modes-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-.home-mode-card { background: #15151b; border: 1px solid #333; border-radius: 12px; padding: 16px 8px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; transition: 0.2s; }
-.home-mode-card:hover { border-color: #25f4ee; background: #1c1c24; }
-
-/* ⚓ मास्टर बॉटम नेविगेशन बार */
-.master-tiktok-final-nav {
-    position: fixed !important; bottom: 0 !important; left: 0 !important; width: 100% !important; height: 50px !important;
-    background: #000 !important; display: flex !important; justify-content: space-around !important; align-items: center !important;
-    border-top: 1px solid #222 !important; z-index: 1 !important; box-sizing: border-box !important; margin: 0 !important; padding: 0 !important; pointer-events: auto !important;
-}
-.mfn-item {
-    display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;
-    color: rgba(255,255,255,0.5) !important; cursor: pointer !important; text-decoration: none !important; font-size: 10px !important; flex: 1 !important; text-align: center !important; background: transparent !important; border: none !important;
-}
-.mfn-item.active { color: #fff !important; font-weight: bold !important; }
-.mfn-item i { font-size: 15px !important; margin-bottom: 1px !important; font-style: normal !important; }
-.mfn-center-plus {
-    width: 38px !important; height: 26px !important; background: linear-gradient(135deg, #25f4ee, #fe2c55) !important;
-    border-radius: 6px !important; display: flex !important; justify-content: center !important; align-items: center !important;
-    color: #fff !important; font-size: 18px !important; font-weight: bold !important; box-shadow: 0 2px 8px rgba(254,44,85,0.7) !important; margin: 0 auto !important;
-}
-
-#toast{position:fixed;bottom:65px;left:50%;transform:translateX(-50%);background:#222;border:1px solid #25f4ee;padding:10px 16px;border-radius:20px;display:none;z-index:9999;font-size:12px;max-width:90%}
+.color-picker-row{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.color-swatch{width:32px;height:32px;border-radius:50%;border:2px solid #555;cursor:pointer}
+.color-swatch.active{border:3px solid #fe2c55;transform:scale(1.15)}
+.native-color-input{width:40px;height:36px;border:0;background:none}
+.home-modes-container{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}
+.home-mode-card{background:#15151b;border:1px solid #333;border-radius:12px;padding:16px 8px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:white}
+.master-tiktok-final-nav{position:fixed;bottom:0;left:0;width:100%;height:55px;background:#000;display:flex;justify-content:space-around;align-items:center;border-top:1px solid #222;z-index:2000}
+.mfn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;font-size:10px;flex:1;text-align:center;background:transparent;border:0;text-decoration:none}
+.mfn-item i{font-size:15px;font-style:normal}
+.mfn-center-plus{width:38px;height:27px;background:linear-gradient(135deg,#25f4ee,#fe2c55);border-radius:6px;display:flex;justify-content:center;align-items:center;color:white;font-size:20px;font-weight:bold}
+#toast{position:fixed;bottom:65px;left:50%;transform:translateX(-50%);background:#222;border:1px solid #25f4ee;padding:10px 16px;border-radius:20px;display:none;z-index:9999;font-size:12px;max-width:90%;text-align:center}
 .status{padding:10px;background:#101014;border:1px solid #444;border-radius:8px;font-size:12px;line-height:1.7}
+button:disabled{opacity:.45;cursor:not-allowed}
 </style>
 </head>
 
 <body>
 <div class="studio">
 
-<!-- होम / सोर्स स्क्रीन -->
-<section id="sourceScreen" class="screen" style="padding-top:15px;">
-  <div class="card" style="text-align:center;padding:22px 15px">
-    <div style="font-size:38px">🎬</div>
-    <h3 style="margin-top:8px; font-size:17px;">New Star Video Studio</h3>
-    <p class="muted" style="margin-bottom:10px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें।</p>
-    <button class="primary" onclick="openCamera()">🎥 Open Camera Studio</button>
-    <button class="secondary" onclick="document.getElementById('videoInput').click()">📁 Select Gallery Video</button>
-    <input id="videoInput" type="file" accept="video/*,video/mp4,video/webm,video/ogg,video/quicktime" class="hidden">
-  </div>
-
-  <div class="home-modes-container">
-    <div class="home-mode-card" onclick="selectPlusMode('video')" style="border-color:#25f4ee;">
-      <span style="font-size:24px;">📹</span>
-      <b style="font-size:12px; color:#25f4ee;">Video Studio</b>
-    </div>
-    <div class="home-mode-card" onclick="selectPlusMode('live')">
-      <span style="font-size:24px;">🔴</span>
-      <b style="font-size:12px;">Live Stream</b>
-    </div>
-    <div class="home-mode-card" onclick="selectPlusMode('gaming')">
-      <span style="font-size:24px;">🎮</span>
-      <b style="font-size:12px;">Gaming</b>
-    </div>
-  </div>
+<section id="sourceScreen" class="screen" style="padding-top:15px">
+<div class="card" style="text-align:center;padding:22px 15px">
+<div style="font-size:38px">🎬</div>
+<h3 style="margin-top:8px;font-size:17px">New Star Video Studio</h3>
+<p class="muted" style="margin-bottom:10px">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें।</p>
+<button class="primary" onclick="openCamera()">🎥 Open Camera Studio</button>
+<button class="secondary" onclick="$('videoInput').click()">📁 Select Gallery Video</button>
+<input id="videoInput" type="file" accept="video/*" class="hidden">
+</div>
+<div class="home-modes-container">
+<div class="home-mode-card" onclick="selectPlusMode('video')">📹<b style="font-size:12px;color:#25f4ee">Video Studio</b></div>
+<div class="home-mode-card" onclick="selectPlusMode('live')">🔴<b style="font-size:12px">Live Stream</b></div>
+<div class="home-mode-card" onclick="selectPlusMode('gaming')">🎮<b style="font-size:12px">Gaming</b></div>
+</div>
 </section>
 
-<!-- CAMERA -->
 <section id="cameraScreen" class="screen hidden">
-  <div class="card">
-    <h3>🎥 Camera Studio</h3>
-    <video id="cameraVideo" autoplay muted playsinline style="width:100%;max-height:50vh;background:#000;object-fit:contain"></video>
-    <div class="row" style="margin-top:8px;">
-      <button class="primary" id="startCameraRecord" onclick="startCameraRecording()">⏺ Record</button>
-      <button class="secondary" id="stopCameraRecord" onclick="stopCameraRecording()" disabled>■ Stop</button>
-    </div>
-    <button class="secondary" onclick="closeCameraSession()">✕ Back</button>
-    <p class="muted" id="cameraStatus" style="margin-top:6px;">Camera permission required.</p>
-  </div>
+<div class="card">
+<h3>🎥 Camera Studio</h3>
+<video id="cameraVideo" autoplay muted playsinline style="width:100%;max-height:50vh;background:#000;object-fit:contain"></video>
+<div class="row">
+<button class="primary" id="startCameraRecord" onclick="startCameraRecording()">⏺ Record</button>
+<button class="secondary" id="stopCameraRecord" onclick="stopCameraRecording()" disabled>■ Stop</button>
+</div>
+<button class="secondary" onclick="closeCameraSession()">✕ Back</button>
+<p class="muted" id="cameraStatus">Camera permission required.</p>
+</div>
 </section>
 
-<!-- EDITOR -->
 <section id="editorScreen" class="hidden">
-  <div class="preview" id="previewArea">
-    <video id="editorVideo" playsinline controls></video>
-    <div id="previewText"></div>
 
-    <!-- 📌 थ्री-डॉट मेनू और सारे 30 प्रोफेशनल एडिटिंग टूल्स -->
-    <div class="editor-top-bar">
-      <button class="three-dots-btn" onclick="toggleThreeDotsMenu(event)">⋮</button>
-      <div id="threeDotsDropdown" class="dropdown-menu" onclick="event.stopPropagation()">
-        <button class="dropdown-item" onclick="runToolAction('Multi-Layer Timeline Editor')">🎞 Multi-Layer Timeline Editor</button>
-        <button class="dropdown-item" onclick="runToolAction('Trim Video')">✂️ Trim Video</button>
-        <button class="dropdown-item" onclick="runToolAction('Split Video')">⚡ Split Video</button>
-        <button class="dropdown-item" onclick="runToolAction('Cut Video')">🔪 Cut Video</button>
-        <button class="dropdown-item" onclick="runToolAction('Video Overlay (PIP)')">🖼 Video Overlay (PIP)</button>
-        <button class="dropdown-item" onclick="runToolAction('Transitions & Effects')">✨ Transitions & Effects</button>
-        <button class="dropdown-item" onclick="showPanel('audioPanel')">🔊 Audio & Music Editor</button>
-        <button class="dropdown-item" onclick="runToolAction('Keyframe Animation')">🎯 Keyframe Animation</button>
-        <button class="dropdown-item" onclick="showPanel('textPanel')">✍️ Text & Subtitle Editor</button>
-        <button class="dropdown-item" onclick="runToolAction('Chroma Key / Green Screen')">🟢 Chroma Key / Green Screen</button>
-        <button class="dropdown-item" onclick="showPanel('filterPanel')">🎨 Color Grading & Filters</button>
-        <button class="dropdown-item" onclick="runToolAction('Speed Control & Speed Ramp')">⏩ Speed Control & Speed Ramp</button>
-        <button class="dropdown-item" onclick="runToolAction('Masking & Blending')">🎭 Masking & Blending</button>
-        <button class="dropdown-item" onclick="runToolAction('Motion Tracking')">📍 Motion Tracking</button>
-        <button class="dropdown-item" onclick="runToolAction('AI Background Remover')">🤖 AI Background Remover</button>
-        <button class="dropdown-item" onclick="runToolAction('Video Stabilization')">📉 Video Stabilization</button>
-        <button class="dropdown-item" onclick="runToolAction('Audio Noise Reduction')">🎙 Audio Noise Reduction</button>
-        <button class="dropdown-item" onclick="runToolAction('Auto Captions')">💬 Auto Captions</button>
-        <button class="dropdown-item" onclick="runToolAction('Keyframe Graph Editor')">📈 Keyframe Graph Editor</button>
-        <button class="dropdown-item" onclick="runToolAction('Reverse Video')">🔄 Reverse Video</button>
-        <button class="dropdown-item" onclick="runToolAction('Freeze Frame')">❄️ Freeze Frame</button>
-        <button class="dropdown-item" onclick="showPanel('zoomPanel')">📐 Video Crop & Rotate</button>
-        <button class="dropdown-item" onclick="runToolAction('Sticker & Emoji Library')">😀 Sticker & Emoji Library</button>
-        <button class="dropdown-item" onclick="runToolAction('Voice Changer')">🗣 Voice Changer</button>
-        <button class="dropdown-item" onclick="runToolAction('Audio Fade In / Fade Out')">🎚 Audio Fade In / Fade Out</button>
-        <button class="dropdown-item" onclick="runToolAction('Proxy Editing')">⚡ Proxy Editing</button>
-        <button class="dropdown-item" onclick="runToolAction('Undo / Redo')">⮌ Undo / Redo</button>
-        <button class="dropdown-item" onclick="runToolAction('Draft Save & Auto Recovery')">💾 Draft Save & Auto Recovery</button>
-        <button class="dropdown-item" onclick="showPanel('copyrightPanel')" style="color:#25f4ee; font-weight:bold;">🛡 Copyright Audio Checker</button>
-        <button class="dropdown-item" onclick="showPanel('infoPanel')">📊 Video Info & Professional Export</button>
-      </div>
-    </div>
+<div class="preview" id="previewArea">
+<video id="editorVideo" playsinline controls></video>
+<div id="previewText"></div>
 
-    <!-- वीडियो के अंदर नीचे फिक्स किया गया 'Save & Post' बटन -->
-    <div class="video-overlay-save-bar">
-      <button class="video-overlay-save-btn" onclick="showPanel('publishPanel')">💾 Save & Post Options</button>
-    </div>
-  </div>
+<div class="editor-top-bar">
+<button class="three-dots-btn" onclick="toggleThreeDotsMenu(event)">⋮</button>
+<div id="threeDotsDropdown" class="dropdown-menu" onclick="event.stopPropagation()">
+<button class="dropdown-item" onclick="runToolAction('Multi-Layer Timeline Editor')">🎞 Multi-Layer Timeline Editor</button>
+<button class="dropdown-item" onclick="showPanel('trimPanel')">✂️ Trim Video</button>
+<button class="dropdown-item" onclick="runToolAction('Split Video')">⚡ Split Video</button>
+<button class="dropdown-item" onclick="runToolAction('Cut Video')">🔪 Cut Video</button>
+<button class="dropdown-item" onclick="runToolAction('Video Overlay (PIP)')">🖼 Video Overlay (PIP)</button>
+<button class="dropdown-item" onclick="runToolAction('Transitions & Effects')">✨ Transitions & Effects</button>
+<button class="dropdown-item" onclick="showPanel('audioPanel')">🔊 Audio & Music Editor</button>
+<button class="dropdown-item" onclick="runToolAction('Keyframe Animation')">🎯 Keyframe Animation</button>
+<button class="dropdown-item" onclick="showPanel('textPanel')">✍️ Text & Subtitle Editor</button>
+<button class="dropdown-item" onclick="runToolAction('Chroma Key / Green Screen')">🟢 Chroma Key / Green Screen</button>
+<button class="dropdown-item" onclick="showPanel('filterPanel')">🎨 Color Grading & Filters</button>
+<button class="dropdown-item" onclick="showPanel('speedPanel')">⏩ Speed Control</button>
+<button class="dropdown-item" onclick="runToolAction('Masking & Blending')">🎭 Masking & Blending</button>
+<button class="dropdown-item" onclick="runToolAction('Motion Tracking')">📍 Motion Tracking</button>
+<button class="dropdown-item" onclick="runToolAction('AI Background Remover')">🤖 AI Background Remover</button>
+<button class="dropdown-item" onclick="runToolAction('Video Stabilization')">📉 Video Stabilization</button>
+<button class="dropdown-item" onclick="runToolAction('Audio Noise Reduction')">🎙 Audio Noise Reduction</button>
+<button class="dropdown-item" onclick="runToolAction('Auto Captions')">💬 Auto Captions</button>
+<button class="dropdown-item" onclick="runToolAction('Keyframe Graph Editor')">📈 Keyframe Graph Editor</button>
+<button class="dropdown-item" onclick="runToolAction('Reverse Video')">🔄 Reverse Video</button>
+<button class="dropdown-item" onclick="runToolAction('Freeze Frame')">❄️ Freeze Frame</button>
+<button class="dropdown-item" onclick="showPanel('zoomPanel')">📐 Video Crop & Rotate</button>
+<button class="dropdown-item" onclick="runToolAction('Sticker & Emoji Library')">😀 Sticker & Emoji Library</button>
+<button class="dropdown-item" onclick="runToolAction('Voice Changer')">🗣 Voice Changer</button>
+<button class="dropdown-item" onclick="runToolAction('Audio Fade In / Fade Out')">🎚 Audio Fade In / Fade Out</button>
+<button class="dropdown-item" onclick="runToolAction('Proxy Editing')">⚡ Proxy Editing</button>
+<button class="dropdown-item" onclick="runToolAction('Undo / Redo')">⮌ Undo / Redo</button>
+<button class="dropdown-item" onclick="runToolAction('Draft Save & Auto Recovery')">💾 Draft Save & Auto Recovery</button>
+<button class="dropdown-item" onclick="showPanel('copyrightPanel')" style="color:#25f4ee;font-weight:bold">🛡 Copyright Audio Checker</button>
+<button class="dropdown-item" onclick="showPanel('infoPanel')">📊 Video Info & Export</button>
+</div>
+</div>
 
-  <!-- ज़ूम / क्रॉप पैनल -->
-  <div id="zoomPanel" class="panel hidden">
-    <div class="panel-header">
-      <h3>📐 Video Crop & Rotate / Zoom</h3>
-      <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
-    </div>
-    <div class="grid2">
-      <button class="secondary" onclick="setZoom(1)">Fit 1x</button>
-      <button class="secondary" onclick="setZoom(1.4)">Zoom 1.4x</button>
-      <button class="secondary" onclick="setZoom(2)">Zoom 2x</button>
-      <button class="secondary" onclick="setZoom(2.5)">Zoom 2.5x</button>
-    </div>
-  </div>
+<div class="video-overlay-save-bar">
+<button class="video-overlay-save-btn" onclick="showPanel('publishPanel')">💾 Save & Post Options</button>
+</div>
+</div>
 
-  <!-- फिल्टर पैनल -->
-  <div id="filterPanel" class="panel hidden">
-    <div class="panel-header">
-      <h3>✨ Color Grading & Video Filters</h3>
-      <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
-    </div>
-    <div class="grid2">
-      <button class="secondary" onclick="setFilter('none')">Normal</button>
-      <button class="secondary" onclick="setFilter('grayscale(100%)')">Black & White</button>
-      <button class="secondary" onclick="setFilter('sepia(90%)')">Vintage</button>
-      <button class="secondary" onclick="setFilter('contrast(150%) saturate(140%)')">Cinematic</button>
-      <button class="secondary" onclick="setFilter('brightness(115%) saturate(130%)')">Bright</button>
-      <button class="secondary" onclick="setFilter('saturate(180%)')">Color Boost</button>
-    </div>
-  </div>
+<div id="trimPanel" class="panel hidden">
+<div class="panel-header"><h3>✂️ Trim Video</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
+<label>Start Time (Seconds)</label><input class="input" id="trimStart" type="number" min="0" value="0">
+<label>End Time (Seconds)</label><input class="input" id="trimEnd" type="number" min="0">
+<button class="primary" onclick="applyTrimPreview()">Preview Trim Range</button>
+<p class="muted">यह केवल Preview Range सेट करता है। वास्तविक कटिंग के लिए वीडियो प्रोसेसिंग इंजन जरूरी है।</p>
+</div>
 
-  <!-- ✍️ टेक्स्ट ओवरले पैनल -->
-  <div id="textPanel" class="panel hidden">
-    <div class="panel-header">
-      <h3>✍️ Text & Subtitle Editor</h3>
-      <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
-    </div>
-    <input class="input" id="overlayInput" placeholder="अपना वीडियो टेक्स्ट लिखें" oninput="updateOverlay()">
-    
-    <label>Text Size (या फिंगर से एडजस्ट करें)</label>
-    <input class="range" id="textSize" type="range" min="14" max="70" value="24" oninput="updateOverlay()">
-    
-    <label>Text Color (सेलेक्ट करने पर तुरंत रेड बॉर्डर दिखेगा)</label>
-    <div class="color-picker-row">
-      <div class="color-swatch active" style="background:#ffffff;" onclick="selectTextColor('#ffffff', this)" title="White"></div>
-      <div class="color-swatch" style="background:#ff0000;" onclick="selectTextColor('#ff0000', this)" title="Red"></div>
-      <div class="color-swatch" style="background:#00ff00;" onclick="selectTextColor('#00ff00', this)" title="Green"></div>
-      <div class="color-swatch" style="background:#00ffff;" onclick="selectTextColor('#00ffff', this)" title="Cyan"></div>
-      <div class="color-swatch" style="background:#ffff00;" onclick="selectTextColor('#ffff00', this)" title="Yellow"></div>
-      <div class="color-swatch" style="background:#ff00ff;" onclick="selectTextColor('#ff00ff', this)" title="Pink"></div>
-      <div class="color-swatch" style="background:#000000;" onclick="selectTextColor('#000000', this)" title="Black"></div>
-      <input type="color" id="textColorPicker" class="native-color-input" value="#ffffff" oninput="selectTextColor(this.value, null)" title="Custom Color">
-    </div>
-  </div>
+<div id="zoomPanel" class="panel hidden">
+<div class="panel-header"><h3>📐 Video Crop & Rotate</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
+<div class="grid2">
+<button class="secondary" onclick="setZoom(1)">Fit 1x</button>
+<button class="secondary" onclick="setZoom(1.4)">Zoom 1.4x</button>
+<button class="secondary" onclick="setZoom(2)">Zoom 2x</button>
+<button class="secondary" onclick="setZoom(2.5)">Zoom 2.5x</button>
+<button class="secondary" onclick="rotateVideo()">Rotate 90°</button>
+</div>
+</div>
 
-  <!-- ऑडियो पैनल -->
-  <div id="audioPanel" class="panel hidden">
-    <div class="panel-header">
-      <h3>🔊 Audio & Music Editor / Mixer</h3>
-      <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
-    </div>
-    <label>Original Video Volume <b id="videoVolLabel">100%</b></label>
-    <input class="range" id="videoVolume" type="range" min="0" max="100" value="100" oninput="updateVolumes()">
+<div id="filterPanel" class="panel hidden">
+<div class="panel-header"><h3>🎨 Color Filters</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
+<div class="grid2">
+<button class="secondary" onclick="setFilter('none')">Normal</button>
+<button class="secondary" onclick="setFilter('grayscale(100%)')">Black & White</button>
+<button class="secondary" onclick="setFilter('sepia(90%)')">Vintage</button>
+<button class="secondary" onclick="setFilter('contrast(150%) saturate(140%)')">Cinematic</button>
+<button class="secondary" onclick="setFilter('brightness(115%) saturate(130%)')">Bright</button>
+<button class="secondary" onclick="setFilter('saturate(180%)')">Color Boost</button>
+</div>
+</div>
 
-    <label>Background Music Volume <b id="musicVolLabel">40%</b></label>
-    <input class="range" id="musicVolume" type="range" min="0" max="100" value="40" oninput="updateVolumes()">
+<div id="speedPanel" class="panel hidden">
+<div class="panel-header"><h3>⏩ Speed Control</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
+<div class="grid2">
+<button class="secondary" onclick="setSpeed(.5)">0.5x</button>
+<button class="secondary" onclick="setSpeed(.75)">0.75x</button>
+<button class="secondary" onclick="setSpeed(1)">1x</button>
+<button class="secondary" onclick="setSpeed(1.5)">1.5x</button>
+<button class="secondary" onclick="setSpeed(2)">2x</button>
+</div>
+</div>
 
-    <label>Recorded Voice Volume <b id="voiceVolLabel">100%</b></label>
-    <input class="range" id="voiceVolume" type="range" min="0" max="100" value="100" oninput="updateVolumes()">
+<div id="textPanel" class="panel hidden">
+<div class="panel-header"><h3>✍️ Text & Subtitle Editor</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
+<input class="input" id="overlayInput" placeholder="अपना वीडियो टेक्स्ट लिखें" oninput="updateOverlay()">
+<label>Text Size</label><input class="range" id="textSize" type="range" min="14" max="70" value="24" oninput="updateOverlay()">
+<label>Text Color</label>
+<div class="color-picker-row">
+<div class="color-swatch active" style="background:#fff" onclick="selectTextColor('#ffffff',this)"></div>
+<div class="color-swatch" style="background:#f00" onclick="selectTextColor('#ff0000',this)"></div>
+<div class="color-swatch" style="background:#0f0" onclick="selectTextColor('#00ff00',this)"></div>
+<div class="color-swatch" style="background:#0ff" onclick="selectTextColor('#00ffff',this)"></div>
+<div class="color-swatch" style="background:#ff0" onclick="selectTextColor('#ffff00',this)"></div>
+<div class="color-swatch" style="background:#f0f" onclick="selectTextColor('#ff00ff',this)"></div>
+<input type="color" id="textColorPicker" class="native-color-input" value="#ffffff" oninput="selectTextColor(this.value,null)">
+</div>
+<button class="secondary" onclick="clearOverlay()">Remove Text</button>
+</div>
 
-    <input type="file" id="musicInput" accept="audio/*" class="hidden">
-    <button class="secondary" onclick="document.getElementById('musicInput').click()">🎵 Select Music From Gallery</button>
+<div id="audioPanel" class="panel hidden">
+<div class="panel-header"><h3>🔊 Audio & Music Editor</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
+<label>Original Video Volume <b id="videoVolLabel">100%</b></label>
+<input class="range" id="videoVolume" type="range" min="0" max="100" value="100" oninput="updateVolumes()">
+<label>Background Music Volume <b id="musicVolLabel">40%</b></label>
+<input class="range" id="musicVolume" type="range" min="0" max="100" value="40" oninput="updateVolumes()">
+<label>Recorded Voice Volume <b id="voiceVolLabel">100%</b></label>
+<input class="range" id="voiceVolume" type="range" min="0" max="100" value="100" oninput="updateVolumes()">
+<input type="file" id="musicInput" accept="audio/*" class="hidden">
+<button class="secondary" onclick="$('musicInput').click()">🎵 Select Music From Gallery</button>
+<div class="row">
+<button class="secondary" onclick="startVoiceRecording()">🎙 Start Voice</button>
+<button class="secondary" onclick="stopVoiceRecording()">■ Stop Voice</button>
+</div>
+<audio id="musicAudio" loop></audio>
+<audio id="voiceAudio"></audio>
+<p class="muted">ऑडियो मिक्सिंग के लिए वास्तविक एक्सपोर्ट इंजन अभी कनेक्ट नहीं है।</p>
+</div>
 
-    <div class="row" style="margin-top:6px;">
-      <button class="secondary" onclick="startVoiceRecording()">🎙 Start Voice</button>
-      <button class="secondary" onclick="stopVoiceRecording()">■ Stop Voice</button>
-    </div>
-    <audio id="musicAudio" loop></audio>
-    <audio id="voiceAudio"></audio>
-  </div>
+<div id="copyrightPanel" class="panel hidden">
+<div class="panel-header"><h3>🛡 Copyright Audio Checker</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
+<div class="status" id="copyrightStatus">कोई वास्तविक Content ID डेटाबेस कनेक्ट नहीं है।</div>
+<button class="primary" onclick="runSolidCopyrightEngine()">⚡ Run Copyright Check</button>
+</div>
 
-  <!-- 🛡 कॉपीराइट ऑडियो चेकर -->
-  <div id="copyrightPanel" class="panel hidden">
-    <div class="panel-header">
-      <h3>🛡 Copyright Audio & Content Checker</h3>
-      <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
-    </div>
-    <div class="status" id="copyrightStatus">
-      🔍 Ready to scan content fingerprints, creator profile, music company & platform presence...
-    </div>
-    <button class="primary" onclick="runSolidCopyrightEngine()">⚡ Run Full Deep Copyright Scan</button>
-  </div>
+<div id="infoPanel" class="panel hidden">
+<div class="panel-header"><h3>📊 Video Info & Export</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
+<div class="status" id="videoInfo">Video information will appear here.</div>
+<button class="secondary" onclick="inspectVideo()">🔍 Check Video Specs</button>
+</div>
 
-  <!-- वीडियो इन्फो और प्रोफेशनल एक्सपोर्ट पैनल -->
-  <div id="infoPanel" class="panel hidden">
-    <div class="panel-header">
-      <h3>📊 Video Info & Professional Export Engine</h3>
-      <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
-    </div>
-    <div class="status" id="videoInfo">Video information will appear here.</div>
-    <button class="secondary" onclick="inspectVideo()">🔍 Check Video Specs</button>
-  </div>
+<div id="publishPanel" class="panel hidden">
+<div class="panel-header"><h3>💾 Save & Post Details</h3><button class="panel-close-btn" onclick="closeActivePanels()">✕</button></div>
+<label>Video Title</label><input class="input" id="videoTitle" maxlength="150" placeholder="Enter video title">
+<label>Description & Hashtags</label><textarea class="input" id="videoDescription" rows="3" maxlength="5000" placeholder="Write description and hashtags"></textarea>
+<label>Affiliate / Promotion Link</label><input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
+<label>Audience Selection</label>
+<select class="select" id="audienceType">
+<option value="all">Public / Everyone</option>
+<option value="kids">Made for Kids</option>
+<option value="adult">18+ Restricted Content</option>
+</select>
+<label>Export Resolution</label>
+<select class="select" id="videoQuality">
+<option value="1080p">1080p Full HD</option>
+<option value="720p">720p HD</option>
+<option value="480p">480p SD</option>
+<option value="360p">360p Low</option>
+</select>
+<div class="grid2">
+<div><label>FPS Control</label><select class="select" id="fpsControl"><option value="60">60 FPS</option><option value="30">30 FPS</option></select></div>
+<div><label>Bitrate</label><select class="select" id="bitrateControl"><option value="high">High Bitrate</option><option value="medium">Medium Bitrate</option></select></div>
+</div>
+<button class="primary" id="exportButton" onclick="instantDirectPost()">💾 Save & Post Now</button>
+<p class="muted">यह संस्करण स्थानीय ड्राफ्ट सेव करता है। असली ऑनलाइन पोस्ट के लिए सर्वर और डेटाबेस कनेक्शन जरूरी है।</p>
+</div>
 
-  <!-- पब्लिश पैनल (Save & Post Details + Audience & Quality Options) -->
-  <div id="publishPanel" class="panel hidden">
-    <div class="panel-header">
-      <h3>💾 Save & Post Details</h3>
-      <div class="panel-close-btn" onclick="closeActivePanels()">✕</div>
-    </div>
-
-    <label>Video Title / Catchy Caption</label>
-    <input class="input" id="videoTitle" maxlength="150" placeholder="Enter video title">
-
-    <label>Description & Hashtags</label>
-    <textarea class="input" id="videoDescription" rows="3" maxlength="5000" placeholder="Write description and hashtags"></textarea>
-
-    <label>Affiliate / Promotion Link</label>
-    <input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
-
-    <!-- 🎯 ऑडियंस चयन -->
-    <label>👥 Audience Selection</label>
-    <select class="select" id="audienceType">
-      <option value="all">Public / Everyone (General Audience)</option>
-      <option value="kids">Made for Kids (Family Friendly)</option>
-      <option value="adult">18+ Restricted Content (Mature)</option>
-    </select>
-
-    <!-- 🎚 प्रोफेशनल एक्सपोर्ट सेटिंग्स -->
-    <label>⚙️ Professional Export Engine (Resolution, FPS & Bitrate)</label>
-    <select class="select" id="videoQuality">
-      <option value="1080p">1080p Full HD (Best Standard)</option>
-      <option value="720p">720p HD (Fast Export)</option>
-      <option value="480p">480p SD (Lite Size)</option>
-      <option value="360p">360p Low (Mini Size)</option>
-    </select>
-
-    <div class="grid2" style="margin-top:8px;">
-      <div>
-        <label>FPS Control</label>
-        <select class="select" id="fpsControl">
-          <option value="60">60 FPS (Smooth)</option>
-          <option value="30">30 FPS (Standard)</option>
-        </select>
-      </div>
-      <div>
-        <label>Bitrate Control</label>
-        <select class="select" id="bitrateControl">
-          <option value="high">High Bitrate</option>
-          <option value="medium">Medium Bitrate</option>
-        </select>
-      </div>
-    </div>
-
-    <button class="primary" id="exportButton" onclick="instantDirectPost()" style="background:linear-gradient(135deg,#25f4ee,#fe2c55); font-size:16px; padding:16px; margin-top:15px;">💾 Save & Post Now</button>
-  </div>
 </section>
-
 </div>
 
 <div id="toast"></div>
 
-<!-- ⚓ मास्टर बॉटम नेविगेशन बार -->
 <div class="master-tiktok-final-nav">
-    <a href="index.html" class="mfn-item"><i>🏠</i><span>Home</span></a>
-    <a href="wallet.html" class="mfn-item"><i>🪙</i><span>Wallet</span></a>
-    <div class="mfn-item" style="flex: 1.5; cursor: pointer;" onclick="selectPlusMode('video')">
-        <div class="mfn-center-plus">+</div>
-    </div>
-    <a href="inbox.html" class="mfn-item"><i>💬</i><span>Inbox</span></a>
-    <a href="profile.html" class="mfn-item"><i>⭐</i><span>Profile</span></a>
+<a href="index.html" class="mfn-item"><i>🏠</i><span>Home</span></a>
+<a href="wallet.html" class="mfn-item"><i>🪙</i><span>Wallet</span></a>
+<div class="mfn-item" style="flex:1.5" onclick="selectPlusMode('video')"><div class="mfn-center-plus">+</div></div>
+<a href="inbox.html" class="mfn-item"><i>💬</i><span>Inbox</span></a>
+<a href="profile.html" class="mfn-item"><i>⭐</i><span>Profile</span></a>
 </div>
 
 <script>
 'use strict';
+
+const $=id=>document.getElementById(id);
+const video=$('editorVideo');
 
 let selectedVideoFile=null;
 let finalVideoBlob=null;
@@ -378,368 +282,470 @@ let voiceStream=null;
 let musicUrl=null;
 let voiceUrl=null;
 let currentZoom=1;
+let currentRotation=0;
 let currentFilter='none';
+let activeTextColor='#ffffff';
+let posX=0,posY=0,isDragging=false;
 let activeObjectUrls=[];
 
-const $=id=>document.getElementById(id);
-const video=$('editorVideo');
-
 function toast(message){
-  const el=$('toast');
-  el.textContent=message;
-  el.style.display='block';
-  clearTimeout(toast.timer);
-  toast.timer=setTimeout(()=>el.style.display='none',3000);
+const el=$('toast');
+el.textContent=message;
+el.style.display='block';
+clearTimeout(toast.timer);
+toast.timer=setTimeout(()=>el.style.display='none',3000);
 }
 
 function showScreen(id){
-  ['sourceScreen','cameraScreen','editorScreen'].forEach(x=>$(x).classList.add('hidden'));
-  $(id).classList.remove('hidden');
-  window.scrollTo({top:0, behavior:'smooth'});
-}
-
-function closeCameraSession(){
-  if(cameraRecorder?.state==='recording') cameraRecorder.stop();
-  if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
-  cameraStream=null;
-  $('cameraVideo').srcObject=null;
-  showScreen('sourceScreen');
-}
-
-function toggleThreeDotsMenu(e){
-  e.stopPropagation();
-  const menu=$('threeDotsDropdown');
-  menu.classList.toggle('active');
-}
-
-window.addEventListener('click', ()=>{
-  const menu=$('threeDotsDropdown');
-  if(menu) menu.classList.remove('active');
-});
-
-function showPanel(id){
-  $('threeDotsDropdown').classList.remove('active');
-  if($('editorScreen').classList.contains('hidden')){
-    toast('पहले वीडियो चुनें।');
-    return;
-  }
-  ['zoomPanel','filterPanel','textPanel','audioPanel','copyrightPanel','infoPanel','publishPanel']
-    .forEach(x=>$(x).classList.add('hidden'));
-  $(id).classList.remove('hidden');
-}
-
-function closeActivePanels(){
-  ['zoomPanel','filterPanel','textPanel','audioPanel','copyrightPanel','infoPanel','publishPanel']
-    .forEach(x=>$(x).classList.add('hidden'));
-}
-
-/* ⚡ सभी टूल्स के लिए एक्शन रनर */
-function runToolAction(toolName){
-  $('threeDotsDropdown').classList.remove('active');
-  if($('editorScreen').classList.contains('hidden')){
-    toast('पहले वीडियो चुनें।');
-    return;
-  }
-  toast('⚙️ Tool Activated: ' + toolName);
-  if(toolName.includes('Export') || toolName.includes('Info')){
-    showPanel('infoPanel');
-  } else if(toolName.includes('Text') || toolName.includes('Subtitle')){
-    showPanel('textPanel');
-  } else if(toolName.includes('Audio') || toolName.includes('Music') || toolName.includes('Voice') || toolName.includes('Fade') || toolName.includes('Noise')){
-    showPanel('audioPanel');
-  } else if(toolName.includes('Filter') || toolName.includes('Color')){
-    showPanel('filterPanel');
-  } else if(toolName.includes('Crop') || toolName.includes('Rotate')){
-    showPanel('zoomPanel');
-  }
+['sourceScreen','cameraScreen','editorScreen'].forEach(x=>$(x).classList.add('hidden'));
+$(id).classList.remove('hidden');
+window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function selectPlusMode(mode){
-  if(mode === 'video'){
-    showScreen('sourceScreen');
-    toast('📹 Video Studio Active');
-  } else if(mode === 'live'){
-    window.location.href = 'live.html';
-  } else if(mode === 'gaming'){
-    window.location.href = 'gaming.html';
-  }
+if(mode==='video'){showScreen('sourceScreen');toast('Video Studio Active')}
+else if(mode==='live')location.href='live.html';
+else if(mode==='gaming')location.href='gaming.html';
 }
 
-function setZoom(value){
-  currentZoom=value;
-  video.style.transform=`scale(${value})`;
-  toast('Zoom '+value+'x');
+function toggleThreeDotsMenu(e){
+e.stopPropagation();
+$('threeDotsDropdown').classList.toggle('active');
 }
 
-function setFilter(value){
-  currentFilter=value;
-  video.style.filter=value;
-  toast('Filter applied');
-}
-
-/* ✍️ टेक्स्ट ओवरले अपडेट और कलर सिलेक्शन */
-let activeTextColor = '#ffffff';
-
-function updateOverlay(){
-  const text=$('overlayInput').value;
-  const previewText = $('previewText');
-  previewText.textContent = text;
-  previewText.style.fontSize = $('textSize').value + 'px';
-  previewText.style.color = activeTextColor;
-}
-
-function selectTextColor(color, element){
-  activeTextColor = color;
-  $('previewText').style.color = color;
-  $('textColorPicker').value = color;
-
-  document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('active'));
-  if(element){
-    element.classList.add('active');
-  }
-  toast('Color selected!');
-}
-
-/* 👆 टच और माउस से टेक्स्ट को ड्रैग करने का लॉजिक */
-const previewText = $('previewText');
-let isDragging = false;
-let startX, startY, posX = 0, posY = 0;
-
-previewText.addEventListener('pointerdown', e => {
-  isDragging = true;
-  startX = e.clientX - posX;
-  startY = e.clientY - posY;
-  previewText.setPointerCapture(e.pointerId);
-  e.stopPropagation();
+window.addEventListener('click',()=>{
+const menu=$('threeDotsDropdown');
+if(menu)menu.classList.remove('active');
 });
 
-previewText.addEventListener('pointermove', e => {
-  if(!isDragging) return;
-  posX = e.clientX - startX;
-  posY = e.clientY - startY;
-  previewText.style.transform = `translate(calc(-50% + ${posX}px), calc(-50% + ${posY}px))`;
-});
+function closeActivePanels(){
+['zoomPanel','filterPanel','textPanel','audioPanel','copyrightPanel','infoPanel','publishPanel','speedPanel','trimPanel'].forEach(x=>$(x).classList.add('hidden'));
+}
 
-previewText.addEventListener('pointerup', e => {
-  isDragging = false;
-  previewText.releasePointerCapture(e.pointerId);
-});
+function showPanel(id){
+$('threeDotsDropdown').classList.remove('active');
+if(!selectedVideoFile){toast('पहले वीडियो चुनें।');return}
+closeActivePanels();
+$(id).classList.remove('hidden');
+setTimeout(()=>$(id).scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+
+function runToolAction(name){
+$('threeDotsDropdown').classList.remove('active');
+toast(name+' के लिए अलग प्रोसेसिंग इंजन अभी कनेक्ट नहीं है।');
+}
+
+/* CAMERA */
 
 async function openCamera(){
-  if(!navigator.mediaDevices?.getUserMedia){
-    toast('Camera requires HTTPS and browser permission.');
-    return;
-  }
-  showScreen('cameraScreen');
-  try{
-    cameraStream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}},
-      audio:true
-    });
-    $('cameraVideo').srcObject=cameraStream;
-    await $('cameraVideo'].play();
-    $('cameraStatus').textContent='Camera ready.';
-  }catch(e){
-    $('cameraStatus').textContent='Camera error: '+e.message;
-    toast('Camera permission failed.');
-  }
+if(!navigator.mediaDevices?.getUserMedia){
+toast('Camera requires HTTPS and browser permission.');
+return;
+}
+showScreen('cameraScreen');
+try{
+cameraStream=await navigator.mediaDevices.getUserMedia({
+video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}},
+audio:true
+});
+$('cameraVideo').srcObject=cameraStream;
+await $('cameraVideo').play();
+$('cameraStatus').textContent='Camera ready.';
+}catch(e){
+$('cameraStatus').textContent='Camera error: '+e.message;
+toast('Camera permission failed.');
+}
 }
 
 function startCameraRecording(){
-  if(!cameraStream)return;
-  cameraChunks=[];
-  let options={};
-  if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))
-    options.mimeType='video/webm;codecs=vp9,opus';
-  else if(MediaRecorder.isTypeSupported('video/webm'))
-    options.mimeType='video/webm';
-
-  try{
-    cameraRecorder=new MediaRecorder(cameraStream,options);
-    cameraRecorder.ondataavailable=e=>{
-      if(e.data.size)cameraChunks.push(e.data);
-    };
-    cameraRecorder.onstop=()=>{
-      const blob=new Blob(cameraChunks,{type:cameraRecorder.mimeType||'video/webm'});
-      closeCameraSession();
-      loadVideo(blob);
-    };
-    cameraRecorder.start(1000);
-    $('startCameraRecord').disabled=true;
-    $('stopCameraRecord').disabled=false;
-    toast('Recording started');
-  }catch(e){toast('Recording error: '+e.message)}
+if(!cameraStream){toast('Camera not ready.');return}
+if(!window.MediaRecorder){toast('Recording unsupported.');return}
+cameraChunks=[];
+let options={};
+if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))options.mimeType='video/webm;codecs=vp9,opus';
+else if(MediaRecorder.isTypeSupported('video/webm'))options.mimeType='video/webm';
+try{
+cameraRecorder=new MediaRecorder(cameraStream,options);
+cameraRecorder.ondataavailable=e=>{if(e.data.size)cameraChunks.push(e.data)};
+cameraRecorder.onstop=async()=>{
+const blob=new Blob(cameraChunks,{type:cameraRecorder.mimeType||'video/webm'});
+closeCameraStream();
+$('startCameraRecord').disabled=false;
+$('stopCameraRecord').disabled=true;
+if(blob.size)await loadVideo(blob,'camera-recording.webm');
+};
+cameraRecorder.start(1000);
+$('startCameraRecord').disabled=true;
+$('stopCameraRecord').disabled=false;
+toast('Recording started');
+}catch(e){toast('Recording error: '+e.message)}
 }
 
 function stopCameraRecording(){
-  if(cameraRecorder?.state==='recording'){
-    $('stopCameraRecord').disabled=true;
-    cameraRecorder.stop();
-    if(cameraStream)cameraStream.getTracks().forEach(t=>t.stop());
-  }
+if(cameraRecorder?.state==='recording'){
+$('stopCameraRecord').disabled=true;
+cameraRecorder.stop();
+}
 }
 
-$('videoInput').addEventListener('change',e=>{
-  const file=e.target.files?.[0];
-  if(!file) return;
-  loadVideo(file);
-  e.target.value='';
+function closeCameraStream(){
+if(cameraStream){
+cameraStream.getTracks().forEach(t=>t.stop());
+cameraStream=null;
+}
+$('cameraVideo').srcObject=null;
+}
+
+function closeCameraSession(){
+if(cameraRecorder?.state==='recording')cameraRecorder.stop();
+closeCameraStream();
+$('startCameraRecord').disabled=false;
+$('stopCameraRecord').disabled=true;
+showScreen('sourceScreen');
+}
+
+/* GALLERY UPLOAD - FIXED */
+
+$('videoInput').addEventListener('change',async function(e){
+const file=e.target.files?.[0];
+if(!file)return;
+if(!file.type.startsWith('video/')){
+toast('कृपया सही वीडियो चुनें।');
+e.target.value='';
+return;
+}
+try{
+toast('वीडियो लोड हो रहा है...');
+await loadVideo(file,file.name);
+toast('वीडियो एडिटर में खुल गया!');
+}catch(error){
+console.error(error);
+toast('वीडियो लोड नहीं हुआ: '+error.message);
+}finally{
+e.target.value='';
+}
 });
 
-function loadVideo(file){
-  selectedVideoFile=file;
-  finalVideoBlob=file;
-  const url=URL.createObjectURL(file);
-  activeObjectUrls.push(url);
-  video.src=url;
-  
-  // ⚡ अब मेटाडाटा का इंतज़ार किए बिना तुरंत एडिटर स्क्रीन पर भेजेंगे ताकि अटके नहीं
-  showScreen('editorScreen');
-  video.currentTime=0;
-  video.play().catch(()=>{});
-  inspectVideo();
-  toast('Video loaded successfully!');
-  
-  video.onerror=()=>toast('Warning: Video format preview might be restricted.');
+async function loadVideo(file,fileName='video'){
+if(!file||!file.type.startsWith('video/'))throw new Error('Invalid video file');
+
+video.pause();
+
+if(video.src&&video.src.startsWith('blob:')){
+URL.revokeObjectURL(video.src);
+}
+
+selectedVideoFile=file;
+finalVideoBlob=file;
+
+const url=URL.createObjectURL(file);
+activeObjectUrls.push(url);
+
+video.removeAttribute('src');
+video.load();
+video.src=url;
+
+showScreen('editorScreen');
+closeActivePanels();
+
+$('threeDotsDropdown').classList.remove('active');
+
+await new Promise((resolve,reject)=>{
+let settled=false;
+const finish=(error)=>{
+if(settled)return;
+settled=true;
+video.removeEventListener('loadedmetadata',onLoaded);
+video.removeEventListener('error',onError);
+error?reject(error):resolve();
+};
+const onLoaded=()=>finish();
+const onError=()=>finish(new Error('Video format not supported by browser'));
+video.addEventListener('loadedmetadata',onLoaded);
+video.addEventListener('error',onError);
+video.load();
+});
+
+try{video.currentTime=0}catch(e){}
+
+inspectVideo();
+video.play().catch(()=>toast('वीडियो तैयार है। Play दबाकर देखें।'));
+posX=0;
+posY=0;
+$('previewText').style.transform='translate(-50%,-50%)';
+return true;
+}
+
+/* VIDEO INFO */
+
+function escapeHtml(str){
+return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 function inspectVideo(){
-  const file=selectedVideoFile;
-  if(!file)return;
-  const w=video.videoWidth||1280,h=video.videoHeight||720;
-  const ratio=(w/h).toFixed(3);
-  const mb=(file.size/1048576).toFixed(2);
-  const duration=Number.isFinite(video.duration)?video.duration:0;
-  const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
-  $('videoInfo').innerHTML=
-    `<b>Resolution:</b> ${w} × ${h}<br>`+
-    `<b>Aspect Ratio:</b> ${ratio}<br>`+
-    `<b>File Size:</b> ${mb} MB<br>`+
-    `<b>Duration:</b> ${fmt(duration)}<br>`+
-    `<b>Format:</b> ${file.type||'Unknown'}<br>`+
-    `<b>File Name:</b> ${escapeHtml(file.name||'Selected Video')}`;
+const file=selectedVideoFile;
+if(!file)return;
+const w=video.videoWidth||0;
+const h=video.videoHeight||0;
+const mb=(file.size/1048576).toFixed(2);
+const duration=Number.isFinite(video.duration)?video.duration:0;
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
+$('videoInfo').innerHTML=
+'<b>Resolution:</b> '+w+' × '+h+'<br>'+
+'<b>Aspect Ratio:</b> '+(h?(w/h).toFixed(3):'Unknown')+'<br>'+
+'<b>File Size:</b> '+mb+' MB<br>'+
+'<b>Duration:</b> '+fmt(duration)+'<br>'+
+'<b>Format:</b> '+escapeHtml(file.type||'Unknown')+'<br>'+
+'<b>File Name:</b> '+escapeHtml(file.name||'Selected Video');
 }
 
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* EDITOR */
+
+function setZoom(value){
+currentZoom=value;
+applyVideoTransform();
+toast('Zoom '+value+'x');
 }
 
-$('musicInput').addEventListener('change',e=>{
-  const file=e.target.files?.[0];
-  if(!file)return;
-  if(musicUrl)URL.revokeObjectURL(musicUrl);
-  musicUrl=URL.createObjectURL(file);
-  $('musicAudio').src=musicUrl;
-  $('musicAudio').load();
-  toast('Music loaded: '+file.name);
-  $('musicAudio').play().catch(()=>{});
+function rotateVideo(){
+currentRotation=(currentRotation+90)%360;
+applyVideoTransform();
+}
+
+function applyVideoTransform(){
+video.style.transform='scale('+currentZoom+') rotate('+currentRotation+'deg)';
+}
+
+function setFilter(value){
+currentFilter=value;
+video.style.filter=value;
+toast('Filter applied');
+}
+
+function setSpeed(value){
+video.playbackRate=value;
+toast('Playback speed '+value+'x');
+}
+
+function applyTrimPreview(){
+const start=Math.max(0,Number($('trimStart').value)||0);
+const end=Number($('trimEnd').value)||video.duration;
+if(start>=end||start>=video.duration){
+toast('Invalid trim range');
+return;
+}
+video.currentTime=start;
+video.play();
+toast('Preview started. End: '+end+' seconds');
+}
+
+/* TEXT */
+
+function updateOverlay(){
+const el=$('previewText');
+el.textContent=$('overlayInput').value;
+el.style.fontSize=$('textSize').value+'px';
+el.style.color=activeTextColor;
+}
+
+function selectTextColor(color,element){
+activeTextColor=color;
+$('previewText').style.color=color;
+$('textColorPicker').value=color;
+document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active'));
+if(element)element.classList.add('active');
+}
+
+function clearOverlay(){
+$('overlayInput').value='';
+$('previewText').textContent='';
+}
+
+/* DRAG TEXT */
+
+const previewText=$('previewText');
+
+previewText.addEventListener('pointerdown',e=>{
+if(!previewText.textContent)return;
+isDragging=true;
+const rect=previewText.getBoundingClientRect();
+previewText.dataset.startX=e.clientX;
+previewText.dataset.startY=e.clientY;
+previewText.dataset.baseX=posX;
+previewText.dataset.baseY=posY;
+previewText.setPointerCapture(e.pointerId);
+e.stopPropagation();
 });
 
+previewText.addEventListener('pointermove',e=>{
+if(!isDragging)return;
+posX=Number(previewText.dataset.baseX)+(e.clientX-Number(previewText.dataset.startX));
+posY=Number(previewText.dataset.baseY)+(e.clientY-Number(previewText.dataset.startY));
+previewText.style.transform='translate(calc(-50% + '+posX+'px),calc(-50% + '+posY+'px))';
+});
+
+previewText.addEventListener('pointerup',()=>{
+isDragging=false;
+});
+
+previewText.addEventListener('pointercancel',()=>{
+isDragging=false;
+});
+
+/* AUDIO */
+
+$('musicInput').addEventListener('change',e=>{
+const file=e.target.files?.[0];
+if(!file)return;
+if(musicUrl)URL.revokeObjectURL(musicUrl);
+musicUrl=URL.createObjectURL(file);
+$('musicAudio').src=musicUrl;
+$('musicAudio').load();
+$('musicAudio').volume=Number($('musicVolume').value)/100;
+$('musicAudio').play().catch(()=>{});
+toast('Music loaded: '+file.name);
+e.target.value='';
+});
+
+function updateVolumes(){
+const vv=Number($('videoVolume').value)/100;
+const mv=Number($('musicVolume').value)/100;
+const rv=Number($('voiceVolume').value)/100;
+video.volume=vv;
+$('musicAudio').volume=mv;
+$('voiceAudio').volume=rv;
+$('videoVolLabel').textContent=Math.round(vv*100)+'%';
+$('musicVolLabel').textContent=Math.round(mv*100)+'%';
+$('voiceVolLabel').textContent=Math.round(rv*100)+'%';
+}
+
 async function startVoiceRecording(){
-  if(!navigator.mediaDevices?.getUserMedia){
-    toast('Microphone requires HTTPS.');
-    return;
-  }
-  try{
-    voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});
-    voiceChunks=[];
-    voiceRecorder=new MediaRecorder(voiceStream);
-    voiceRecorder.ondataavailable=e=>{
-      if(e.data.size)voiceChunks.push(e.data);
-    };
-    voiceRecorder.onstop=()=>{
-      const blob=new Blob(voiceChunks,{type:voiceRecorder.mimeType||'audio/webm'});
-      if(voiceUrl)URL.revokeObjectURL(voiceUrl);
-      voiceUrl=URL.createObjectURL(blob);
-      $('voiceAudio').src=voiceUrl;
-      voiceStream?.getTracks().forEach(t=>t.stop());
-      voiceStream=null;
-      toast('Voice recording ready.');
-    };
-    voiceRecorder.start();
-    toast('Voice recording started...');
-  }catch(e){toast('Microphone error: '+e.message)}
+if(!navigator.mediaDevices?.getUserMedia){
+toast('Microphone requires HTTPS.');
+return;
+}
+try{
+voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});
+voiceChunks=[];
+voiceRecorder=new MediaRecorder(voiceStream);
+voiceRecorder.ondataavailable=e=>{if(e.data.size)voiceChunks.push(e.data)};
+voiceRecorder.onstop=()=>{
+const blob=new Blob(voiceChunks,{type:voiceRecorder.mimeType||'audio/webm'});
+if(voiceUrl)URL.revokeObjectURL(voiceUrl);
+voiceUrl=URL.createObjectURL(blob);
+$('voiceAudio').src=voiceUrl;
+$('voiceAudio').load();
+$('voiceAudio').play().catch(()=>{});
+if(voiceStream)voiceStream.getTracks().forEach(t=>t.stop());
+voiceStream=null;
+toast('Voice recording ready.');
+};
+voiceRecorder.start();
+toast('Voice recording started');
+}catch(e){toast('Microphone error: '+e.message)}
 }
 
 function stopVoiceRecording(){
-  if(voiceRecorder?.state==='recording'){
-    voiceRecorder.stop();
-    toast('Saving voice recording...');
-  }
+if(voiceRecorder?.state==='recording'){
+voiceRecorder.stop();
+toast('Saving voice recording...');
+}
 }
 
-/* 🛡️ सॉलिड AI कॉपीराइट चेकिंग इंजन */
+/* COPYRIGHT - NO FALSE CLEARANCE */
+
 function runSolidCopyrightEngine(){
-  const file=selectedVideoFile;
-  const fileName = file ? escapeHtml(file.name) : 'Camera_Recording.mp4';
-  const fileSize = file ? (file.size / 1048576).toFixed(2) + ' MB' : '12.4 MB';
-
-  $('copyrightStatus').innerHTML='🔍 Deep Scanning Video Fingerprints, Watermarks, Audio DB & Multi-Platform Registry...';
-
-  setTimeout(()=>{
-    $('copyrightStatus').innerHTML=`
-      <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #25f4ee; font-size:12px; line-height:1.6;">
-        <b style="color:#25f4ee; font-size:13px;">🛡️ AI Copyright & Creator Verification Report</b><br><br>
-        • <b>Video File Name:</b> ${fileName} (${fileSize})<br>
-        • <b>Verified Creator / Owner:</b> Ramkumar Dhobi (90s_rk_creation)<br>
-        • <b>Registered Platform ID:</b> New Star Official Channel / Studio ID #9041<br>
-        • <b>Video Watermark / Logo:</b> Detected & Verified (Creator Branded Asset)<br>
-        • <b>Audio Track & Music Company:</b> Original Clean Audio Stream / Independent Production<br>
-        • <b>Multi-Platform Cross-Check:</b> Scanned across YouTube Shorts, TikTok & Facebook Reels (No duplicate claims found)<br>
-        • <b>Content ID Status:</b> 0% Copyright Match (Clean & Safe)<br>
-        • <b>Monetization & Ad Eligibility:</b> 100% Fully Cleared for Public Distribution & Ads
-      </div>
-    `;
-    toast('🛡️ Solid Copyright Scan Completed Successfully!');
-  }, 1200);
+$('copyrightStatus').innerHTML=
+'<b>Copyright Scan Status: NOT VERIFIED</b><br><br>'+
+'Video: '+escapeHtml(selectedVideoFile?.name||'Unknown')+'<br>'+
+'File Size: '+(selectedVideoFile?(selectedVideoFile.size/1048576).toFixed(2)+' MB':'Unknown')+'<br><br>'+
+'इस ब्राउज़र में YouTube Content ID, TikTok, Facebook या Music Company के असली डेटाबेस से कनेक्शन नहीं है। इसलिए Copyright Free या Monetization Cleared होने की पुष्टि नहीं की जा सकती।';
+toast('Local video information checked.');
 }
 
-/* ⚡ INSTANT SAVE & POST ENGINE */
-function instantDirectPost(){
-  if(!selectedVideoFile && !finalVideoBlob){
-    toast('⚠️ Pehle video chunein!');
-    return;
-  }
+/* SAVE & POST */
 
-  toast('🚀 Processing video in selected quality...');
+async function instantDirectPost(){
 
-  setTimeout(()=>{
-    let videoToPost = finalVideoBlob || selectedVideoFile;
-    let url = URL.createObjectURL(videoToPost);
-
-    let titleText = $('videoTitle').value.trim() || 'New Viral Video 🔥';
-    let descText = $('videoDescription').value.trim() || '';
-    let affiliateLink = $('affiliateLink').value.trim() || '';
-    let audience = $('audienceType').value;
-    let quality = $('videoQuality').value;
-
-    let localFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
-    localFeed.unshift({
-        id: 'post_vid_' + Date.now(),
-        url: url,
-        thumb: url,
-        caption: titleText,
-        description: descText,
-        affiliate: affiliateLink,
-        audience: audience,
-        quality: quality,
-        likes: 300,
-        views: 1400
-    });
-    localStorage.setItem('customFeedVideos', JSON.stringify(localFeed));
-
-    toast('🎉 Video successfully saved & posted!');
-
-    setTimeout(() => {
-        window.location.href = 'profile.html';
-    }, 500);
-  }, 800);
+if(!selectedVideoFile||!finalVideoBlob){
+toast('पहले वीडियो चुनें!');
+return;
 }
+
+const btn=$('exportButton');
+btn.disabled=true;
+btn.textContent='Saving Video...';
+
+try{
+
+const title=$('videoTitle').value.trim()||'New Video';
+const description=$('videoDescription').value.trim();
+const affiliate=$('affiliateLink').value.trim();
+
+if(affiliate){
+try{
+new URL(affiliate);
+}catch(e){
+throw new Error('Affiliate link सही URL नहीं है।');
+}
+}
+
+const id='post_vid_'+Date.now();
+
+const metadata={
+id:id,
+caption:title,
+description:description,
+affiliate:affiliate,
+audience:$('audienceType').value,
+quality:$('videoQuality').value,
+fps:$('fpsControl').value,
+bitrate:$('bitrateControl').value,
+fileName:selectedVideoFile.name,
+fileSize:selectedVideoFile.size,
+mimeType:selectedVideoFile.type,
+createdAt:new Date().toISOString(),
+status:'local-draft'
+};
+
+const posts=JSON.parse(localStorage.getItem('customFeedVideos')||'[]');
+
+posts.unshift(metadata);
+
+localStorage.setItem('customFeedVideos',JSON.stringify(posts.slice(0,20)));
+
+const downloadUrl=URL.createObjectURL(finalVideoBlob);
+const a=document.createElement('a');
+a.href=downloadUrl;
+a.download=selectedVideoFile.name||'new-star-video.webm';
+document.body.appendChild(a);
+a.click();
+a.remove();
+
+setTimeout(()=>URL.revokeObjectURL(downloadUrl),60000);
+
+toast('Video draft saved. Video download started.');
+
+setTimeout(()=>{
+location.href='profile.html';
+},1200);
+
+}catch(error){
+console.error(error);
+toast(error.message||'Save failed.');
+}finally{
+btn.disabled=false;
+btn.textContent='💾 Save & Post Now';
+}
+}
+
+/* CLEANUP */
 
 window.addEventListener('beforeunload',()=>{
-  activeObjectUrls.forEach(url=>URL.revokeObjectURL(url));
-  if(cameraStream)cameraStream.getTracks().forEach(t=>t.stop());
-  if(voiceStream)voiceStream.getTracks().forEach(t=>t.stop());
+if(cameraStream)cameraStream.getTracks().forEach(t=>t.stop());
+if(voiceStream)voiceStream.getTracks().forEach(t=>t.stop());
+if(musicUrl)URL.revokeObjectURL(musicUrl);
+if(voiceUrl)URL.revokeObjectURL(voiceUrl);
 });
 </script>
 </body>
