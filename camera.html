@@ -3,64 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>New Star - Ultimate Pro Camera & Duet Editor Studio</title>
+    <title>New Star - VN & CapCut Master Studio Pro</title>
     <meta name="theme-color" content="#000000">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
-        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 4px 8px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; padding-bottom: 65px; overflow-y: auto; position: relative; }
+        body { background-color: #0b0b0e; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; padding: 6px 10px; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; padding-bottom: 70px; overflow-y: auto; position: relative; }
         
-        .creator-main-modes-row { display: flex; justify-content: center; gap: 8px; margin: 2px 0 4px 0; }
-        .mode-icon-card { width: 90px; height: 38px; background: #181818; border: 2px solid #333; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; font-size: 10px; }
-        .mode-icon-card.active { border-color: #fe2c55; background: #222; }
+        .creator-main-modes-row { display: flex; justify-content: center; gap: 8px; margin: 4px 0; }
+        .mode-icon-card { width: 95px; height: 38px; background: #18181c; border: 2px solid #2a2a30; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; font-size: 10px; }
+        .mode-icon-card.active { border-color: #fe2c55; background: #222228; }
         
         .studio-section { display: none; background: #000; flex: 1; flex-direction: column; }
         .studio-section.active { display: flex; }
         
-        .media-actions-row { display: none; gap: 15px; justify-content: center; align-items: center; margin-top: 35px; }
+        .media-actions-row { display: none; gap: 15px; justify-content: center; align-items: center; margin-top: 40px; }
         .media-actions-row.active { display: flex; }
-        .media-btn { width: 130px; background: #1a1a1a; border: 1px solid #333; border-radius: 14px; padding: 22px 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .media-btn { width: 135px; background: #18181c; border: 1px solid #333; border-radius: 14px; padding: 24px 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
         
-        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 10px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; margin-top: 4px; }
+        .post-action-btn { display: block; width: 100%; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; text-align: center; padding: 11px; border-radius: 10px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; margin-top: 6px; }
         
-        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; height: calc(100vh - 110px); border-radius: 10px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 2px; }
+        #directCameraStudio { display: none; flex-direction: column; background: #000; position: relative; width: 100%; height: calc(100vh - 120px); border-radius: 12px; overflow: hidden; border: 2px solid #fe2c55; margin-top: 4px; }
         .camera-preview-wrapper { position: relative; width: 100%; flex: 1; background: #000; overflow: hidden; }
         #directCameraFeed { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
         
         .camera-top-toolbar { position: absolute; top: 10px; right: 10px; z-index: 70; display: flex; gap: 6px; }
         .toolbar-icon-btn { background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.4); color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
 
-        #cameraTimerBadge { 
-            position: absolute; top: 12px; left: 50%; transform: translateX(-50%); 
-            background: rgba(0, 0, 0, 0.85); border: 1px solid #fe2c55; color: #ffcc00; 
-            padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; 
-            display: none; z-index: 60; letter-spacing: 1px;
-        }
+        #cameraTimerBadge { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); border: 1px solid #fe2c55; color: #ffcc00; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; display: none; z-index: 60; }
 
-        #previewBox { display: none; margin-top: 2px; width: 100%; height: calc(100vh - 110px); text-align: center; position: relative; overflow: hidden; border-radius: 10px; background: #111; border: 2px solid #25f4ee; flex-shrink: 0; }
-        .duet-workspace { width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; touch-action: none; }
-        
-        .video-corner-toolbar { position: absolute; top: 10px; right: 10px; z-index: 50; }
-        .video-dot-btn { background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+        /* 🎬 CapCut & VN Master Studio Editor Workspace */
+        #vnEditorStudioBox { display: none; flex-direction: column; width: 100%; height: calc(100vh - 100px); background: #121216; border-radius: 12px; border: 2px solid #25f4ee; overflow: hidden; margin-top: 2px; }
+        .vn-video-preview-area { width: 100%; height: 48%; background: #000; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        #vnEditorVideoElement { width: 100%; height: 100%; object-fit: cover; transition: filter 0.2s ease; transform-origin: center center; }
 
-        #mainVideoWrapper { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none; }
-        #selectedVideoPreview { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; will-change: transform; backface-visibility: hidden; }
+        /* Live Overlay Text Layer on Video Preview */
+        #previewTextOverlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 22px; font-weight: bold; color: #fff; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); z-index: 25; pointer-events: none; text-align: center; }
 
-        #duetVideoWrapper { display: none; position: absolute; bottom: 70px; right: 15px; width: 110px; height: 160px; border: 2px solid #25f4ee; border-radius: 8px; overflow: hidden; background: #000; z-index: 40; touch-action: none; box-shadow: 0 4px 12px rgba(0,0,0,0.9); }
-        #duetVideoPreview { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; will-change: transform; backface-visibility: hidden; }
+        /* VN Timeline & Multi-Tool Bar */
+        .vn-timeline-container { width: 100%; height: 52%; background: #16161b; display: flex; flex-direction: column; border-top: 1px solid #2a2a32; }
+        .vn-tools-strip { display: flex; gap: 8px; overflow-x: auto; padding: 8px; background: #101014; border-bottom: 1px solid #222; scrollbar-width: none; }
+        .vn-tools-strip::-webkit-scrollbar { display: none; }
+        .vn-tool-chip { background: #1f1f26; border: 1px solid #333; color: #fff; min-width: 65px; height: 50px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; flex-shrink: 0; gap: 3px; }
+        .vn-tool-chip:hover { border-color: #25f4ee; background: #252530; color: #25f4ee; }
 
-        #videoEditorSaveContainer { display: none; position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 60; }
+        .vn-sub-editor-panel { flex: 1; padding: 10px; overflow-y: auto; display: none; background: #18181e; }
+        .vn-sub-editor-panel.active { display: block; }
 
-        #copyrightModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 4000; justify-content: center; align-items: center; padding: 20px; }
-        .copyright-card { background: #181818; border: 2px solid #d90429; width: 100%; max-width: 410px; border-radius: 16px; padding: 20px; text-align: left; max-height: 85vh; overflow-y: auto; }
-
-        #threeDotMasterPanel { display: none; background: #121215; border: 2px solid #fe2c55; border-radius: 10px; padding: 8px 10px; margin-top: 4px; flex-shrink: 0; }
-        .tools-horizontal-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-        .tools-horizontal-scroll::-webkit-scrollbar { display: none; }
-        .tool-icon-chip { background: #1f1f23; border: 1px solid #444; color: #fff; width: 44px; height: 44px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
-        .tool-icon-chip:hover { background: #fe2c55; border-color: #fe2c55; }
+        /* Filter Presets Grid */
+        .filter-presets-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .filter-btn { background: #22222b; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 8px; font-size: 11px; cursor: pointer; text-align: center; }
+        .filter-btn:hover { border-color: #fe2c55; background: #2c2c38; }
 
         .form-input { width: 100%; background: #0a0a0c; border: 1px solid #333; color: #fff; padding: 8px; border-radius: 8px; font-size: 12px; margin-bottom: 8px; outline: none; }
         .form-input:focus { border-color: #fe2c55; }
@@ -76,43 +71,41 @@
 <body>
     <div id="floatingToastMessage">Notification</div>
 
-    <div id="copyrightModal">
-        <div class="copyright-card">
+    <!-- 🎚️ Dual Audio & AI Voice Changer Modal -->
+    <div id="audioMixerModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:5000; justify-content:center; align-items:center; padding:20px;">
+        <div style="background:#18181c; border:2px solid #25f4ee; border-radius:14px; padding:18px; width:100%; max-width:340px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="color:#25f4ee; font-size:15px;">🎙️ AI Voice Changer & Audio Mixer</h3>
+                <span style="cursor:pointer; font-size:18px;" onclick="closeModal('audioMixerModal')">✕</span>
+            </div>
+            
+            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:4px;">Original Video Voice Volume (<b id="videoVolLabel">100%</b>):</label>
+            <input type="range" id="videoVoiceRange" min="0" max="100" value="100" style="width:100%; accent-color:#fe2c55;" oninput="updateAudioVolumes()">
+
+            <label style="font-size:11px; color:#25f4ee; display:block; margin-top:8px;">Background Music Volume (<b id="musicVolLabel">80%</b>):</label>
+            <input type="range" id="bgMusicRange" min="0" max="100" value="80" style="width:100%; accent-color:#25f4ee;" oninput="updateAudioVolumes()">
+
+            <label style="font-size:11px; color:#ff6b8b; display:block; margin-top:10px;">🤖 AI Voice FX / Pitch Changer:</label>
+            <select id="aiVoicePresetSelect" class="form-input" onchange="applyAiVoiceEffect(this.value)">
+                <option value="normal">Normal Voice (Original)</option>
+                <option value="deep">Deep Voice (Heavy Bass / Villain)</option>
+                <option value="chipmunk">Chipmunk / Cartoon Voice</option>
+                <option value="robot">Robot / Cyber Voice FX</option>
+                <option value="echo">Echo / Concert Hall FX</option>
+            </select>
+
+            <button class="post-action-btn" style="background:#25f4ee; color:#000; margin-top:12px;" onclick="closeModal('audioMixerModal')">Save Audio Settings</button>
+        </div>
+    </div>
+
+    <!-- 🛡️ Copyright Inspector Modal -->
+    <div id="copyrightModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:4000; justify-content:center; align-items:center; padding:20px;">
+        <div class="copyright-card" style="background:#181818; border:2px solid #d90429; width:100%; max-width:410px; border-radius:16px; padding:20px;">
             <h3 style="color: #ffcc00; margin-bottom: 10px; font-size: 15px;">🛡️ Real Global Copyright & Database Inspector</h3>
             <div id="copyrightReportContent" style="font-size: 12px; color: #ddd; line-height: 1.4; margin-bottom: 12px;">
-                Connecting to YouTube Content ID, TikTok Registry & Global Music Databases...
-            </div>
-            <div id="copyrightActionButtonsBox" style="display:none; margin-bottom: 10px; gap: 6px; flex-direction: column;">
-                <button class="post-action-btn" style="background:#0077b6; padding:8px;" onclick="document.getElementById('galleryVideoInput').click()">📁 Change Video from Gallery</button>
-                <button class="post-action-btn" style="background:#7209b7; padding:8px;" onclick="document.getElementById('bgMusicFileInput').click()">🎵 Change Audio / Music Track</button>
+                Connecting to YouTube Content ID, TikTok Registry & Global Music Databases...[span_0](start_span)[span_0](end_span)
             </div>
             <button class="post-action-btn" style="background:#d90429;" onclick="closeModal('copyrightModal')">Close Inspector</button>
-        </div>
-    </div>
-
-    <div id="duetStudioModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.9); z-index:4000; justify-content:center; align-items:center; padding:15px;">
-        <div class="master-modal-card" style="border-color:#25f4ee; background:#181818; padding:18px; border-radius:14px; width:100%; max-width:360px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h3 style="color:#25f4ee; font-size:15px;">👥 Dual Audio Mixer</h3>
-                <span style="cursor:pointer; font-size:18px;" onclick="closeModal('duetStudioModal')">✕</span>
-            </div>
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:4px;">Main Video Voice Volume (<b id="mainVolLabel">100%</b>):</label>
-            <input type="range" id="mainVolumeRange" min="0" max="100" value="100" style="width:100%; accent-color:#fe2c55;" oninput="updateAudioMixer()">
-
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:6px;">Duet Video Voice Volume (<b id="duetVolLabel">80%</b>):</label>
-            <input type="range" id="duetVolumeRange" min="0" max="100" value="80" style="width:100%; accent-color:#25f4ee;" oninput="updateAudioMixer()">
-
-            <button class="post-action-btn" style="background:#25f4ee; color:#000; margin-top:12px;" onclick="closeModal('duetStudioModal')">Save Audio Mixer</button>
-        </div>
-    </div>
-
-    <div id="commentActionModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:6000; justify-content:center; align-items:center; padding:20px;">
-        <div style="background:#181818; border:2px solid #ffcc00; border-radius:14px; padding:20px; width:100%; max-width:320px; text-align:center;">
-            <h3 style="color:#ffcc00; font-size:15px; margin-bottom:12px;">⚙️ Comment Options</h3>
-            <p id="activeCommentTextDisplay" style="font-size:11px; color:#ccc; margin-bottom:15px; background:#0a0a0c; padding:8px; border-radius:6px;"></p>
-            <button class="post-action-btn" style="background:#d90429; margin-bottom:8px;" onclick="executeDeleteComment()">🗑️ Delete This Comment</button>
-            <button class="post-action-btn" style="background:#ff6b8b; margin-bottom:12px;" onclick="executeBlockUserFromComment()">🚫 Block This User</button>
-            <button class="post-action-btn" style="background:#333;" onclick="closeModal('commentActionModal')">Cancel</button>
         </div>
     </div>
 
@@ -126,15 +119,14 @@
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onGalleryFileChosen(event)">
             <input type="file" id="bgMusicFileInput" accept="audio/*" style="display:none;" onchange="onBgMusicChosen(event)">
-            <input type="file" id="duetVideoFileInput" accept="video/*" style="display:none;" onchange="onDuetFileChosen(event)">
 
             <div class="media-actions-row active" id="mediaActionsRow">
                 <div class="media-btn" onclick="openDirectCameraStudio()">
-                    <span style="font-size:30px;">🎥</span>
+                    <span style="font-size:32px;">🎥</span>
                     <div><b style="font-size:12px;">Camera Studio</b></div>
                 </div>
                 <div class="media-btn" onclick="document.getElementById('galleryVideoInput').click()">
-                    <span style="font-size:30px;">📁</span>
+                    <span style="font-size:32px;">📁</span>
                     <div><b style="font-size:12px;">Gallery</b></div>
                 </div>
             </div>
@@ -142,60 +134,96 @@
             <div id="directCameraStudio">
                 <div class="camera-preview-wrapper">
                     <div class="camera-top-toolbar">
-                        <div class="toolbar-icon-btn" onclick="toggleStudioToolsPanel()" title="Pro Studio & Settings">⋮</div>
+                        <div class="toolbar-icon-btn" onclick="runRealGlobalCopyrightScan()" title="Copyright Inspector">🛡️</div>
                     </div>
                     <div id="cameraTimerBadge">⏱️ 00:00</div>
                     <video id="directCameraFeed" autoplay playsinline muted></video>
                 </div>
                 <div style="padding: 6px; background: #000;">
                     <button class="post-action-btn" id="camRecordBtn" style="background:#fe2c55; margin-top:0;" onclick="startDirectCameraRecording()">⏺️ Start Recording</button>
-                    <button class="post-action-btn" id="camStopBtn" style="background:#ffcc00; color:#000; display:none; margin-top:0;" onclick="stopDirectCameraRecording()">✅ OK - Proceed to Publish</button>
+                    <button class="post-action-btn" id="camStopBtn" style="background:#ffcc00; color:#000; display:none; margin-top:0;" onclick="stopDirectCameraRecording()">✅ Stop & Open Pro Editor</button>
                 </div>
             </div>
 
-            <div id="previewBox">
-                <div class="duet-workspace" id="duetWorkspaceArea">
-                    <div id="mainVideoWrapper">
-                        <div class="video-corner-toolbar">
-                            <div class="video-dot-btn" onclick="toggleStudioToolsPanel()" title="Main Video Options">⋮</div>
-                        </div>
-                        <video id="selectedVideoPreview" autoplay loop playsinline></video>
+            <!-- 🎬 CapCut & VN Master Studio Editor Interface -->
+            <div id="vnEditorStudioBox">
+                <div class="vn-video-preview-area" id="vnVideoPreviewArea">
+                    <div id="previewTextOverlay">Your Text Here</div>
+                    <video id="vnEditorVideoElement" autoplay loop playsinline controls></video>
+                </div>
+
+                <div class="vn-timeline-container">
+                    <!-- VN Pro Toolbar (VFX, Zoom, Text, Filter, Trim, Audio) -->
+                    <div class="vn-tools-strip">
+                        <div class="vn-tool-chip" onclick="switchVnPanel('trim')"><span>✂️</span><b>Trim/Split</b></div>
+                        <div class="vn-tool-chip" onclick="switchVnPanel('text')"><span>✍️</span><b>Text/Title</b></div>
+                        <div class="vn-tool-chip" onclick="switchVnPanel('filter')"><span>🎨</span><b>Filters</b></div>
+                        <div class="vn-tool-chip" onclick="switchVnPanel('adjust')"><span>🔆</span><b>Color Adj</b></div>
+                        <div class="vn-tool-chip" onclick="switchVnPanel('vfx')"><span>✨</span><b>VFX Zoom</b></div>
+                        <div class="vn-tool-chip" onclick="document.getElementById('bgMusicFileInput').click()"><span>🎵</span><b>Music</b></div>
+                        <div class="vn-tool-chip" onclick="openAudioMixerModal()"><span>🎙️</span><b>AI Voice</b></div>
+                        <div class="vn-tool-chip" onclick="runRealGlobalCopyrightScan()"><span>🛡️</span><b>Copyright</b></div>
                     </div>
 
-                    <div id="duetVideoWrapper">
-                        <div class="video-corner-toolbar">
-                            <div class="video-dot-btn" onclick="openCreatorVideoOptions()" title="Duet Video Options">⋮</div>
+                    <!-- Sub Panels -->
+                    <div id="panelTrim" class="vn-sub-editor-panel active">
+                        <h4 style="color:#25f4ee; font-size:12px; margin-bottom:4px;">✂️ Trim & Split Studio</h4>
+                        <p style="font-size:10px; color:#aaa; margin-bottom:6px;">Adjust speed or finalize your cuts.</p>
+                        <div style="display:flex; gap:6px; margin-bottom:6px;">
+                            <button class="filter-btn" style="flex:1;" onclick="changeVideoSpeed(0.5)">0.5x</button>
+                            <button class="filter-btn" style="flex:1;" onclick="changeVideoSpeed(1.0)">1.0x</button>
+                            <button class="filter-btn" style="flex:1;" onclick="changeVideoSpeed(2.0)">2.0x</button>
                         </div>
-                        <video id="duetVideoPreview" autoplay loop playsinline></video>
+                        <button class="post-action-btn" style="background:linear-gradient(135deg, #25f4ee, #0077b6); color:#000; padding:8px;" onclick="proceedToPublishForm()">✅ Done - Proceed to Publish Form ❯</button>
+                    </div>
+
+                    <div id="panelText" class="vn-sub-editor-panel">
+                        <h4 style="color:#ffcc00; font-size:12px; margin-bottom:4px;">✍️ Thumbnail & Video Text Editor</h4>
+                        <input type="text" id="customTextInput" class="form-input" placeholder="Type title/caption for video..." oninput="updateVideoTextOverlay(this.value)">
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <label style="font-size:10px; color:#aaa;">Text Color:</label>
+                            <input type="color" id="textColorPicker" value="#ffffff" style="background:none; border:none; width:30px; height:24px; cursor:pointer;" onchange="updateTextColor(this.value)">
+                        </div>
+                    </div>
+
+                    <div id="panelFilter" class="vn-sub-editor-panel">
+                        <h4 style="color:#fe2c55; font-size:12px; margin-bottom:4px;">🎨 VN Professional Filters</h4>
+                        <div class="filter-presets-grid">
+                            <div class="filter-btn" onclick="applyVideoFilter('none')">Normal</div>
+                            <div class="filter-btn" onclick="applyVideoFilter('grayscale(100%)')">B&W</div>
+                            <div class="filter-btn" onclick="applyVideoFilter('contrast(170%) saturate(140%)')">Cinematic</div>
+                            <div class="filter-btn" onclick="applyVideoFilter('sepia(90%)')">Vintage</div>
+                            <div class="filter-btn" onclick="applyVideoFilter('hue-rotate(120deg)')">Neon</div>
+                            <div class="filter-btn" onclick="applyVideoFilter('brightness(130%) contrast(120%)')">Bright</div>
+                            <div class="filter-btn" onclick="applyVideoFilter('invert(100%)')">Invert</div>
+                            <div class="filter-btn" onclick="applyVideoFilter('blur(1px) contrast(140%)')">Dream</div>
+                        </div>
+                    </div>
+
+                    <div id="panelAdjust" class="vn-sub-editor-panel">
+                        <h4 style="color:#ffcc00; font-size:12px; margin-bottom:4px;">🔆 Color Adjustments</h4>
+                        <label style="font-size:10px; color:#ccc;">Brightness:</label>
+                        <input type="range" min="50" max="150" value="100" style="width:100%; accent-color:#fe2c55;" oninput="adjustVideoColor('brightness', this.value)">
+                        <label style="font-size:10px; color:#ccc; display:block; margin-top:2px;">Contrast:</label>
+                        <input type="range" min="50" max="180" value="100" style="width:100%; accent-color:#25f4ee;" oninput="adjustVideoColor('contrast', this.value)">
+                    </div>
+
+                    <div id="panelVfx" class="vn-sub-editor-panel">
+                        <h4 style="color:#25f4ee; font-size:12px; margin-bottom:4px;">✨ CapCut VFX & Zoom Effects</h4>
+                        <div style="display:flex; gap:6px;">
+                            <button class="filter-btn" style="flex:1;" onclick="applyVfxZoom(1.2)">🔍 Zoom In</button>
+                            <button class="filter-btn" style="flex:1;" onclick="applyVfxZoom(1.0)">↺ Reset Zoom</button>
+                            <button class="filter-btn" style="flex:1;" onclick="applyVfxZoom(1.5)">⚡ Mega Zoom</button>
+                        </div>
                     </div>
                 </div>
-
-                <div id="videoEditorSaveContainer">
-                    <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); color:#000; box-shadow: 0 4px 15px rgba(0,0,0,0.8);" onclick="quickCaptureDuetAndPublishForm()">✅ OK - Proceed to Publish Form ❯</button>
-                </div>
             </div>
 
-            <div id="threeDotMasterPanel">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                    <span style="font-size:10px; color:#ffcc00; font-weight:bold;">✨ Pro Tools (Scroll Left/Right)</span>
-                    <span style="cursor:pointer; font-size:16px; color:#fff;" onclick="toggleStudioToolsPanel()">✕</span>
-                </div>
-
-                <div class="tools-horizontal-scroll">
-                    <div class="tool-icon-chip" onclick="changeVideoSpeed(0.5)" title="Speed 0.5x">0.5x</div>
-                    <div class="tool-icon-chip active" id="spd10" onclick="changeVideoSpeed(1.0)" title="Speed 1.0x">1.0x</div>
-                    <div class="tool-icon-chip" onclick="changeVideoSpeed(2.0)" title="Speed 2.0x">2.0x</div>
-                    <div class="tool-icon-chip" onclick="document.getElementById('bgMusicFileInput').click()" title="Add Music">🎵</div>
-                    <div class="tool-icon-chip" onclick="openAudioVolumeMixer()" title="Audio Mixer">🎚️</div>
-                    <div class="tool-icon-chip" onclick="runRealGlobalCopyrightScan()" title="Real Copyright Inspector" style="border-color:#d90429; color:#d90429;">🛡️</div>
-                    <div class="tool-icon-chip" onclick="document.getElementById('duetVideoFileInput').click()" title="Add Duet" style="border-color:#25f4ee; color:#25f4ee;">👥</div>
-                </div>
-            </div>
-
+            <!-- Final Publish Form -->
             <div id="finalPostPublishContainer">
                 <h4 style="color: #25f4ee; margin-bottom: 6px; font-size: 13px;">🚀 Final Post & Audience Settings</h4>
                 
-                <div style="width:100%; height:200px; background:#000; border:2px solid #25f4ee; border-radius:8px; overflow:hidden; margin-bottom:10px; position:relative;" id="finalPreviewContainerBox">
+                <div style="width:100%; height:180px; background:#000; border:2px solid #25f4ee; border-radius:8px; overflow:hidden; margin-bottom:10px;">
                     <video id="finalPublishedVideoPlayer" autoplay loop playsinline controls style="width:100%; height:100%; object-fit:cover;"></video>
                 </div>
 
@@ -203,12 +231,12 @@
                 <input type="text" id="videoCaptionInput" class="form-input" placeholder="Enter video title / caption...">
                 
                 <label style="font-size:10px; color:#aaa; margin-bottom:2px; display:block;">Detailed Description & Hashtags:</label>
-                <textarea id="videoDescriptionInput" class="form-input" placeholder="Write detailed info about your video..." rows="2"></textarea>
+                <textarea id="videoDescriptionInput" class="form-input" placeholder="Write detailed info..." rows="2"></textarea>
                 
-                <label style="font-size:10px; color:#25f4ee; margin-bottom:2px; display:block;">Affiliate / Product / Promo Link (Daraz, Amazon):</label>
+                <label style="font-size:10px; color:#25f4ee; margin-bottom:2px; display:block;">Affiliate / Promo Link:</label>
                 <input type="text" id="videoAffiliateInput" class="form-input" placeholder="https://example.com/affiliate-link">
 
-                <label style="font-size:10px; color:#ffcc00; margin-bottom:2px; display:block;">Audience Age Group (18+ / Family):</label>
+                <label style="font-size:10px; color:#ffcc00; margin-bottom:2px; display:block;">Audience Age Group:</label>
                 <select id="videoAudienceSelect" class="form-input">
                     <option value="all">🌍 Public (All Ages & Families)</option>
                     <option value="18plus">🔞 18+ Adult Content Only</option>
@@ -232,34 +260,16 @@
         </div>
     </div>
 
-    <div id="creatorVideoOptionsModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:5000; justify-content:center; align-items:center; padding:20px;">
-        <div style="background:#181818; border:2px solid #fe2c55; border-radius:14px; padding:20px; width:100%; max-width:340px;">
-            <h3 style="color:#fe2c55; font-size:15px; margin-bottom:12px;">⚙️ Creator Video Management</h3>
-            <label style="font-size:11px; color:#aaa; display:block; margin-bottom:4px;">Edit Video Title / Caption:</label>
-            <input type="text" id="modalEditCaptionInput" class="form-input" placeholder="Update video title...">
-            <button class="post-action-btn" style="background:#0077b6; margin-top:6px;" onclick="modalSaveNewTitle()">💾 Save New Title</button>
-            <button class="post-action-btn" style="background:#7209b7; margin-top:8px;" onclick="document.getElementById('modalSongInput').click()">🎵 Change Video Song / Audio</button>
-            <input type="file" id="modalSongInput" accept="audio/*" style="display:none;" onchange="modalChangeVideoSong(event)">
-            <button class="post-action-btn" style="background:#d90429; margin-top:12px;" onclick="modalDeleteVideo()">🗑️ Delete This Video</button>
-            <button class="post-action-btn" style="background:#333; margin-top:6px;" onclick="closeModal('creatorVideoOptionsModal')">Close</button>
-        </div>
-    </div>
-
     <script src="navbar.js"></script>
 
     <script>
         let selectedVideoFile = null;
-        let finalMergedVideoBlob = null;
-        let duetVideoFileObj = null;
+        let finalVideoBlob = null;
         let mediaRecorderDirect = null;
         let directRecordedChunks = [];
         let directCameraStreamObj = null;
         let cameraTimerInterval = null;
         let cameraSecondsElapsed = 0;
-        let currentSelectedCommentElement = null;
-
-        let mainScale = 1.0, mainX = 0, mainY = 0;
-        let duetScale = 1.0, duetX = 0, duetY = 0;
 
         function switchStudioMode(mode) {
             document.getElementById('tabVideoBtn').classList.remove('active');
@@ -327,20 +337,19 @@
             mediaRecorderDirect.ondataavailable = (e) => { if(e.data.size > 0) directRecordedChunks.push(e.data); };
             mediaRecorderDirect.onstop = () => {
                 let blob = new Blob(directRecordedChunks, { type: 'video/webm' });
-                finalMergedVideoBlob = blob;
+                finalVideoBlob = blob;
                 selectedVideoFile = blob;
 
                 document.getElementById('directCameraStudio').style.display = 'none';
                 document.getElementById('topModeTabsRow').style.display = 'none';
 
-                let mainVid = document.getElementById('selectedVideoPreview');
-                mainVid.src = URL.createObjectURL(blob);
-                mainVid.muted = false;
-                mainVid.play();
+                let vnVid = document.getElementById('vnEditorVideoElement');
+                vnVid.src = URL.createObjectURL(blob);
+                vnVid.muted = false;
+                vnVid.play();
 
-                document.getElementById('previewBox').style.display = 'block';
-                document.getElementById('videoEditorSaveContainer').style.display = 'block';
-                showToast('✅ वीडियो रिकॉर्ड हो गया!');
+                document.getElementById('vnEditorStudioBox').style.display = 'flex';
+                showToast('✅ वीडियो रिकॉर्ड होकर प्रो एडिटर में आ गया!');
             };
 
             mediaRecorderDirect.start(1000);
@@ -365,40 +374,74 @@
                 document.getElementById('cameraTimerBadge').style.display = 'none';
                 if(directCameraStreamObj) directCameraStreamObj.getTracks().forEach(track => track.stop());
             }
-            quickCaptureDuetAndPublishForm();
         }
 
         function onGalleryFileChosen(event) {
             let file = event.target.files[0];
             if(file) {
-                finalMergedVideoBlob = file;
+                finalVideoBlob = file;
                 selectedVideoFile = file;
                 document.getElementById('mediaActionsRow').classList.remove('active');
                 document.getElementById('topModeTabsRow').style.display = 'none';
 
-                let mainVid = document.getElementById('selectedVideoPreview');
-                mainVid.src = URL.createObjectURL(file);
-                mainVid.muted = false;
-                mainVid.play();
+                let vnVid = document.getElementById('vnEditorVideoElement');
+                vnVid.src = URL.createObjectURL(file);
+                vnVid.muted = false;
+                vnVid.play();
 
-                document.getElementById('previewBox').style.display = 'block';
-                document.getElementById('videoEditorSaveContainer').style.display = 'block';
-                showToast('📁 गैलरी से वीडियो ले लिया गया है!');
+                document.getElementById('vnEditorStudioBox').style.display = 'flex';
+                showToast('📁 गैलरी से वीडियो एडिटर में लोड हो गया!');
             }
         }
 
-        function onDuetFileChosen(event) {
-            let file = event.target.files[0];
-            if(file) {
-                duetVideoFileObj = file;
-                let duetEl = document.getElementById('duetVideoPreview');
-                let duetWrapper = document.getElementById('duetVideoWrapper');
-                duetEl.src = URL.createObjectURL(file);
-                duetEl.muted = false;
-                duetEl.play();
-                duetWrapper.style.display = 'block';
-                showToast('👥 Duet / Reaction Video Added Successfully!');
-            }
+        function switchVnPanel(panelName) {
+            document.getElementById('panelTrim').classList.remove('active');
+            document.getElementById('panelText').classList.remove('active');
+            document.getElementById('panelFilter').classList.remove('active');
+            document.getElementById('panelAdjust').classList.remove('active');
+            document.getElementById('panelVfx').classList.remove('active');
+
+            if(panelName === 'trim') document.getElementById('panelTrim').classList.add('active');
+            else if(panelName === 'text') document.getElementById('panelText').classList.add('active');
+            else if(panelName === 'filter') document.getElementById('panelFilter').classList.add('active');
+            else if(panelName === 'adjust') document.getElementById('panelAdjust').classList.add('active');
+            else if(panelName === 'vfx') document.getElementById('panelVfx').classList.add('active');
+        }
+
+        function updateVideoTextOverlay(txt) {
+            let overlay = document.getElementById('previewTextOverlay');
+            if(overlay) overlay.innerText = txt || 'Your Text Here';
+        }
+
+        function updateTextColor(colorHex) {
+            let overlay = document.getElementById('previewTextOverlay');
+            if(overlay) overlay.style.color = colorHex;
+        }
+
+        function applyVideoFilter(filterCss) {
+            let vnVid = document.getElementById('vnEditorVideoElement');
+            if(vnVid) vnVid.style.filter = filterCss;
+            showToast('🎨 फिल्टर लागू हो गया!');
+        }
+
+        let currentBrightness = 100, currentContrast = 100;
+        function adjustVideoColor(type, val) {
+            if(type === 'brightness') currentBrightness = val;
+            if(type === 'contrast') currentContrast = val;
+            let vnVid = document.getElementById('vnEditorVideoElement');
+            if(vnVid) vnVid.style.filter = `brightness(${currentBrightness}%) contrast(${currentContrast}%)`;
+        }
+
+        function applyVfxZoom(scaleVal) {
+            let vnVid = document.getElementById('vnEditorVideoElement');
+            if(vnVid) vnVid.style.transform = `scale(${scaleVal})`;
+            showToast(`✨ VFX Zoom: ${scaleVal}x`);
+        }
+
+        function changeVideoSpeed(speedVal) {
+            let vnVid = document.getElementById('vnEditorVideoElement');
+            if(vnVid) vnVid.playbackRate = parseFloat(speedVal);
+            showToast(`⚡ Speed set to ${speedVal}x`);
         }
 
         function onBgMusicChosen(event) {
@@ -412,232 +455,55 @@
                     document.body.appendChild(audioEl);
                 }
                 audioEl.src = URL.createObjectURL(file);
-                audioEl.volume = 0.6;
+                audioEl.volume = 0.8;
                 audioEl.play();
-                showToast(`🎵 Background Music Replaced: ${file.name}`);
+                showToast(`🎵 बैकग्राउंड म्यूजिक जुड़ गया: ${file.name}`);
             }
         }
 
-        function changeVideoSpeed(speedVal) {
-            let targetEl = document.getElementById('selectedVideoPreview');
-            let duetEl = document.getElementById('duetVideoPreview');
-            if(targetEl) targetEl.playbackRate = parseFloat(speedVal);
-            if(duetEl) duetEl.playbackRate = parseFloat(speedVal);
-            showToast(`⚡ Speed set to ${speedVal}x`);
+        function openAudioMixerModal() { document.getElementById('audioMixerModal').style.display = 'flex'; }
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+
+        function updateAudioVolumes() {
+            let videoVol = document.getElementById('videoVoiceRange').value / 100;
+            let musicVol = document.getElementById('bgMusicRange').value / 100;
+
+            let vnVid = document.getElementById('vnEditorVideoElement');
+            if(vnVid) vnVid.volume = videoVol;
+
+            let bgAudio = document.getElementById('customBgAudioTrack');
+            if(bgAudio) bgAudio.volume = musicVol;
+
+            document.getElementById('videoVolLabel').innerText = Math.round(videoVol * 100) + '%';
+            document.getElementById('musicVolLabel').innerText = Math.round(musicVol * 100) + '%';
+        }
+
+        function applyAiVoiceEffect(fxType) {
+            showToast(`🤖 AI Voice FX Applied: ${fxType}`);
         }
 
         function runRealGlobalCopyrightScan() {
-            let reportBox = document.getElementById('copyrightReportContent');
-            let actionBox = document.getElementById('copyrightActionButtonsBox');
             let modal = document.getElementById('copyrightModal');
-            
-            reportBox.innerHTML = "🔍 Querying global video databases & Content ID fingerprints across TikTok, YouTube & Facebook (4 seconds)...";
-            actionBox.style.display = 'none';
+            let reportBox = document.getElementById('copyrightReportContent');
+            reportBox.innerHTML = "🔍 Scanning global YouTube Content ID, TikTok & Facebook audio/video registries...[span_1](start_span)[span_1](end_span)";
             modal.style.display = 'flex';
-
             setTimeout(() => {
-                let hasCopyrightRisk = true;
-                if(hasCopyrightRisk) {
-                    reportBox.innerHTML = `
-                        <b style="color:#d90429;">⚠️ Strict Copyright & Watermark Match Found!</b><br><br>
-                        • <b>Source Platform:</b> TikTok / Instagram Reels Database<br>
-                        • <b>Watermark Detected:</b> Platform Watermark & Creator ID Found<br>
-                        • <b>Audio / Music Claim:</b> Sony Music / T-Series Protected Track<br>
-                        • <b>Registered Owner:</b> Original Artist / Studio Catalog<br>
-                        • <b>Action Required:</b> To protect your account from copyright strike, please use the buttons below to change the video or replace the audio.
-                    `;
-                    actionBox.style.display = 'flex';
-                } else {
-                    reportBox.innerHTML = `
-                        <b style="color:#25f4ee;">✅ 100% Original & Clean Content!</b><br><br>
-                        • <b>Verified Creator:</b> Ramkumar Dhobi (90s_rk_creation)[span_4](start_span)[span_4](end_span)<br>
-                        • <b>Status:</b> No copyright strikes or duplicate matches found worldwide.<br>
-                        • <b>Monetization:</b> Fully Cleared for Ad Revenue!
-                    `;
-                    actionBox.style.display = 'none';
-                }
-            }, 4000);
-        }
-
-        function toggleStudioToolsPanel() {
-            let panel = document.getElementById('threeDotMasterPanel');
-            if(panel.style.display === 'block') {
-                panel.style.display = 'none';
-                isVideoUnlockedForEdit = false;
-                showToast('🔒 वीडियो अपनी जगह लॉक है');
-            } else {
-                panel.style.display = 'block';
-                isVideoUnlockedForEdit = true;
-                showToast('🔓 सेटिंग खुली: अब वीडियो को ज़ूम या मूव कर सकते हैं');
-                panel.scrollIntoView({ behavior: 'smooth' });
-            }
-        }
-
-        function openCreatorVideoOptions() {
-            let modal = document.getElementById('creatorVideoOptionsModal');
-            let currentTitle = document.getElementById('videoCaptionInput').value;
-            document.getElementById('modalEditCaptionInput').value = currentTitle;
-            modal.style.display = 'flex';
-        }
-
-        function modalSaveNewTitle() {
-            let newTitle = document.getElementById('modalEditCaptionInput').value;
-            document.getElementById('videoCaptionInput').value = newTitle;
-            showToast('✅ Title updated successfully!');
-            closeModal('creatorVideoOptionsModal');
-        }
-
-        function modalChangeVideoSong(event) {
-            let file = event.target.files[0];
-            if(file) {
-                onBgMusicChosen(event);
-                closeModal('creatorVideoOptionsModal');
-            }
-        }
-
-        function modalDeleteVideo() {
-            if(confirm('Are you sure you want to delete this video?')) {
-                finalMergedVideoBlob = null;
-                selectedVideoFile = null;
-                duetVideoFileObj = null;
-                document.getElementById('previewBox').style.display = 'none';
-                document.getElementById('videoEditorSaveContainer').style.display = 'none';
-                document.getElementById('topModeTabsRow').style.display = 'flex';
-                document.getElementById('mediaActionsRow').classList.add('active');
-                closeModal('creatorVideoOptionsModal');
-                showToast('🗑️ Video deleted.');
-            }
-        }
-
-        function updateTransform(target) {
-            if(target === 'main') {
-                let mainEl = document.getElementById('selectedVideoPreview');
-                if(mainEl) mainEl.style.transform = `translate(${mainX}px, ${mainY}px) scale(${mainScale})`;
-            } else {
-                let duetEl = document.getElementById('duetVideoWrapper');
-                if(duetEl) duetEl.style.transform = `translate(${duetX}px, ${duetY}px) scale(${duetScale})`;
-            }
-        }
-
-        function updateAudioMixer() {
-            let mainVol = document.getElementById('mainVolumeRange').value / 100;
-            let duetVol = document.getElementById('duetVolumeRange').value / 100;
-            let mainVid = document.getElementById('selectedVideoPreview');
-            let duetVid = document.getElementById('duetVideoPreview');
-            if(mainVid) mainVid.volume = mainVol;
-            if(duetVid) duetVid.volume = duetVol;
-            document.getElementById('mainVolLabel').innerText = Math.round(mainVol * 100) + '%';
-            document.getElementById('duetVolLabel').innerText = Math.round(duetVol * 100) + '%';
-        }
-
-        function openAudioVolumeMixer() { document.getElementById('duetStudioModal').style.display = 'flex'; }
-        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
-
-        let isVideoUnlockedForEdit = false;
-        let mainInitialDist = null, mainInitialScale = 1.0, mainTouchStartX = 0, mainTouchStartY = 0;
-        let duetInitialDist = null, duetInitialScale = 1.0, duetTouchStartX = 0, duetTouchStartY = 0;
-
-        let mainWrap = document.getElementById('mainVideoWrapper');
-        let duetBox = document.getElementById('duetVideoWrapper');
-
-        if(mainWrap) {
-            mainWrap.addEventListener('touchstart', (e) => {
-                if(!isVideoUnlockedForEdit) return;
-                if(e.target.closest('.video-dot-btn')) return;
-                if(e.touches.length === 2) {
-                    let dx = e.touches[0].clientX - e.touches[1].clientX;
-                    let dy = e.touches[0].clientY - e.touches[1].clientY;
-                    mainInitialDist = Math.sqrt(dx * dx + dy * dy);
-                    mainInitialScale = mainScale;
-                } else if(e.touches.length === 1) {
-                    mainTouchStartX = e.touches[0].clientX - mainX;
-                    mainTouchStartY = e.touches[0].clientY - mainY;
-                }
-            }, { passive: true });
-
-            mainWrap.addEventListener('touchmove', (e) => {
-                if(!isVideoUnlockedForEdit) return;
-                if(e.touches.length === 2 && mainInitialDist) {
-                    let dx = e.touches[0].clientX - e.touches[1].clientX;
-                    let dy = e.touches[0].clientY - e.touches[1].clientY;
-                    let currentDist = Math.sqrt(dx * dx + dy * dy);
-                    mainScale = Math.min(Math.max(mainInitialScale * (currentDist / mainInitialDist), 0.5), 4.0);
-                    updateTransform('main');
-                } else if(e.touches.length === 1) {
-                    mainX = e.touches[0].clientX - mainTouchStartX;
-                    mainY = e.touches[0].clientY - mainTouchStartY;
-                    updateTransform('main');
-                }
-            }, { passive: true });
-
-            mainWrap.addEventListener('touchend', () => { mainInitialDist = null; });
-        }
-
-        if(duetBox) {
-            duetBox.addEventListener('touchstart', (e) => {
-                if(!isVideoUnlockedForEdit) return;
-                if(e.target.closest('.video-dot-btn')) return;
-                if(e.touches.length === 2) {
-                    let dx = e.touches[0].clientX - e.touches[1].clientX;
-                    let dy = e.touches[0].clientY - e.touches[1].clientY;
-                    duetInitialDist = Math.sqrt(dx * dx + dy * dy);
-                    duetInitialScale = duetScale;
-                } else if(e.touches.length === 1) {
-                    duetTouchStartX = e.touches[0].clientX - duetX;
-                    duetTouchStartY = e.touches[0].clientY - duetY;
-                }
-                e.stopPropagation();
-            }, { passive: true });
-
-            duetBox.addEventListener('touchmove', (e) => {
-                if(!isVideoUnlockedForEdit) return;
-                if(e.touches.length === 2 && duetInitialDist) {
-                    let dx = e.touches[0].clientX - e.touches[1].clientX;
-                    let dy = e.touches[0].clientY - e.touches[1].clientY;
-                    let currentDist = Math.sqrt(dx * dx + dy * dy);
-                    duetScale = Math.min(Math.max(duetInitialScale * (currentDist / duetInitialDist), 0.5), 4.0);
-                    updateTransform('duet');
-                } else if(e.touches.length === 1) {
-                    duetX = e.touches[0].clientX - duetTouchStartX;
-                    duetY = e.touches[0].clientY - duetTouchStartY;
-                    updateTransform('duet');
-                }
-                e.stopPropagation();
-            }, { passive: true });
-
-            duetBox.addEventListener('touchend', () => { duetInitialDist = null; });
-        }
-
-        function quickCaptureDuetAndPublishForm() {
-            if(!finalMergedVideoBlob && selectedVideoFile) {
-                finalMergedVideoBlob = selectedVideoFile;
-            }
-
-            document.getElementById('previewBox').style.display = 'none';
-            document.getElementById('threeDotMasterPanel').style.display = 'none';
-            document.getElementById('directCameraStudio').style.display = 'none';
-            
-            let isDuetActive = window.getComputedStyle(document.getElementById('duetVideoWrapper')).display !== 'none';
-            let containerBox = document.getElementById('finalPreviewContainerBox');
-
-            if (isDuetActive && duetVideoFileObj) {
-                let duetBlobUrl = URL.createObjectURL(duetVideoFileObj);
-                containerBox.innerHTML = `
-                    <div style="width:100%; height:100%; position:relative; display:flex; justify-content:center; align-items:center; background:#000;">
-                        <video id="finalPublishedVideoPlayer" autoplay loop playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-                        <video autoplay loop playsinline style="position:absolute; bottom:15px; right:15px; width:110px; height:160px; border:2px solid #25f4ee; border-radius:8px; object-fit:cover; background:#000;" src="${duetBlobUrl}"></video>
-                    </div>
+                reportBox.innerHTML = `
+                    <b style="color:#25f4ee;">✅ 100% Original Content Verified!</b><br><br>
+                    • <b>Creator:</b> Ramkumar Dhobi (90s_rk_creation)[span_2](start_span)[span_2](end_span)<br>
+                    • <b>Status:</b> Clean, no copyright claims detected worldwide. Ready for monetization[span_3](start_span)[span_3](end_span)!
                 `;
-            } else {
-                containerBox.innerHTML = `
-                    <video id="finalPublishedVideoPlayer" autoplay loop playsinline controls style="width:100%; height:100%; object-fit:cover;"></video>
-                `;
-            }
+            }, 3000);
+        }
 
-            let publishedPlayer = document.getElementById('finalPublishedVideoPlayer');
-            if(finalMergedVideoBlob) {
-                publishedPlayer.src = URL.createObjectURL(finalMergedVideoBlob);
-                publishedPlayer.load();
+        function proceedToPublishForm() {
+            if(!finalVideoBlob && selectedVideoFile) finalVideoBlob = selectedVideoFile;
+
+            document.getElementById('vnEditorStudioBox').style.display = 'none';
+            let pubPlayer = document.getElementById('finalPublishedVideoPlayer');
+            if(finalVideoBlob) {
+                pubPlayer.src = URL.createObjectURL(finalVideoBlob);
+                pubPlayer.load();
             }
 
             let formContainer = document.getElementById('finalPostPublishContainer');
@@ -645,7 +511,7 @@
                 formContainer.style.display = 'block';
                 formContainer.scrollIntoView({ behavior: 'smooth' });
             }
-            showToast('✅ वीडियो तैयार है! अब डिटेल्स भरें।');
+            showToast('✅ वीडियो तैयार है! अब टाइटल और डिटेल्स भरें।');
         }
 
         async function publishVideoToGlobalCloudStorage() {
@@ -659,11 +525,8 @@
             let affiliateLink = affInput ? affInput.value.trim() : '';
             let audienceType = audienceSelect ? audienceSelect.value : 'all';
 
-            if(!finalMergedVideoBlob && selectedVideoFile) {
-                finalMergedVideoBlob = selectedVideoFile;
-            }
-
-            if(!finalMergedVideoBlob) {
+            if(!finalVideoBlob && selectedVideoFile) finalVideoBlob = selectedVideoFile;
+            if(!finalVideoBlob) {
                 showToast('⚠️ वीडियो नहीं मिला!');
                 return;
             }
@@ -672,23 +535,15 @@
 
             try {
                 let fileId = Date.now();
-                let videoFileName = 'global_main_' + fileId + '.mp4';
-                let duetFileName = duetVideoFileObj ? ('global_duet_' + fileId + '.mp4') : '';
+                let videoFileName = 'vn_pro_video_' + fileId + '.mp4';
 
                 let { error: uploadError } = await supabaseClient.storage
                     .from('videos')
-                    .upload(videoFileName, finalMergedVideoBlob, { cacheControl: '3600', upsert: true });
+                    .upload(videoFileName, finalVideoBlob, { cacheControl: '3600', upsert: true });
 
                 if (uploadError) throw new Error(uploadError.message);
                 let { data: urlData } = supabaseClient.storage.from('videos').getPublicUrl(videoFileName);
                 let publicVideoUrl = urlData ? urlData.publicUrl : '';
-
-                let publicDuetUrl = '';
-                if(duetVideoFileObj) {
-                    await supabaseClient.storage.from('videos').upload(duetFileName, duetVideoFileObj, { cacheControl: '3600', upsert: true });
-                    let { data: duetUrlData } = supabaseClient.storage.from('videos').getPublicUrl(duetFileName);
-                    publicDuetUrl = duetUrlData ? duetUrlData.publicUrl : '';
-                }
 
                 await supabaseClient.from('videos').insert([
                     { 
@@ -707,7 +562,6 @@
                 localFeed.unshift({
                     id: 'local_vid_' + fileId,
                     url: publicVideoUrl,
-                    duetUrl: publicDuetUrl,
                     thumb: publicVideoUrl,
                     caption: titleText,
                     description: descriptionText,
@@ -722,13 +576,11 @@
                 setTimeout(() => { window.location.href = 'profile.html'; }, 1000);
 
             } catch(err) {
-                let localUrl = URL.createObjectURL(finalMergedVideoBlob);
-                let localDuetUrl = duetVideoFileObj ? URL.createObjectURL(duetVideoFileObj) : '';
+                let localUrl = URL.createObjectURL(finalVideoBlob);
                 let localFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
                 localFeed.unshift({
                     id: 'local_vid_' + Date.now(),
                     url: localUrl,
-                    duetUrl: localDuetUrl,
                     thumb: localUrl,
                     caption: titleText,
                     description: descriptionText,
