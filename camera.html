@@ -3,23 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>New Star - Star Editor Master Studio</title>
+    <title>New Star - Master Studio & Profile</title>
     <meta name="theme-color" content="#000000">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
-        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; width: 100%; max-width: 480px; margin: 0 auto; height: 100vh; position: relative; background: #000; }
-        
-        .creator-main-modes-row { display: flex; justify-content: center; gap: 8px; margin: 4px 0; z-index: 100; position: absolute; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); padding: 6px; }
-        .mode-icon-card { width: 95px; height: 34px; background: #18181c; border: 2px solid #2a2a30; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #fff; text-decoration: none; font-size: 10px; }
-        .mode-icon-card.active { border-color: #fe2c55; background: #222228; }
+        body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; padding-bottom: 60px; }
+        .studio-main-viewport { flex: 1; display: flex; flex-direction: column; width: 100%; max-width: 480px; margin: 0 auto; height: calc(100vh - 60px); position: relative; background: #000; }
         
         .studio-section { display: none; background: #000; flex: 1; flex-direction: column; width: 100%; height: 100%; position: relative; }
         .studio-section.active { display: flex; }
         
-        /* ➕ प्लस (+) बटन दबाने पर दिखने वाले 3 मुख्य ऑप्शन्स (Video, Live, Gaming) */
+        /* ➕ प्लस (+) बटन दबाने पर दिखने वाला 3 ऑप्शन्स का पॉपअप */
         #plusPopupModal { display: none; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #18181c; border: 2px solid #fe2c55; border-radius: 16px; padding: 16px; z-index: 2000; width: 90%; max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.9); }
         #plusPopupModal.active { display: block; }
 
@@ -51,16 +47,13 @@
         #vnEditorVideoElement.mode-short { object-fit: cover; width: 100%; height: 100%; }
         #vnEditorVideoElement.mode-long { object-fit: contain; width: 100%; height: 100%; }
 
-        /* कोने पर बैक एरो (✕) और थ्री-डॉट बटन */
         .video-corner-toolbar { position: absolute; top: 15px; left: 15px; right: 15px; z-index: 70; display: flex; justify-content: space-between; align-items: center; }
         .video-dot-btn { background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
 
-        /* स्क्रीन पर डायरेक्ट पब्लिश बटन */
         .direct-screen-publish-btn { position: absolute; bottom: 20px; right: 20px; background: linear-gradient(135deg, #fe2c55, #ff6b8b); color: #fff; padding: 10px 18px; border-radius: 25px; font-size: 12px; font-weight: bold; border: 2px solid #fff; cursor: pointer; z-index: 70; box-shadow: 0 4px 15px rgba(254,44,85,0.6); display: flex; align-items: center; gap: 5px; }
 
         #previewTextOverlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; font-weight: bold; color: #fff; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); z-index: 25; pointer-events: none; text-align: center; }
 
-        /* नीचे Star Editor प्रो टूलबार */
         .vn-timeline-container { width: 100%; background: #121216; display: flex; flex-direction: column; border-top: 1px solid #2a2a32; flex-shrink: 0; position: relative; z-index: 60; }
         
         #threeDotMasterPanel { display: none; flex-direction: column; background: #121215; width: 100%; }
@@ -81,19 +74,33 @@
         .form-input { width: 100%; background: #0a0a0c; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 8px; outline: none; }
         .form-input:focus { border-color: #fe2c55; }
 
-        /* TikTok Style Interaction Bar (For Shorts <= 60s) */
         .tiktok-interaction-bar { display: none; justify-content: space-around; background: #121216; padding: 8px; border-top: 1px solid #222; align-items: center; }
         .tiktok-interaction-bar.active { display: flex; }
         .tk-action-btn { background: #22222c; border: none; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 11px; display: flex; align-items: center; gap: 5px; cursor: pointer; }
 
-        /* YouTube Style Interaction Bar (For Long Videos > 60s) */
         .youtube-interaction-bar { display: none; justify-content: space-around; background: #121216; padding: 8px; border-top: 1px solid #222; align-items: center; }
         .youtube-interaction-bar.active { display: flex; }
         .yt-action-btn { background: #22222c; border: none; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 11px; display: flex; align-items: center; gap: 5px; cursor: pointer; }
 
         #finalPostPublishContainer { display: none; background: #181818; border: 2px solid #25f4ee; border-radius: 12px; padding: 14px; margin: 10px; position: absolute; top: 40px; left: 0; right: 0; z-index: 100; max-height: calc(100vh - 60px); overflow-y: auto; }
-        .extra-mode-panel { display: none; flex: 1; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; background: #111; border-radius: 16px; border: 1px solid #333; margin-top: 10px; }
-        .extra-mode-panel.active { display: flex; }
+        
+        /* मास्टर बॉटम नेविगेशन बार (फिक्स और पक्का कनेक्शन) */
+        .master-tiktok-final-nav {
+            position: fixed !important; bottom: 0 !important; left: 0 !important; width: 100% !important; height: 60px !important;
+            background: #000 !important; display: flex !important; justify-content: space-around !important; align-items: center !important;
+            border-top: 1px solid #222 !important; z-index: 9999999 !important; box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
+        }
+        .mfn-item {
+            display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;
+            color: rgba(255,255,255,0.5) !important; cursor: pointer !important; text-decoration: none !important; font-size: 11px !important; flex: 1 !important; text-align: center !important; background: transparent !important; border: none !important;
+        }
+        .mfn-item.active { color: #fff !important; font-weight: bold !important; }
+        .mfn-item i { font-size: 18px !important; margin-bottom: 2px !important; font-style: normal !important; }
+        .mfn-center-plus {
+            width: 46px !important; height: 32px !important; background: linear-gradient(135deg, #25f4ee, #fe2c55) !important;
+            border-radius: 8px !important; display: flex !important; justify-content: center !important; align-items: center !important;
+            color: #fff !important; font-size: 24px !important; font-weight: bold !important; box-shadow: 0 2px 12px rgba(254,44,85,0.7) !important; margin: 0 auto !important;
+        }
 
         #floatingToastMessage { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(20,20,22,0.95); border: 1px solid #25f4ee; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 11px; z-index: 50000; opacity: 0; transition: 0.3s ease; pointer-events: none; }
         #floatingToastMessage.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -102,7 +109,7 @@
 <body>
     <div id="floatingToastMessage">Notification</div>
 
-    <!-- ➕ प्लस (+) बटन दबाने पर दिखने वाला 3 ऑप्शन्स का पॉपअप (Video, Live, Gaming) -->
+    <!-- ➕ प्लस (+) बटन दबाने पर दिखने वाला 3 ऑप्शन्स का पॉपअप -->
     <div id="plusPopupModal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <h3 style="color:#fe2c55; font-size:14px;">🚀 New Post / Stream</h3>
@@ -125,7 +132,7 @@
         <button class="post-action-btn" style="background:#333; margin-top:10px; padding:8px;" onclick="togglePlusPopup(false)">Cancel</button>
     </div>
 
-    <!-- 🛡️ YouTube जैसा बड़ा और एडवांस्ड कॉपीराइट चेकिंग इंजन मोडल -->
+    <!-- 🛡️ YouTube जैसा बड़ा कॉपीराइट इंजन मोडल -->
     <div id="copyrightModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:6000; justify-content:center; align-items:center; padding:15px;">
         <div style="background:#18181c; border:2px solid #d90429; width:100%; max-width:440px; border-radius:16px; padding:20px; max-height:90vh; overflow-y:auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -201,7 +208,6 @@
     </div>
 
     <div class="studio-main-viewport">
-        <!-- ऐप खुलते ही इंडेक्स/प्रोफाइल व्यू -->
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onGalleryFileChosen(event)">
             <input type="file" id="bgMusicFileInput" accept="audio/*" style="display:none;" onchange="onBgMusicChosen(event)">
@@ -223,7 +229,6 @@
                         <div><b style="font-size:11px;">Gallery</b></div>
                     </div>
                 </div>
-                <button class="post-action-btn" style="background:#333; margin-top:20px; width:160px;" onclick="goBackToHomeStudio()">⬅️ Back</button>
             </div>
 
             <!-- डायरेक्ट कैमरा रिकॉर्डिंग स्क्रीन -->
@@ -241,20 +246,17 @@
             <!-- 🎬 Master Star Editor Studio Workspace -->
             <div id="vnEditorStudioBox">
                 <div class="vn-video-preview-area" id="videoPreviewArea">
-                    <!-- कोने पर बैक एरो (✕) और थ्री-डॉट बटन -->
                     <div class="video-corner-toolbar">
                         <div class="video-dot-btn" onclick="goBackToHomeStudio()" title="Back / Close">✕</div>
                         <div class="video-dot-btn" onclick="toggleStudioToolsPanel()" title="Toggle Star Editor">⋮</div>
                     </div>
                     
-                    <!-- स्क्रीन पर डायरेक्ट पब्लिश बटन -->
                     <button class="direct-screen-publish-btn" onclick="proceedToPublishForm()">🚀 Publish</button>
 
                     <div id="previewTextOverlay"></div>
                     <video id="vnEditorVideoElement" autoplay loop playsinline controls></video>
                 </div>
 
-                <!-- TikTok Style Interaction Bar (For Shorts <= 60s) -->
                 <div class="tiktok-interaction-bar" id="tiktokActionBar">
                     <button class="tk-action-btn" onclick="toggleLikeVideo(this)" id="tkLikeBtn">❤️ <span id="tkLikeCount">120</span></button>
                     <button class="tk-action-btn" onclick="openCommentsModal()">💬 Comments</button>
@@ -262,7 +264,6 @@
                     <button class="tk-action-btn" onclick="vidMateDownloadVideo()">📥 Download</button>
                 </div>
 
-                <!-- YouTube Style Interaction Bar (For Long Videos > 60s) -->
                 <div class="youtube-interaction-bar" id="youtubeActionBar">
                     <button class="yt-action-btn" onclick="toggleLikeVideo(this)" id="ytLikeBtn">👍 <span id="ytLikeCount">120</span></button>
                     <button class="yt-action-btn" onclick="openCommentsModal()">💬 Comments</button>
@@ -270,7 +271,6 @@
                     <button class="yt-action-btn" onclick="vidMateDownloadVideo()">📥 Download</button>
                 </div>
 
-                <!-- Star Editor Pro Tool Strip (थ्री-डॉट के अंदर) -->
                 <div class="vn-timeline-container">
                     <div id="threeDotMasterPanel">
                         <div class="vn-tools-strip">
@@ -286,7 +286,6 @@
                             <div class="vn-tool-chip" onclick="proceedToPublishForm()" style="background:#fe2c55; color:#fff;"><span>🚀</span><b>Publish</b></div>
                         </div>
 
-                        <!-- Themes Panel -->
                         <div id="panelThemes" class="vn-sub-editor-panel active">
                             <h4 style="color:#25f4ee; font-size:11px; margin-bottom:4px;">🎨 Cinematic Themes & Backgrounds</h4>
                             <div style="display:flex; gap:6px;">
@@ -296,7 +295,6 @@
                             </div>
                         </div>
 
-                        <!-- Trim & Speed Panel (Slow / Fast) -->
                         <div id="panelTrim" class="vn-sub-editor-panel">
                             <h4 style="color:#25f4ee; font-size:11px; margin-bottom:4px;">✂️ Trim, Split & Speed (Slow/Fast)</h4>
                             <div style="display:flex; gap:6px; margin-bottom:6px;">
@@ -307,13 +305,11 @@
                             <button class="post-action-btn" style="background:#25f4ee; color:#000; padding:8px;" onclick="executeTrimSplitAction()">✂️ Execute Split / Cut Now</button>
                         </div>
 
-                        <!-- Overlay Panel -->
                         <div id="panelOverlay" class="vn-sub-editor-panel">
                             <h4 style="color:#fe2c55; font-size:11px; margin-bottom:4px;">🔲 Overlay Track & Stickers</h4>
                             <button class="post-action-btn" style="background:#7209b7; padding:8px; margin-bottom:6px;" onclick="document.getElementById('overlayFileInput').click()">📁 Add Overlay Image / Video</button>
                         </div>
 
-                        <!-- Zoom Panel -->
                         <div id="panelZoom" class="vn-sub-editor-panel">
                             <h4 style="color:#ffcc00; font-size:11px; margin-bottom:4px;">🔍 Finger Pinch & Zoom Controller</h4>
                             <p style="font-size:10px; color:#aaa; margin-bottom:6px;">स्क्रीन पर उंगलियों से पिंच करके ज़ूम करें या नीचे दिए गए बटन दबाएं:</p>
@@ -324,7 +320,6 @@
                             </div>
                         </div>
 
-                        <!-- Filter Panel -->
                         <div id="panelFilter" class="vn-sub-editor-panel">
                             <h4 style="color:#fe2c55; font-size:11px; margin-bottom:4px;">✨ Filters & Color Grading</h4>
                             <div class="filter-presets-grid">
@@ -335,7 +330,6 @@
                             </div>
                         </div>
 
-                        <!-- Text Panel -->
                         <div id="panelText" class="vn-sub-editor-panel">
                             <h4 style="color:#ffcc00; font-size:11px; margin-bottom:4px;">✍️ Overlay Text & Subtitles</h4>
                             <input type="text" id="customTextInput" class="form-input" placeholder="Type text for video..." oninput="updateVideoTextOverlay(this.value)">
@@ -344,7 +338,6 @@
                 </div>
             </div>
 
-            <!-- Final Publish Form -->
             <div id="finalPostPublishContainer">
                 <h4 style="color: #25f4ee; margin-bottom: 6px; font-size: 14px;">🚀 Video Details & Publish Form</h4>
                 
@@ -374,21 +367,18 @@
                 </div>
             </div>
         </div>
-
-        <div id="sectionLive" class="extra-mode-panel">
-            <span style="font-size: 32px; margin-bottom: 6px;">🔴</span>
-            <h3 style="color: #ffcc00; margin-bottom: 4px; font-size: 14px;">Live Streaming Mode</h3>
-            <button class="post-action-btn" style="margin-top:0;" onclick="window.location.href='live.html'">Go Live Now</button>
-        </div>
-
-        <div id="sectionGaming" class="extra-mode-panel">
-            <span style="font-size: 32px; margin-bottom: 6px;">🎮</span>
-            <h3 style="color: #25f4ee; margin-bottom: 4px; font-size: 14px;">Gaming Stream Hub</h3>
-            <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); margin-top:0;" onclick="window.location.href='gaming.html'">Start Gaming Stream</button>
-        </div>
     </div>
 
-    <script src="navbar.js"></script>
+    <!-- ⚓ सेल्फ-कंटेन्ड मास्टर बॉटम नेविगेशन बार (ताकि navbar.js पर डिपेंड न रहना पड़े) -->
+    <div class="master-tiktok-final-nav">
+        <a href="index.html" class="mfn-item"><i>🏠</i><span>Home</span></a>
+        <a href="wallet.html" class="mfn-item"><i>🪙</i><span>Wallet</span></a>
+        <div class="mfn-item" style="flex: 1.5; cursor: pointer;" onclick="openStudioPlusMenu()">
+            <div class="mfn-center-plus">+</div>
+        </div>
+        <a href="inbox.html" class="mfn-item"><i>💬</i><span>Inbox</span></a>
+        <a href="profile.html" class="mfn-item"><i>⭐</i><span>Profile</span></a>
+    </div>
 
     <script>
         let selectedVideoFile = null;
@@ -401,7 +391,7 @@
         let currentZoomScale = 1.0;
         let currentRotateDegree = 0;
 
-        // ➕ प्लस (+) बटन क्लिक पर 3 ऑप्शन्स (Video, Live, Gaming) वाला पॉपअप खोलने का फंक्शन
+        // ➕ प्लस (+) बटन क्लिक पर 3 ऑप्शन्स (Video, Live, Gaming) वाला पॉपअप
         function openStudioPlusMenu() {
             let modal = document.getElementById('plusPopupModal');
             if(modal) modal.classList.toggle('active');
@@ -415,7 +405,7 @@
             }
         }
 
-        // 🎯 प्लस पॉपअप से मोड चुनने पर (Video, Live, Gaming)
+        // 🎯 मोड चुनने पर (Video, Live, Gaming)
         function selectPlusMode(mode) {
             togglePlusPopup(false);
             
@@ -429,7 +419,6 @@
             if(pubForm) pubForm.style.display = 'none';
 
             if(mode === 'video') {
-                // वीडियो पर क्लिक करते ही कैमरा और गैलरी दोनों ओपन होने का पैनल खुलेगा
                 if(videoSub) videoSub.classList.add('active');
                 showToast('📹 Video Mode: कैमरा या गैलरी चुनें');
             } else if(mode === 'live') {
@@ -441,7 +430,7 @@
             }
         }
 
-        // 🔙 बैक एरो (✕) दबाने पर पिछले लेआउट पर जाने का फंक्शन (डेटा बिना कटे)
+        // 🔙 बैक एरो (✕) दबाने पर पिछले लेआउट पर जाने का फंक्शन
         function goBackToHomeStudio() {
             let pubForm = document.getElementById('finalPostPublishContainer');
             let editorBox = document.getElementById('vnEditorStudioBox');
@@ -465,11 +454,10 @@
                 showToast('⬅️ Video Options');
             } else {
                 if(videoSub) videoSub.classList.remove('active');
-                showToast('🏠 Home Profile Active');
+                window.location.href = 'index.html';
             }
         }
 
-        // 🔄 ऑटो-रोटेट सेंसर
         window.addEventListener("orientationchange", function() {
             let vnVid = document.getElementById('vnEditorVideoElement');
             if (window.orientation === 90 || window.orientation === -90) {
@@ -480,34 +468,6 @@
                 showToast('📱 Portrait Mode Active');
             }
         });
-
-        // फिंगर पिंच-टू-ज़ूम
-        let initialPinchDistance = null;
-        const previewAreaEl = document.getElementById('videoPreviewArea');
-        
-        if(previewAreaEl) {
-            previewAreaEl.addEventListener('touchstart', (e) => {
-                if(e.touches.length === 2) {
-                    initialPinchDistance = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                }
-            });
-            previewAreaEl.addEventListener('touchmove', (e) => {
-                if(e.touches.length === 2 && initialPinchDistance !== null) {
-                    let currentDist = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    let scaleFactor = currentDist / initialPinchDistance;
-                    currentZoomScale = Math.min(Math.max(0.8, currentZoomScale * scaleFactor), 3.0);
-                    setVideoZoomSize(currentZoomScale);
-                    initialPinchDistance = currentDist;
-                }
-            });
-            previewAreaEl.addEventListener('touchend', () => { initialPinchDistance = null; });
-        }
 
         async function openDirectCameraStudio() {
             let videoSub = document.getElementById('videoSourceSubPanel');
@@ -576,7 +536,6 @@
             }
         }
 
-        // 🧠 स्मार्ट ऑटो-डिटेक्ट: <= 60s शॉर्ट्स (TikTok 9:16), > 60s लॉन्ग वीडियो (YouTube 16:9)
         function handleVideoFileLoaded(fileObj) {
             finalVideoBlob = fileObj;
             selectedVideoFile = fileObj;
@@ -599,12 +558,12 @@
                     vnVid.className = "mode-short";
                     tiktokBar.classList.add('active');
                     youtubeBar.classList.remove('active');
-                    showToast(`⚡ Short Video Detected (${Math.round(duration)}s) -> TikTok 9:16 Mode`);
+                    showToast(`⚡ Short Video (${Math.round(duration)}s) -> TikTok 9:16`);
                 } else {
                     vnVid.className = "mode-long";
                     tiktokBar.classList.remove('active');
                     youtubeBar.classList.add('active');
-                    showToast(`⚡ Long Video Detected (${Math.round(duration)}s) -> YouTube 16:9 HD Mode`);
+                    showToast(`⚡ Long Video (${Math.round(duration)}s) -> YouTube 16:9`);
                 }
                 vnVid.play();
             };
@@ -612,15 +571,12 @@
             document.getElementById('vnEditorStudioBox').style.display = 'flex';
         }
 
-        // 🎛️ थ्री-डॉट (⋮) से Star Editor टॉगल ओपन/क्लोज
         function toggleStudioToolsPanel() {
             let panel = document.getElementById('threeDotMasterPanel');
             if(panel.classList.contains('active')) {
                 panel.classList.remove('active');
-                showToast('🔒 Star Editor बंद');
             } else {
                 panel.classList.add('active');
-                showToast('🔓 Star Editor खुला');
             }
         }
 
@@ -640,7 +596,7 @@
             else if(panelName === 'text') document.getElementById('panelText').classList.add('active');
         }
 
-        // 🛡️ YouTube जैसा बड़ा और एडवांस्ड कॉपीराइट चेकिंग इंजन (जिसमें ओनर, कंपनी, और अपलोड डिटेल्स दिखती हैं)
+        // 🛡️ YouTube जैसा बड़ा कॉपीराइट इंजन
         function runRealGlobalCopyrightScan() {
             let modal = document.getElementById('copyrightModal');
             let reportBox = document.getElementById('copyrightReportContent');
@@ -725,7 +681,6 @@
         function openAudioMixerModal() { document.getElementById('audioMixerModal').style.display = 'flex'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
-        // 🔊 वॉल्यूम बूस्टर
         function updateAudioVolumes() {
             let rawVolVal = document.getElementById('videoVoiceRange').value;
             let videoVol = rawVolVal / 100;
