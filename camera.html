@@ -171,7 +171,7 @@
                 </div>
 
                 <div id="videoEditorSaveContainer">
-                    <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); color:#000; box-shadow: 0 4px 15px rgba(0,0,0,0.8);" onclick="skipProcessingAndOpenPublishForm()">✅ OK - Proceed to Publish Form ❯</button>
+                    <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); color:#000; box-shadow: 0 4px 15px rgba(0,0,0,0.8);" onclick="quickCaptureDuetAndPublishForm()">✅ OK - Proceed to Publish Form ❯</button>
                 </div>
             </div>
 
@@ -195,7 +195,7 @@
             <div id="finalPostPublishContainer">
                 <h4 style="color: #25f4ee; margin-bottom: 6px; font-size: 13px;">🚀 Final Post & Audience Settings</h4>
                 
-                <div style="width:100%; height:200px; background:#000; border:2px solid #25f4ee; border-radius:8px; overflow:hidden; margin-bottom:10px; position:relative;">
+                <div style="width:100%; height:200px; background:#000; border:2px solid #25f4ee; border-radius:8px; overflow:hidden; margin-bottom:10px; position:relative;" id="finalPreviewContainerBox">
                     <video id="finalPublishedVideoPlayer" autoplay loop playsinline controls style="width:100%; height:100%; object-fit:cover;"></video>
                 </div>
 
@@ -250,6 +250,7 @@
     <script>
         let selectedVideoFile = null;
         let finalMergedVideoBlob = null;
+        let duetVideoFileObj = null; // डुएट वीडियो फाइल स्टोर करने के लिए
         let mediaRecorderDirect = null;
         let directRecordedChunks = [];
         let directCameraStreamObj = null;
@@ -364,7 +365,7 @@
                 document.getElementById('cameraTimerBadge').style.display = 'none';
                 if(directCameraStreamObj) directCameraStreamObj.getTracks().forEach(track => track.stop());
             }
-            skipProcessingAndOpenPublishForm();
+            quickCaptureDuetAndPublishForm();
         }
 
         function onGalleryFileChosen(event) {
@@ -389,13 +390,14 @@
         function onDuetFileChosen(event) {
             let file = event.target.files[0];
             if(file) {
+                duetVideoFileObj = file; // डुएट वीडियो को सुरक्षित रखें
                 let duetEl = document.getElementById('duetVideoPreview');
                 let duetWrapper = document.getElementById('duetVideoWrapper');
                 duetEl.src = URL.createObjectURL(file);
                 duetEl.muted = false;
                 duetEl.play();
                 duetWrapper.style.display = 'block';
-                showToast('👥 Duet Video Added & Synced!');
+                showToast('👥 Duet / Reaction Video Added Successfully!');
             }
         }
 
@@ -493,6 +495,7 @@
             if(confirm('Are you sure you want to delete this video?')) {
                 finalMergedVideoBlob = null;
                 selectedVideoFile = null;
+                duetVideoFileObj = null;
                 document.getElementById('previewBox').style.display = 'none';
                 document.getElementById('videoEditorSaveContainer').style.display = 'none';
                 document.getElementById('topModeTabsRow').style.display = 'flex';
@@ -596,8 +599,8 @@
             duetBox.addEventListener('touchend', () => { duetInitialDist = null; });
         }
 
-        // 🚀 बिना किसी प्रोसेसिंग के सीधे पब्लिशिंग फॉर्म खोलने वाला फंक्शन
-        function skipProcessingAndOpenPublishForm() {
+        // 🚀 डुएट/रिएक्शन वीडियो को बिना किसी रेंडरिंग लैग के सीधे पब्लिशिंग फॉर्म और प्रीव्यू में सेट करने वाला स्मार्ट इंजन
+        function quickCaptureDuetAndPublishForm() {
             if(!finalMergedVideoBlob && selectedVideoFile) {
                 finalMergedVideoBlob = selectedVideoFile;
             }
@@ -606,8 +609,25 @@
             document.getElementById('threeDotMasterPanel').style.display = 'none';
             document.getElementById('directCameraStudio').style.display = 'none';
             
+            let isDuetActive = window.getComputedStyle(document.getElementById('duetVideoWrapper')).display !== 'none';
+            let containerBox = document.getElementById('finalPreviewContainerBox');
+
+            if (isDuetActive && duetVideoFileObj) {
+                let duetBlobUrl = URL.createObjectURL(duetVideoFileObj);
+                containerBox.innerHTML = `
+                    <div style="width:100%; height:100%; position:relative; display:flex; justify-content:center; align-items:center; background:#000;">
+                        <video id="finalPublishedVideoPlayer" autoplay loop playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+                        <video autoplay loop playsinline style="position:absolute; bottom:15px; right:15px; width:110px; height:160px; border:2px solid #25f4ee; border-radius:8px; object-fit:cover; background:#000;" src="${duetBlobUrl}"></video>
+                    </div>
+                `;
+            } else {
+                containerBox.innerHTML = `
+                    <video id="finalPublishedVideoPlayer" autoplay loop playsinline controls style="width:100%; height:100%; object-fit:cover;"></video>
+                `;
+            }
+
+            let publishedPlayer = document.getElementById('finalPublishedVideoPlayer');
             if(finalMergedVideoBlob) {
-                let publishedPlayer = document.getElementById('finalPublishedVideoPlayer');
                 publishedPlayer.src = URL.createObjectURL(finalMergedVideoBlob);
                 publishedPlayer.load();
             }
@@ -617,7 +637,7 @@
                 formContainer.style.display = 'block';
                 formContainer.scrollIntoView({ behavior: 'smooth' });
             }
-            showToast('✅ ओके! अब टाइटल, डिस्क्रिप्शन और एफिलिएट लिंक भरें।');
+            showToast('✅ ओके! मेन और रिएक्शन दोनों वीडियो सुरक्षित हैं। अब डिटेल्स भरें।');
         }
 
         async function publishVideoToGlobalCloudStorage() {
@@ -644,8 +664,10 @@
 
             try {
                 let fileId = Date.now();
-                let videoFileName = 'global_merged_' + fileId + '.mp4';
+                let videoFileName = 'global_main_' + fileId + '.mp4';
+                let duetFileName = duetVideoFileObj ? ('global_duet_' + fileId + '.mp4') : '';
 
+                // मेन वीडियो अपलोड
                 let { error: uploadError } = await supabaseClient.storage
                     .from('videos')
                     .upload(videoFileName, finalMergedVideoBlob, { cacheControl: '3600', upsert: true });
@@ -653,6 +675,14 @@
                 if (uploadError) throw new Error(uploadError.message);
                 let { data: urlData } = supabaseClient.storage.from('videos').getPublicUrl(videoFileName);
                 let publicVideoUrl = urlData ? urlData.publicUrl : '';
+
+                // अगर डुएट वीडियो है तो उसे भी अलग से सुरक्षित अपलोड करें ताकि वह उड़े नहीं
+                let publicDuetUrl = '';
+                if(duetVideoFileObj) {
+                    await supabaseClient.storage.from('videos').upload(duetFileName, duetVideoFileObj, { cacheControl: '3600', upsert: true });
+                    let { data: duetUrlData } = supabaseClient.storage.from('videos').getPublicUrl(duetFileName);
+                    publicDuetUrl = duetUrlData ? duetUrlData.publicUrl : '';
+                }
 
                 await supabaseClient.from('videos').insert([
                     { 
@@ -671,6 +701,7 @@
                 localFeed.unshift({
                     id: 'local_vid_' + fileId,
                     url: publicVideoUrl,
+                    duetUrl: publicDuetUrl, // डुएट लिंक साथ में सेव रहेगा
                     thumb: publicVideoUrl,
                     caption: titleText,
                     description: descriptionText,
@@ -686,10 +717,12 @@
 
             } catch(err) {
                 let localUrl = URL.createObjectURL(finalMergedVideoBlob);
+                let localDuetUrl = duetVideoFileObj ? URL.createObjectURL(duetVideoFileObj) : '';
                 let localFeed = JSON.parse(localStorage.getItem('customFeedVideos') || '[]');
                 localFeed.unshift({
                     id: 'local_vid_' + Date.now(),
                     url: localUrl,
+                    duetUrl: localDuetUrl,
                     thumb: localUrl,
                     caption: titleText,
                     description: descriptionText,
