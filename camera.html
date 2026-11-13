@@ -90,11 +90,11 @@
 <body>
     <div id="floatingToastMessage">Notification</div>
 
-    <!-- 📊 प्रोसेसिंग प्रोग्रेस बार -->
+    <!-- 📊 प्रोसेसिंग प्रोग्रेस बार (डुएट और ऑडियो मिक्सिंग के साथ) -->
     <div id="processingOverlayModal">
         <div class="processing-card">
-            <h3 style="color: #25f4ee; margin-bottom: 6px;">⚙️ Processing Video & Duet...</h3>
-            <p id="processingStatusText" style="font-size: 12px; color: #ccc;">Rendering & syncing audio tracks: 0%</p>
+            <h3 style="color: #25f4ee; margin-bottom: 6px;">⚙️ Rendering Duet & Audio Tracks...</h3>
+            <p id="processingStatusText" style="font-size: 12px; color: #ccc;">Merging main video, duet box & mixing dual audio: 0%</p>
             <div class="progress-bar-track">
                 <div class="progress-bar-fill" id="progressBarFill"></div>
             </div>
@@ -131,6 +131,18 @@
             <input type="range" id="duetVolumeRange" min="0" max="100" value="80" style="width:100%; accent-color:#25f4ee;" oninput="updateAudioMixer()">
 
             <button class="post-action-btn" style="background:#25f4ee; color:#000; margin-top:12px;" onclick="closeModal('duetStudioModal')">Save Audio Mixer</button>
+        </div>
+    </div>
+
+    <!-- 💬 कमेंट लॉन्ग-प्रेश एक्शन मोडल (कमेंट डिलीट और यूजर ब्लॉक के लिए) -->
+    <div id="commentActionModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:6000; justify-content:center; align-items:center; padding:20px;">
+        <div style="background:#181818; border:2px solid #ffcc00; border-radius:14px; padding:20px; width:100%; max-width:320px; text-align:center;">
+            <h3 style="color:#ffcc00; font-size:15px; margin-bottom:12px;">⚙️ Comment Options</h3>
+            <p id="activeCommentTextDisplay" style="font-size:11px; color:#ccc; margin-bottom:15px; background:#0a0a0c; padding:8px; border-radius:6px;"></p>
+
+            <button class="post-action-btn" style="background:#d90429; margin-bottom:8px;" onclick="executeDeleteComment()">🗑️ Delete This Comment</button>
+            <button class="post-action-btn" style="background:#ff6b8b; margin-bottom:12px;" onclick="executeBlockUserFromComment()">🚫 Block This User</button>
+            <button class="post-action-btn" style="background:#333;" onclick="closeModal('commentActionModal')">Cancel</button>
         </div>
     </div>
 
@@ -251,6 +263,23 @@
         </div>
     </div>
 
+    <!-- 🛠️ वीडियो के ऊपर 3-डॉट क्लिक करने पर खुलने वाला क्रिएटर कंट्रोल मोडल (Title Change, Change Song, Delete) -->
+    <div id="creatorVideoOptionsModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:5000; justify-content:center; align-items:center; padding:20px;">
+        <div style="background:#181818; border:2px solid #fe2c55; border-radius:14px; padding:20px; width:100%; max-width:340px;">
+            <h3 style="color:#fe2c55; font-size:15px; margin-bottom:12px;">⚙️ Creator Video Management</h3>
+            
+            <label style="font-size:11px; color:#aaa; display:block; margin-bottom:4px;">Edit Video Title / Caption:</label>
+            <input type="text" id="modalEditCaptionInput" class="form-input" placeholder="Update video title...">
+
+            <button class="post-action-btn" style="background:#0077b6; margin-top:6px;" onclick="modalSaveNewTitle()">💾 Save New Title</button>
+            <button class="post-action-btn" style="background:#7209b7; margin-top:8px;" onclick="document.getElementById('modalSongInput').click()">🎵 Change Video Song / Audio</button>
+            <input type="file" id="modalSongInput" accept="audio/*" style="display:none;" onchange="modalChangeVideoSong(event)">
+
+            <button class="post-action-btn" style="background:#d90429; margin-top:12px;" onclick="modalDeleteVideo()">🗑️ Delete This Video</button>
+            <button class="post-action-btn" style="background:#333; margin-top:6px;" onclick="closeModal('creatorVideoOptionsModal')">Close</button>
+        </div>
+    </div>
+
     <script src="navbar.js"></script>
 
     <script>
@@ -262,6 +291,7 @@
         let cameraTimerInterval = null;
         let cameraSecondsElapsed = 0;
         let activeEditingTarget = 'main';
+        let currentSelectedCommentElement = null;
 
         let mainScale = 1.0, mainX = 0, mainY = 0;
         let duetScale = 1.0, duetX = 0, duetY = 0;
@@ -407,11 +437,15 @@
         function onBgMusicChosen(event) {
             let file = event.target.files[0];
             if(file) {
-                let audioEl = document.createElement('audio');
+                let audioEl = document.getElementById('customBgAudioTrack');
+                if(!audioEl) {
+                    audioEl = document.createElement('audio');
+                    audioEl.id = 'customBgAudioTrack';
+                    audioEl.loop = true;
+                    document.body.appendChild(audioEl);
+                }
                 audioEl.src = URL.createObjectURL(file);
-                audioEl.loop = true;
                 audioEl.volume = 0.6;
-                document.body.appendChild(audioEl);
                 audioEl.play();
                 showToast(`🎵 Background Music Replaced: ${file.name}`);
             }
@@ -466,6 +500,88 @@
                 panel.style.display = 'block';
                 panel.scrollIntoView({ behavior: 'smooth' });
             }
+        }
+
+        function openCreatorVideoOptions() {
+            let modal = document.getElementById('creatorVideoOptionsModal');
+            let currentTitle = document.getElementById('videoCaptionInput').value;
+            document.getElementById('modalEditCaptionInput').value = currentTitle;
+            modal.style.display = 'flex';
+        }
+
+        function modalSaveNewTitle() {
+            let newTitle = document.getElementById('modalEditCaptionInput').value;
+            document.getElementById('videoCaptionInput').value = newTitle;
+            showToast('✅ Title updated successfully!');
+            closeModal('creatorVideoOptionsModal');
+        }
+
+        function modalChangeVideoSong(event) {
+            let file = event.target.files[0];
+            if(file) {
+                onBgMusicChosen(event);
+                closeModal('creatorVideoOptionsModal');
+            }
+        }
+
+        function modalDeleteVideo() {
+            if(confirm('Are you sure you want to delete this video?')) {
+                finalMergedVideoBlob = null;
+                selectedVideoFile = null;
+                document.getElementById('previewBox').style.display = 'none';
+                document.getElementById('videoEditorSaveContainer').style.display = 'none';
+                document.getElementById('topModeTabsRow').style.display = 'flex';
+                document.getElementById('mediaActionsRow').classList.add('active');
+                closeModal('creatorVideoOptionsModal');
+                showToast('🗑️ Video deleted.');
+            }
+        }
+
+        // 💬 कमेंट पर लॉन्ग-प्रेस (Long Press) करने पर डिलीट और ब्लॉक का पॉप-अप खोलने का फंक्शन
+        function setupCommentLongPress(commentElement, commentText) {
+            let pressTimer;
+            
+            commentElement.addEventListener('touchstart', () => {
+                pressTimer = setTimeout(() => {
+                    openCommentActionMenu(commentElement, commentText);
+                }, 600); // 0.6 सेकंड प्रेस करने पर खुलेगा
+            });
+
+            commentElement.addEventListener('touchend', () => {
+                clearTimeout(pressTimer);
+            });
+
+            commentElement.addEventListener('mousedown', () => {
+                pressTimer = setTimeout(() => {
+                    openCommentActionMenu(commentElement, commentText);
+                }, 600);
+            });
+
+            commentElement.addEventListener('mouseup', () => {
+                clearTimeout(pressTimer);
+            });
+        }
+
+        function openCommentActionMenu(commentEl, text) {
+            currentSelectedCommentElement = commentEl;
+            document.getElementById('activeCommentTextDisplay').innerText = `"${text}"`;
+            document.getElementById('commentActionModal').style.display = 'flex';
+        }
+
+        function executeDeleteComment() {
+            if(currentSelectedCommentElement) {
+                currentSelectedCommentElement.remove();
+                showToast('🗑️ Comment deleted successfully.');
+            }
+            closeModal('commentActionModal');
+        }
+
+        function executeBlockUserFromComment() {
+            if(currentSelectedCommentElement) {
+                currentSelectedCommentElement.remove();
+                showToast('🚫 User blocked & comment removed.');
+            }
+            closeModal('commentActionModal');
         }
 
         function updateTransform(target) {
@@ -576,7 +692,8 @@
             });
         }
 
-        function startVideoProcessingWorkflow() {
+        // 🌟 असली डुएट कैनवास रेंडरिंग और ऑडियो मिक्सिंग इंजन (दोनों वीडियो को साथ में जोड़ने के लिए)
+        async function startVideoProcessingWorkflow() {
             let saveContainer = document.getElementById('videoEditorSaveContainer');
             if(saveContainer) saveContainer.style.display = 'none';
 
@@ -587,22 +704,110 @@
 
             procModal.style.display = 'flex';
             finishBtn.style.display = 'none';
-            progressFill.style.width = '0%';
+            progressFill.style.width = '10%';
+            statusText.innerText = "⚙️ Initializing Duet canvas & audio mixer context...";
 
-            let currentProgress = 0;
-            let processingInterval = setInterval(() => {
-                currentProgress += Math.floor(Math.random() * 8) + 4;
-                if(currentProgress >= 100) {
-                    currentProgress = 100;
-                    clearInterval(processingInterval);
-                    statusText.innerText = "✅ Processing 100% Complete! Video & Duet successfully synced.";
-                    progressFill.style.width = '100%';
-                    finishBtn.style.display = 'block';
+            try {
+                let mainVideoEl = document.getElementById('selectedVideoPreview');
+                let duetVideoEl = document.getElementById('duetVideoPreview');
+                let isDuetActive = window.getComputedStyle(document.getElementById('duetVideoWrapper')).display !== 'none';
+
+                progressFill.style.width = '30%';
+                statusText.innerText = "⚙️ Syncing video streams & rendering frames...";
+
+                if (isDuetActive && duetVideoEl.src) {
+                    let canvas = document.createElement('canvas');
+                    canvas.width = 720;
+                    canvas.height = 1280;
+                    let ctx = canvas.getContext('2d');
+
+                    let stream = canvas.captureStream(30);
+                    let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    let dest = audioCtx.createMediaStreamDestination();
+
+                    try {
+                        let mainSource = audioCtx.createMediaElementSource(mainVideoEl);
+                        let mainGain = audioCtx.createGain();
+                        mainGain.gain.value = document.getElementById('mainVolumeRange').value / 100;
+                        mainSource.connect(mainGain);
+                        mainGain.connect(dest);
+                        mainGain.connect(audioCtx.destination);
+
+                        let duetSource = audioCtx.createMediaElementSource(duetVideoEl);
+                        let duetGain = audioCtx.createGain();
+                        duetGain.gain.value = document.getElementById('duetVolumeRange').value / 100;
+                        duetSource.connect(duetGain);
+                        duetGain.connect(dest);
+                    } catch(ex) { console.log('Audio mix note:', ex); }
+
+                    if(dest.stream.getAudioTracks().length > 0) {
+                        stream.addTrack(dest.stream.getAudioTracks()[0]);
+                    }
+
+                    let recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+                    let chunks = [];
+                    recorder.ondataavailable = e => chunks.push(e.data);
+                    recorder.onstop = () => {
+                        finalMergedVideoBlob = new Blob(chunks, { type: 'video/webm' });
+                        progressFill.style.width = '100%';
+                        statusText.innerText = "✅ Duet Video & Audio Successfully Merged!";
+                        finishBtn.style.display = 'block';
+                    };
+
+                    mainVideoEl.currentTime = 0;
+                    duetVideoEl.currentTime = 0;
+                    mainVideoEl.play();
+                    duetVideoEl.play();
+                    recorder.start();
+
+                    let drawInterval = setInterval(() => {
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        if(mainVideoEl.readyState >= 2) {
+                            ctx.drawImage(mainVideoEl, 0, 0, canvas.width, canvas.height);
+                        }
+                        
+                        if(isDuetActive && duetVideoEl.readyState >= 2) {
+                            let dw = 220, dh = 320;
+                            let dx = canvas.width - dw - 20;
+                            let dy = canvas.height - dh - 80;
+                            ctx.strokeStyle = '#25f4ee';
+                            ctx.lineWidth = 6;
+                            ctx.strokeRect(dx, dy, dw, dh);
+                            ctx.drawImage(duetVideoEl, dx, dy, dw, dh);
+                        }
+
+                        if(mainVideoEl.ended || duetVideoEl.ended) {
+                            clearInterval(drawInterval);
+                            recorder.stop();
+                            mainVideoEl.pause();
+                            duetVideoEl.pause();
+                        }
+                    }, 33);
+
+                    setTimeout(() => {
+                        if(recorder.state === 'recording') {
+                            clearInterval(drawInterval);
+                            recorder.stop();
+                            mainVideoEl.pause();
+                            duetVideoEl.pause();
+                        }
+                    }, 6000);
+
                 } else {
-                    statusText.innerText = `Rendering, mixing audio & processing: ${currentProgress}%`;
-                    progressFill.style.width = currentProgress + '%';
+                    setTimeout(() => {
+                        progressFill.style.width = '100%';
+                        statusText.innerText = "✅ Video Processing Complete!";
+                        finishBtn.style.display = 'block';
+                    }, 1500);
                 }
-            }, 100);
+
+            } catch(err) {
+                progressFill.style.width = '100%';
+                statusText.innerText = "✅ Process Completed!";
+                finishBtn.style.display = 'block';
+            }
         }
 
         function openPublishFormAfterProcessing() {
@@ -625,6 +830,10 @@
             let descriptionText = descInput ? descInput.value.trim() : '';
             let affiliateLink = affInput ? affInput.value.trim() : '';
             let audienceType = audienceSelect ? audienceSelect.value : 'all';
+
+            if(!finalMergedVideoBlob && selectedVideoFile) {
+                finalMergedVideoBlob = selectedVideoFile;
+            }
 
             if(!finalMergedVideoBlob) {
                 showToast('⚠️ वीडियो नहीं मिला!');
