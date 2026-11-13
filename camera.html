@@ -53,11 +53,6 @@
 
         #videoEditorSaveContainer { display: none; position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 60; }
 
-        #processingOverlayModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); z-index: 2000; justify-content: center; align-items: center; padding: 20px; text-align: center; }
-        .processing-card { background: #181818; border: 2px solid #25f4ee; padding: 25px; border-radius: 16px; width: 100%; max-width: 350px; }
-        .progress-bar-track { width: 100%; background: #222; border-radius: 10px; height: 14px; overflow: hidden; margin: 15px 0; border: 1px solid #444; }
-        .progress-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #25f4ee, #fe2c55); transition: width 0.1s linear; }
-
         #copyrightModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 4000; justify-content: center; align-items: center; padding: 20px; }
         .copyright-card { background: #181818; border: 2px solid #d90429; width: 100%; max-width: 410px; border-radius: 16px; padding: 20px; text-align: left; max-height: 85vh; overflow-y: auto; }
 
@@ -80,17 +75,6 @@
 </head>
 <body>
     <div id="floatingToastMessage">Notification</div>
-
-    <div id="processingOverlayModal">
-        <div class="processing-card">
-            <h3 style="color: #25f4ee; margin-bottom: 6px;">⚡ Ultra-Fast Duet Engine Active...</h3>
-            <p id="processingStatusText" style="font-size: 12px; color: #ccc;">Fast-rendering full video length & mixing dual audio: 0%</p>
-            <div class="progress-bar-track">
-                <div class="progress-bar-fill" id="progressBarFill"></div>
-            </div>
-            <button class="post-action-btn" id="finishProcessingBtn" style="display:none; background:#25f4ee; color:#000;" onclick="openPublishFormAfterProcessing()">✨ Proceed to Publish Form ❯</button>
-        </div>
-    </div>
 
     <div id="copyrightModal">
         <div class="copyright-card">
@@ -165,7 +149,7 @@
                 </div>
                 <div style="padding: 6px; background: #000;">
                     <button class="post-action-btn" id="camRecordBtn" style="background:#fe2c55; margin-top:0;" onclick="startDirectCameraRecording()">⏺️ Start Recording</button>
-                    <button class="post-action-btn" id="camStopBtn" style="background:#ffcc00; color:#000; display:none; margin-top:0;" onclick="stopDirectCameraRecording()">💾 Save & Process</button>
+                    <button class="post-action-btn" id="camStopBtn" style="background:#ffcc00; color:#000; display:none; margin-top:0;" onclick="stopDirectCameraRecording()">✅ OK - Proceed to Publish</button>
                 </div>
             </div>
 
@@ -187,7 +171,7 @@
                 </div>
 
                 <div id="videoEditorSaveContainer">
-                    <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); color:#000; box-shadow: 0 4px 15px rgba(0,0,0,0.8);" onclick="startVideoProcessingWorkflow()">💾 Save & Process Video ❯</button>
+                    <button class="post-action-btn" style="background: linear-gradient(135deg, #25f4ee, #0077b6); color:#000; box-shadow: 0 4px 15px rgba(0,0,0,0.8);" onclick="skipProcessingAndOpenPublishForm()">✅ OK - Proceed to Publish Form ❯</button>
                 </div>
             </div>
 
@@ -266,7 +250,6 @@
     <script>
         let selectedVideoFile = null;
         let finalMergedVideoBlob = null;
-        let generatedThumbnailBlob = null;
         let mediaRecorderDirect = null;
         let directRecordedChunks = [];
         let directCameraStreamObj = null;
@@ -381,6 +364,7 @@
                 document.getElementById('cameraTimerBadge').style.display = 'none';
                 if(directCameraStreamObj) directCameraStreamObj.getTracks().forEach(track => track.stop());
             }
+            skipProcessingAndOpenPublishForm();
         }
 
         function onGalleryFileChosen(event) {
@@ -464,7 +448,7 @@
                 } else {
                     reportBox.innerHTML = `
                         <b style="color:#25f4ee;">✅ 100% Original & Clean Content!</b><br><br>
-                        • <b>Verified Creator:</b> Ramkumar Dhobi (90s_rk_creation)<br>
+                        • <b>Verified Creator:</b> Ramkumar Dhobi (90s_rk_creation)[span_0](start_span)[span_0](end_span)<br>
                         • <b>Status:</b> No copyright strikes or duplicate matches found worldwide.<br>
                         • <b>Monetization:</b> Fully Cleared for Ad Revenue!
                     `;
@@ -612,159 +596,15 @@
             duetBox.addEventListener('touchend', () => { duetInitialDist = null; });
         }
 
-        // 🚀 अल्ट्रा-फास्ट और ग्लिच-फ्री डुएट कंपोजिटिंग इंजन (पूरा वीडियो बिना कटे फुल लेंथ तक रेंडर होगा)
-        async function startVideoProcessingWorkflow() {
-            let saveContainer = document.getElementById('videoEditorSaveContainer');
-            if(saveContainer) saveContainer.style.display = 'none';
-
-            let procModal = document.getElementById('processingOverlayModal');
-            let statusText = document.getElementById('processingStatusText');
-            let progressFill = document.getElementById('progressBarFill');
-            let finishBtn = document.getElementById('finishProcessingBtn');
-
-            procModal.style.display = 'flex';
-            finishBtn.style.display = 'none';
-            progressFill.style.width = '15%';
-            statusText.innerText = "⚡ Initializing Ultra-Fast Duet Engine...";
-
-            try {
-                let mainVideoEl = document.getElementById('selectedVideoPreview');
-                let duetVideoEl = document.getElementById('duetVideoPreview');
-                let isDuetActive = window.getComputedStyle(document.getElementById('duetVideoWrapper')).display !== 'none';
-
-                let maxDuration = mainVideoEl.duration || 10;
-                if(isDuetActive && duetVideoEl.duration) {
-                    maxDuration = Math.max(mainVideoEl.duration, duetVideoEl.duration);
-                }
-
-                let targetWidth = 720;
-                let targetHeight = 1280;
-                if (maxDuration > 60) {
-                    targetWidth = 1280;
-                    targetHeight = 720;
-                }
-
-                // थंबनेल कैप्चर
-                let thumbCanvas = document.createElement('canvas');
-                thumbCanvas.width = targetWidth;
-                thumbCanvas.height = targetHeight;
-                let thumbCtx = thumbCanvas.getContext('2d');
-                mainVideoEl.currentTime = 0.5;
-                await new Promise(resolve => setTimeout(resolve, 200));
-                thumbCtx.drawImage(mainVideoEl, 0, 0, targetWidth, targetHeight);
-                
-                await new Promise(resolve => {
-                    thumbCanvas.toBlob(blob => {
-                        generatedThumbnailBlob = blob;
-                        resolve();
-                    }, 'image/jpeg', 0.85);
-                });
-
-                progressFill.style.width = '40%';
-                statusText.innerText = "⚡ Fast-rendering full video length without glitches...";
-
-                if (isDuetActive && duetVideoEl.src) {
-                    let canvas = document.createElement('canvas');
-                    canvas.width = targetWidth;
-                    canvas.height = targetHeight;
-                    let ctx = canvas.getContext('2d');
-
-                    let stream = canvas.captureStream(30);
-                    let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    let dest = audioCtx.createMediaStreamDestination();
-
-                    try {
-                        let mainSource = audioCtx.createMediaElementSource(mainVideoEl);
-                        let mainGain = audioCtx.createGain();
-                        mainGain.gain.value = document.getElementById('mainVolumeRange').value / 100;
-                        mainSource.connect(mainGain);
-                        mainGain.connect(dest);
-                        mainGain.connect(audioCtx.destination);
-
-                        let duetSource = audioCtx.createMediaElementSource(duetVideoEl);
-                        let duetGain = audioCtx.createGain();
-                        duetGain.gain.value = document.getElementById('duetVolumeRange').value / 100;
-                        duetSource.connect(duetGain);
-                        duetGain.connect(dest);
-                    } catch(ex) { console.log('Audio mix note:', ex); }
-
-                    if(dest.stream.getAudioTracks().length > 0) {
-                        stream.addTrack(dest.stream.getAudioTracks()[0]);
-                    }
-
-                    let recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
-                    let chunks = [];
-                    recorder.ondataavailable = e => e.data.size > 0 && chunks.push(e.data);
-                    recorder.onstop = () => {
-                        finalMergedVideoBlob = new Blob(chunks, { type: 'video/webm' });
-                        progressFill.style.width = '100%';
-                        statusText.innerText = "✅ Duet Rendered Successfully!";
-                        finishBtn.style.display = 'block';
-                    };
-
-                    mainVideoEl.currentTime = 0;
-                    duetVideoEl.currentTime = 0;
-                    mainVideoEl.play();
-                    duetVideoEl.play();
-                    recorder.start();
-
-                    let drawInterval = setInterval(() => {
-                        ctx.fillStyle = '#000';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        
-                        if(mainVideoEl.readyState >= 2) {
-                            ctx.drawImage(mainVideoEl, 0, 0, canvas.width, canvas.height);
-                        }
-                        
-                        if(isDuetActive && duetVideoEl.readyState >= 2) {
-                            let dw = targetWidth * 0.3, dh = targetHeight * 0.25;
-                            let dx = canvas.width - dw - 20;
-                            let dy = canvas.height - dh - 80;
-                            ctx.strokeStyle = '#25f4ee';
-                            ctx.lineWidth = 4;
-                            ctx.strokeRect(dx, dy, dw, dh);
-                            ctx.drawImage(duetVideoEl, dx, dy, dw, dh);
-                        }
-
-                        if(mainVideoEl.ended || duetVideoEl.ended || mainVideoEl.currentTime >= maxDuration) {
-                            clearInterval(drawInterval);
-                            recorder.stop();
-                            mainVideoEl.pause();
-                            duetVideoEl.pause();
-                        }
-                    }, 33);
-
-                    // सुरक्षा के लिए वीडियो की असली लंबाई का टाइमआउट
-                    setTimeout(() => {
-                        if(recorder.state === 'recording') {
-                            clearInterval(drawInterval);
-                            recorder.stop();
-                            mainVideoEl.pause();
-                            duetVideoEl.pause();
-                        }
-                    }, (maxDuration * 1000) + 1500);
-
-                } else {
-                    setTimeout(() => {
-                        finalMergedVideoBlob = selectedVideoFile;
-                        progressFill.style.width = '100%';
-                        statusText.innerText = "✅ Video Ready Successfully!";
-                        finishBtn.style.display = 'block';
-                    }, 1000);
-                }
-
-            } catch(err) {
+        // 🚀 बिना किसी प्रोसेसिंग के सीधे पब्लिशिंग फॉर्म खोलने वाला फंक्शन
+        function skipProcessingAndOpenPublishForm() {
+            if(!finalMergedVideoBlob && selectedVideoFile) {
                 finalMergedVideoBlob = selectedVideoFile;
-                progressFill.style.width = '100%';
-                statusText.innerText = "✅ Process Completed!";
-                finishBtn.style.display = 'block';
             }
-        }
 
-        function openPublishFormAfterProcessing() {
-            document.getElementById('processingOverlayModal').style.display = 'none';
             document.getElementById('previewBox').style.display = 'none';
             document.getElementById('threeDotMasterPanel').style.display = 'none';
+            document.getElementById('directCameraStudio').style.display = 'none';
             
             if(finalMergedVideoBlob) {
                 let publishedPlayer = document.getElementById('finalPublishedVideoPlayer');
@@ -777,7 +617,7 @@
                 formContainer.style.display = 'block';
                 formContainer.scrollIntoView({ behavior: 'smooth' });
             }
-            showToast('🚀 वीडियो सेव हो गया! अब नीचे डिटेल्स भरें।');
+            showToast('✅ ओके! अब टाइटल, डिस्क्रिप्शन और एफिलिएट लिंक भरें।');
         }
 
         async function publishVideoToGlobalCloudStorage() {
@@ -805,7 +645,6 @@
             try {
                 let fileId = Date.now();
                 let videoFileName = 'global_merged_' + fileId + '.mp4';
-                let thumbFileName = 'thumb_' + fileId + '.jpg';
 
                 let { error: uploadError } = await supabaseClient.storage
                     .from('videos')
@@ -815,17 +654,10 @@
                 let { data: urlData } = supabaseClient.storage.from('videos').getPublicUrl(videoFileName);
                 let publicVideoUrl = urlData ? urlData.publicUrl : '';
 
-                let publicThumbUrl = '';
-                if(generatedThumbnailBlob) {
-                    await supabaseClient.storage.from('videos').upload(thumbFileName, generatedThumbnailBlob, { cacheControl: '3600', upsert: true });
-                    let { data: thumbData } = supabaseClient.storage.from('videos').getPublicUrl(thumbFileName);
-                    publicThumbUrl = thumbData ? thumbData.publicUrl : '';
-                }
-
                 await supabaseClient.from('videos').insert([
                     { 
                         video_url: publicVideoUrl,
-                        thumbnail_url: publicThumbUrl,
+                        thumbnail_url: publicVideoUrl,
                         caption: titleText, 
                         description: descriptionText, 
                         affiliate_link: affiliateLink,
@@ -839,7 +671,7 @@
                 localFeed.unshift({
                     id: 'local_vid_' + fileId,
                     url: publicVideoUrl,
-                    thumb: publicThumbUrl || publicVideoUrl,
+                    thumb: publicVideoUrl,
                     caption: titleText,
                     description: descriptionText,
                     affiliate: affiliateLink,
