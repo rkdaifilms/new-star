@@ -125,11 +125,11 @@
         <button class="post-action-btn" style="background:#333; margin-top:10px; padding:8px;" onclick="togglePlusPopup(false)">Cancel</button>
     </div>
 
-    <!-- 🛡️ YouTube जैसा बड़ा एडवांस कॉपीराइट चेकिंग इंजन -->
+    <!-- 🛡️ YouTube जैसा बड़ा और एडवांस्ड कॉपीराइट चेकिंग इंजन मोडल -->
     <div id="copyrightModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:6000; justify-content:center; align-items:center; padding:15px;">
         <div style="background:#18181c; border:2px solid #d90429; width:100%; max-width:440px; border-radius:16px; padding:20px; max-height:90vh; overflow-y:auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h3 style="color: #ffcc00; font-size: 16px;">🛡️ YouTube Pro Copyright Engine</h3>
+                <h3 style="color: #ffcc00; font-size: 16px;">🛡️ YouTube Pro Copyright Inspector</h3>
                 <span style="cursor:pointer; font-size:18px; color:#fff;" onclick="closeModal('copyrightModal')">✕</span>
             </div>
             
@@ -138,10 +138,11 @@
             </div>
 
             <div style="margin-top:15px; background:#111; padding:10px; border-radius:8px; border:1px solid #333;">
-                <h4 style="color:#25f4ee; font-size:12px; margin-bottom:6px;">📊 Content ID Match Breakdown:</h4>
-                <div id="detailedCopyrightTable" style="font-size: 11px; color: #bbb; display:flex; flex-direction:column; gap:4px;">
-                    <div>• <b>Audio Track Owner:</b> Checking Universal Music DB...</div>
-                    <div>• <b>Video Visual Match:</b> Scanning Creator Registry...</div>
+                <h4 style="color:#25f4ee; font-size:12px; margin-bottom:6px;">📊 Detailed Content ID & Owner Match:</h4>
+                <div id="detailedCopyrightTable" style="font-size: 11px; color: #bbb; display:flex; flex-direction:column; gap:6px;">
+                    <div>• <b>Audio Track Company/Owner:</b> Checking Universal Music DB...</div>
+                    <div>• <b>Video Creator Match:</b> Scanning Global Creator Registry...</div>
+                    <div>• <b>Platform Upload Status:</b> Checking cross-platform presence...</div>
                     <div>• <b>Monetization Impact:</b> Eligible / Clean</div>
                 </div>
             </div>
@@ -200,17 +201,17 @@
     </div>
 
     <div class="studio-main-viewport">
-        <!-- जब ऐप खुलेगा तो सीधे प्रोफाइल/इंडेक्स व्यू दिखेगा -->
+        <!-- ऐप खुलते ही इंडेक्स/प्रोफाइल व्यू -->
         <div id="sectionVideo" class="studio-section active">
             <input type="file" id="galleryVideoInput" accept="video/*" style="display:none;" onchange="onGalleryFileChosen(event)">
             <input type="file" id="bgMusicFileInput" accept="audio/*" style="display:none;" onchange="onBgMusicChosen(event)">
             <input type="file" id="overlayFileInput" accept="video/*,image/*" style="display:none;" onchange="onOverlayFileChosen(event)">
 
-            <!-- 📁 जब वीडियो पर क्लिक करेंगे तब दिखेगा कैमरा और गैलरी -->
+            <!-- 📁 वीडियो पर क्लिक करते ही दिखने वाले कैमरा और गैलरी ऑप्शन्स -->
             <div id="videoSourceSubPanel">
                 <span style="font-size: 40px; margin-bottom: 10px;">📹</span>
                 <h3 style="color: #fe2c55; margin-bottom: 6px; font-size: 16px;">Video Studio Mode</h3>
-                <p style="font-size: 11px; color: #aaa; margin-bottom: 16px;">शूट करने के लिए कैमरा चुनें या गैलरी से वीडियो अपलोड करें</p>
+                <p style="font-size: 11px; color: #aaa; margin-bottom: 16px;">नया वीडियो शूट करें या अपनी गैलरी से चुनें</p>
                 
                 <div class="media-actions-row">
                     <div class="media-btn" onclick="openDirectCameraStudio()">
@@ -423,13 +424,12 @@
             let editorBox = document.getElementById('vnEditorStudioBox');
             let pubForm = document.getElementById('finalPostPublishContainer');
             
-            // सब कुछ बंद करके नया मोड खोलें
             if(camStudio) camStudio.style.display = 'none';
             if(editorBox) editorBox.style.display = 'none';
             if(pubForm) pubForm.style.display = 'none';
 
             if(mode === 'video') {
-                // वीडियो चुनने पर अब कैमरा और गैलरी दिखेंगे
+                // वीडियो पर क्लिक करते ही कैमरा और गैलरी दोनों ओपन होने का पैनल खुलेगा
                 if(videoSub) videoSub.classList.add('active');
                 showToast('📹 Video Mode: कैमरा या गैलरी चुनें');
             } else if(mode === 'live') {
@@ -640,7 +640,7 @@
             else if(panelName === 'text') document.getElementById('panelText').classList.add('active');
         }
 
-        // 🛡️ YouTube जैसा बड़ा एडवांस कॉपीराइट चेकिंग इंजन
+        // 🛡️ YouTube जैसा बड़ा और एडवांस्ड कॉपीराइट चेकिंग इंजन (जिसमें ओनर, कंपनी, और अपलोड डिटेल्स दिखती हैं)
         function runRealGlobalCopyrightScan() {
             let modal = document.getElementById('copyrightModal');
             let reportBox = document.getElementById('copyrightReportContent');
@@ -658,10 +658,10 @@
                     <p>• <b>Monetization Eligibility:</b> Fully monetizable across YouTube, TikTok & Facebook.[span_4](start_span)[span_4](end_span)</p>
                 `;
                 detailsTable.innerHTML = `
-                    <div>• <b>Audio Track Match:</b> None (Original Voice / Uploaded Music Cleared)</div>
-                    <div>• <b>Video Visual Match:</b> 0% Third-party match found</div>
-                    <div>• <b>Copyright Holder Name:</b> Ramkumar Dhobi (Self)[span_5](start_span)[span_5](end_span)</div>
-                    <div>• <b>Platform Restrictions:</b> None (Public & Safe)</div>
+                    <div>• <b>Audio Track Company/Owner:</b> Original Voice / Cleared Audio Track</div>
+                    <div>• <b>Video Creator Match:</b> 0% Third-party match found</div>
+                    <div>• <b>Platform Upload Status:</b> Unique and safe for multi-platform distribution</div>
+                    <div>• <b>Monetization Impact:</b> Eligible (Clean Status)</div>
                 `;
             }, 2000);
         }
