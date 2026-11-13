@@ -8,7 +8,7 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
-body{background:#000;color:white;padding-bottom:65px;overflow-x:hidden}
+body{background:#000;color:white;padding-bottom:75px;overflow-x:hidden}
 button,select,input,textarea{font:inherit}
 button{cursor:pointer}
 .studio{max-width:600px;margin:auto;min-height:100vh;background:#080808;position:relative}
@@ -47,11 +47,10 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 
 .range{width:100%;accent-color:#fe2c55}
 
-/* ➕ प्लस (+) बटन पॉपअप */
-#plusPopupModal { display: none; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #18181c; border: 2px solid #fe2c55; border-radius: 16px; padding: 16px; z-index: 2000; width: 90%; max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.9); }
-#plusPopupModal.active { display: block; }
-.popup-modes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-.popup-mode-btn { background: #22222b; border: 1px solid #444; border-radius: 12px; padding: 14px 4px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #fff; font-size: 11px; }
+/* 🚀 होम स्क्रीन पर तीनों मोड्स (Video, Live, Gaming) का सुंदर लेआउट */
+.home-modes-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+.home-mode-card { background: #15151b; border: 1px solid #333; border-radius: 12px; padding: 16px 8px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; transition: 0.2s; }
+.home-mode-card:hover { border-color: #25f4ee; background: #1c1c24; }
 
 /* ⚓ मास्टर बॉटम नेविगेशन बार */
 .master-tiktok-final-nav {
@@ -79,15 +78,31 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 <body>
 <div class="studio">
 
-<!-- होम / सोर्स स्क्रीन -->
+<!-- होम / सोर्स स्क्रीन (अब यहीं पर Video Studio, Live और Gaming तीनों एक साथ मिलेंगे) -->
 <section id="sourceScreen" class="screen" style="padding-top:20px;">
-  <div class="card" style="text-align:center;padding:35px 15px">
-    <div style="font-size:48px">🎬</div>
-    <h3 style="margin-top:12px; font-size:18px;">New Star Video Studio</h3>
-    <p class="muted" style="margin-bottom:15px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें।</p>
+  <div class="card" style="text-align:center;padding:25px 15px">
+    <div style="font-size:42px">🎬</div>
+    <h3 style="margin-top:10px; font-size:18px;">New Star Video Studio</h3>
+    <p class="muted" style="margin-bottom:12px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें।</p>
     <button class="primary" onclick="openCamera()">🎥 Open Camera Studio</button>
     <button class="secondary" onclick="document.getElementById('videoInput').click()">📁 Select Gallery Video</button>
     <input id="videoInput" type="file" accept="video/*" class="hidden">
+  </div>
+
+  <!-- नीचे Live और Gaming के डायरेक्ट शॉर्टकट कार्ड्स -->
+  <div class="home-modes-container">
+    <div class="home-mode-card" onclick="selectPlusMode('video')" style="border-color:#25f4ee;">
+      <span style="font-size:26px;">📹</span>
+      <b style="font-size:12px; color:#25f4ee;">Video Studio</b>
+    </div>
+    <div class="home-mode-card" onclick="selectPlusMode('live')">
+      <span style="font-size:26px;">🔴</span>
+      <b style="font-size:12px;">Live Stream</b>
+    </div>
+    <div class="home-mode-card" onclick="selectPlusMode('gaming')">
+      <span style="font-size:26px;">🎮</span>
+      <b style="font-size:12px;">Gaming</b>
+    </div>
   </div>
 </section>
 
@@ -125,7 +140,6 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     </div>
   </div>
 
-  <!-- पब्लिश बटन को एकदम बीच में और प्रमुख रूप से रख दिया गया है -->
   <div style="padding:15px; background:#111; text-align:center;">
     <button class="primary" style="font-size:16px; padding:16px;" onclick="showPanel('publishPanel')">🚀 Post Settings & Options</button>
   </div>
@@ -221,7 +235,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <button class="secondary" onclick="inspectVideo()">🔍 Check Video</button>
   </div>
 
-  <!-- पब्लिश पैनल (डायरेक्ट पोस्ट बटन) -->
+  <!-- पब्लिश पैनल -->
   <div id="publishPanel" class="panel hidden">
     <div class="panel-header">
       <h3>🚀 Video Details & Post</h3>
@@ -238,7 +252,6 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
 
     <div class="status" id="exportStatus">Ready to post instantly.</div>
-    <!-- सीधा एक सिंगल 'Post' बटन -->
     <button class="primary" id="exportButton" onclick="instantDirectPost()" style="background:linear-gradient(135deg,#25f4ee,#fe2c55); font-size:16px; padding:16px;">🚀 Post</button>
     <button class="secondary" onclick="saveDraft()">💾 Save Local Draft</button>
   </div>
@@ -250,36 +263,13 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 
 </div>
 
-<!-- ➕ प्लस (+) बटन का पॉपअप -->
-<div id="plusPopupModal">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <h3 style="color:#fe2c55; font-size:14px;">🚀 New Post / Stream</h3>
-        <div class="panel-close-btn" onclick="togglePlusPopup(false)">✕</div>
-    </div>
-    <div class="popup-modes-grid">
-        <div class="popup-mode-btn" onclick="selectPlusMode('video')">
-            <span style="font-size:24px;">📹</span>
-            <b>Video</b>
-        </div>
-        <div class="popup-mode-btn" onclick="selectPlusMode('live')">
-            <span style="font-size:24px;">🔴</span>
-            <b>Live</b>
-        </div>
-        <div class="popup-mode-btn" onclick="selectPlusMode('gaming')">
-            <span style="font-size:24px;">🎮</span>
-            <b>Gaming</b>
-        </div>
-    </div>
-    <button class="primary" style="margin-top:10px; padding:8px;" onclick="togglePlusPopup(false)">Cancel</button>
-</div>
-
 <div id="toast"></div>
 
-<!-- ⚓ मास्टर बॉटम नेविगेशन बार -->
+<!-- ⚓ मास्टर बॉटम नेविगेशन बार (अब प्लस (+) पर क्लिक करते ही तुरंत होम/स्टूडियो स्क्रीन पर आ जाएगा) -->
 <div class="master-tiktok-final-nav">
     <a href="index.html" class="mfn-item"><i>🏠</i><span>Home</span></a>
     <a href="wallet.html" class="mfn-item"><i>🪙</i><span>Wallet</span></a>
-    <div class="mfn-item" style="flex: 1.5; cursor: pointer;" onclick="openStudioPlusMenu()">
+    <div class="mfn-item" style="flex: 1.5; cursor: pointer;" onclick="selectPlusMode('video')">
         <div class="mfn-center-plus">+</div>
     </div>
     <a href="inbox.html" class="mfn-item"><i>💬</i><span>Inbox</span></a>
@@ -356,23 +346,11 @@ function closeActivePanels(){
   toast('Back to Editor');
 }
 
-function openStudioPlusMenu(){
-  let modal = $('plusPopupModal');
-  if(modal) modal.classList.toggle('active');
-}
-
-function togglePlusPopup(show){
-  let modal = $('plusPopupModal');
-  if(modal){
-    if(show) modal.classList.add('active');
-    else modal.classList.remove('active');
-  }
-}
-
+/* ⚡ प्लस (+) बटन या वीडियो मोड पर क्लिक करते ही सीधे होम/स्टूडियो स्क्रीन पर आ जाएगा */
 function selectPlusMode(mode){
-  togglePlusPopup(false);
   if(mode === 'video'){
     showScreen('sourceScreen');
+    window.scrollTo({top:0, behavior:'smooth'});
     toast('📹 Video Studio Active');
   } else if(mode === 'live'){
     window.location.href = 'live.html';
@@ -554,7 +532,7 @@ function stopVoiceRecording(){
   }
 }
 
-/* ⚡ INSTANT POST ENGINE: सिर्फ एक क्लिक (Post) और 1 सेकंड में काम खत्म! */
+/* ⚡ INSTANT POST ENGINE */
 function instantDirectPost(){
   if(!selectedVideoFile && !finalVideoBlob){
     toast('⚠️ Pehle video chunein!');
