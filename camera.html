@@ -1,472 +1,290 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#000000">
-<title>New Star - Camera Studio</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>New Star Creator Hub - Camera</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
-body{background:#000;color:#fff;padding-bottom:65px;overflow-x:hidden}
-button,input,textarea{font:inherit}
-button{cursor:pointer}
-.studio{max-width:600px;margin:auto;min-height:100vh;background:#080808;padding:12px 12px 80px}
-.hidden{display:none!important}
-.card,.panel{background:#15151b;border:1px solid #333;border-radius:12px;padding:15px;margin-bottom:12px}
-h2,h3{color:#25f4ee;margin-bottom:12px}
-h2{font-size:20px}h3{font-size:14px}
-label{font-size:12px;color:#ccc;display:block;margin:10px 0 5px}
-.input{width:100%;background:#08080b;color:white;border:1px solid #444;padding:12px;border-radius:8px;margin-bottom:8px}
-.primary,.secondary{border:0;padding:13px;border-radius:9px;font-weight:bold;width:100%;margin-top:8px}
-.primary{background:linear-gradient(120deg,#fe2c55,#ff6b8b);color:#fff}
-.secondary{background:#262630;color:#fff;border:1px solid #555}
-.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
-.muted{font-size:11px;color:#aaa;line-height:1.6;margin-top:8px}
-.preview{height:min(65vh,650px);background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
-#editorVideo{width:100%;height:100%;object-fit:contain;transform-origin:center}
-#previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:#fff;text-shadow:2px 2px 5px #000;text-align:center;max-width:90%;overflow-wrap:anywhere;z-index:10;touch-action:none}
-.editor-top-bar{position:absolute;top:10px;right:10px;z-index:50}
-.three-dots-btn{background:#111e;border:1px solid #555;color:white;font-size:24px;padding:4px 12px;border-radius:8px}
-.dropdown-menu{display:none;position:absolute;top:42px;right:0;background:#18181c;border:1px solid #444;border-radius:10px;width:240px;max-height:60vh;overflow:auto;z-index:1000}
-.dropdown-menu.active{display:block}
-.dropdown-item{padding:12px;width:100%;text-align:left;background:none;color:white;border:0;border-bottom:1px solid #333;font-size:12px}
-.panel{border-radius:10px}
-.panel-header{display:flex;justify-content:space-between;align-items:center}
-.panel-close-btn{background:#333;border:1px solid #555;color:white;width:30px;height:30px;border-radius:50%}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.range{width:100%;accent-color:#fe2c55}
-#toast{position:fixed;bottom:65px;left:50%;transform:translateX(-50%);background:#222;border:1px solid #25f4ee;padding:10px 16px;border-radius:20px;display:none;z-index:9999;font-size:12px;max-width:90%;text-align:center}
-.status{padding:10px;background:#101014;border:1px solid #444;border-radius:8px;font-size:12px;line-height:1.7;overflow-wrap:anywhere}
-button:disabled{opacity:.5;cursor:not-allowed}
-.nav{position:fixed;bottom:0;left:0;width:100%;height:55px;background:#000;display:flex;justify-content:space-around;align-items:center;border-top:1px solid #222;z-index:2000}
-.nav a,.nav button{color:#aaa;text-decoration:none;font-size:11px;background:none;border:0;text-align:center;flex:1}
-.progress{width:100%;accent-color:#25f4ee}
+*{box-sizing:border-box}body{margin:0;background:#101014;color:#fff;font-family:Arial,sans-serif}
+header{padding:16px;background:#191920;display:flex;justify-content:space-between;align-items:center}
+h2{margin:8px 0 16px}.wrap{max-width:760px;margin:auto;padding:16px}
+.card{background:#1c1c24;border:1px solid #33333d;border-radius:16px;padding:16px;margin:14px 0}
+input,textarea,button{font:inherit;border-radius:10px;padding:12px;width:100%;margin:6px 0}
+input,textarea{background:#111118;border:1px solid #454550;color:white}
+button{border:0;background:#ff3158;color:white;font-weight:bold;cursor:pointer}
+button.secondary{background:#30303b}button:disabled{opacity:.5}
+video{width:100%;max-height:65vh;background:#000;border-radius:14px}
+.row{display:flex;gap:8px}.row>*{flex:1}.muted{color:#aaa;font-size:13px}
+#app{display:none}#auth{max-width:480px;margin:7vh auto;padding:16px}
+#status{white-space:pre-wrap;color:#ffd36a;font-size:14px}
 </style>
 </head>
 <body>
-<div class="studio">
+<header><b>⭐ New Star Creator Hub</b><button class="secondary" style="width:auto" onclick="logout()">Logout</button></header>
 
-<!-- AUTH -->
-<section id="authScreen" class="card">
-  <h2>⭐ New Star Login</h2>
-  <p class="muted">अपने अकाउंट से लॉगिन करें या नया अकाउंट बनाएं।</p>
-  <div id="signupNameWrap" class="hidden">
-    <label>पूरा नाम</label>
-    <input id="authName" class="input" maxlength="80" placeholder="अपना नाम">
-  </div>
-  <label>Email</label>
-  <input id="authEmail" class="input" type="email" autocomplete="email" placeholder="Email address">
-  <label>Password</label>
-  <input id="authPassword" class="input" type="password" autocomplete="current-password" placeholder="कम से कम 6 अक्षर">
-  <button id="loginBtn" class="primary" onclick="login()">Login</button>
-  <button id="signupBtn" class="secondary" onclick="signup()">Create New Account</button>
-  <p id="authStatus" class="muted" aria-live="polite"></p>
+<section id="auth" class="card">
+<h2>अपने अकाउंट में लॉगिन करें</h2>
+<button onclick="googleLogin()">🌐 Continue with Google</button>
+<hr>
+<h3>मोबाइल नंबर से</h3>
+<input id="phone" placeholder="+97798XXXXXXXX" autocomplete="tel">
+<button class="secondary" onclick="sendOTP()">OTP भेजें</button>
+<input id="otp" placeholder="SMS में आया OTP">
+<button onclick="verifyOTP()">OTP Verify करके Login</button>
+<hr>
+<h3>Email से</h3>
+<input id="email" type="email" placeholder="Email address">
+<input id="password" type="password" placeholder="Password (कम से कम 6 अक्षर)">
+<input id="fullName" placeholder="आपका नाम (नए अकाउंट के लिए)">
+<div class="row">
+<button onclick="emailLogin()">Login</button>
+<button class="secondary" onclick="emailSignup()">Sign Up</button>
+</div>
+<p id="authStatus" class="muted"></p>
 </section>
 
-<!-- MAIN -->
-<section id="mainScreen" class="hidden">
-  <div class="card">
-    <div class="row" style="align-items:center">
-      <div><h3 style="margin:0">🎬 New Star Video Studio</h3><p class="muted" id="userLabel"></p></div>
-      <button class="secondary" style="max-width:110px;margin:0" onclick="logout()">Logout</button>
-    </div>
-    <button class="primary" onclick="openCamera()">🎥 Open Camera</button>
-    <button class="secondary" onclick="$('videoInput').click()">📁 Select Gallery Video</button>
-    <input id="videoInput" class="hidden" type="file" accept="video/*">
-  </div>
-
-  <section id="cameraBox" class="card hidden">
-    <h3>🎥 Camera</h3>
-    <video id="cameraVideo" autoplay muted playsinline style="width:100%;max-height:45vh;background:#000"></video>
-    <div class="row">
-      <button id="recordBtn" class="primary" onclick="startRecording()">⏺ Record</button>
-      <button id="stopRecordBtn" class="secondary" onclick="stopRecording()" disabled>■ Stop</button>
-    </div>
-    <button class="secondary" onclick="switchCamera()">🔄 Switch Camera</button>
-    <button class="secondary" onclick="closeCamera()">Close Camera</button>
-    <p id="cameraStatus" class="muted">Camera access requires permission and HTTPS.</p>
-  </section>
-
-  <section id="editorBox" class="hidden">
-    <div class="preview">
-      <video id="editorVideo" playsinline controls></video>
-      <div id="previewText"></div>
-      <div class="editor-top-bar">
-        <button class="three-dots-btn" onclick="toggleMenu(event)">⋮</button>
-        <div id="editorMenu" class="dropdown-menu" onclick="event.stopPropagation()">
-          <button class="dropdown-item" onclick="showPanel('trimPanel')">✂️ Trim Preview</button>
-          <button class="dropdown-item" onclick="showPanel('cropPanel')">📐 Crop / Rotate / Zoom</button>
-          <button class="dropdown-item" onclick="showPanel('filterPanel')">🎨 Filters</button>
-          <button class="dropdown-item" onclick="showPanel('speedPanel')">⏩ Speed</button>
-          <button class="dropdown-item" onclick="showPanel('textPanel')">✍️ Text / Subtitle</button>
-          <button class="dropdown-item" onclick="showPanel('audioPanel')">🔊 Audio / Music</button>
-          <button class="dropdown-item" onclick="showPanel('infoPanel')">📊 Video Information</button>
-          <button class="dropdown-item" onclick="showPanel('copyrightPanel')">🛡 Copyright Information</button>
-          <button class="dropdown-item" onclick="resetPreview()">↩ Reset Preview</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="trimPanel" class="panel hidden">
-      <div class="panel-header"><h3>✂️ Trim Preview</h3><button class="panel-close-btn" onclick="closePanels()">×</button></div>
-      <label>Start (seconds)</label><input class="input" id="trimStart" type="number" min="0" value="0">
-      <label>End (seconds)</label><input class="input" id="trimEnd" type="number" min="0">
-      <button class="primary" onclick="previewTrim()">Preview Trim</button>
-      <p class="muted">यह केवल Preview Range है। स्थायी कटिंग के लिए Export Processing Engine जरूरी है।</p>
-    </div>
-
-    <div id="cropPanel" class="panel hidden">
-      <div class="panel-header"><h3>📐 Crop / Rotate / Zoom</h3><button class="panel-close-btn" onclick="closePanels()">×</button></div>
-      <div class="grid2">
-        <button class="secondary" onclick="setZoom(1)">Fit 1x</button>
-        <button class="secondary" onclick="setZoom(1.5)">Zoom 1.5x</button>
-        <button class="secondary" onclick="setZoom(2)">Zoom 2x</button>
-        <button class="secondary" onclick="rotateVideo()">Rotate 90°</button>
-      </div>
-    </div>
-
-    <div id="filterPanel" class="panel hidden">
-      <div class="panel-header"><h3>🎨 Filters</h3><button class="panel-close-btn" onclick="closePanels()">×</button></div>
-      <div class="grid2">
-        <button class="secondary" onclick="setFilter('none')">Normal</button>
-        <button class="secondary" onclick="setFilter('grayscale(100%)')">B&W</button>
-        <button class="secondary" onclick="setFilter('sepia(90%)')">Vintage</button>
-        <button class="secondary" onclick="setFilter('contrast(150%) saturate(140%)')">Cinematic</button>
-        <button class="secondary" onclick="setFilter('brightness(115%) saturate(130%)')">Bright</button>
-        <button class="secondary" onclick="setFilter('saturate(180%)')">Color Boost</button>
-      </div>
-    </div>
-
-    <div id="speedPanel" class="panel hidden">
-      <div class="panel-header"><h3>⏩ Speed</h3><button class="panel-close-btn" onclick="closePanels()">×</button></div>
-      <div class="grid2">
-        <button class="secondary" onclick="setSpeed(.5)">0.5x</button>
-        <button class="secondary" onclick="setSpeed(.75)">0.75x</button>
-        <button class="secondary" onclick="setSpeed(1)">1x</button>
-        <button class="secondary" onclick="setSpeed(1.5)">1.5x</button>
-        <button class="secondary" onclick="setSpeed(2)">2x</button>
-      </div>
-    </div>
-
-    <div id="textPanel" class="panel hidden">
-      <div class="panel-header"><h3>✍️ Text / Subtitle</h3><button class="panel-close-btn" onclick="closePanels()">×</button></div>
-      <input id="overlayInput" class="input" placeholder="वीडियो पर टेक्स्ट लिखें" oninput="updateOverlay()">
-      <label>Text Size</label><input id="textSize" class="range" type="range" min="14" max="70" value="24" oninput="updateOverlay()">
-      <label>Text Color</label><input id="textColor" type="color" value="#ffffff" oninput="updateOverlay()">
-      <button class="secondary" onclick="clearOverlay()">Remove Text</button>
-    </div>
-
-    <div id="audioPanel" class="panel hidden">
-      <div class="panel-header"><h3>🔊 Audio / Music</h3><button class="panel-close-btn" onclick="closePanels()">×</button></div>
-      <label>Original Video Volume</label><input id="videoVolume" class="range" type="range" min="0" max="100" value="100" oninput="updateVolumes()">
-      <label>Background Music Volume</label><input id="musicVolume" class="range" type="range" min="0" max="100" value="40" oninput="updateVolumes()">
-      <input id="musicInput" type="file" accept="audio/*" class="input">
-      <audio id="musicAudio" controls loop style="width:100%"></audio>
-      <p class="muted">यह Music Preview है। इस संस्करण में Music को वीडियो फाइल में स्थायी रूप से मिक्स नहीं किया जाता।</p>
-    </div>
-
-    <div id="infoPanel" class="panel hidden">
-      <div class="panel-header"><h3>📊 Video Information</h3><button class="panel-close-btn" onclick="closePanels()">×</button></div>
-      <div id="videoInfo" class="status">वीडियो चुनें।</div>
-    </div>
-
-    <div id="copyrightPanel" class="panel hidden">
-      <div class="panel-header"><h3>🛡 Copyright Information</h3><button class="panel-close-btn" onclick="closePanels()">×</button></div>
-      <div class="status">इस पेज में YouTube/TikTok/Facebook Content ID डेटाबेस कनेक्ट नहीं है। यह वास्तविक Copyright Clearance की पुष्टि नहीं कर सकता। अपने वीडियो में इस्तेमाल किए गए संगीत और क्लिप के अधिकार स्वयं जाँचें।</div>
-    </div>
-
-    <div class="card">
-      <h3>📤 Upload Video to New Star</h3>
-      <label>Video Title</label>
-      <input id="videoTitle" class="input" maxlength="150" placeholder="वीडियो का नाम">
-      <label>Description / Caption</label>
-      <textarea id="videoCaption" class="input" rows="3" maxlength="5000" placeholder="वीडियो के बारे में लिखें"></textarea>
-      <button id="uploadBtn" class="primary" onclick="uploadVideo()">☁️ Upload to Supabase</button>
-      <progress id="uploadProgress" class="progress hidden" max="100" value="0"></progress>
-      <p id="uploadStatus" class="muted" aria-live="polite">वीडियो अपलोड करने के लिए इंटरनेट कनेक्शन जरूरी है।</p>
-      <button class="secondary" onclick="location.href='profile.html'">⭐ Open My Profile</button>
-    </div>
-  </section>
-</section>
+<main id="app" class="wrap">
+<div class="card">
+<h2>🎥 Create Video</h2>
+<p id="userLabel" class="muted"></p>
+<div class="row">
+<button onclick="startCamera()">कैमरा खोलें</button>
+<button class="secondary" onclick="stopCamera()">कैमरा बंद</button>
+</div>
+<video id="preview" playsinline autoplay muted controls></video>
+<div class="row">
+<button onclick="startRecording()">● Record</button>
+<button class="secondary" onclick="stopRecording()">■ Stop</button>
+</div>
+<label class="muted">या मोबाइल से वीडियो चुनें</label>
+<input id="videoFile" type="file" accept="video/*">
+<p id="fileInfo" class="muted">अभी कोई वीडियो चुना नहीं गया।</p>
 </div>
 
-<div id="toast"></div>
-<nav class="nav">
-  <a href="index.html">🏠<br>Home</a>
-  <a href="wallet.html">🪙<br>Wallet</a>
-  <button onclick="location.reload()"><span style="display:inline-block;background:linear-gradient(135deg,#25f4ee,#fe2c55);padding:5px 15px;border-radius:6px;color:#000;font-size:20px">+</span><br>Create</button>
-  <a href="inbox.html">💬<br>Inbox</a>
-  <a href="profile.html">⭐<br>Profile</a>
-</nav>
+<div class="card">
+<h2>📝 Video Details</h2>
+<input id="videoTitle" maxlength="100" placeholder="वीडियो का टाइटल">
+<textarea id="videoCaption" rows="3" maxlength="2000" placeholder="वीडियो के बारे में लिखें..."></textarea>
+<button id="uploadBtn" onclick="uploadVideo()">वीडियो Save और Upload करें</button>
+<p id="uploadStatus" class="muted"></p>
+</div>
+<div class="card">
+<h3>ध्यान दें</h3>
+<p class="muted">यह पेज चुनी गई या रिकॉर्ड की गई मूल वीडियो फाइल को Supabase Storage में अपलोड करता है। नीचे दिखने वाले प्रीव्यू के रंग/फिल्टर मूल वीडियो में स्थायी रूप से लागू नहीं होते।</p>
+</div>
+</main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
 <script>
-'use strict';
-const $=id=>document.getElementById(id);
-const video=$('editorVideo');
-let supabaseDB=null, currentUser=null, selectedFile=null, videoUrl=null;
-let cameraStream=null, recorder=null, chunks=[], facing='user';
-let musicUrl=null, zoom=1, rotation=0, trimEnd=null;
-
-function toast(msg){
-  const el=$('toast');el.textContent=msg;el.style.display='block';
-  clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.style.display='none',3200);
-}
-function setAuthStatus(msg){$('authStatus').textContent=msg}
-function setUploadStatus(msg){$('uploadStatus').textContent=msg}
-
-function getClient(){
-  if(typeof supabaseClient!=='undefined')return supabaseClient;
-  if(window.supabaseClient)return window.supabaseClient;
-  throw new Error('supabase-config.js में supabaseClient नहीं मिला।');
-}
-async function init(){
-  try{
-    supabaseDB=getClient();
-    const {data,error}=await supabaseDB.auth.getSession();
-    if(error)throw error;
-    if(data.session){currentUser=data.session.user;showMain();}
-    else showAuth();
-    supabaseDB.auth.onAuthStateChange((_event,session)=>{
-      currentUser=session?.user||null;
-      if(currentUser)showMain();else showAuth();
-    });
-  }catch(e){showAuth();setAuthStatus('Supabase connection error: '+e.message)}
-}
-function showAuth(){
-  $('authScreen').classList.remove('hidden');$('mainScreen').classList.add('hidden');
-}
-function showMain(){
-  $('authScreen').classList.add('hidden');$('mainScreen').classList.remove('hidden');
-  $('userLabel').textContent=currentUser?.email||'Signed in';
-}
-function toggleSignup(){
-  $('signupNameWrap').classList.toggle('hidden');
-}
-async function login(){
-  try{
-    const email=$('authEmail').value.trim(),password=$('authPassword').value;
-    if(!email||!password)throw new Error('Email और Password भरें।');
-    $('loginBtn').disabled=true;setAuthStatus('Logging in...');
-    const {data,error}=await supabaseDB.auth.signInWithPassword({email,password});
-    if(error)throw error;
-    currentUser=data.user;showMain();toast('Login successful');
-  }catch(e){setAuthStatus(e.message)}
-  finally{$('loginBtn').disabled=false}
-}
-async function signup(){
-  try{
-    const email=$('authEmail').value.trim(),password=$('authPassword').value;
-    const name=$('authName').value.trim();
-    if(!email||!password)throw new Error('Email और Password भरें।');
-    if(password.length<6)throw new Error('Password कम से कम 6 अक्षर का होना चाहिए।');
-    $('signupBtn').disabled=true;setAuthStatus('Creating account...');
-    const {data,error}=await supabaseDB.auth.signUp({
-      email,password,options:{data:{full_name:name}}
-    });
-    if(error)throw error;
-    if(data.session){currentUser=data.user;showMain();toast('Account created');}
-    else setAuthStatus('Account बन गया है। अपने Email में verification link खोलकर फिर Login करें।');
-  }catch(e){setAuthStatus(e.message)}
-  finally{$('signupBtn').disabled=false}
-}
-async function logout(){
-  if(!confirm('क्या आप Logout करना चाहते हैं?'))return;
-  const {error}=await supabaseDB.auth.signOut();
-  if(error)toast('Logout error: '+error.message);else showAuth();
-}
-$('signupBtn').addEventListener('contextmenu',e=>{e.preventDefault();toggleSignup()});
-$('signupBtn').addEventListener('dblclick',toggleSignup);
-
-async function openCamera(){
-  $('cameraBox').classList.remove('hidden');
-  try{
-    if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera के लिए HTTPS और compatible browser जरूरी है।');
-    stopCamera();
-    cameraStream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:facing,width:{ideal:1920},height:{ideal:1080}},audio:true
-    });
-    $('cameraVideo').srcObject=cameraStream;await $('cameraVideo').play();
-    $('cameraStatus').textContent='Camera ready.';
-  }catch(e){$('cameraStatus').textContent=e.message;toast('Camera permission नहीं मिली।')}
-}
-async function switchCamera(){facing=facing==='user'?'environment':'user';await openCamera()}
-function stopCamera(){
-  if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}
-  $('cameraVideo').srcObject=null;
-}
-function closeCamera(){stopCamera();$('cameraBox').classList.add('hidden')}
-function startRecording(){
-  if(!cameraStream)return toast('पहले Camera खोलें।');
-  if(!window.MediaRecorder)return toast('इस Browser में Recording समर्थित नहीं है।');
-  chunks=[];
-  let opts={};
-  if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))opts.mimeType='video/webm;codecs=vp9,opus';
-  else if(MediaRecorder.isTypeSupported('video/webm'))opts.mimeType='video/webm';
-  try{
-    recorder=new MediaRecorder(cameraStream,opts);
-    recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-    recorder.onerror=e=>toast('Recording error');
-    recorder.onstop=async()=>{
-      const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});
-      stopCamera();
-      if(blob.size)await loadVideo(new File([blob],'new-star-recording.webm',{type:blob.type}));
-      else toast('रिकॉर्डिंग खाली है।');
-      $('recordBtn').disabled=false;$('stopRecordBtn').disabled=true;
-    };
-    recorder.start(1000);
-    $('recordBtn').disabled=true;$('stopRecordBtn').disabled=false;
-    toast('Recording started');
-  }catch(e){toast(e.message)}
-}
-function stopRecording(){if(recorder?.state==='recording')recorder.stop()}
-
-$('videoInput').addEventListener('change',async e=>{
-  const file=e.target.files?.[0];e.target.value='';
-  if(!file)return;
-  if(!file.type.startsWith('video/'))return toast('सही वीडियो फाइल चुनें।');
-  await loadVideo(file);
-});
-async function loadVideo(file){
-  if(!file?.type?.startsWith('video/'))throw new Error('Invalid video file');
-  if(videoUrl)URL.revokeObjectURL(videoUrl);
-  selectedFile=file;videoUrl=URL.createObjectURL(file);
-  video.src=videoUrl;video.load();
-  $('editorBox').classList.remove('hidden');
-  $('cameraBox').classList.add('hidden');
-  $('videoTitle').value=file.name.replace(/\.[^.]+$/,'');
-  $('videoInfo').textContent='वीडियो लोड हो रहा है...';
-  await new Promise((resolve,reject)=>{
-    const ok=()=>{cleanup();resolve()};
-    const fail=()=>{cleanup();reject(new Error('यह वीडियो फॉर्मेट Browser में नहीं चल रहा।'))};
-    const cleanup=()=>{video.removeEventListener('loadedmetadata',ok);video.removeEventListener('error',fail)};
-    video.addEventListener('loadedmetadata',ok,{once:true});
-    video.addEventListener('error',fail,{once:true});
-  });
-  $('trimStart').value=0;$('trimEnd').value=video.duration.toFixed(2);
-  inspectVideo();video.play().catch(()=>{});
-  $('editorBox').scrollIntoView({behavior:'smooth'});
-}
-function inspectVideo(){
-  if(!selectedFile)return;
-  const d=Number.isFinite(video.duration)?video.duration:0;
-  $('videoInfo').textContent=
-    'Resolution: '+video.videoWidth+' × '+video.videoHeight+
-    ' | Duration: '+d.toFixed(1)+' seconds'+
-    ' | Size: '+(selectedFile.size/1048576).toFixed(2)+' MB'+
-    ' | Type: '+selectedFile.type;
-}
-function toggleMenu(e){e.stopPropagation();$('editorMenu').classList.toggle('active')}
-window.addEventListener('click',()=>$('editorMenu').classList.remove('active'));
-function closePanels(){
-  document.querySelectorAll('.panel[id]').forEach(p=>p.classList.add('hidden'));
-}
-function showPanel(id){
-  if(!selectedFile)return toast('पहले वीडियो चुनें।');
-  $('editorMenu').classList.remove('active');closePanels();
-  $(id).classList.remove('hidden');
-  $(id).scrollIntoView({behavior:'smooth',block:'nearest'});
-}
-function setZoom(v){zoom=v;applyTransform()}
-function rotateVideo(){rotation=(rotation+90)%360;applyTransform()}
-function applyTransform(){video.style.transform='scale('+zoom+') rotate('+rotation+'deg)'}
-function setFilter(v){video.style.filter=v}
-function setSpeed(v){video.playbackRate=v;toast('Speed '+v+'x')}
-function previewTrim(){
-  const start=Math.max(0,Number($('trimStart').value));
-  const end=Number($('trimEnd').value);
-  if(!Number.isFinite(video.duration)||start>=end||end>video.duration)return toast('Trim time सही नहीं है।');
-  trimEnd=end;video.currentTime=start;video.play();
-}
-video.addEventListener('timeupdate',()=>{if(trimEnd!==null&&video.currentTime>=trimEnd){video.pause();trimEnd=null}});
-function updateOverlay(){
-  $('previewText').textContent=$('overlayInput').value;
-  $('previewText').style.fontSize=$('textSize').value+'px';
-  $('previewText').style.color=$('textColor').value;
-}
-function clearOverlay(){$('overlayInput').value='';$('previewText').textContent=''}
-function resetPreview(){
-  zoom=1;rotation=0;applyTransform();video.style.filter='none';video.playbackRate=1;
-  clearOverlay();trimEnd=null;toast('Preview reset');
-}
-$('musicInput').addEventListener('change',e=>{
-  const f=e.target.files?.[0];if(!f)return;
-  if(musicUrl)URL.revokeObjectURL(musicUrl);
-  musicUrl=URL.createObjectURL(f);$('musicAudio').src=musicUrl;
-  $('musicAudio').play().catch(()=>{});e.target.value='';
-});
-function updateVolumes(){
-  video.volume=Number($('videoVolume').value)/100;
-  $('musicAudio').volume=Number($('musicVolume').value)/100;
+const $ = id => document.getElementById(id);
+const db = window.supabaseClient || window.supabaseDB || window.cloudClient;
+if (!db) {
+  $("authStatus").textContent = "Supabase client नहीं मिला। supabase-config.js में client का नाम जाँचें।";
+  throw new Error("Supabase client missing");
 }
 
-/* REAL SUPABASE VIDEO UPLOAD */
-async function uploadVideo(){
-  if(!currentUser){
-    toast('वीडियो अपलोड करने के लिए Login करें।');showAuth();return;
-  }
-  if(!selectedFile)return toast('पहले वीडियो चुनें।');
-  const title=$('videoTitle').value.trim();
-  const caption=$('videoCaption').value.trim();
-  if(!title)return toast('वीडियो का Title लिखें।');
+let currentUser = null;
+let stream = null;
+let recorder = null;
+let recordedChunks = [];
+let selectedFile = null;
 
-  const btn=$('uploadBtn'),progress=$('uploadProgress');
-  btn.disabled=true;progress.classList.remove('hidden');progress.value=0;
-  setUploadStatus('Supabase Storage में वीडियो अपलोड हो रहा है...');
-  let storagePath=null;
+function authMessage(message){ $("authStatus").textContent = message; }
+function uploadMessage(message){ $("uploadStatus").textContent = message; }
 
-  try{
-    const ext=(selectedFile.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'');
-    const fileName=Date.now()+'-'+crypto.randomUUID()+'.'+ext;
-    storagePath=currentUser.id+'/'+fileName;
-
-    const {data:uploadData,error:uploadError}=await supabaseDB.storage
-      .from('videos')
-      .upload(storagePath,selectedFile,{
-        cacheControl:'3600',
-        contentType:selectedFile.type||'video/mp4',
-        upsert:false
-      });
-    if(uploadError)throw uploadError;
-    progress.value=65;
-
-    const {data:urlData}=supabaseDB.storage.from('videos').getPublicUrl(uploadData.path);
-    const publicUrl=urlData?.publicUrl;
-    if(!publicUrl)throw new Error('Storage से Public URL नहीं मिला। Bucket public होना चाहिए।');
-
-    const {data:row,error:dbError}=await supabaseDB.from('videos').insert({
-      user_id:currentUser.id,
-      video_url:publicUrl,
-      caption:title+(caption?'\n'+caption:'')
-    }).select().single();
-
-    if(dbError){
-      await supabaseDB.storage.from('videos').remove([storagePath]);
-      storagePath=null;
-      throw dbError;
+async function googleLogin(){
+  authMessage("Google अकाउंट खुल रहा है...");
+  const {error} = await db.auth.signInWithOAuth({
+    provider:"google",
+    options:{
+      redirectTo:location.href.split("#")[0],
+      queryParams:{prompt:"select_account"}
     }
+  });
+  if(error) authMessage(error.message);
+}
 
-    progress.value=100;
-    setUploadStatus('वीडियो सफलतापूर्वक Supabase में अपलोड हो गया।');
-    toast('Upload successful!');
-    $('uploadBtn').textContent='✓ Uploaded';
-    setTimeout(()=>{location.href='profile.html'},1200);
-  }catch(e){
-    console.error('Upload failed:',e);
-    setUploadStatus('Upload failed: '+(e.message||'Unknown error'));
-    toast('Upload नहीं हुआ: '+(e.message||'Error'));
+async function sendOTP(){
+  const phone = $("phone").value.trim();
+  if(!/^\+[1-9]\d{7,14}$/.test(phone)){
+    authMessage("नंबर country code के साथ लिखें, जैसे +97798XXXXXXXX");
+    return;
+  }
+  authMessage("OTP भेजा जा रहा है...");
+  const {error} = await db.auth.signInWithOtp({phone});
+  authMessage(error ? error.message : "OTP भेज दिया गया है। SMS चेक करें।");
+}
+
+async function verifyOTP(){
+  const phone = $("phone").value.trim();
+  const token = $("otp").value.trim();
+  if(!phone || !token){authMessage("मोबाइल नंबर और OTP दोनों भरें।");return;}
+  const {error} = await db.auth.verifyOtp({phone,token,type:"sms"});
+  if(error) authMessage(error.message);
+  else authMessage("लॉगिन सफल!");
+}
+
+async function emailLogin(){
+  const email=$("email").value.trim(),password=$("password").value;
+  if(!email||!password){authMessage("Email और Password भरें।");return;}
+  const {error}=await db.auth.signInWithPassword({email,password});
+  authMessage(error?error.message:"लॉगिन सफल!");
+}
+
+async function emailSignup(){
+  const email=$("email").value.trim(),password=$("password").value;
+  const fullName=$("fullName").value.trim();
+  if(!email||password.length<6){authMessage("सही Email और कम से कम 6 अक्षर का Password भरें।");return;}
+  const {data,error}=await db.auth.signUp({
+    email,password,options:{data:{full_name:fullName}}
+  });
+  if(error){authMessage(error.message);return;}
+  authMessage(data.session?"अकाउंट बन गया!":"अकाउंट बन गया। Email verification लिंक खोलकर पुष्टि करें।");
+}
+
+async function logout(){
+  stopCamera();
+  await db.auth.signOut();
+  currentUser=null;
+  showAuth();
+}
+
+function showAuth(){
+  $("auth").style.display="block";
+  $("app").style.display="none";
+}
+function showApp(user){
+  currentUser=user;
+  $("auth").style.display="none";
+  $("app").style.display="block";
+  $("userLabel").textContent="लॉगिन: "+(user.email||user.phone||user.id);
+}
+
+async function startCamera(){
+  try{
+    stopCamera();
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:"environment"}},audio:true
+    });
+    $("preview").srcObject=stream;
+    $("preview").muted=true;
+  }catch(e){uploadMessage("कैमरा अनुमति या डिवाइस की समस्या: "+e.message);}
+}
+function stopCamera(){
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  if($("preview").srcObject) $("preview").srcObject=null;
+}
+function startRecording(){
+  if(!stream){uploadMessage("पहले कैमरा खोलें।");return;}
+  if(!window.MediaRecorder){uploadMessage("इस ब्राउज़र में वीडियो रिकॉर्डिंग उपलब्ध नहीं है।");return;}
+  recordedChunks=[];
+  let options={};
+  if(MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")) options.mimeType="video/webm;codecs=vp9,opus";
+  else if(MediaRecorder.isTypeSupported("video/webm")) options.mimeType="video/webm";
+  try{
+    recorder=new MediaRecorder(stream,options);
+    recorder.ondataavailable=e=>{if(e.data&&e.data.size)recordedChunks.push(e.data);};
+    recorder.onstop=()=>{
+      selectedFile=new File(recordedChunks,"recording-"+Date.now()+".webm",{type:recorder.mimeType||"video/webm"});
+      $("preview").srcObject=null;
+      $("preview").src=URL.createObjectURL(selectedFile);
+      $("preview").muted=false;
+      $("fileInfo").textContent=selectedFile.name+" • "+formatSize(selectedFile.size);
+      uploadMessage("रिकॉर्डिंग तैयार है। अब टाइटल लिखकर अपलोड करें।");
+      stopCamera();
+    };
+    recorder.start();
+    uploadMessage("रिकॉर्डिंग चालू है...");
+  }catch(e){uploadMessage("रिकॉर्डिंग शुरू नहीं हुई: "+e.message);}
+}
+function stopRecording(){
+  if(recorder&&recorder.state!=="inactive") recorder.stop();
+}
+
+$("videoFile").addEventListener("change",e=>{
+  const file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  if(!file.type.startsWith("video/")){uploadMessage("कृपया वीडियो फाइल चुनें।");return;}
+  selectedFile=file;
+  stopCamera();
+  $("preview").srcObject=null;
+  $("preview").src=URL.createObjectURL(file);
+  $("preview").muted=false;
+  $("fileInfo").textContent=file.name+" • "+formatSize(file.size);
+  uploadMessage("वीडियो तैयार है।");
+});
+
+function formatSize(bytes){
+  if(bytes<1024*1024)return (bytes/1024).toFixed(1)+" KB";
+  return (bytes/1024/1024).toFixed(1)+" MB";
+}
+function safeExt(file){
+  const ext=(file.name.split(".").pop()||"mp4").toLowerCase();
+  return /^[a-z0-9]{2,5}$/.test(ext)?ext:"mp4";
+}
+
+async function uploadVideo(){
+  if(!currentUser){uploadMessage("पहले लॉगिन करें।");return;}
+  if(!selectedFile){uploadMessage("पहले कैमरे से रिकॉर्ड करें या वीडियो चुनें।");return;}
+  const title=$("videoTitle").value.trim();
+  const caption=$("videoCaption").value.trim();
+  if(!title){uploadMessage("वीडियो का टाइटल लिखें।");return;}
+
+  const btn=$("uploadBtn");
+  btn.disabled=true;
+  btn.textContent="अपलोड हो रहा है...";
+  uploadMessage("वीडियो Storage में अपलोड हो रहा है...");
+
+  const ext=safeExt(selectedFile);
+  const path=currentUser.id+"/"+Date.now()+"-"+crypto.randomUUID()+"."+ext;
+  let uploadedPath=null;
+
+  try{
+    const {data:uploadData,error:uploadError}=await db.storage
+      .from("videos")
+      .upload(path,selectedFile,{cacheControl:"3600",upsert:false,contentType:selectedFile.type||"video/mp4"});
+    if(uploadError) throw uploadError;
+    uploadedPath=uploadData.path;
+
+    const {data:urlData}=db.storage.from("videos").getPublicUrl(uploadedPath);
+    const videoUrl=urlData&&urlData.publicUrl;
+    if(!videoUrl) throw new Error("वीडियो URL नहीं मिला।");
+
+    const {error:insertError}=await db.from("videos").insert({
+      user_id:currentUser.id,
+      video_url:videoUrl,
+      caption:title+(caption?"\n"+caption:"")
+    });
+    if(insertError) throw insertError;
+
+    uploadMessage("✅ वीडियो सफलतापूर्वक अपलोड हो गया! अब Profile में दिखाई देगा।");
+    $("videoTitle").value="";
+    $("videoCaption").value="";
+    $("videoFile").value="";
+    $("fileInfo").textContent="अपलोड पूरा हुआ।";
+    selectedFile=null;
+  }catch(error){
+    if(uploadedPath){
+      await db.storage.from("videos").remove([uploadedPath]).catch(()=>{});
+    }
+    uploadMessage("अपलोड में समस्या: "+(error.message||"Unknown error"));
   }finally{
     btn.disabled=false;
-    if(btn.textContent!=='✓ Uploaded')btn.textContent='☁️ Upload to Supabase';
+    btn.textContent="वीडियो Save और Upload करें";
   }
 }
-window.addEventListener('beforeunload',()=>{
-  stopCamera();
-  if(musicUrl)URL.revokeObjectURL(musicUrl);
-  if(videoUrl)URL.revokeObjectURL(videoUrl);
+
+db.auth.onAuthStateChange((_event,session)=>{
+  if(session&&session.user) showApp(session.user);
+  else showAuth();
 });
-init();
+db.auth.getSession().then(({data,error})=>{
+  if(error){authMessage(error.message);return;}
+  if(data.session) showApp(data.session.user);
+  else showAuth();
+});
 </script>
 </body>
 </html>
