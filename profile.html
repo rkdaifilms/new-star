@@ -8,48 +8,54 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#101014;color:#fff;font-family:Arial,sans-serif}
-header{padding:16px;background:#191920;display:flex;justify-content:space-between;align-items:center}
-.wrap{max-width:850px;margin:auto;padding:16px}.card{background:#1c1c24;border:1px solid #353540;border-radius:16px;padding:16px;margin:14px 0}
+*{box-sizing:border-box}
+body{margin:0;background:#101014;color:#fff;font-family:Arial,sans-serif}
+header{padding:15px;background:#191920;display:flex;justify-content:space-between;align-items:center}
+.wrap{max-width:850px;margin:auto;padding:15px}
+.card{background:#1c1c24;border:1px solid #383844;border-radius:15px;padding:16px;margin:14px 0}
 input,textarea,button{font:inherit;border-radius:10px;padding:12px;width:100%;margin:6px 0}
-input,textarea{background:#111118;border:1px solid #454550;color:white}
+input,textarea{background:#111118;border:1px solid #444;color:white}
 button{border:0;background:#ff3158;color:white;font-weight:bold;cursor:pointer}
-button.secondary{background:#30303b}.row{display:flex;gap:8px}.row>*{flex:1}
-.muted{color:#aaa;font-size:13px}#auth{max-width:480px;margin:7vh auto;padding:16px}
-#app{display:none}.videoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-.videoCard{background:#121218;border:1px solid #393943;border-radius:12px;padding:10px;overflow:hidden}
+button.secondary{background:#343440}
+button:disabled{opacity:.5}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.muted{color:#aaa;font-size:13px}
+#auth{max-width:480px;margin:6vh auto;padding:15px}
+#app{display:none}
+.videoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.videoCard{background:#121218;border:1px solid #383844;border-radius:12px;padding:10px;overflow:hidden}
 .videoCard video{width:100%;max-height:360px;background:#000;border-radius:8px}
-#authStatus,#profileStatus{white-space:pre-wrap;color:#ffd36a;font-size:14px}
+.status{white-space:pre-wrap;color:#ffd36a;font-size:13px}
 </style>
 </head>
 <body>
 <header>
 <b>⭐ New Star Creator Hub</b>
-<div class="row" style="max-width:240px">
+<div class="row" style="max-width:230px">
 <button class="secondary" onclick="location.href='camera.html'">Camera</button>
 <button onclick="logout()">Logout</button>
 </div>
 </header>
 
 <section id="auth" class="card">
-<h2>अपने अकाउंट में लॉगिन करें</h2>
+<h2>अपने अकाउंट में Login करें</h2>
 <button onclick="googleLogin()">🌐 Continue with Google</button>
 <hr>
-<h3>मोबाइल नंबर से</h3>
-<input id="phone" placeholder="+97798XXXXXXXX" autocomplete="tel">
-<button class="secondary" onclick="sendOTP()">OTP भेजें</button>
-<input id="otp" placeholder="SMS में आया OTP">
-<button onclick="verifyOTP()">OTP Verify करके Login</button>
+<h3>मोबाइल OTP Login</h3>
+<input id="phone" type="tel" placeholder="+97798XXXXXXXX">
+<button class="secondary" onclick="sendOTP()">Send OTP</button>
+<input id="otp" inputmode="numeric" placeholder="SMS OTP डालें">
+<button onclick="verifyOTP()">Verify OTP और Login</button>
 <hr>
-<h3>Email से</h3>
+<h3>Email Signup / Login</h3>
+<input id="name" placeholder="पूरा नाम (Signup के लिए)">
 <input id="email" type="email" placeholder="Email address">
 <input id="password" type="password" placeholder="Password (कम से कम 6 अक्षर)">
-<input id="fullName" placeholder="आपका नाम (नए अकाउंट के लिए)">
 <div class="row">
 <button onclick="emailLogin()">Login</button>
 <button class="secondary" onclick="emailSignup()">Sign Up</button>
 </div>
-<p id="authStatus" class="muted"></p>
+<p id="authStatus" class="status"></p>
 </section>
 
 <main id="app" class="wrap">
@@ -58,170 +64,207 @@ button.secondary{background:#30303b}.row{display:flex;gap:8px}.row>*{flex:1}
 <p id="accountInfo" class="muted"></p>
 <input id="profileName" placeholder="आपका नाम">
 <input id="profileUsername" placeholder="Username">
-<textarea id="profileBio" rows="3" placeholder="अपने बारे में लिखें..."></textarea>
-<button onclick="saveProfile()">प्रोफाइल Save करें</button>
-<p id="profileStatus"></p>
+<textarea id="profileBio" rows="3" placeholder="अपने बारे में लिखें"></textarea>
+<button onclick="saveProfile()">Save Profile</button>
+<p id="profileStatus" class="status"></p>
 </section>
 
 <section class="card">
 <div class="row" style="align-items:center">
 <h2 style="flex:1">🎬 My Videos</h2>
-<button class="secondary" style="max-width:150px" onclick="loadVideos()">Refresh</button>
+<button class="secondary" style="max-width:130px" onclick="loadVideos()">Refresh</button>
 </div>
-<p id="videoStatus" class="muted">आपके वीडियो लोड हो रहे हैं...</p>
+<p id="videoStatus" class="muted">वीडियो लोड हो रहे हैं...</p>
 <div id="videoGrid" class="videoGrid"></div>
 </section>
 </main>
 
 <script>
 const $=id=>document.getElementById(id);
-const db=window.supabaseClient||window.supabaseDB||window.cloudClient;
-if(!db){
-  $("authStatus").textContent="Supabase client नहीं मिला। supabase-config.js में client का नाम जाँचें।";
-  throw new Error("Supabase client missing");
-}
-let currentUser=null;
+const db=(typeof supabaseClient!=="undefined")?supabaseClient:window.supabaseClient;
 
-function authMessage(message){$("authStatus").textContent=message;}
-function showAuth(){
-  $("auth").style.display="block";
-  $("app").style.display="none";
+if(!db){
+ $("authStatus").textContent="Supabase client नहीं मिला। Config जांचें।";
+ throw new Error("Supabase client missing");
 }
-function showApp(user){
-  currentUser=user;
-  $("auth").style.display="none";
-  $("app").style.display="block";
-  $("accountInfo").textContent="लॉगिन: "+(user.email||user.phone||user.id);
-  const meta=user.user_metadata||{};
-  $("profileName").value=meta.full_name||"";
-  $("profileUsername").value=meta.username||"";
-  $("profileBio").value=meta.bio||"";
-  loadVideos();
+
+let currentUser=null;
+let loadingVideos=false;
+
+function authMessage(t){$("authStatus").textContent=t;}
+function showLogin(){
+ $("auth").style.display="block";
+ $("app").style.display="none";
+}
+function showProfile(user){
+ currentUser=user;
+ $("auth").style.display="none";
+ $("app").style.display="block";
+ $("accountInfo").textContent="Logged in: "+(user.email||user.phone||user.id);
+ const meta=user.user_metadata||{};
+ $("profileName").value=meta.full_name||"";
+ $("profileUsername").value=meta.username||"";
+ $("profileBio").value=meta.bio||"";
+ loadVideos();
 }
 
 async function googleLogin(){
-  authMessage("Google अकाउंट खुल रहा है...");
-  const {error}=await db.auth.signInWithOAuth({
-    provider:"google",
-    options:{
-      redirectTo:location.href.split("#")[0],
-      queryParams:{prompt:"select_account"}
-    }
-  });
-  if(error)authMessage(error.message);
-}
-async function sendOTP(){
-  const phone=$("phone").value.trim();
-  if(!/^\+[1-9]\d{7,14}$/.test(phone)){
-    authMessage("नंबर country code के साथ लिखें, जैसे +97798XXXXXXXX");return;
+ authMessage("Google अकाउंट चुनने के लिए खोला जा रहा है...");
+ const {error}=await db.auth.signInWithOAuth({
+  provider:"google",
+  options:{
+   redirectTo:location.origin+location.pathname,
+   queryParams:{prompt:"select_account"}
   }
-  authMessage("OTP भेजा जा रहा है...");
-  const {error}=await db.auth.signInWithOtp({phone});
-  authMessage(error?error.message:"OTP भेज दिया गया है। SMS चेक करें।");
+ });
+ if(error)authMessage("Google Login Error: "+error.message);
 }
+
+async function sendOTP(){
+ const phone=$("phone").value.trim();
+ if(!/^\+[1-9]\d{7,14}$/.test(phone)){
+  authMessage("Country code सहित नंबर लिखें। उदाहरण: +97798XXXXXXXX");return;
+ }
+ authMessage("SMS OTP भेजा जा रहा है...");
+ const {error}=await db.auth.signInWithOtp({
+  phone,
+  options:{shouldCreateUser:true}
+ });
+ if(error)authMessage("OTP Error: "+error.message);
+ else authMessage("OTP भेजने का अनुरोध सफल। SMS Inbox चेक करें।");
+}
+
 async function verifyOTP(){
-  const phone=$("phone").value.trim(),token=$("otp").value.trim();
-  if(!phone||!token){authMessage("मोबाइल नंबर और OTP भरें।");return;}
-  const {error}=await db.auth.verifyOtp({phone,token,type:"sms"});
-  authMessage(error?error.message:"लॉगिन सफल!");
+ const phone=$("phone").value.trim();
+ const token=$("otp").value.trim();
+ if(!phone||!token){authMessage("फोन नंबर और OTP दोनों भरें।");return;}
+ authMessage("OTP Verify हो रहा है...");
+ const {data,error}=await db.auth.verifyOtp({phone,token,type:"sms"});
+ if(error)authMessage("Verification Error: "+error.message);
+ else if(data.user)showProfile(data.user);
 }
-async function emailLogin(){
-  const email=$("email").value.trim(),password=$("password").value;
-  if(!email||!password){authMessage("Email और Password भरें।");return;}
-  const {error}=await db.auth.signInWithPassword({email,password});
-  authMessage(error?error.message:"लॉगिन सफल!");
-}
+
 async function emailSignup(){
-  const email=$("email").value.trim(),password=$("password").value;
-  const fullName=$("fullName").value.trim();
-  if(!email||password.length<6){authMessage("सही Email और कम से कम 6 अक्षर का Password भरें।");return;}
-  const {data,error}=await db.auth.signUp({
-    email,password,options:{data:{full_name:fullName}}
-  });
-  if(error){authMessage(error.message);return;}
-  authMessage(data.session?"अकाउंट बन गया!":"अकाउंट बन गया। Email verification लिंक खोलकर पुष्टि करें।");
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ const name=$("name").value.trim();
+ if(!email||password.length<6){
+  authMessage("सही Email और कम से कम 6 अक्षर का Password भरें।");return;
+ }
+ authMessage("अकाउंट बनाया जा रहा है...");
+ const {data,error}=await db.auth.signUp({
+  email,password,
+  options:{data:{full_name:name}}
+ });
+ if(error)authMessage("Signup Error: "+error.message);
+ else if(data.session&&data.user)showProfile(data.user);
+ else authMessage("Signup सफल। Email verification लिंक खोलें, फिर Login करें।");
 }
+
+async function emailLogin(){
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ if(!email||!password){authMessage("Email और Password भरें।");return;}
+ authMessage("Login हो रहा है...");
+ const {data,error}=await db.auth.signInWithPassword({email,password});
+ if(error)authMessage("Login Error: "+error.message);
+ else showProfile(data.user);
+}
+
 async function logout(){
-  await db.auth.signOut();
-  currentUser=null;
-  showAuth();
+ await db.auth.signOut();
+ currentUser=null;
+ $("videoGrid").innerHTML="";
+ showLogin();
 }
 
 async function saveProfile(){
-  if(!currentUser)return;
-  const full_name=$("profileName").value.trim();
-  const username=$("profileUsername").value.trim();
-  const bio=$("profileBio").value.trim();
-  $("profileStatus").textContent="प्रोफाइल सेव हो रही है...";
-  const {data,error}=await db.auth.updateUser({
-    data:{full_name,username,bio}
-  });
-  if(error){
-    $("profileStatus").textContent="सेव नहीं हुआ: "+error.message;
-    return;
-  }
-  currentUser=data.user;
-  $("profileStatus").textContent="✅ प्रोफाइल सेव हो गई।";
+ if(!currentUser)return;
+ const full_name=$("profileName").value.trim();
+ const username=$("profileUsername").value.trim();
+ const bio=$("profileBio").value.trim();
+ $("profileStatus").textContent="प्रोफाइल सेव हो रही है...";
+ const {data,error}=await db.auth.updateUser({
+  data:{full_name,username,bio}
+ });
+ if(error){
+  $("profileStatus").textContent="Save Error: "+error.message;
+  return;
+ }
+ currentUser=data.user;
+ $("profileStatus").textContent="✅ Profile सफलतापूर्वक Save हो गई।";
 }
 
 async function loadVideos(){
-  if(!currentUser)return;
-  $("videoStatus").textContent="वीडियो लोड हो रहे हैं...";
-  $("videoGrid").innerHTML="";
+ if(!currentUser||loadingVideos)return;
+ loadingVideos=true;
+ $("videoStatus").textContent="वीडियो लोड हो रहे हैं...";
+ $("videoGrid").innerHTML="";
+
+ try{
   const {data,error}=await db.from("videos")
-    .select("id,user_id,video_url,caption,created_at")
-    .eq("user_id",currentUser.id)
-    .order("created_at",{ascending:false});
+   .select("id,user_id,video_url,caption,created_at")
+   .eq("user_id",currentUser.id)
+   .order("created_at",{ascending:false});
 
-  if(error){
-    $("videoStatus").textContent="वीडियो लोड नहीं हुए: "+error.message;
-    return;
-  }
+  if(error)throw error;
+
   if(!data||data.length===0){
-    $("videoStatus").textContent="अभी आपने कोई वीडियो अपलोड नहीं किया है।";
-    return;
+   $("videoStatus").textContent="अभी कोई वीडियो अपलोड नहीं किया गया है।";
+   return;
   }
 
-  $("videoStatus").textContent="आपके कुल "+data.length+" वीडियो";
-  for(const item of data){
-    const card=document.createElement("article");
-    card.className="videoCard";
+  $("videoStatus").textContent="कुल वीडियो: "+data.length;
 
-    const video=document.createElement("video");
-    video.src=item.video_url;
-    video.controls=true;
-    video.playsInline=true;
-    video.preload="metadata";
+  data.forEach(item=>{
+   const card=document.createElement("article");
+   card.className="videoCard";
 
-    const caption=document.createElement("p");
-    caption.textContent=item.caption||"Untitled video";
+   const video=document.createElement("video");
+   video.src=item.video_url;
+   video.controls=true;
+   video.playsInline=true;
+   video.preload="metadata";
 
-    const date=document.createElement("p");
-    date.className="muted";
-    date.textContent=item.created_at
-      ?new Date(item.created_at).toLocaleString()
-      :"";
+   const caption=document.createElement("p");
+   caption.textContent=item.caption||"Untitled Video";
 
-    const link=document.createElement("a");
-    link.href=item.video_url;
-    link.target="_blank";
-    link.rel="noopener";
-    link.textContent="वीडियो खोलें";
-    link.style.color="#ff6682";
+   const date=document.createElement("p");
+   date.className="muted";
+   date.textContent=item.created_at
+    ?new Date(item.created_at).toLocaleString()
+    :"";
 
-    card.append(video,caption,date,link);
-    $("videoGrid").appendChild(card);
-  }
+   const link=document.createElement("a");
+   link.href=item.video_url;
+   link.target="_blank";
+   link.rel="noopener noreferrer";
+   link.textContent="Open Video";
+   link.style.color="#ff6682";
+
+   card.append(video,caption,date,link);
+   $("videoGrid").appendChild(card);
+  });
+ }catch(error){
+  $("videoStatus").textContent="Video Load Error: "+error.message;
+ }finally{
+  loadingVideos=false;
+ }
 }
 
-db.auth.onAuthStateChange((_event,session)=>{
-  if(session&&session.user)showApp(session.user);
-  else showAuth();
+db.auth.onAuthStateChange((event,session)=>{
+ if(session&&session.user){
+  showProfile(session.user);
+ }else if(event==="SIGNED_OUT"){
+  currentUser=null;
+  showLogin();
+ }
 });
+
 db.auth.getSession().then(({data,error})=>{
-  if(error){authMessage(error.message);return;}
-  if(data.session)showApp(data.session.user);
-  else showAuth();
+ if(error)authMessage("Session Error: "+error.message);
+ else if(data.session)showProfile(data.session.user);
+ else showLogin();
 });
 </script>
 </body>
