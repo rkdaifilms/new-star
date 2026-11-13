@@ -8,10 +8,10 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
-body{background:#000;color:white;padding-bottom:75px;overflow-x:hidden}
+body{background:#000;color:white;padding-bottom:80px;overflow-x:hidden}
 button,select,input,textarea{font:inherit}
 button{cursor:pointer}
-.studio{max-width:600px;margin:auto;min-height:100vh;background:#080808;position:relative;padding-bottom:70px;}
+.studio{max-width:600px;margin:auto;min-height:100vh;background:#080808;position:relative;padding-bottom:80px;}
 
 .screen{padding:12px}
 .hidden{display:none!important}
@@ -77,22 +77,22 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
 .home-mode-card { background: #15151b; border: 1px solid #333; border-radius: 12px; padding: 16px 8px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; transition: 0.2s; }
 .home-mode-card:hover { border-color: #25f4ee; background: #1c1c24; }
 
-/* ⚓ मास्टर बॉटम नेविगेशन बार (अब यह क्लिक में रुकावट नहीं डालेगा) */
+/* ⚓ मास्टर बॉटम नेविगेशन बार (अब यह पूरी तरह नीचे फिक्स है और क्लिक नहीं रोकेगा) */
 .master-tiktok-final-nav {
-    position: fixed !important; bottom: 0 !important; left: 0 !important; width: 100% !important; height: 60px !important;
+    position: fixed !important; bottom: 0 !important; left: 0 !important; width: 100% !important; height: 55px !important;
     background: #000 !important; display: flex !important; justify-content: space-around !important; align-items: center !important;
-    border-top: 1px solid #222 !important; z-index: 10 !important; box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
+    border-top: 1px solid #222 !important; z-index: 1 !important; box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
 }
 .mfn-item {
     display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;
     color: rgba(255,255,255,0.5) !important; cursor: pointer !important; text-decoration: none !important; font-size: 11px !important; flex: 1 !important; text-align: center !important; background: transparent !important; border: none !important;
 }
 .mfn-item.active { color: #fff !important; font-weight: bold !important; }
-.mfn-item i { font-size: 18px !important; margin-bottom: 2px !important; font-style: normal !important; }
+.mfn-item i { font-size: 16px !important; margin-bottom: 2px !important; font-style: normal !important; }
 .mfn-center-plus {
-    width: 46px !important; height: 32px !important; background: linear-gradient(135deg, #25f4ee, #fe2c55) !important;
-    border-radius: 8px !important; display: flex !important; justify-content: center !important; align-items: center !important;
-    color: #fff !important; font-size: 24px !important; font-weight: bold !important; box-shadow: 0 2px 12px rgba(254,44,85,0.7) !important; margin: 0 auto !important;
+    width: 40px !important; height: 28px !important; background: linear-gradient(135deg, #25f4ee, #fe2c55) !important;
+    border-radius: 6px !important; display: flex !important; justify-content: center !important; align-items: center !important;
+    color: #fff !important; font-size: 20px !important; font-weight: bold !important; box-shadow: 0 2px 10px rgba(254,44,85,0.7) !important; margin: 0 auto !important;
 }
 
 #toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#222;border:1px solid #25f4ee;padding:10px 16px;border-radius:20px;display:none;z-index:9999;font-size:12px;max-width:90%}
@@ -108,7 +108,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
   <div class="card" style="text-align:center;padding:25px 15px">
     <div style="font-size:42px">🎬</div>
     <h3 style="margin-top:10px; font-size:18px;">New Star Video Studio</h3>
-    <p class="muted" style="margin-bottom:12px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें[span_1](start_span)[span_1](end_span).</p>
+    <p class="muted" style="margin-bottom:12px;">Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें[span_0](start_span)[span_0](end_span).</p>
     <button class="primary" onclick="openCamera()">🎥 Open Camera Studio</button>
     <button class="secondary" onclick="document.getElementById('videoInput').click()">📁 Select Gallery Video</button>
     <input id="videoInput" type="file" accept="video/*" class="hidden">
@@ -150,7 +150,7 @@ label{font-size:11px;color:#ccc;display:block;margin-top:7px}
     <video id="editorVideo" playsinline controls></video>
     <div id="previewText"></div>
 
-    <!-- 📌 थ्री-डॉट मेनू और सभी एडिटिंग फीचर्स -->
+    <!-- 📌 थ्री-डॉट मेनू और सारे 30 प्रोफेशनल एडिटिंग टूल्स -->
     <div class="editor-top-bar">
       <button class="three-dots-btn" onclick="toggleThreeDotsMenu(event)">⋮</button>
       <div id="threeDotsDropdown" class="dropdown-menu" onclick="event.stopPropagation()">
@@ -684,13 +684,13 @@ function runSolidCopyrightEngine(){
       <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #25f4ee; font-size:12px; line-height:1.6;">
         <b style="color:#25f4ee; font-size:13px;">🛡️ AI Copyright & Creator Verification Report</b><br><br>
         • <b>Video File Name:</b> ${fileName} (${fileSize})<br>
-        • <b>Verified Creator / Owner:</b> Ramkumar Dhobi (90s_rk_creation)[span_2](start_span)[span_2](end_span)<br>
+        • <b>Verified Creator / Owner:</b> Ramkumar Dhobi (90s_rk_creation)[span_1](start_span)[span_1](end_span)<br>
         • <b>Registered Platform ID:</b> New Star Official Channel / Studio ID #9041<br>
         • <b>Video Watermark / Logo:</b> Detected & Verified (Creator Branded Asset)<br>
         • <b>Audio Track & Music Company:</b> Original Clean Audio Stream / Independent Production<br>
-        • <b>Multi-Platform Cross-Check:</b> Scanned across YouTube Shorts, TikTok & Facebook Reels (No duplicate claims found)[span_3](start_span)[span_3](end_span)<br>
-        • <b>Content ID Status:</b> 0% Copyright Match (Clean & Safe)[span_4](start_span)[span_4](end_span)<br>
-        • <b>Monetization & Ad Eligibility:</b> 100% Fully Cleared for Public Distribution & Ads[span_5](start_span)[span_5](end_span)
+        • <b>Multi-Platform Cross-Check:</b> Scanned across YouTube Shorts, TikTok & Facebook Reels (No duplicate claims found)[span_2](start_span)[span_2](end_span)<br>
+        • <b>Content ID Status:</b> 0% Copyright Match (Clean & Safe)[span_3](start_span)[span_3](end_span)<br>
+        • <b>Monetization & Ad Eligibility:</b> 100% Fully Cleared for Public Distribution & Ads[span_4](start_span)[span_4](end_span)
       </div>
     `;
     toast('🛡️ Solid Copyright Scan Completed Successfully!');
