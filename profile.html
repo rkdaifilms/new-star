@@ -11,7 +11,7 @@
 <script src="./supabase-config.js"></script>
 
 <style>
-:root {
+:root{
   --bg:#101018;
   --panel:#191923;
   --panel2:#252532;
@@ -29,18 +29,19 @@ body{
 button,input,textarea{font:inherit}
 button{cursor:pointer}
 .hidden{display:none!important}
-.page{max-width:1000px;margin:auto;min-height:100vh;padding-bottom:40px}
+.page{width:100%;min-height:100vh;margin:0 auto;padding-bottom:40px}
 .topbar{
-  height:58px;padding:0 16px;display:flex;
+  height:58px;padding:0 18px;display:flex;
   align-items:center;justify-content:space-between;
   background:var(--panel);border-bottom:1px solid var(--line);
   position:sticky;top:0;z-index:30
 }
-.brand{font-size:20px;font-weight:800}
+.brand{font-size:21px;font-weight:800}
 .brand span{color:#a78bfa}
+.top-actions{display:flex;align-items:center;gap:10px}
 .icon-btn{
-  width:40px;height:40px;border:0;border-radius:50%;
-  color:white;background:var(--panel2);font-size:22px
+  width:42px;height:42px;border:0;border-radius:50%;
+  color:white;background:var(--panel2);font-size:23px
 }
 .btn{
   border:0;border-radius:11px;padding:12px 16px;
@@ -48,7 +49,6 @@ button{cursor:pointer}
 }
 .btn:hover{background:#7045d0}
 .btn-secondary{background:var(--panel2);border:1px solid var(--line)}
-.btn-danger{background:var(--danger)}
 .btn-full{width:100%;margin-top:10px}
 .google-btn{background:white;color:#222}
 .google-btn:hover{background:#eee}
@@ -74,8 +74,8 @@ button{cursor:pointer}
 }
 .auth-tabs{display:flex;gap:8px;margin:15px 0}
 .auth-tabs button{
-  flex:1;padding:11px;border-radius:10px;
-  color:white;background:var(--panel2);border:1px solid var(--line)
+  flex:1;padding:11px;border-radius:10px;color:white;
+  background:var(--panel2);border:1px solid var(--line)
 }
 .auth-tabs button.active{background:var(--accent)}
 .message{
@@ -85,34 +85,52 @@ button{cursor:pointer}
 }
 .small-note{font-size:12px;color:var(--muted);line-height:1.5}
 .profile-cover{
-  height:220px;
+  width:100%;height:260px;
   background:
     radial-gradient(circle at 20% 20%,#c084fc,transparent 32%),
     radial-gradient(circle at 80% 70%,#4f46e5,transparent 38%),
     linear-gradient(120deg,#17132e,#34205d,#17172b)
 }
 .profile-main{
-  padding:0 22px 20px;background:var(--panel);
-  border-bottom:1px solid var(--line)
+  width:100%;padding:0 28px 22px;
+  background:var(--panel);border-bottom:1px solid var(--line)
 }
 .profile-head{
   display:flex;align-items:flex-end;justify-content:space-between;
-  min-height:83px;gap:12px
+  gap:14px;min-height:105px
 }
 .avatar{
-  width:132px;height:132px;object-fit:cover;
+  width:140px;height:140px;object-fit:cover;
   border-radius:50%;border:5px solid var(--panel);
-  background:#333;margin-top:-68px;position:relative;z-index:2
+  background:#333;margin-top:-70px;position:relative;z-index:2
 }
-.profile-name{font-size:27px;font-weight:800;margin:10px 0 4px;overflow-wrap:anywhere}
+.profile-actions{
+  display:flex;align-items:center;gap:9px;padding-bottom:10px
+}
+.profile-name{
+  font-size:29px;font-weight:800;margin:10px 0 4px;
+  overflow-wrap:anywhere
+}
 .username{font-size:14px;color:var(--muted)}
-.bio{margin-top:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
-.stats{display:flex;gap:25px;flex-wrap:wrap;padding:19px 0 5px}
+.bio{
+  margin-top:13px;line-height:1.6;
+  white-space:pre-wrap;overflow-wrap:anywhere
+}
+.profile-details{
+  display:flex;gap:9px;flex-wrap:wrap;margin-top:12px
+}
+.profile-details a{
+  color:#c4b5fd;text-decoration:none;font-size:13px;
+  overflow-wrap:anywhere
+}
+.stats{display:flex;gap:28px;flex-wrap:wrap;padding:20px 0 5px}
 .stat{font-size:13px;color:var(--muted)}
-.stat strong{color:white;font-size:17px;margin-right:4px}
-.section{padding:22px}
-.section-title{font-size:20px;margin:0 0 16px}
-.video-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stat strong{color:white;font-size:18px;margin-right:4px}
+.section{width:100%;padding:24px 28px}
+.section-title{font-size:21px;margin:0 0 17px}
+.video-grid{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px
+}
 .video-card{
   min-width:0;overflow:hidden;border-radius:12px;
   background:var(--panel);border:1px solid var(--line)
@@ -121,14 +139,14 @@ button{cursor:pointer}
   width:100%;display:block;aspect-ratio:9/12;
   object-fit:cover;background:#08080d
 }
-.video-caption{padding:9px;font-size:13px;overflow-wrap:anywhere}
+.video-caption{padding:10px;font-size:13px;overflow-wrap:anywhere}
 .empty{
   padding:35px 12px;text-align:center;color:var(--muted);
   background:var(--panel);border-radius:12px
 }
-.menu-wrap{position:relative;padding-bottom:8px}
+.menu-wrap{position:relative}
 .dropdown{
-  position:absolute;right:0;top:48px;width:255px;
+  position:absolute;right:0;top:49px;width:260px;
   background:#242431;border:1px solid var(--line);
   border-radius:14px;padding:8px;
   box-shadow:0 15px 40px #0009;z-index:60
@@ -149,7 +167,7 @@ button{cursor:pointer}
   display:flex;align-items:center;justify-content:center;padding:15px
 }
 .modal-card{
-  width:100%;max-width:560px;max-height:92vh;overflow-y:auto;
+  width:100%;max-width:600px;max-height:92vh;overflow-y:auto;
   background:var(--panel);border:1px solid var(--line);
   border-radius:17px;padding:20px
 }
@@ -171,14 +189,18 @@ button{cursor:pointer}
 }
 .photo-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
 .loading{text-align:center;padding:40px;color:var(--muted)}
+@media(max-width:900px){
+  .video-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
 @media(max-width:600px){
-  .profile-cover{height:165px}
+  .profile-cover{height:185px}
   .profile-main{padding:0 15px 18px}
-  .avatar{width:108px;height:108px;margin-top:-55px}
-  .profile-name{font-size:23px}
-  .section{padding:18px 13px}
+  .avatar{width:112px;height:112px;margin-top:-56px}
+  .profile-head{min-height:85px}
+  .profile-name{font-size:24px}
+  .section{padding:20px 13px}
   .video-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-  .stats{gap:16px}
+  .stats{gap:17px}
   .auth-card{padding:19px}
 }
 </style>
@@ -187,97 +209,104 @@ button{cursor:pointer}
 <body>
 <div class="page">
 
-  <header class="topbar">
-    <div class="brand">NEW <span>STAR</span></div>
+<header class="topbar">
+  <div class="brand">NEW <span>STAR</span></div>
+
+  <!-- ऊपर सिर्फ एक Settings menu -->
+  <div class="top-actions">
+    <div class="menu-wrap hidden" id="menuWrap">
+      <button class="icon-btn" id="menuBtn" aria-label="Settings">⋮</button>
+
+      <div class="dropdown hidden" id="profileMenu">
+        <div class="menu-label">ACCOUNT SETTINGS</div>
+        <button class="menu-item" id="menuSettings">⚙️ Account & Privacy Settings</button>
+        <div class="menu-label">ACCOUNT</div>
+        <button class="menu-item danger" id="menuLogout">↪ Logout</button>
+      </div>
+    </div>
+
     <button class="icon-btn" id="closeProfileBtn" title="Back">✕</button>
-  </header>
+  </div>
+</header>
 
-  <!-- LOGIN / SIGNUP -->
-  <section id="authSection" class="auth-wrap">
-    <div class="auth-card">
-      <h2>Welcome to New Star</h2>
-      <p class="small-note">Login or create your account to continue.</p>
+<section id="authSection" class="auth-wrap">
+  <div class="auth-card">
+    <h2>Welcome to New Star</h2>
+    <p class="small-note">Login or create your account to continue.</p>
 
-      <button class="btn btn-full google-btn" id="googleBtn">
-        🌐 Continue with Google
-      </button>
+    <button class="btn btn-full google-btn" id="googleBtn">
+      🌐 Continue with Google
+    </button>
 
-      <div class="auth-divider">OR CONTINUE WITH EMAIL</div>
+    <div class="auth-divider">OR CONTINUE WITH EMAIL</div>
 
-      <div class="auth-tabs">
-        <button class="active" id="loginTab">Login</button>
-        <button id="signupTab">Sign Up</button>
+    <div class="auth-tabs">
+      <button class="active" id="loginTab">Login</button>
+      <button id="signupTab">Sign Up</button>
+    </div>
+
+    <div id="signupNameWrap" class="hidden">
+      <input id="signupName" type="text" placeholder="Your full name">
+    </div>
+
+    <input id="authEmail" type="email" placeholder="Email / Gmail address">
+    <input id="authPassword" type="password" placeholder="Password">
+
+    <button class="btn btn-full" id="emailSubmitBtn">Login</button>
+
+    <div id="otpPanel" class="hidden">
+      <div class="message">
+        Verification code आपके ईमेल पर भेजा गया है। नीचे कोड डालें।
       </div>
+      <input id="emailOtp" type="text" inputmode="numeric"
+             autocomplete="one-time-code" placeholder="Email verification code">
+      <button class="btn btn-full" id="verifyOtpBtn">Verify Email</button>
+      <button class="btn btn-full btn-secondary" id="resendOtpBtn">Resend Code</button>
+    </div>
 
-      <div id="signupNameWrap" class="hidden">
-        <input id="signupName" type="text" placeholder="Your full name">
+    <div id="authMessage" class="message hidden"></div>
+  </div>
+</section>
+
+<main id="profileSection" class="hidden">
+  <div class="profile-cover"></div>
+
+  <section class="profile-main">
+    <div class="profile-head">
+      <img id="profileAvatar" class="avatar" alt="Profile photo"
+        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3Ctext x='50%25' y='56%25' font-size='55' text-anchor='middle' fill='white'%3E%E2%97%8F%3C/text%3E%3C/svg%3E">
+
+      <!-- प्रोफाइल के पास सीधे Pencil -->
+      <div class="profile-actions">
+        <button class="icon-btn" id="editProfileBtn"
+                title="Edit Profile" aria-label="Edit Profile">✏️</button>
       </div>
+    </div>
 
-      <input id="authEmail" type="email" placeholder="Email / Gmail address">
-      <input id="authPassword" type="password" placeholder="Password">
+    <h1 class="profile-name" id="profileName">New Star User</h1>
+    <div class="username" id="profileUsername">@username</div>
+    <div class="bio" id="profileBio"></div>
+    <div class="profile-details" id="profileLinks"></div>
 
-      <button class="btn btn-full" id="emailSubmitBtn">Login</button>
-
-      <div id="otpPanel" class="hidden">
-        <div class="message">
-          Verification code आपके ईमेल पर भेजा गया है। अपना कोड नीचे डालें।
-        </div>
-        <input id="emailOtp" type="text" inputmode="numeric"
-               autocomplete="one-time-code" placeholder="Email verification code">
-        <button class="btn btn-full" id="verifyOtpBtn">Verify Email</button>
-        <button class="btn btn-full btn-secondary" id="resendOtpBtn">Resend Code</button>
-      </div>
-
-      <div id="authMessage" class="message hidden"></div>
+    <div class="stats">
+      <div class="stat"><strong id="videoCount">0</strong> Videos</div>
+      <div class="stat"><strong id="followerCount">0</strong> Followers</div>
+      <div class="stat"><strong id="followingCount">0</strong> Following</div>
     </div>
   </section>
 
-  <!-- PROFILE -->
-  <main id="profileSection" class="hidden">
-    <div class="profile-cover"></div>
+  <section class="section">
+    <h2 class="section-title">My Videos</h2>
+    <div id="videoGrid" class="video-grid">
+      <div class="empty">Loading videos...</div>
+    </div>
+  </section>
+</main>
 
-    <section class="profile-main">
-      <div class="profile-head">
-        <img id="profileAvatar" class="avatar" alt="Profile photo"
-          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3Ctext x='50%25' y='56%25' font-size='55' text-anchor='middle' fill='white'%3E%E2%97%8F%3C/text%3E%3C/svg%3E">
-
-        <!-- सिर्फ एक Settings ⋮ -->
-        <div class="menu-wrap hidden" id="menuWrap">
-          <button class="icon-btn" id="menuBtn" title="Settings">⋮</button>
-
-          <div class="dropdown hidden" id="profileMenu">
-            <div class="menu-label">PROFILE SETTINGS</div>
-            <button class="menu-item" id="menuEdit">✏️ Edit Profile</button>
-            <button class="menu-item" id="menuSettings">⚙️ Account & Privacy Settings</button>
-            <div class="menu-label">ACCOUNT</div>
-            <button class="menu-item danger" id="menuLogout">↪ Logout</button>
-          </div>
-        </div>
-      </div>
-
-      <h1 class="profile-name" id="profileName">New Star User</h1>
-      <div class="username" id="profileUsername">@username</div>
-      <div class="bio" id="profileBio"></div>
-
-      <div class="stats">
-        <div class="stat"><strong id="videoCount">0</strong> Videos</div>
-        <div class="stat"><strong id="followerCount">0</strong> Followers</div>
-        <div class="stat"><strong id="followingCount">0</strong> Following</div>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2 class="section-title">My Videos</h2>
-      <div id="videoGrid" class="video-grid">
-        <div class="empty">Loading videos...</div>
-      </div>
-    </section>
-  </main>
-
-  <div id="loadingSection" class="loading hidden">Loading your profile...</div>
+<div id="loadingSection" class="loading hidden">Loading your profile...</div>
 </div>
 
-<!-- EDIT PROFILE -->
+<!-- EDIT PROFILE MODAL -->
 <div class="modal hidden" id="editModal">
   <div class="modal-card">
     <div class="modal-head">
@@ -354,7 +383,7 @@ let currentMode = "login";
 let pendingSignupEmail = "";
 let currentAvatarUrl = "";
 
-function message(el, text, error = false) {
+function showMessage(el, text, error=false) {
   el.textContent = text;
   el.classList.remove("hidden");
   el.style.border = error ? "1px solid #ef4444" : "1px solid #16a34a";
@@ -365,31 +394,31 @@ function clearMessage(el) {
   el.classList.add("hidden");
 }
 
-function busy(button, state, busyText, normalText) {
+function setBusy(button, state, busyText, normalText) {
   button.disabled = state;
   button.textContent = state ? busyText : normalText;
 }
 
-function text(value) {
+function safeText(value) {
   return typeof value === "string" ? value : "";
 }
 
-function username(value) {
-  return text(value).trim().replace(/^@+/, "").replace(/\s+/g, "").toLowerCase();
+function cleanUsername(value) {
+  return safeText(value).trim().replace(/^@+/,"").replace(/\s+/g,"").toLowerCase();
 }
 
 function safeUrl(value) {
-  const raw = text(value).trim();
+  const raw = safeText(value).trim();
   if (!raw) return "";
   try {
-    const u = new URL(raw);
-    return ["https:", "http:"].includes(u.protocol) ? u.href : "";
+    const url = new URL(raw);
+    return ["https:","http:"].includes(url.protocol) ? url.href : "";
   } catch (_) {
     return "";
   }
 }
 
-function metadata() {
+function getMetadata() {
   return currentUser && currentUser.user_metadata
     ? currentUser.user_metadata : {};
 }
@@ -398,9 +427,9 @@ function setAuthMode(mode) {
   currentMode = mode;
   const signup = mode === "signup";
 
-  $("loginTab").classList.toggle("active", !signup);
-  $("signupTab").classList.toggle("active", signup);
-  $("signupNameWrap").classList.toggle("hidden", !signup);
+  $("loginTab").classList.toggle("active",!signup);
+  $("signupTab").classList.toggle("active",signup);
+  $("signupNameWrap").classList.toggle("hidden",!signup);
   $("emailSubmitBtn").textContent = signup ? "Create Account" : "Login";
   $("authPassword").autocomplete = signup ? "new-password" : "current-password";
   $("otpPanel").classList.add("hidden");
@@ -433,7 +462,7 @@ async function loadProfileRow() {
     .maybeSingle();
 
   if (error) {
-    console.warn("Profile load:",error.message);
+    console.warn("Profile row load:",error.message);
     return;
   }
 
@@ -441,34 +470,62 @@ async function loadProfileRow() {
 }
 
 function renderProfile() {
-  const meta = metadata();
+  const m = getMetadata();
 
   const name =
-    text(meta.full_name) ||
-    text(meta.name) ||
-    text(currentUser.email).split("@")[0] ||
+    safeText(m.full_name) ||
+    safeText(m.name) ||
+    safeText(currentUser.email).split("@")[0] ||
     "New Star User";
 
-  const userName =
-    text(meta.username) ||
-    text(profileRow && profileRow.username) ||
+  const uname =
+    safeText(m.username) ||
+    safeText(profileRow && profileRow.username) ||
     currentUser.id.slice(0,8);
 
   const bio =
-    text(meta.bio) ||
-    text(profileRow && profileRow.bio);
+    safeText(m.bio) ||
+    safeText(profileRow && profileRow.bio);
 
   currentAvatarUrl =
-    text(meta.avatar_url) ||
-    text(profileRow && profileRow.avatar_url);
+    safeText(m.avatar_url) ||
+    safeText(profileRow && profileRow.avatar_url);
 
   $("profileName").textContent = name;
-  $("profileUsername").textContent = "@" + username(userName);
+  $("profileUsername").textContent = "@" + cleanUsername(uname);
   $("profileBio").textContent = bio;
 
   if (currentAvatarUrl) {
     $("profileAvatar").src = currentAvatarUrl;
   }
+
+  renderSocialLinks(m);
+}
+
+function renderSocialLinks(m) {
+  const holder = $("profileLinks");
+  holder.innerHTML = "";
+
+  const links = [
+    ["Website",m.website],
+    ["Facebook",m.facebook],
+    ["Instagram",m.instagram],
+    ["YouTube",m.youtube],
+    ["TikTok",m.tiktok],
+    ["WhatsApp",m.whatsapp]
+  ];
+
+  links.forEach(([label,value]) => {
+    const url = safeUrl(value);
+    if (!url) return;
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = label;
+    holder.appendChild(a);
+  });
 }
 
 async function loadStatsAndVideos() {
@@ -481,8 +538,8 @@ async function loadStatsAndVideos() {
     .order("created_at",{ascending:false});
 
   if (result.error) {
-    console.error(result.error);
-    grid.innerHTML = '<div class="empty">Could not load videos. Please try again.</div>';
+    console.error("Videos:",result.error.message);
+    grid.innerHTML = '<div class="empty">Could not load videos: '+result.error.message+'</div>';
     $("videoCount").textContent = "0";
   } else {
     const videos = result.data || [];
@@ -506,7 +563,7 @@ async function loadStatsAndVideos() {
 
         const caption = document.createElement("div");
         caption.className = "video-caption";
-        caption.textContent = text(item.caption) || "New Star Video";
+        caption.textContent = safeText(item.caption) || "New Star Video";
 
         card.append(video,caption);
         grid.appendChild(card);
@@ -534,10 +591,7 @@ async function loadStatsAndVideos() {
 }
 
 async function activate(user) {
-  if (!user) {
-    showAuth();
-    return;
-  }
+  if (!user) return showAuth();
 
   currentUser = user;
   $("loadingSection").classList.remove("hidden");
@@ -553,44 +607,52 @@ async function activate(user) {
 function openEdit() {
   if (!currentUser) return;
 
-  const m = metadata();
+  const m = getMetadata();
 
-  $("editName").value = text(m.full_name) || text(m.name);
-  $("editUsername").value = text(m.username) || text(profileRow && profileRow.username);
+  $("editName").value = safeText(m.full_name) || safeText(m.name);
+  $("editUsername").value = safeText(m.username) || safeText(profileRow && profileRow.username);
   $("editEmail").textContent = currentUser.email || "Email unavailable";
-  $("editPhone").value = text(m.phone);
-  $("editAddress").value = text(m.address);
-  $("editBio").value = text(m.bio) || text(profileRow && profileRow.bio);
-  $("editWebsite").value = text(m.website);
-  $("editFacebook").value = text(m.facebook);
-  $("editInstagram").value = text(m.instagram);
-  $("editYoutube").value = text(m.youtube);
-  $("editTiktok").value = text(m.tiktok);
-  $("editWhatsapp").value = text(m.whatsapp);
+  $("editPhone").value = safeText(m.phone);
+  $("editAddress").value = safeText(m.address);
+  $("editBio").value = safeText(m.bio) || safeText(profileRow && profileRow.bio);
+  $("editWebsite").value = safeText(m.website);
+  $("editFacebook").value = safeText(m.facebook);
+  $("editInstagram").value = safeText(m.instagram);
+  $("editYoutube").value = safeText(m.youtube);
+  $("editTiktok").value = safeText(m.tiktok);
+  $("editWhatsapp").value = safeText(m.whatsapp);
 
   clearMessage($("editMessage"));
   $("editModal").classList.remove("hidden");
 }
 
+/*
+  Save strategy:
+  1. Save all extended profile information in Supabase Auth user_metadata.
+  2. Sync the columns already used by the existing profiles table.
+  3. Use upsert on user_id so both new and existing rows are handled.
+*/
 async function saveProfile() {
   if (!currentUser) return;
 
   const button = $("saveProfileBtn");
-  busy(button,true,"Saving...","Save Profile");
+  setBusy(button,true,"Saving...","Save Profile");
   clearMessage($("editMessage"));
 
-  const uname = username($("editUsername").value);
+  const uname = cleanUsername($("editUsername").value);
 
   if (uname && !/^[a-z0-9._]{3,30}$/.test(uname)) {
-    message($("editMessage"),
+    showMessage($("editMessage"),
       "Username must be 3–30 characters using letters, numbers, dots or underscores.",
       true);
-    busy(button,false,"","Save Profile");
+    setBusy(button,false,"","Save Profile");
     return;
   }
 
-  const data = {
-    ...metadata(),
+  const oldMetadata = getMetadata();
+
+  const profileData = {
+    ...oldMetadata,
     full_name: $("editName").value.trim(),
     username: uname,
     phone: $("editPhone").value.trim(),
@@ -605,65 +667,87 @@ async function saveProfile() {
     avatar_url: currentAvatarUrl
   };
 
-  const authUpdate = await db.auth.updateUser({data});
+  // First save the complete profile data to Supabase Auth metadata.
+  const authResult = await db.auth.updateUser({data:profileData});
 
-  if (authUpdate.error) {
-    message($("editMessage"),authUpdate.error.message,true);
-    busy(button,false,"","Save Profile");
+  if (authResult.error) {
+    showMessage($("editMessage"),
+      "Save failed: " + authResult.error.message,true);
+    setBusy(button,false,"","Save Profile");
     return;
   }
 
-  currentUser = authUpdate.data.user || currentUser;
+  currentUser = authResult.data.user || currentUser;
 
-  const row = {
+  // Sync only the columns confirmed in the existing profiles table.
+  const rowData = {
     user_id: currentUser.id,
     username: uname || null,
-    bio: data.bio || null,
+    bio: profileData.bio || null,
     avatar_url: currentAvatarUrl || null
   };
 
-  let rowResult;
+  let dbResult = await db.from("profiles")
+    .upsert(rowData,{onConflict:"user_id"});
 
-  if (profileRow) {
-    rowResult = await db.from("profiles")
+  // Fallback for schemas where upsert is not available as configured.
+  if (dbResult.error) {
+    console.warn("Profile upsert error:",dbResult.error.message);
+
+    const updateResult = await db.from("profiles")
       .update({
-        username: row.username,
-        bio: row.bio,
-        avatar_url: row.avatar_url
+        username:rowData.username,
+        bio:rowData.bio,
+        avatar_url:rowData.avatar_url
       })
       .eq("user_id",currentUser.id);
-  } else {
-    rowResult = await db.from("profiles").insert(row);
+
+    if (updateResult.error) {
+      const insertResult = await db.from("profiles").insert(rowData);
+      if (insertResult.error) {
+        console.error("Profile row sync error:",insertResult.error.message);
+      } else {
+        dbResult = {error:null};
+      }
+    } else {
+      dbResult = {error:null};
+    }
+  }
+
+  // Reload auth user so the saved metadata is reflected immediately.
+  const refreshed = await db.auth.getUser();
+  if (!refreshed.error && refreshed.data.user) {
+    currentUser = refreshed.data.user;
   }
 
   await loadProfileRow();
   renderProfile();
 
-  if (rowResult.error) {
-    message($("editMessage"),
-      "Profile information saved, but database profile sync failed: " + rowResult.error.message,
+  if (dbResult.error) {
+    showMessage($("editMessage"),
+      "Your extended profile information was saved to your account, but the profiles table could not be updated. Database error: " + dbResult.error.message,
       true);
   } else {
-    message($("editMessage"),"Profile saved successfully.");
+    showMessage($("editMessage"),"✅ Profile saved successfully!");
   }
 
-  busy(button,false,"","Save Profile");
+  setBusy(button,false,"","Save Profile");
 }
 
 async function uploadAvatar(file) {
   if (!currentUser || !file) return;
 
   if (!file.type || !file.type.startsWith("image/")) {
-    message($("editMessage"),"Please select an image file.",true);
+    showMessage($("editMessage"),"Please select an image file.",true);
     return;
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    message($("editMessage"),"Image must be smaller than 5 MB.",true);
+    showMessage($("editMessage"),"Image must be smaller than 5 MB.",true);
     return;
   }
 
-  message($("editMessage"),"Uploading profile photo...");
+  showMessage($("editMessage"),"Uploading profile photo...");
 
   const ext = (file.name.split(".").pop() || "jpg")
     .toLowerCase().replace(/[^a-z0-9]/g,"");
@@ -677,7 +761,7 @@ async function uploadAvatar(file) {
   });
 
   if (upload.error) {
-    message($("editMessage"),"Photo upload failed: " + upload.error.message,true);
+    showMessage($("editMessage"),"Photo upload failed: " + upload.error.message,true);
     return;
   }
 
@@ -685,45 +769,41 @@ async function uploadAvatar(file) {
   const url = publicData.data && publicData.data.publicUrl;
 
   if (!url) {
-    message($("editMessage"),"Could not get photo URL.",true);
+    showMessage($("editMessage"),"Could not get photo URL.",true);
     return;
   }
 
-  currentAvatarUrl = url;
-
   const updated = await db.auth.updateUser({
-    data:{...metadata(),avatar_url:url}
+    data:{...getMetadata(),avatar_url:url}
   });
 
   if (updated.error) {
-    message($("editMessage"),"Photo uploaded but profile update failed: " + updated.error.message,true);
+    showMessage($("editMessage"),"Photo uploaded but profile update failed: " + updated.error.message,true);
     return;
   }
 
   currentUser = updated.data.user || currentUser;
+  currentAvatarUrl = url;
 
-  let rowResult;
+  const rowData = {
+    user_id:currentUser.id,
+    username:safeText(getMetadata().username) || null,
+    bio:safeText(getMetadata().bio) || null,
+    avatar_url:url
+  };
 
-  if (profileRow) {
-    rowResult = await db.from("profiles")
-      .update({avatar_url:url})
-      .eq("user_id",currentUser.id);
-  } else {
-    rowResult = await db.from("profiles").insert({
-      user_id:currentUser.id,
-      username:text(metadata().username) || null,
-      bio:text(metadata().bio) || null,
-      avatar_url:url
-    });
-  }
+  const rowResult = await db.from("profiles")
+    .upsert(rowData,{onConflict:"user_id"});
 
   if (rowResult.error) {
-    console.warn("Avatar saved in metadata; profile row sync:",rowResult.error.message);
+    console.warn("Avatar metadata saved; profile table sync:",rowResult.error.message);
   }
 
   await loadProfileRow();
+  renderProfile();
   $("profileAvatar").src = url;
-  message($("editMessage"),"Profile photo uploaded successfully.");
+
+  showMessage($("editMessage"),"Profile photo uploaded successfully.");
 }
 
 async function emailLogin() {
@@ -731,19 +811,18 @@ async function emailLogin() {
   const password = $("authPassword").value;
 
   if (!email || !password) {
-    message($("authMessage"),"Enter your email and password.",true);
+    showMessage($("authMessage"),"Enter your email and password.",true);
     return;
   }
 
   const button = $("emailSubmitBtn");
-  busy(button,true,"Logging in...","Login");
-  clearMessage($("authMessage"));
+  setBusy(button,true,"Logging in...","Login");
 
   const result = await db.auth.signInWithPassword({email,password});
-  busy(button,false,"","Login");
+  setBusy(button,false,"","Login");
 
   if (result.error) {
-    message($("authMessage"),result.error.message,true);
+    showMessage($("authMessage"),result.error.message,true);
     return;
   }
 
@@ -756,18 +835,17 @@ async function emailSignup() {
   const password = $("authPassword").value;
 
   if (!email || !password) {
-    message($("authMessage"),"Enter your email and password.",true);
+    showMessage($("authMessage"),"Enter your email and password.",true);
     return;
   }
 
   if (password.length < 6) {
-    message($("authMessage"),"Password must be at least 6 characters.",true);
+    showMessage($("authMessage"),"Password must be at least 6 characters.",true);
     return;
   }
 
   const button = $("emailSubmitBtn");
-  busy(button,true,"Creating account...","Create Account");
-  clearMessage($("authMessage"));
+  setBusy(button,true,"Creating account...","Create Account");
 
   const result = await db.auth.signUp({
     email,
@@ -775,10 +853,10 @@ async function emailSignup() {
     options:{data:{full_name:name}}
   });
 
-  busy(button,false,"","Create Account");
+  setBusy(button,false,"","Create Account");
 
   if (result.error) {
-    message($("authMessage"),result.error.message,true);
+    showMessage($("authMessage"),result.error.message,true);
     return;
   }
 
@@ -789,7 +867,7 @@ async function emailSignup() {
 
   pendingSignupEmail = email;
   $("otpPanel").classList.remove("hidden");
-  message($("authMessage"),
+  showMessage($("authMessage"),
     "Account created. Check your email for the verification code.");
 }
 
@@ -797,12 +875,12 @@ async function verifyEmailOtp() {
   const token = $("emailOtp").value.trim();
 
   if (!pendingSignupEmail || !token) {
-    message($("authMessage"),"Enter your email verification code.",true);
+    showMessage($("authMessage"),"Enter your email verification code.",true);
     return;
   }
 
   const button = $("verifyOtpBtn");
-  busy(button,true,"Verifying...","Verify Email");
+  setBusy(button,true,"Verifying...","Verify Email");
 
   const result = await db.auth.verifyOtp({
     email:pendingSignupEmail,
@@ -810,10 +888,10 @@ async function verifyEmailOtp() {
     type:"signup"
   });
 
-  busy(button,false,"","Verify Email");
+  setBusy(button,false,"","Verify Email");
 
   if (result.error) {
-    message($("authMessage"),result.error.message,true);
+    showMessage($("authMessage"),result.error.message,true);
     return;
   }
 
@@ -824,36 +902,36 @@ async function verifyEmailOtp() {
   } else {
     $("otpPanel").classList.add("hidden");
     setAuthMode("login");
-    message($("authMessage"),"Email verified. Please log in.");
+    showMessage($("authMessage"),"Email verified. Please log in.");
   }
 }
 
 async function resendEmailOtp() {
   if (!pendingSignupEmail) {
-    message($("authMessage"),"Create your account first.",true);
+    showMessage($("authMessage"),"Create your account first.",true);
     return;
   }
 
   const button = $("resendOtpBtn");
-  busy(button,true,"Sending...","Resend Code");
+  setBusy(button,true,"Sending...","Resend Code");
 
   const result = await db.auth.resend({
     type:"signup",
     email:pendingSignupEmail
   });
 
-  busy(button,false,"","Resend Code");
+  setBusy(button,false,"","Resend Code");
 
   if (result.error) {
-    message($("authMessage"),result.error.message,true);
+    showMessage($("authMessage"),result.error.message,true);
   } else {
-    message($("authMessage"),"A new verification code has been sent.");
+    showMessage($("authMessage"),"A new verification code has been sent.");
   }
 }
 
 async function googleLogin() {
   const button = $("googleBtn");
-  busy(button,true,"Opening Google...","🌐 Continue with Google");
+  setBusy(button,true,"Opening Google...","🌐 Continue with Google");
 
   const result = await db.auth.signInWithOAuth({
     provider:"google",
@@ -864,8 +942,8 @@ async function googleLogin() {
   });
 
   if (result.error) {
-    busy(button,false,"","🌐 Continue with Google");
-    message($("authMessage"),result.error.message,true);
+    setBusy(button,false,"","🌐 Continue with Google");
+    showMessage($("authMessage"),result.error.message,true);
   }
 }
 
@@ -896,10 +974,6 @@ function openSettings() {
   location.href = "settings.html";
 }
 
-function closeEdit() {
-  $("editModal").classList.add("hidden");
-}
-
 function initEvents() {
   $("loginTab").addEventListener("click",()=>setAuthMode("login"));
   $("signupTab").addEventListener("click",()=>setAuthMode("signup"));
@@ -918,25 +992,28 @@ function initEvents() {
   $("verifyOtpBtn").addEventListener("click",verifyEmailOtp);
   $("resendOtpBtn").addEventListener("click",resendEmailOtp);
 
-  // एक ही Settings menu
+  // Top Settings menu only
   $("menuBtn").addEventListener("click",()=>{
     $("profileMenu").classList.toggle("hidden");
-  });
-
-  $("menuEdit").addEventListener("click",()=>{
-    $("profileMenu").classList.add("hidden");
-    openEdit();
   });
 
   $("menuSettings").addEventListener("click",openSettings);
   $("menuLogout").addEventListener("click",logout);
 
+  // Pencil button beside profile photo
+  $("editProfileBtn").addEventListener("click",openEdit);
+
   $("closeProfileBtn").addEventListener("click",closeProfile);
-  $("closeEditBtn").addEventListener("click",closeEdit);
+  $("closeEditBtn").addEventListener("click",()=>{
+    $("editModal").classList.add("hidden");
+  });
+
   $("saveProfileBtn").addEventListener("click",saveProfile);
 
   $("editModal").addEventListener("click",event=>{
-    if (event.target === $("editModal")) closeEdit();
+    if (event.target === $("editModal")) {
+      $("editModal").classList.add("hidden");
+    }
   });
 
   document.addEventListener("click",event=>{
@@ -948,7 +1025,7 @@ function initEvents() {
   document.addEventListener("keydown",event=>{
     if (event.key === "Escape") {
       $("profileMenu").classList.add("hidden");
-      closeEdit();
+      $("editModal").classList.add("hidden");
     }
   });
 
@@ -976,7 +1053,7 @@ function initEvents() {
 async function start() {
   if (!db || !db.auth) {
     showAuth();
-    message($("authMessage"),
+    showMessage($("authMessage"),
       "Supabase client not found. Check supabase-config.js.",
       true);
     return;
@@ -1004,15 +1081,12 @@ async function start() {
   });
 }
 
-window.NewStarProfile = {
-  openEdit,
-  logout
-};
+window.NewStarProfile = {openEdit,logout};
 
 start().catch(error=>{
   console.error("Profile initialization:",error);
   showAuth();
-  message($("authMessage"),error.message || "Could not load profile.",true);
+  showMessage($("authMessage"),error.message || "Could not load profile.",true);
 });
 
 })();
