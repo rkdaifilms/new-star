@@ -2,1348 +2,1022 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#101018">
-  <title>New Star - Profile</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./supabase-config.js"></script>
-
-  <style>
-    :root {
-      --bg: #101018;
-      --panel: #191923;
-      --panel2: #222230;
-      --text: #f5f5fa;
-      --muted: #a4a4b5;
-      --line: #30303d;
-      --accent: #8b5cf6;
-      --accent2: #6d43d8;
-      --danger: #ef4444;
-      --radius: 17px;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    button, input, textarea { font: inherit; }
-    button { cursor: pointer; }
-
-    .page {
-      width: 100%;
-      max-width: 1000px;
-      min-height: 100vh;
-      margin: auto;
-      padding-bottom: 40px;
-    }
-
-    .topbar {
-      height: 62px;
-      padding: 0 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: var(--panel);
-      border-bottom: 1px solid var(--line);
-      position: sticky;
-      top: 0;
-      z-index: 20;
-    }
-
-    .brand {
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: -.5px;
-    }
-
-    .brand span { color: #a78bfa; }
-
-    .top-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .icon-btn {
-      width: 40px;
-      height: 40px;
-      border: 0;
-      border-radius: 50%;
-      color: white;
-      background: var(--panel2);
-      font-size: 22px;
-    }
-
-    .auth-wrap {
-      padding: 24px 16px;
-      max-width: 460px;
-      margin: 35px auto;
-    }
-
-    .auth-card {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      padding: 24px;
-      border-radius: var(--radius);
-    }
-
-    .auth-card h2 { margin-top: 0; }
-
-    .auth-card input,
-    .edit-form input,
-    .edit-form textarea {
-      width: 100%;
-      padding: 13px 14px;
-      border: 1px solid var(--line);
-      border-radius: 11px;
-      background: #11111a;
-      color: white;
-      outline: none;
-      margin: 7px 0;
-    }
-
-    input:focus, textarea:focus {
-      border-color: var(--accent);
-    }
-
-    .btn {
-      border: 0;
-      border-radius: 11px;
-      padding: 12px 17px;
-      font-weight: 700;
-      background: var(--accent);
-      color: white;
-    }
-
-    .btn:hover { background: var(--accent2); }
-
-    .btn-full { width: 100%; margin-top: 10px; }
-
-    .btn-secondary {
-      background: var(--panel2);
-      border: 1px solid var(--line);
-    }
-
-    .btn-danger { background: var(--danger); }
-
-    .google-btn {
-      background: white;
-      color: #222;
-    }
-
-    .google-btn:hover { background: #eaeaea; }
-
-    .auth-divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: var(--muted);
-      margin: 18px 0;
-      font-size: 13px;
-    }
-
-    .auth-divider::before,
-    .auth-divider::after {
-      content: "";
-      height: 1px;
-      background: var(--line);
-      flex: 1;
-    }
-
-    .auth-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .auth-tabs button {
-      flex: 1;
-      border: 1px solid var(--line);
-      background: var(--panel2);
-      color: white;
-      border-radius: 10px;
-      padding: 11px;
-    }
-
-    .auth-tabs button.active {
-      background: var(--accent);
-      border-color: var(--accent);
-    }
-
-    .hidden { display: none !important; }
-
-    .message {
-      margin-top: 12px;
-      padding: 11px;
-      border-radius: 10px;
-      background: var(--panel2);
-      color: #ddd;
-      font-size: 13px;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
-    }
-
-    .profile-cover {
-      height: 220px;
-      background:
-        radial-gradient(circle at 20% 20%, #c084fc 0, transparent 32%),
-        radial-gradient(circle at 80% 70%, #4f46e5 0, transparent 38%),
-        linear-gradient(120deg, #17132e, #34205d, #17172b);
-      position: relative;
-    }
-
-    .profile-main {
-      padding: 0 22px 20px;
-      background: var(--panel);
-      border-bottom: 1px solid var(--line);
-    }
-
-    .profile-head {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 15px;
-      min-height: 100px;
-    }
-
-    .avatar {
-      width: 132px;
-      height: 132px;
-      border-radius: 50%;
-      border: 5px solid var(--panel);
-      background: #333;
-      object-fit: cover;
-      margin-top: -68px;
-      position: relative;
-      z-index: 2;
-    }
-
-    .profile-actions {
-      display: flex;
-      gap: 8px;
-      padding-bottom: 10px;
-    }
-
-    .profile-name {
-      font-size: 27px;
-      font-weight: 800;
-      margin: 10px 0 4px;
-      overflow-wrap: anywhere;
-    }
-
-    .username {
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .bio {
-      margin-top: 13px;
-      line-height: 1.6;
-      color: #ddd;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-
-    .stats {
-      display: flex;
-      gap: 25px;
-      flex-wrap: wrap;
-      padding: 19px 0 5px;
-    }
-
-    .stat {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .stat strong {
-      color: white;
-      font-size: 17px;
-      margin-right: 4px;
-    }
-
-    .section {
-      padding: 22px;
-    }
-
-    .section-title {
-      font-size: 20px;
-      font-weight: 800;
-      margin: 0 0 16px;
-    }
-
-    .video-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .video-card {
-      min-width: 0;
-      overflow: hidden;
-      border-radius: 12px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-    }
-
-    .video-card video {
-      display: block;
-      width: 100%;
-      aspect-ratio: 9 / 12;
-      object-fit: cover;
-      background: #08080d;
-    }
-
-    .video-caption {
-      padding: 9px;
-      font-size: 13px;
-      overflow-wrap: anywhere;
-    }
-
-    .empty {
-      color: var(--muted);
-      text-align: center;
-      padding: 35px 12px;
-      background: var(--panel);
-      border-radius: 12px;
-    }
-
-    .menu-wrap { position: relative; }
-
-    .dropdown {
-      position: absolute;
-      right: 0;
-      top: 48px;
-      width: 245px;
-      background: #242431;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 8px;
-      box-shadow: 0 15px 40px #0009;
-      z-index: 50;
-    }
-
-    .menu-item {
-      display: flex;
-      align-items: center;
-      gap: 11px;
-      width: 100%;
-      border: 0;
-      background: transparent;
-      color: white;
-      text-align: left;
-      padding: 13px 12px;
-      border-radius: 9px;
-      font-size: 14px;
-    }
-
-    .menu-item:hover { background: #383849; }
-    .menu-item.danger { color: #ff7777; }
-
-    .menu-label {
-      color: var(--muted);
-      font-size: 11px;
-      padding: 10px 12px 4px;
-      text-transform: uppercase;
-      letter-spacing: .8px;
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: #000b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 15px;
-      z-index: 100;
-    }
-
-    .modal-card {
-      width: 100%;
-      max-width: 560px;
-      max-height: 92vh;
-      overflow-y: auto;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 17px;
-      padding: 20px;
-    }
-
-    .modal-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .modal-head h2 { margin: 0; font-size: 20px; }
-
-    .close-btn {
-      border: 0;
-      background: var(--panel2);
-      color: white;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      font-size: 20px;
-    }
-
-    .field-label {
-      display: block;
-      margin-top: 12px;
-      font-size: 13px;
-      color: #ccc;
-    }
-
-    .edit-form textarea {
-      min-height: 85px;
-      resize: vertical;
-    }
-
-    .readonly-email {
-      background: #11111a;
-      border: 1px solid var(--line);
-      color: var(--muted);
-      padding: 13px;
-      border-radius: 10px;
-      overflow-wrap: anywhere;
-      margin-top: 7px;
-    }
-
-    .photo-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin: 10px 0;
-    }
-
-    .small-note {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 40px 10px;
-      color: var(--muted);
-    }
-
-    @media (max-width: 600px) {
-      .page { padding-bottom: 25px; }
-      .topbar { height: 56px; padding: 0 13px; }
-      .profile-cover { height: 165px; }
-      .profile-main { padding: 0 15px 18px; }
-      .avatar { width: 108px; height: 108px; margin-top: -55px; }
-      .profile-name { font-size: 23px; }
-      .profile-head { min-height: 80px; }
-      .profile-actions { padding-bottom: 7px; }
-      .section { padding: 18px 13px; }
-      .video-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-      .stats { gap: 16px; }
-      .auth-card { padding: 19px; }
-    }
-
-    @media (max-width: 360px) {
-      .profile-actions { gap: 5px; }
-      .profile-actions .btn { padding: 10px; }
-      .avatar { width: 95px; height: 95px; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101018">
+<title>New Star Profile</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+
+<style>
+:root {
+  --bg:#101018;
+  --panel:#191923;
+  --panel2:#252532;
+  --text:#f5f5fa;
+  --muted:#a4a4b5;
+  --line:#30303d;
+  --accent:#8b5cf6;
+  --danger:#ef4444;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:Arial,Helvetica,sans-serif
+}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.page{max-width:1000px;margin:auto;min-height:100vh;padding-bottom:40px}
+.topbar{
+  height:58px;padding:0 16px;display:flex;
+  align-items:center;justify-content:space-between;
+  background:var(--panel);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:30
+}
+.brand{font-size:20px;font-weight:800}
+.brand span{color:#a78bfa}
+.icon-btn{
+  width:40px;height:40px;border:0;border-radius:50%;
+  color:white;background:var(--panel2);font-size:22px
+}
+.btn{
+  border:0;border-radius:11px;padding:12px 16px;
+  background:var(--accent);color:white;font-weight:700
+}
+.btn:hover{background:#7045d0}
+.btn-secondary{background:var(--panel2);border:1px solid var(--line)}
+.btn-danger{background:var(--danger)}
+.btn-full{width:100%;margin-top:10px}
+.google-btn{background:white;color:#222}
+.google-btn:hover{background:#eee}
+.auth-wrap{max-width:460px;margin:35px auto;padding:20px}
+.auth-card{
+  padding:24px;background:var(--panel);
+  border:1px solid var(--line);border-radius:17px
+}
+.auth-card h2{margin-top:0}
+.auth-card input,.edit-form input,.edit-form textarea{
+  width:100%;padding:13px;margin:7px 0;
+  border:1px solid var(--line);border-radius:10px;
+  background:#11111a;color:white;outline:none
+}
+.auth-card input:focus,.edit-form input:focus,
+.edit-form textarea:focus{border-color:var(--accent)}
+.auth-divider{
+  display:flex;align-items:center;gap:12px;
+  margin:18px 0;color:var(--muted);font-size:12px
+}
+.auth-divider:before,.auth-divider:after{
+  content:"";height:1px;background:var(--line);flex:1
+}
+.auth-tabs{display:flex;gap:8px;margin:15px 0}
+.auth-tabs button{
+  flex:1;padding:11px;border-radius:10px;
+  color:white;background:var(--panel2);border:1px solid var(--line)
+}
+.auth-tabs button.active{background:var(--accent)}
+.message{
+  padding:11px;margin-top:12px;border-radius:10px;
+  background:var(--panel2);font-size:13px;line-height:1.5;
+  overflow-wrap:anywhere
+}
+.small-note{font-size:12px;color:var(--muted);line-height:1.5}
+.profile-cover{
+  height:220px;
+  background:
+    radial-gradient(circle at 20% 20%,#c084fc,transparent 32%),
+    radial-gradient(circle at 80% 70%,#4f46e5,transparent 38%),
+    linear-gradient(120deg,#17132e,#34205d,#17172b)
+}
+.profile-main{
+  padding:0 22px 20px;background:var(--panel);
+  border-bottom:1px solid var(--line)
+}
+.profile-head{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  min-height:83px;gap:12px
+}
+.avatar{
+  width:132px;height:132px;object-fit:cover;
+  border-radius:50%;border:5px solid var(--panel);
+  background:#333;margin-top:-68px;position:relative;z-index:2
+}
+.profile-name{font-size:27px;font-weight:800;margin:10px 0 4px;overflow-wrap:anywhere}
+.username{font-size:14px;color:var(--muted)}
+.bio{margin-top:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.stats{display:flex;gap:25px;flex-wrap:wrap;padding:19px 0 5px}
+.stat{font-size:13px;color:var(--muted)}
+.stat strong{color:white;font-size:17px;margin-right:4px}
+.section{padding:22px}
+.section-title{font-size:20px;margin:0 0 16px}
+.video-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.video-card{
+  min-width:0;overflow:hidden;border-radius:12px;
+  background:var(--panel);border:1px solid var(--line)
+}
+.video-card video{
+  width:100%;display:block;aspect-ratio:9/12;
+  object-fit:cover;background:#08080d
+}
+.video-caption{padding:9px;font-size:13px;overflow-wrap:anywhere}
+.empty{
+  padding:35px 12px;text-align:center;color:var(--muted);
+  background:var(--panel);border-radius:12px
+}
+.menu-wrap{position:relative;padding-bottom:8px}
+.dropdown{
+  position:absolute;right:0;top:48px;width:255px;
+  background:#242431;border:1px solid var(--line);
+  border-radius:14px;padding:8px;
+  box-shadow:0 15px 40px #0009;z-index:60
+}
+.menu-label{
+  color:var(--muted);font-size:11px;
+  padding:10px 12px 4px;letter-spacing:.8px
+}
+.menu-item{
+  display:block;width:100%;padding:13px 12px;
+  border:0;border-radius:9px;background:transparent;
+  color:white;text-align:left;font-size:14px
+}
+.menu-item:hover{background:#383849}
+.menu-item.danger{color:#ff7777}
+.modal{
+  position:fixed;inset:0;background:#000b;z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:15px
+}
+.modal-card{
+  width:100%;max-width:560px;max-height:92vh;overflow-y:auto;
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:17px;padding:20px
+}
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;margin-bottom:12px
+}
+.modal-head h2{margin:0;font-size:20px}
+.close-btn{
+  width:36px;height:36px;border:0;border-radius:50%;
+  background:var(--panel2);color:white;font-size:20px
+}
+.field-label{display:block;margin-top:12px;font-size:13px;color:#ccc}
+.edit-form textarea{min-height:85px;resize:vertical}
+.readonly-email{
+  padding:13px;margin-top:7px;background:#11111a;
+  border:1px solid var(--line);border-radius:10px;
+  color:var(--muted);overflow-wrap:anywhere
+}
+.photo-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.loading{text-align:center;padding:40px;color:var(--muted)}
+@media(max-width:600px){
+  .profile-cover{height:165px}
+  .profile-main{padding:0 15px 18px}
+  .avatar{width:108px;height:108px;margin-top:-55px}
+  .profile-name{font-size:23px}
+  .section{padding:18px 13px}
+  .video-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .stats{gap:16px}
+  .auth-card{padding:19px}
+}
+</style>
 </head>
 
 <body>
-  <div class="page">
+<div class="page">
 
-    <header class="topbar">
-      <div class="brand">NEW <span>STAR</span></div>
+  <header class="topbar">
+    <div class="brand">NEW <span>STAR</span></div>
+    <button class="icon-btn" id="closeProfileBtn" title="Back">✕</button>
+  </header>
 
-      <div class="top-actions">
-        <button class="icon-btn" id="homeBtn" title="Home" aria-label="Home">⌂</button>
+  <!-- LOGIN / SIGNUP -->
+  <section id="authSection" class="auth-wrap">
+    <div class="auth-card">
+      <h2>Welcome to New Star</h2>
+      <p class="small-note">Login or create your account to continue.</p>
 
+      <button class="btn btn-full google-btn" id="googleBtn">
+        🌐 Continue with Google
+      </button>
+
+      <div class="auth-divider">OR CONTINUE WITH EMAIL</div>
+
+      <div class="auth-tabs">
+        <button class="active" id="loginTab">Login</button>
+        <button id="signupTab">Sign Up</button>
+      </div>
+
+      <div id="signupNameWrap" class="hidden">
+        <input id="signupName" type="text" placeholder="Your full name">
+      </div>
+
+      <input id="authEmail" type="email" placeholder="Email / Gmail address">
+      <input id="authPassword" type="password" placeholder="Password">
+
+      <button class="btn btn-full" id="emailSubmitBtn">Login</button>
+
+      <div id="otpPanel" class="hidden">
+        <div class="message">
+          Verification code आपके ईमेल पर भेजा गया है। अपना कोड नीचे डालें।
+        </div>
+        <input id="emailOtp" type="text" inputmode="numeric"
+               autocomplete="one-time-code" placeholder="Email verification code">
+        <button class="btn btn-full" id="verifyOtpBtn">Verify Email</button>
+        <button class="btn btn-full btn-secondary" id="resendOtpBtn">Resend Code</button>
+      </div>
+
+      <div id="authMessage" class="message hidden"></div>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <main id="profileSection" class="hidden">
+    <div class="profile-cover"></div>
+
+    <section class="profile-main">
+      <div class="profile-head">
+        <img id="profileAvatar" class="avatar" alt="Profile photo"
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3Ctext x='50%25' y='56%25' font-size='55' text-anchor='middle' fill='white'%3E%E2%97%8F%3C/text%3E%3C/svg%3E">
+
+        <!-- सिर्फ एक Settings ⋮ -->
         <div class="menu-wrap hidden" id="menuWrap">
-          <button class="icon-btn" id="menuBtn" title="Settings" aria-label="Profile settings">⋮</button>
+          <button class="icon-btn" id="menuBtn" title="Settings">⋮</button>
 
           <div class="dropdown hidden" id="profileMenu">
-            <div class="menu-label">Profile</div>
+            <div class="menu-label">PROFILE SETTINGS</div>
             <button class="menu-item" id="menuEdit">✏️ Edit Profile</button>
             <button class="menu-item" id="menuSettings">⚙️ Account & Privacy Settings</button>
-            <div class="menu-label">Account</div>
+            <div class="menu-label">ACCOUNT</div>
             <button class="menu-item danger" id="menuLogout">↪ Logout</button>
           </div>
         </div>
       </div>
-    </header>
 
-    <section id="authSection" class="auth-wrap">
-      <div class="auth-card">
-        <h2>Welcome to New Star</h2>
-        <p class="small-note">Login or create your account to view your profile and videos.</p>
+      <h1 class="profile-name" id="profileName">New Star User</h1>
+      <div class="username" id="profileUsername">@username</div>
+      <div class="bio" id="profileBio"></div>
 
-        <button class="btn btn-full google-btn" id="googleBtn">🌐 Continue with Google</button>
-
-        <div class="auth-divider">OR CONTINUE WITH EMAIL</div>
-
-        <div class="auth-tabs">
-          <button class="active" id="loginTab">Login</button>
-          <button id="signupTab">Sign Up</button>
-        </div>
-
-        <div id="signupNameWrap" class="hidden">
-          <input id="signupName" type="text" placeholder="Your full name" autocomplete="name">
-        </div>
-
-        <input id="authEmail" type="email" placeholder="Email / Gmail address" autocomplete="email">
-        <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password">
-
-        <button class="btn btn-full" id="emailSubmitBtn">Login</button>
-
-        <div id="otpPanel" class="hidden">
-          <div class="message">
-            A verification code has been sent to your email. Enter that code below to verify your account.
-          </div>
-          <input id="emailOtp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Email verification code">
-          <button class="btn btn-full" id="verifyOtpBtn">Verify Email</button>
-          <button class="btn btn-full btn-secondary" id="resendOtpBtn">Resend Code</button>
-        </div>
-
-        <div id="authMessage" class="message hidden" role="status"></div>
+      <div class="stats">
+        <div class="stat"><strong id="videoCount">0</strong> Videos</div>
+        <div class="stat"><strong id="followerCount">0</strong> Followers</div>
+        <div class="stat"><strong id="followingCount">0</strong> Following</div>
       </div>
     </section>
 
-    <main id="profileSection" class="hidden">
-      <div class="profile-cover"></div>
-
-      <section class="profile-main">
-        <div class="profile-head">
-          <img id="profileAvatar" class="avatar" alt="Profile photo"
-               src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3Ctext x='50%25' y='56%25' font-size='55' text-anchor='middle' fill='white'%3E%E2%97%8F%3C/text%3E%3C/svg%3E">
-
-          <div class="profile-actions">
-            <button class="btn" id="editProfileBtn">✏️ Edit Profile</button>
-          </div>
-        </div>
-
-        <h1 class="profile-name" id="profileName">New Star User</h1>
-        <div class="username" id="profileUsername">@username</div>
-        <div class="bio" id="profileBio"></div>
-
-        <div class="stats">
-          <div class="stat"><strong id="videoCount">0</strong> Videos</div>
-          <div class="stat"><strong id="followerCount">0</strong> Followers</div>
-          <div class="stat"><strong id="followingCount">0</strong> Following</div>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2 class="section-title">My Videos</h2>
-        <div id="videoGrid" class="video-grid">
-          <div class="empty">Loading videos...</div>
-        </div>
-      </section>
-    </main>
-
-    <div id="loadingSection" class="loading hidden">Loading your profile...</div>
-  </div>
-
-  <!-- EDIT PROFILE MODAL -->
-  <div class="modal hidden" id="editModal">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h2>Edit Profile</h2>
-        <button class="close-btn" id="closeEditBtn" aria-label="Close">×</button>
+    <section class="section">
+      <h2 class="section-title">My Videos</h2>
+      <div id="videoGrid" class="video-grid">
+        <div class="empty">Loading videos...</div>
       </div>
+    </section>
+  </main>
 
-      <div class="edit-form">
-        <label class="field-label">Profile Photo</label>
-        <div class="photo-row">
-          <button class="btn btn-secondary" id="cameraPhotoBtn">📷 Camera</button>
-          <button class="btn btn-secondary" id="galleryPhotoBtn">🖼 Gallery</button>
-        </div>
-        <input class="hidden" id="avatarCameraInput" type="file" accept="image/*" capture="user">
-        <input class="hidden" id="avatarGalleryInput" type="file" accept="image/*">
+  <div id="loadingSection" class="loading hidden">Loading your profile...</div>
+</div>
 
-        <label class="field-label">Full Name</label>
-        <input id="editName" type="text" maxlength="80" placeholder="Full name">
+<!-- EDIT PROFILE -->
+<div class="modal hidden" id="editModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Edit Profile</h2>
+      <button class="close-btn" id="closeEditBtn">×</button>
+    </div>
 
-        <label class="field-label">Username</label>
-        <input id="editUsername" type="text" maxlength="30" placeholder="username">
-
-        <label class="field-label">Email / Gmail</label>
-        <div id="editEmail" class="readonly-email">Your email</div>
-        <p class="small-note">Your login email is displayed here and cannot be changed from this profile form.</p>
-
-        <label class="field-label">Phone Number (Profile Contact Only)</label>
-        <input id="editPhone" type="tel" maxlength="25" placeholder="Phone number">
-
-        <label class="field-label">Address</label>
-        <input id="editAddress" type="text" maxlength="180" placeholder="Your address">
-
-        <label class="field-label">Bio</label>
-        <textarea id="editBio" maxlength="500" placeholder="Write something about yourself"></textarea>
-
-        <label class="field-label">Website</label>
-        <input id="editWebsite" type="url" placeholder="https://example.com">
-
-        <label class="field-label">Facebook Link</label>
-        <input id="editFacebook" type="url" placeholder="https://facebook.com/">
-
-        <label class="field-label">Instagram Link</label>
-        <input id="editInstagram" type="url" placeholder="https://instagram.com/">
-
-        <label class="field-label">YouTube Link</label>
-        <input id="editYoutube" type="url" placeholder="https://youtube.com/">
-
-        <label class="field-label">TikTok Link</label>
-        <input id="editTiktok" type="url" placeholder="https://tiktok.com/">
-
-        <label class="field-label">WhatsApp Link</label>
-        <input id="editWhatsapp" type="url" placeholder="https://wa.me/">
-
-        <button class="btn btn-full" id="saveProfileBtn">Save Profile</button>
-        <div id="editMessage" class="message hidden" role="status"></div>
+    <div class="edit-form">
+      <label class="field-label">Profile Photo</label>
+      <div class="photo-row">
+        <button class="btn btn-secondary" id="cameraPhotoBtn">📷 Camera</button>
+        <button class="btn btn-secondary" id="galleryPhotoBtn">🖼 Gallery</button>
       </div>
+      <input class="hidden" id="avatarCameraInput" type="file" accept="image/*" capture="user">
+      <input class="hidden" id="avatarGalleryInput" type="file" accept="image/*">
+
+      <label class="field-label">Full Name</label>
+      <input id="editName" type="text" maxlength="80" placeholder="Full name">
+
+      <label class="field-label">Username</label>
+      <input id="editUsername" type="text" maxlength="30" placeholder="username">
+
+      <label class="field-label">Email / Gmail</label>
+      <div id="editEmail" class="readonly-email">Your email</div>
+
+      <label class="field-label">Phone Number (Profile Contact Only)</label>
+      <input id="editPhone" type="tel" maxlength="25" placeholder="Phone number">
+
+      <label class="field-label">Address</label>
+      <input id="editAddress" type="text" maxlength="180" placeholder="Your address">
+
+      <label class="field-label">Bio</label>
+      <textarea id="editBio" maxlength="500" placeholder="Write something about yourself"></textarea>
+
+      <label class="field-label">Website</label>
+      <input id="editWebsite" type="url" placeholder="https://example.com">
+
+      <label class="field-label">Facebook Link</label>
+      <input id="editFacebook" type="url" placeholder="https://facebook.com/">
+
+      <label class="field-label">Instagram Link</label>
+      <input id="editInstagram" type="url" placeholder="https://instagram.com/">
+
+      <label class="field-label">YouTube Link</label>
+      <input id="editYoutube" type="url" placeholder="https://youtube.com/">
+
+      <label class="field-label">TikTok Link</label>
+      <input id="editTiktok" type="url" placeholder="https://tiktok.com/">
+
+      <label class="field-label">WhatsApp Link</label>
+      <input id="editWhatsapp" type="url" placeholder="https://wa.me/">
+
+      <button class="btn btn-full" id="saveProfileBtn">Save Profile</button>
+      <div id="editMessage" class="message hidden"></div>
     </div>
   </div>
-
-  <script>
-  (() => {
-    "use strict";
-
-    const db =
-      window.supabaseClient ||
-      window.cloudClient ||
-      window.supabase ||
-      null;
-
-    const $ = (id) => document.getElementById(id);
-
-    let currentUser = null;
-    let profileRow = null;
-    let currentMode = "login";
-    let pendingSignupEmail = "";
-    let currentAvatarUrl = "";
-
-    function showMessage(element, message, isError = false) {
-      element.textContent = message;
-      element.classList.remove("hidden");
-      element.style.border = isError
-        ? "1px solid #ef4444"
-        : "1px solid #16a34a";
-    }
-
-    function clearMessage(element) {
-      element.textContent = "";
-      element.classList.add("hidden");
-    }
-
-    function setBusy(button, busy, busyText, normalText) {
-      button.disabled = busy;
-      button.textContent = busy ? busyText : normalText;
-      button.style.opacity = busy ? ".65" : "1";
-    }
-
-    function safeText(value) {
-      return typeof value === "string" ? value : "";
-    }
-
-    function normalUsername(value) {
-      return safeText(value).trim().replace(/^@+/, "").replace(/\s+/g, "").toLowerCase();
-    }
-
-    function safeHttpUrl(value) {
-      const raw = safeText(value).trim();
-      if (!raw) return "";
-      try {
-        const url = new URL(raw);
-        if (url.protocol === "https:" || url.protocol === "http:") {
-          return url.href;
-        }
-      } catch (_) {}
-      return "";
-    }
-
-    function setAuthMode(mode) {
-      currentMode = mode;
-      const isSignup = mode === "signup";
-
-      $("loginTab").classList.toggle("active", !isSignup);
-      $("signupTab").classList.toggle("active", isSignup);
-      $("signupNameWrap").classList.toggle("hidden", !isSignup);
-      $("emailSubmitBtn").textContent = isSignup ? "Create Account" : "Login";
-      $("authPassword").autocomplete = isSignup ? "new-password" : "current-password";
-      $("otpPanel").classList.add("hidden");
-      clearMessage($("authMessage"));
-    }
-
-    function showAuth() {
-      currentUser = null;
-      $("authSection").classList.remove("hidden");
-      $("profileSection").classList.add("hidden");
-      $("loadingSection").classList.add("hidden");
-      $("menuWrap").classList.add("hidden");
-      $("profileMenu").classList.add("hidden");
-      $("editModal").classList.add("hidden");
-    }
-
-    function showProfile() {
-      $("authSection").classList.add("hidden");
-      $("profileSection").classList.remove("hidden");
-      $("loadingSection").classList.add("hidden");
-      $("menuWrap").classList.remove("hidden");
-    }
-
-    async function loadProfileRow() {
-      profileRow = null;
-
-      const { data, error } = await db
-        .from("profiles")
-        .select("user_id,username,avatar_url,bio")
-        .eq("user_id", currentUser.id)
-        .maybeSingle();
-
-      if (error) {
-        console.warn("Profile row could not be loaded:", error.message);
-        return;
-      }
-
-      profileRow = data || null;
-    }
-
-    function getMetadata() {
-      return currentUser && currentUser.user_metadata
-        ? currentUser.user_metadata
-        : {};
-    }
-
-    function renderProfile() {
-      const meta = getMetadata();
-
-      const name =
-        safeText(meta.full_name) ||
-        safeText(meta.name) ||
-        safeText(currentUser.email).split("@")[0] ||
-        "New Star User";
-
-      const username =
-        safeText(meta.username) ||
-        safeText(profileRow && profileRow.username) ||
-        currentUser.id.slice(0, 8);
-
-      const bio =
-        safeText(meta.bio) ||
-        safeText(profileRow && profileRow.bio);
-
-      currentAvatarUrl =
-        safeText(meta.avatar_url) ||
-        safeText(profileRow && profileRow.avatar_url);
-
-      $("profileName").textContent = name;
-      $("profileUsername").textContent = "@" + normalUsername(username);
-      $("profileBio").textContent = bio;
-      if (currentAvatarUrl) {
-        $("profileAvatar").src = currentAvatarUrl;
-      }
-    }
-
-    async function loadStatsAndVideos() {
-      const grid = $("videoGrid");
-      grid.innerHTML = '<div class="empty">Loading videos...</div>';
-
-      const videoResult = await db
-        .from("videos")
-        .select("id,user_id,video_url,caption,created_at")
-        .eq("user_id", currentUser.id)
-        .order("created_at", { ascending: false });
-
-      if (videoResult.error) {
-        console.error("Videos:", videoResult.error.message);
-        grid.innerHTML = '<div class="empty">Could not load videos. Please try again.</div>';
-        $("videoCount").textContent = "0";
-      } else {
-        const videos = videoResult.data || [];
-        $("videoCount").textContent = String(videos.length);
-
-        if (!videos.length) {
-          grid.innerHTML = '<div class="empty">You have not uploaded any videos yet.</div>';
-        } else {
-          grid.innerHTML = "";
-
-          videos.forEach((item) => {
-            if (!item.video_url) return;
-
-            const card = document.createElement("article");
-            card.className = "video-card";
-
-            const video = document.createElement("video");
-            video.src = item.video_url;
-            video.controls = true;
-            video.preload = "metadata";
-            video.playsInline = true;
-
-            const caption = document.createElement("div");
-            caption.className = "video-caption";
-            caption.textContent = safeText(item.caption) || "New Star Video";
-
-            card.appendChild(video);
-            card.appendChild(caption);
-            grid.appendChild(card);
-          });
-
-          if (!grid.children.length) {
-            grid.innerHTML = '<div class="empty">No playable video links were found.</div>';
-          }
-        }
-      }
-
-      const followerResult = await db
-        .from("followers")
-        .select("*", { count: "exact", head: true })
-        .eq("following_id", currentUser.id);
-
-      const followingResult = await db
-        .from("followers")
-        .select("*", { count: "exact", head: true })
-        .eq("follower_id", currentUser.id);
-
-      $("followerCount").textContent =
-        followerResult.error ? "0" : String(followerResult.count || 0);
-
-      $("followingCount").textContent =
-        followingResult.error ? "0" : String(followingResult.count || 0);
-    }
-
-    async function activate(user) {
-      if (!user) {
-        showAuth();
-        return;
-      }
-
-      currentUser = user;
-      $("loadingSection").classList.remove("hidden");
-      $("authSection").classList.add("hidden");
-      $("profileSection").classList.add("hidden");
-
-      await loadProfileRow();
-      renderProfile();
-      showProfile();
-      await loadStatsAndVideos();
-    }
-
-    function openEdit() {
-      if (!currentUser) return;
-
-      const meta = getMetadata();
-
-      $("editName").value =
-        safeText(meta.full_name) || safeText(meta.name);
-
-      $("editUsername").value =
-        safeText(meta.username) ||
-        safeText(profileRow && profileRow.username);
-
-      $("editEmail").textContent = currentUser.email || "Email unavailable";
-      $("editPhone").value = safeText(meta.phone);
-      $("editAddress").value = safeText(meta.address);
-      $("editBio").value =
-        safeText(meta.bio) || safeText(profileRow && profileRow.bio);
-
-      $("editWebsite").value = safeText(meta.website);
-      $("editFacebook").value = safeText(meta.facebook);
-      $("editInstagram").value = safeText(meta.instagram);
-      $("editYoutube").value = safeText(meta.youtube);
-      $("editTiktok").value = safeText(meta.tiktok);
-      $("editWhatsapp").value = safeText(meta.whatsapp);
-
-      clearMessage($("editMessage"));
-      $("editModal").classList.remove("hidden");
-    }
-
-    async function saveProfile() {
-      if (!currentUser) return;
-
-      const button = $("saveProfileBtn");
-      setBusy(button, true, "Saving...", "Save Profile");
-      clearMessage($("editMessage"));
-
-      const username = normalUsername($("editUsername").value);
-
-      const metadata = {
-        ...getMetadata(),
-        full_name: $("editName").value.trim(),
-        username,
-        phone: $("editPhone").value.trim(),
-        address: $("editAddress").value.trim(),
-        bio: $("editBio").value.trim(),
-        website: safeHttpUrl($("editWebsite").value),
-        facebook: safeHttpUrl($("editFacebook").value),
-        instagram: safeHttpUrl($("editInstagram").value),
-        youtube: safeHttpUrl($("editYoutube").value),
-        tiktok: safeHttpUrl($("editTiktok").value),
-        whatsapp: safeHttpUrl($("editWhatsapp").value),
-        avatar_url: currentAvatarUrl
-      };
-
-      if (username && !/^[a-z0-9._]{3,30}$/.test(username)) {
-        showMessage(
-          $("editMessage"),
-          "Username must be 3–30 characters and use only letters, numbers, dots or underscores.",
-          true
-        );
-        setBusy(button, false, "", "Save Profile");
-        return;
-      }
-
-      const authResult = await db.auth.updateUser({ data: metadata });
-
-      if (authResult.error) {
-        showMessage($("editMessage"), authResult.error.message, true);
-        setBusy(button, false, "", "Save Profile");
-        return;
-      }
-
-      currentUser = authResult.data.user || currentUser;
-
-      // Only update columns already used by the existing profiles table.
-      const rowData = {
-        user_id: currentUser.id,
-        username: username || null,
-        bio: metadata.bio || null,
-        avatar_url: currentAvatarUrl || null
-      };
-
-      let rowResult;
-
-      if (profileRow) {
-        rowResult = await db
-          .from("profiles")
-          .update({
-            username: rowData.username,
-            bio: rowData.bio,
-            avatar_url: rowData.avatar_url
-          })
-          .eq("user_id", currentUser.id);
-      } else {
-        rowResult = await db.from("profiles").insert(rowData);
-      }
-
-      if (rowResult.error) {
-        console.warn("Profile metadata saved, profile row sync warning:", rowResult.error.message);
-      }
-
-      await loadProfileRow();
-      renderProfile();
-
-      showMessage(
-        $("editMessage"),
-        rowResult.error
-          ? "Profile information saved. Some database profile fields could not be synchronized: " + rowResult.error.message
-          : "Profile saved successfully."
-      );
-
-      setBusy(button, false, "", "Save Profile");
-    }
-
-    async function uploadAvatar(file) {
-      if (!currentUser || !file) return;
-
-      if (!file.type || !file.type.startsWith("image/")) {
-        showMessage($("editMessage"), "Please select an image file.", true);
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        showMessage($("editMessage"), "Image must be smaller than 5 MB.", true);
-        return;
-      }
-
-      showMessage($("editMessage"), "Uploading profile photo...");
-
-      const extension = (file.name.split(".").pop() || "jpg")
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
-
-      const path = currentUser.id + "/avatar_" + Date.now() + "." + extension;
-
-      const uploadResult = await db.storage
-        .from("avatars")
-        .upload(path, file, {
-          cacheControl: "3600",
-          upsert: true,
-          contentType: file.type
-        });
-
-      if (uploadResult.error) {
-        showMessage($("editMessage"), "Photo upload failed: " + uploadResult.error.message, true);
-        return;
-      }
-
-      const publicResult = db.storage
-        .from("avatars")
-        .getPublicUrl(uploadResult.data.path);
-
-      const publicUrl = publicResult.data && publicResult.data.publicUrl;
-
-      if (!publicUrl) {
-        showMessage($("editMessage"), "Could not get the uploaded photo URL.", true);
-        return;
-      }
-
-      currentAvatarUrl = publicUrl;
-
-      const updateResult = await db.auth.updateUser({
-        data: {
-          ...getMetadata(),
-          avatar_url: publicUrl
-        }
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const db =
+  window.supabaseClient ||
+  window.cloudClient ||
+  window.supabase ||
+  null;
+
+const $ = id => document.getElementById(id);
+
+let currentUser = null;
+let profileRow = null;
+let currentMode = "login";
+let pendingSignupEmail = "";
+let currentAvatarUrl = "";
+
+function message(el, text, error = false) {
+  el.textContent = text;
+  el.classList.remove("hidden");
+  el.style.border = error ? "1px solid #ef4444" : "1px solid #16a34a";
+}
+
+function clearMessage(el) {
+  el.textContent = "";
+  el.classList.add("hidden");
+}
+
+function busy(button, state, busyText, normalText) {
+  button.disabled = state;
+  button.textContent = state ? busyText : normalText;
+}
+
+function text(value) {
+  return typeof value === "string" ? value : "";
+}
+
+function username(value) {
+  return text(value).trim().replace(/^@+/, "").replace(/\s+/g, "").toLowerCase();
+}
+
+function safeUrl(value) {
+  const raw = text(value).trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw);
+    return ["https:", "http:"].includes(u.protocol) ? u.href : "";
+  } catch (_) {
+    return "";
+  }
+}
+
+function metadata() {
+  return currentUser && currentUser.user_metadata
+    ? currentUser.user_metadata : {};
+}
+
+function setAuthMode(mode) {
+  currentMode = mode;
+  const signup = mode === "signup";
+
+  $("loginTab").classList.toggle("active", !signup);
+  $("signupTab").classList.toggle("active", signup);
+  $("signupNameWrap").classList.toggle("hidden", !signup);
+  $("emailSubmitBtn").textContent = signup ? "Create Account" : "Login";
+  $("authPassword").autocomplete = signup ? "new-password" : "current-password";
+  $("otpPanel").classList.add("hidden");
+  clearMessage($("authMessage"));
+}
+
+function showAuth() {
+  currentUser = null;
+  $("authSection").classList.remove("hidden");
+  $("profileSection").classList.add("hidden");
+  $("loadingSection").classList.add("hidden");
+  $("menuWrap").classList.add("hidden");
+  $("profileMenu").classList.add("hidden");
+  $("editModal").classList.add("hidden");
+}
+
+function showProfile() {
+  $("authSection").classList.add("hidden");
+  $("profileSection").classList.remove("hidden");
+  $("loadingSection").classList.add("hidden");
+  $("menuWrap").classList.remove("hidden");
+}
+
+async function loadProfileRow() {
+  profileRow = null;
+
+  const {data,error} = await db.from("profiles")
+    .select("user_id,username,avatar_url,bio")
+    .eq("user_id",currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Profile load:",error.message);
+    return;
+  }
+
+  profileRow = data || null;
+}
+
+function renderProfile() {
+  const meta = metadata();
+
+  const name =
+    text(meta.full_name) ||
+    text(meta.name) ||
+    text(currentUser.email).split("@")[0] ||
+    "New Star User";
+
+  const userName =
+    text(meta.username) ||
+    text(profileRow && profileRow.username) ||
+    currentUser.id.slice(0,8);
+
+  const bio =
+    text(meta.bio) ||
+    text(profileRow && profileRow.bio);
+
+  currentAvatarUrl =
+    text(meta.avatar_url) ||
+    text(profileRow && profileRow.avatar_url);
+
+  $("profileName").textContent = name;
+  $("profileUsername").textContent = "@" + username(userName);
+  $("profileBio").textContent = bio;
+
+  if (currentAvatarUrl) {
+    $("profileAvatar").src = currentAvatarUrl;
+  }
+}
+
+async function loadStatsAndVideos() {
+  const grid = $("videoGrid");
+  grid.innerHTML = '<div class="empty">Loading videos...</div>';
+
+  const result = await db.from("videos")
+    .select("id,user_id,video_url,caption,created_at")
+    .eq("user_id",currentUser.id)
+    .order("created_at",{ascending:false});
+
+  if (result.error) {
+    console.error(result.error);
+    grid.innerHTML = '<div class="empty">Could not load videos. Please try again.</div>';
+    $("videoCount").textContent = "0";
+  } else {
+    const videos = result.data || [];
+    $("videoCount").textContent = String(videos.length);
+    grid.innerHTML = "";
+
+    if (!videos.length) {
+      grid.innerHTML = '<div class="empty">You have not uploaded any videos yet.</div>';
+    } else {
+      videos.forEach(item => {
+        if (!item.video_url) return;
+
+        const card = document.createElement("article");
+        card.className = "video-card";
+
+        const video = document.createElement("video");
+        video.src = item.video_url;
+        video.controls = true;
+        video.preload = "metadata";
+        video.playsInline = true;
+
+        const caption = document.createElement("div");
+        caption.className = "video-caption";
+        caption.textContent = text(item.caption) || "New Star Video";
+
+        card.append(video,caption);
+        grid.appendChild(card);
       });
 
-      if (updateResult.error) {
-        showMessage($("editMessage"), "Photo uploaded, but profile update failed: " + updateResult.error.message, true);
-        return;
-      }
-
-      currentUser = updateResult.data.user || currentUser;
-
-      if (profileRow) {
-        const rowUpdate = await db
-          .from("profiles")
-          .update({ avatar_url: publicUrl })
-          .eq("user_id", currentUser.id);
-
-        if (rowUpdate.error) {
-          console.warn("Avatar metadata saved, profiles row sync warning:", rowUpdate.error.message);
-        }
-      } else {
-        const rowInsert = await db
-          .from("profiles")
-          .insert({
-            user_id: currentUser.id,
-            username: safeText(getMetadata().username) || null,
-            bio: safeText(getMetadata().bio) || null,
-            avatar_url: publicUrl
-          });
-
-        if (!rowInsert.error) {
-          await loadProfileRow();
-        } else {
-          console.warn("Avatar metadata saved, profiles row insert warning:", rowInsert.error.message);
-        }
-      }
-
-      $("profileAvatar").src = publicUrl;
-      showMessage($("editMessage"), "Profile photo uploaded successfully.");
-    }
-
-    async function emailLogin() {
-      const email = $("authEmail").value.trim();
-      const password = $("authPassword").value;
-
-      if (!email || !password) {
-        showMessage($("authMessage"), "Enter your email and password.", true);
-        return;
-      }
-
-      const button = $("emailSubmitBtn");
-      setBusy(button, true, "Logging in...", "Login");
-      clearMessage($("authMessage"));
-
-      const result = await db.auth.signInWithPassword({ email, password });
-
-      setBusy(button, false, "", "Login");
-
-      if (result.error) {
-        showMessage($("authMessage"), result.error.message, true);
-        return;
-      }
-
-      if (result.data.user) {
-        await activate(result.data.user);
+      if (!grid.children.length) {
+        grid.innerHTML = '<div class="empty">No playable video links were found.</div>';
       }
     }
+  }
 
-    async function emailSignup() {
-      const name = $("signupName").value.trim();
-      const email = $("authEmail").value.trim();
-      const password = $("authPassword").value;
+  const followers = await db.from("followers")
+    .select("*",{count:"exact",head:true})
+    .eq("following_id",currentUser.id);
 
-      if (!email || !password) {
-        showMessage($("authMessage"), "Enter your email and password.", true);
-        return;
-      }
+  const following = await db.from("followers")
+    .select("*",{count:"exact",head:true})
+    .eq("follower_id",currentUser.id);
 
-      if (password.length < 6) {
-        showMessage($("authMessage"), "Password must be at least 6 characters.", true);
-        return;
-      }
+  $("followerCount").textContent =
+    followers.error ? "0" : String(followers.count || 0);
 
-      const button = $("emailSubmitBtn");
-      setBusy(button, true, "Creating account...", "Create Account");
-      clearMessage($("authMessage"));
+  $("followingCount").textContent =
+    following.error ? "0" : String(following.count || 0);
+}
 
-      const result = await db.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: name }
-        }
-      });
+async function activate(user) {
+  if (!user) {
+    showAuth();
+    return;
+  }
 
-      setBusy(button, false, "", "Create Account");
+  currentUser = user;
+  $("loadingSection").classList.remove("hidden");
+  $("authSection").classList.add("hidden");
+  $("profileSection").classList.add("hidden");
 
-      if (result.error) {
-        showMessage($("authMessage"), result.error.message, true);
-        return;
-      }
+  await loadProfileRow();
+  renderProfile();
+  showProfile();
+  await loadStatsAndVideos();
+}
 
-      if (result.data.session && result.data.user) {
-        await activate(result.data.user);
-        return;
-      }
+function openEdit() {
+  if (!currentUser) return;
 
-      pendingSignupEmail = email;
-      $("otpPanel").classList.remove("hidden");
-      showMessage(
-        $("authMessage"),
-        "Account created. Check your email for the verification code, then enter it below."
-      );
-    }
+  const m = metadata();
 
-    async function verifyEmailOtp() {
-      const token = $("emailOtp").value.trim();
+  $("editName").value = text(m.full_name) || text(m.name);
+  $("editUsername").value = text(m.username) || text(profileRow && profileRow.username);
+  $("editEmail").textContent = currentUser.email || "Email unavailable";
+  $("editPhone").value = text(m.phone);
+  $("editAddress").value = text(m.address);
+  $("editBio").value = text(m.bio) || text(profileRow && profileRow.bio);
+  $("editWebsite").value = text(m.website);
+  $("editFacebook").value = text(m.facebook);
+  $("editInstagram").value = text(m.instagram);
+  $("editYoutube").value = text(m.youtube);
+  $("editTiktok").value = text(m.tiktok);
+  $("editWhatsapp").value = text(m.whatsapp);
 
-      if (!pendingSignupEmail || !token) {
-        showMessage($("authMessage"), "Enter the email verification code.", true);
-        return;
-      }
+  clearMessage($("editMessage"));
+  $("editModal").classList.remove("hidden");
+}
 
-      const button = $("verifyOtpBtn");
-      setBusy(button, true, "Verifying...", "Verify Email");
+async function saveProfile() {
+  if (!currentUser) return;
 
-      const result = await db.auth.verifyOtp({
-        email: pendingSignupEmail,
-        token,
-        type: "signup"
-      });
+  const button = $("saveProfileBtn");
+  busy(button,true,"Saving...","Save Profile");
+  clearMessage($("editMessage"));
 
-      setBusy(button, false, "", "Verify Email");
+  const uname = username($("editUsername").value);
 
-      if (result.error) {
-        showMessage($("authMessage"), result.error.message, true);
-        return;
-      }
+  if (uname && !/^[a-z0-9._]{3,30}$/.test(uname)) {
+    message($("editMessage"),
+      "Username must be 3–30 characters using letters, numbers, dots or underscores.",
+      true);
+    busy(button,false,"","Save Profile");
+    return;
+  }
 
-      if (result.data.user) {
-        pendingSignupEmail = "";
-        await activate(result.data.user);
-      } else {
-        showMessage($("authMessage"), "Email verified. Please log in.");
-        $("otpPanel").classList.add("hidden");
-        setAuthMode("login");
-      }
-    }
+  const data = {
+    ...metadata(),
+    full_name: $("editName").value.trim(),
+    username: uname,
+    phone: $("editPhone").value.trim(),
+    address: $("editAddress").value.trim(),
+    bio: $("editBio").value.trim(),
+    website: safeUrl($("editWebsite").value),
+    facebook: safeUrl($("editFacebook").value),
+    instagram: safeUrl($("editInstagram").value),
+    youtube: safeUrl($("editYoutube").value),
+    tiktok: safeUrl($("editTiktok").value),
+    whatsapp: safeUrl($("editWhatsapp").value),
+    avatar_url: currentAvatarUrl
+  };
 
-    async function resendEmailOtp() {
-      if (!pendingSignupEmail) {
-        showMessage($("authMessage"), "Create your account first.", true);
-        return;
-      }
+  const authUpdate = await db.auth.updateUser({data});
 
-      const button = $("resendOtpBtn");
-      setBusy(button, true, "Sending...", "Resend Code");
+  if (authUpdate.error) {
+    message($("editMessage"),authUpdate.error.message,true);
+    busy(button,false,"","Save Profile");
+    return;
+  }
 
-      const result = await db.auth.resend({
-        type: "signup",
-        email: pendingSignupEmail
-      });
+  currentUser = authUpdate.data.user || currentUser;
 
-      setBusy(button, false, "", "Resend Code");
+  const row = {
+    user_id: currentUser.id,
+    username: uname || null,
+    bio: data.bio || null,
+    avatar_url: currentAvatarUrl || null
+  };
 
-      if (result.error) {
-        showMessage($("authMessage"), result.error.message, true);
-      } else {
-        showMessage($("authMessage"), "A new verification code has been sent to your email.");
-      }
-    }
+  let rowResult;
 
-    async function googleLogin() {
-      const button = $("googleBtn");
-      setBusy(button, true, "Opening Google...", "🌐 Continue with Google");
+  if (profileRow) {
+    rowResult = await db.from("profiles")
+      .update({
+        username: row.username,
+        bio: row.bio,
+        avatar_url: row.avatar_url
+      })
+      .eq("user_id",currentUser.id);
+  } else {
+    rowResult = await db.from("profiles").insert(row);
+  }
 
-      const result = await db.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: location.origin + location.pathname,
-          queryParams: { prompt: "select_account" }
-        }
-      });
+  await loadProfileRow();
+  renderProfile();
 
-      if (result.error) {
-        setBusy(button, false, "", "🌐 Continue with Google");
-        showMessage($("authMessage"), result.error.message, true);
-      }
-    }
+  if (rowResult.error) {
+    message($("editMessage"),
+      "Profile information saved, but database profile sync failed: " + rowResult.error.message,
+      true);
+  } else {
+    message($("editMessage"),"Profile saved successfully.");
+  }
 
-    async function logout() {
-      $("profileMenu").classList.add("hidden");
+  busy(button,false,"","Save Profile");
+}
 
-      const result = await db.auth.signOut();
+async function uploadAvatar(file) {
+  if (!currentUser || !file) return;
 
-      if (result.error) {
-        alert("Logout failed: " + result.error.message);
-        return;
-      }
+  if (!file.type || !file.type.startsWith("image/")) {
+    message($("editMessage"),"Please select an image file.",true);
+    return;
+  }
 
-      showAuth();
-      setAuthMode("login");
-    }
+  if (file.size > 5 * 1024 * 1024) {
+    message($("editMessage"),"Image must be smaller than 5 MB.",true);
+    return;
+  }
 
-    function closeEdit() {
-      $("editModal").classList.add("hidden");
-    }
+  message($("editMessage"),"Uploading profile photo...");
 
-    function openSettings() {
-      $("profileMenu").classList.add("hidden");
-      // This is the existing Account & Privacy Settings page.
-      location.href = "settings.html";
-    }
+  const ext = (file.name.split(".").pop() || "jpg")
+    .toLowerCase().replace(/[^a-z0-9]/g,"");
 
-    function goHome() {
-      location.href = "index.html";
-    }
+  const path = currentUser.id + "/avatar_" + Date.now() + "." + ext;
 
-    function initEvents() {
-      $("loginTab").addEventListener("click", () => setAuthMode("login"));
-      $("signupTab").addEventListener("click", () => setAuthMode("signup"));
+  const upload = await db.storage.from("avatars").upload(path,file,{
+    cacheControl:"3600",
+    upsert:true,
+    contentType:file.type
+  });
 
-      $("emailSubmitBtn").addEventListener("click", () => {
-        if (currentMode === "signup") emailSignup();
-        else emailLogin();
-      });
+  if (upload.error) {
+    message($("editMessage"),"Photo upload failed: " + upload.error.message,true);
+    return;
+  }
 
-      $("googleBtn").addEventListener("click", googleLogin);
-      $("verifyOtpBtn").addEventListener("click", verifyEmailOtp);
-      $("resendOtpBtn").addEventListener("click", resendEmailOtp);
+  const publicData = db.storage.from("avatars").getPublicUrl(upload.data.path);
+  const url = publicData.data && publicData.data.publicUrl;
 
-      $("authPassword").addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-          if (currentMode === "signup") emailSignup();
-          else emailLogin();
-        }
-      });
+  if (!url) {
+    message($("editMessage"),"Could not get photo URL.",true);
+    return;
+  }
 
-      $("editProfileBtn").addEventListener("click", openEdit);
-      $("menuEdit").addEventListener("click", () => {
-        $("profileMenu").classList.add("hidden");
-        openEdit();
-      });
+  currentAvatarUrl = url;
 
-      $("menuSettings").addEventListener("click", openSettings);
-      $("menuLogout").addEventListener("click", logout);
-      $("closeEditBtn").addEventListener("click", closeEdit);
-      $("saveProfileBtn").addEventListener("click", saveProfile);
+  const updated = await db.auth.updateUser({
+    data:{...metadata(),avatar_url:url}
+  });
 
-      $("menuBtn").addEventListener("click", () => {
-        $("profileMenu").classList.toggle("hidden");
-      });
+  if (updated.error) {
+    message($("editMessage"),"Photo uploaded but profile update failed: " + updated.error.message,true);
+    return;
+  }
 
-      $("homeBtn").addEventListener("click", goHome);
+  currentUser = updated.data.user || currentUser;
 
-      document.addEventListener("click", (event) => {
-        if (!$("menuWrap").contains(event.target)) {
-          $("profileMenu").classList.add("hidden");
-        }
-      });
+  let rowResult;
 
-      document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") {
-          $("profileMenu").classList.add("hidden");
-          closeEdit();
-        }
-      });
-
-      $("editModal").addEventListener("click", (event) => {
-        if (event.target === $("editModal")) closeEdit();
-      });
-
-      $("cameraPhotoBtn").addEventListener("click", () => {
-        $("avatarCameraInput").click();
-      });
-
-      $("galleryPhotoBtn").addEventListener("click", () => {
-        $("avatarGalleryInput").click();
-      });
-
-      $("avatarCameraInput").addEventListener("change", (event) => {
-        const file = event.target.files && event.target.files[0];
-        if (file) uploadAvatar(file);
-        event.target.value = "";
-      });
-
-      $("avatarGalleryInput").addEventListener("change", (event) => {
-        const file = event.target.files && event.target.files[0];
-        if (file) uploadAvatar(file);
-        event.target.value = "";
-      });
-    }
-
-    async function start() {
-      if (!db || !db.auth) {
-        $("loadingSection").classList.add("hidden");
-        showAuth();
-        showMessage(
-          $("authMessage"),
-          "Supabase client was not found. Check that supabase-config.js loads correctly.",
-          true
-        );
-        return;
-      }
-
-      initEvents();
-
-      const sessionResult = await db.auth.getSession();
-
-      if (sessionResult.error) {
-        console.error(sessionResult.error);
-        showAuth();
-      } else if (sessionResult.data.session) {
-        await activate(sessionResult.data.session.user);
-      } else {
-        showAuth();
-      }
-
-      db.auth.onAuthStateChange((event, session) => {
-        if (session && session.user) {
-          // Avoid blocking Supabase's auth callback.
-          setTimeout(() => activate(session.user), 0);
-        } else if (event === "SIGNED_OUT") {
-          showAuth();
-        }
-      });
-    }
-
-    window.NewStarProfile = {
-      openEdit,
-      logout
-    };
-
-    start().catch((error) => {
-      console.error("Profile initialization error:", error);
-      showAuth();
-      showMessage($("authMessage"), error.message || "Could not load profile.", true);
+  if (profileRow) {
+    rowResult = await db.from("profiles")
+      .update({avatar_url:url})
+      .eq("user_id",currentUser.id);
+  } else {
+    rowResult = await db.from("profiles").insert({
+      user_id:currentUser.id,
+      username:text(metadata().username) || null,
+      bio:text(metadata().bio) || null,
+      avatar_url:url
     });
-  })();
-  </script>
+  }
 
-  <script src="./navbar.js"></script>
+  if (rowResult.error) {
+    console.warn("Avatar saved in metadata; profile row sync:",rowResult.error.message);
+  }
+
+  await loadProfileRow();
+  $("profileAvatar").src = url;
+  message($("editMessage"),"Profile photo uploaded successfully.");
+}
+
+async function emailLogin() {
+  const email = $("authEmail").value.trim();
+  const password = $("authPassword").value;
+
+  if (!email || !password) {
+    message($("authMessage"),"Enter your email and password.",true);
+    return;
+  }
+
+  const button = $("emailSubmitBtn");
+  busy(button,true,"Logging in...","Login");
+  clearMessage($("authMessage"));
+
+  const result = await db.auth.signInWithPassword({email,password});
+  busy(button,false,"","Login");
+
+  if (result.error) {
+    message($("authMessage"),result.error.message,true);
+    return;
+  }
+
+  if (result.data.user) await activate(result.data.user);
+}
+
+async function emailSignup() {
+  const name = $("signupName").value.trim();
+  const email = $("authEmail").value.trim();
+  const password = $("authPassword").value;
+
+  if (!email || !password) {
+    message($("authMessage"),"Enter your email and password.",true);
+    return;
+  }
+
+  if (password.length < 6) {
+    message($("authMessage"),"Password must be at least 6 characters.",true);
+    return;
+  }
+
+  const button = $("emailSubmitBtn");
+  busy(button,true,"Creating account...","Create Account");
+  clearMessage($("authMessage"));
+
+  const result = await db.auth.signUp({
+    email,
+    password,
+    options:{data:{full_name:name}}
+  });
+
+  busy(button,false,"","Create Account");
+
+  if (result.error) {
+    message($("authMessage"),result.error.message,true);
+    return;
+  }
+
+  if (result.data.session && result.data.user) {
+    await activate(result.data.user);
+    return;
+  }
+
+  pendingSignupEmail = email;
+  $("otpPanel").classList.remove("hidden");
+  message($("authMessage"),
+    "Account created. Check your email for the verification code.");
+}
+
+async function verifyEmailOtp() {
+  const token = $("emailOtp").value.trim();
+
+  if (!pendingSignupEmail || !token) {
+    message($("authMessage"),"Enter your email verification code.",true);
+    return;
+  }
+
+  const button = $("verifyOtpBtn");
+  busy(button,true,"Verifying...","Verify Email");
+
+  const result = await db.auth.verifyOtp({
+    email:pendingSignupEmail,
+    token,
+    type:"signup"
+  });
+
+  busy(button,false,"","Verify Email");
+
+  if (result.error) {
+    message($("authMessage"),result.error.message,true);
+    return;
+  }
+
+  pendingSignupEmail = "";
+
+  if (result.data.user) {
+    await activate(result.data.user);
+  } else {
+    $("otpPanel").classList.add("hidden");
+    setAuthMode("login");
+    message($("authMessage"),"Email verified. Please log in.");
+  }
+}
+
+async function resendEmailOtp() {
+  if (!pendingSignupEmail) {
+    message($("authMessage"),"Create your account first.",true);
+    return;
+  }
+
+  const button = $("resendOtpBtn");
+  busy(button,true,"Sending...","Resend Code");
+
+  const result = await db.auth.resend({
+    type:"signup",
+    email:pendingSignupEmail
+  });
+
+  busy(button,false,"","Resend Code");
+
+  if (result.error) {
+    message($("authMessage"),result.error.message,true);
+  } else {
+    message($("authMessage"),"A new verification code has been sent.");
+  }
+}
+
+async function googleLogin() {
+  const button = $("googleBtn");
+  busy(button,true,"Opening Google...","🌐 Continue with Google");
+
+  const result = await db.auth.signInWithOAuth({
+    provider:"google",
+    options:{
+      redirectTo:location.origin + location.pathname,
+      queryParams:{prompt:"select_account"}
+    }
+  });
+
+  if (result.error) {
+    busy(button,false,"","🌐 Continue with Google");
+    message($("authMessage"),result.error.message,true);
+  }
+}
+
+async function logout() {
+  $("profileMenu").classList.add("hidden");
+
+  const result = await db.auth.signOut();
+
+  if (result.error) {
+    alert("Logout failed: " + result.error.message);
+    return;
+  }
+
+  showAuth();
+  setAuthMode("login");
+}
+
+function closeProfile() {
+  if (history.length > 1) {
+    history.back();
+  } else {
+    location.href = "index.html";
+  }
+}
+
+function openSettings() {
+  $("profileMenu").classList.add("hidden");
+  location.href = "settings.html";
+}
+
+function closeEdit() {
+  $("editModal").classList.add("hidden");
+}
+
+function initEvents() {
+  $("loginTab").addEventListener("click",()=>setAuthMode("login"));
+  $("signupTab").addEventListener("click",()=>setAuthMode("signup"));
+
+  $("emailSubmitBtn").addEventListener("click",()=>{
+    currentMode === "signup" ? emailSignup() : emailLogin();
+  });
+
+  $("authPassword").addEventListener("keydown",event=>{
+    if (event.key === "Enter") {
+      currentMode === "signup" ? emailSignup() : emailLogin();
+    }
+  });
+
+  $("googleBtn").addEventListener("click",googleLogin);
+  $("verifyOtpBtn").addEventListener("click",verifyEmailOtp);
+  $("resendOtpBtn").addEventListener("click",resendEmailOtp);
+
+  // एक ही Settings menu
+  $("menuBtn").addEventListener("click",()=>{
+    $("profileMenu").classList.toggle("hidden");
+  });
+
+  $("menuEdit").addEventListener("click",()=>{
+    $("profileMenu").classList.add("hidden");
+    openEdit();
+  });
+
+  $("menuSettings").addEventListener("click",openSettings);
+  $("menuLogout").addEventListener("click",logout);
+
+  $("closeProfileBtn").addEventListener("click",closeProfile);
+  $("closeEditBtn").addEventListener("click",closeEdit);
+  $("saveProfileBtn").addEventListener("click",saveProfile);
+
+  $("editModal").addEventListener("click",event=>{
+    if (event.target === $("editModal")) closeEdit();
+  });
+
+  document.addEventListener("click",event=>{
+    if (!$("menuWrap").contains(event.target)) {
+      $("profileMenu").classList.add("hidden");
+    }
+  });
+
+  document.addEventListener("keydown",event=>{
+    if (event.key === "Escape") {
+      $("profileMenu").classList.add("hidden");
+      closeEdit();
+    }
+  });
+
+  $("cameraPhotoBtn").addEventListener("click",()=>{
+    $("avatarCameraInput").click();
+  });
+
+  $("galleryPhotoBtn").addEventListener("click",()=>{
+    $("avatarGalleryInput").click();
+  });
+
+  $("avatarCameraInput").addEventListener("change",event=>{
+    const file = event.target.files && event.target.files[0];
+    if (file) uploadAvatar(file);
+    event.target.value = "";
+  });
+
+  $("avatarGalleryInput").addEventListener("change",event=>{
+    const file = event.target.files && event.target.files[0];
+    if (file) uploadAvatar(file);
+    event.target.value = "";
+  });
+}
+
+async function start() {
+  if (!db || !db.auth) {
+    showAuth();
+    message($("authMessage"),
+      "Supabase client not found. Check supabase-config.js.",
+      true);
+    return;
+  }
+
+  initEvents();
+
+  const session = await db.auth.getSession();
+
+  if (session.error) {
+    console.error(session.error);
+    showAuth();
+  } else if (session.data.session) {
+    await activate(session.data.session.user);
+  } else {
+    showAuth();
+  }
+
+  db.auth.onAuthStateChange((event,sessionData)=>{
+    if (sessionData && sessionData.user) {
+      setTimeout(()=>activate(sessionData.user),0);
+    } else if (event === "SIGNED_OUT") {
+      showAuth();
+    }
+  });
+}
+
+window.NewStarProfile = {
+  openEdit,
+  logout
+};
+
+start().catch(error=>{
+  console.error("Profile initialization:",error);
+  showAuth();
+  message($("authMessage"),error.message || "Could not load profile.",true);
+});
+
+})();
+</script>
+
+<script src="./navbar.js"></script>
 </body>
 </html>
