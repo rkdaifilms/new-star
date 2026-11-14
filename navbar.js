@@ -1,89 +1,143 @@
-navbar.js - Ultimate Master Navigation linking all pages together
-document.addEventListener("DOMContentLoaded", function() {
-    let currentPage = window.location.pathname.split("/").pop() || "index.html";
 
-    // 1. पुराना नेविगेशन हटाओ ताकि डुप्लीकेट न बने
-    let oldNavs = document.querySelectorAll('.bottom-nav, .app-global-bottom-nav, .master-tiktok-final-nav, .top-left-live-wrapper');
-    oldNavs.forEach(el => el.remove());
+/* NEW STAR - GLOBAL NAVIGATION SYSTEM */
+document.addEventListener("DOMContentLoaded", function () {
+    const currentPage = location.pathname.split("/").pop() || "index.html";
 
-    // 2. हेडर टाइटल को बीच में और सेटिंग गियर को दाहिने कोने में सेट करना
-    function fixHeaderTitleAndGear() {
-        let topBars = document.querySelectorAll('.top-bar');
-        topBars.forEach(bar => {
-            bar.style.cssText = "position: relative !important; display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; max-width: 450px !important; margin: 10px auto !important; padding: 0 15px !important; box-sizing: border-box !important; min-height: 40px !important;";
+    // Remove duplicate navigation bars
+    document.querySelectorAll(
+        ".bottom-nav, .bottomNav, .app-global-bottom-nav, .master-tiktok-final-nav, .top-left-live-wrapper"
+    ).forEach(el => el.remove());
 
-            let titleEl = bar.querySelector('h3, h2, .profile-title');
-            if (titleEl) {
-                titleEl.style.cssText = "position: absolute !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 16px !important; color: #fe2c55 !important; margin: 0 !important; text-align: center !important; font-weight: bold !important; width: max-content !important; pointer-events: none !important;";
-            }
+    // Global menu links
+    const menuItems = [
+        ["👤", "My Profile", "profile.html"],
+        ["🪙", "Wallet & Balance", "wallet.html"],
+        ["💎", "Monetization", "monetization.html"],
+        ["⚙️", "Profile Settings", "profile.html"],
+        ["🔐", "Privacy & Security", "settings.html"],
+        ["🔔", "Notifications", "inbox.html"],
+        ["🛠️", "Main Settings", "settings.html"],
+        ["❓", "Help & Support", "settings.html"]
+    ];
 
-            if (!bar.querySelector('.top-settings-gear')) {
-                let gearBtn = document.createElement('a');
-                gearBtn.href = 'settings.html';
-                gearBtn.className = 'top-settings-gear';
-                gearBtn.innerHTML = '⚙️';
-                gearBtn.title = 'Settings & Privacy';
-                gearBtn.style.cssText = "font-size: 18px; text-decoration: none; color: #fff; background: rgba(0,0,0,0.6); border: 1px solid rgba(254,44,85,0.5); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: auto; z-index: 999999; position: relative;";
-                
-                gearBtn.onclick = function(e) {
-                    e.preventDefault();
-                    window.location.href = 'settings.html';
-                };
-                bar.appendChild(gearBtn);
-            }
+    // Add global top menu
+    if (!document.getElementById("nsGlobalMenu")) {
+        const menu = document.createElement("div");
+        menu.id = "nsGlobalMenu";
+
+        menu.innerHTML = `
+            <style>
+                #nsMenuButton {
+                    position:fixed;top:12px;right:14px;z-index:10000001;
+                    width:40px;height:40px;border-radius:50%;
+                    background:#171717;color:white;border:1px solid #fe2c55;
+                    font-size:25px;cursor:pointer;
+                }
+                #nsMenuPanel {
+                    display:none;position:fixed;top:60px;right:12px;
+                    width:min(290px,85vw);max-height:75vh;overflow:auto;
+                    background:#17171d;border:1px solid #444;border-radius:14px;
+                    z-index:10000002;box-shadow:0 10px 35px #000;
+                    padding:9px;
+                }
+                #nsMenuPanel.open {display:block}
+                .ns-menu-link {
+                    display:flex;align-items:center;gap:12px;
+                    padding:13px 12px;color:white;text-decoration:none;
+                    border-bottom:1px solid #303038;font-size:14px;
+                }
+                .ns-menu-link:last-child {border:0}
+                .ns-menu-link:active {background:#333}
+                .ns-menu-heading {
+                    color:#fe2c55;font-weight:bold;padding:10px;
+                    border-bottom:1px solid #444;
+                }
+                .ns-menu-overlay {
+                    display:none;position:fixed;inset:0;
+                    background:#0008;z-index:10000000;
+                }
+                .ns-menu-overlay.open {display:block}
+            </style>
+
+            <button id="nsMenuButton" aria-label="Open menu">⋮</button>
+            <div class="ns-menu-overlay" id="nsMenuOverlay"></div>
+            <div id="nsMenuPanel">
+                <div class="ns-menu-heading">⭐ NEW STAR MENU</div>
+                ${menuItems.map(item => `
+                    <a class="ns-menu-link" href="${item[2]}">
+                        <span>${item[0]}</span><span>${item[1]}</span>
+                    </a>
+                `).join("")}
+            </div>
+        `;
+
+        document.body.appendChild(menu);
+
+        const button = document.getElementById("nsMenuButton");
+        const panel = document.getElementById("nsMenuPanel");
+        const overlay = document.getElementById("nsMenuOverlay");
+
+        function closeMenu() {
+            panel.classList.remove("open");
+            overlay.classList.remove("open");
+        }
+
+        button.addEventListener("click", () => {
+            panel.classList.toggle("open");
+            overlay.classList.toggle("open");
         });
+
+        overlay.addEventListener("click", closeMenu);
     }
 
-    fixHeaderTitleAndGear();
-    setTimeout(fixHeaderTitleAndGear, 50);
+    // Global bottom navigation
+    const nav = document.createElement("nav");
+    nav.className = "master-tiktok-final-nav";
 
-    // 3. मास्टर बॉटम नेविगेशन बार (प्लस बटन अब सीधे पॉपअप खोलेगा)
-    let finalNavHTML = `
-    <style>
-        .master-tiktok-final-nav {
-            position: fixed !important; bottom: 0 !important; left: 0 !important; width: 100% !important; height: 60px !important;
-            background: #000 !important; display: flex !important; justify-content: space-around !important; align-items: center !important;
-            border-top: 1px solid #222 !important; z-index: 9999999 !important; box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
-        }
-        .mfn-item {
-            display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;
-            color: rgba(255,255,255,0.5) !important; cursor: pointer !important; text-decoration: none !important; font-size: 11px !important; flex: 1 !important; text-align: center !important; background: transparent !important; border: none !important;
-        }
-        .mfn-item.active { color: #fff !important; font-weight: bold !important; }
-        .mfn-item i { font-size: 18px !important; margin-bottom: 2px !important; font-style: normal !important; }
-        .mfn-center-plus {
-            width: 46px !important; height: 32px !important; background: linear-gradient(135deg, #25f4ee, #fe2c55) !important;
-            border-radius: 8px !important; display: flex !important; justify-content: center !important; align-items: center !important;
-            color: #fff !important; font-size: 24px !important; font-weight: bold !important; box-shadow: 0 2px 12px rgba(254,44,85,0.7) !important; margin: 0 auto !important;
-        }
-    </style>
-    <div class="master-tiktok-final-nav">
-        <a href="index.html" class="mfn-item ${currentPage === 'index.html' || currentPage === '' ? 'active' : ''}"><i>🏠</i><span>Home</span></a>
-        <a href="wallet.html" class="mfn-item ${currentPage === 'wallet.html' ? 'active' : ''}"><i>🪙</i><span>Wallet</span></a>
-        <div class="mfn-item" style="flex: 1.5; cursor: pointer;" onclick="if(typeof openStudioPlusMenu === 'function') { openStudioPlusMenu(); } else { window.location.href='camera.html'; }">
-            <div class="mfn-center-plus">+</div>
-        </div>
-        <a href="inbox.html" class="mfn-item ${currentPage === 'inbox.html' ? 'active' : ''}"><i>💬</i><span>Inbox</span></a>
-        <a href="profile.html" class="mfn-item ${currentPage === 'profile.html' ? 'active' : ''}"><i>⭐</i><span>Profile</span></a>
-    </div>
+    nav.innerHTML = `
+        <style>
+            .master-tiktok-final-nav {
+                position:fixed;bottom:0;left:0;width:100%;height:62px;
+                background:#080808;border-top:1px solid #292929;
+                display:flex;justify-content:space-around;align-items:center;
+                z-index:9999999;padding-bottom:env(safe-area-inset-bottom);
+            }
+            .mfn-item {
+                flex:1;display:flex;flex-direction:column;
+                align-items:center;justify-content:center;
+                text-decoration:none;color:#888;font-size:11px;
+                gap:3px;height:100%;
+            }
+            .mfn-item.active {color:white;font-weight:bold}
+            .mfn-item .mfn-icon {font-size:21px}
+            .mfn-plus {
+                width:45px;height:32px;border-radius:8px;
+                display:flex;align-items:center;justify-content:center;
+                background:linear-gradient(135deg,#25f4ee,#fe2c55);
+                color:white;font-size:25px;font-weight:bold;
+            }
+        </style>
+
+        <a href="index.html" class="mfn-item ${currentPage === "index.html" ? "active" : ""}">
+            <span class="mfn-icon">🏠</span><span>Home</span>
+        </a>
+
+        <a href="wallet.html" class="mfn-item ${currentPage === "wallet.html" ? "active" : ""}">
+            <span class="mfn-icon">🪙</span><span>Wallet</span>
+        </a>
+
+        <a href="camera.html" class="mfn-item" aria-label="Create Video">
+            <span class="mfn-plus">+</span>
+        </a>
+
+        <a href="inbox.html" class="mfn-item ${currentPage === "inbox.html" ? "active" : ""}">
+            <span class="mfn-icon">💬</span><span>Inbox</span>
+        </a>
+
+        <a href="profile.html" class="mfn-item ${currentPage === "profile.html" ? "active" : ""}">
+            <span class="mfn-icon">👤</span><span>Profile</span>
+        </a>
     `;
 
-    let wrap = document.createElement('div');
-    wrap.innerHTML = finalNavHTML;
-    document.body.appendChild(wrap);
-
-    // 🔔 4. पुश नोटिफिकेशन सिस्टम
-    function requestPushNotificationPermission() {
-        if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    new Notification("🌟 New Star Notifications Enabled!", {
-                        body: "You will receive alerts for comments, likes & gifts!",
-                        icon: "https://cdn-icons-png.flaticon.com/512/1828/1828884.png"
-                    });
-                }
-            });
-        }
-    }
-    setTimeout(requestPushNotificationPermission, 1500);
+    document.body.appendChild(nav);
 });
