@@ -3,247 +3,176 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#000000">
 <title>New Star - Home Feed</title>
 
-<link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial, sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
 html,body{width:100%;height:100%;background:#000;color:#fff;overflow:hidden}
-body{padding-bottom:62px}
 button,input{font:inherit}
 button{cursor:pointer}
-.feed-top-header{
- position:fixed;top:0;left:0;width:100%;z-index:50;
- padding:10px 12px 12px;background:linear-gradient(#000e,#0008,transparent)
-}
-.search-box{
- display:flex;align-items:center;gap:8px;padding:0 12px;
- background:#292929;border:1px solid #555;border-radius:25px
-}
-.search-box input{
- flex:1;min-width:0;background:transparent;border:0;outline:0;
- color:white;padding:11px 0;font-size:14px
-}
-.search-box input::placeholder{color:#bbb}
-.mic-btn{border:0;background:transparent;color:white;font-size:20px}
-.category-row{
- display:flex;gap:8px;overflow-x:auto;margin-top:10px;
- scrollbar-width:none;padding-bottom:4px
-}
-.category-row::-webkit-scrollbar{display:none}
-.chip{
- border:0;border-radius:20px;padding:7px 13px;white-space:nowrap;
- background:#333;color:#fff;font-size:12px
-}
-.chip.active{background:#fe2c55;font-weight:bold}
-.feed-container{
- width:100%;height:100dvh;position:relative;background:#111;
- display:flex;align-items:center;justify-content:center
-}
-.feed-video{
- position:absolute;width:100%;height:100%;object-fit:contain;background:#000
-}
-.video-info{
- position:absolute;z-index:5;left:14px;right:83px;bottom:85px;
- text-shadow:0 2px 5px #000
-}
+#app{height:100dvh;width:100%;position:relative;background:#000}
+.top-area{position:absolute;z-index:20;top:0;left:0;width:100%;padding:10px 12px;background:linear-gradient(#000e,#0009,transparent)}
+.search-row{display:flex;align-items:center;gap:8px;background:#252525;border:1px solid #444;border-radius:25px;padding:0 12px}
+.search-row input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:#fff;padding:12px 0;font-size:14px}
+.search-row button{border:0;background:transparent;color:#fff;font-size:20px;padding:5px}
+.categories{display:flex;gap:8px;overflow-x:auto;margin-top:10px;padding-bottom:5px;scrollbar-width:none}
+.categories::-webkit-scrollbar{display:none}
+.category{white-space:nowrap;border:0;border-radius:20px;background:#303030;color:#fff;padding:8px 13px;font-size:12px}
+.category.active{background:#fe2c55;font-weight:bold}
+#feed{height:100%;width:100%;position:relative;background:#080808;overflow:hidden}
+#video{height:100%;width:100%;object-fit:contain;background:#000}
+.video-info{position:absolute;z-index:5;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:none}
 .video-info h3{font-size:15px;margin-bottom:7px}
 .video-info p{font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
-.video-info a{display:inline-block;margin-top:7px;color:#25f4ee;font-size:12px}
+.video-info a{pointer-events:auto;display:none;color:#25f4ee;font-size:12px;margin-top:8px}
 .video-meta{font-size:11px;color:#ddd;margin-top:6px}
-.side-actions{
- position:absolute;right:12px;bottom:90px;z-index:8;
- display:flex;flex-direction:column;align-items:center;gap:17px
-}
-.action-btn{
- color:white;border:0;background:transparent;text-align:center;
- min-width:48px;font-size:11px
-}
-.action-icon{
- width:44px;height:44px;border-radius:50%;background:#222b;
- border:1px solid #ffffff55;display:flex;align-items:center;
- justify-content:center;font-size:22px;margin-bottom:4px
-}
-.action-btn.liked .action-icon{color:#fe2c55}
-#emptyState{
- position:absolute;inset:0;display:none;align-items:center;
- justify-content:center;text-align:center;padding:30px;color:#ddd;
- z-index:4;background:#080808
-}
-#emptyState div{max-width:300px;line-height:1.6}
-#emptyState button{
- margin-top:14px;padding:10px 18px;background:#fe2c55;
- color:white;border:0;border-radius:20px
-}
-#loadingState{
- position:absolute;inset:0;display:flex;align-items:center;
- justify-content:center;background:#080808;color:#fff;z-index:3
-}
-.modal{
- display:none;position:fixed;left:0;bottom:62px;width:100%;
- max-height:70dvh;background:#181818;border-radius:18px 18px 0 0;
- z-index:200;box-shadow:0 -5px 25px #000;flex-direction:column
-}
-.modal-header{
- display:flex;justify-content:space-between;align-items:center;
- padding:15px;border-bottom:1px solid #333
-}
-.modal-header h3{font-size:15px}
-.close-btn{background:none;border:0;color:#fff;font-size:22px}
-.comment-list{overflow-y:auto;flex:1;padding:14px;min-height:100px}
-.comment-item{display:flex;gap:10px;margin-bottom:15px}
-.comment-avatar{
- width:34px;height:34px;border-radius:50%;object-fit:cover;background:#333
-}
-.comment-content{flex:1;overflow-wrap:anywhere}
-.comment-content h4{font-size:12px;color:#aaa;margin-bottom:4px}
-.comment-content p{font-size:14px;line-height:1.4}
-.comment-input-area{
- display:flex;gap:8px;padding:12px;border-top:1px solid #333
-}
-.comment-input-area input{
- flex:1;min-width:0;border:1px solid #444;background:#292929;
- color:white;border-radius:20px;padding:11px;outline:none
-}
-.primary-btn{
- border:0;background:#fe2c55;color:#fff;border-radius:20px;
- padding:10px 16px;font-weight:bold
-}
-#shareModal{padding:16px}
-.share-action{
- width:100%;padding:12px;margin-top:10px;border:0;
- border-radius:9px;background:#292929;color:white
-}
-#toast{
- position:fixed;bottom:78px;left:50%;transform:translateX(-50%);
- background:#222;border:1px solid #555;color:white;padding:10px 17px;
- border-radius:25px;z-index:999999;display:none;font-size:13px;
- max-width:90%;text-align:center
-}
-#videoCounter{
- position:absolute;top:115px;right:12px;z-index:5;
- background:#0008;padding:5px 9px;border-radius:15px;font-size:11px
-}
-#playPause{
- position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
- z-index:6;background:#0007;border:0;border-radius:50%;
- width:60px;height:60px;color:white;font-size:27px;display:none
-}
+.actions{position:absolute;right:10px;bottom:90px;z-index:7;display:flex;flex-direction:column;align-items:center;gap:17px}
+.action{border:0;background:transparent;color:#fff;min-width:48px;text-align:center;font-size:11px}
+.action-icon{width:44px;height:44px;border-radius:50%;background:#252525c9;border:1px solid #ffffff55;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 4px}
+.action.liked .action-icon{color:#fe2c55}
+.action:disabled{opacity:.5}
+#counter{position:absolute;z-index:6;right:12px;top:125px;background:#0009;padding:5px 9px;border-radius:15px;font-size:11px}
+#loading,#empty{position:absolute;z-index:10;inset:0;background:#080808;display:flex;align-items:center;justify-content:center;text-align:center;padding:25px}
+#empty{display:none;line-height:1.6}
+#empty button{margin-top:12px;background:#fe2c55;color:#fff;border:0;border-radius:20px;padding:10px 18px}
+#playHint{display:none;position:absolute;z-index:8;top:50%;left:50%;transform:translate(-50%,-50%);border:0;border-radius:50%;width:60px;height:60px;background:#0009;color:#fff;font-size:26px}
+.modal{display:none;position:fixed;z-index:100;left:0;bottom:0;width:100%;max-height:82dvh;background:#191919;border-radius:18px 18px 0 0;box-shadow:0 -5px 25px #000;flex-direction:column}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:15px;border-bottom:1px solid #383838}
+.modal-head h3{font-size:16px}
+.close{background:transparent;border:0;color:#fff;font-size:25px}
+.comment-list{overflow:auto;flex:1;padding:14px;min-height:100px}
+.comment{padding:10px 0;border-bottom:1px solid #333;overflow-wrap:anywhere}
+.comment strong{display:block;color:#bbb;font-size:12px;margin-bottom:5px}
+.comment p{font-size:14px;line-height:1.4}
+.comment-form{display:flex;gap:8px;padding:12px;border-top:1px solid #333}
+.comment-form input{flex:1;min-width:0;background:#292929;color:#fff;border:1px solid #444;border-radius:22px;padding:11px;outline:none}
+.primary{background:#fe2c55;color:#fff;border:0;border-radius:22px;padding:11px 16px;font-weight:bold}
+.primary:disabled{opacity:.5}
+.share-option{margin:10px 14px;padding:13px;border:0;border-radius:10px;background:#303030;color:#fff;text-align:left}
+.balance{display:flex;justify-content:space-between;align-items:center;margin:12px 14px;padding:13px;background:#292929;border:1px solid #444;border-radius:12px}
+.balance strong{color:#ffd45c;font-size:17px}
+.buy-link{display:block;text-align:center;color:#25f4ee;text-decoration:none;font-size:13px;margin:2px 0 12px}
+.gift-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:12px;overflow-y:auto}
+.gift{background:#292929;border:1px solid #444;border-radius:12px;color:#fff;display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 3px;min-width:0}
+.gift.selected{border:2px solid #fe2c55;background:#40232b}
+.gift .emoji{font-size:27px}
+.gift .name{font-size:11px;font-weight:bold}
+.gift .price{font-size:10px;color:#ffd45c}
+.gift-note{font-size:11px;color:#aaa;text-align:center;padding:0 15px 10px;line-height:1.5}
+.gift-footer{padding:12px;border-top:1px solid #333}
+.gift-footer button{width:100%}
+#toast{display:none;position:fixed;z-index:999;bottom:75px;left:50%;transform:translateX(-50%);background:#292929;border:1px solid #555;border-radius:24px;padding:11px 17px;max-width:90%;text-align:center;font-size:13px}
 @media(min-width:700px){
- .feed-container{max-width:480px;margin:auto}
- .feed-top-header{max-width:480px;left:50%;transform:translateX(-50%)}
+ #app{max-width:480px;margin:auto}
+ .top-area{max-width:480px;left:50%;transform:translateX(-50%)}
+ .modal{max-width:480px;left:50%;transform:translateX(-50%)}
 }
 </style>
 </head>
 
 <body>
+<div id="app">
 
-<header class="feed-top-header">
- <div class="search-box">
+<header class="top-area">
+ <div class="search-row">
   <span>🔍</span>
-  <input id="feedSearchBox" type="search"
-   placeholder="Search creators, videos, comedy..."
-   autocomplete="off">
-  <button class="mic-btn" id="micButton" aria-label="Voice search">🎙️</button>
+  <input id="search" type="search" placeholder="Search creators, videos..." autocomplete="off">
+  <button id="voice" aria-label="Voice search">🎙️</button>
  </div>
-
- <div class="category-row" id="categoryRow">
-  <button class="chip active" data-category="For You">🔥 For You</button>
-  <button class="chip" data-category="Following">👥 Following</button>
-  <button class="chip" data-category="Shorts">⚡ Shorts</button>
-  <button class="chip" data-category="Reels">🎬 Reels</button>
-  <button class="chip" data-category="Discover">🌍 Discover</button>
-  <button class="chip" data-category="Friends">🤝 Friends</button>
-  <button class="chip" data-category="Live">🔴 Live</button>
-  <button class="chip" data-category="Entertainment & Comedy">😂 Comedy</button>
-  <button class="chip" data-category="Music">🎵 Music</button>
-  <button class="chip" data-category="Gaming">🎮 Gaming</button>
-  <button class="chip" data-category="Education & Tech">💻 Tech</button>
-  <button class="chip" data-category="Vlogs & People">📹 Vlogs</button>
- </div>
+ <nav class="categories" id="categories">
+  <button class="category active" data-cat="For You">🔥 For You</button>
+  <button class="category" data-cat="Following">👥 Following</button>
+  <button class="category" data-cat="Shorts">⚡ Shorts</button>
+  <button class="category" data-cat="Reels">🎬 Reels</button>
+  <button class="category" data-cat="Discover">🌍 Discover</button>
+  <button class="category" data-cat="Friends">🤝 Friends</button>
+  <button class="category" data-cat="Live">🔴 Live</button>
+  <button class="category" data-cat="Comedy">😂 Comedy</button>
+  <button class="category" data-cat="Music">🎵 Music</button>
+  <button class="category" data-cat="Gaming">🎮 Gaming</button>
+  <button class="category" data-cat="Tech">💻 Tech</button>
+  <button class="category" data-cat="Vlogs">📹 Vlogs</button>
+ </nav>
 </header>
 
-<main class="feed-container" id="feedSwipeContainer">
-
- <div id="loadingState">🌟 New Star वीडियो लोड हो रहे हैं...</div>
-
- <div id="emptyState">
+<main id="feed">
+ <div id="loading">🌟 New Star वीडियो लोड हो रहे हैं...</div>
+ <div id="empty">
   <div>
    <h3>अभी कोई वीडियो उपलब्ध नहीं है</h3>
    <p id="emptyMessage">नया वीडियो पोस्ट होने पर यहाँ दिखाई देगा।</p>
-   <button id="reloadButton">फिर से कोशिश करें</button>
+   <button id="reload">फिर कोशिश करें</button>
   </div>
  </div>
 
- <video id="activeFeedVideo" class="feed-video"
-  playsinline loop autoplay controlslist="nodownload"
-  preload="metadata"></video>
-
- <button id="playPause">▶</button>
- <div id="videoCounter"></div>
+ <video id="video" playsinline loop preload="metadata"></video>
+ <button id="playHint">▶</button>
+ <div id="counter"></div>
 
  <section class="video-info">
-  <h3 id="feedUsername"></h3>
-  <p id="feedCaptionText"></p>
-  <a id="feedAffiliateLink" href="#" target="_blank"
-   rel="noopener noreferrer" style="display:none">🛒 Product Link</a>
-  <div class="video-meta" id="feedVideoMeta"></div>
+  <h3 id="username"></h3>
+  <p id="caption"></p>
+  <a id="affiliate" href="#" target="_blank" rel="noopener noreferrer">🛒 Product Link</a>
+  <div class="video-meta" id="meta"></div>
  </section>
 
- <aside class="side-actions">
-  <button class="action-btn" id="likeButton">
-   <div class="action-icon">❤️</div>
-   <span id="likeCount">0</span>
-  </button>
-
-  <button class="action-btn" id="commentButton">
-   <div class="action-icon">💬</div>
-   <span id="commentCount">Comments</span>
-  </button>
-
-  <button class="action-btn" id="giftButton">
-   <div class="action-icon">🎁</div>
-   <span>Gift</span>
-  </button>
-
-  <button class="action-btn" id="shareButton">
-   <div class="action-icon">↗️</div>
-   <span>Share</span>
-  </button>
+ <aside class="actions">
+  <button class="action" id="likeBtn"><div class="action-icon">❤️</div><span id="likes">0</span></button>
+  <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount">Comments</span></button>
+  <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span>Gift</span></button>
+  <button class="action" id="shareBtn"><div class="action-icon">↗️</div><span>Share</span></button>
  </aside>
 </main>
+</div>
 
-<!-- COMMENTS -->
+<!-- Comments -->
 <section class="modal" id="commentModal">
- <div class="modal-header">
+ <div class="modal-head">
   <h3 id="commentTitle">Comments</h3>
-  <button class="close-btn" data-close="commentModal">×</button>
+  <button class="close" data-close="commentModal">×</button>
  </div>
  <div class="comment-list" id="commentList"></div>
- <div class="comment-input-area">
-  <input id="commentInput" placeholder="Write a comment..." maxlength="1000">
-  <button class="primary-btn" id="postCommentButton">Post</button>
+ <div class="comment-form">
+  <input id="commentInput" maxlength="1000" placeholder="Write a comment...">
+  <button class="primary" id="postComment">Post</button>
  </div>
 </section>
 
-<!-- SHARE -->
+<!-- Share -->
 <section class="modal" id="shareModal">
- <div class="modal-header">
-  <h3>Share New Star Video</h3>
-  <button class="close-btn" data-close="shareModal">×</button>
+ <div class="modal-head">
+  <h3>Share Video</h3>
+  <button class="close" data-close="shareModal">×</button>
  </div>
- <button class="share-action" id="nativeShareButton">🌐 Share using phone apps</button>
- <button class="share-action" id="copyLinkButton">🔗 Copy video link</button>
+ <button class="share-option" id="nativeShare">🌐 Share using phone apps</button>
+ <button class="share-option" id="copyShare">🔗 Copy video link</button>
+</section>
+
+<!-- Gift -->
+<section class="modal" id="giftModal">
+ <div class="modal-head">
+  <h3>🎁 Send a Gift</h3>
+  <button class="close" data-close="giftModal">×</button>
+ </div>
+ <div class="balance">
+  <span>आपका Coin Balance</span>
+  <strong id="coinBalance">लोड हो रहा है...</strong>
+ </div>
+ <a class="buy-link" href="wallet.html#buy-coins">＋ Wallet में Coins खरीदें</a>
+ <div class="gift-grid" id="giftGrid"></div>
+ <p class="gift-note">Gift भेजने पर Coins आपके Supabase Wallet से कटेंगे। सफल Transaction की पुष्टि सर्वर से होगी।</p>
+ <div class="gift-footer">
+  <button class="primary" id="sendGift" disabled>पहले Gift चुनें</button>
+ </div>
 </section>
 
 <div id="toast"></div>
 
-<!-- Shared navigation -->
 <script src="navbar.js"></script>
 <script src="editor.js"></script>
 <script src="merger.js"></script>
@@ -251,618 +180,674 @@ button{cursor:pointer}
 <script>
 "use strict";
 
-/*
- * DATABASE CONTRACT
- * videos:
- * id, video_url, caption, category, username,
- * likes_count, views_count, created_at
- *
- * likes assumed:
- * id, video_id, user_id, created_at
- *
- * video_comments assumed:
- * id, video_id, user_id, username, comment, created_at
- */
-
 const $ = id => document.getElementById(id);
+const db = window.supabaseClient || window.cloudClient || null;
 
-let db = window.supabaseClient || null;
 let currentUser = null;
-let rawVideos = [];
-let filteredVideos = [];
+let videos = [];
+let filtered = [];
 let currentIndex = 0;
 let currentCategory = "For You";
 let currentVideo = null;
-let likedVideoIds = new Set();
-let toastTimer = null;
-let touchStartY = 0;
-let loadingComments = false;
+let likedIds = new Set();
+let selectedGift = null;
+let walletBalance = 0;
+let giftBusy = false;
+let toastTimer;
 
-function toast(message) {
- const el = $("toast");
- el.textContent = message;
- el.style.display = "block";
+const GIFTS = [
+ {name:"Rose",emoji:"🌹",coins:1},
+ {name:"Coffee",emoji:"☕",coins:5},
+ {name:"Heart",emoji:"❤️",coins:10},
+ {name:"Glasses",emoji:"🕶️",coins:20},
+ {name:"TikTok",emoji:"🎵",coins:50},
+ {name:"Car",emoji:"🚗",coins:100},
+ {name:"Ring",emoji:"💍",coins:200},
+ {name:"Yacht",emoji:"🛥️",coins:500},
+ {name:"Lion",emoji:"🦁",coins:1000},
+ {name:"Diamond",emoji:"💎",coins:1500},
+ {name:"Crown",emoji:"👑",coins:2000},
+ {name:"Jet",emoji:"✈️",coins:3000},
+ {name:"Castle",emoji:"🏰",coins:5000},
+ {name:"Dragon",emoji:"🐉",coins:10000},
+ {name:"Galaxy",emoji:"🌌",coins:20000},
+ {name:"Universe",emoji:"🌍",coins:50000}
+];
+
+function showToast(message){
+ const el=$("toast");
+ el.textContent=message;
+ el.style.display="block";
  clearTimeout(toastTimer);
- toastTimer = setTimeout(() => el.style.display = "none", 2600);
+ toastTimer=setTimeout(()=>el.style.display="none",3000);
 }
 
-function formatCount(value) {
- const n = Number(value || 0);
- if (n >= 10000000) return (n / 10000000).toFixed(1) + "Cr";
- if (n >= 100000) return (n / 100000).toFixed(1) + "L";
- if (n >= 1000) return (n / 1000).toFixed(1) + "K";
+function numberFormat(value){
+ const n=Number(value||0);
+ if(n>=10000000)return (n/10000000).toFixed(1)+"Cr";
+ if(n>=100000)return (n/100000).toFixed(1)+"L";
+ if(n>=1000)return (n/1000).toFixed(1)+"K";
  return String(n);
 }
 
-function safeText(value) {
- return String(value ?? "");
+function openModal(id){
+ document.querySelectorAll(".modal").forEach(m=>m.style.display="none");
+ $(id).style.display="flex";
 }
+function closeModal(id){$(id).style.display="none";}
 
-function getVideoShareUrl(video) {
- const url = new URL(location.href);
- url.search = "";
- url.hash = "";
- url.searchParams.set("video", video.id);
- return url.toString();
-}
+document.querySelectorAll("[data-close]").forEach(btn=>{
+ btn.addEventListener("click",()=>closeModal(btn.dataset.close));
+});
 
-async function getSessionUser() {
- if (!db) return null;
- try {
-  const { data, error } = await db.auth.getUser();
-  if (error) return null;
-  return data.user || null;
- } catch (e) {
-  console.error("Auth error:", e);
+async function getUser(){
+ if(!db)return null;
+ try{
+  const {data,error}=await db.auth.getUser();
+  if(error)throw error;
+  return data.user||null;
+ }catch(error){
+  console.error("Auth:",error);
   return null;
  }
 }
 
-async function loadFeed() {
- $("loadingState").style.display = "flex";
- $("emptyState").style.display = "none";
+function showEmpty(message){
+ $("video").pause();
+ $("video").removeAttribute("src");
+ $("video").load();
+ $("emptyMessage").textContent=message;
+ $("empty").style.display="flex";
+ $("counter").textContent="";
+ $("username").textContent="";
+ $("caption").textContent="";
+ $("meta").textContent="";
+ $("likes").textContent="0";
+ $("commentCount").textContent="Comments";
+ $("affiliate").style.display="none";
+ $("likeBtn").classList.remove("liked");
+ currentVideo=null;
+}
 
- if (!db) {
-  $("loadingState").style.display = "none";
-  showEmpty("Supabase कनेक्शन नहीं मिला। supabase-config.js जाँचें।");
+async function loadLikes(){
+ likedIds.clear();
+ if(!currentUser||!videos.length)return;
+
+ try{
+  const ids=videos.map(v=>String(v.id));
+  const {data,error}=await db.from("likes")
+   .select("video_id")
+   .eq("user_id",currentUser.id)
+   .in("video_id",ids);
+
+  if(error)throw error;
+  (data||[]).forEach(row=>likedIds.add(String(row.video_id)));
+ }catch(error){
+  console.warn("Likes load:",error.message);
+ }
+}
+
+async function loadFeed(){
+ $("loading").style.display="flex";
+ $("empty").style.display="none";
+
+ if(!db){
+  $("loading").style.display="none";
+  showEmpty("Supabase client नहीं मिला। supabase-config.js जाँचें।");
   return;
  }
 
- try {
-  let query = db.from("videos")
-   .select("id,video_url,caption,category,username,likes_count,views_count,created_at")
-   .order("created_at", { ascending: false });
+ try{
+  const {data,error}=await db.from("videos")
+   .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type")
+   .order("created_at",{ascending:false});
 
-  const { data, error } = await query;
+  if(error)throw error;
 
-  if (error) throw error;
+  videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({
+   ...v,
+   likes_count:Number(v.likes_count||0),
+   views_count:Number(v.views_count||0)
+  }));
 
-  rawVideos = (data || [])
-   .filter(v => v.id && v.video_url)
-   .map(v => ({
-    ...v,
-    likes_count: Number(v.likes_count || 0),
-    views_count: Number(v.views_count || 0)
-   }));
-
-  await loadMyLikes();
+  await loadLikes();
   applyFilters();
 
- } catch (error) {
-  console.error("Feed load error:", error);
-  showEmpty("वीडियो लोड नहीं हो सके। Supabase videos table और RLS policies जाँचें।");
- } finally {
-  $("loadingState").style.display = "none";
+ }catch(error){
+  console.error("Feed error:",error);
+  showEmpty("वीडियो लोड नहीं हुए। Supabase videos table और RLS जाँचें।");
+ }finally{
+  $("loading").style.display="none";
  }
 }
 
-async function loadMyLikes() {
- likedVideoIds.clear();
- if (!db || !currentUser || rawVideos.length === 0) return;
-
- try {
-  const ids = rawVideos.map(v => v.id);
-  const { data, error } = await db.from("likes")
-   .select("video_id")
-   .eq("user_id", currentUser.id)
-   .in("video_id", ids);
-
-  if (error) throw error;
-  (data || []).forEach(row => likedVideoIds.add(row.video_id));
- } catch (error) {
-  console.warn("Could not load likes:", error.message);
- }
+async function getFollowingIds(){
+ if(!currentUser)return [];
+ const {data,error}=await db.from("followers")
+  .select("following_id")
+  .eq("follower_id",currentUser.id);
+ if(error)throw error;
+ return (data||[]).map(x=>String(x.following_id));
 }
 
-function showEmpty(message) {
- $("activeFeedVideo").pause();
- $("activeFeedVideo").removeAttribute("src");
- $("activeFeedVideo").load();
- $("emptyMessage").textContent = message;
- $("emptyState").style.display = "flex";
- $("videoCounter").textContent = "";
- $("feedUsername").textContent = "";
- $("feedCaptionText").textContent = "";
- $("feedVideoMeta").textContent = "";
- $("likeCount").textContent = "0";
- $("commentCount").textContent = "Comments";
- $("likeButton").classList.remove("liked");
- currentVideo = null;
-}
+async function applyFilters(){
+ const keyword=$("search").value.trim().toLowerCase();
+ let followingIds=[];
 
-function applyFilters() {
- const keyword = $("feedSearchBox").value.trim().toLowerCase();
-
- filteredVideos = rawVideos.filter(video => {
-  const text = [
-   video.caption,
-   video.username,
-   video.category
-  ].join(" ").toLowerCase();
-
-  const keywordMatch = !keyword || text.includes(keyword);
-
-  let categoryMatch = true;
-
-  if (currentCategory === "Following" || currentCategory === "Friends") {
-   // Following/Friends require a verified relationship query.
-   categoryMatch = false;
-  } else if (currentCategory === "For You" || currentCategory === "Discover") {
-   categoryMatch = true;
-  } else if (currentCategory === "Shorts" || currentCategory === "Reels") {
-   categoryMatch = true;
-  } else if (currentCategory === "Live") {
-   categoryMatch = false;
-  } else {
-   categoryMatch = (video.category || "").toLowerCase()
-    .includes(currentCategory.toLowerCase());
+ if(currentCategory==="Following"||currentCategory==="Friends"){
+  if(!currentUser){
+   showEmpty("Following वीडियो देखने के लिए Login करें।");
+   return;
   }
+  try{followingIds=await getFollowingIds();}
+  catch(error){showEmpty("Following सूची लोड नहीं हुई।");return;}
+ }
 
-  return keywordMatch && categoryMatch;
+ filtered=videos.filter(v=>{
+  const text=[v.caption,v.username,v.category].join(" ").toLowerCase();
+  if(keyword&&!text.includes(keyword))return false;
+
+  if(currentCategory==="Following"||currentCategory==="Friends"){
+   return followingIds.includes(String(v.user_id));
+  }
+  if(currentCategory==="Live")return false;
+  if(["For You","Discover","Shorts","Reels"].includes(currentCategory))return true;
+
+  return String(v.category||"").toLowerCase().includes(currentCategory.toLowerCase());
  });
 
- currentIndex = 0;
+ currentIndex=0;
 
- if (!filteredVideos.length) {
-  showEmpty(
-   currentCategory === "Following" || currentCategory === "Friends"
-    ? "इस सेक्शन के लिए Follow/Friends सिस्टम कनेक्ट करना बाकी है।"
-    : currentCategory === "Live"
-     ? "अभी कोई Live वीडियो उपलब्ध नहीं है।"
-     : "इस खोज या Category में अभी कोई वीडियो नहीं मिला।"
-  );
+ if(!filtered.length){
+  showEmpty(currentCategory==="Live"
+   ?"अभी कोई Live वीडियो उपलब्ध नहीं है।"
+   :"इस Category या Search में कोई वीडियो नहीं मिला।");
   return;
  }
 
- $("emptyState").style.display = "none";
+ $("empty").style.display="none";
+
+ const wanted=new URLSearchParams(location.search).get("video");
+ if(wanted){
+  const found=filtered.findIndex(v=>String(v.id)===wanted);
+  if(found>=0)currentIndex=found;
+ }
  renderVideo();
 }
 
-function renderVideo() {
- if (!filteredVideos.length) return;
+function renderVideo(){
+ if(!filtered.length)return;
+ currentVideo=filtered[currentIndex];
+ if(!currentVideo)return;
 
- currentVideo = filteredVideos[currentIndex];
- if (!currentVideo) return;
+ const player=$("video");
+ player.pause();
+ player.src=currentVideo.video_url;
+ player.load();
+ player.play().catch(()=>{$("playHint").style.display="block";});
 
- const video = $("activeFeedVideo");
- video.pause();
- video.src = currentVideo.video_url;
- video.load();
- video.play().catch(() => {
-  $("playPause").style.display = "block";
- });
+ const name=currentVideo.username||"New Star Creator";
+ $("username").textContent=name.startsWith("@")?name:"@"+name;
+ $("caption").textContent=currentVideo.caption||"";
+ $("meta").textContent=numberFormat(currentVideo.views_count)+" views";
+ $("likes").textContent=numberFormat(currentVideo.likes_count);
+ $("counter").textContent=(currentIndex+1)+" / "+filtered.length;
+ $("likeBtn").classList.toggle("liked",likedIds.has(String(currentVideo.id)));
+ $("playHint").style.display="none";
 
- $("feedUsername").textContent =
-  currentVideo.username ? "@" + currentVideo.username.replace(/^@/, "") : "New Star Creator";
-
- $("feedCaptionText").textContent = currentVideo.caption || "";
-
- $("feedVideoMeta").textContent =
-  formatCount(currentVideo.views_count) + " views";
-
- $("likeCount").textContent = formatCount(currentVideo.likes_count);
-
- $("videoCounter").textContent =
-  (currentIndex + 1) + " / " + filteredVideos.length;
-
- $("likeButton").classList.toggle(
-  "liked", likedVideoIds.has(currentVideo.id)
- );
-
- const affiliate = currentVideo.affiliate_link;
- const link = $("feedAffiliateLink");
-
- if (affiliate) {
-  try {
-   const parsed = new URL(affiliate);
-   if (parsed.protocol === "https:" || parsed.protocol === "http:") {
-    link.href = parsed.href;
-    link.style.display = "inline-block";
-   } else {
-    link.style.display = "none";
+ const affiliate=$("affiliate");
+ affiliate.style.display="none";
+ if(currentVideo.affiliate_link){
+  try{
+   const url=new URL(currentVideo.affiliate_link);
+   if(["http:","https:"].includes(url.protocol)){
+    affiliate.href=url.href;
+    affiliate.style.display="inline-block";
    }
-  } catch {
-   link.style.display = "none";
-  }
- } else {
-  link.style.display = "none";
+  }catch(e){}
  }
 
  loadCommentCount(currentVideo.id);
 }
 
-async function loadCommentCount(videoId) {
- $("commentCount").textContent = "Comments";
- try {
-  const { count, error } = await db.from("video_comments")
-   .select("id", { count: "exact", head: true })
-   .eq("video_id", videoId);
-
-  if (error) throw error;
-  if (currentVideo && currentVideo.id === videoId) {
-   $("commentCount").textContent = formatCount(count || 0);
+async function loadCommentCount(videoId){
+ try{
+  const {count,error}=await db.from("video_comments")
+   .select("id",{count:"exact",head:true})
+   .eq("video_id",String(videoId));
+  if(error)throw error;
+  if(currentVideo&&String(currentVideo.id)===String(videoId)){
+   $("commentCount").textContent=numberFormat(count||0);
   }
- } catch (error) {
-  console.warn("Comment count unavailable:", error.message);
+ }catch(error){
+  $("commentCount").textContent="Comments";
  }
 }
 
-async function toggleLike() {
- if (!currentVideo) return;
-
- if (!currentUser) {
-  toast("Like करने के लिए पहले Login करें।");
-  location.href = "auth.html";
+async function toggleLike(){
+ if(!currentVideo)return;
+ if(!currentUser){
+  showToast("Like करने के लिए Login करें।");
+  location.href="auth.html?next=index.html";
   return;
  }
 
- const videoId = currentVideo.id;
- const wasLiked = likedVideoIds.has(videoId);
+ const button=$("likeBtn");
+ button.disabled=true;
+ const id=String(currentVideo.id);
+ const wasLiked=likedIds.has(id);
 
- $("likeButton").disabled = true;
-
- try {
-  if (wasLiked) {
-   const { error } = await db.from("likes")
-    .delete()
-    .eq("video_id", videoId)
-    .eq("user_id", currentUser.id);
-
-   if (error) throw error;
-
-   likedVideoIds.delete(videoId);
-   currentVideo.likes_count = Math.max(0, currentVideo.likes_count - 1);
-  } else {
-   const { error } = await db.from("likes").insert({
-    video_id: videoId,
-    user_id: currentUser.id
+ try{
+  if(wasLiked){
+   const {error}=await db.from("likes").delete()
+    .eq("video_id",id).eq("user_id",currentUser.id);
+   if(error)throw error;
+   likedIds.delete(id);
+   currentVideo.likes_count=Math.max(0,currentVideo.likes_count-1);
+  }else{
+   const {error}=await db.from("likes").insert({
+    video_id:id,user_id:currentUser.id
    });
-
-   if (error) throw error;
-
-   likedVideoIds.add(videoId);
-   currentVideo.likes_count += 1;
+   if(error)throw error;
+   likedIds.add(id);
+   currentVideo.likes_count++;
   }
 
-  $("likeButton").classList.toggle("liked", !wasLiked);
-  $("likeCount").textContent = formatCount(currentVideo.likes_count);
+  $("likeBtn").classList.toggle("liked",!wasLiked);
+  $("likes").textContent=numberFormat(currentVideo.likes_count);
 
-  // Keep the displayed count consistent with the database.
-  const { error: updateError } = await db.from("videos")
-   .update({ likes_count: currentVideo.likes_count })
-   .eq("id", videoId);
+  const {error:updateError}=await db.from("videos")
+   .update({likes_count:currentVideo.likes_count})
+   .eq("id",id);
 
-  if (updateError) {
-   console.warn("Like count update needs database policy:", updateError.message);
-  }
+  if(updateError)console.warn("Like count update:",updateError.message);
+  showToast(wasLiked?"Like हटाया गया":"❤️ Liked!");
 
-  toast(wasLiked ? "Like हटाया गया" : "❤️ Liked!");
-
- } catch (error) {
-  console.error("Like error:", error);
-  toast("Like सेव नहीं हुआ। Database columns/RLS जाँचें।");
- } finally {
-  $("likeButton").disabled = false;
+ }catch(error){
+  console.error("Like error:",error);
+  showToast("Like सेव नहीं हुआ। Database/RLS जाँचें।");
+ }finally{
+  button.disabled=false;
  }
 }
 
-function openModal(id) {
- document.querySelectorAll(".modal").forEach(m => m.style.display = "none");
- $(id).style.display = "flex";
-}
-
-function closeModal(id) {
- $(id).style.display = "none";
-}
-
-async function openComments() {
- if (!currentVideo) return;
+async function openComments(){
+ if(!currentVideo)return;
  openModal("commentModal");
  await loadComments(currentVideo.id);
 }
 
-async function loadComments(videoId) {
- if (loadingComments) return;
- loadingComments = true;
+async function loadComments(videoId){
+ const list=$("commentList");
+ list.textContent="Comments लोड हो रहे हैं...";
 
- const list = $("commentList");
- list.innerHTML = "<p style='color:#aaa'>Comments लोड हो रहे हैं...</p>";
-
- try {
-  const { data, error } = await db.from("video_comments")
+ try{
+  const {data,error}=await db.from("video_comments")
    .select("*")
-   .eq("video_id", videoId)
-   .order("created_at", { ascending: true });
+   .eq("video_id",String(videoId))
+   .order("created_at",{ascending:true});
+  if(error)throw error;
 
-  if (error) throw error;
+  list.innerHTML="";
+  $("commentTitle").textContent="Comments ("+(data||[]).length+")";
 
-  $("commentTitle").textContent = "Comments (" + (data || []).length + ")";
-  list.innerHTML = "";
-
-  if (!data || !data.length) {
-   list.innerHTML = "<p style='color:#aaa'>अभी कोई Comment नहीं है। पहला Comment करें।</p>";
+  if(!data||!data.length){
+   list.textContent="अभी कोई Comment नहीं है। पहला Comment करें।";
    return;
   }
 
-  data.forEach(row => {
-   const item = document.createElement("div");
-   item.className = "comment-item";
-
-   const content = document.createElement("div");
-   content.className = "comment-content";
-
-   const name = document.createElement("h4");
-   name.textContent = row.username || "New Star User";
-
-   const message = document.createElement("p");
-   message.textContent = row.comment || "";
-
-   content.append(name, message);
-   item.appendChild(content);
+  data.forEach(row=>{
+   const item=document.createElement("div");
+   item.className="comment";
+   const name=document.createElement("strong");
+   name.textContent=row.username||"New Star User";
+   const message=document.createElement("p");
+   message.textContent=row.comment||"";
+   item.append(name,message);
    list.appendChild(item);
   });
-
- } catch (error) {
-  console.error("Comment load error:", error);
-  list.innerHTML = "<p style='color:#ff7777'>Comments लोड नहीं हुए। video_comments table के कॉलम और RLS जाँचें।</p>";
- } finally {
-  loadingComments = false;
+ }catch(error){
+  console.error("Comments:",error);
+  list.textContent="Comments लोड नहीं हुए।";
  }
 }
 
-async function postComment() {
- if (!currentVideo) return;
-
- if (!currentUser) {
-  toast("Comment करने के लिए Login करें।");
-  location.href = "auth.html";
+async function postComment(){
+ if(!currentVideo)return;
+ if(!currentUser){
+  showToast("Comment करने के लिए Login करें।");
+  location.href="auth.html?next=index.html";
   return;
  }
 
- const input = $("commentInput");
- const message = input.value.trim();
- if (!message) return;
+ const input=$("commentInput");
+ const comment=input.value.trim();
+ if(!comment)return;
 
- const button = $("postCommentButton");
- button.disabled = true;
+ const button=$("postComment");
+ button.disabled=true;
 
- try {
-  const username =
-   currentUser.user_metadata?.username ||
-   currentUser.user_metadata?.full_name ||
-   currentUser.email?.split("@")[0] ||
-   "New Star User";
+ try{
+  const username=currentUser.user_metadata?.username||
+   currentUser.user_metadata?.full_name||
+   currentUser.email?.split("@")[0]||"New Star User";
 
-  const { error } = await db.from("video_comments").insert({
-   video_id: currentVideo.id,
-   user_id: currentUser.id,
-   username: username,
-   comment: message
+  const {error}=await db.from("video_comments").insert({
+   video_id:String(currentVideo.id),
+   user_id:currentUser.id,
+   username,
+   comment
   });
+  if(error)throw error;
 
-  if (error) throw error;
-
-  input.value = "";
-  toast("Comment सेव हो गया!");
+  input.value="";
+  showToast("Comment सेव हो गया!");
   await loadComments(currentVideo.id);
   await loadCommentCount(currentVideo.id);
-
- } catch (error) {
-  console.error("Post comment error:", error);
-  toast("Comment सेव नहीं हुआ। Database columns/RLS जाँचें।");
- } finally {
-  button.disabled = false;
+ }catch(error){
+  console.error("Post comment:",error);
+  showToast("Comment सेव नहीं हुआ। Database/RLS जाँचें।");
+ }finally{
+  button.disabled=false;
  }
 }
 
-async function shareVideo() {
- if (!currentVideo) return;
- const url = getVideoShareUrl(currentVideo);
+function videoUrl(){
+ const url=new URL(location.href);
+ url.search="";
+ url.hash="";
+ url.searchParams.set("video",currentVideo.id);
+ return url.toString();
+}
 
- if (navigator.share) {
-  try {
+async function shareVideo(){
+ if(!currentVideo)return;
+ const url=videoUrl();
+
+ if(navigator.share){
+  try{
    await navigator.share({
-    title: "New Star Video",
-    text: currentVideo.caption || "Watch this video on New Star",
+    title:"New Star Video",
+    text:currentVideo.caption||"Watch on New Star",
     url
    });
-  } catch (error) {
-   if (error.name !== "AbortError") toast("Share नहीं हो सका।");
+  }catch(error){
+   if(error.name!=="AbortError")showToast("Share नहीं हो सका।");
   }
- } else {
+ }else{
   openModal("shareModal");
  }
 }
 
-async function copyVideoLink() {
- if (!currentVideo) return;
- const url = getVideoShareUrl(currentVideo);
-
- try {
+async function copyShareLink(){
+ if(!currentVideo)return;
+ const url=videoUrl();
+ try{
   await navigator.clipboard.writeText(url);
-  toast("Video Link कॉपी हो गया!");
- } catch {
-  const temp = document.createElement("textarea");
-  temp.value = url;
-  document.body.appendChild(temp);
-  temp.select();
+ }catch(error){
+  const input=document.createElement("textarea");
+  input.value=url;
+  document.body.appendChild(input);
+  input.select();
   document.execCommand("copy");
-  temp.remove();
-  toast("Video Link कॉपी हो गया!");
+  input.remove();
  }
  closeModal("shareModal");
+ showToast("Video Link कॉपी हो गया!");
 }
 
-function nextVideo(direction) {
- if (!filteredVideos.length) return;
- currentIndex += direction;
+/* GIFT SYSTEM */
 
- if (currentIndex >= filteredVideos.length) currentIndex = 0;
- if (currentIndex < 0) currentIndex = filteredVideos.length - 1;
+function renderGiftCatalog(){
+ const grid=$("giftGrid");
+ grid.innerHTML="";
 
+ GIFTS.forEach(gift=>{
+  const button=document.createElement("button");
+  button.type="button";
+  button.className="gift";
+  button.dataset.gift=gift.name;
+
+  const emoji=document.createElement("span");
+  emoji.className="emoji";
+  emoji.textContent=gift.emoji;
+
+  const name=document.createElement("span");
+  name.className="name";
+  name.textContent=gift.name;
+
+  const price=document.createElement("span");
+  price.className="price";
+  price.textContent=gift.coins.toLocaleString()+" Coins";
+
+  button.append(emoji,name,price);
+  button.addEventListener("click",()=>{
+   selectedGift=gift;
+   document.querySelectorAll(".gift").forEach(el=>{
+    el.classList.toggle("selected",el.dataset.gift===gift.name);
+   });
+   $("sendGift").disabled=false;
+   $("sendGift").textContent=gift.emoji+" Send "+gift.name+
+    " · "+gift.coins.toLocaleString()+" Coins";
+  });
+  grid.appendChild(button);
+ });
+}
+
+async function loadWalletBalance(){
+ if(!currentUser){
+  $("coinBalance").textContent="Login जरूरी";
+  return;
+ }
+
+ $("coinBalance").textContent="लोड हो रहा है...";
+ try{
+  const {data,error}=await db.from("user_wallets")
+   .select("coin_balance")
+   .eq("user_id",currentUser.id)
+   .maybeSingle();
+
+  if(error)throw error;
+  walletBalance=Number(data?.coin_balance||0);
+  $("coinBalance").textContent=walletBalance.toLocaleString()+" 🪙";
+ }catch(error){
+  console.error("Wallet balance:",error);
+  $("coinBalance").textContent="लोड नहीं हुआ";
+  showToast("Wallet Balance नहीं मिला। Wallet table/RLS जाँचें।");
+ }
+}
+
+function newRequestId(){
+ if(crypto.randomUUID)return crypto.randomUUID();
+ return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{
+  const r=Math.random()*16|0;
+  return (c==="x"?r:(r&3|8)).toString(16);
+ });
+}
+
+async function openGift(){
+ if(!currentVideo)return;
+ if(!currentUser){
+  showToast("Gift भेजने के लिए पहले Login करें।");
+  location.href="auth.html?next=index.html";
+  return;
+ }
+
+ selectedGift=null;
+ $("sendGift").disabled=true;
+ $("sendGift").textContent="पहले Gift चुनें";
+ document.querySelectorAll(".gift").forEach(g=>g.classList.remove("selected"));
+
+ openModal("giftModal");
+ await loadWalletBalance();
+}
+
+async function sendGift(){
+ if(giftBusy||!currentVideo||!selectedGift)return;
+ if(!currentUser){
+  showToast("पहले Login करें।");
+  location.href="auth.html?next=index.html";
+  return;
+ }
+
+ if(walletBalance<selectedGift.coins){
+  showToast("पर्याप्त Coins नहीं हैं। Wallet खोलें।");
+  location.href="wallet.html#buy-coins";
+  return;
+ }
+
+ giftBusy=true;
+ const button=$("sendGift");
+ button.disabled=true;
+ button.textContent="Gift भेजा जा रहा है...";
+
+ try{
+  const gift=selectedGift;
+  const requestId=newRequestId();
+
+  const {data,error}=await db.rpc("send_creator_gift",{
+   p_video_id:String(currentVideo.id),
+   p_gift_name:gift.name,
+   p_coins:gift.coins,
+   p_request_id:requestId
+  });
+
+  if(error)throw error;
+
+  const result=Array.isArray(data)?data[0]:data;
+  if(!result||result.success!==true){
+   throw new Error("Server ने Gift की पुष्टि नहीं की।");
+  }
+
+  if(typeof result.remaining_coins==="number"){
+   walletBalance=result.remaining_coins;
+   $("coinBalance").textContent=walletBalance.toLocaleString()+" 🪙";
+  }else{
+   await loadWalletBalance();
+  }
+
+  selectedGift=null;
+  closeModal("giftModal");
+  showToast("🎉 "+gift.name+" Gift सफलतापूर्वक भेजा गया!");
+
+ }catch(error){
+  console.error("Gift transaction error:",error);
+  showToast("Gift पूरा नहीं हुआ: "+(error.message||"कृपया दोबारा कोशिश करें।").slice(0,130));
+  await loadWalletBalance();
+ }finally{
+  giftBusy=false;
+  button.disabled=!selectedGift;
+  if(selectedGift){
+   button.textContent=selectedGift.emoji+" Send "+selectedGift.name+
+    " · "+selectedGift.coins.toLocaleString()+" Coins";
+  }else{
+   button.textContent="पहले Gift चुनें";
+  }
+ }
+}
+
+/* CATEGORY, SEARCH AND NAVIGATION */
+
+document.querySelectorAll(".category").forEach(button=>{
+ button.addEventListener("click",async()=>{
+  document.querySelectorAll(".category").forEach(b=>b.classList.remove("active"));
+  button.classList.add("active");
+  currentCategory=button.dataset.cat;
+  await applyFilters();
+ });
+});
+
+let searchTimer;
+$("search").addEventListener("input",()=>{
+ clearTimeout(searchTimer);
+ searchTimer=setTimeout(()=>applyFilters(),250);
+});
+
+$("voice").addEventListener("click",()=>{
+ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SpeechRecognition){
+  showToast("इस Browser में Voice Search उपलब्ध नहीं है।");
+  return;
+ }
+ const recognition=new SpeechRecognition();
+ recognition.lang="hi-IN";
+ recognition.interimResults=false;
+ recognition.onresult=event=>{
+  $("search").value=event.results[0][0].transcript;
+  applyFilters();
+ };
+ recognition.onerror=()=>showToast("Voice Search काम नहीं कर पाया।");
+ recognition.start();
+});
+
+function changeVideo(direction){
+ if(!filtered.length)return;
+ currentIndex+=direction;
+ if(currentIndex<0)currentIndex=0;
+ if(currentIndex>=filtered.length)currentIndex=filtered.length-1;
  renderVideo();
 }
 
-function setupSwipe() {
- const area = $("feedSwipeContainer");
+let touchStartY=0;
+$("feed").addEventListener("touchstart",event=>{
+ touchStartY=event.changedTouches[0].clientY;
+},{passive:true});
 
- area.addEventListener("touchstart", e => {
-  touchStartY = e.touches[0].clientY;
- }, { passive: true });
-
- area.addEventListener("touchend", e => {
-  const diff = touchStartY - e.changedTouches[0].clientY;
-  if (Math.abs(diff) < 55) return;
-
-  // Don't change videos while a modal is open.
-  if ([...document.querySelectorAll(".modal")]
-   .some(m => m.style.display === "flex")) return;
-
-  nextVideo(diff > 0 ? 1 : -1);
- }, { passive: true });
-}
-
-function setupCategories() {
- $("categoryRow").addEventListener("click", e => {
-  const button = e.target.closest(".chip");
-  if (!button) return;
-
-  document.querySelectorAll(".chip").forEach(b => b.classList.remove("active"));
-  button.classList.add("active");
-
-  currentCategory = button.dataset.category;
-  $("feedSearchBox").value = "";
-  applyFilters();
- });
-}
-
-function setupSearch() {
- $("feedSearchBox").addEventListener("input", applyFilters);
-}
-
-function voiceSearch() {
- const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
- if (!Recognition) {
-  toast("इस Browser में Voice Search उपलब्ध नहीं है।");
-  return;
+$("feed").addEventListener("touchend",event=>{
+ const difference=touchStartY-event.changedTouches[0].clientY;
+ if(Math.abs(difference)>65){
+  changeVideo(difference>0?1:-1);
  }
+},{passive:true});
 
- const recognition = new Recognition();
- recognition.lang = "hi-IN";
- recognition.interimResults = false;
- recognition.maxAlternatives = 1;
+$("feed").addEventListener("wheel",event=>{
+ if(Math.abs(event.deltaY)>25)changeVideo(event.deltaY>0?1:-1);
+},{passive:true});
 
- recognition.onstart = () => toast("🎙️ बोलिए...");
- recognition.onresult = event => {
-  $("feedSearchBox").value = event.results[0][0].transcript;
-  applyFilters();
- };
- recognition.onerror = () => toast("Voice Search काम नहीं कर पाया।");
- recognition.start();
-}
+$("video").addEventListener("click",()=>{
+ const player=$("video");
+ if(player.paused){
+  player.play().catch(()=>{});
+  $("playHint").style.display="none";
+ }else{
+  player.pause();
+  $("playHint").style.display="block";
+ }
+});
 
-function setupVideoControls() {
- const video = $("activeFeedVideo");
- const play = $("playPause");
+$("playHint").addEventListener("click",()=>{
+ $("video").play().catch(()=>{});
+ $("playHint").style.display="none";
+});
 
- video.addEventListener("click", () => {
-  if (video.paused) {
-   video.play().catch(() => {});
-  } else {
-   video.pause();
-  }
- });
+$("likeBtn").addEventListener("click",toggleLike);
+$("commentBtn").addEventListener("click",openComments);
+$("postComment").addEventListener("click",postComment);
+$("giftBtn").addEventListener("click",openGift);
+$("sendGift").addEventListener("click",sendGift);
+$("shareBtn").addEventListener("click",shareVideo);
+$("nativeShare").addEventListener("click",shareVideo);
+$("copyShare").addEventListener("click",copyShareLink);
+$("reload").addEventListener("click",loadFeed);
 
- video.addEventListener("play", () => {
-  play.style.display = "none";
- });
+$("commentInput").addEventListener("keydown",event=>{
+ if(event.key==="Enter")postComment();
+});
 
- video.addEventListener("pause", () => {
-  play.style.display = "block";
- });
-
- play.addEventListener("click", () => {
-  video.play().catch(() => {});
- });
-}
-
-function setupButtons() {
- $("likeButton").addEventListener("click", toggleLike);
- $("commentButton").addEventListener("click", openComments);
-
- $("giftButton").addEventListener("click", () => {
-  toast("Gifts के लिए Wallet और Coin Transaction verification जोड़ना बाकी है।");
- });
-
- $("shareButton").addEventListener("click", shareVideo);
- $("nativeShareButton").addEventListener("click", shareVideo);
- $("copyLinkButton").addEventListener("click", copyVideoLink);
-
- $("postCommentButton").addEventListener("click", postComment);
-
- $("commentInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") postComment();
- });
-
- $("micButton").addEventListener("click", voiceSearch);
- $("reloadButton").addEventListener("click", loadFeed);
-
- document.querySelectorAll("[data-close]").forEach(button => {
-  button.addEventListener("click", () => closeModal(button.dataset.close));
- });
-}
-
-async function initNewStarFeed() {
- if (!db) {
+/* START */
+async function startNewStar(){
+ if(!db){
+  $("loading").style.display="none";
   showEmpty("Supabase client नहीं मिला। supabase-config.js जाँचें।");
-  $("loadingState").style.display = "none";
   return;
  }
 
- currentUser = await getSessionUser();
-
- setupSwipe();
- setupCategories();
- setupSearch();
- setupVideoControls();
- setupButtons();
-
+ currentUser=await getUser();
+ renderGiftCatalog();
  await loadFeed();
-
- // Open a shared video when URL contains ?video=VIDEO_ID
- const sharedId = new URLSearchParams(location.search).get("video");
- if (sharedId) {
-  const foundIndex = filteredVideos.findIndex(v => String(v.id) === sharedId);
-  if (foundIndex >= 0) {
-   currentIndex = foundIndex;
-   renderVideo();
-  }
- }
 }
 
-document.addEventListener("DOMContentLoaded", initNewStarFeed);
+startNewStar();
 </script>
-
 </body>
 </html>
