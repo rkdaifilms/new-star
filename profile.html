@@ -1,661 +1,582 @@
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>New Star - Creator Profile</title>
-
+<title>New Star - Profile</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
-
 <style>
+:root{--ns-accent:#fe2c55;--ns-bg:#101014;--ns-card:#1c1c24;--ns-line:#383844}
 *{box-sizing:border-box}
-body{margin:0;background:#101014;color:#fff;font-family:Arial,sans-serif;padding-bottom:85px}
+body{margin:0;background:var(--ns-bg);color:#fff;font-family:Arial,sans-serif;padding-bottom:82px}
 button,input,textarea{font:inherit}
-button{border:0;border-radius:11px;padding:12px;background:#ff3158;color:white;font-weight:bold;cursor:pointer}
-button:disabled{opacity:.5;cursor:not-allowed}
-input,textarea{width:100%;padding:13px;margin:7px 0;border-radius:10px;background:#111118;border:1px solid #41414d;color:white;outline:none}
-textarea{resize:vertical}
-a{color:#ff6682;text-decoration:none}
-header{height:60px;padding:10px 14px;background:#191920;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;border-bottom:1px solid #333}
-header button{padding:9px 12px}
-.wrap{max-width:850px;margin:auto;padding:12px}
-.card{background:#1c1c24;border:1px solid #383844;border-radius:16px;padding:16px;margin:12px 0}
+button{border:0;border-radius:10px;padding:11px 14px;background:var(--ns-accent);color:#fff;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+input,textarea{width:100%;padding:12px;margin:7px 0;background:#111118;border:1px solid #41414d;border-radius:9px;color:#fff}
+a{color:#ff8298;text-decoration:none}
 .hidden{display:none!important}
 .muted{color:#aaa;font-size:13px}
 .status{white-space:pre-wrap;color:#ffd36a;font-size:13px;line-height:1.5}
-.row{display:flex;gap:9px;align-items:center}
+header{height:58px;padding:10px 15px;background:#191920;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;border-bottom:1px solid #333}
+.brand{color:#ff5274}
+.wrap{max-width:850px;margin:auto;padding:12px}
+.card{background:var(--ns-card);border:1px solid var(--ns-line);border-radius:16px;padding:16px;margin:12px 0}
+#auth{max-width:480px;margin:5vh auto}
+.authTitle{text-align:center;font-size:25px}
+.authTabs{display:flex;gap:7px;margin:14px 0}
+.authTabs button{flex:1;background:#30303a}
+.authTabs button.active{background:var(--ns-accent)}
+.row{display:flex;gap:9px}
 .row>*{flex:1;min-width:0}
 .secondary{background:#343440}
 .outline{background:transparent;border:1px solid #555}
-.danger{background:#a5223e}
-#auth{max-width:480px;margin:5vh auto;padding:14px}
-#app{display:none}
-.authTitle{text-align:center;font-size:25px}
-.brand{color:#ff5274}
-.authTabs{display:flex;gap:6px;margin:15px 0}
-.authTabs button{flex:1;background:#30303a}
-.authTabs button.active{background:#ff3158}
-#profileHero{text-align:center;padding:20px 12px}
-.cover{height:120px;border-radius:13px;background:linear-gradient(120deg,#40245c,#e93468,#263f71);margin-bottom:-52px}
-.avatar{width:112px;height:112px;border-radius:50%;object-fit:cover;border:4px solid #1c1c24;background:#333;position:relative}
-.avatarPlaceholder{display:inline-flex;align-items:center;justify-content:center;font-size:40px}
+#profileHero{text-align:center;padding:18px 12px}
+.cover{height:105px;border-radius:12px;background:linear-gradient(120deg,#40245c,#e93468,#263f71);margin-bottom:-48px}
+.avatar{width:108px;height:108px;border-radius:50%;object-fit:cover;border:4px solid var(--ns-card);background:#333}
 .profileName{font-size:23px;font-weight:bold;margin:9px 0 3px}
 .handle{color:#aaa;font-size:14px}
 .bio{white-space:pre-wrap;color:#ddd;line-height:1.5;margin:12px auto;max-width:500px}
-.stats{display:flex;justify-content:center;gap:30px;margin:16px 0}
+.stats{display:flex;justify-content:center;gap:34px;margin:16px 0}
 .stat strong{display:block;font-size:20px}
 .stat span{font-size:12px;color:#aaa}
-.actionRow{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
-.actionRow button{width:auto;min-width:105px}
-.detailLine{padding:9px 0;border-bottom:1px solid #34343c;font-size:14px;overflow-wrap:anywhere}
-.detailLine:last-child{border:0}
 .sectionTitle{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.sectionTitle h3{margin:5px 0 12px}
+.sectionTitle h3{margin:4px 0 12px}
 .videoGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .videoCard{background:#121218;border:1px solid #383844;border-radius:12px;padding:8px;overflow:hidden}
 .videoCard video{width:100%;aspect-ratio:9/14;object-fit:cover;background:#000;border-radius:8px}
 .videoCard p{overflow-wrap:anywhere;font-size:13px}
 .videoCard small{color:#aaa}
-.studioGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.studioBtn{background:#292934;border:1px solid #444;text-align:left;min-height:78px}
-.studioBtn b{display:block;font-size:16px;margin-bottom:5px}
 .modal{position:fixed;inset:0;background:#000c;z-index:100;display:none;overflow:auto;padding:18px}
 .modal.show{display:block}
-.modalBox{max-width:540px;margin:25px auto;background:#20202a;border:1px solid #484854;border-radius:16px;padding:17px}
+.modalBox{max-width:540px;margin:18px auto;background:#20202a;border:1px solid #484854;border-radius:16px;padding:17px}
 .modalHead{display:flex;justify-content:space-between;align-items:center}
-.modalHead button{width:auto;padding:8px 12px}
-.photoPreview{width:90px;height:90px;border-radius:50%;object-fit:cover;background:#333}
-.bottomNav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#191920;border-top:1px solid #383844;display:flex;justify-content:space-around;padding:9px 3px calc(9px + env(safe-area-inset-bottom))}
-.bottomNav a{color:#bbb;text-align:center;font-size:11px;flex:1}
-.bottomNav a span{display:block;font-size:21px;margin-bottom:3px}
-.bottomNav a.active{color:#ff5274}
+.modalHead button{padding:7px 12px}
+.photoPreview{width:88px;height:88px;border-radius:50%;object-fit:cover;background:#333}
+.photoRow{display:flex;gap:14px;align-items:center}
 hr{border:0;border-top:1px solid #383844;margin:18px 0}
 @media(min-width:600px){.videoGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
 </head>
-
 <body>
 
 <header>
- <b>⭐ New Star <span class="brand">Creator</span></b>
- <div class="row" style="flex:0;gap:7px">
-  <button class="secondary" onclick="location.href='camera.html'">＋ Create</button>
-  <button class="secondary" id="headerSettings" onclick="openSettings()">⚙️</button>
- </div>
+ <b>⭐ New Star <span class="brand">Profile</span></b>
+ <span class="muted">Creator Account</span>
 </header>
 
-<!-- LOGIN: बिना लॉगिन प्रोफाइल नहीं खुलेगी -->
 <section id="auth" class="card">
  <h2 class="authTitle">⭐ New Star</h2>
  <p class="muted" style="text-align:center">अपने Creator Account में Login करें</p>
-
- <button style="width:100%" onclick="googleLogin()">🌐 Continue with Google</button>
-
+ <button style="width:100%" id="googleLoginButton">🌐 Continue with Google</button>
  <hr>
  <div class="authTabs">
-  <button id="tabEmail" class="active" onclick="showAuthTab('email')">Email</button>
-  <button id="tabPhone" onclick="showAuthTab('phone')">Mobile OTP</button>
+  <button id="tabEmail" class="active" type="button">Email</button>
+  <button id="tabPhone" class="secondary" type="button">Mobile OTP</button>
  </div>
-
  <div id="emailPanel">
   <input id="signupName" placeholder="पूरा नाम (नए अकाउंट के लिए)">
-  <input id="signupAddress" placeholder="पता / Address (वैकल्पिक)">
   <input id="email" type="email" autocomplete="email" placeholder="Gmail / Email">
   <input id="password" type="password" autocomplete="current-password" placeholder="Password (कम से कम 6 अक्षर)">
   <div class="row">
-   <button onclick="emailLogin()">Login</button>
-   <button class="secondary" onclick="emailSignup()">Sign Up</button>
+   <button id="emailLoginButton">Login</button>
+   <button class="secondary" id="emailSignupButton">Sign Up</button>
   </div>
  </div>
-
  <div id="phonePanel" class="hidden">
   <input id="phone" type="tel" autocomplete="tel" placeholder="+97798XXXXXXXX">
-  <button style="width:100%" onclick="sendOTP()">📩 Send SMS OTP</button>
+  <button style="width:100%" id="sendOtpButton">📩 Send SMS OTP</button>
   <input id="otp" inputmode="numeric" autocomplete="one-time-code" placeholder="SMS में आया OTP">
-  <button style="width:100%" onclick="verifyOTP()">Verify OTP और Login</button>
-  <p class="muted">नंबर देश के कोड के साथ लिखें। उदाहरण: +97798XXXXXXXX</p>
+  <button style="width:100%" id="verifyOtpButton">Verify OTP और Login</button>
+  <p class="muted">नंबर country code के साथ लिखें। उदाहरण: +97798XXXXXXXX</p>
  </div>
- <p id="authStatus" class="status"></p>
+ <p id="authStatus" class="status" role="status"></p>
 </section>
 
-<!-- MAIN PROFILE -->
-<main id="app" class="wrap">
-
+<main id="app" class="wrap hidden">
  <section class="card" id="profileHero">
   <div class="cover"></div>
-  <img id="avatar" class="avatar" alt="Creator Profile Photo"
-       src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' font-size='48' fill='white'%3E%E2%98%BA%3C/text%3E%3C/svg%3E">
+  <img id="avatar" class="avatar" alt="Profile photo">
   <div class="profileName" id="viewName">Creator</div>
   <div class="handle" id="viewUsername">@creator</div>
   <div class="bio" id="viewBio">अपना Creator Bio सेट करें।</div>
-
   <div class="stats">
    <div class="stat"><strong id="videoCount">0</strong><span>Videos</span></div>
-   <div class="stat"><strong id="followerCount">—</strong><span>Followers</span></div>
-   <div class="stat"><strong id="followingCount">—</strong><span>Following</span></div>
+   <div class="stat"><strong id="followerCount">0</strong><span>Followers</span></div>
+   <div class="stat"><strong id="followingCount">0</strong><span>Following</span></div>
   </div>
-
-  <div class="actionRow">
-   <button onclick="openSettings()">✏️ Edit Profile</button>
-   <button class="secondary" onclick="location.href='camera.html'">＋ Create</button>
-  </div>
+  <p class="muted">प्रोफाइल के बाकी विकल्प ऊपर ⋮ मेन्यू में मिलेंगे।</p>
  </section>
 
  <section class="card">
   <div class="sectionTitle">
-   <h3>👤 Creator Information</h3>
-   <button class="secondary" style="width:auto" onclick="openSettings()">Edit</button>
-  </div>
-  <div class="detailLine">📧 Email: <span id="viewEmail" class="muted">—</span></div>
-  <div class="detailLine">📱 Phone: <span id="viewPhone" class="muted">—</span></div>
-  <div class="detailLine">📍 Address: <span id="viewAddress" class="muted">—</span></div>
-  <div class="detailLine">🌐 Website: <a id="viewWebsite" href="#" target="_blank" rel="noopener">Not added</a></div>
-  <div class="detailLine">📸 Instagram: <a id="viewInstagram" href="#" target="_blank" rel="noopener">Not added</a></div>
-  <div class="detailLine">▶️ YouTube: <a id="viewYoutube" href="#" target="_blank" rel="noopener">Not added</a></div>
-  <div class="detailLine">🎵 TikTok: <a id="viewTiktok" href="#" target="_blank" rel="noopener">Not added</a></div>
- </section>
-
- <section class="card">
-  <h3>🚀 Creator Studio</h3>
-  <div class="studioGrid">
-   <button class="studioBtn" onclick="location.href='camera.html'"><b>🎥 Camera / Upload</b><span class="muted">वीडियो रिकॉर्ड और पोस्ट करें</span></button>
-   <button class="studioBtn" onclick="location.href='camera.html'"><b>✂️ Video Editor</b><span class="muted">Camera Studio में एडिट करें</span></button>
-   <button class="studioBtn" onclick="studioNotice('Live Streaming')"><b>🔴 Go Live</b><span class="muted">Live सुविधा</span></button>
-   <button class="studioBtn" onclick="studioNotice('Gaming')"><b>🎮 Gaming</b><span class="muted">Gaming Content</span></button>
-  </div>
-  <p class="muted">Live और Gaming के लिए अलग पेज/स्ट्रीमिंग सिस्टम कनेक्ट करना बाकी हो सकता है।</p>
- </section>
-
- <section class="card">
-  <div class="sectionTitle">
-   <h3>🎬 My Posts / Videos</h3>
-   <button class="secondary" style="width:auto" onclick="loadVideos()">↻ Refresh</button>
+   <h3>🎬 My Videos</h3>
+   <button class="secondary" id="refreshVideosButton" type="button">↻ Refresh</button>
   </div>
   <p id="videoStatus" class="muted">आपके वीडियो लोड हो रहे हैं...</p>
   <div id="videoGrid" class="videoGrid"></div>
  </section>
-
- <section class="card">
-  <h3>⚙️ Account</h3>
-  <div class="row">
-   <button class="secondary" onclick="location.href='inbox.html'">💬 Inbox</button>
-   <button class="secondary" onclick="location.href='wallet.html'">💰 Wallet</button>
-  </div>
-  <div class="row">
-   <button class="secondary" onclick="location.href='settings.html'">Main Settings</button>
-   <button class="danger" onclick="logout()">Logout</button>
-  </div>
- </section>
-
+ <p id="profileStatus" class="status"></p>
 </main>
 
-<!-- PROFILE SETTINGS MODAL -->
-<div class="modal" id="settingsModal">
+<div class="modal" id="profileEditModal" aria-hidden="true">
  <div class="modalBox">
   <div class="modalHead">
-   <h2>⚙️ Profile Settings</h2>
-   <button class="secondary" onclick="closeSettings()">✕</button>
+   <h2>✏️ Edit Profile</h2>
+   <button class="secondary" id="closeEditButton" type="button">✕</button>
   </div>
-
   <h3>📸 Profile Photo</h3>
-  <div class="row" style="align-items:center">
-   <img id="settingsAvatar" class="photoPreview" alt="Photo Preview">
+  <div class="photoRow">
+   <img id="settingsAvatar" class="photoPreview" alt="Photo preview">
    <div>
-    <button class="secondary" onclick="$('cameraPhoto').click()">📷 Camera</button>
-    <button class="secondary" onclick="$('galleryPhoto').click()">🖼️ Gallery</button>
+    <button class="secondary" id="cameraPickButton" type="button">📷 Camera</button>
+    <button class="secondary" id="galleryPickButton" type="button">🖼️ Gallery</button>
    </div>
   </div>
   <input id="cameraPhoto" class="hidden" type="file" accept="image/*" capture="user">
   <input id="galleryPhoto" class="hidden" type="file" accept="image/*">
-  <p id="photoStatus" class="status"></p>
-
+  <p id="photoStatus" class="status" role="status"></p>
   <hr>
-  <h3>✏️ Personal Information</h3>
-  <label>पूरा नाम</label>
-  <input id="editName" placeholder="आपका पूरा नाम">
-  <label>Username</label>
-  <input id="editUsername" placeholder="@username">
-  <label>Bio</label>
+  <label for="editName">पूरा नाम</label>
+  <input id="editName" maxlength="80" placeholder="आपका नाम">
+  <label for="editUsername">Username</label>
+  <input id="editUsername" maxlength="30" placeholder="username">
+  <label for="editBio">Bio</label>
   <textarea id="editBio" rows="4" maxlength="300" placeholder="अपने बारे में लिखें..."></textarea>
-  <label>पता / Address</label>
-  <textarea id="editAddress" rows="2" placeholder="शहर, जिला, देश"></textarea>
-
+  <button id="saveProfileButton" style="width:100%;margin-top:10px" type="button">💾 Save Profile</button>
+  <p id="editStatus" class="status" role="status"></p>
   <hr>
-  <h3>📧 Email</h3>
-  <input id="editEmail" type="email" placeholder="Email address">
-  <p class="muted">Email बदलने पर Supabase confirmation email भेज सकता है।</p>
-  <button class="secondary" onclick="updateEmail()">Update Email</button>
-
-  <hr>
-  <h3>📱 Phone Number</h3>
-  <p id="phoneSettingsText" class="muted">—</p>
-  <p class="muted">Verified मोबाइल नंबर बदलने के लिए अलग OTP verification flow जरूरी है।</p>
-
-  <hr>
-  <h3>🌐 Social Media Links</h3>
-  <input id="editWebsite" type="url" placeholder="Website URL (https://...)">
-  <input id="editInstagram" placeholder="Instagram URL या Username">
-  <input id="editYoutube" placeholder="YouTube Channel URL">
-  <input id="editTiktok" placeholder="TikTok URL या Username">
-
-  <button id="saveProfileButton" style="width:100%;margin-top:14px" onclick="saveProfile()">💾 Save Profile</button>
-  <p id="profileStatus" class="status"></p>
-  <hr>
-  <button class="secondary" style="width:100%" onclick="location.href='settings.html'">Open Main Settings</button>
+  <button class="secondary" id="openMainSettingsButton" style="width:100%" type="button">⚙️ Account & Privacy Settings</button>
  </div>
 </div>
 
-<nav class="bottomNav">
- <a href="index.html"><span>⌂</span>Home</a>
- <a href="wallet.html"><span>💰</span>Wallet</a>
- <a href="camera.html"><span>＋</span>Create</a>
- <a href="inbox.html"><span>✉️</span>Inbox</a>
- <a class="active" href="profile.html"><span>👤</span>Profile</a>
-</nav>
-
 <script>
-const $ = id => document.getElementById(id);
-const db = window.supabaseClient ||
- (typeof supabaseClient !== "undefined" ? supabaseClient : null);
+(function(){
+"use strict";
 
-if(!db){
- $("authStatus").textContent =
- "Supabase client नहीं मिला। supabase-config.js और उसकी client variable जाँचें।";
- throw new Error("Supabase client missing");
-}
+const $=id=>document.getElementById(id);
+const db=window.supabaseClient||window.cloudClient||
+ (typeof supabaseClient!=="undefined"?supabaseClient:null);
 
-let currentUser = null;
-let selectedPhoto = null;
-let loadingVideos = false;
-let authReady = false;
+const fallbackAvatar="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3Ctext x='50%25' y='60%25' text-anchor='middle' font-size='48' fill='white'%3E%u263A%3C/text%3E%3C/svg%3E";
 
-function authMessage(message){
- $("authStatus").textContent = message || "";
-}
+let user=null;
+let profileRow=null;
+let busy=false;
 
-function showAuthTab(tab){
- const email = tab === "email";
+function authMsg(s){$("authStatus").textContent=s||"";}
+function editMsg(s){$("editStatus").textContent=s||"";}
+function normalizeUsername(v){return String(v||"").trim().replace(/^@/,"");}
+function meta(){return user?.user_metadata||{};}
+
+function showAuthTab(which){
+ const email=which==="email";
  $("emailPanel").classList.toggle("hidden",!email);
  $("phonePanel").classList.toggle("hidden",email);
  $("tabEmail").classList.toggle("active",email);
  $("tabPhone").classList.toggle("active",!email);
+ $("tabEmail").classList.toggle("secondary",!email);
+ $("tabPhone").classList.toggle("secondary",email);
 }
 
-function showLogin(){
- currentUser = null;
- $("auth").style.display = "block";
- $("app").style.display = "none";
- $("headerSettings").classList.add("hidden");
- $("videoGrid").innerHTML = "";
+function showLogin(message){
+ user=null;
+ $("auth").classList.remove("hidden");
+ $("app").classList.add("hidden");
+ $("videoGrid").replaceChildren();
+ $("avatar").src=fallbackAvatar;
+ if(message)authMsg(message);
 }
 
-function safeText(value){
- return value == null ? "" : String(value);
+function setProfileAvatar(url){
+ const src=url||fallbackAvatar;
+ $("avatar").src=src;
+ $("settingsAvatar").src=src;
 }
 
-function normalizeUsername(value){
- return safeText(value).trim().replace(/^@/,"");
-}
+async function loadProfileRow(){
+ profileRow=null;
+ const {data,error}=await db.from("profiles")
+  .select("user_id,username,avatar_url,bio")
+  .eq("user_id",user.id)
+  .maybeSingle();
 
-function getMeta(){
- return currentUser?.user_metadata || {};
-}
-
-function setSocialLink(id,value){
- const el = $(id);
- const raw = safeText(value).trim();
- if(!raw){
-  el.textContent = "Not added";
-  el.removeAttribute("href");
+ if(error){
+  console.warn("profiles lookup:",error.message);
   return;
  }
- let url = raw;
- if(!/^https?:\/\//i.test(url)) url = "https://" + url;
- try{
-  const parsed = new URL(url);
-  if(!["http:","https:"].includes(parsed.protocol)) throw new Error();
-  el.href = parsed.href;
-  el.textContent = raw;
- }catch{
-  el.textContent = raw;
-  el.removeAttribute("href");
- }
+ profileRow=data||null;
 }
 
 function renderProfile(){
- if(!currentUser)return;
- const meta = getMeta();
- const name = meta.full_name || meta.name || "New Star Creator";
- const username = normalizeUsername(meta.username);
- const avatar = meta.avatar_url || "";
+ if(!user)return;
+ const m=meta();
+ const row=profileRow||{};
+ const name=m.full_name||m.name||"New Star Creator";
+ const username=normalizeUsername(row.username||m.username);
 
- $("viewName").textContent = name;
- $("viewUsername").textContent = username ? "@"+username : "@creator";
- $("viewBio").textContent = meta.bio || "अपना Creator Bio सेट करें।";
- $("viewEmail").textContent = currentUser.email || "Not added";
- $("viewPhone").textContent = currentUser.phone || "Not added";
- $("viewAddress").textContent = meta.address || "Not added";
- $("phoneSettingsText").textContent = currentUser.phone || "अभी कोई verified phone number नहीं है।";
-
- if(avatar) $("avatar").src = avatar;
- $("settingsAvatar").src = avatar || $("avatar").src;
-
- setSocialLink("viewWebsite",meta.website);
- setSocialLink("viewInstagram",meta.instagram);
- setSocialLink("viewYoutube",meta.youtube);
- setSocialLink("viewTiktok",meta.tiktok);
+ $("viewName").textContent=name;
+ $("viewUsername").textContent=username?"@"+username:"@creator";
+ $("viewBio").textContent=row.bio||m.bio||"अपना Creator Bio सेट करें।";
+ setProfileAvatar(row.avatar_url||m.avatar_url);
 }
 
-function fillSettings(){
- const meta = getMeta();
- $("editName").value = meta.full_name || meta.name || "";
- $("editUsername").value = meta.username || "";
- $("editBio").value = meta.bio || "";
- $("editAddress").value = meta.address || "";
- $("editEmail").value = currentUser?.email || "";
- $("editWebsite").value = meta.website || "";
- $("editInstagram").value = meta.instagram || "";
- $("editYoutube").value = meta.youtube || "";
- $("editTiktok").value = meta.tiktok || "";
- $("settingsAvatar").src = meta.avatar_url || $("avatar").src;
-}
-
-function showProfile(user){
- currentUser = user;
- $("auth").style.display = "none";
- $("app").style.display = "block";
- $("headerSettings").classList.remove("hidden");
- renderProfile();
- loadVideos();
-}
-
-async function googleLogin(){
- authMessage("Google Login खोला जा रहा है...");
- const {error} = await db.auth.signInWithOAuth({
-  provider:"google",
-  options:{
-   redirectTo:location.origin + location.pathname,
-   queryParams:{prompt:"select_account"}
-  }
- });
- if(error)authMessage("Google Login Error: "+error.message);
-}
-
-async function emailSignup(){
- const email = $("email").value.trim();
- const password = $("password").value;
- const name = $("signupName").value.trim();
- const address = $("signupAddress").value.trim();
-
- if(!email || password.length < 6){
-  authMessage("सही Email और कम से कम 6 अक्षर का Password डालें।");
-  return;
- }
- authMessage("Account बनाया जा रहा है...");
- const {data,error} = await db.auth.signUp({
-  email,password,
-  options:{data:{full_name:name,address}}
- });
- if(error){
-  authMessage("Signup Error: "+error.message);
-  return;
- }
- if(data.session && data.user) showProfile(data.user);
- else authMessage("Signup सफल! Email confirmation पूरा करके Login करें।");
-}
-
-async function emailLogin(){
- const email = $("email").value.trim();
- const password = $("password").value;
- if(!email || !password){
-  authMessage("Email और Password भरें।");
-  return;
- }
- authMessage("Login हो रहा है...");
- const {data,error} = await db.auth.signInWithPassword({email,password});
- if(error)authMessage("Login Error: "+error.message);
- else showProfile(data.user);
-}
-
-async function sendOTP(){
- const phone = $("phone").value.trim();
- if(!/^\+[1-9]\d{7,14}$/.test(phone)){
-  authMessage("Country code के साथ नंबर लिखें। उदाहरण: +97798XXXXXXXX");
-  return;
- }
- authMessage("SMS OTP भेजने का अनुरोध किया जा रहा है...");
- const {error} = await db.auth.signInWithOtp({
-  phone,
-  options:{shouldCreateUser:true}
- });
- if(error)authMessage("OTP Error: "+error.message);
- else authMessage("OTP भेजने का अनुरोध सफल। SMS Inbox चेक करें।");
-}
-
-async function verifyOTP(){
- const phone = $("phone").value.trim();
- const token = $("otp").value.trim();
- if(!phone || !token){
-  authMessage("Phone Number और OTP दोनों भरें।");
-  return;
- }
- authMessage("OTP Verify हो रहा है...");
- const {data,error} = await db.auth.verifyOtp({
-  phone,token,type:"sms"
- });
- if(error)authMessage("OTP Verification Error: "+error.message);
- else if(data.user)showProfile(data.user);
-}
-
-async function logout(){
- const {error} = await db.auth.signOut();
- if(error){
-  alert("Logout Error: "+error.message);
-  return;
- }
- showLogin();
-}
-
-function openSettings(){
- if(!currentUser){
-  showLogin();
-  return;
- }
- fillSettings();
- $("settingsModal").classList.add("show");
-}
-
-function closeSettings(){
- $("settingsModal").classList.remove("show");
-}
-
-async function saveProfile(){
- if(!currentUser)return;
- const username = normalizeUsername($("editUsername").value);
- if(username && !/^[a-zA-Z0-9_.]{3,30}$/.test(username)){
-  $("profileStatus").textContent =
-   "Username में 3-30 अक्षर, नंबर, underscore या dot इस्तेमाल करें।";
-  return;
- }
-
- const metadata = {
-  ...getMeta(),
-  full_name:$("editName").value.trim(),
-  username,
-  bio:$("editBio").value.trim(),
-  address:$("editAddress").value.trim(),
-  website:$("editWebsite").value.trim(),
-  instagram:$("editInstagram").value.trim(),
-  youtube:$("editYoutube").value.trim(),
-  tiktok:$("editTiktok").value.trim()
- };
-
- $("saveProfileButton").disabled = true;
- $("profileStatus").textContent = "Profile सेव हो रही है...";
- const {data,error} = await db.auth.updateUser({data:metadata});
- $("saveProfileButton").disabled = false;
-
- if(error){
-  $("profileStatus").textContent = "Save Error: "+error.message;
-  return;
- }
- currentUser = data.user;
- renderProfile();
- $("profileStatus").textContent = "✅ Profile सेव हो गई।";
-}
-
-async function updateEmail(){
- if(!currentUser)return;
- const email = $("editEmail").value.trim();
- if(!email){
-  $("profileStatus").textContent = "Email भरें।";
-  return;
- }
- const {error} = await db.auth.updateUser({email});
- if(error){
-  $("profileStatus").textContent = "Email Update Error: "+error.message;
- }else{
-  $("profileStatus").textContent =
-   "Email update request भेजी गई। नया Email confirmation पूरा करें।";
- }
-}
-
-$("cameraPhoto").addEventListener("change",e=>selectPhoto(e.target.files[0]));
-$("galleryPhoto").addEventListener("change",e=>selectPhoto(e.target.files[0]));
-
-function selectPhoto(file){
- if(!file)return;
- if(!file.type.startsWith("image/")){
-  $("photoStatus").textContent = "कृपया image file चुनें।";
-  return;
- }
- if(file.size > 5*1024*1024){
-  $("photoStatus").textContent = "Photo 5 MB से छोटी होनी चाहिए।";
-  return;
- }
- selectedPhoto = file;
- $("settingsAvatar").src = URL.createObjectURL(file);
- uploadAvatar();
-}
-
-async function uploadAvatar(){
- if(!currentUser || !selectedPhoto)return;
- $("photoStatus").textContent = "Photo Supabase Storage में अपलोड हो रही है...";
+async function loadStatsAndVideos(){
+ if(!user||busy)return;
+ busy=true;
+ $("videoStatus").textContent="वीडियो लोड हो रहे हैं...";
+ $("videoGrid").replaceChildren();
 
  try{
-  const ext = (selectedPhoto.name.split(".").pop() || "jpg").toLowerCase();
-  const path = currentUser.id + "/avatar_" + Date.now() + "." + ext;
+  const [videosResult,followersResult,followingResult]=await Promise.all([
+   db.from("videos").select("id,user_id,video_url,caption,created_at")
+    .eq("user_id",user.id).order("created_at",{ascending:false}),
+   db.from("followers").select("id",{count:"exact",head:true})
+    .eq("following_id",user.id),
+   db.from("followers").select("id",{count:"exact",head:true})
+    .eq("follower_id",user.id)
+  ]);
 
-  const {error:uploadError} = await db.storage
-   .from("avatars")
-   .upload(path,selectedPhoto,{upsert:true,contentType:selectedPhoto.type});
+  if(videosResult.error)throw videosResult.error;
 
-  if(uploadError)throw uploadError;
+  $("followerCount").textContent=followersResult.error?"—":String(followersResult.count??0);
+  $("followingCount").textContent=followingResult.error?"—":String(followingResult.count??0);
 
-  const {data:urlData} = db.storage.from("avatars").getPublicUrl(path);
-  const avatarUrl = urlData.publicUrl;
-
-  const {data,error} = await db.auth.updateUser({
-   data:{...getMeta(),avatar_url:avatarUrl}
-  });
-  if(error)throw error;
-
-  currentUser = data.user;
-  selectedPhoto = null;
-  $("avatar").src = avatarUrl;
-  $("settingsAvatar").src = avatarUrl;
-  $("photoStatus").textContent = "✅ Profile Photo अपडेट हो गई।";
- }catch(error){
-  $("photoStatus").textContent =
-   "Photo Upload Error: "+error.message+
-   "\nSupabase में 'avatars' नाम का Storage bucket और उसकी policies जाँचें।";
- }
-}
-
-async function uploadCreatorVideo(){
- location.href = "camera.html";
-}
-
-async function loadVideos(){
- if(!currentUser || loadingVideos)return;
- loadingVideos = true;
- $("videoStatus").textContent = "वीडियो लोड हो रहे हैं...";
- $("videoGrid").innerHTML = "";
-
- try{
-  const {data,error} = await db.from("videos")
-   .select("id,user_id,video_url,caption,created_at")
-   .eq("user_id",currentUser.id)
-   .order("created_at",{ascending:false});
-
-  if(error)throw error;
-  const videos = data || [];
-  $("videoCount").textContent = videos.length;
+  const videos=videosResult.data||[];
+  $("videoCount").textContent=String(videos.length);
 
   if(!videos.length){
-   $("videoStatus").textContent = "अभी आपने कोई वीडियो पोस्ट नहीं किया है।";
+   $("videoStatus").textContent="अभी आपने कोई वीडियो पोस्ट नहीं किया है।";
    return;
   }
 
-  $("videoStatus").textContent = "आपकी पोस्ट: "+videos.length;
+  $("videoStatus").textContent="आपकी पोस्ट: "+videos.length;
 
   videos.forEach(item=>{
-   const card = document.createElement("article");
-   card.className = "videoCard";
+   const card=document.createElement("article");
+   card.className="videoCard";
 
-   const video = document.createElement("video");
-   video.src = item.video_url;
-   video.controls = true;
-   video.playsInline = true;
-   video.preload = "metadata";
+   const video=document.createElement("video");
+   video.src=item.video_url||"";
+   video.controls=true;
+   video.playsInline=true;
+   video.preload="metadata";
 
-   const caption = document.createElement("p");
-   caption.textContent = item.caption || "Untitled Video";
+   const caption=document.createElement("p");
+   caption.textContent=item.caption||"Untitled Video";
 
-   const date = document.createElement("small");
-   date.textContent = item.created_at
-    ? new Date(item.created_at).toLocaleString()
-    : "";
+   const date=document.createElement("small");
+   date.textContent=item.created_at?new Date(item.created_at).toLocaleString():"";
 
    card.append(video,caption,date);
-   $("videoGrid").appendChild(card);
+   $("videoGrid").append(card);
   });
- }catch(error){
-  $("videoStatus").textContent = "Video Load Error: "+error.message;
+
+  if(followersResult.error||followingResult.error){
+   $("profileStatus").textContent="कुछ follower counts पढ़े नहीं जा सके: "+
+    [followersResult.error,followingResult.error].filter(Boolean).map(e=>e.message).join(" | ");
+  }
+
+ }catch(e){
+  $("videoStatus").textContent="Video Load Error: "+e.message;
  }finally{
-  loadingVideos = false;
+  busy=false;
  }
 }
 
-function studioNotice(feature){
- alert(feature+" का अलग सिस्टम अभी इस फाइल में कनेक्ट नहीं है। इसके लिए Live/Gaming page और backend integration चाहिए।");
+function openEdit(){
+ if(!user)return;
+ const m=meta();
+ const row=profileRow||{};
+
+ $("editName").value=m.full_name||m.name||"";
+ $("editUsername").value=row.username||m.username||"";
+ $("editBio").value=row.bio||m.bio||"";
+ $("settingsAvatar").src=row.avatar_url||m.avatar_url||$("avatar").src;
+
+ $("profileEditModal").classList.add("show");
+ $("profileEditModal").setAttribute("aria-hidden","false");
 }
 
-// Auth listener
-db.auth.onAuthStateChange((event,session)=>{
- if(session?.user){
-  currentUser = session.user;
-  if(authReady)showProfile(session.user);
- }else if(event === "SIGNED_OUT"){
-  showLogin();
+function closeEdit(){
+ $("profileEditModal").classList.remove("show");
+ $("profileEditModal").setAttribute("aria-hidden","true");
+}
+
+async function saveProfile(){
+ if(!user)return;
+
+ const username=normalizeUsername($("editUsername").value);
+
+ if(username&&!/^[a-zA-Z0-9_.]{3,30}$/.test(username)){
+  editMsg("Username 3-30 अक्षर का हो; केवल अक्षर, नंबर, dot और underscore।");
+  return;
  }
+
+ const metadata={
+  ...meta(),
+  full_name:$("editName").value.trim(),
+  username,
+  bio:$("editBio").value.trim()
+ };
+
+ $("saveProfileButton").disabled=true;
+ editMsg("Profile सेव हो रही है...");
+
+ try{
+  const {data,error}=await db.auth.updateUser({data:metadata});
+  if(error)throw error;
+  user=data.user;
+
+  const values={
+   user_id:user.id,
+   username,
+   bio:metadata.bio
+  };
+
+  const result=profileRow
+   ?await db.from("profiles").update(values).eq("user_id",user.id)
+   :await db.from("profiles").insert(values);
+
+  if(result.error)console.warn("profiles table write:",result.error.message);
+
+  await loadProfileRow();
+  renderProfile();
+
+  editMsg(result.error
+   ?"Auth profile सेव हुई; profiles table अपडेट नहीं हुआ: "+result.error.message
+   :"✅ Profile सेव हो गई।");
+
+ }catch(e){
+  editMsg("Save Error: "+e.message);
+ }finally{
+  $("saveProfileButton").disabled=false;
+ }
+}
+
+async function uploadAvatar(file){
+ if(!user||!file)return;
+
+ if(!file.type.startsWith("image/")){
+  $("photoStatus").textContent="कृपया image file चुनें।";
+  return;
+ }
+
+ if(file.size>5*1024*1024){
+  $("photoStatus").textContent="Photo 5 MB से छोटी होनी चाहिए।";
+  return;
+ }
+
+ $("photoStatus").textContent="Photo upload हो रही है...";
+ $("cameraPhoto").value="";
+ $("galleryPhoto").value="";
+
+ try{
+  const ext=(file.name.split(".").pop()||"jpg")
+   .toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+
+  const path=user.id+"/avatar_"+Date.now()+"."+ext;
+
+  const {error:uploadError}=await db.storage.from("avatars")
+   .upload(path,file,{
+    upsert:false,
+    contentType:file.type,
+    cacheControl:"3600"
+   });
+
+  if(uploadError)throw uploadError;
+
+  const {data:urlData}=db.storage.from("avatars").getPublicUrl(path);
+  const avatarUrl=urlData?.publicUrl;
+
+  if(!avatarUrl)throw new Error("Supabase ने public URL नहीं दिया।");
+
+  const {data,error}=await db.auth.updateUser({
+   data:{...meta(),avatar_url:avatarUrl}
+  });
+
+  if(error)throw error;
+  user=data.user;
+
+  const rowUpdate=profileRow
+   ?await db.from("profiles").update({avatar_url:avatarUrl}).eq("user_id",user.id)
+   :await db.from("profiles").insert({
+     user_id:user.id,
+     avatar_url:avatarUrl,
+     username:normalizeUsername(meta().username),
+     bio:meta().bio||""
+    });
+
+  if(rowUpdate.error)console.warn("Avatar profiles table sync:",rowUpdate.error.message);
+
+  await loadProfileRow();
+  setProfileAvatar(avatarUrl);
+
+  $("photoStatus").textContent=rowUpdate.error
+   ?"Photo upload और Auth metadata सेव हुई; profiles table sync नहीं हुआ: "+rowUpdate.error.message
+   :"✅ Profile Photo अपडेट हो गई।";
+
+ }catch(e){
+  $("photoStatus").textContent="Photo Upload Error: "+e.message;
+ }
+}
+
+async function emailLogin(){
+ const email=$("email").value.trim();
+ const password=$("password").value;
+
+ if(!email||!password){
+  authMsg("Email और Password भरें।");
+  return;
+ }
+
+ authMsg("Login हो रहा है...");
+ const {data,error}=await db.auth.signInWithPassword({email,password});
+
+ if(error)authMsg("Login Error: "+error.message);
+ else await activate(data.user);
+}
+
+async function emailSignup(){
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ const name=$("signupName").value.trim();
+
+ if(!email||password.length<6){
+  authMsg("सही Email और कम से कम 6 अक्षर का Password डालें।");
+  return;
+ }
+
+ authMsg("Account बनाया जा रहा है...");
+
+ const {data,error}=await db.auth.signUp({
+  email,
+  password,
+  options:{data:{full_name:name}}
+ });
+
+ if(error)authMsg("Signup Error: "+error.message);
+ else if(data.session&&data.user)await activate(data.user);
+ else authMsg("Signup अनुरोध सफल। Email confirmation पूरा करके Login करें।");
+}
+
+async function sendOtp(){
+ const phone=$("phone").value.trim();
+
+ if(!/^\+[1-9]\d{7,14}$/.test(phone)){
+  authMsg("Country code के साथ नंबर लिखें। उदाहरण: +97798XXXXXXXX");
+  return;
+ }
+
+ authMsg("OTP भेजा जा रहा है...");
+
+ const {error}=await db.auth.signInWithOtp({
+  phone,
+  options:{shouldCreateUser:true}
+ });
+
+ authMsg(error?"OTP Error: "+error.message:"OTP भेजने का अनुरोध सफल। SMS Inbox चेक करें।");
+}
+
+async function verifyOtp(){
+ const phone=$("phone").value.trim();
+ const token=$("otp").value.trim();
+
+ if(!phone||!token){
+  authMsg("Phone Number और OTP भरें।");
+  return;
+ }
+
+ authMsg("OTP Verify हो रहा है...");
+
+ const {data,error}=await db.auth.verifyOtp({
+  phone,
+  token,
+  type:"sms"
+ });
+
+ if(error)authMsg("OTP Verification Error: "+error.message);
+ else if(data.user)await activate(data.user);
+}
+
+async function googleLogin(){
+ authMsg("Google Login खोला जा रहा है...");
+
+ const {error}=await db.auth.signInWithOAuth({
+  provider:"google",
+  options:{
+   redirectTo:location.origin+location.pathname,
+   queryParams:{prompt:"select_account"}
+  }
+ });
+
+ if(error)authMsg("Google Login Error: "+error.message);
+}
+
+async function activate(nextUser){
+ user=nextUser;
+ $("auth").classList.add("hidden");
+ $("app").classList.remove("hidden");
+
+ await loadProfileRow();
+ renderProfile();
+ await loadStatsAndVideos();
+}
+
+async function logout(){
+ const {error}=await db.auth.signOut();
+
+ if(error){
+  authMsg("Logout Error: "+error.message);
+  return;
+ }
+
+ showLogin("आप Logout हो गए हैं।");
+}
+
+if(!db){
+ authMsg("Supabase client नहीं मिला। supabase-config.js की जाँच करें।");
+ return;
+}
+
+$("tabEmail").addEventListener("click",()=>showAuthTab("email"));
+$("tabPhone").addEventListener("click",()=>showAuthTab("phone"));
+$("emailLoginButton").addEventListener("click",emailLogin);
+$("emailSignupButton").addEventListener("click",emailSignup);
+$("googleLoginButton").addEventListener("click",googleLogin);
+$("sendOtpButton").addEventListener("click",sendOtp);
+$("verifyOtpButton").addEventListener("click",verifyOtp);
+$("refreshVideosButton").addEventListener("click",loadStatsAndVideos);
+$("closeEditButton").addEventListener("click",closeEdit);
+$("cameraPickButton").addEventListener("click",()=>$("cameraPhoto").click());
+$("galleryPickButton").addEventListener("click",()=>$("galleryPhoto").click());
+$("cameraPhoto").addEventListener("change",e=>uploadAvatar(e.target.files?.[0]));
+$("galleryPhoto").addEventListener("change",e=>uploadAvatar(e.target.files?.[0]));
+$("saveProfileButton").addEventListener("click",saveProfile);
+$("openMainSettingsButton").addEventListener("click",()=>location.href="settings.html");
+
+$("profileEditModal").addEventListener("click",e=>{
+ if(e.target===$("profileEditModal"))closeEdit();
 });
 
-// पहले session जाँचें, फिर Login या Profile दिखाएँ
-(async function initialize(){
- const {data,error} = await db.auth.getSession();
- authReady = true;
- if(error){
-  authMessage("Session Error: "+error.message);
-  showLogin();
- }else if(data.session?.user){
-  showProfile(data.session.user);
- }else{
-  showLogin();
- }
+window.NewStarProfile={openEdit,logout};
+
+db.auth.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_OUT")showLogin();
+ else if(session?.user)user=session.user;
+});
+
+(async()=>{
+ const {data,error}=await db.auth.getSession();
+
+ if(error)showLogin("Session Error: "+error.message);
+ else if(data.session?.user)await activate(data.session.user);
+ else showLogin();
+})();
+
 })();
 </script>
+
+<script src="./navbar.js"></script>
 </body>
 </html>
