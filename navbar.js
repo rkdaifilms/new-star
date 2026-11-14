@@ -1,479 +1,266 @@
+(() => {
+  "use strict";
 
-/* =====================================================
-   NEW STAR CREATOR HUB
-   GLOBAL NAVIGATION + SUPABASE + AUTH GUARD
-   ===================================================== */
+  const db = window.supabaseClient || window.cloudClient;
+  const currentPage = location.pathname.split("/").pop() || "index.html";
 
-(function(){
- "use strict";
+  const protectedPages = [
+    "wallet.html",
+    "inbox.html",
+    "monetization.html",
+    "live.html",
+    "gaming.html",
+    "camera.html",
+    "upload.html"
+  ];
 
- if(window.__NEW_STAR_NAVBAR_STARTED__) return;
- window.__NEW_STAR_NAVBAR_STARTED__=true;
+  const authPages = ["auth.html", "login.html", "signup.html"];
 
- const currentPage=location.pathname.split("/").pop() || "index.html";
+  // Remove duplicate navigation bars
+  function removeOldNavigation() {
+    document.querySelectorAll(
+      ".bottom-nav, .bottomNav, .app-global-bottom-nav, .master-tiktok-final-nav, #newstar-global-nav"
+    ).forEach(el => el.remove());
+  }
 
- const PUBLIC_PAGES=["index.html","auth.html"];
+  async function checkAuthentication() {
+    if (!db || !db.auth) return null;
 
- const PROTECTED_PAGES=[
-  "profile.html",
-  "camera.html",
-  "upload.html",
-  "wallet.html",
-  "inbox.html",
-  "settings.html",
-  "monetization.html",
-  "live.html",
-  "gaming.html",
-  "campaign.html"
- ];
+    try {
+      const { data, error } = await db.auth.getSession();
+      if (error) throw error;
 
- let authCheckFinished=false;
- let authenticated=false;
- let authClient=null;
- let redirectStarted=false;
+      const user = data?.session?.user || null;
 
- /* -----------------------------------------
-    SUPABASE CLIENT
-    ----------------------------------------- */
+      if (!user && protectedPages.includes(currentPage)) {
+        location.replace("auth.html");
+        return null;
+      }
 
- function loadScript(src){
-  return new Promise((resolve,reject)=>{
-   const existing=[...document.scripts].find(s=>s.src===new URL(src,location.href).href);
-
-   if(existing){
-    if(existing.dataset.loaded==="yes"){
-     resolve();
-    }else{
-     existing.addEventListener("load",resolve,{once:true});
-     existing.addEventListener("error",reject,{once:true});
+      return user;
+    } catch (error) {
+      console.error("Authentication check:", error);
+      return null;
     }
-    return;
-   }
-
-   const script=document.createElement("script");
-   script.src=src;
-   script.async=false;
-   script.onload=()=>{
-    script.dataset.loaded="yes";
-    resolve();
-   };
-   script.onerror=()=>reject(new Error("Script load failed: "+src));
-   document.head.appendChild(script);
-  });
- }
-
- function exposeExistingClient(){
-  if(window.supabaseClient){
-   window.cloudClient=window.cloudClient || window.supabaseClient;
-   return window.supabaseClient;
   }
 
-  if(window.cloudClient){
-   window.supabaseClient=window.cloudClient;
-   return window.cloudClient;
+  function addStyles() {
+    if (document.getElementById("newstar-navbar-style")) return;
+
+    const style = document.createElement("style");
+    style.id = "newstar-navbar-style";
+    style.textContent = `
+      #newstar-global-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9998;
+        height: 64px;
+        padding-bottom: env(safe-area-inset-bottom);
+        background: #101010;
+        border-top: 1px solid #292929;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        font-family: Arial, sans-serif;
+      }
+
+      #newstar-global-nav a {
+        color: #aaa;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        font-size: 11px;
+        min-width: 55px;
+      }
+
+      #newstar-global-nav a.active {
+        color: #fff;
+      }
+
+      #newstar-global-nav .nav-icon {
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      #newstar-menu-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(0,0,0,.65);
+        display: none;
+      }
+
+      #newstar-menu-overlay.open {
+        display: block;
+      }
+
+      #newstar-menu-panel {
+        position: absolute;
+        right: 12px;
+        top: 65px;
+        width: min(280px, calc(100% - 24px));
+        background: #191919;
+        color: white;
+        border: 1px solid #333;
+        border-radius: 14px;
+        padding: 10px;
+        box-shadow: 0 10px 35px rgba(0,0,0,.5);
+      }
+
+      #newstar-menu-panel a,
+      #newstar-menu-panel button {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: white;
+        text-decoration: none;
+        padding: 13px 12px;
+        text-align: left;
+        display: block;
+        font-size: 15px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      #newstar-menu-panel a:active,
+      #newstar-menu-panel button:active {
+        background: #333;
+      }
+
+      #newstar-menu-panel .menu-divider {
+        height: 1px;
+        background: #333;
+        margin: 5px 0;
+      }
+
+      body.newstar-nav-active {
+        padding-bottom: 80px !important;
+      }
+    `;
+    document.head.appendChild(style);
   }
 
-  // पुराने config में const client बनाया गया था, window पर नहीं।
-  try{
-   if(typeof supabaseClient!=="undefined" && supabaseClient){
-    window.supabaseClient=supabaseClient;
-    window.cloudClient=supabaseClient;
-    return supabaseClient;
-   }
-  }catch(e){}
+  function createMenu() {
+    if (document.getElementById("newstar-menu-overlay")) return;
 
-  return null;
- }
+    const overlay = document.createElement("div");
+    overlay.id = "newstar-menu-overlay";
 
- async function ensureSupabase(){
-  let client=exposeExistingClient();
-  if(client) return client;
+    overlay.innerHTML = `
+      <div id="newstar-menu-panel">
+        <a href="camera.html">📷 Camera / Create / Upload</a>
+        <a href="settings.html">⚙️ Settings & Privacy</a>
+        <a href="wallet.html">💰 Wallet</a>
+        <a href="monetization.html">💎 Monetization</a>
+        <a href="live.html">🔴 Live</a>
+        <a href="gaming.html">🎮 Gaming</a>
+        <div class="menu-divider"></div>
+        <button type="button" id="newstar-logout">🚪 Log Out</button>
+      </div>
+    `;
 
-  // SDK पहले लोड करें।
-  if(!window.supabase || typeof window.supabase.createClient!=="function"){
-   await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2");
+    overlay.addEventListener("click", event => {
+      if (event.target === overlay) overlay.classList.remove("open");
+    });
+
+    document.body.appendChild(overlay);
+
+    document.getElementById("newstar-logout").addEventListener("click", async () => {
+      if (!db?.auth) {
+        alert("Supabase connection नहीं मिला।");
+        return;
+      }
+
+      const confirmed = confirm("क्या आप Logout करना चाहते हैं?");
+      if (!confirmed) return;
+
+      const { error } = await db.auth.signOut();
+
+      if (error) {
+        alert("Logout नहीं हुआ: " + error.message);
+        return;
+      }
+
+      location.replace("auth.html");
+    });
   }
 
-  // Central config मौजूद हो तो उसे लोड करें।
-  try{
-   await loadScript("./supabase-config.js");
-  }catch(error){
-   console.warn("Central config load issue:",error);
+  function openMenu() {
+    document.getElementById("newstar-menu-overlay")?.classList.add("open");
   }
 
-  client=exposeExistingClient();
-  if(client) return client;
+  function createNavbar() {
+    if (authPages.includes(currentPage)) return;
 
-  // Config की पुरानी global-variable समस्या के लिए fallback।
-  const url=window.NS_SUPABASE_URL ||
-   (typeof SUPABASE_URL!=="undefined" ? SUPABASE_URL : "") ||
-   "https://uzsusgoetrkujmofxcmb.supabase.co";
+    removeOldNavigation();
+    addStyles();
+    createMenu();
 
-  const key=window.NS_SUPABASE_ANON_KEY ||
-   (typeof SUPABASE_ANON_KEY!=="undefined" ? SUPABASE_ANON_KEY : "") ||
-   "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
+    const nav = document.createElement("nav");
+    nav.id = "newstar-global-nav";
 
-  if(!url || !key){
-   throw new Error("Supabase URL या publishable key नहीं मिली।");
+    const items = [
+      { page: "index.html", icon: "🏠", label: "Home" },
+      { page: "wallet.html", icon: "💰", label: "Wallet" },
+      { page: "inbox.html", icon: "✉️", label: "Inbox" },
+      { page: "profile.html", icon: "👤", label: "Profile" }
+    ];
+
+    items.forEach(item => {
+      const link = document.createElement("a");
+      link.href = item.page;
+      link.innerHTML = `
+        <span class="nav-icon">${item.icon}</span>
+        <span>${item.label}</span>
+      `;
+
+      if (currentPage === item.page) {
+        link.classList.add("active");
+      }
+
+      nav.appendChild(link);
+    });
+
+    const menuButton = document.createElement("a");
+    menuButton.href = "#";
+    menuButton.innerHTML = `
+      <span class="nav-icon">⋯</span>
+      <span>More</span>
+    `;
+
+    menuButton.addEventListener("click", event => {
+      event.preventDefault();
+      openMenu();
+    });
+
+    nav.appendChild(menuButton);
+    document.body.appendChild(nav);
+    document.body.classList.add("newstar-nav-active");
   }
 
-  client=window.supabase.createClient(url,key,{
-   auth:{
-    persistSession:true,
-    autoRefreshToken:true,
-    detectSessionInUrl:true
-   },
-   realtime:{timeout:30000}
-  });
+  async function start() {
+    const user = await checkAuthentication();
 
-  window.supabaseClient=client;
-  window.cloudClient=client;
-  return client;
- }
+    if (protectedPages.includes(currentPage) && !user) return;
 
- function getClient(){
-  return authClient || exposeExistingClient();
- }
+    createNavbar();
+  }
 
- /* -----------------------------------------
-    LOGIN REDIRECT
-    ----------------------------------------- */
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    start();
+  }
 
- function safeCurrentPage(){
-  const page=location.pathname.split("/").pop() || "index.html";
-
-  if(!PROTECTED_PAGES.includes(page)) return "index.html";
-
-  return page+location.search+location.hash;
- }
-
- function goToLogin(){
-  if(redirectStarted) return;
-  redirectStarted=true;
-
-  const next=safeCurrentPage();
-  location.replace("auth.html?next="+encodeURIComponent(next));
- }
-
- /* -----------------------------------------
-    PROTECTED PAGE VISIBILITY
-    ----------------------------------------- */
-
- if(PROTECTED_PAGES.includes(currentPage)){
-  document.documentElement.style.visibility="hidden";
- }
-
- /* -----------------------------------------
-    AUTH CHECK
-    ----------------------------------------- */
-
- async function checkAuthentication(){
-  try{
-   authClient=await ensureSupabase();
-
-   const {data,error}=await authClient.auth.getSession();
-   if(error) throw error;
-
-   authenticated=!!(data && data.session);
-   authCheckFinished=true;
-
-   if(!authenticated && PROTECTED_PAGES.includes(currentPage)){
-    goToLogin();
-    return;
-   }
-
-   if(PROTECTED_PAGES.includes(currentPage)){
-    document.documentElement.style.visibility="visible";
-   }
-
-   // Login/logout को सभी पेजों पर सुनें।
-   authClient.auth.onAuthStateChange((event,session)=>{
-    authenticated=!!session;
-
-    if(event==="SIGNED_OUT" && PROTECTED_PAGES.includes(currentPage)){
-     goToLogin();
+  window.NewStarNavbar = {
+    openMenu,
+    closeMenu: () => {
+      document.getElementById("newstar-menu-overlay")?.classList.remove("open");
     }
-   });
-
-  }catch(error){
-   console.error("New Star Supabase/Auth error:",error);
-   authCheckFinished=true;
-
-   if(PROTECTED_PAGES.includes(currentPage)){
-    // Protected page बिना सत्यापित login के न दिखाएँ।
-    goToLogin();
-   }else{
-    document.documentElement.style.visibility="visible";
-   }
-  }
- }
-
- /* -----------------------------------------
-    PROTECTED LINK CLICK HANDLER
-    ----------------------------------------- */
-
- document.addEventListener("click",function(event){
-  const link=event.target.closest("a[href]");
-  if(!link) return;
-
-  const href=link.getAttribute("href");
-
-  if(!href ||
-     href.startsWith("#") ||
-     href.startsWith("javascript:") ||
-     href.startsWith("mailto:") ||
-     href.startsWith("tel:") ||
-     link.target==="_blank"){
-   return;
-  }
-
-  let destination;
-
-  try{
-   destination=new URL(href,location.href);
-  }catch(e){
-   return;
-  }
-
-  if(destination.origin!==location.origin) return;
-
-  const page=destination.pathname.split("/").pop();
-  if(!PROTECTED_PAGES.includes(page)) return;
-
-  if(!authCheckFinished || !authenticated){
-   event.preventDefault();
-   event.stopImmediatePropagation();
-   goToLogin();
-  }
- },true);
-
- /* -----------------------------------------
-    GUEST ACTION PROTECTION
-    Home feed video watching is public.
-    Like/comment/follow/gift/upload require login.
-    ----------------------------------------- */
-
- document.addEventListener("click",function(event){
-  const action=event.target.closest("[data-auth-required]");
-  if(!action) return;
-
-  if(authCheckFinished && authenticated) return;
-
-  event.preventDefault();
-  event.stopImmediatePropagation();
-
-  if(typeof window.showGlobalFastToast==="function"){
-   window.showGlobalFastToast("यह सुविधा इस्तेमाल करने के लिए Login करें।");
-  }
-
-  goToLogin();
- },true);
-
- /* -----------------------------------------
-    REMOVE OLD NAVIGATION
-    Keep auth.html own bottom nav.
-    ----------------------------------------- */
-
- function removeOldNavigation(){
-  if(currentPage==="auth.html") return;
-
-  document.querySelectorAll(
-   ".bottom-nav, .bottomNav, .app-global-bottom-nav, .master-tiktok-final-nav"
-  ).forEach(element=>element.remove());
- }
-
- /* -----------------------------------------
-    GLOBAL BOTTOM NAVIGATION
-    ----------------------------------------- */
-
- function createBottomNavigation(){
-  if(currentPage==="auth.html") return;
-  if(document.getElementById("newStarBottomNav")) return;
-
-  const nav=document.createElement("nav");
-  nav.id="newStarBottomNav";
-  nav.className="master-tiktok-final-nav";
-
-  nav.innerHTML=`
-   <style>
-    #newStarBottomNav{
-     position:fixed;
-     bottom:0;left:0;width:100%;
-     min-height:64px;
-     padding-bottom:env(safe-area-inset-bottom);
-     background:#080808;
-     border-top:1px solid #292929;
-     display:flex;
-     justify-content:space-around;
-     align-items:center;
-     z-index:999999;
-    }
-    #newStarBottomNav .ns-nav-item{
-     flex:1;height:62px;
-     display:flex;flex-direction:column;
-     align-items:center;justify-content:center;
-     text-decoration:none;color:#888;
-     font-size:11px;gap:3px;
-    }
-    #newStarBottomNav .ns-nav-item.active{
-     color:#fff;font-weight:bold;
-    }
-    #newStarBottomNav .ns-nav-icon{font-size:21px}
-    #newStarBottomNav .ns-nav-plus{
-     width:45px;height:33px;border-radius:8px;
-     display:flex;align-items:center;justify-content:center;
-     background:linear-gradient(135deg,#25f4ee,#fe2c55);
-     color:#fff;font-size:25px;font-weight:bold;
-    }
-   </style>
-
-   <a href="index.html" class="ns-nav-item ${currentPage==="index.html"?"active":""}">
-    <span class="ns-nav-icon">🏠</span>
-    <span>Home</span>
-   </a>
-
-   <a href="wallet.html" class="ns-nav-item ${currentPage==="wallet.html"?"active":""}">
-    <span class="ns-nav-icon">💰</span>
-    <span>Wallet</span>
-   </a>
-
-   <a href="camera.html" class="ns-nav-item" aria-label="Create Video">
-    <span class="ns-nav-plus">+</span>
-   </a>
-
-   <a href="inbox.html" class="ns-nav-item ${currentPage==="inbox.html"?"active":""}">
-    <span class="ns-nav-icon">💬</span>
-    <span>Inbox</span>
-   </a>
-
-   <a href="profile.html" class="ns-nav-item ${currentPage==="profile.html"?"active":""}">
-    <span class="ns-nav-icon">👤</span>
-    <span>Profile</span>
-   </a>
-  `;
-
-  document.body.appendChild(nav);
-
-  // Page content bottom nav के पीछे न छिपे।
-  document.body.style.paddingBottom="75px";
- }
-
- /* -----------------------------------------
-    PROFILE THREE-DOT MENU ONLY
-    ----------------------------------------- */
-
- function createProfileMenu(){
-  if(currentPage!=="profile.html") return;
-  if(document.getElementById("nsGlobalMenu")) return;
-
-  const wrapper=document.createElement("div");
-  wrapper.id="nsGlobalMenu";
-
-  wrapper.innerHTML=`
-   <style>
-    #nsMenuButton{
-     position:fixed;top:12px;right:14px;
-     z-index:1000001;width:42px;height:42px;
-     border-radius:50%;background:#171717;color:#fff;
-     border:1px solid #fe2c55;font-size:25px;cursor:pointer;
-    }
-    #nsMenuPanel{
-     display:none;position:fixed;top:62px;right:12px;
-     width:min(290px,85vw);max-height:75vh;overflow:auto;
-     background:#17171d;border:1px solid #444;
-     border-radius:14px;z-index:1000002;
-     box-shadow:0 10px 35px #000;padding:9px;
-    }
-    #nsMenuPanel.open{display:block}
-    .ns-menu-link{
-     display:flex;align-items:center;gap:12px;
-     padding:14px 12px;color:white;text-decoration:none;
-     border-bottom:1px solid #303038;font-size:14px;
-    }
-    .ns-menu-link:last-child{border:0}
-    .ns-menu-heading{
-     color:#fe2c55;font-weight:bold;padding:10px;
-     border-bottom:1px solid #444;
-    }
-    #nsMenuOverlay{
-     display:none;position:fixed;inset:0;
-     background:#0008;z-index:1000000;
-    }
-    #nsMenuOverlay.open{display:block}
-   </style>
-
-   <button id="nsMenuButton" aria-label="Profile settings">⋮</button>
-   <div id="nsMenuOverlay"></div>
-
-   <div id="nsMenuPanel">
-    <div class="ns-menu-heading">⭐ PROFILE MENU</div>
-
-    <a class="ns-menu-link" href="settings.html">⚙️ Profile Settings & Privacy</a>
-    <a class="ns-menu-link" href="wallet.html">💰 Wallet & Balance</a>
-    <a class="ns-menu-link" href="monetization.html">💎 Monetization</a>
-    <a class="ns-menu-link" href="inbox.html">🔔 Notifications & Inbox</a>
-    <a class="ns-menu-link" href="settings.html#help">❓ Help & Support</a>
-    <a class="ns-menu-link" href="#" id="nsLogoutButton">🚪 Logout</a>
-   </div>
-  `;
-
-  document.body.appendChild(wrapper);
-
-  const button=document.getElementById("nsMenuButton");
-  const panel=document.getElementById("nsMenuPanel");
-  const overlay=document.getElementById("nsMenuOverlay");
-
-  function closeMenu(){
-   panel.classList.remove("open");
-   overlay.classList.remove("open");
-  }
-
-  button.addEventListener("click",()=>{
-   panel.classList.toggle("open");
-   overlay.classList.toggle("open");
-  });
-
-  overlay.addEventListener("click",closeMenu);
-
-  document.getElementById("nsLogoutButton").addEventListener("click",async event=>{
-   event.preventDefault();
-
-   const client=getClient();
-   if(!client){
-    location.replace("auth.html");
-    return;
-   }
-
-   try{
-    const {error}=await client.auth.signOut();
-    if(error) throw error;
-    location.replace("index.html");
-   }catch(error){
-    alert("Logout नहीं हो सका: "+error.message);
-   }
-  });
- }
-
- /* -----------------------------------------
-    INITIALIZE
-    ----------------------------------------- */
-
- function initializeNavigation(){
-  removeOldNavigation();
-
-  if(currentPage!=="auth.html"){
-   createBottomNavigation();
-   createProfileMenu();
-  }
- }
-
- if(document.readyState==="loading"){
-  document.addEventListener("DOMContentLoaded",initializeNavigation,{once:true});
- }else{
-  initializeNavigation();
- }
-
- // Start auth check immediately.
- checkAuthentication();
-
+  };
 })();
