@@ -6,7 +6,8 @@
   window.__NEWSTAR_NAVBAR_LOADED__ = true;
 
   const db = window.supabaseClient || window.cloudClient;
-  const currentPage = location.pathname.split("/").pop() || "index.html";
+  const currentPage =
+    location.pathname.split("/").pop() || "index.html";
 
   const authPages = ["auth.html", "login.html", "signup.html"];
 
@@ -36,13 +37,14 @@
         right: 0;
         bottom: 0;
         z-index: 9998;
-        min-height: 62px;
-        padding: 5px 4px env(safe-area-inset-bottom);
+        height: calc(64px + env(safe-area-inset-bottom));
+        padding: 4px 5px env(safe-area-inset-bottom);
         background: #101010;
         border-top: 1px solid #292929;
         display: flex;
         align-items: center;
         justify-content: space-around;
+        box-sizing: border-box;
         font-family: Arial, sans-serif;
       }
 
@@ -55,9 +57,12 @@
         justify-content: center;
         gap: 4px;
         font-size: 11px;
-        min-width: 55px;
+        min-width: 0;
         flex: 1;
-        padding: 6px 2px;
+        height: 100%;
+        padding: 5px 1px;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
       }
 
       #newstar-global-nav a.active {
@@ -69,12 +74,36 @@
         line-height: 1;
       }
 
+      #newstar-global-nav a.newstar-plus-link {
+        flex: 1.1;
+        min-width: 0;
+      }
+
+      #newstar-global-nav .newstar-plus-icon {
+        width: 43px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(110deg,#fe2c55 0%,#fff 48%,#25f4ee 100%);
+        color: #111;
+        font-size: 30px;
+        font-weight: 800;
+        line-height: 1;
+        border-radius: 10px;
+        box-shadow: 0 2px 12px rgba(254,44,85,.25);
+      }
+
+      #newstar-global-nav a.newstar-plus-link.active
+      .newstar-plus-icon {
+        box-shadow: 0 0 0 2px #fe2c55;
+      }
+
       #newstar-menu-button {
         border: 0;
         background: transparent;
         color: white;
         font-size: 27px;
-        line-height: 1;
         width: 38px;
         height: 38px;
         border-radius: 50%;
@@ -105,7 +134,7 @@
         position: absolute;
         right: 12px;
         top: 65px;
-        width: min(290px, calc(100% - 24px));
+        width: min(290px,calc(100% - 24px));
         max-height: calc(100vh - 90px);
         overflow-y: auto;
         background: #191919;
@@ -129,6 +158,7 @@
         font-size: 15px;
         border-radius: 8px;
         cursor: pointer;
+        box-sizing: border-box;
       }
 
       #newstar-menu-panel a:active,
@@ -143,13 +173,17 @@
       }
 
       body.newstar-nav-active {
-        padding-bottom: 82px !important;
+        padding-bottom: calc(75px + env(safe-area-inset-bottom)) !important;
       }
 
-      @media (max-width: 380px) {
+      @media(max-width:380px) {
         #newstar-global-nav a {
-          min-width: 45px;
           font-size: 10px;
+        }
+
+        #newstar-global-nav .newstar-plus-icon {
+          width: 39px;
+          height: 33px;
         }
       }
     `;
@@ -190,9 +224,7 @@
     `;
 
     overlay.addEventListener("click", event => {
-      if (event.target === overlay) {
-        closeMenu();
-      }
+      if (event.target === overlay) closeMenu();
     });
 
     document.body.appendChild(overlay);
@@ -200,9 +232,11 @@
     $("newstar-edit-profile").addEventListener("click", () => {
       closeMenu();
 
-      if (currentPage === "profile.html" &&
-          window.NewStarProfile &&
-          typeof window.NewStarProfile.openEdit === "function") {
+      if (
+        currentPage === "profile.html" &&
+        window.NewStarProfile &&
+        typeof window.NewStarProfile.openEdit === "function"
+      ) {
         window.NewStarProfile.openEdit();
       } else {
         location.href = "profile.html";
@@ -223,7 +257,6 @@
 
       try {
         const { error } = await db.auth.signOut();
-
         if (error) throw error;
 
         location.replace("auth.html");
@@ -237,10 +270,12 @@
 
   function openMenu() {
     $("newstar-menu-overlay")?.classList.add("open");
+    $("newstar-menu-button")?.setAttribute("aria-expanded", "true");
   }
 
   function closeMenu() {
     $("newstar-menu-overlay")?.classList.remove("open");
+    $("newstar-menu-button")?.setAttribute("aria-expanded", "false");
   }
 
   function createTopMenuButton() {
@@ -254,16 +289,11 @@
     button.setAttribute("aria-expanded", "false");
 
     button.addEventListener("click", () => {
-      const overlay = $("newstar-menu-overlay");
-      const isOpen = overlay?.classList.contains("open");
+      const isOpen =
+        $("newstar-menu-overlay")?.classList.contains("open");
 
-      if (isOpen) {
-        closeMenu();
-        button.setAttribute("aria-expanded", "false");
-      } else {
-        openMenu();
-        button.setAttribute("aria-expanded", "true");
-      }
+      if (isOpen) closeMenu();
+      else openMenu();
     });
 
     const header = document.querySelector("header");
@@ -280,12 +310,16 @@
   }
 
   function createBottomNavigation() {
+    if ($("newstar-global-nav")) return;
+
     const nav = document.createElement("nav");
     nav.id = "newstar-global-nav";
+    nav.setAttribute("aria-label", "Main navigation");
 
     const items = [
       { page: "index.html", icon: "🏠", label: "Home" },
       { page: "wallet.html", icon: "💰", label: "Wallet" },
+      { page: "camera.html", icon: "+", label: "Create", plus: true },
       { page: "inbox.html", icon: "✉️", label: "Inbox" },
       { page: "profile.html", icon: "👤", label: "Profile" }
     ];
@@ -294,13 +328,24 @@
       const link = document.createElement("a");
       link.href = item.page;
 
-      link.innerHTML = `
-        <span class="nav-icon">${item.icon}</span>
-        <span>${item.label}</span>
-      `;
+      if (item.plus) {
+        link.className = "newstar-plus-link";
+        link.setAttribute("aria-label", "Create or upload video");
+
+        link.innerHTML = `
+          <span class="newstar-plus-icon" aria-hidden="true">+</span>
+          <span>Create</span>
+        `;
+      } else {
+        link.innerHTML = `
+          <span class="nav-icon">${item.icon}</span>
+          <span>${item.label}</span>
+        `;
+      }
 
       if (currentPage === item.page) {
         link.classList.add("active");
+        link.setAttribute("aria-current", "page");
       }
 
       nav.appendChild(link);
@@ -347,7 +392,9 @@
   };
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
+    document.addEventListener("DOMContentLoaded", start, {
+      once: true
+    });
   } else {
     start();
   }
