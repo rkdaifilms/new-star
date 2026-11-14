@@ -270,15 +270,32 @@
 
   function openMenu() {
     $("newstar-menu-overlay")?.classList.add("open");
-    $("newstar-menu-button")?.setAttribute("aria-expanded", "true");
+
+    $("newstar-menu-button")?.setAttribute(
+      "aria-expanded",
+      "true"
+    );
+
+    // Profile page uses its own menu button.
+    $("menuBtn")?.setAttribute("aria-expanded", "true");
   }
 
   function closeMenu() {
     $("newstar-menu-overlay")?.classList.remove("open");
-    $("newstar-menu-button")?.setAttribute("aria-expanded", "false");
+
+    $("newstar-menu-button")?.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+
+    $("menuBtn")?.setAttribute("aria-expanded", "false");
   }
 
   function createTopMenuButton() {
+    // IMPORTANT: profile.html already contains its own ⋮ menu.
+    // Never create a second menu button on the profile page.
+    if (currentPage === "profile.html") return;
+
     if ($("newstar-menu-button")) return;
 
     const button = document.createElement("button");
@@ -378,7 +395,10 @@
       removeDuplicateNavigation();
       addStyles();
       createMenu();
+
+      // Profile page keeps its original profile menu.
       createTopMenuButton();
+
       createBottomNavigation();
 
     } catch (error) {
@@ -390,6 +410,10 @@
     openMenu,
     closeMenu
   };
+
+  // Allow the profile's existing ⋮ button to open the global menu
+  // only when explicitly requested by its own page code.
+  window.NewStarNavbar.openGlobalMenu = openMenu;
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, {
