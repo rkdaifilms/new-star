@@ -1,1127 +1,998 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Star Creator Hub - Profile</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-config.js"></script>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b1020;
-      color: #fff;
-      min-height: 100vh;
-    }
-
-    button, input, textarea {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    .page {
-      max-width: 1100px;
-      margin: auto;
-      padding: 20px;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .brand {
-      font-size: 22px;
-      font-weight: 800;
-      color: #8b9cff;
-    }
-
-    .menu-wrap {
-      position: relative;
-    }
-
-    .menu-button {
-      background: #202944;
-      border: 1px solid #39466b;
-      color: white;
-      border-radius: 12px;
-      padding: 10px 15px;
-      font-size: 20px;
-    }
-
-    .menu {
-      display: none;
-      position: absolute;
-      right: 0;
-      top: 48px;
-      width: 230px;
-      background: #17213b;
-      border: 1px solid #39466b;
-      border-radius: 14px;
-      padding: 8px;
-      z-index: 50;
-      box-shadow: 0 12px 35px #0008;
-    }
-
-    .menu.show {
-      display: block;
-    }
-
-    .menu button {
-      display: block;
-      width: 100%;
-      text-align: left;
-      color: white;
-      background: transparent;
-      border: 0;
-      padding: 13px;
-      border-radius: 9px;
-    }
-
-    .menu button:hover {
-      background: #29385e;
-    }
-
-    .profile-card {
-      overflow: hidden;
-      background: #141d35;
-      border: 1px solid #293758;
-      border-radius: 20px;
-    }
-
-    .cover-area {
-      position: relative;
-      height: 300px;
-      background: linear-gradient(135deg, #182b69, #7a35a8, #152b55);
-      overflow: hidden;
-      touch-action: none;
-    }
-
-    .cover-image {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform-origin: center;
-      user-select: none;
-      pointer-events: none;
-    }
-
-    .cover-controls {
-      position: absolute;
-      right: 14px;
-      bottom: 14px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      z-index: 5;
-    }
-
-    .cover-controls button,
-    .cover-controls label {
-      background: #10182bdc;
-      border: 1px solid #ffffff55;
-      color: white;
-      border-radius: 10px;
-      padding: 9px 12px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    .cover-editor {
-      display: none;
-      background: #101a31;
-      padding: 15px;
-      border-top: 1px solid #344363;
-    }
-
-    .cover-editor.show {
-      display: block;
-    }
-
-    .cover-editor label {
-      display: block;
-      margin: 10px 0 6px;
-      color: #cbd5f5;
-      font-size: 13px;
-    }
-
-    .cover-editor input[type="range"] {
-      width: 100%;
-    }
-
-    .profile-info {
-      padding: 0 22px 22px;
-      position: relative;
-    }
-
-    .avatar-row {
-      display: flex;
-      align-items: end;
-      gap: 18px;
-      margin-top: -65px;
-      position: relative;
-      z-index: 3;
-    }
-
-    .avatar {
-      width: 130px;
-      height: 130px;
-      border-radius: 50%;
-      object-fit: cover;
-      background: #283858;
-      border: 5px solid #141d35;
-    }
-
-    .avatar-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-
-    .primary-button,
-    .secondary-button,
-    .danger-button {
-      border: 0;
-      border-radius: 10px;
-      padding: 11px 15px;
-      font-weight: 700;
-    }
-
-    .primary-button {
-      color: white;
-      background: #5865f2;
-    }
-
-    .secondary-button {
-      color: white;
-      background: #293858;
-      border: 1px solid #405078;
-    }
-
-    .danger-button {
-      color: white;
-      background: #b8324b;
-    }
-
-    .profile-name {
-      font-size: 27px;
-      margin-top: 15px;
-    }
-
-    .username {
-      color: #9eaccd;
-      margin-top: 5px;
-    }
-
-    .bio {
-      color: #d1d9ef;
-      margin-top: 12px;
-      line-height: 1.5;
-      white-space: pre-wrap;
-    }
-
-    .stats {
-      display: flex;
-      gap: 30px;
-      margin-top: 20px;
-      flex-wrap: wrap;
-    }
-
-    .stat strong {
-      display: block;
-      font-size: 20px;
-    }
-
-    .stat span {
-      color: #9eaccd;
-      font-size: 13px;
-    }
-
-    .section {
-      margin-top: 22px;
-      padding: 20px;
-      background: #141d35;
-      border: 1px solid #293758;
-      border-radius: 18px;
-    }
-
-    .section h2 {
-      font-size: 20px;
-      margin-bottom: 16px;
-    }
-
-    .edit-form {
-      display: none;
-      margin-top: 22px;
-      padding: 18px;
-      border-radius: 14px;
-      background: #0e172b;
-      border: 1px solid #344363;
-    }
-
-    .edit-form.show {
-      display: block;
-    }
-
-    .field {
-      margin-bottom: 14px;
-    }
-
-    .field label {
-      display: block;
-      margin-bottom: 7px;
-      color: #cbd5f5;
-      font-size: 13px;
-    }
-
-    .field input,
-    .field textarea {
-      width: 100%;
-      padding: 12px;
-      color: white;
-      background: #1b2946;
-      border: 1px solid #405078;
-      border-radius: 10px;
-      outline: none;
-    }
-
-    .field textarea {
-      min-height: 90px;
-      resize: vertical;
-    }
-
-    .video-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-      gap: 14px;
-    }
-
-    .video-card {
-      overflow: hidden;
-      background: #0d162a;
-      border: 1px solid #2c3b5e;
-      border-radius: 12px;
-    }
-
-    .video-card video {
-      display: block;
-      width: 100%;
-      aspect-ratio: 9 / 14;
-      object-fit: cover;
-      background: #000;
-    }
-
-    .video-card p {
-      padding: 10px;
-      color: #d7def2;
-      font-size: 13px;
-    }
-
-    .empty {
-      color: #9eaccd;
-      padding: 20px 0;
-    }
-
-    .message {
-      display: none;
-      position: fixed;
-      left: 50%;
-      bottom: 22px;
-      transform: translateX(-50%);
-      background: #26385e;
-      border: 1px solid #6077ae;
-      padding: 12px 18px;
-      border-radius: 12px;
-      z-index: 100;
-      max-width: calc(100% - 30px);
-      text-align: center;
-    }
-
-    .message.show {
-      display: block;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 60px 20px;
-      color: #aebce0;
-    }
-
-    .settings-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #000b;
-      z-index: 90;
-      padding: 20px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .settings-modal.show {
-      display: flex;
-    }
-
-    .settings-content {
-      width: min(900px, 100%);
-      height: min(750px, 90vh);
-      background: #141d35;
-      border: 1px solid #405078;
-      border-radius: 16px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .settings-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      border-bottom: 1px solid #344363;
-    }
-
-    .settings-content iframe {
-      flex: 1;
-      width: 100%;
-      border: 0;
-      background: white;
-    }
-
-    @media (max-width: 600px) {
-      .page {
-        padding: 10px;
-      }
-
-      .cover-area {
-        height: 210px;
-      }
-
-      .avatar {
-        width: 100px;
-        height: 100px;
-      }
-
-      .avatar-row {
-        margin-top: -50px;
-      }
-
-      .profile-info {
-        padding: 0 14px 18px;
-      }
-
-      .profile-name {
-        font-size: 23px;
-      }
-
-      .stats {
-        gap: 20px;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#101014">
+<title>New Star - Profile</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+
+<style>
+:root{--accent:#fe2c55;--bg:#101014;--panel:#1c1c24;--line:#383844;--muted:#a7a7b3}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:#fff;font-family:Arial,sans-serif}
+body{padding-bottom:76px}
+button,input,textarea{font:inherit}
+button{border:0;border-radius:11px;padding:12px 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+input,textarea{width:100%;padding:12px;margin:6px 0 12px;background:#111118;border:1px solid #41414d;border-radius:10px;color:#fff;outline:none}
+input:focus,textarea:focus{border-color:var(--accent)}
+label{font-size:13px;color:#ddd}
+a{color:#ff8298;text-decoration:none}
+.hidden{display:none!important}
+.muted{color:var(--muted);font-size:13px}
+.status{white-space:pre-wrap;color:#ffd36a;font-size:13px;line-height:1.5;min-height:18px}
+header{height:58px;padding:9px 14px;background:#191920;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;border-bottom:1px solid #333}
+.wrap{width:100%;max-width:980px;margin:auto;padding:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:15px;margin:10px 0}
+#auth{max-width:480px;margin:6vh auto}
+.authTitle{text-align:center;font-size:25px}
+.authTabs{display:flex;gap:8px;margin:14px 0}
+.authTabs button{flex:1;background:#30303a}
+.authTabs button.active{background:var(--accent)}
+.secondary{background:#343440}
+.outline{background:transparent;border:1px solid #555}
+.row{display:flex;gap:9px}
+.row>*{flex:1;min-width:0}
+#profileHero{padding:0 0 16px;overflow:visible;text-align:center}
+.cover{width:100%;aspect-ratio:16/9;height:auto;border-radius:15px 15px 0 0;background:#171725;position:relative;overflow:hidden}
+.cover img{display:block;width:100%;height:100%;position:absolute;inset:0;object-fit:cover;transform-origin:center;will-change:transform}
+.avatar{width:122px;height:122px;border-radius:50%;object-fit:cover;border:4px solid var(--panel);background:#333;margin-top:-55px;position:relative}
+.profileName{font-size:26px;font-weight:700;margin:8px 0 3px}
+.handle{color:#aaa;font-size:14px}
+.bio{white-space:pre-wrap;color:#ddd;line-height:1.5;margin:12px auto;max-width:620px;padding:0 15px}
+.heroActions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;padding:0 12px}
+.stats{display:flex;justify-content:center;gap:clamp(20px,7vw,65px);margin:17px 0 4px}
+.stat strong{display:block;font-size:20px}
+.stat span{font-size:12px;color:#aaa}
+.heroTop{display:flex;justify-content:flex-end;padding:10px 12px 0}
+.menuWrap{position:relative}
+.iconButton{width:42px;height:42px;padding:0;border-radius:50%;background:#30303a;font-size:23px}
+.menu{position:absolute;right:0;top:48px;width:min(290px,calc(100vw - 35px));max-height:70vh;overflow-y:auto;background:#24242e;border:1px solid #494955;border-radius:13px;padding:7px;z-index:50;box-shadow:0 12px 35px #0009}
+.menu button,.menu a{display:block;width:100%;text-align:left;padding:12px;border-radius:8px;background:transparent;color:#fff;font-size:14px}
+.menu button:hover,.menu a:hover{background:#383844}
+.menu .danger{color:#ff8498}
+.menu .menuLabel{padding:9px 12px 5px;color:#ff8298;font-size:11px;font-weight:bold;letter-spacing:1px}
+.sectionTitle{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sectionTitle h3{margin:4px 0 12px}
+.videoGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.videoCard{background:#121218;border:1px solid #383844;border-radius:12px;padding:7px;overflow:hidden}
+.videoCard video{width:100%;aspect-ratio:9/14;object-fit:cover;background:#000;border-radius:8px}
+.videoCard p{overflow-wrap:anywhere;font-size:13px;margin:7px 2px}
+.videoCard small{color:#aaa}
+.modal{position:fixed;inset:0;background:#000d;z-index:100;display:none;overflow:auto;padding:12px}
+.modal.show{display:block}
+.modalBox{width:100%;max-width:600px;margin:12px auto;background:#20202a;border:1px solid #484854;border-radius:16px;padding:16px}
+.modalHead{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.modalHead h2{font-size:20px;margin:4px 0 15px}
+.modalHead button{padding:7px 12px}
+.photoPreview{width:86px;height:86px;border-radius:50%;object-fit:cover;background:#333}
+.coverPreview{width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#151520;border:1px solid #454552;margin:10px 0;position:relative;touch-action:none;cursor:grab}
+.coverPreview:active{cursor:grabbing}
+.coverPreview img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;transform-origin:center;pointer-events:none;user-select:none}
+.coverTools{background:#151520;border:1px solid #383844;border-radius:12px;padding:12px;margin:12px 0}
+.coverTools label{display:block;margin-top:8px}
+.coverTools input[type=range]{padding:0;margin:8px 0 12px;accent-color:var(--accent)}
+.coverTools .toolButtons{display:flex;gap:8px;flex-wrap:wrap}
+.coverTools .toolButtons button{flex:1}
+.photoRow{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+hr{border:0;border-top:1px solid #383844;margin:17px 0}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.formGrid .full{grid-column:1/-1}
+#otpPanel{border:1px solid #555;border-radius:12px;padding:12px;margin-top:12px}
+@media(max-width:520px){
+ .wrap{padding:7px}
+ .card{border-radius:13px;padding:12px}
+ .videoGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .formGrid{grid-template-columns:1fr}
+ .formGrid .full{grid-column:auto}
+}
+@media(min-width:700px){.videoGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* Original premium profile styling */
+html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38%),radial-gradient(ellipse at 88% 32%,#76264f 0%,transparent 36%),linear-gradient(145deg,#080b19,#171329 50%,#090d1c);background-attachment:fixed}
+.card{background:linear-gradient(145deg,#24213eef,#141a2bf5);border:1px solid #ffffff20;box-shadow:0 12px 35px #0006,inset 0 1px #ffffff12;backdrop-filter:blur(14px)}
+#profileHero{position:relative;overflow:visible;border-radius:20px}
+.cover{background:#171725;border:1px solid #ffffff20}
+.heroTop{position:absolute;top:10px;right:10px;z-index:10;display:flex;align-items:center;padding:0}
+.iconButton{width:40px;height:40px;min-width:40px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:22px;background:#10101dcc;border:1px solid #ffffff55;box-shadow:0 3px 12px #0007}
+.iconButton:active{transform:scale(.92)}
+.menu{top:46px}
+.avatar{width:122px;height:122px;margin-top:-61px}
+.profileName{font-size:26px}
+@media(max-width:520px){
+ .cover{aspect-ratio:16/9}
+ .avatar{width:118px;height:118px;margin-top:-59px}
+ .profileName{font-size:26px}
+}
+</style>
 </head>
 
 <body>
-  <main class="page">
-    <header class="topbar">
-      <div class="brand">NEW STAR</div>
+<header>
+ <b>⭐ New Star</b>
+</header>
 
-      <div class="menu-wrap">
-        <button class="menu-button" id="menuButton" aria-label="Open settings menu">⋮</button>
+<!-- ORIGINAL LOGIN / SIGNUP / GOOGLE / EMAIL OTP SYSTEM -->
+<section id="auth" class="card">
+ <h2 class="authTitle">⭐ New Star</h2>
+ <p class="muted" style="text-align:center">अपने Creator Account में Login करें</p>
+ <button style="width:100%" id="googleLoginButton" type="button">🌐 Continue with Google</button>
+ <hr>
+ <div class="authTabs">
+  <button id="tabEmail" class="active" type="button">Email / Gmail</button>
+  <button id="tabLogin" class="secondary" type="button">Login</button>
+ </div>
+ <div id="emailPanel">
+  <div id="signupNameWrap">
+   <label for="signupName">पूरा नाम</label>
+   <input id="signupName" autocomplete="name" placeholder="नए अकाउंट के लिए पूरा नाम">
+  </div>
+  <label for="email">Gmail / Email</label>
+  <input id="email" type="email" autocomplete="email" placeholder="yourname@gmail.com">
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="current-password" placeholder="कम से कम 6 अक्षर">
+  <div class="row">
+   <button id="emailLoginButton" class="secondary" type="button">Login</button>
+   <button id="emailSignupButton" type="button">Sign Up</button>
+  </div>
+ </div>
+ <div id="otpPanel" class="hidden">
+  <b>📩 Email Verification</b>
+  <p class="muted">तुम्हारे ईमेल पर आया verification code यहाँ डालो।</p>
+  <label for="emailOtp">6 अंकों का कोड</label>
+  <input id="emailOtp" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Email में आया कोड">
+  <button id="verifyEmailButton" style="width:100%" type="button">Verify Email & Login</button>
+  <button id="resendEmailButton" class="secondary" style="width:100%;margin-top:8px" type="button">कोड दोबारा भेजें</button>
+ </div>
+ <p id="authStatus" class="status" role="status"></p>
+</section>
 
-        <div class="menu" id="menu">
-          <button id="editMenuButton">Edit Profile & Cover</button>
-          <button id="settingsButton">Full Account & App Settings</button>
-          <button id="logoutButton">Log Out</button>
-        </div>
-      </div>
-    </header>
+<main id="app" class="wrap hidden">
+ <section class="card" id="profileHero">
+  <div class="heroTop">
+   <div class="menuWrap">
+    <button id="profileMenuButton" class="iconButton" type="button" aria-label="Profile settings" aria-expanded="false">⋮</button>
 
-    <div id="loading" class="loading">Loading profile...</div>
-
-    <div id="profilePage" hidden>
-      <section class="profile-card">
-        <div class="cover-area" id="coverArea">
-          <img id="coverImage" class="cover-image" alt="Profile cover">
-
-          <div class="cover-controls">
-            <label for="coverUpload">Change Cover</label>
-            <button id="openCoverEditor">Adjust Cover</button>
-          </div>
-        </div>
-
-        <div class="cover-editor" id="coverEditor">
-          <label for="coverZoom">Zoom Cover</label>
-          <input id="coverZoom" type="range" min="1" max="3" step="0.01" value="1">
-
-          <label for="coverX">Move Horizontally</label>
-          <input id="coverX" type="range" min="-100" max="100" value="0">
-
-          <label for="coverY">Move Vertically</label>
-          <input id="coverY" type="range" min="-100" max="100" value="0">
-
-          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
-            <button class="primary-button" id="saveCoverButton">Save Cover Position</button>
-            <button class="secondary-button" id="resetCoverButton">Reset</button>
-          </div>
-        </div>
-
-        <div class="profile-info">
-          <div class="avatar-row">
-            <img id="avatarImage" class="avatar" alt="Profile photo">
-
-            <div class="avatar-actions">
-              <label class="secondary-button" for="avatarUpload">Change Photo</label>
-              <input id="avatarUpload" type="file" accept="image/*" hidden>
-              <input id="coverUpload" type="file" accept="image/*" hidden>
-            </div>
-          </div>
-
-          <h1 class="profile-name" id="profileName">Creator</h1>
-          <div class="username" id="profileUsername"></div>
-          <p class="bio" id="profileBio"></p>
-
-          <div class="stats">
-            <div class="stat">
-              <strong id="videoCount">0</strong>
-              <span>Videos</span>
-            </div>
-
-            <div class="stat">
-              <strong id="followerCount">0</strong>
-              <span>Followers</span>
-            </div>
-
-            <div class="stat">
-              <strong id="followingCount">0</strong>
-              <span>Following</span>
-            </div>
-          </div>
-
-          <div class="edit-form" id="editForm">
-            <h2>Edit Profile</h2>
-
-            <div class="field">
-              <label for="editName">Full Name</label>
-              <input id="editName" type="text" maxlength="80">
-            </div>
-
-            <div class="field">
-              <label for="editUsername">Username</label>
-              <input id="editUsername" type="text" maxlength="40">
-            </div>
-
-            <div class="field">
-              <label for="editBio">Bio</label>
-              <textarea id="editBio" maxlength="500"></textarea>
-            </div>
-
-            <button class="primary-button" id="saveProfileButton">Save Profile</button>
-            <button class="secondary-button" id="cancelEditButton">Cancel</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>My Videos</h2>
-        <div id="videoGrid" class="video-grid">
-          <p class="empty">No videos uploaded yet.</p>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <div id="message" class="message"></div>
-
-  <div class="settings-modal" id="settingsModal">
-    <div class="settings-content">
-      <div class="settings-header">
-        <strong>Account & App Settings</strong>
-        <button class="secondary-button" id="closeSettingsButton">Close</button>
-      </div>
-      <iframe src="settings.html" title="Account and app settings"></iframe>
-    </div>
+    <!-- ONE PROFILE MENU: APP LINKS + ALL ACCOUNT SETTINGS -->
+    <nav id="profileMenu" class="menu hidden" aria-label="Profile and app settings menu">
+     <div class="menuLabel">ACCOUNT SETTINGS</div>
+     <a href="settings.html">⚙️ Account Settings & Privacy</a>
+     <button type="button" data-action="edit">✏️ Edit Profile & Cover</button>
+     <a href="settings.html">🔐 Password & Email Settings</a>
+     <hr>
+     <div class="menuLabel">NEW STAR APP</div>
+     <a href="index.html">🏠 Home</a>
+     <a href="camera.html">📷 Camera / Create / Upload</a>
+     <a href="wallet.html">💰 Wallet</a>
+     <a href="inbox.html">✉️ Inbox & Messages</a>
+     <a href="monetization.html">💎 Monetization</a>
+     <a href="live.html">🔴 Live</a>
+     <a href="gaming.html">🎮 Gaming</a>
+     <a href="profile.html">👤 My Profile</a>
+     <hr>
+     <button type="button" data-action="logout" class="danger">↪ Logout</button>
+    </nav>
+   </div>
   </div>
 
-  <script>
-    (() => {
-      "use strict";
-
-      const SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
-
-      const configuredClient =
-        window.supabaseClient ||
-        window.cloudClient ||
-        window.supabase;
-
-      const db =
-        configuredClient ||
-        (window.supabase?.createClient
-          ? window.supabase.createClient(
-              SUPABASE_URL,
-              window.SUPABASE_ANON_KEY
-            )
-          : null);
-
-      const $ = id => document.getElementById(id);
-
-      let currentUser = null;
-      let profileData = {};
-      let coverTransform = {
-        scale: 1,
-        x: 0,
-        y: 0
-      };
-
-      let dragState = null;
-      let pinchState = null;
-
-      function notify(message) {
-        const box = $("message");
-        box.textContent = message;
-        box.classList.add("show");
-
-        clearTimeout(notify.timer);
-        notify.timer = setTimeout(() => {
-          box.classList.remove("show");
-        }, 3500);
-      }
-
-      function escapeHTML(value) {
-        return String(value ?? "").replace(/[&<>"']/g, char => ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#039;"
-        })[char]);
-      }
-
-      function applyCoverTransform() {
-        $("coverImage").style.transform =
-          `translate(${coverTransform.x}px, ${coverTransform.y}px) scale(${coverTransform.scale})`;
-
-        $("coverZoom").value = coverTransform.scale;
-
-        $("coverX").value = coverTransform.x;
-        $("coverY").value = coverTransform.y;
-      }
-
-      function updateCoverFromControls() {
-        coverTransform.scale = Number($("coverZoom").value);
-        coverTransform.x = Number($("coverX").value);
-        coverTransform.y = Number($("coverY").value);
-
-        applyCoverTransform();
-      }
-
-      async function getCurrentSession() {
-        if (!db?.auth) {
-          throw new Error("Supabase client is not configured.");
-        }
-
-        const { data, error } = await db.auth.getSession();
-
-        if (error) throw error;
-
-        if (!data.session?.user) {
-          location.href = "index.html";
-          return null;
-        }
-
-        return data.session.user;
-      }
-
-      async function loadProfile() {
-        currentUser = await getCurrentSession();
-        if (!currentUser) return;
-
-        const metadata = currentUser.user_metadata || {};
-
-        const { data, error } = await db
-          .from("profiles")
-          .select("*")
-          .eq("user_id", currentUser.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Profile load error:", error);
-        }
-
-        profileData = data || {};
-
-        const name =
-          profileData.full_name ||
-          profileData.username ||
-          metadata.full_name ||
-          metadata.name ||
-          "Creator";
-
-        const username =
-          profileData.username ||
-          metadata.username ||
-          currentUser.email?.split("@")[0] ||
-          "creator";
-
-        const bio =
-          profileData.bio ||
-          metadata.bio ||
-          "";
-
-        const avatar =
-          profileData.avatar_url ||
-          metadata.avatar_url ||
-          metadata.picture ||
-          "";
-
-        const cover =
-          metadata.cover_url ||
-          profileData.cover_url ||
-          "";
-
-        const savedTransform = metadata.cover_transform || {};
-
-        coverTransform = {
-          scale: Number(savedTransform.scale) || 1,
-          x: Number(savedTransform.x) || 0,
-          y: Number(savedTransform.y) || 0
-        };
-
-        $("profileName").textContent = name;
-        $("profileUsername").textContent = "@" + username;
-        $("profileBio").textContent = bio;
-
-        $("editName").value = name;
-        $("editUsername").value = username;
-        $("editBio").value = bio;
-
-        $("avatarImage").src = avatar ||
-          "data:image/svg+xml," +
-          encodeURIComponent(
-            `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
-              <rect width="100%" height="100%" fill="#283858"/>
-              <text x="50%" y="55%" text-anchor="middle" font-size="85" fill="white">☺</text>
-            </svg>`
-          );
-
-        $("coverImage").src = cover || "";
-
-        applyCoverTransform();
-
-        $("loading").hidden = true;
-        $("profilePage").hidden = false;
-
-        await loadStatsAndVideos();
-      }
-
-      async function uploadImage(file, folder) {
-        if (!file) throw new Error("Please select an image.");
-
-        if (!file.type.startsWith("image/")) {
-          throw new Error("Please select a valid image.");
-        }
-
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error("Image must be smaller than 10 MB.");
-        }
-
-        const extension =
-          file.name.split(".").pop()?.toLowerCase() || "jpg";
-
-        const path =
-          `${currentUser.id}/${folder}-${Date.now()}.${extension}`;
-
-        const { error } = await db.storage
-          .from("avatars")
-          .upload(path, file, {
-            upsert: false,
-            contentType: file.type
-          });
-
-        if (error) throw error;
-
-        const { data } = db.storage
-          .from("avatars")
-          .getPublicUrl(path);
-
-        return data.publicUrl;
-      }
-
-      async function saveMetadata(updatedData) {
-        const { error } = await db.auth.updateUser({
-          data: updatedData
-        });
-
-        if (error) throw error;
-
-        currentUser = {
-          ...currentUser,
-          user_metadata: updatedData
-        };
-      }
-
-      async function handleAvatarUpload(file) {
-        try {
-          notify("Uploading profile photo...");
-
-          const avatarUrl = await uploadImage(file, "avatar");
-
-          const updatedMetadata = {
-            ...(currentUser.user_metadata || {}),
-            avatar_url: avatarUrl
-          };
-
-          await saveMetadata(updatedMetadata);
-
-          const { error } = await db
-            .from("profiles")
-            .upsert({
-              user_id: currentUser.id,
-              avatar_url: avatarUrl,
-              updated_at: new Date().toISOString()
-            }, {
-              onConflict: "user_id"
-            });
-
-          if (error) throw error;
-
-          $("avatarImage").src = avatarUrl;
-          notify("Profile photo updated successfully.");
-        } catch (error) {
-          console.error(error);
-          notify(error.message || "Could not upload profile photo.");
-        }
-      }
-
-      async function handleCoverUpload(file) {
-        try {
-          notify("Uploading cover photo...");
-
-          const coverUrl = await uploadImage(file, "cover");
-
-          coverTransform = {
-            scale: 1,
-            x: 0,
-            y: 0
-          };
-
-          const updatedMetadata = {
-            ...(currentUser.user_metadata || {}),
-            cover_url: coverUrl,
-            cover_transform: coverTransform
-          };
-
-          await saveMetadata(updatedMetadata);
-
-          $("coverImage").src = coverUrl;
-          applyCoverTransform();
-
-          notify("Cover photo uploaded successfully.");
-        } catch (error) {
-          console.error(error);
-          notify(error.message || "Could not upload cover photo.");
-        }
-      }
-
-      async function saveCoverPosition() {
-        try {
-          const updatedMetadata = {
-            ...(currentUser.user_metadata || {}),
-            cover_transform: {
-              scale: coverTransform.scale,
-              x: coverTransform.x,
-              y: coverTransform.y
-            }
-          };
-
-          await saveMetadata(updatedMetadata);
-
-          notify("Cover position saved.");
-        } catch (error) {
-          console.error(error);
-          notify(error.message || "Could not save cover position.");
-        }
-      }
-
-      async function saveProfile() {
-        const fullName = $("editName").value.trim();
-        const username = $("editUsername").value.trim();
-        const bio = $("editBio").value.trim();
-
-        if (!fullName || !username) {
-          notify("Name and username are required.");
-          return;
-        }
-
-        try {
-          $("saveProfileButton").disabled = true;
-
-          const updatedMetadata = {
-            ...(currentUser.user_metadata || {}),
-            full_name: fullName,
-            username,
-            bio
-          };
-
-          await saveMetadata(updatedMetadata);
-
-          const { error } = await db
-            .from("profiles")
-            .upsert({
-              user_id: currentUser.id,
-              full_name: fullName,
-              username,
-              bio,
-              updated_at: new Date().toISOString()
-            }, {
-              onConflict: "user_id"
-            });
-
-          if (error) throw error;
-
-          profileData = {
-            ...profileData,
-            full_name: fullName,
-            username,
-            bio
-          };
-
-          $("profileName").textContent = fullName;
-          $("profileUsername").textContent = "@" + username;
-          $("profileBio").textContent = bio;
-
-          $("editForm").classList.remove("show");
-
-          notify("Profile saved successfully.");
-        } catch (error) {
-          console.error(error);
-          notify(error.message || "Could not save profile.");
-        } finally {
-          $("saveProfileButton").disabled = false;
-        }
-      }
-
-      async function loadStatsAndVideos() {
-        const userId = currentUser.id;
-
-        try {
-          const { data: videos, error } = await db
-            .from("videos")
-            .select("id,video_url,caption,created_at")
-            .eq("user_id", userId)
-            .order("created_at", { ascending: false });
-
-          if (error) throw error;
-
-          const list = videos || [];
-
-          $("videoCount").textContent = list.length;
-
-          if (!list.length) {
-            $("videoGrid").innerHTML =
-              '<p class="empty">No videos uploaded yet.</p>';
-          } else {
-            $("videoGrid").innerHTML = list.map(video => `
-              <article class="video-card">
-                <video controls preload="metadata"
-                  src="${escapeHTML(video.video_url)}"></video>
-                <p>${escapeHTML(video.caption || "Creator video")}</p>
-              </article>
-            `).join("");
-          }
-        } catch (error) {
-          console.error("Video loading error:", error);
-          $("videoGrid").innerHTML =
-            '<p class="empty">Could not load videos.</p>';
-        }
-
-        try {
-          const { count: followers, error: followersError } = await db
-            .from("followers")
-            .select("*", { count: "exact", head: true })
-            .eq("following_id", userId);
-
-          if (!followersError) {
-            $("followerCount").textContent = followers ?? 0;
-          }
-
-          const { count: following, error: followingError } = await db
-            .from("followers")
-            .select("*", { count: "exact", head: true })
-            .eq("follower_id", userId);
-
-          if (!followingError) {
-            $("followingCount").textContent = following ?? 0;
-          }
-        } catch (error) {
-          console.error("Profile stats error:", error);
-        }
-      }
-
-      function openEditForm() {
-        $("editForm").classList.add("show");
-        $("menu").classList.remove("show");
-
-        $("editForm").scrollIntoView({
-          behavior: "smooth",
-          block: "center"
-        });
-      }
-
-      function resetCover() {
-        coverTransform = {
-          scale: 1,
-          x: 0,
-          y: 0
-        };
-
-        applyCoverTransform();
-      }
-
-      function pointerPosition(event) {
-        const rect = $("coverArea").getBoundingClientRect();
-
-        return {
-          x: event.clientX - rect.left,
-          y: event.clientY - rect.top
-        };
-      }
-
-      $("menuButton").addEventListener("click", () => {
-        $("menu").classList.toggle("show");
-      });
-
-      document.addEventListener("click", event => {
-        if (!event.target.closest(".menu-wrap")) {
-          $("menu").classList.remove("show");
-        }
-      });
-
-      $("editMenuButton").addEventListener("click", openEditForm);
-
-      $("settingsButton").addEventListener("click", () => {
-        $("menu").classList.remove("show");
-        $("settingsModal").classList.add("show");
-      });
-
-      $("closeSettingsButton").addEventListener("click", () => {
-        $("settingsModal").classList.remove("show");
-      });
-
-      $("logoutButton").addEventListener("click", async () => {
-        const { error } = await db.auth.signOut();
-
-        if (error) {
-          notify(error.message);
-          return;
-        }
-
-        location.href = "index.html";
-      });
-
-      $("avatarUpload").addEventListener("change", event => {
-        const file = event.target.files?.[0];
-
-        if (file) handleAvatarUpload(file);
-
-        event.target.value = "";
-      });
-
-      $("coverUpload").addEventListener("change", event => {
-        const file = event.target.files?.[0];
-
-        if (file) handleCoverUpload(file);
-
-        event.target.value = "";
-      });
-
-      $("openCoverEditor").addEventListener("click", () => {
-        $("coverEditor").classList.toggle("show");
-      });
-
-      $("coverZoom").addEventListener("input", updateCoverFromControls);
-      $("coverX").addEventListener("input", updateCoverFromControls);
-      $("coverY").addEventListener("input", updateCoverFromControls);
-
-      $("saveCoverButton").addEventListener("click", saveCoverPosition);
-      $("resetCoverButton").addEventListener("click", resetCover);
-
-      $("saveProfileButton").addEventListener("click", saveProfile);
-
-      $("cancelEditButton").addEventListener("click", () => {
-        $("editForm").classList.remove("show");
-      });
-
-      $("coverArea").addEventListener("pointerdown", event => {
-        if (event.target.closest(".cover-controls")) return;
-
-        $("coverArea").setPointerCapture(event.pointerId);
-
-        const point = pointerPosition(event);
-
-        dragState = {
-          pointerId: event.pointerId,
-          startX: point.x,
-          startY: point.y,
-          originalX: coverTransform.x,
-          originalY: coverTransform.y
-        };
-      });
-
-      $("coverArea").addEventListener("pointermove", event => {
-        if (!dragState || dragState.pointerId !== event.pointerId) return;
-
-        const point = pointerPosition(event);
-
-        coverTransform.x =
-          dragState.originalX + point.x - dragState.startX;
-
-        coverTransform.y =
-          dragState.originalY + point.y - dragState.startY;
-
-        applyCoverTransform();
-      });
-
-      function stopDragging(event) {
-        if (dragState?.pointerId === event.pointerId) {
-          dragState = null;
-        }
-      }
-
-      $("coverArea").addEventListener("pointerup", stopDragging);
-      $("coverArea").addEventListener("pointercancel", stopDragging);
-
-      if (db?.auth) {
-        db.auth.onAuthStateChange((event, session) => {
-          if (event === "SIGNED_OUT" || !session) {
-            location.href = "index.html";
-          }
-        });
-      }
-
-      loadProfile().catch(error => {
-        console.error(error);
-        $("loading").textContent =
-          error.message || "Could not load profile.";
-      });
-    })();
-  </script>
+  <div class="cover">
+   <img id="coverImage" alt="Profile cover photo" class="hidden">
+  </div>
+
+  <img id="avatar" class="avatar" alt="Profile photo">
+  <div class="profileName" id="viewName">Creator</div>
+  <div class="handle" id="viewUsername">@creator</div>
+  <div class="bio" id="viewBio">अपना Creator Bio सेट करें।</div>
+
+  <div class="heroActions">
+   <button id="editProfileButton" type="button">✏️ Edit Profile</button>
+  </div>
+
+  <div class="stats">
+   <div class="stat"><strong id="videoCount">0</strong><span>Videos</span></div>
+   <div class="stat"><strong id="followerCount">0</strong><span>Followers</span></div>
+   <div class="stat"><strong id="followingCount">0</strong><span>Following</span></div>
+  </div>
+ </section>
+
+ <section class="card">
+  <div class="sectionTitle">
+   <h3>🎬 My Videos</h3>
+   <button class="secondary" id="refreshVideosButton" type="button">↻ Refresh</button>
+  </div>
+  <p id="videoStatus" class="muted">आपके वीडियो लोड हो रहे हैं...</p>
+  <div id="videoGrid" class="videoGrid"></div>
+ </section>
+ <p id="profileStatus" class="status"></p>
+</main>
+
+<div class="modal" id="profileEditModal" aria-hidden="true">
+ <div class="modalBox">
+  <div class="modalHead">
+   <h2>✏️ Edit Profile</h2>
+   <button class="secondary" id="closeEditButton" type="button">✕</button>
+  </div>
+
+  <h3>📸 Profile Photo</h3>
+  <div class="photoRow">
+   <img id="settingsAvatar" class="photoPreview" alt="Photo preview">
+   <div>
+    <button class="secondary" id="cameraPickButton" type="button">📷 Camera</button>
+    <button class="secondary" id="galleryPickButton" type="button">🖼️ Gallery</button>
+   </div>
+  </div>
+  <input id="cameraPhoto" class="hidden" type="file" accept="image/*" capture="user">
+  <input id="galleryPhoto" class="hidden" type="file" accept="image/*">
+  <p id="photoStatus" class="status" role="status"></p>
+
+  <hr>
+  <h3>🖼️ Cover Background Photo</h3>
+  <p class="muted">अपनी कवर फोटो चुनें। फोटो को उंगली से खींचें, दो उंगलियों से Zoom करें और नीचे दिए Controls से भी सेट करें।</p>
+
+  <div class="coverPreview" id="coverPreviewArea">
+   <img id="coverPreview" alt="Cover preview" class="hidden">
+  </div>
+
+  <div class="coverTools">
+   <label for="coverZoom">🔍 Zoom In / Out</label>
+   <input id="coverZoom" type="range" min="1" max="3.5" step="0.01" value="1">
+
+   <label for="coverMoveX">↔️ Move Left / Right</label>
+   <input id="coverMoveX" type="range" min="-50" max="50" step="1" value="0">
+
+   <label for="coverMoveY">↕️ Move Up / Down</label>
+   <input id="coverMoveY" type="range" min="-50" max="50" step="1" value="0">
+
+   <div class="toolButtons">
+    <button class="secondary" id="coverZoomOut" type="button">− छोटा</button>
+    <button class="secondary" id="coverZoomIn" type="button">＋ बड़ा</button>
+    <button class="secondary" id="coverReset" type="button">Reset</button>
+   </div>
+  </div>
+
+  <input id="coverPhoto" type="file" accept="image/*">
+  <p id="coverStatus" class="status" role="status"></p>
+
+  <hr>
+  <div class="formGrid">
+   <div><label for="editName">पूरा नाम</label><input id="editName" maxlength="80" placeholder="आपका नाम"></div>
+   <div><label for="editUsername">Username</label><input id="editUsername" maxlength="30" placeholder="username"></div>
+   <div class="full"><label for="editEmail">Login Email (बदलने के लिए Account Settings)</label><input id="editEmail" type="email" readonly></div>
+   <div><label for="editPhone">मोबाइल नंबर (सिर्फ़ प्रोफाइल जानकारी)</label><input id="editPhone" type="tel" placeholder="+977..."></div>
+   <div><label for="editAddress">Address</label><input id="editAddress" placeholder="शहर / पता"></div>
+   <div class="full"><label for="editBio">Bio</label><textarea id="editBio" rows="3" maxlength="300" placeholder="अपने बारे में लिखें..."></textarea></div>
+   <div><label for="editWebsite">Website</label><input id="editWebsite" type="url" placeholder="https://..."></div>
+   <div><label for="editFacebook">Facebook</label><input id="editFacebook" type="url" placeholder="Facebook profile link"></div>
+   <div><label for="editInstagram">Instagram</label><input id="editInstagram" type="url" placeholder="Instagram profile link"></div>
+   <div><label for="editYoutube">YouTube</label><input id="editYoutube" type="url" placeholder="YouTube channel link"></div>
+   <div><label for="editTiktok">TikTok</label><input id="editTiktok" type="url" placeholder="TikTok profile link"></div>
+   <div><label for="editWhatsapp">WhatsApp</label><input id="editWhatsapp" type="tel" placeholder="+977..."></div>
+  </div>
+
+  <button id="saveProfileButton" style="width:100%;margin-top:10px" type="button">💾 Save Profile</button>
+  <p id="editStatus" class="status" role="status"></p>
+ </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const $=id=>document.getElementById(id);
+const db=window.supabaseClient||window.cloudClient||(typeof supabaseClient!=="undefined"?supabaseClient:null);
+const fallbackAvatar="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3Ctext x='50%25' y='60%25' text-anchor='middle' font-size='48' fill='white'%3E%u263A%3C/text%3E%3C/svg%3E";
+
+let user=null,profileRow=null,busy=false,pendingEmail="";
+let pendingAvatarFile=null,pendingAvatarPreviewUrl=null,pendingCoverFile=null,pendingCoverPreviewUrl=null;
+
+/* Cover image transform is saved in Supabase Auth user metadata. */
+let coverTransform={scale:1,x:0,y:0};
+let coverPointers=new Map();
+let coverGesture=null;
+
+const extraKeys=["phone","address","website","facebook","instagram","youtube","tiktok","whatsapp"];
+
+function authMsg(s){$("authStatus").textContent=s||""}
+function editMsg(s){$("editStatus").textContent=s||""}
+function meta(){return user?.user_metadata||{}}
+function normalizeUsername(v){return String(v||"").trim().replace(/^@/,"")}
+
+function cleanCoverTransform(value){
+ const t=value||{};
+ return {
+  scale:Math.min(3.5,Math.max(1,Number(t.scale)||1)),
+  x:Math.min(50,Math.max(-50,Number(t.x)||0)),
+  y:Math.min(50,Math.max(-50,Number(t.y)||0))
+ };
+}
+
+function applyCoverTransform(){
+ const transform=`translate(${coverTransform.x}%,${coverTransform.y}%) scale(${coverTransform.scale})`;
+ $("coverImage").style.transform=transform;
+ $("coverPreview").style.transform=transform;
+
+ if($("coverZoom"))$("coverZoom").value=coverTransform.scale;
+ if($("coverMoveX"))$("coverMoveX").value=coverTransform.x;
+ if($("coverMoveY"))$("coverMoveY").value=coverTransform.y;
+}
+
+function setCoverTransform(next){
+ coverTransform=cleanCoverTransform(next);
+ applyCoverTransform();
+}
+
+function setProfileAvatar(url){
+ const src=url||fallbackAvatar;
+ $("avatar").src=src;
+ $("settingsAvatar").src=src;
+}
+
+function setCover(url){
+ const img=$("coverImage");
+ if(url){
+  img.src=url;
+  img.classList.remove("hidden");
+ }else{
+  img.removeAttribute("src");
+  img.classList.add("hidden");
+ }
+ applyCoverTransform();
+}
+
+function showAuth(message){
+ user=null;
+ $("auth").classList.remove("hidden");
+ $("app").classList.add("hidden");
+ $("videoGrid").replaceChildren();
+ $("profileMenu").classList.add("hidden");
+ if(message)authMsg(message);
+}
+
+function closeMenu(){
+ $("profileMenu").classList.add("hidden");
+ $("profileMenuButton").setAttribute("aria-expanded","false");
+}
+
+function toggleMenu(){
+ const open=$("profileMenu").classList.toggle("hidden");
+ $("profileMenuButton").setAttribute("aria-expanded",String(!open));
+}
+
+async function loadProfileRow(){
+ profileRow=null;
+ const {data,error}=await db.from("profiles")
+  .select("user_id,username,avatar_url,bio")
+  .eq("user_id",user.id)
+  .maybeSingle();
+
+ if(error){
+  console.warn("profiles lookup:",error.message);
+  return;
+ }
+ profileRow=data||null;
+}
+
+function renderProfile(){
+ if(!user)return;
+
+ const m=meta(),r=profileRow||{};
+ const name=m.full_name||m.name||"New Star Creator";
+ const username=normalizeUsername(r.username||m.username);
+
+ $("viewName").textContent=name;
+ $("viewUsername").textContent=username?"@"+username:"@creator";
+ $("viewBio").textContent=r.bio||m.bio||"";
+
+ setProfileAvatar(r.avatar_url||m.avatar_url||user.user_metadata?.picture);
+ coverTransform=cleanCoverTransform(m.cover_transform);
+ setCover(m.cover_url||"");
+}
+
+async function loadStatsAndVideos(){
+ if(!user||busy)return;
+
+ busy=true;
+ $("videoStatus").textContent="वीडियो लोड हो रहे हैं...";
+ $("videoGrid").replaceChildren();
+
+ try{
+  const [vr,fr,fg]=await Promise.all([
+   db.from("videos").select("id,user_id,video_url,caption,created_at")
+    .eq("user_id",user.id).order("created_at",{ascending:false}),
+   db.from("followers").select("id",{count:"exact",head:true})
+    .eq("following_id",user.id),
+   db.from("followers").select("id",{count:"exact",head:true})
+    .eq("follower_id",user.id)
+  ]);
+
+  if(vr.error)throw vr.error;
+
+  $("followerCount").textContent=fr.error?"—":String(fr.count??0);
+  $("followingCount").textContent=fg.error?"—":String(fg.count??0);
+
+  const videos=vr.data||[];
+  $("videoCount").textContent=String(videos.length);
+
+  if(!videos.length){
+   $("videoStatus").textContent="अभी आपने कोई वीडियो पोस्ट नहीं किया है।";
+   return;
+  }
+
+  $("videoStatus").textContent="आपकी पोस्ट: "+videos.length;
+
+  videos.forEach(item=>{
+   const card=document.createElement("article");
+   card.className="videoCard";
+
+   const video=document.createElement("video");
+   video.src=item.video_url||"";
+   video.controls=true;
+   video.playsInline=true;
+   video.preload="metadata";
+
+   const caption=document.createElement("p");
+   caption.textContent=item.caption||"Video";
+
+   const date=document.createElement("small");
+   date.textContent=item.created_at?new Date(item.created_at).toLocaleString():"";
+
+   card.append(video,caption,date);
+   $("videoGrid").append(card);
+  });
+
+  if(fr.error||fg.error){
+   $("profileStatus").textContent="Follower count पढ़ने में समस्या: "+
+    [fr.error,fg.error].filter(Boolean).map(e=>e.message).join(" | ");
+  }
+ }catch(e){
+  $("videoStatus").textContent="Video Load Error: "+e.message;
+ }finally{
+  busy=false;
+ }
+}
+
+function openEdit(){
+ if(!user)return;
+
+ const m=meta(),r=profileRow||{};
+
+ $("editName").value=m.full_name||m.name||"";
+ $("editUsername").value=r.username||m.username||"";
+ $("editEmail").value=user.email||"";
+ $("editBio").value=r.bio||m.bio||"";
+
+ extraKeys.forEach(k=>{
+  $("edit"+k[0].toUpperCase()+k.slice(1)).value=m[k]||"";
+ });
+
+ $("settingsAvatar").src=r.avatar_url||m.avatar_url||$("avatar").src;
+
+ const currentCover=m.cover_url||"";
+ $("coverPreview").src=currentCover;
+ $("coverPreview").classList.toggle("hidden",!currentCover);
+
+ coverTransform=cleanCoverTransform(m.cover_transform);
+ applyCoverTransform();
+
+ $("coverPhoto").value="";
+ $("coverStatus").textContent="";
+
+ $("profileEditModal").classList.add("show");
+ $("profileEditModal").setAttribute("aria-hidden","false");
+ closeMenu();
+}
+
+function closeEdit(){
+ $("profileEditModal").classList.remove("show");
+ $("profileEditModal").setAttribute("aria-hidden","true");
+}
+
+function uploadCover(file){
+ if(!user||!file)return;
+
+ if(!file.type.startsWith("image/")){
+  $("coverStatus").textContent="कृपया image file चुनें।";
+  return;
+ }
+
+ if(file.size>8*1024*1024){
+  $("coverStatus").textContent="Cover फोटो 8 MB से छोटी होनी चाहिए।";
+  return;
+ }
+
+ if(pendingCoverPreviewUrl)URL.revokeObjectURL(pendingCoverPreviewUrl);
+
+ pendingCoverFile=file;
+ pendingCoverPreviewUrl=URL.createObjectURL(file);
+
+ $("coverPreview").src=pendingCoverPreviewUrl;
+ $("coverPreview").classList.remove("hidden");
+
+ setCoverTransform({scale:1,x:0,y:0});
+ $("coverStatus").textContent="Cover फोटो चुन ली गई है। Zoom और Position सेट करके Save Profile दबाएँ।";
+}
+
+/* Cover drag, mouse wheel and two-finger pinch controls. */
+function coverPoint(event){
+ const rect=$("coverPreviewArea").getBoundingClientRect();
+ return {x:event.clientX-rect.left,y:event.clientY-rect.top};
+}
+
+function distance(a,b){
+ return Math.hypot(a.x-b.x,a.y-b.y);
+}
+
+function midpoint(a,b){
+ return {x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+}
+
+function coverPointerDown(event){
+ if($("coverPreview").classList.contains("hidden"))return;
+
+ event.preventDefault();
+ $("coverPreviewArea").setPointerCapture?.(event.pointerId);
+
+ const point=coverPoint(event);
+ coverPointers.set(event.pointerId,point);
+
+ if(coverPointers.size===1){
+  coverGesture={
+   type:"drag",
+   start:point,
+   originalX:coverTransform.x,
+   originalY:coverTransform.y
+  };
+ }else if(coverPointers.size===2){
+  const pts=[...coverPointers.values()];
+  coverGesture={
+   type:"pinch",
+   startDistance:distance(pts[0],pts[1])||1,
+   startScale:coverTransform.scale,
+   startMid:midpoint(pts[0],pts[1]),
+   originalX:coverTransform.x,
+   originalY:coverTransform.y
+  };
+ }
+}
+
+function coverPointerMove(event){
+ if(!coverPointers.has(event.pointerId))return;
+
+ event.preventDefault();
+ coverPointers.set(event.pointerId,coverPoint(event));
+
+ if(coverPointers.size===1&&coverGesture?.type==="drag"){
+  const p=[...coverPointers.values()][0];
+  const rect=$("coverPreviewArea").getBoundingClientRect();
+
+  const dx=(p.x-coverGesture.start.x)/rect.width*100;
+  const dy=(p.y-coverGesture.start.y)/rect.height*100;
+
+  setCoverTransform({
+   scale:coverTransform.scale,
+   x:coverGesture.originalX+dx,
+   y:coverGesture.originalY+dy
+  });
+ }
+
+ if(coverPointers.size===2&&coverGesture?.type==="pinch"){
+  const pts=[...coverPointers.values()];
+  const rect=$("coverPreviewArea").getBoundingClientRect();
+  const currentDistance=distance(pts[0],pts[1])||1;
+  const mid=midpoint(pts[0],pts[1]);
+  const scale=coverGesture.startScale*(currentDistance/coverGesture.startDistance);
+
+  setCoverTransform({
+   scale,
+   x:coverGesture.originalX+(mid.x-coverGesture.startMid.x)/rect.width*100,
+   y:coverGesture.originalY+(mid.y-coverGesture.startMid.y)/rect.height*100
+  });
+ }
+}
+
+function coverPointerUp(event){
+ coverPointers.delete(event.pointerId);
+ coverGesture=null;
+
+ if(coverPointers.size===1){
+  const remaining=[...coverPointers.values()][0];
+  coverGesture={
+   type:"drag",
+   start:remaining,
+   originalX:coverTransform.x,
+   originalY:coverTransform.y
+  };
+ }
+}
+
+async function saveProfile(){
+ if(!user)return;
+
+ const username=normalizeUsername($("editUsername").value);
+
+ if(username&&!/^[a-zA-Z0-9_.]{3,30}$/.test(username)){
+  editMsg("Username 3-30 अक्षर का हो; केवल अक्षर, नंबर, dot और underscore।");
+  return;
+ }
+
+ const updated={
+  ...meta(),
+  full_name:$("editName").value.trim(),
+  username,
+  bio:$("editBio").value.trim(),
+  cover_transform:cleanCoverTransform(coverTransform)
+ };
+
+ extraKeys.forEach(k=>{
+  updated[k]=$("edit"+k[0].toUpperCase()+k.slice(1)).value.trim();
+ });
+
+ $("saveProfileButton").disabled=true;
+ editMsg("Profile सेव हो रही है...");
+
+ try{
+  let newAvatarUrl=null;
+
+  if(pendingAvatarFile){
+   const file=pendingAvatarFile;
+   const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+   const path=user.id+"/avatar_"+Date.now()+"."+ext;
+
+   const {error:uploadError}=await db.storage.from("avatars").upload(
+    path,file,
+    {upsert:false,contentType:file.type,cacheControl:"3600"}
+   );
+
+   if(uploadError)throw uploadError;
+
+   const {data:urlData}=db.storage.from("avatars").getPublicUrl(path);
+   newAvatarUrl=urlData?.publicUrl;
+
+   if(!newAvatarUrl)throw new Error("Supabase ने Photo URL नहीं दिया।");
+   updated.avatar_url=newAvatarUrl;
+  }
+
+  if(pendingCoverFile){
+   const file=pendingCoverFile;
+   const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+   const path=user.id+"/cover_"+Date.now()+"."+ext;
+
+   const {error:coverUploadError}=await db.storage.from("avatars").upload(
+    path,file,
+    {upsert:false,contentType:file.type,cacheControl:"3600"}
+   );
+
+   if(coverUploadError)throw coverUploadError;
+
+   const {data:coverUrlData}=db.storage.from("avatars").getPublicUrl(path);
+
+   if(!coverUrlData?.publicUrl){
+    throw new Error("Supabase ने Cover URL नहीं दिया।");
+   }
+
+   updated.cover_url=coverUrlData.publicUrl;
+  }
+
+  const {data,error}=await db.auth.updateUser({data:updated});
+  if(error)throw error;
+
+  user=data.user;
+
+  const values={
+   user_id:user.id,
+   username,
+   bio:updated.bio
+  };
+
+  if(newAvatarUrl)values.avatar_url=newAvatarUrl;
+
+  const result=profileRow
+   ?await db.from("profiles").update(values).eq("user_id",user.id)
+   :await db.from("profiles").insert(values);
+
+  if(result.error)throw result.error;
+
+  profileRow={...(profileRow||{}),...values};
+
+  pendingAvatarFile=null;
+  pendingCoverFile=null;
+
+  if(pendingAvatarPreviewUrl){
+   URL.revokeObjectURL(pendingAvatarPreviewUrl);
+   pendingAvatarPreviewUrl=null;
+  }
+
+  if(pendingCoverPreviewUrl){
+   URL.revokeObjectURL(pendingCoverPreviewUrl);
+   pendingCoverPreviewUrl=null;
+  }
+
+  await loadProfileRow();
+  renderProfile();
+
+  $("photoStatus").textContent="";
+  $("coverStatus").textContent="";
+  editMsg("✅ Profile सफलतापूर्वक सेव हो गई।");
+
+ }catch(e){
+  editMsg("Save Error: "+e.message);
+ }finally{
+  $("saveProfileButton").disabled=false;
+ }
+}
+
+function uploadAvatar(file){
+ if(!user||!file)return;
+
+ if(!file.type.startsWith("image/")){
+  $("photoStatus").textContent="कृपया image file चुनें।";
+  return;
+ }
+
+ if(file.size>5*1024*1024){
+  $("photoStatus").textContent="Photo 5 MB से छोटी होनी चाहिए।";
+  return;
+ }
+
+ if(pendingAvatarPreviewUrl)URL.revokeObjectURL(pendingAvatarPreviewUrl);
+
+ pendingAvatarFile=file;
+ pendingAvatarPreviewUrl=URL.createObjectURL(file);
+
+ $("settingsAvatar").src=pendingAvatarPreviewUrl;
+ $("photoStatus").textContent="फोटो चुन ली गई है। सेव करने के लिए Save Profile दबाएँ।";
+
+ $("cameraPhoto").value="";
+ $("galleryPhoto").value="";
+}
+
+async function emailLogin(){
+ const email=$("email").value.trim();
+ const password=$("password").value;
+
+ if(!email||!password){
+  authMsg("Email और Password भरें।");
+  return;
+ }
+
+ authMsg("Login हो रहा है...");
+
+ const {data,error}=await db.auth.signInWithPassword({email,password});
+
+ if(error)authMsg("Login Error: "+error.message);
+ else await activate(data.user);
+}
+
+async function emailSignup(){
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ const name=$("signupName").value.trim();
+
+ if(!email||password.length<6){
+  authMsg("सही Email और कम से कम 6 अक्षर का Password डालें।");
+  return;
+ }
+
+ authMsg("Account बनाया जा रहा है...");
+
+ const {data,error}=await db.auth.signUp({
+  email,
+  password,
+  options:{data:{full_name:name}}
+ });
+
+ if(error){
+  authMsg("Signup Error: "+error.message);
+  return;
+ }
+
+ if(data.session&&data.user){
+  await activate(data.user);
+  return;
+ }
+
+ pendingEmail=email;
+ $("otpPanel").classList.remove("hidden");
+ authMsg("Verification code तुम्हारे email पर भेजा गया है। Inbox और Spam folder चेक करो।");
+}
+
+async function verifyEmail(){
+ const token=$("emailOtp").value.trim();
+
+ if(!pendingEmail||!token){
+  authMsg("Email और verification code आवश्यक हैं।");
+  return;
+ }
+
+ authMsg("Email verify हो रहा है...");
+
+ const {data,error}=await db.auth.verifyOtp({
+  email:pendingEmail,
+  token,
+  type:"signup"
+ });
+
+ if(error){
+  authMsg("Verification Error: "+error.message);
+  return;
+ }
+
+ $("otpPanel").classList.add("hidden");
+ pendingEmail="";
+
+ if(data.user)await activate(data.user);
+ else authMsg("Email verify हो गया। अब Login करें।");
+}
+
+async function resendEmail(){
+ if(!pendingEmail){
+  authMsg("पहले Sign Up करें।");
+  return;
+ }
+
+ authMsg("नया verification code भेजा जा रहा है...");
+
+ const {error}=await db.auth.resend({
+  type:"signup",
+  email:pendingEmail
+ });
+
+ authMsg(error?"Resend Error: "+error.message:"नया code भेज दिया गया है। Email चेक करें।");
+}
+
+async function googleLogin(){
+ authMsg("Google Login खोला जा रहा है...");
+
+ const {error}=await db.auth.signInWithOAuth({
+  provider:"google",
+  options:{
+   redirectTo:location.origin+location.pathname,
+   queryParams:{prompt:"select_account"}
+  }
+ });
+
+ if(error)authMsg("Google Login Error: "+error.message);
+}
+
+async function activate(nextUser){
+ user=nextUser;
+ $("auth").classList.add("hidden");
+ $("app").classList.remove("hidden");
+
+ await loadProfileRow();
+ renderProfile();
+ await loadStatsAndVideos();
+}
+
+async function logout(){
+ closeMenu();
+
+ const {error}=await db.auth.signOut();
+
+ if(error){
+  authMsg("Logout Error: "+error.message);
+  return;
+ }
+
+ showAuth("आप Logout हो गए हैं।");
+}
+
+if(!db){
+ authMsg("Supabase client नहीं मिला। supabase-config.js की जाँच करें।");
+ return;
+}
+
+$("tabEmail").addEventListener("click",()=>{
+ $("signupNameWrap").classList.remove("hidden");
+ $("emailSignupButton").classList.remove("hidden");
+ $("emailLoginButton").classList.remove("hidden");
+});
+
+$("tabLogin").addEventListener("click",()=>{
+ $("signupNameWrap").classList.add("hidden");
+ $("emailSignupButton").classList.add("hidden");
+ $("emailLoginButton").classList.remove("hidden");
+});
+
+$("emailLoginButton").addEventListener("click",emailLogin);
+$("emailSignupButton").addEventListener("click",emailSignup);
+$("googleLoginButton").addEventListener("click",googleLogin);
+$("verifyEmailButton").addEventListener("click",verifyEmail);
+$("resendEmailButton").addEventListener("click",resendEmail);
+$("refreshVideosButton").addEventListener("click",loadStatsAndVideos);
+
+$("profileMenuButton").addEventListener("click",toggleMenu);
+$("editProfileButton").addEventListener("click",openEdit);
+$("closeEditButton").addEventListener("click",closeEdit);
+
+$("cameraPickButton").addEventListener("click",()=>$("cameraPhoto").click());
+$("galleryPickButton").addEventListener("click",()=>$("galleryPhoto").click());
+
+$("cameraPhoto").addEventListener("change",e=>uploadAvatar(e.target.files?.[0]));
+$("galleryPhoto").addEventListener("change",e=>uploadAvatar(e.target.files?.[0]));
+$("coverPhoto").addEventListener("change",e=>uploadCover(e.target.files?.[0]));
+
+$("saveProfileButton").addEventListener("click",saveProfile);
+
+$("coverZoom").addEventListener("input",e=>{
+ setCoverTransform({...coverTransform,scale:Number(e.target.value)});
+});
+
+$("coverMoveX").addEventListener("input",e=>{
+ setCoverTransform({...coverTransform,x:Number(e.target.value)});
+});
+
+$("coverMoveY").addEventListener("input",e=>{
+ setCoverTransform({...coverTransform,y:Number(e.target.value)});
+});
+
+$("coverZoomIn").addEventListener("click",()=>{
+ setCoverTransform({...coverTransform,scale:coverTransform.scale+0.15});
+});
+
+$("coverZoomOut").addEventListener("click",()=>{
+ setCoverTransform({...coverTransform,scale:coverTransform.scale-0.15});
+});
+
+$("coverReset").addEventListener("click",()=>{
+ setCoverTransform({scale:1,x:0,y:0});
+});
+
+$("coverPreviewArea").addEventListener("pointerdown",coverPointerDown);
+$("coverPreviewArea").addEventListener("pointermove",coverPointerMove);
+$("coverPreviewArea").addEventListener("pointerup",coverPointerUp);
+$("coverPreviewArea").addEventListener("pointercancel",coverPointerUp);
+$("coverPreviewArea").addEventListener("lostpointercapture",coverPointerUp);
+
+$("profileMenu").addEventListener("click",e=>{
+ const b=e.target.closest("[data-action]");
+ if(!b)return;
+
+ const action=b.dataset.action;
+
+ if(action==="edit"){
+  closeMenu();
+  openEdit();
+ }else if(action==="logout"){
+  logout();
+ }
+});
+
+$("profileEditModal").addEventListener("click",e=>{
+ if(e.target===$("profileEditModal"))closeEdit();
+});
+
+document.addEventListener("click",e=>{
+ if(!e.target.closest(".menuWrap"))closeMenu();
+});
+
+document.addEventListener("keydown",e=>{
+ if(e.key==="Escape"){
+  closeMenu();
+  closeEdit();
+ }
+});
+
+window.NewStarProfile={openEdit,logout};
+
+db.auth.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_OUT")showAuth();
+ else if(session?.user)user=session.user;
+});
+
+(async()=>{
+ const {data,error}=await db.auth.getSession();
+
+ if(error)showAuth("Session Error: "+error.message);
+ else if(data.session?.user)await activate(data.session.user);
+ else showAuth();
+})();
+
+})();
+</script>
+
+<script src="./navbar.js"></script>
 </body>
 </html>
