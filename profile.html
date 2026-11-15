@@ -8,18 +8,10 @@
 <title>New Star - Profile</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
-
 <style>
 :root{--accent:#fe2c55;--bg:#101014;--panel:#1c1c24;--line:#383844;--muted:#a7a7b3}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:#101014;color:#fff;font-family:Arial,sans-serif}
-html,body{
- background:
- radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38%),
- radial-gradient(ellipse at 88% 32%,#76264f 0%,transparent 36%),
- linear-gradient(145deg,#080b19,#171329 50%,#090d1c);
- background-attachment:fixed;
-}
+html,body{margin:0;min-height:100%;background:var(--bg);color:#fff;font-family:Arial,sans-serif}
 body{padding-bottom:76px}
 button,input,textarea{font:inherit}
 button{border:0;border-radius:11px;padding:12px 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
@@ -31,10 +23,9 @@ a{color:#ff8298;text-decoration:none}
 .hidden{display:none!important}
 .muted{color:var(--muted);font-size:13px}
 .status{white-space:pre-wrap;color:#ffd36a;font-size:13px;line-height:1.5;min-height:18px}
-header{height:58px;padding:9px 14px;background:#191920dd;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;border-bottom:1px solid #ffffff20;backdrop-filter:blur(12px)}
-.brand{color:#ff5274}
+header{height:58px;padding:9px 14px;background:#191920;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;border-bottom:1px solid #333}
 .wrap{width:100%;max-width:980px;margin:auto;padding:10px}
-.card{background:linear-gradient(145deg,#24213eef,#141a2bf5);border:1px solid #ffffff20;border-radius:16px;padding:15px;margin:10px 0;box-shadow:0 12px 35px #0006,inset 0 1px #ffffff12;backdrop-filter:blur(14px)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:15px;margin:10px 0}
 #auth{max-width:480px;margin:6vh auto}
 .authTitle{text-align:center;font-size:25px}
 .authTabs{display:flex;gap:8px;margin:14px 0}
@@ -44,42 +35,24 @@ header{height:58px;padding:9px 14px;background:#191920dd;display:flex;align-item
 .outline{background:transparent;border:1px solid #555}
 .row{display:flex;gap:9px}
 .row>*{flex:1;min-width:0}
-#profileHero{padding:0 0 16px;position:relative;overflow:hidden;text-align:center;border-radius:20px}
-.cover{
- height:170px;position:relative;overflow:hidden;border-radius:15px 15px 0 0;
- background:
- radial-gradient(circle at 18% 25%,#ff7acb99,transparent 28%),
- radial-gradient(circle at 82% 70%,#42d9ff88,transparent 30%),
- linear-gradient(125deg,#26105d,#a51e69 48%,#142e68);
- background-size:200% 200%;
- animation:coverGlow 9s ease-in-out infinite alternate;
-}
-.cover:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 20%,#ffffff20 48%,transparent 70%);transform:translateX(-100%);animation:coverShine 7s ease-in-out infinite}
-@keyframes coverGlow{from{background-position:0% 20%}to{background-position:100% 80%}}
-@keyframes coverShine{0%,55%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
-.avatar{width:112px;height:112px;border-radius:50%;object-fit:cover;border:4px solid #25213a;background:#333;margin-top:-55px;position:relative}
-.profileName{font-size:23px;font-weight:700;margin:8px 0 3px}
+#profileHero{padding:0 0 16px;overflow:visible;text-align:center}
+.cover{width:100%;aspect-ratio:16/9;height:auto;border-radius:15px 15px 0 0;background:#171725;position:relative;overflow:hidden}
+.cover img{display:block;width:100%;height:100%;position:absolute;inset:0;object-fit:cover}
+.avatar{width:122px;height:122px;border-radius:50%;object-fit:cover;border:4px solid var(--panel);background:#333;margin-top:-55px;position:relative}
+.profileName{font-size:26px;font-weight:700;margin:8px 0 3px}
 .handle{color:#aaa;font-size:14px}
 .bio{white-space:pre-wrap;color:#ddd;line-height:1.5;margin:12px auto;max-width:620px;padding:0 15px}
 .heroActions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;padding:0 12px}
 .stats{display:flex;justify-content:center;gap:clamp(20px,7vw,65px);margin:17px 0 4px}
 .stat strong{display:block;font-size:20px}
 .stat span{font-size:12px;color:#aaa}
-.heroTop{position:absolute;top:10px;right:10px;z-index:10;display:flex;align-items:center;gap:7px;padding:0}
+.heroTop{display:flex;justify-content:flex-end;padding:10px 12px 0}
 .menuWrap{position:relative}
-.iconButton,#plusProfileButton{
- width:34px;height:34px;min-width:34px;padding:0;border-radius:50%;
- display:inline-flex;align-items:center;justify-content:center;
- font-size:19px;background:#10101dcc;border:1px solid #ffffff40;
- box-shadow:0 3px 12px #0007;
-}
-#plusProfileButton{background:linear-gradient(135deg,#fe2c55,#9c35ed);font-size:22px}
-.iconButton:active,#plusProfileButton:active,#profileBackButton:active{transform:scale(.92)}
-.menu{position:absolute;right:0;top:40px;width:235px;background:#24242e;border:1px solid #494955;border-radius:13px;padding:7px;z-index:50;box-shadow:0 12px 35px #0009}
+.iconButton{width:42px;height:42px;padding:0;border-radius:50%;background:#30303a;font-size:23px}
+.menu{position:absolute;right:0;top:48px;width:235px;background:#24242e;border:1px solid #494955;border-radius:13px;padding:7px;z-index:50;box-shadow:0 12px 35px #0009}
 .menu button,.menu a{display:block;width:100%;text-align:left;padding:12px;border-radius:8px;background:transparent;color:#fff;font-size:14px}
 .menu button:hover,.menu a:hover{background:#383844}
 .menu .danger{color:#ff8498}
-#profileBackButton{position:fixed;top:68px;left:10px;z-index:25;width:32px;height:32px;min-width:32px;padding:0;border-radius:50%;font-size:19px;background:#171725dd;border:1px solid #ffffff35;box-shadow:0 3px 12px #0007}
 .sectionTitle{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sectionTitle h3{margin:4px 0 12px}
 .videoGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
@@ -94,29 +67,45 @@ header{height:58px;padding:9px 14px;background:#191920dd;display:flex;align-item
 .modalHead h2{font-size:20px;margin:4px 0 15px}
 .modalHead button{padding:7px 12px}
 .photoPreview{width:86px;height:86px;border-radius:50%;object-fit:cover;background:#333}
+.coverPreview{width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#151520;border:1px solid #454552;margin:10px 0}
+.coverPreview img{width:100%;height:100%;object-fit:cover;display:block}
 .photoRow{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 hr{border:0;border-top:1px solid #383844;margin:17px 0}
 .formGrid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
 .formGrid .full{grid-column:1/-1}
 #otpPanel{border:1px solid #555;border-radius:12px;padding:12px;margin-top:12px}
 @media(max-width:520px){
- .wrap{padding:7px}.card{border-radius:13px;padding:12px}
- .cover{height:145px}.avatar{width:100px;height:100px}
+ .wrap{padding:7px}
+ .card{border-radius:13px;padding:12px}
  .videoGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
- .formGrid{grid-template-columns:1fr}.formGrid .full{grid-column:auto}
- #profileBackButton{top:65px;left:7px}
+ .formGrid{grid-template-columns:1fr}
+ .formGrid .full{grid-column:auto}
 }
 @media(min-width:700px){.videoGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* Premium profile styling */
+html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38%),radial-gradient(ellipse at 88% 32%,#76264f 0%,transparent 36%),linear-gradient(145deg,#080b19,#171329 50%,#090d1c);background-attachment:fixed}
+.card{background:linear-gradient(145deg,#24213eef,#141a2bf5);border:1px solid #ffffff20;box-shadow:0 12px 35px #0006,inset 0 1px #ffffff12;backdrop-filter:blur(14px)}
+#profileHero{position:relative;overflow:visible;border-radius:20px}
+.cover{background:#171725;border:1px solid #ffffff20}
+.heroTop{position:absolute;top:10px;right:10px;z-index:10;display:flex;align-items:center;padding:0}
+.iconButton{width:40px;height:40px;min-width:40px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:22px;background:#10101dcc;border:1px solid #ffffff55;box-shadow:0 3px 12px #0007}
+.iconButton:active{transform:scale(.92)}
+.menu{top:46px}
+.avatar{width:122px;height:122px;margin-top:-61px}
+.profileName{font-size:26px}
+@media(max-width:520px){
+ .cover{aspect-ratio:16/9}
+ .avatar{width:118px;height:118px;margin-top:-59px}
+ .profileName{font-size:26px}
+}
 </style>
 </head>
-
 <body>
-<header>
- <b>⭐ New Star <span class="brand">Profile</span></b>
- <span class="muted">Creator Account</span>
-</header>
 
-<button id="profileBackButton" type="button" aria-label="Back">‹</button>
+<header>
+ <b>⭐ New Star</b>
+</header>
 
 <section id="auth" class="card">
  <h2 class="authTitle">⭐ New Star</h2>
@@ -155,27 +144,28 @@ hr{border:0;border-top:1px solid #383844;margin:17px 0}
 <main id="app" class="wrap hidden">
  <section class="card" id="profileHero">
   <div class="heroTop">
-   <button id="plusProfileButton" type="button" aria-label="Create post" title="Create post">+</button>
    <div class="menuWrap">
     <button id="profileMenuButton" class="iconButton" type="button" aria-label="Profile settings" aria-expanded="false">⋮</button>
     <nav id="profileMenu" class="menu hidden" aria-label="Profile menu">
-     <button type="button" data-action="edit">✏️ Edit Profile</button>
-     <button type="button" data-action="settings">⚙️ Settings & Privacy</button>
-     <button type="button" data-action="affiliate" class="hidden">🤝 Affiliate Program</button>
-     <button type="button" data-action="updates" class="hidden">🔔 App Updates</button>
+     <button type="button" data-action="settings">⚙️ Main Settings & Privacy</button>
      <hr>
      <button type="button" data-action="logout" class="danger">↪ Logout</button>
     </nav>
    </div>
   </div>
-  <div class="cover"></div>
+
+  <div class="cover">
+   <img id="coverImage" alt="Profile cover photo" class="hidden">
+  </div>
   <img id="avatar" class="avatar" alt="Profile photo">
   <div class="profileName" id="viewName">Creator</div>
   <div class="handle" id="viewUsername">@creator</div>
   <div class="bio" id="viewBio">अपना Creator Bio सेट करें।</div>
+
   <div class="heroActions">
    <button id="editProfileButton" type="button">✏️ Edit Profile</button>
   </div>
+
   <div class="stats">
    <div class="stat"><strong id="videoCount">0</strong><span>Videos</span></div>
    <div class="stat"><strong id="followerCount">0</strong><span>Followers</span></div>
@@ -200,6 +190,7 @@ hr{border:0;border-top:1px solid #383844;margin:17px 0}
    <h2>✏️ Edit Profile</h2>
    <button class="secondary" id="closeEditButton" type="button">✕</button>
   </div>
+
   <h3>📸 Profile Photo</h3>
   <div class="photoRow">
    <img id="settingsAvatar" class="photoPreview" alt="Photo preview">
@@ -211,12 +202,22 @@ hr{border:0;border-top:1px solid #383844;margin:17px 0}
   <input id="cameraPhoto" class="hidden" type="file" accept="image/*" capture="user">
   <input id="galleryPhoto" class="hidden" type="file" accept="image/*">
   <p id="photoStatus" class="status" role="status"></p>
+
+  <hr>
+  <h3>🖼️ Cover Background Photo</h3>
+  <p class="muted">अपनी 16:9 कवर फोटो चुनें। यह प्रोफाइल के ऊपर दिखेगी।</p>
+  <div class="coverPreview">
+   <img id="coverPreview" alt="Cover preview" class="hidden">
+  </div>
+  <input id="coverPhoto" type="file" accept="image/*">
+  <p id="coverStatus" class="status" role="status"></p>
+
   <hr>
   <div class="formGrid">
    <div><label for="editName">पूरा नाम</label><input id="editName" maxlength="80" placeholder="आपका नाम"></div>
    <div><label for="editUsername">Username</label><input id="editUsername" maxlength="30" placeholder="username"></div>
-   <div class="full"><label for="editEmail">Login Email</label><input id="editEmail" type="email" readonly></div>
-   <div><label for="editPhone">मोबाइल नंबर</label><input id="editPhone" type="tel" placeholder="+977..."></div>
+   <div class="full"><label for="editEmail">Login Email (बदलने के लिए Account Settings)</label><input id="editEmail" type="email" readonly></div>
+   <div><label for="editPhone">मोबाइल नंबर (सिर्फ़ प्रोफाइल जानकारी)</label><input id="editPhone" type="tel" placeholder="+977..."></div>
    <div><label for="editAddress">Address</label><input id="editAddress" placeholder="शहर / पता"></div>
    <div class="full"><label for="editBio">Bio</label><textarea id="editBio" rows="3" maxlength="300" placeholder="अपने बारे में लिखें..."></textarea></div>
    <div><label for="editWebsite">Website</label><input id="editWebsite" type="url" placeholder="https://..."></div>
@@ -226,10 +227,9 @@ hr{border:0;border-top:1px solid #383844;margin:17px 0}
    <div><label for="editTiktok">TikTok</label><input id="editTiktok" type="url" placeholder="TikTok profile link"></div>
    <div><label for="editWhatsapp">WhatsApp</label><input id="editWhatsapp" type="tel" placeholder="+977..."></div>
   </div>
+
   <button id="saveProfileButton" style="width:100%;margin-top:10px" type="button">💾 Save Profile</button>
   <p id="editStatus" class="status" role="status"></p>
-  <hr>
-  <button class="secondary" id="openMainSettingsButton" style="width:100%" type="button">⚙️ Open Account & Privacy Settings</button>
  </div>
 </div>
 
@@ -242,7 +242,7 @@ const db=window.supabaseClient||window.cloudClient||(typeof supabaseClient!=="un
 const fallbackAvatar="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3Ctext x='50%25' y='60%25' text-anchor='middle' font-size='48' fill='white'%3E%u263A%3C/text%3E%3C/svg%3E";
 
 let user=null,profileRow=null,busy=false,pendingEmail="";
-let pendingAvatarFile=null,pendingAvatarPreviewUrl=null;
+let pendingAvatarFile=null,pendingAvatarPreviewUrl=null,pendingCoverFile=null,pendingCoverPreviewUrl=null;
 
 const extraKeys=["phone","address","website","facebook","instagram","youtube","tiktok","whatsapp"];
 
@@ -255,6 +255,17 @@ function setProfileAvatar(url){
  const src=url||fallbackAvatar;
  $("avatar").src=src;
  $("settingsAvatar").src=src;
+}
+
+function setCover(url){
+ const img=$("coverImage");
+ if(url){
+  img.src=url;
+  img.classList.remove("hidden");
+ }else{
+  img.removeAttribute("src");
+  img.classList.add("hidden");
+ }
 }
 
 function showAuth(message){
@@ -292,6 +303,7 @@ async function loadProfileRow(){
 
 function renderProfile(){
  if(!user)return;
+
  const m=meta(),r=profileRow||{};
  const name=m.full_name||m.name||"New Star Creator";
  const username=normalizeUsername(r.username||m.username);
@@ -300,7 +312,8 @@ function renderProfile(){
  $("viewUsername").textContent=username?"@"+username:"@creator";
  $("viewBio").textContent=r.bio||m.bio||"";
 
- setProfileAvatar(r.avatar_url||m.avatar_url||m.picture);
+ setProfileAvatar(r.avatar_url||m.avatar_url||user.user_metadata?.picture);
+ setCover(m.cover_url||"");
 }
 
 async function loadStatsAndVideos(){
@@ -380,7 +393,13 @@ function openEdit(){
   $("edit"+k[0].toUpperCase()+k.slice(1)).value=m[k]||"";
  });
 
- $("settingsAvatar").src=r.avatar_url||m.avatar_url||m.picture||$("avatar").src;
+ $("settingsAvatar").src=r.avatar_url||m.avatar_url||$("avatar").src;
+
+ const currentCover=m.cover_url||"";
+ $("coverPreview").src=currentCover;
+ $("coverPreview").classList.toggle("hidden",!currentCover);
+ $("coverPhoto").value="";
+ $("coverStatus").textContent="";
 
  $("profileEditModal").classList.add("show");
  $("profileEditModal").setAttribute("aria-hidden","false");
@@ -390,6 +409,29 @@ function openEdit(){
 function closeEdit(){
  $("profileEditModal").classList.remove("show");
  $("profileEditModal").setAttribute("aria-hidden","true");
+}
+
+function uploadCover(file){
+ if(!user||!file)return;
+
+ if(!file.type.startsWith("image/")){
+  $("coverStatus").textContent="कृपया image file चुनें।";
+  return;
+ }
+
+ if(file.size>8*1024*1024){
+  $("coverStatus").textContent="Cover फोटो 8 MB से छोटी होनी चाहिए।";
+  return;
+ }
+
+ if(pendingCoverPreviewUrl)URL.revokeObjectURL(pendingCoverPreviewUrl);
+
+ pendingCoverFile=file;
+ pendingCoverPreviewUrl=URL.createObjectURL(file);
+
+ $("coverPreview").src=pendingCoverPreviewUrl;
+ $("coverPreview").classList.remove("hidden");
+ $("coverStatus").textContent="Cover फोटो चुन ली गई है। Save Profile दबाएँ।";
 }
 
 async function saveProfile(){
@@ -421,17 +463,12 @@ async function saveProfile(){
 
   if(pendingAvatarFile){
    const file=pendingAvatarFile;
-   const ext=(file.name.split(".").pop()||"jpg")
-    .toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
-
+   const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
    const path=user.id+"/avatar_"+Date.now()+"."+ext;
 
    const {error:uploadError}=await db.storage.from("avatars").upload(
-    path,file,{
-     upsert:false,
-     contentType:file.type,
-     cacheControl:"3600"
-    }
+    path,file,
+    {upsert:false,contentType:file.type,cacheControl:"3600"}
    );
 
    if(uploadError)throw uploadError;
@@ -440,8 +477,28 @@ async function saveProfile(){
    newAvatarUrl=urlData?.publicUrl;
 
    if(!newAvatarUrl)throw new Error("Supabase ने Photo URL नहीं दिया।");
-
    updated.avatar_url=newAvatarUrl;
+  }
+
+  if(pendingCoverFile){
+   const file=pendingCoverFile;
+   const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+   const path=user.id+"/cover_"+Date.now()+"."+ext;
+
+   const {error:coverUploadError}=await db.storage.from("avatars").upload(
+    path,file,
+    {upsert:false,contentType:file.type,cacheControl:"3600"}
+   );
+
+   if(coverUploadError)throw coverUploadError;
+
+   const {data:coverUrlData}=db.storage.from("avatars").getPublicUrl(path);
+
+   if(!coverUrlData?.publicUrl){
+    throw new Error("Supabase ने Cover URL नहीं दिया।");
+   }
+
+   updated.cover_url=coverUrlData.publicUrl;
   }
 
   const {data,error}=await db.auth.updateUser({data:updated});
@@ -464,17 +521,25 @@ async function saveProfile(){
   if(result.error)throw result.error;
 
   profileRow={...(profileRow||{}),...values};
+
   pendingAvatarFile=null;
+  pendingCoverFile=null;
 
   if(pendingAvatarPreviewUrl){
    URL.revokeObjectURL(pendingAvatarPreviewUrl);
    pendingAvatarPreviewUrl=null;
   }
 
+  if(pendingCoverPreviewUrl){
+   URL.revokeObjectURL(pendingCoverPreviewUrl);
+   pendingCoverPreviewUrl=null;
+  }
+
   await loadProfileRow();
   renderProfile();
 
   $("photoStatus").textContent="";
+  $("coverStatus").textContent="";
   editMsg("✅ Profile सफलतापूर्वक सेव हो गई।");
 
  }catch(e){
@@ -539,7 +604,8 @@ async function emailSignup(){
  authMsg("Account बनाया जा रहा है...");
 
  const {data,error}=await db.auth.signUp({
-  email,password,
+  email,
+  password,
   options:{data:{full_name:name}}
  });
 
@@ -639,15 +705,6 @@ async function logout(){
  showAuth("आप Logout हो गए हैं।");
 }
 
-async function showMenuLinkIfExists(action,path){
- try{
-  const response=await fetch(path,{method:"HEAD",cache:"no-store"});
-  if(response.ok){
-   $("profileMenu").querySelector('[data-action="'+action+'"]').classList.remove("hidden");
-  }
- }catch(_){}
-}
-
 if(!db){
  authMsg("Supabase client नहीं मिला। supabase-config.js की जाँच करें।");
  return;
@@ -657,16 +714,12 @@ $("tabEmail").addEventListener("click",()=>{
  $("signupNameWrap").classList.remove("hidden");
  $("emailSignupButton").classList.remove("hidden");
  $("emailLoginButton").classList.remove("hidden");
- $("tabEmail").classList.add("active");
- $("tabLogin").classList.remove("active");
 });
 
 $("tabLogin").addEventListener("click",()=>{
  $("signupNameWrap").classList.add("hidden");
  $("emailSignupButton").classList.add("hidden");
  $("emailLoginButton").classList.remove("hidden");
- $("tabLogin").classList.add("active");
- $("tabEmail").classList.remove("active");
 });
 
 $("emailLoginButton").addEventListener("click",emailLogin);
@@ -675,18 +728,7 @@ $("googleLoginButton").addEventListener("click",googleLogin);
 $("verifyEmailButton").addEventListener("click",verifyEmail);
 $("resendEmailButton").addEventListener("click",resendEmail);
 $("refreshVideosButton").addEventListener("click",loadStatsAndVideos);
-
 $("profileMenuButton").addEventListener("click",toggleMenu);
-
-$("profileBackButton").addEventListener("click",()=>{
- if(history.length>1)history.back();
- else location.href="index.html";
-});
-
-$("plusProfileButton").addEventListener("click",()=>{
- location.href="index.html?openComposer=1";
-});
-
 $("editProfileButton").addEventListener("click",openEdit);
 $("closeEditButton").addEventListener("click",closeEdit);
 
@@ -695,12 +737,9 @@ $("galleryPickButton").addEventListener("click",()=>$("galleryPhoto").click());
 
 $("cameraPhoto").addEventListener("change",e=>uploadAvatar(e.target.files?.[0]));
 $("galleryPhoto").addEventListener("change",e=>uploadAvatar(e.target.files?.[0]));
+$("coverPhoto").addEventListener("change",e=>uploadCover(e.target.files?.[0]));
 
 $("saveProfileButton").addEventListener("click",saveProfile);
-
-$("openMainSettingsButton").addEventListener("click",()=>{
- location.href="settings.html";
-});
 
 $("profileMenu").addEventListener("click",e=>{
  const b=e.target.closest("[data-action]");
@@ -708,11 +747,8 @@ $("profileMenu").addEventListener("click",e=>{
 
  const action=b.dataset.action;
 
- if(action==="edit")openEdit();
- else if(action==="settings")location.href="settings.html";
+ if(action==="settings")location.href="settings.html";
  else if(action==="logout")logout();
- else if(action==="affiliate")location.href="affiliate.html";
- else if(action==="updates")location.href="app-update.html";
 });
 
 $("profileEditModal").addEventListener("click",e=>{
@@ -737,9 +773,6 @@ db.auth.onAuthStateChange((event,session)=>{
  else if(data.session?.user)await activate(data.session.user);
  else showAuth();
 })();
-
-showMenuLinkIfExists("affiliate","affiliate.html");
-showMenuLinkIfExists("updates","app-update.html");
 
 })();
 </script>
