@@ -82,7 +82,6 @@ button{cursor:pointer}
 .readonly-email{padding:13px;margin-top:7px;background:#11111a;border:1px solid var(--line);border-radius:10px;color:var(--muted);overflow-wrap:anywhere}
 .photo-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
 .loading{text-align:center;padding:40px;color:var(--muted)}
-/* Profile page पर global duplicate bottom bar छिपाएँ */
 #newstar-global-nav{display:none!important}
 body.newstar-nav-active{padding-bottom:0!important}
 @media(max-width:900px){.video-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -192,7 +191,7 @@ body.newstar-nav-active{padding-bottom:0!important}
 
       <label class="field-label">Full Name</label>
       <input id="editName" type="text" maxlength="80" placeholder="Full name">
-      <label class="field-label">Username</label>
+      <label class="field-label">Username (optional)</label>
       <input id="editUsername" type="text" maxlength="30" placeholder="username">
       <label class="field-label">Email / Gmail</label>
       <div id="editEmail" class="readonly-email">Your email</div>
@@ -224,20 +223,36 @@ body.newstar-nav-active{padding-bottom:0!important}
 (() => {
 "use strict";
 
-const db = window.supabaseClient || window.cloudClient || window.supabase || null;
-const $ = id => document.getElementById(id);
+const db=window.supabaseClient||window.cloudClient||window.supabase||null;
+const $=id=>document.getElementById(id);
 
-let currentUser = null;
-let profileRow = null;
-let currentMode = "login";
-let pendingSignupEmail = "";
-let currentAvatarUrl = "";
-let activationPromise = null;
-let activeUserId = null;
-let authListenerReady = false;
+let currentUser=null;
+let profileRow=null;
+let currentMode="login";
+let pendingSignupEmail="";
+let currentAvatarUrl="";
+let pendingAvatarFile=null;
+let previewAvatarUrl="";
+let activationPromise=null;
+let activeUserId=null;
+let authListenerReady=false;
+let originalEditValues={};
 
-const FALLBACK_AVATAR =
- "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3C/svg%3E";
+const FALLBACK_AVATAR="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3C/svg%3E";
+
+const EDIT_FIELDS={
+  full_name:"editName",
+  username:"editUsername",
+  phone:"editPhone",
+  address:"editAddress",
+  bio:"editBio",
+  website:"editWebsite",
+  facebook:"editFacebook",
+  instagram:"editInstagram",
+  youtube:"editYoutube",
+  tiktok:"editTiktok",
+  whatsapp:"editWhatsapp"
+};
 
 function showMessage(el,text,error=false){
   el.textContent=text;
@@ -303,35 +318,30 @@ async function loadProfileRow(){
 
   if(error){
     console.error("Profile table read:",error);
-    // Profile table की समस्या से Login दोबारा नहीं दिखेगा।
-    profileRow=null;
     return;
   }
   profileRow=data||null;
 }
 
 function profileValue(key){
-  return safeText(profileRow?.[key]) || safeText(getMetadata()[key]);
+  return safeText(profileRow?.[key])||safeText(getMetadata()[key]);
 }
 
 function renderProfile(){
   const meta=getMetadata();
-  const name=profileValue("full_name") ||
-    safeText(meta.name) ||
-    safeText(currentUser?.email).split("@")[0] ||
+  const name=profileValue("full_name")||
+    safeText(meta.name)||
+    safeText(currentUser?.email).split("@")[0]||
     "New Star User";
 
-  const uname=profileValue("username") || currentUser.id.slice(0,8);
+  const uname=profileValue("username")||currentUser.id.slice(0,8);
   currentAvatarUrl=profileValue("avatar_url");
 
   $("profileName").textContent=name;
   $("profileUsername").textContent="@"+cleanUsername(uname);
   $("profileBio").textContent=profileValue("bio");
   $("profileAvatar").src=currentAvatarUrl||FALLBACK_AVATAR;
-
-  $("profileAvatar").onerror=()=>{
-    $("profileAvatar").src=FALLBACK_AVATAR;
-  };
+  $("profileAvatar").onerror=()=>{$("profileAvatar").src=FALLBACK_AVATAR};
 
   const details=$("profileDetails");
   details.replaceChildren();
@@ -400,17 +410,14 @@ async function loadStatsAndVideos(){
         if(!item.video_url)return;
         const card=document.createElement("article");
         card.className="video-card";
-
         const video=document.createElement("video");
         video.src=item.video_url;
         video.controls=true;
         video.preload="metadata";
         video.playsInline=true;
-
         const caption=document.createElement("div");
         caption.className="video-caption";
         caption.textContent=safeText(item.caption)||"New Star Video";
-
         card.append(video,caption);
         grid.appendChild(card);
       });
@@ -424,7 +431,6 @@ async function loadStatsAndVideos(){
     }
   }
 
-  // Followers table में error आए तो भी profile और videos काम करते रहेंगे।
   const [followers,following]=await Promise.all([
     db.from("followers").select("*",{count:"exact",head:true})
       .eq("following_id",currentUser.id),
@@ -437,17 +443,10 @@ async function loadStatsAndVideos(){
 }
 
 async function activate(user){
-  if(!user){
-    showAuth();
-    return;
-  }
-
-  if(activationPromise && activeUserId===user.id){
-    return activationPromise;
-  }
+  if(!user){showAuth();return;}
+  if(activationPromise&&activeUserId===user.id)return activationPromise;
 
   activeUserId=user.id;
-
   activationPromise=(async()=>{
     currentUser=user;
     $("loadingSection").classList.remove("hidden");
@@ -458,123 +457,191 @@ async function activate(user){
       await loadProfileRow();
       renderProfile();
       showProfile();
-
-      try{
-        await loadStatsAndVideos();
-      }catch(videoError){
-        console.error("Video loading:",videoError);
+      try{await loadStatsAndVideos()}
+      catch(error){
+        console.error("Video loading:",error);
         $("videoGrid").textContent="Videos अभी लोड नहीं हो सके।";
       }
     }catch(error){
       console.error("Profile loading:",error);
-      // Login सफल हो चुका है; profile error पर logout/login loop नहीं होगा।
       renderProfile();
       showProfile();
       $("videoGrid").textContent="Videos अभी उपलब्ध नहीं हैं।";
     }
   })();
 
-  try{
-    await activationPromise;
-  }finally{
-    activationPromise=null;
-  }
+  try{await activationPromise}
+  finally{activationPromise=null}
+}
+
+function readEditValues(){
+  const values={};
+  Object.entries(EDIT_FIELDS).forEach(([key,id])=>{
+    values[key]=getValue(id);
+  });
+  return values;
 }
 
 function openEdit(){
   if(!currentUser)return;
-  $("editName").value=profileValue("full_name")||safeText(getMetadata().name);
-  $("editUsername").value=profileValue("username");
+
+  // हर बार एडिटर खोलने पर सर्वर से मौजूद जानकारी दिखाएँ।
+  pendingAvatarFile=null;
+  if(previewAvatarUrl){
+    URL.revokeObjectURL(previewAvatarUrl);
+    previewAvatarUrl="";
+  }
+
+  Object.entries(EDIT_FIELDS).forEach(([key,id])=>{
+    $(id).value=profileValue(key);
+  });
+
   $("editEmail").textContent=currentUser.email||"Email unavailable";
-  $("editPhone").value=profileValue("phone");
-  $("editAddress").value=profileValue("address");
-  $("editBio").value=profileValue("bio");
-  $("editWebsite").value=profileValue("website");
-  $("editFacebook").value=profileValue("facebook");
-  $("editInstagram").value=profileValue("instagram");
-  $("editYoutube").value=profileValue("youtube");
-  $("editTiktok").value=profileValue("tiktok");
-  $("editWhatsapp").value=profileValue("whatsapp");
+  $("profileAvatar").src=currentAvatarUrl||FALLBACK_AVATAR;
+  originalEditValues=readEditValues();
   clearMessage($("editMessage"));
   $("editModal").classList.remove("hidden");
 }
 
-async function writeProfileRow(rowData){
-  const updated=await db.from("profiles")
-    .update(rowData)
-    .eq("user_id",currentUser.id)
-    .select("user_id");
+/*
+  केवल बदले हुए कॉलम ही भेजे जाते हैं।
+  इससे एक फील्ड बदलने पर बाकी खाली फील्ड पुराने डेटा को नहीं मिटाएँगे।
+*/
+async function writeProfileRow(changes){
+  const rowData={...changes,user_id:currentUser.id};
 
-  if(updated.error)throw updated.error;
+  if(profileRow){
+    const updated=await db.from("profiles")
+      .update(changes)
+      .eq("user_id",currentUser.id)
+      .select("user_id");
 
-  if(!updated.data||updated.data.length===0){
-    const inserted=await db.from("profiles").insert(rowData);
-    if(inserted.error)throw inserted.error;
+    if(updated.error)throw updated.error;
+
+    if(updated.data&&updated.data.length>0)return;
   }
+
+  const inserted=await db.from("profiles").insert(rowData);
+  if(inserted.error)throw inserted.error;
+}
+
+async function uploadPendingAvatar(){
+  if(!pendingAvatarFile)return currentAvatarUrl||profileRow?.avatar_url||null;
+
+  const file=pendingAvatarFile;
+  const ext=(file.name.split(".").pop()||"jpg")
+    .toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+  const path=currentUser.id+"/avatar_"+Date.now()+"."+ext;
+
+  const upload=await db.storage.from("avatars").upload(path,file,{
+    cacheControl:"3600",
+    upsert:false,
+    contentType:file.type
+  });
+
+  if(upload.error)throw upload.error;
+
+  const publicData=db.storage.from("avatars").getPublicUrl(upload.data.path);
+  const url=publicData.data?.publicUrl;
+  if(!url)throw new Error("Could not get photo URL. Check avatars bucket.");
+
+  return url;
 }
 
 async function saveProfile(){
   if(!currentUser)return;
+
   const button=$("saveProfileBtn");
   setBusy(button,true,"Saving...","Save Profile");
   clearMessage($("editMessage"));
 
   try{
-    const uname=cleanUsername(getValue("editUsername"));
-    if(!/^[a-z0-9._]{3,30}$/.test(uname)){
-      throw new Error("Username 3–30 अक्षर का होना चाहिए। Letters, numbers, dot और underscore इस्तेमाल करें।");
+    const currentValues=readEditValues();
+    const changes={};
+
+    // केवल बदली हुई जानकारी सेव करें।
+    Object.entries(currentValues).forEach(([key,value])=>{
+      if(value!==safeText(originalEditValues[key])){
+        changes[key]=value;
+      }
+    });
+
+    // Username खाली हो सकता है; लेकिन भरा है तो उसका format जाँचें।
+    if(Object.prototype.hasOwnProperty.call(changes,"username")){
+      const uname=cleanUsername(changes.username);
+      if(uname&&!/^[a-z0-9._]{3,30}$/.test(uname)){
+        throw new Error("Username 3–30 अक्षर का होना चाहिए।");
+      }
+      changes.username=uname;
     }
 
-    const urlField=id=>{
-      const raw=getValue(id);
-      if(!raw)return "";
-      const url=safeUrl(raw);
-      if(!url)throw new Error(id+" का URL सही नहीं है। https:// से शुरू करें।");
-      return url;
-    };
+    // केवल बदले हुए URL की जाँच होगी।
+    const urlFields=["website","facebook","instagram","youtube","tiktok","whatsapp"];
+    urlFields.forEach(key=>{
+      if(!Object.prototype.hasOwnProperty.call(changes,key))return;
+      const raw=changes[key].trim();
+      if(!raw){changes[key]="";return;}
+      const valid=safeUrl(raw);
+      if(!valid)throw new Error(key+" का URL सही नहीं है। https:// से शुरू करें।");
+      changes[key]=valid;
+    });
 
-    const data={
-      user_id:currentUser.id,
-      full_name:getValue("editName"),
-      username:uname,
-      phone:getValue("editPhone"),
-      address:getValue("editAddress"),
-      bio:getValue("editBio"),
-      website:urlField("editWebsite"),
-      facebook:urlField("editFacebook"),
-      instagram:urlField("editInstagram"),
-      youtube:urlField("editYoutube"),
-      tiktok:urlField("editTiktok"),
-      whatsapp:urlField("editWhatsapp"),
-      avatar_url:currentAvatarUrl||profileRow?.avatar_url||null
-    };
+    // फोटो चुनी गई हो तो Save दबाने पर ही upload होगी।
+    if(pendingAvatarFile){
+      showMessage($("editMessage"),"Uploading selected photo...");
+      const newAvatar=await uploadPendingAvatar();
+      changes.avatar_url=newAvatar;
+    }
 
-    await writeProfileRow(data);
+    if(Object.keys(changes).length===0){
+      showMessage($("editMessage"),"कोई बदलाव नहीं किया गया है।");
+      return;
+    }
 
-    const metadata={
-      full_name:data.full_name,username:data.username,phone:data.phone,
-      address:data.address,bio:data.bio,website:data.website,
-      facebook:data.facebook,instagram:data.instagram,youtube:data.youtube,
-      tiktok:data.tiktok,whatsapp:data.whatsapp,avatar_url:data.avatar_url
-    };
+    await writeProfileRow(changes);
 
-    const authResult=await db.auth.updateUser({data:metadata});
+    // Auth metadata में भी केवल बदली हुई जानकारी sync करें।
+    const metadataChanges={};
+    Object.entries(changes).forEach(([key,value])=>{
+      metadataChanges[key]=value;
+    });
+
+    const authResult=await db.auth.updateUser({data:metadataChanges});
     if(authResult.error){
-      throw new Error("Profile सेव हुआ, लेकिन account metadata sync नहीं हुआ: "+authResult.error.message);
+      console.warn("Profile saved; metadata sync warning:",authResult.error);
+    }else if(authResult.data.user){
+      currentUser=authResult.data.user;
     }
 
-    currentUser=authResult.data.user||currentUser;
+    if(changes.avatar_url){
+      currentAvatarUrl=changes.avatar_url;
+    }
+
+    pendingAvatarFile=null;
+
+    if(previewAvatarUrl){
+      URL.revokeObjectURL(previewAvatarUrl);
+      previewAvatarUrl="";
+    }
+
     await loadProfileRow();
     renderProfile();
+
+    originalEditValues=readEditValues();
     showMessage($("editMessage"),"✅ Profile successfully saved!");
+
   }catch(error){
     console.error("Save profile:",error);
-    showMessage($("editMessage"),"Save failed: "+error.message,true);
+    showMessage($("editMessage"),"Save failed: "+(error.message||"Unknown error"),true);
   }finally{
     setBusy(button,false,"","Save Profile");
   }
 }
 
+/*
+  फोटो चुनने पर केवल local preview बनेगा।
+  Storage और Database में कोई बदलाव नहीं होगा।
+*/
 async function uploadAvatar(file){
   if(!currentUser||!file)return;
 
@@ -587,53 +654,16 @@ async function uploadAvatar(file){
     return;
   }
 
-  showMessage($("editMessage"),"Uploading profile photo...");
+  if(previewAvatarUrl)URL.revokeObjectURL(previewAvatarUrl);
 
-  try{
-    const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
-    const path=currentUser.id+"/avatar_"+Date.now()+"."+ext;
+  pendingAvatarFile=file;
+  previewAvatarUrl=URL.createObjectURL(file);
+  $("profileAvatar").src=previewAvatarUrl;
 
-    const upload=await db.storage.from("avatars").upload(path,file,{
-      cacheControl:"3600",upsert:false,contentType:file.type
-    });
-    if(upload.error)throw upload.error;
-
-    const publicData=db.storage.from("avatars").getPublicUrl(upload.data.path);
-    const url=publicData.data?.publicUrl;
-    if(!url)throw new Error("Could not get photo URL. Check avatars bucket is public.");
-
-    const rowData={
-      user_id:currentUser.id,
-      full_name:profileValue("full_name")||null,
-      username:profileValue("username")||null,
-      phone:profileValue("phone")||null,
-      address:profileValue("address")||null,
-      bio:profileValue("bio")||null,
-      website:profileValue("website")||null,
-      facebook:profileValue("facebook")||null,
-      instagram:profileValue("instagram")||null,
-      youtube:profileValue("youtube")||null,
-      tiktok:profileValue("tiktok")||null,
-      whatsapp:profileValue("whatsapp")||null,
-      avatar_url:url
-    };
-
-    await writeProfileRow(rowData);
-
-    const authUpdate=await db.auth.updateUser({
-      data:{...getMetadata(),avatar_url:url}
-    });
-    if(authUpdate.error)throw authUpdate.error;
-
-    currentUser=authUpdate.data.user||currentUser;
-    currentAvatarUrl=url;
-    await loadProfileRow();
-    renderProfile();
-    showMessage($("editMessage"),"Profile photo uploaded and saved successfully.");
-  }catch(error){
-    console.error("Avatar upload:",error);
-    showMessage($("editMessage"),"Photo upload failed: "+error.message,true);
-  }
+  showMessage(
+    $("editMessage"),
+    "Photo selected. Press Save Profile to upload and save it."
+  );
 }
 
 async function emailLogin(){
@@ -653,7 +683,7 @@ async function emailLogin(){
   }catch(error){
     showMessage($("authMessage"),error.message,true);
   }finally{
-    setBusy(button,false,"","Login");
+    setBusy(button,false,"",currentMode==="signup"?"Create Account":"Login");
   }
 }
 
@@ -749,16 +779,12 @@ async function googleLogin(){
   setBusy(button,true,"Opening Google...","🌐 Continue with Google");
 
   try{
-    // OAuth callback को हमेशा इसी profile page पर वापस लाएँ।
     const redirectTo=new URL("/profile.html",location.origin).href;
-
     const result=await db.auth.signInWithOAuth({
       provider:"google",
       options:{redirectTo}
     });
-
     if(result.error)throw result.error;
-    // OAuth में browser Google पर जाएगा; वापस आने पर Supabase session पढ़ेगा।
   }catch(error){
     showMessage($("authMessage"),"Google Login: "+error.message,true);
     setBusy(button,false,"","🌐 Continue with Google");
@@ -775,6 +801,7 @@ async function logout(){
     profileRow=null;
     activeUserId=null;
     activationPromise=null;
+    pendingAvatarFile=null;
     showAuth();
     setAuthMode("login");
   }catch(error){
@@ -789,6 +816,18 @@ function closeProfile(){
 function openSettings(){
   $("profileMenu").classList.add("hidden");
   location.href="settings.html";
+}
+
+function closeEditWithoutSaving(){
+  // एडिटर बंद करने पर चुनी हुई फोटो और बदलाव सेव नहीं होंगे।
+  pendingAvatarFile=null;
+  if(previewAvatarUrl){
+    URL.revokeObjectURL(previewAvatarUrl);
+    previewAvatarUrl="";
+  }
+  $("profileAvatar").src=currentAvatarUrl||FALLBACK_AVATAR;
+  $("editModal").classList.add("hidden");
+  clearMessage($("editMessage"));
 }
 
 function initEvents(){
@@ -817,11 +856,11 @@ function initEvents(){
 
   $("editProfileBtn").addEventListener("click",openEdit);
   $("closeProfileBtn").addEventListener("click",closeProfile);
-  $("closeEditBtn").addEventListener("click",()=>$("editModal").classList.add("hidden"));
+  $("closeEditBtn").addEventListener("click",closeEditWithoutSaving);
   $("saveProfileBtn").addEventListener("click",saveProfile);
 
   $("editModal").addEventListener("click",event=>{
-    if(event.target===$("editModal"))$("editModal").classList.add("hidden");
+    if(event.target===$("editModal"))closeEditWithoutSaving();
   });
 
   document.addEventListener("click",event=>{
@@ -833,7 +872,9 @@ function initEvents(){
   document.addEventListener("keydown",event=>{
     if(event.key==="Escape"){
       $("profileMenu").classList.add("hidden");
-      $("editModal").classList.add("hidden");
+      if(!$("editModal").classList.contains("hidden")){
+        closeEditWithoutSaving();
+      }
     }
   });
 
@@ -858,7 +899,6 @@ async function start(){
 
   initEvents();
 
-  // Listener पहले लगाएँ ताकि Google callback का SIGNED_IN event छूटे नहीं।
   if(!authListenerReady){
     authListenerReady=true;
 
@@ -873,10 +913,9 @@ async function start(){
       }
 
       if(
-        (event==="SIGNED_IN"||event==="INITIAL_SESSION"||event==="TOKEN_REFRESHED") &&
+        (event==="SIGNED_IN"||event==="INITIAL_SESSION"||event==="TOKEN_REFRESHED")&&
         sessionData?.user
       ){
-        // Callback के अंदर सीधे Supabase queries न चलाएँ।
         setTimeout(()=>activate(sessionData.user),0);
       }
 
