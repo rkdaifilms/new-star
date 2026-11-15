@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#101018">
 <title>New Star Profile</title>
 
@@ -11,26 +11,32 @@
 <script src="./supabase-config.js"></script>
 
 <style>
-:root{--bg:#101018;--panel:#191923;--panel2:#252532;--text:#f5f5fa;--muted:#a4a4b5;--line:#30303d;--accent:#8b5cf6}
+:root{
+  --bg:#101018;--panel:#191923;--panel2:#252532;
+  --text:#f5f5fa;--muted:#a4a4b5;--line:#30303d;
+  --accent:#8b5cf6;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+html,body{margin:0;min-height:100%;width:100%;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+body{overflow-x:hidden}
 button,input,textarea{font:inherit}
 button{cursor:pointer}
 .hidden{display:none!important}
-.page{width:100%;min-height:100vh;padding-bottom:40px}
+.page{width:100%;min-height:100vh;padding-bottom:20px}
 .topbar{height:58px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
 .brand{font-size:21px;font-weight:800}
 .brand span{color:#a78bfa}
 .top-actions{display:flex;align-items:center;gap:10px}
 .icon-btn{width:42px;height:42px;border:0;border-radius:50%;color:white;background:var(--panel2);font-size:23px}
 .btn{border:0;border-radius:11px;padding:12px 16px;background:var(--accent);color:white;font-weight:700}
+.btn:disabled{opacity:.6;cursor:wait}
 .btn-secondary{background:var(--panel2);border:1px solid var(--line)}
 .btn-full{width:100%;margin-top:10px}
 .google-btn{background:white;color:#222}
-.auth-wrap{max-width:460px;margin:35px auto;padding:20px}
-.auth-card{padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:17px}
+.auth-wrap{width:100%;max-width:460px;margin:0 auto;padding:24px 18px;min-height:calc(100vh - 58px);display:flex;align-items:flex-start;justify-content:center}
+.auth-card{width:100%;padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:17px;margin-top:20px}
 .auth-card h2{margin-top:0}
-.auth-card input,.edit-form input,.edit-form textarea{width:100%;padding:13px;margin:7px 0;border:1px solid var(--line);border-radius:10px;background:#11111a;color:white;outline:none}
+.auth-card input,.edit-form input,.edit-form textarea{width:100%;padding:13px;margin:7px 0;border:1px solid var(--line);border-radius:10px;background:#11111a;color:white;outline:none;min-width:0}
 .auth-card input:focus,.edit-form input:focus,.edit-form textarea:focus{border-color:var(--accent)}
 .auth-divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--muted);font-size:12px}
 .auth-divider:before,.auth-divider:after{content:"";height:1px;background:var(--line);flex:1}
@@ -39,12 +45,12 @@ button{cursor:pointer}
 .auth-tabs button.active{background:var(--accent)}
 .message{padding:11px;margin-top:12px;border-radius:10px;background:var(--panel2);font-size:13px;line-height:1.5;overflow-wrap:anywhere}
 .small-note{font-size:12px;color:var(--muted);line-height:1.5}
-.profile-cover{width:100%;height:260px;background:radial-gradient(circle at 20% 20%,#c084fc,transparent 32%),radial-gradient(circle at 80% 70%,#4f46e5,transparent 38%),linear-gradient(120deg,#17132e,#34205d,#17172b)}
-.profile-main{width:100%;padding:0 28px 22px;background:var(--panel);border-bottom:1px solid var(--line)}
-.profile-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;min-height:105px}
-.avatar{width:140px;height:140px;object-fit:cover;border-radius:50%;border:5px solid var(--panel);background:#333;margin-top:-70px;position:relative;z-index:2}
+.profile-cover{width:100%;height:230px;background:radial-gradient(circle at 20% 20%,#c084fc,transparent 32%),radial-gradient(circle at 80% 70%,#4f46e5,transparent 38%),linear-gradient(120deg,#17132e,#34205d,#17172b)}
+.profile-main{width:100%;padding:0 22px 22px;background:var(--panel);border-bottom:1px solid var(--line)}
+.profile-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;min-height:100px}
+.avatar{width:130px;height:130px;object-fit:cover;border-radius:50%;border:5px solid var(--panel);background:#333;margin-top:-65px;position:relative;z-index:2}
 .profile-actions{display:flex;align-items:center;gap:9px;padding-bottom:10px}
-.profile-name{font-size:29px;font-weight:800;margin:10px 0 4px;overflow-wrap:anywhere}
+.profile-name{font-size:27px;font-weight:800;margin:10px 0 4px;overflow-wrap:anywhere}
 .username{font-size:14px;color:var(--muted)}
 .bio{margin-top:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
 .profile-details{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
@@ -53,13 +59,13 @@ button{cursor:pointer}
 .stats{display:flex;gap:28px;flex-wrap:wrap;padding:20px 0 5px}
 .stat{font-size:13px;color:var(--muted)}
 .stat strong{color:white;font-size:18px;margin-right:4px}
-.section{width:100%;padding:24px 28px}
+.section{width:100%;padding:24px 22px}
 .section-title{font-size:21px;margin:0 0 17px}
 .video-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .video-card{min-width:0;overflow:hidden;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
 .video-card video{width:100%;display:block;aspect-ratio:9/12;object-fit:cover;background:#08080d}
 .video-caption{padding:10px;font-size:13px;overflow-wrap:anywhere}
-.empty{padding:35px 12px;text-align:center;color:var(--muted);background:var(--panel);border-radius:12px}
+.empty{padding:35px 12px;text-align:center;color:var(--muted);background:var(--panel);border-radius:12px;grid-column:1/-1}
 .menu-wrap{position:relative}
 .dropdown{position:absolute;right:0;top:49px;width:260px;background:#242431;border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 15px 40px #0009;z-index:60}
 .menu-label{color:var(--muted);font-size:11px;padding:10px 12px 4px;letter-spacing:.8px}
@@ -76,13 +82,21 @@ button{cursor:pointer}
 .readonly-email{padding:13px;margin-top:7px;background:#11111a;border:1px solid var(--line);border-radius:10px;color:var(--muted);overflow-wrap:anywhere}
 .photo-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
 .loading{text-align:center;padding:40px;color:var(--muted)}
+/* Profile page पर global duplicate bottom bar छिपाएँ */
+#newstar-global-nav{display:none!important}
+body.newstar-nav-active{padding-bottom:0!important}
 @media(max-width:900px){.video-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){
-.profile-cover{height:185px}.profile-main{padding:0 15px 18px}
-.avatar{width:112px;height:112px;margin-top:-56px}
-.profile-head{min-height:85px}.profile-name{font-size:24px}
-.section{padding:20px 13px}.video-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-.stats{gap:17px}.auth-card{padding:19px}
+ .profile-cover{height:175px}
+ .profile-main{padding:0 14px 18px}
+ .avatar{width:108px;height:108px;margin-top:-54px}
+ .profile-head{min-height:82px}
+ .profile-name{font-size:23px}
+ .section{padding:19px 12px}
+ .video-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .stats{gap:17px}
+ .auth-wrap{padding:18px 14px;min-height:calc(100vh - 58px)}
+ .auth-card{padding:19px;margin-top:10px}
 }
 </style>
 </head>
@@ -116,10 +130,10 @@ button{cursor:pointer}
       <button id="signupTab">Sign Up</button>
     </div>
     <div id="signupNameWrap" class="hidden">
-      <input id="signupName" type="text" placeholder="Your full name">
+      <input id="signupName" type="text" placeholder="Your full name" autocomplete="name">
     </div>
-    <input id="authEmail" type="email" placeholder="Email / Gmail address">
-    <input id="authPassword" type="password" placeholder="Password">
+    <input id="authEmail" type="email" placeholder="Email / Gmail address" autocomplete="email">
+    <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password">
     <button class="btn btn-full" id="emailSubmitBtn">Login</button>
     <div id="otpPanel" class="hidden">
       <div class="message">Verification code आपके ईमेल पर भेजा गया है। नीचे कोड डालें।</div>
@@ -178,40 +192,28 @@ button{cursor:pointer}
 
       <label class="field-label">Full Name</label>
       <input id="editName" type="text" maxlength="80" placeholder="Full name">
-
       <label class="field-label">Username</label>
       <input id="editUsername" type="text" maxlength="30" placeholder="username">
-
       <label class="field-label">Email / Gmail</label>
       <div id="editEmail" class="readonly-email">Your email</div>
-
       <label class="field-label">Phone Number</label>
       <input id="editPhone" type="tel" maxlength="25" placeholder="Phone number">
-
       <label class="field-label">Address</label>
       <input id="editAddress" type="text" maxlength="180" placeholder="Your address">
-
       <label class="field-label">Bio</label>
       <textarea id="editBio" maxlength="500" placeholder="Write something about yourself"></textarea>
-
       <label class="field-label">Website</label>
       <input id="editWebsite" type="url" placeholder="https://example.com">
-
       <label class="field-label">Facebook Link</label>
       <input id="editFacebook" type="url" placeholder="https://facebook.com/">
-
       <label class="field-label">Instagram Link</label>
       <input id="editInstagram" type="url" placeholder="https://instagram.com/">
-
       <label class="field-label">YouTube Link</label>
       <input id="editYoutube" type="url" placeholder="https://youtube.com/">
-
       <label class="field-label">TikTok Link</label>
       <input id="editTiktok" type="url" placeholder="https://tiktok.com/">
-
       <label class="field-label">WhatsApp Link</label>
       <input id="editWhatsapp" type="url" placeholder="https://wa.me/">
-
       <button class="btn btn-full" id="saveProfileBtn">Save Profile</button>
       <div id="editMessage" class="message hidden"></div>
     </div>
@@ -230,19 +232,22 @@ let profileRow = null;
 let currentMode = "login";
 let pendingSignupEmail = "";
 let currentAvatarUrl = "";
-let activating = false;
+let activationPromise = null;
+let activeUserId = null;
+let authListenerReady = false;
 
-const profileColumns = [
-  "user_id","username","avatar_url","bio","full_name","phone",
-  "address","website","facebook","instagram","youtube","tiktok","whatsapp"
-];
+const FALLBACK_AVATAR =
+ "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3C/svg%3E";
 
 function showMessage(el,text,error=false){
   el.textContent=text;
   el.classList.remove("hidden");
   el.style.border=error?"1px solid #ef4444":"1px solid #16a34a";
 }
-function clearMessage(el){el.textContent="";el.classList.add("hidden")}
+function clearMessage(el){
+  el.textContent="";
+  el.classList.add("hidden");
+}
 function setBusy(button,state,busyText,normalText){
   button.disabled=state;
   button.textContent=state?busyText:normalText;
@@ -275,7 +280,6 @@ function setAuthMode(mode){
 }
 
 function showAuth(){
-  currentUser=null;
   $("authSection").classList.remove("hidden");
   $("profileSection").classList.add("hidden");
   $("loadingSection").classList.add("hidden");
@@ -293,10 +297,16 @@ function showProfile(){
 async function loadProfileRow(){
   profileRow=null;
   const {data,error}=await db.from("profiles")
-    .select(profileColumns.join(","))
+    .select("*")
     .eq("user_id",currentUser.id)
     .maybeSingle();
-  if(error)throw error;
+
+  if(error){
+    console.error("Profile table read:",error);
+    // Profile table की समस्या से Login दोबारा नहीं दिखेगा।
+    profileRow=null;
+    return;
+  }
   profileRow=data||null;
 }
 
@@ -306,19 +316,22 @@ function profileValue(key){
 
 function renderProfile(){
   const meta=getMetadata();
-  const name=profileValue("full_name") || safeText(meta.name) ||
-    safeText(currentUser.email).split("@")[0] || "New Star User";
-  const uname=profileValue("username") || currentUser.id.slice(0,8);
-  const bio=profileValue("bio");
+  const name=profileValue("full_name") ||
+    safeText(meta.name) ||
+    safeText(currentUser?.email).split("@")[0] ||
+    "New Star User";
 
+  const uname=profileValue("username") || currentUser.id.slice(0,8);
   currentAvatarUrl=profileValue("avatar_url");
 
   $("profileName").textContent=name;
   $("profileUsername").textContent="@"+cleanUsername(uname);
-  $("profileBio").textContent=bio;
+  $("profileBio").textContent=profileValue("bio");
+  $("profileAvatar").src=currentAvatarUrl||FALLBACK_AVATAR;
 
-  $("profileAvatar").src=currentAvatarUrl ||
-    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3C/svg%3E";
+  $("profileAvatar").onerror=()=>{
+    $("profileAvatar").src=FALLBACK_AVATAR;
+  };
 
   const details=$("profileDetails");
   details.replaceChildren();
@@ -365,11 +378,11 @@ async function loadStatsAndVideos(){
     .order("created_at",{ascending:false});
 
   if(result.error){
-    console.error("Videos:",result.error.message);
-    grid.textContent="";
+    console.error("Videos:",result.error);
+    grid.replaceChildren();
     const err=document.createElement("div");
     err.className="empty";
-    err.textContent="Could not load videos: "+result.error.message;
+    err.textContent="Videos अभी लोड नहीं हो सके।";
     grid.appendChild(err);
     $("videoCount").textContent="0";
   }else{
@@ -387,17 +400,21 @@ async function loadStatsAndVideos(){
         if(!item.video_url)return;
         const card=document.createElement("article");
         card.className="video-card";
+
         const video=document.createElement("video");
         video.src=item.video_url;
         video.controls=true;
         video.preload="metadata";
         video.playsInline=true;
+
         const caption=document.createElement("div");
         caption.className="video-caption";
         caption.textContent=safeText(item.caption)||"New Star Video";
+
         card.append(video,caption);
         grid.appendChild(card);
       });
+
       if(!grid.children.length){
         const empty=document.createElement("div");
         empty.className="empty";
@@ -407,34 +424,60 @@ async function loadStatsAndVideos(){
     }
   }
 
+  // Followers table में error आए तो भी profile और videos काम करते रहेंगे।
   const [followers,following]=await Promise.all([
-    db.from("followers").select("*",{count:"exact",head:true}).eq("following_id",currentUser.id),
-    db.from("followers").select("*",{count:"exact",head:true}).eq("follower_id",currentUser.id)
+    db.from("followers").select("*",{count:"exact",head:true})
+      .eq("following_id",currentUser.id),
+    db.from("followers").select("*",{count:"exact",head:true})
+      .eq("follower_id",currentUser.id)
   ]);
-  $("followerCount").textContent=followers.error?"0":String(followers.count||0);
-  $("followingCount").textContent=following.error?"0":String(following.count||0);
+
+  $("followerCount").textContent=followers.error?"—":String(followers.count||0);
+  $("followingCount").textContent=following.error?"—":String(following.count||0);
 }
 
 async function activate(user){
-  if(!user)return showAuth();
-  if(activating)return;
-  activating=true;
-  try{
+  if(!user){
+    showAuth();
+    return;
+  }
+
+  if(activationPromise && activeUserId===user.id){
+    return activationPromise;
+  }
+
+  activeUserId=user.id;
+
+  activationPromise=(async()=>{
     currentUser=user;
     $("loadingSection").classList.remove("hidden");
     $("authSection").classList.add("hidden");
     $("profileSection").classList.add("hidden");
 
-    await loadProfileRow();
-    renderProfile();
-    showProfile();
-    await loadStatsAndVideos();
-  }catch(error){
-    console.error("Profile loading:",error);
-    showMessage($("authMessage"),"Profile load error: "+error.message,true);
-    showAuth();
+    try{
+      await loadProfileRow();
+      renderProfile();
+      showProfile();
+
+      try{
+        await loadStatsAndVideos();
+      }catch(videoError){
+        console.error("Video loading:",videoError);
+        $("videoGrid").textContent="Videos अभी लोड नहीं हो सके।";
+      }
+    }catch(error){
+      console.error("Profile loading:",error);
+      // Login सफल हो चुका है; profile error पर logout/login loop नहीं होगा।
+      renderProfile();
+      showProfile();
+      $("videoGrid").textContent="Videos अभी उपलब्ध नहीं हैं।";
+    }
+  })();
+
+  try{
+    await activationPromise;
   }finally{
-    activating=false;
+    activationPromise=null;
   }
 }
 
@@ -457,7 +500,6 @@ function openEdit(){
 }
 
 async function writeProfileRow(rowData){
-  // Update an existing row first. If no row exists, insert one.
   const updated=await db.from("profiles")
     .update(rowData)
     .eq("user_id",currentUser.id)
@@ -465,7 +507,7 @@ async function writeProfileRow(rowData){
 
   if(updated.error)throw updated.error;
 
-  if(!updated.data || updated.data.length===0){
+  if(!updated.data||updated.data.length===0){
     const inserted=await db.from("profiles").insert(rowData);
     if(inserted.error)throw inserted.error;
   }
@@ -507,34 +549,24 @@ async function saveProfile(){
       avatar_url:currentAvatarUrl||profileRow?.avatar_url||null
     };
 
-    // Public profile data is stored in the profiles table.
     await writeProfileRow(data);
 
-    // Also sync the same details to the signed-in user's metadata.
     const metadata={
-      full_name:data.full_name,
-      username:data.username,
-      phone:data.phone,
-      address:data.address,
-      bio:data.bio,
-      website:data.website,
-      facebook:data.facebook,
-      instagram:data.instagram,
-      youtube:data.youtube,
-      tiktok:data.tiktok,
-      whatsapp:data.whatsapp,
-      avatar_url:data.avatar_url
+      full_name:data.full_name,username:data.username,phone:data.phone,
+      address:data.address,bio:data.bio,website:data.website,
+      facebook:data.facebook,instagram:data.instagram,youtube:data.youtube,
+      tiktok:data.tiktok,whatsapp:data.whatsapp,avatar_url:data.avatar_url
     };
 
     const authResult=await db.auth.updateUser({data:metadata});
     if(authResult.error){
-      throw new Error("Profile table में जानकारी सेव हुई, लेकिन account metadata sync नहीं हुआ: "+authResult.error.message);
+      throw new Error("Profile सेव हुआ, लेकिन account metadata sync नहीं हुआ: "+authResult.error.message);
     }
 
     currentUser=authResult.data.user||currentUser;
     await loadProfileRow();
     renderProfile();
-    showMessage($("editMessage"),"✅ Profile successfully saved to Supabase!");
+    showMessage($("editMessage"),"✅ Profile successfully saved!");
   }catch(error){
     console.error("Save profile:",error);
     showMessage($("editMessage"),"Save failed: "+error.message,true);
@@ -545,6 +577,7 @@ async function saveProfile(){
 
 async function uploadAvatar(file){
   if(!currentUser||!file)return;
+
   if(!file.type||!file.type.startsWith("image/")){
     showMessage($("editMessage"),"Please select an image file.",true);
     return;
@@ -557,7 +590,7 @@ async function uploadAvatar(file){
   showMessage($("editMessage"),"Uploading profile photo...");
 
   try{
-    const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");
+    const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
     const path=currentUser.id+"/avatar_"+Date.now()+"."+ext;
 
     const upload=await db.storage.from("avatars").upload(path,file,{
@@ -567,7 +600,7 @@ async function uploadAvatar(file){
 
     const publicData=db.storage.from("avatars").getPublicUrl(upload.data.path);
     const url=publicData.data?.publicUrl;
-    if(!url)throw new Error("Could not get photo URL. Check the avatars bucket.");
+    if(!url)throw new Error("Could not get photo URL. Check avatars bucket is public.");
 
     const rowData={
       user_id:currentUser.id,
@@ -610,6 +643,7 @@ async function emailLogin(){
     showMessage($("authMessage"),"Enter your email and password.",true);
     return;
   }
+
   const button=$("emailSubmitBtn");
   setBusy(button,true,"Logging in...","Login");
   try{
@@ -627,6 +661,7 @@ async function emailSignup(){
   const name=getValue("signupName");
   const email=getValue("authEmail");
   const password=$("authPassword").value;
+
   if(!email||!password){
     showMessage($("authMessage"),"Enter your email and password.",true);
     return;
@@ -638,6 +673,7 @@ async function emailSignup(){
 
   const button=$("emailSubmitBtn");
   setBusy(button,true,"Creating account...","Create Account");
+
   try{
     const result=await db.auth.signUp({
       email,password,options:{data:{full_name:name}}
@@ -665,13 +701,16 @@ async function verifyEmailOtp(){
     showMessage($("authMessage"),"Enter your email verification code.",true);
     return;
   }
+
   const button=$("verifyOtpBtn");
   setBusy(button,true,"Verifying...","Verify Email");
+
   try{
     const result=await db.auth.verifyOtp({
       email:pendingSignupEmail,token,type:"signup"
     });
     if(result.error)throw result.error;
+
     pendingSignupEmail="";
     if(result.data.user)await activate(result.data.user);
     else{
@@ -691,6 +730,7 @@ async function resendEmailOtp(){
     showMessage($("authMessage"),"Create your account first.",true);
     return;
   }
+
   const button=$("resendOtpBtn");
   setBusy(button,true,"Sending...","Resend Code");
   try{
@@ -707,17 +747,20 @@ async function resendEmailOtp(){
 async function googleLogin(){
   const button=$("googleBtn");
   setBusy(button,true,"Opening Google...","🌐 Continue with Google");
+
   try{
+    // OAuth callback को हमेशा इसी profile page पर वापस लाएँ।
+    const redirectTo=new URL("/profile.html",location.origin).href;
+
     const result=await db.auth.signInWithOAuth({
       provider:"google",
-      options:{
-        redirectTo:location.origin+location.pathname,
-        queryParams:{prompt:"select_account"}
-      }
+      options:{redirectTo}
     });
+
     if(result.error)throw result.error;
+    // OAuth में browser Google पर जाएगा; वापस आने पर Supabase session पढ़ेगा।
   }catch(error){
-    showMessage($("authMessage"),error.message,true);
+    showMessage($("authMessage"),"Google Login: "+error.message,true);
     setBusy(button,false,"","🌐 Continue with Google");
   }
 }
@@ -727,6 +770,11 @@ async function logout(){
   try{
     const result=await db.auth.signOut();
     if(result.error)throw result.error;
+
+    currentUser=null;
+    profileRow=null;
+    activeUserId=null;
+    activationPromise=null;
     showAuth();
     setAuthMode("login");
   }catch(error){
@@ -750,8 +798,11 @@ function initEvents(){
   $("emailSubmitBtn").addEventListener("click",()=>{
     currentMode==="signup"?emailSignup():emailLogin();
   });
+
   $("authPassword").addEventListener("keydown",event=>{
-    if(event.key==="Enter")currentMode==="signup"?emailSignup():emailLogin();
+    if(event.key==="Enter"){
+      currentMode==="signup"?emailSignup():emailLogin();
+    }
   });
 
   $("googleBtn").addEventListener("click",googleLogin);
@@ -772,9 +823,13 @@ function initEvents(){
   $("editModal").addEventListener("click",event=>{
     if(event.target===$("editModal"))$("editModal").classList.add("hidden");
   });
+
   document.addEventListener("click",event=>{
-    if(!$("menuWrap").contains(event.target))$("profileMenu").classList.add("hidden");
+    if(!$("menuWrap").contains(event.target)){
+      $("profileMenu").classList.add("hidden");
+    }
   });
+
   document.addEventListener("keydown",event=>{
     if(event.key==="Escape"){
       $("profileMenu").classList.add("hidden");
@@ -785,15 +840,12 @@ function initEvents(){
   $("cameraPhotoBtn").addEventListener("click",()=>$("avatarCameraInput").click());
   $("galleryPhotoBtn").addEventListener("click",()=>$("avatarGalleryInput").click());
 
-  $("avatarCameraInput").addEventListener("change",event=>{
-    const file=event.target.files?.[0];
-    if(file)uploadAvatar(file);
-    event.target.value="";
-  });
-  $("avatarGalleryInput").addEventListener("change",event=>{
-    const file=event.target.files?.[0];
-    if(file)uploadAvatar(file);
-    event.target.value="";
+  ["avatarCameraInput","avatarGalleryInput"].forEach(id=>{
+    $(id).addEventListener("change",event=>{
+      const file=event.target.files?.[0];
+      if(file)uploadAvatar(file);
+      event.target.value="";
+    });
   });
 }
 
@@ -806,24 +858,47 @@ async function start(){
 
   initEvents();
 
+  // Listener पहले लगाएँ ताकि Google callback का SIGNED_IN event छूटे नहीं।
+  if(!authListenerReady){
+    authListenerReady=true;
+
+    db.auth.onAuthStateChange((event,sessionData)=>{
+      if(event==="SIGNED_OUT"){
+        currentUser=null;
+        profileRow=null;
+        activeUserId=null;
+        activationPromise=null;
+        showAuth();
+        return;
+      }
+
+      if(
+        (event==="SIGNED_IN"||event==="INITIAL_SESSION"||event==="TOKEN_REFRESHED") &&
+        sessionData?.user
+      ){
+        // Callback के अंदर सीधे Supabase queries न चलाएँ।
+        setTimeout(()=>activate(sessionData.user),0);
+      }
+
+      if(event==="USER_UPDATED"&&sessionData?.user){
+        currentUser=sessionData.user;
+        renderProfile();
+      }
+    });
+  }
+
   const session=await db.auth.getSession();
   if(session.error)throw session.error;
 
-  if(session.data.session)await activate(session.data.session.user);
-  else showAuth();
-
-  db.auth.onAuthStateChange((event,sessionData)=>{
-    if(event==="SIGNED_OUT"){
-      showAuth();
-    }else if(event==="SIGNED_IN"&&sessionData?.user){
-      setTimeout(()=>activate(sessionData.user),0);
-    }else if(event==="USER_UPDATED"&&sessionData?.user){
-      currentUser=sessionData.user;
-    }
-  });
+  if(session.data.session?.user){
+    await activate(session.data.session.user);
+  }else{
+    showAuth();
+  }
 }
 
 window.NewStarProfile={openEdit,logout};
+
 start().catch(error=>{
   console.error("Profile initialization:",error);
   showAuth();
