@@ -96,6 +96,8 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
 .card{background:linear-gradient(145deg,#24213eef,#141a2bf5);border:1px solid #ffffff20;box-shadow:0 12px 35px #0006,inset 0 1px #ffffff12;backdrop-filter:blur(14px)}
 #profileHero{position:relative;overflow:visible;border-radius:20px}
 .cover{background:#171725;border:1px solid #ffffff20}
+.coverEditButton{position:absolute;right:12px;bottom:12px;z-index:5;width:42px;height:42px;min-width:42px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#10101dcc;border:1px solid #ffffff66;font-size:23px;box-shadow:0 3px 12px #0008}
+.coverEditButton:active{transform:scale(.92)}
 .heroTop{position:absolute;top:10px;right:10px;z-index:10;display:flex;align-items:center;padding:0}
 .iconButton{width:40px;height:40px;min-width:40px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:22px;background:#10101dcc;border:1px solid #ffffff55;box-shadow:0 3px 12px #0007}
 .iconButton:active{transform:scale(.92)}
@@ -176,8 +178,9 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
    </div>
   </div>
 
-  <div class="cover">
+  <div class="cover" id="coverArea">
    <img id="coverImage" alt="Profile cover photo" class="hidden">
+   <button id="editCoverButton" class="coverEditButton" type="button" aria-label="Edit cover photo">✎</button>
   </div>
 
   <img id="avatar" class="avatar" alt="Profile photo">
@@ -227,34 +230,6 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
   <p id="photoStatus" class="status" role="status"></p>
 
   <hr>
-  <h3>🖼️ Cover Background Photo</h3>
-  <p class="muted">अपनी कवर फोटो चुनें। फोटो को उंगली से खींचें, दो उंगलियों से Zoom करें और नीचे दिए Controls से भी सेट करें।</p>
-
-  <div class="coverPreview" id="coverPreviewArea">
-   <img id="coverPreview" alt="Cover preview" class="hidden">
-  </div>
-
-  <div class="coverTools">
-   <label for="coverZoom">🔍 Zoom In / Out</label>
-   <input id="coverZoom" type="range" min="1" max="3.5" step="0.01" value="1">
-
-   <label for="coverMoveX">↔️ Move Left / Right</label>
-   <input id="coverMoveX" type="range" min="-50" max="50" step="1" value="0">
-
-   <label for="coverMoveY">↕️ Move Up / Down</label>
-   <input id="coverMoveY" type="range" min="-50" max="50" step="1" value="0">
-
-   <div class="toolButtons">
-    <button class="secondary" id="coverZoomOut" type="button">− छोटा</button>
-    <button class="secondary" id="coverZoomIn" type="button">＋ बड़ा</button>
-    <button class="secondary" id="coverReset" type="button">Reset</button>
-   </div>
-  </div>
-
-  <input id="coverPhoto" type="file" accept="image/*">
-  <p id="coverStatus" class="status" role="status"></p>
-
-  <hr>
   <div class="formGrid">
    <div><label for="editName">पूरा नाम</label><input id="editName" maxlength="80" placeholder="आपका नाम"></div>
    <div><label for="editUsername">Username</label><input id="editUsername" maxlength="30" placeholder="username"></div>
@@ -272,6 +247,24 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
 
   <button id="saveProfileButton" style="width:100%;margin-top:10px" type="button">💾 Save Profile</button>
   <p id="editStatus" class="status" role="status"></p>
+ </div>
+</div>
+
+<!-- COVER EDITOR: अब यह Edit Profile से अलग है -->
+<div class="modal" id="coverEditModal" aria-hidden="true">
+ <div class="modalBox">
+  <div class="modalHead">
+   <h2>🖼️ Edit Cover Photo</h2>
+   <button class="secondary" id="closeCoverEditor" type="button">✕</button>
+  </div>
+  <p class="muted">अपनी कवर फोटो चुनें। एक उँगली से फोटो खिसकाएँ और दो उँगलियों से Zoom करें।</p>
+  <button id="chooseCoverButton" type="button">＋ Choose Cover Photo</button>
+  <input id="coverPhoto" class="hidden" type="file" accept="image/*">
+  <div class="coverPreview" id="coverPreviewArea">
+   <img id="coverPreview" alt="Cover preview" class="hidden">
+  </div>
+  <p id="coverStatus" class="status" role="status"></p>
+  <button id="saveCoverButton" type="button" style="width:100%">💾 Save Cover Photo</button>
  </div>
 </div>
 
@@ -310,10 +303,6 @@ function applyCoverTransform(){
  const transform=`translate(${coverTransform.x}%,${coverTransform.y}%) scale(${coverTransform.scale})`;
  $("coverImage").style.transform=transform;
  $("coverPreview").style.transform=transform;
-
- if($("coverZoom"))$("coverZoom").value=coverTransform.scale;
- if($("coverMoveX"))$("coverMoveX").value=coverTransform.x;
- if($("coverMoveY"))$("coverMoveY").value=coverTransform.y;
 }
 
 function setCoverTransform(next){
@@ -467,16 +456,6 @@ function openEdit(){
 
  $("settingsAvatar").src=r.avatar_url||m.avatar_url||$("avatar").src;
 
- const currentCover=m.cover_url||"";
- $("coverPreview").src=currentCover;
- $("coverPreview").classList.toggle("hidden",!currentCover);
-
- coverTransform=cleanCoverTransform(m.cover_transform);
- applyCoverTransform();
-
- $("coverPhoto").value="";
- $("coverStatus").textContent="";
-
  $("profileEditModal").classList.add("show");
  $("profileEditModal").setAttribute("aria-hidden","false");
  closeMenu();
@@ -485,6 +464,44 @@ function openEdit(){
 function closeEdit(){
  $("profileEditModal").classList.remove("show");
  $("profileEditModal").setAttribute("aria-hidden","true");
+}
+
+/* COVER EDITOR */
+function openCoverEditor(){
+ if(!user)return;
+
+ const m=meta();
+
+ pendingCoverFile=null;
+
+ if(pendingCoverPreviewUrl){
+  URL.revokeObjectURL(pendingCoverPreviewUrl);
+  pendingCoverPreviewUrl=null;
+ }
+
+ const currentCover=m.cover_url||"";
+
+ if(currentCover){
+  $("coverPreview").src=currentCover;
+  $("coverPreview").classList.remove("hidden");
+ }else{
+  $("coverPreview").removeAttribute("src");
+  $("coverPreview").classList.add("hidden");
+ }
+
+ coverTransform=cleanCoverTransform(m.cover_transform);
+ applyCoverTransform();
+
+ $("coverPhoto").value="";
+ $("coverStatus").textContent="";
+
+ $("coverEditModal").classList.add("show");
+ $("coverEditModal").setAttribute("aria-hidden","false");
+}
+
+function closeCoverEditor(){
+ $("coverEditModal").classList.remove("show");
+ $("coverEditModal").setAttribute("aria-hidden","true");
 }
 
 function uploadCover(file){
@@ -509,7 +526,70 @@ function uploadCover(file){
  $("coverPreview").classList.remove("hidden");
 
  setCoverTransform({scale:1,x:0,y:0});
- $("coverStatus").textContent="Cover फोटो चुन ली गई है। Zoom और Position सेट करके Save Profile दबाएँ।";
+
+ $("coverStatus").textContent="फोटो चुन ली गई है। उँगलियों से Zoom और Position सेट करके Save Cover Photo दबाएँ।";
+}
+
+async function saveCover(){
+ if(!user)return;
+
+ if(!pendingCoverFile){
+  $("coverStatus").textContent="पहले अपनी कवर फोटो चुनें।";
+  return;
+ }
+
+ $("saveCoverButton").disabled=true;
+ $("coverStatus").textContent="कवर फोटो सेव हो रही है...";
+
+ try{
+  const file=pendingCoverFile;
+  const ext=(file.name.split(".").pop()||"jpg")
+   .toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+
+  const path=user.id+"/cover_"+Date.now()+"."+ext;
+
+  const {error:uploadError}=await db.storage.from("avatars").upload(
+   path,file,
+   {upsert:false,contentType:file.type,cacheControl:"3600"}
+  );
+
+  if(uploadError)throw uploadError;
+
+  const {data:urlData}=db.storage.from("avatars").getPublicUrl(path);
+  const coverUrl=urlData?.publicUrl;
+
+  if(!coverUrl)throw new Error("Supabase ने Cover URL नहीं दिया।");
+
+  const updated={
+   ...meta(),
+   cover_url:coverUrl,
+   cover_transform:cleanCoverTransform(coverTransform)
+  };
+
+  const {data,error}=await db.auth.updateUser({data:updated});
+  if(error)throw error;
+
+  user=data.user;
+
+  setCover(coverUrl);
+  coverTransform=cleanCoverTransform(updated.cover_transform);
+  applyCoverTransform();
+
+  pendingCoverFile=null;
+
+  if(pendingCoverPreviewUrl){
+   URL.revokeObjectURL(pendingCoverPreviewUrl);
+   pendingCoverPreviewUrl=null;
+  }
+
+  $("coverStatus").textContent="✅ Cover Photo सेव हो गई!";
+  closeCoverEditor();
+
+ }catch(e){
+  $("coverStatus").textContent="Save Error: "+e.message;
+ }finally{
+  $("saveCoverButton").disabled=false;
+ }
 }
 
 function coverPoint(event){
@@ -651,27 +731,6 @@ async function saveProfile(){
    updated.avatar_url=newAvatarUrl;
   }
 
-  if(pendingCoverFile){
-   const file=pendingCoverFile;
-   const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
-   const path=user.id+"/cover_"+Date.now()+"."+ext;
-
-   const {error:coverUploadError}=await db.storage.from("avatars").upload(
-    path,file,
-    {upsert:false,contentType:file.type,cacheControl:"3600"}
-   );
-
-   if(coverUploadError)throw coverUploadError;
-
-   const {data:coverUrlData}=db.storage.from("avatars").getPublicUrl(path);
-
-   if(!coverUrlData?.publicUrl){
-    throw new Error("Supabase ने Cover URL नहीं दिया।");
-   }
-
-   updated.cover_url=coverUrlData.publicUrl;
-  }
-
   const {data,error}=await db.auth.updateUser({data:updated});
   if(error)throw error;
 
@@ -694,23 +753,16 @@ async function saveProfile(){
   profileRow={...(profileRow||{}),...values};
 
   pendingAvatarFile=null;
-  pendingCoverFile=null;
 
   if(pendingAvatarPreviewUrl){
    URL.revokeObjectURL(pendingAvatarPreviewUrl);
    pendingAvatarPreviewUrl=null;
   }
 
-  if(pendingCoverPreviewUrl){
-   URL.revokeObjectURL(pendingCoverPreviewUrl);
-   pendingCoverPreviewUrl=null;
-  }
-
   await loadProfileRow();
   renderProfile();
 
   $("photoStatus").textContent="";
-  $("coverStatus").textContent="";
   editMsg("✅ Profile सफलतापूर्वक सेव हो गई।");
 
  }catch(e){
@@ -912,33 +964,14 @@ $("galleryPickButton").addEventListener("click",()=>$("galleryPhoto").click());
 
 $("cameraPhoto").addEventListener("change",e=>uploadAvatar(e.target.files?.[0]));
 $("galleryPhoto").addEventListener("change",e=>uploadAvatar(e.target.files?.[0]));
+
+$("editCoverButton").addEventListener("click",openCoverEditor);
+$("closeCoverEditor").addEventListener("click",closeCoverEditor);
+$("chooseCoverButton").addEventListener("click",()=>$("coverPhoto").click());
+$("saveCoverButton").addEventListener("click",saveCover);
 $("coverPhoto").addEventListener("change",e=>uploadCover(e.target.files?.[0]));
 
 $("saveProfileButton").addEventListener("click",saveProfile);
-
-$("coverZoom").addEventListener("input",e=>{
- setCoverTransform({...coverTransform,scale:Number(e.target.value)});
-});
-
-$("coverMoveX").addEventListener("input",e=>{
- setCoverTransform({...coverTransform,x:Number(e.target.value)});
-});
-
-$("coverMoveY").addEventListener("input",e=>{
- setCoverTransform({...coverTransform,y:Number(e.target.value)});
-});
-
-$("coverZoomIn").addEventListener("click",()=>{
- setCoverTransform({...coverTransform,scale:coverTransform.scale+0.15});
-});
-
-$("coverZoomOut").addEventListener("click",()=>{
- setCoverTransform({...coverTransform,scale:coverTransform.scale-0.15});
-});
-
-$("coverReset").addEventListener("click",()=>{
- setCoverTransform({scale:1,x:0,y:0});
-});
 
 $("coverPreviewArea").addEventListener("pointerdown",coverPointerDown);
 $("coverPreviewArea").addEventListener("pointermove",coverPointerMove);
@@ -961,6 +994,10 @@ $("profileEditModal").addEventListener("click",e=>{
  if(e.target===$("profileEditModal"))closeEdit();
 });
 
+$("coverEditModal").addEventListener("click",e=>{
+ if(e.target===$("coverEditModal"))closeCoverEditor();
+});
+
 document.addEventListener("click",e=>{
  if(!e.target.closest(".menuWrap"))closeMenu();
 });
@@ -969,6 +1006,7 @@ document.addEventListener("keydown",e=>{
  if(e.key==="Escape"){
   closeMenu();
   closeEdit();
+  closeCoverEditor();
  }
 });
 
