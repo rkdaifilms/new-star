@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -114,7 +115,7 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
  <b>⭐ New Star</b>
 </header>
 
-<!-- ORIGINAL LOGIN / SIGNUP / GOOGLE / EMAIL OTP SYSTEM -->
+<!-- LOGIN / SIGNUP / GOOGLE / EMAIL OTP -->
 <section id="auth" class="card">
  <h2 class="authTitle">⭐ New Star</h2>
  <p class="muted" style="text-align:center">अपने Creator Account में Login करें</p>
@@ -155,11 +156,9 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
    <div class="menuWrap">
     <button id="profileMenuButton" class="iconButton" type="button" aria-label="Profile settings" aria-expanded="false">⋮</button>
 
-    <!-- ONE PROFILE MENU: APP LINKS + ALL ACCOUNT SETTINGS -->
     <nav id="profileMenu" class="menu hidden" aria-label="Profile and app settings menu">
      <div class="menuLabel">ACCOUNT SETTINGS</div>
      <a href="settings.html">⚙️ Account Settings & Privacy</a>
-     <button type="button" data-action="edit">✏️ Edit Profile & Cover</button>
      <a href="settings.html">🔐 Password & Email Settings</a>
      <hr>
      <div class="menuLabel">NEW STAR APP</div>
@@ -287,7 +286,6 @@ const fallbackAvatar="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 let user=null,profileRow=null,busy=false,pendingEmail="";
 let pendingAvatarFile=null,pendingAvatarPreviewUrl=null,pendingCoverFile=null,pendingCoverPreviewUrl=null;
 
-/* Cover image transform is saved in Supabase Auth user metadata. */
 let coverTransform={scale:1,x:0,y:0};
 let coverPointers=new Map();
 let coverGesture=null;
@@ -514,7 +512,6 @@ function uploadCover(file){
  $("coverStatus").textContent="Cover फोटो चुन ली गई है। Zoom और Position सेट करके Save Profile दबाएँ।";
 }
 
-/* Cover drag, mouse wheel and two-finger pinch controls. */
 function coverPoint(event){
  const rect=$("coverPreviewArea").getBoundingClientRect();
  return {x:event.clientX-rect.left,y:event.clientY-rect.top};
@@ -780,7 +777,10 @@ async function emailSignup(){
  const {data,error}=await db.auth.signUp({
   email,
   password,
-  options:{data:{full_name:name}}
+  options:{
+   data:{full_name:name},
+   emailRedirectTo:new URL("./profile.html",location.href).href
+  }
  });
 
  if(error){
@@ -848,7 +848,7 @@ async function googleLogin(){
  const {error}=await db.auth.signInWithOAuth({
   provider:"google",
   options:{
-   redirectTo:location.origin+location.pathname,
+   redirectTo:new URL("./profile.html",location.href).href,
    queryParams:{prompt:"select_account"}
   }
  });
@@ -952,10 +952,7 @@ $("profileMenu").addEventListener("click",e=>{
 
  const action=b.dataset.action;
 
- if(action==="edit"){
-  closeMenu();
-  openEdit();
- }else if(action==="logout"){
+ if(action==="logout"){
   logout();
  }
 });
