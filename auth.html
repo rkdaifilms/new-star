@@ -111,7 +111,6 @@ body{
  <div id="authMessage" role="status" aria-live="polite"></div>
 </main>
 
-<!-- Auth page navigation: navbar.js इसे नहीं हटाएगा -->
 <nav class="bottom-nav">
  <a href="index.html" class="nav-item">
   <span class="icon">🏠</span><span>Home</span>
@@ -140,11 +139,11 @@ let authBusy = false;
 
 const $ = id => document.getElementById(id);
 
+/* Supabase client */
 function getAuthClient(){
  if(window.supabaseClient) return window.supabaseClient;
  if(window.cloudClient) return window.cloudClient;
 
- // navbar.js ने अभी client न बनाया हो तो यहाँ बनाओ।
  if(window.supabase && typeof window.supabase.createClient === "function"){
   const url = window.NS_SUPABASE_URL ||
    "https://uzsusgoetrkujmofxcmb.supabase.co";
@@ -159,6 +158,7 @@ function getAuthClient(){
    },
    realtime:{timeout:30000}
   });
+
   window.cloudClient = window.supabaseClient;
   return window.supabaseClient;
  }
@@ -172,27 +172,34 @@ function showMessage(message,type){
  box.className=type;
 }
 
+/* हर सफल Login का default destination Profile है। */
 function getSafeNextPage(){
  const params=new URLSearchParams(location.search);
- let next=params.get("next") || "index.html";
+ const requested=params.get("next");
 
- // केवल इसी साइट के ज्ञात पेज स्वीकार करें।
+ /* next न हो तो Profile */
+ if(!requested)return "profile.html";
+
  try{
-  const parsed=new URL(next,location.origin);
-  if(parsed.origin!==location.origin) return "index.html";
+  const parsed=new URL(requested,location.origin);
+
+  /* बाहरी वेबसाइट की अनुमति नहीं */
+  if(parsed.origin!==location.origin)return "profile.html";
 
   const page=parsed.pathname.split("/").pop();
+
   const allowed=[
    "index.html","profile.html","camera.html","upload.html",
    "wallet.html","inbox.html","settings.html",
    "monetization.html","live.html","gaming.html","campaign.html"
   ];
 
-  if(!allowed.includes(page)) return "index.html";
+  if(!allowed.includes(page))return "profile.html";
 
   return page+parsed.search+parsed.hash;
- }catch(e){
-  return "index.html";
+
+ }catch(error){
+  return "profile.html";
  }
 }
 
@@ -200,6 +207,7 @@ function goAfterLogin(){
  location.replace(getSafeNextPage());
 }
 
+/* पहले से Login Session */
 async function checkExistingSession(){
  const client=getAuthClient();
 
@@ -213,17 +221,19 @@ async function checkExistingSession(){
 
  try{
   const {data,error}=await client.auth.getSession();
-  if(error) throw error;
+  if(error)throw error;
 
-  if(data && data.session){
+  if(data?.session){
    goAfterLogin();
   }
+
  }catch(error){
   console.error("Session check:",error);
-  showMessage(error.message || "Session जाँचने में समस्या हुई।","error");
+  showMessage(error.message||"Session जाँचने में समस्या हुई।","error");
  }
 }
 
+/* Login / Signup Mode */
 function toggleAuthMode(){
  isSignupMode=!isSignupMode;
 
@@ -247,8 +257,9 @@ function toggleAuthMode(){
  $("authMessage").textContent="";
 }
 
+/* Main Authentication */
 async function handleAuthAction(){
- if(authBusy) return;
+ if(authBusy)return;
 
  const client=getAuthClient();
 
@@ -260,7 +271,7 @@ async function handleAuthAction(){
  const email=$("userEmail").value.trim();
  const password=$("userPassword").value;
 
- if(!email || !password){
+ if(!email||!password){
   showMessage("Email और Password दोनों भरें।","error");
   return;
  }
@@ -275,47 +286,61 @@ async function handleAuthAction(){
  $("actionBtn").textContent="Please wait...";
 
  try{
+
   if(isSignupMode){
+
    const {data,error}=await client.auth.signUp({
     email,
     password,
     options:{
-     emailRedirectTo:location.origin+"/index.html"
+     emailRedirectTo:new URL("./profile.html",location.href).href
     }
    });
 
-   if(error) throw error;
+   if(error)throw error;
 
    if(data.session){
-    showMessage("Account बन गया! आपका पेज खुल रहा है।","success");
-    setTimeout(goAfterLogin,700);
+    showMessage("Account बन गया! Profile खुल रहा है।","success");
+    setTimeout(goAfterLogin,500);
+
    }else{
     showMessage(
-     "Account बन गया। अपने Email में Confirmation Link खोलें, फिर Login करें।",
+     "Account बन गया। अपने Email में Confirmation Link खोलें। Verification के बाद Profile पर वापस आएँ और Login करें।",
      "success"
     );
+
     isSignupMode=false;
+
     $("formTitle").textContent="New Star Login";
     $("actionBtn").textContent="Login";
     $("toggleLinkText").textContent="Sign Up";
     $("toggleMode").firstChild.textContent="Don't have an account? ";
     $("userPassword").autocomplete="current-password";
    }
+
   }else{
+
    const {data,error}=await client.auth.signInWithPassword({
     email,
     password
    });
 
-   if(error) throw error;
-   if(!data.session) throw new Error("Login session नहीं बना।");
+   if(error)throw error;
+   if(!data.session)throw new Error("Login session नहीं बना।");
 
-   showMessage("Login सफल! आपका पेज खुल रहा है...","success");
+   showMessage("Login सफल! Profile खुल रहा है...","success");
+
    setTimeout(goAfterLogin,400);
   }
+
  }catch(error){
   console.error("Authentication error:",error);
-  showMessage("Login/Signup Error: "+(error.message || "कृपया दोबारा कोशिश करें।"),"error");
+
+  showMessage(
+   "Login/Signup Error: "+(error.message||"कृपया दोबारा कोशिश करें।"),
+   "error"
+  );
+
  }finally{
   authBusy=false;
   $("actionBtn").disabled=false;
@@ -327,7 +352,7 @@ $("actionBtn").addEventListener("click",handleAuthAction);
 $("toggleMode").addEventListener("click",toggleAuthMode);
 
 $("userPassword").addEventListener("keydown",event=>{
- if(event.key==="Enter") handleAuthAction();
+ if(event.key==="Enter")handleAuthAction();
 });
 
 checkExistingSession();
