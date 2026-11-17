@@ -85,7 +85,7 @@
       line-height: 1.5;
     }
 
-    .setting-row input {
+    .setting-row input, .setting-row select {
       width: 100%;
       margin-top: 12px;
       padding: 12px;
@@ -163,6 +163,25 @@
   </header>
 
   <main class="container">
+
+    <div class="section-title">App Language & Appearance</div>
+    <div class="panel">
+      <div class="setting-row">
+        <h3>App Language</h3>
+        <p>यह विकल्प अभी साझा Navigation को बदलता है। बाकी स्क्रीन के अनुवाद चरणबद्ध रूप से जोड़े जाएँगे।</p>
+        <select id="appLanguage" aria-label="App language">
+          <option value="hi">हिन्दी</option><option value="ne">नेपाली</option><option value="en">English</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <h3>App Colour Theme</h3>
+        <p>चुना हुआ रंग पूरे ऐप के साझा हिस्सों और समर्थित पेजों पर लागू होगा।</p>
+        <select id="appTheme" aria-label="App colour theme">
+          <option value="dark">Dark</option><option value="light">Light</option><option value="ocean">Ocean Blue</option><option value="forest">Forest Green</option>
+        </select>
+        <button id="saveAppearanceBtn">Save Appearance</button>
+      </div>
+    </div>
 
     <div class="section-title">Account</div>
 
@@ -252,6 +271,18 @@
 
       function hideMessage() {
         $("status").className = "status";
+      }
+
+      function loadAppearance(){
+        let prefs={};try{prefs=JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){}
+        $("appLanguage").value=prefs.language||"hi";
+        $("appTheme").value=prefs.theme||"dark";
+      }
+      function saveAppearance(){
+        const prefs={language:$("appLanguage").value,theme:$("appTheme").value};
+        localStorage.setItem("newstar_preferences",JSON.stringify(prefs));
+        showMessage("Language and colour preference saved. Shared navigation will update now.");
+        location.reload();
       }
 
       async function loadSettings() {
@@ -460,7 +491,7 @@
         }
       }
 
-      $("changeEmailBtn").addEventListener("click", changeEmail);
+      $("saveAppearanceBtn").addEventListener("click", saveAppearance);\n      loadAppearance();\n      $("changeEmailBtn").addEventListener("click", changeEmail);
       $("changePasswordBtn").addEventListener("click", changePassword);
       $("saveProfileBtn").addEventListener("click", savePersonalInformation);
       $("logoutBtn").addEventListener("click", logout);
