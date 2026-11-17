@@ -771,6 +771,11 @@ async function publishVideo() {
 }
 $("publishButton").onclick = publishVideo;
 
+/* Deep links used by the global + Create menu. */
+const createRoute=location.hash.toLowerCase();
+if(createRoute==="#camera")setTimeout(()=>openCamera(),120);
+if(createRoute==="#gallery")setTimeout(()=>$("videoInput").click(),180);
+
 /* Cleanup */
 window.addEventListener("beforeunload",() => {
  clearCameraRecordingTimers();
