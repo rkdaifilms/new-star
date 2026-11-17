@@ -34,6 +34,10 @@
         );
     }
 
+    // Expose only the public project configuration for resumable browser uploads.
+    window.NEWSTAR_SUPABASE_URL = SUPABASE_URL;
+    window.NEWSTAR_SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+
     // Make client available to every connected page
     window.supabaseClient = client;
     window.cloudClient = client;
