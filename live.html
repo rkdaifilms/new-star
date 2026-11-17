@@ -402,28 +402,19 @@
         }
 
         function sendLiveComment() {
-            let input = document.getElementById('liveCommentInput');
-            let text = input.value.trim();
-            if(!text) return;
-            
-            let area = document.getElementById('liveChatScrollArea');
-            area.innerHTML += `<div><b style="color:#fe2c55;">${currentCreatorName}:</b> ${text}</div>`;
-            input.value = '';
-            area.scrollTop = area.scrollHeight;
+            alert('यह केवल कैमरा Preview है। Live comments किसी viewer को नहीं भेजे जाते और सेव नहीं होते।');
         }
 
         function handleLiveChatKey(e) { if (e.key === 'Enter') { sendLiveComment(); } }
 
         function sendLiveLike() {
-            likePoints += 1;
-            document.getElementById('likePointsCount').innerText = likePoints;
-            if(isPkActive) { myPkPoints += 5; document.getElementById('myPkScore').innerText = myPkPoints; }
+            alert('अभी कोई live broadcast या viewer session नहीं है।');
         }
 
-        function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
-        function openTreasureModal() { document.getElementById('treasureModal').style.display = 'flex'; }
-        function openPkBattleModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
-        function openModSettingsModal() { document.getElementById('modSettingsModal').style.display = 'flex'; }
+        function openRealGiftModal() { alert('Gifts unavailable. No coins were spent.'); }
+        function openTreasureModal() { alert('Prize features unavailable. No coins were added.'); }
+        function openPkBattleModal() { alert('PK matchmaking is not connected.'); }
+        function openModSettingsModal() { alert('Moderator roles are not connected to server permissions.'); }
 
         function startGlobalPkSearch() {
             closeModal('pkBattleModal');
