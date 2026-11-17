@@ -279,7 +279,7 @@ async function loadFeed(){
  $("loading").style.display="flex";$("empty").style.display="none";
  if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला।");return;}
  try{
-  const type=null; // Mixed batch; classify by duration locally.
+  const type=currentCategory==="Shorts"||currentCategory==="Reels"?"short":currentCategory==="Long Videos"?"long":null;
   const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
   const {data,error}=await db.rpc("get_recommended_video_feed",{p_limit:50,p_offset:0,p_video_type:type,p_category:category});
   if(error)throw error;
