@@ -261,7 +261,7 @@ function getVideoAspect(item){
    let ratioLabel=width+":"+height;
    if(Math.abs(ratio-(9/16))<0.035)ratioLabel="9:16";
    else if(Math.abs(ratio-(16/9))<0.08)ratioLabel="16:9";
-   finish({width,height,ratio,orientation,ratioLabel});
+   finish({width,height,duration:Number(probe.duration)||0,ratio,orientation,ratioLabel});
   };
   probe.onerror=()=>finish(null);
   probe.src=url;
@@ -276,6 +276,19 @@ function videoModeLabel(info){
  if(info.orientation==="portrait")return "Shorts · "+info.ratioLabel;
  if(info.orientation==="landscape")return "Long Video · "+info.ratioLabel;
  return "Square / Other · "+info.ratioLabel;
+}
+
+async function hydrateFeedVideoMetadata(){
+ await Promise.all(videos.map(async item=>{
+  if(Number(item.duration_seconds)>0&&Number(item.width)>0&&Number(item.height)>0)return;
+  try{
+   const info=await getVideoAspect(item);
+   if(!info||!info.duration)return;
+   item.duration_seconds=Math.ceil(info.duration);
+   item.width=info.width;item.height=info.height;
+   item.video_type=info.duration<=60?"short":"long";
+  }catch(error){console.warn("Video metadata:",item.id,error);}
+ }));
 }
 
 async function loadLikes(){
@@ -294,11 +307,13 @@ async function loadFeed(){
  $("loading").style.display="flex";$("empty").style.display="none";
  if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला।");return;}
  try{
-  const type=currentCategory==="Shorts"||currentCategory==="Reels"?"short":currentCategory==="Long Videos"?"long":null;
+  // Load the unfiltered feed first: older videos may have no duration/type columns yet.
+  const type=null;
   const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
   const {data,error}=await db.rpc("get_recommended_video_feed",{p_limit:50,p_offset:0,p_video_type:type,p_category:category});
   if(error)throw error;
   videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+  await hydrateFeedVideoMetadata();
   await loadLikes();await applyFilters();
  }catch(error){
   console.error("Feed error:",error);
@@ -309,6 +324,7 @@ async function loadFeed(){
     .order("created_at",{ascending:false}).range(0,49);
    if(fallbackError)throw fallbackError;
    videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+   await hydrateFeedVideoMetadata();
    await loadLikes();await applyFilters();
   }catch(fallbackError){console.error("Feed fallback:",fallbackError);showEmpty("वीडियो लोड नहीं हुए। Feed/RLS जाँचें।");}
  }finally{$("loading").style.display="none";}
