@@ -244,6 +244,7 @@
 
     overlay.innerHTML = `
       <div id="newstar-menu-panel">
+        <a href="index.html">🎬 Videos / Home Feed</a>
         <a href="camera.html">📷 Camera / Create / Upload</a>
         <a href="profile.html">👤 My Profile</a>
         <a href="settings.html">⚙️ Settings & Privacy</a>
