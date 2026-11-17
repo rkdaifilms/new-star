@@ -201,6 +201,34 @@ async function loadThreads(){
  item.innerHTML='<span class="user-left"><img class="list-avatar" src="'+esc(avatarOf(p))+'"><span class="list-info"><h4>'+esc(nameOf(p))+'</h4><p>'+esc(m.body||"Media message")+'</p></span></span><small class="muted">'+esc(new Date(m.created_at).toLocaleDateString())+'</small>';
  item.onclick=()=>openChat(peer,p);host.appendChild(item);}
 }
+async function loadSocialList(tab){
+ const host=tab==="followers"?$("tabFollowers"):$("tabFollowing");
+ host.textContent="Loading…";
+ const column=tab==="followers"?"follower_id":"following_id";
+ const filterColumn=tab==="followers"?"following_id":"follower_id";
+ const {data,error}=await db.from("followers").select(column).eq(filterColumn,me.id).order("created_at",{ascending:false}).limit(200);
+ if(error){host.textContent="List load नहीं हुई: "+error.message;return;}
+ const ids=[...new Set((data||[]).map(row=>row[column]).filter(Boolean))];
+ if(!ids.length){host.textContent=tab==="followers"?"अभी आपका कोई follower नहीं है।":"आप अभी किसी creator को follow नहीं करते।";return;}
+ const {data:profiles,error:profileError}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").in("user_id",ids);
+ if(profileError){host.textContent="Creator profiles लोड नहीं हुईं: "+profileError.message;return;}
+ const map=new Map((profiles||[]).map(profile=>[profile.user_id,profile]));
+ host.replaceChildren();
+ for(const id of ids){
+  const profile=map.get(id)||{user_id:id,username:"New Star User"};
+  const item=document.createElement("button");
+  item.type="button";item.className="list-item";
+  item.style.cssText="width:100%;background:transparent;color:white;border:0;text-align:left";
+  const left=document.createElement("span");left.className="user-left";
+  const avatar=document.createElement("img");avatar.className="list-avatar";avatar.src=avatarOf(profile);avatar.alt="";
+  const info=document.createElement("span");info.className="list-info";
+  const title=document.createElement("h4");title.textContent=nameOf(profile);
+  const bio=document.createElement("p");bio.textContent=profile.bio||"New Star Creator";
+  info.append(title,bio);left.append(avatar,info);item.appendChild(left);
+  item.addEventListener("click",()=>openChat(id,profile));
+  host.appendChild(item);
+ }
+}
 async function openChat(peer,p){
  activePeer=peer;$("activeChatName").textContent=nameOf(p);$("activeChatAvatar").src=avatarOf(p);
  const {data:existing}=await db.from("messages").select("conversation_id,created_at").or("and(sender_id.eq."+me.id+",recipient_id.eq."+peer+"),and(sender_id.eq."+peer+",recipient_id.eq."+me.id+")").order("created_at",{ascending:false}).limit(1);
@@ -240,7 +268,12 @@ window.sendMessage=async function(){
 };
 window.closeChat=function(){$("chatBoxWindow").style.display="none";activePeer=null;activeConversation=null;};
 window.handleKeyPress=e=>{if(e.key==="Enter"){e.preventDefault();window.sendMessage();}};
-window.switchTab=function(tab,el){document.querySelectorAll(".inbox-tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");["messages","followers","following"].forEach(t=>{$("tab"+t[0].toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";});};
+window.switchTab=function(tab,el){
+ document.querySelectorAll(".inbox-tab").forEach(x=>x.classList.remove("active"));
+ el.classList.add("active");
+ ["messages","followers","following"].forEach(t=>{$("tab"+t[0].toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";});
+ if(tab==="followers"||tab==="following")loadSocialList(tab);
+};
 window.startVoiceRecording=function(){setStatus("Voice message recording is not connected yet. No fake recording will be sent.");};
 window.sendMediaFile=function(e){setStatus("Media upload is not connected yet. Please send text until secure Storage upload is added.");e.target.value="";};
 window.showProfile=function(name,avatar,bio){$("popupName").textContent=name;$("popupAvatar").src=avatar||fallback;$("popupBio").textContent=bio||"";$("profilePopup").style.display="flex";};
