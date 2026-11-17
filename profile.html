@@ -424,6 +424,29 @@ async function loadStatsAndVideos(){
   $("followingCount").textContent=fg.error?"—":String(fg.count??0);
 
   const videos=vr.data||[];
+  await Promise.all(videos.map(async item=>{
+   if(Number(item.duration_seconds)>0&&Number(item.width)>0&&Number(item.height)>0)return;
+   try{
+    const probe=document.createElement("video");
+    probe.preload="metadata";probe.muted=true;
+    await new Promise((resolve,reject)=>{
+     const timer=setTimeout(()=>reject(new Error("metadata timeout")),12000);
+     probe.onloadedmetadata=()=>{clearTimeout(timer);resolve();};
+     probe.onerror=()=>{clearTimeout(timer);reject(new Error("metadata unavailable"));};
+     probe.src=item.video_url;probe.load();
+    });
+    const duration=Number(probe.duration)||0,width=Number(probe.videoWidth)||0,height=Number(probe.videoHeight)||0;
+    probe.removeAttribute("src");probe.load();
+    if(duration>0&&width>0&&height>0){
+     item.duration_seconds=Math.ceil(duration);item.width=width;item.height=height;
+     item.video_type=duration<=60?"short":"long";
+     const {error:metadataSaveError}=await db.from("videos").update({
+      duration_seconds:item.duration_seconds,width,height,video_type:item.video_type
+     }).eq("id",item.id).eq("user_id",user.id);
+     if(metadataSaveError)console.warn("Profile video metadata not saved:",metadataSaveError.message);
+    }
+   }catch(error){console.warn("Profile video metadata unavailable:",item.id,error);}
+  }));
   $("videoCount").textContent=String(videos.length);
 
   if(!videos.length){
