@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inbox & Direct Messages</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
     
     <!-- 📱 PWA MANIFEST & APP INSTALL LINK -->
     <link rel="manifest" href="manifest.json">
@@ -166,9 +168,9 @@ function nameOf(p){return p?.full_name||p?.username||"New Star User";}
 function avatarOf(p){return p?.avatar_url||fallback;}
 function setStatus(s){const el=$("inboxStatus");if(el)el.textContent=s;}
 async function boot(){
- if(!db){setStatus("Supabase connection unavailable.");return;}
+ if(!db){setStatus("Supabase SDK/config लोड नहीं हुआ। इंटरनेट और supabase-config.js जाँचें।");$("tabMessages").textContent="Inbox कनेक्शन उपलब्ध नहीं है। पेज Reload करें।";return;}
  const {data:{user},error}=await db.auth.getUser();
- if(error||!user){location.href="auth.html?next=inbox.html";return;}me=user;
+ if(error||!user){setStatus("Login session नहीं मिली। Login पेज खोला जा रहा है…");location.href="auth.html?next=inbox.html";return;}me=user;
  const {data:mine}=await db.from("profiles").select("username,full_name,avatar_url").eq("user_id",me.id).maybeSingle();
  $("inboxUserName").textContent=nameOf(mine);$("inboxUserPic").src=avatarOf(mine);
  $("tabFollowers").innerHTML='<p class="muted">Follower list will appear here when the follow tables are connected.</p>';
@@ -228,7 +230,7 @@ window.openChatFromPopup=function(){closeProfilePopup();};
 window.showProfileFromChat=function(){};
 window.openChat=async function(name,avatar){const {data}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").eq("username",name).maybeSingle();if(data)openChat(data.user_id,data);};
 window.toggleFollow=function(){setStatus("Follow action is not enabled until follow/unfollow server policy is connected.");};
-window.onload=()=>{boot().catch(e=>setStatus(e.message));};
+window.onload=()=>{boot().catch(e=>{console.error("Inbox boot:",e);setStatus("Inbox लोड नहीं हुआ: "+(e.message||"Unknown error"));$("tabMessages").textContent="Messages अभी लोड नहीं हो सके। Refresh करके फिर कोशिश करें।";});};
 })();
 </script>
 </body>
