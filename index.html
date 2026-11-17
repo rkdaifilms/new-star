@@ -279,7 +279,7 @@ async function loadFeed(){
  $("loading").style.display="flex";$("empty").style.display="none";
  if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला।");return;}
  try{
-  const type=currentCategory==="Shorts"||currentCategory==="Reels"?"short":currentCategory==="Long Videos"?"long":null;
+  const type=null; // Mixed batch; classify by duration locally.
   const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
   const {data,error}=await db.rpc("get_recommended_video_feed",{p_limit:50,p_offset:0,p_video_type:type,p_category:category});
   if(error)throw error;
@@ -317,8 +317,9 @@ async function applyFilters(){
   if(keyword&&!text.includes(keyword))return false;
   if(currentCategory==="Following"||currentCategory==="Friends")return followingIds.includes(String(v.user_id));
   if(currentCategory==="Live")return false;
-  if(currentCategory==="Shorts"||currentCategory==="Reels")return v.video_type==="short"||(v.height&&v.width&&v.height>v.width);
-  if(currentCategory==="Long Videos")return v.video_type==="long"||(v.height&&v.width&&v.width>=v.height);
+  const duration=Number(v.duration_seconds)||0;
+   if(currentCategory==="Shorts"||currentCategory==="Reels")return duration>0&&duration<=60;
+  if(currentCategory==="Long Videos")return Number(v.duration_seconds)>60;
   if(["For You","Discover"].includes(currentCategory))return true;
   return String(v.category||"").toLowerCase().includes(currentCategory.toLowerCase());
  });
@@ -380,9 +381,8 @@ function renderVideo(){
   let ratioLabel=width&&height?width+":"+height:"Unknown";
   if(ratio&&Math.abs(ratio-(9/16))<0.035)ratioLabel="9:16";
   else if(ratio&&Math.abs(ratio-(16/9))<0.08)ratioLabel="16:9";
-  let mode="Other Video";
-  if(ratio&&ratio<0.95)mode="Shorts";
-  else if(ratio&&ratio>1.05)mode="Long Video";
+  const duration=Number(currentVideo.duration_seconds)||Number(player.duration)||0;
+  const mode=duration>0&&duration<=60?"Shorts":duration>60?"Long Video":"Video";
   $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode+" · "+ratioLabel+" · "+width+"×"+height;
  };
  player.src=currentVideo.video_url;
@@ -390,7 +390,7 @@ function renderVideo(){
  player.play().then(()=>startWatchSession(renderingId)).catch(()=>{$("playHint").style.display="block";});
  player.onended=()=>{if(currentUser&&activeWatchSession)db.rpc("end_video_watch_session",{p_session_id:activeWatchSession,p_position_seconds:Number(player.currentTime||0)});};
  const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
- player.style.objectFit=currentVideo.video_type==="short"?"cover":"contain";
+ player.style.objectFit=(Number(currentVideo.duration_seconds)||0)<=60?"cover":"contain";
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
  $("caption").textContent=currentVideo.caption||"";
