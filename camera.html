@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -47,6 +48,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .status{background:#101014;border:1px solid #444;padding:10px;border-radius:8px;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
 .progress{width:100%;accent-color:#25f4ee}
 #cameraVideo{width:100%;max-height:55vh;background:#000}
+#cameraTimer{margin-top:8px;color:#25f4ee;font-weight:bold;text-align:center}
 </style>
 </head>
 <body>
@@ -55,7 +57,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
  <div class="card" style="text-align:center;padding:22px 15px">
   <div style="font-size:40px">🎬</div>
   <h2>New Star Video Studio</h2>
-  <p>Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें।</p>
+  <p>Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें। अधिकतम वीडियो अवधि 10 मिनट है।</p>
   <button class="primary" id="openCameraBtn">🎥 Open Camera Studio</button>
   <button class="secondary" id="galleryBtn">📁 Select Gallery Video</button>
   <input id="videoInput" type="file" accept="video/*" class="hidden">
@@ -71,6 +73,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
  <div class="card">
   <h3>🎥 Camera Studio</h3>
   <video id="cameraVideo" autoplay muted playsinline></video>
+  <p id="cameraTimer">Maximum recording time: 10:00</p>
   <div class="row">
    <button class="primary" id="recordBtn">⏺ Record</button>
    <button class="secondary" id="stopRecordBtn" disabled>■ Stop</button>
@@ -223,6 +226,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 const $ = id => document.getElementById(id);
 const db = window.supabaseClient || window.cloudClient;
 const video = $("editorVideo");
+const MAX_VIDEO_SECONDS = 600;
 
 let selectedVideoFile = null;
 let videoObjectUrl = null;
@@ -230,6 +234,9 @@ let cameraStream = null;
 let cameraRecorder = null;
 let cameraChunks = [];
 let cameraFacing = "user";
+let cameraTimerInterval = null;
+let cameraStopTimeout = null;
+let cameraStartedAt = 0;
 let voiceRecorder = null;
 let voiceStream = null;
 let voiceChunks = [];
@@ -260,6 +267,57 @@ function openPanel(id) {
  closePanels();
  $(id).classList.remove("hidden");
  setTimeout(() => $(id).scrollIntoView({behavior:"smooth",block:"nearest"}),80);
+}
+function formatClock(seconds) {
+ const total = Math.max(0,Math.floor(seconds));
+ const minutes = Math.floor(total/60);
+ const secs = total%60;
+ return String(minutes).padStart(2,"0")+":"+String(secs).padStart(2,"0");
+}
+function getRatioLabel(width,height) {
+ if(!width||!height)return "Unknown";
+ const ratio=width/height;
+ if(Math.abs(ratio-(9/16))<0.035)return "9:16";
+ if(Math.abs(ratio-(16/9))<0.08)return "16:9";
+ return width+":"+height+" (Original)";
+}
+function getVideoMode(width,height) {
+ if(!width||!height)return "Unknown";
+ const ratio=width/height;
+ if(ratio<0.90)return "Vertical Shorts";
+ if(ratio>1.10)return "Landscape Long Video";
+ return "Square / Other Video";
+}
+function readVideoMetadata(file) {
+ return new Promise((resolve,reject)=>{
+  const probe=document.createElement("video");
+  const objectUrl=URL.createObjectURL(file);
+  let finished=false;
+  const timer=setTimeout(()=>finish(new Error("वीडियो की जानकारी पढ़ने में समय लग गया।")),15000);
+  function finish(error,data) {
+   if(finished)return;
+   finished=true;
+   clearTimeout(timer);
+   probe.onloadedmetadata=null;
+   probe.onerror=null;
+   probe.removeAttribute("src");
+   probe.load();
+   URL.revokeObjectURL(objectUrl);
+   if(error)reject(error);
+   else resolve(data);
+  }
+  probe.preload="metadata";
+  probe.onloadedmetadata=()=>{
+   finish(null,{
+    duration:Number(probe.duration),
+    width:probe.videoWidth,
+    height:probe.videoHeight
+   });
+  };
+  probe.onerror=()=>finish(new Error("यह Video Format Browser में नहीं चल रहा।"));
+  probe.src=objectUrl;
+  probe.load();
+ });
 }
 async function requireUser() {
  if (!db) throw new Error("Supabase Client नहीं मिला। supabase-config.js जाँचें।");
@@ -319,11 +377,28 @@ $("switchCameraBtn").onclick = async () => {
  await startCameraStream();
 };
 $("backCameraBtn").onclick = () => {
+ if(cameraRecorder?.state==="recording")cameraRecorder.stop();
  stopCameraStream();
  screen("sourceScreen");
 };
 
-/* Recording */
+/* Recording: hard stop at 10 minutes */
+function clearCameraRecordingTimers() {
+ if(cameraTimerInterval)clearInterval(cameraTimerInterval);
+ if(cameraStopTimeout)clearTimeout(cameraStopTimeout);
+ cameraTimerInterval=null;
+ cameraStopTimeout=null;
+}
+function updateCameraTimer() {
+ if(!cameraStartedAt)return;
+ const elapsed=Math.min(MAX_VIDEO_SECONDS,Math.floor((Date.now()-cameraStartedAt)/1000));
+ const remaining=Math.max(0,MAX_VIDEO_SECONDS-elapsed);
+ $("cameraTimer").textContent="Recording: "+formatClock(elapsed)+" / 10:00 · Remaining "+formatClock(remaining);
+ if(remaining<=0&&cameraRecorder?.state==="recording") {
+  toast("10 मिनट पूरे हो गए। Recording अपने-आप बंद हो रही है।");
+  cameraRecorder.stop();
+ }
+}
 $("recordBtn").onclick = () => {
  if (!cameraStream) { toast("पहले Camera चालू करें।"); return; }
  if (!window.MediaRecorder) { toast("इस Browser में Recording समर्थित नहीं है।"); return; }
@@ -337,35 +412,47 @@ $("recordBtn").onclick = () => {
   cameraRecorder.ondataavailable = e => { if (e.data.size) cameraChunks.push(e.data); };
   cameraRecorder.onerror = () => toast("Recording Error");
   cameraRecorder.onstop = async () => {
+   clearCameraRecordingTimers();
    const blob = new Blob(cameraChunks,{type:cameraRecorder.mimeType || "video/webm"});
    stopCameraStream();
    $("recordBtn").disabled = false;
    $("stopRecordBtn").disabled = true;
+   $("cameraTimer").textContent="Recording stopped. Maximum allowed duration: 10:00";
    if (blob.size) {
     try {
      await loadVideo(new File([blob],"camera-recording.webm",{type:blob.type}));
-    } catch(error) { toast(error.message); }
+    } catch(error) { toast(error.message); screen("sourceScreen"); }
    }
   };
   cameraRecorder.start(1000);
+  cameraStartedAt=Date.now();
   $("recordBtn").disabled = true;
   $("stopRecordBtn").disabled = false;
-  toast("Recording शुरू हो गई।");
- } catch(error) { toast("Recording शुरू नहीं हुई: " + error.message); }
+  updateCameraTimer();
+  cameraTimerInterval=setInterval(updateCameraTimer,1000);
+  cameraStopTimeout=setTimeout(()=>{
+   if(cameraRecorder?.state==="recording")cameraRecorder.stop();
+  },MAX_VIDEO_SECONDS*1000);
+  toast("Recording शुरू हो गई। अधिकतम समय 10 मिनट है।");
+ } catch(error) { clearCameraRecordingTimers();toast("Recording शुरू नहीं हुई: " + error.message); }
 };
 $("stopRecordBtn").onclick = () => {
  if (cameraRecorder?.state === "recording") cameraRecorder.stop();
 };
 
-/* Load Video */
+/* Load Video: inspect metadata before opening Editor */
 async function loadVideo(file) {
  if (!file || !file.type.startsWith("video/")) throw new Error("कृपया सही Video File चुनें।");
+ const metadata=await readVideoMetadata(file);
+ if(!Number.isFinite(metadata.duration)||metadata.duration<=0)throw new Error("वीडियो की अवधि पढ़ी नहीं जा सकी।");
+ if(metadata.duration>MAX_VIDEO_SECONDS+0.05) {
+  throw new Error("वीडियो 10 मिनट से बड़ा है। कृपया 10 मिनट या उससे छोटा वीडियो चुनें।");
+ }
  if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
  selectedVideoFile = file;
  videoObjectUrl = URL.createObjectURL(file);
- video.src = videoObjectUrl;
- screen("editorScreen");
  closePanels();
+ screen("editorScreen");
  await new Promise((resolve,reject) => {
   const cleanup = () => {
    video.removeEventListener("loadedmetadata",ok);
@@ -375,6 +462,7 @@ async function loadVideo(file) {
   const bad = () => { cleanup(); reject(new Error("यह Video Format Browser में नहीं चल रहा।")); };
   video.addEventListener("loadedmetadata",ok,{once:true});
   video.addEventListener("error",bad,{once:true});
+  video.src=videoObjectUrl;
   video.load();
  });
  $("trimStart").value = 0;
@@ -514,10 +602,16 @@ function inspectVideo() {
  if (!selectedVideoFile) return;
  const file = selectedVideoFile;
  const safeName = String(file.name || "Video").replace(/[&<>"']/g,"");
+ const width=video.videoWidth;
+ const height=video.videoHeight;
+ const duration=Number.isFinite(video.duration)?video.duration:0;
  $("videoInfo").innerHTML =
-  "Resolution: " + video.videoWidth + " × " + video.videoHeight +
-  "<br>Duration: " + (Number.isFinite(video.duration) ? video.duration.toFixed(1) : "Unknown") +
-  " sec<br>File Size: " + (file.size / 1048576).toFixed(2) +
+  "Resolution: " + width + " × " + height +
+  "<br>Aspect Ratio: " + getRatioLabel(width,height) +
+  "<br>Video Mode: " + getVideoMode(width,height) +
+  "<br>Duration: " + duration.toFixed(1) +
+  " sec<br>Maximum Allowed: 600 sec (10 minutes)" +
+  "<br>File Size: " + (file.size / 1048576).toFixed(2) +
   " MB<br>Format: " + (file.type || "Unknown") + "<br>Name: " + safeName;
 }
 $("inspectButton").onclick = inspectVideo;
@@ -576,6 +670,10 @@ async function publishVideo() {
   if (!selectedVideoFile.type.startsWith("video/")) throw new Error("सही Video File चुनें।");
   if (selectedVideoFile.size <= 0) throw new Error("Video File खाली है।");
 
+  const mediaInfo=await readVideoMetadata(selectedVideoFile);
+  if(!Number.isFinite(mediaInfo.duration)||mediaInfo.duration<=0)throw new Error("वीडियो की अवधि पढ़ी नहीं जा सकी।");
+  if(mediaInfo.duration>MAX_VIDEO_SECONDS+0.05)throw new Error("10 मिनट से बड़ा वीडियो Publish नहीं हो सकता।");
+
   const title = $("videoTitle").value.trim();
   const description = $("videoDescription").value.trim();
   const category = $("videoCategory").value;
@@ -602,7 +700,7 @@ async function publishVideo() {
    Date.now() + "-" + Math.random().toString(36).slice(2);
   const filePath = user.id + "/" + uniqueName + "." + ext;
 
-  status.textContent = "वीडियो Supabase Storage में Upload हो रहा है...";
+  status.textContent = "वीडियो ("+getVideoMode(mediaInfo.width,mediaInfo.height)+", "+getRatioLabel(mediaInfo.width,mediaInfo.height)+") Supabase Storage में Upload हो रहा है...";
   const {error:uploadError} = await db.storage.from("videos").upload(filePath,selectedVideoFile,{
    cacheControl:"3600",upsert:false,contentType:selectedVideoFile.type || "video/" + ext
   });
@@ -648,6 +746,7 @@ $("publishButton").onclick = publishVideo;
 
 /* Cleanup */
 window.addEventListener("beforeunload",() => {
+ clearCameraRecordingTimers();
  stopCameraStream();
  if (voiceStream) voiceStream.getTracks().forEach(track => track.stop());
  if (voiceRecorder?.state === "recording") voiceRecorder.stop();
