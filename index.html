@@ -457,6 +457,15 @@ async function loadComments(videoId){
  }catch(error){console.error("Comments:",error);list.textContent="Comments लोड नहीं हुए।";}
 }
 
+function getPreferredSpeechLocale(){
+ try{
+  const appLocale=window.NewStarI18n?.getLocale?.();
+  const saved=localStorage.getItem("newstar_voice_input_language");
+  const locale=appLocale||((saved&&saved!=="device")?saved:null)||navigator.languages?.[0]||navigator.language||"en-US";
+  const aliases={hi:"hi-IN",ne:"ne-NP",en:"en-US",bn:"bn-BD",ur:"ur-PK",ar:"ar-SA",zh:"zh-CN",ja:"ja-JP",ko:"ko-KR",es:"es-ES",fr:"fr-FR",de:"de-DE",pt:"pt-BR",ru:"ru-RU",it:"it-IT",tr:"tr-TR",id:"id-ID",ms:"ms-MY",th:"th-TH",vi:"vi-VN",ta:"ta-IN",te:"te-IN",mr:"mr-IN",gu:"gu-IN",pa:"pa-IN",nl:"nl-NL",sw:"sw-KE",fil:"fil-PH",fa:"fa-IR"};
+  return aliases[locale]||locale;
+ }catch(error){return navigator.language||"en-US";}
+}
 let commentRecognition=null,commentVoiceActive=false;
 function setCommentMicState(active){
  commentVoiceActive=active;
@@ -485,7 +494,7 @@ function toggleCommentVoice(){
  const baseText=input.value.trim();
  const recognition=new SpeechRecognition();
  commentRecognition=recognition;
- recognition.lang="hi-IN";
+ recognition.lang=getPreferredSpeechLocale();
  recognition.continuous=false;
  recognition.interimResults=true;
  recognition.onresult=event=>{
@@ -676,7 +685,7 @@ $("search").addEventListener("input",()=>{
 $("voice").addEventListener("click",()=>{
  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SpeechRecognition){showToast("इस Browser में Voice Search उपलब्ध नहीं है।");return;}
- const recognition=new SpeechRecognition();recognition.lang="hi-IN";recognition.interimResults=false;
+ const recognition=new SpeechRecognition();recognition.lang=getPreferredSpeechLocale();recognition.interimResults=false;
  recognition.onresult=event=>{$("search").value=event.results[0][0].transcript;applyFilters();};
  recognition.onerror=()=>showToast("Voice Search काम नहीं कर पाया।");
  recognition.start();
