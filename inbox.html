@@ -97,20 +97,15 @@
 
     <!-- Inbox Tabs -->
     <div class="inbox-tabs">
-        <div class="inbox-tab active" onclick="switchTab('messages', this)">Messages (2)</div>
-        <div class="inbox-tab" onclick="switchTab('followers', this)">Followers (3)</div>
-        <div class="inbox-tab" onclick="switchTab('following', this)">Following (2)</div>
+        <div class="inbox-tab active" onclick="switchTab('messages', this)">Messages</div>
+        <div class="inbox-tab" onclick="switchTab('followers', this)">Followers</div>
+        <div class="inbox-tab" onclick="switchTab('following', this)">Following</div>
     </div>
 
     <!-- Tab 1: Messages List -->
     <div class="list-container" id="tabMessages">
-        <div class="list-item" onclick="openChat('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', 'Bhai video bahut mast banaya hai! 🔥')">
-            <div class="user-left">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="list-avatar" onclick="event.stopPropagation(); showProfile('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', '@priyance_official | Creator & Dancer')">
-                <div class="list-info">
-                    <h4 onclick="event.stopPropagation(); showProfile('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', '@priyance_official | Creator & Dancer')">Priyance Official</h4>
-                    <p>Bhai video bahut mast banaya hai! 🔥</p>
-                </div>
+        <div class="empty-state">No messages yet. Real conversations will appear here when someone messages you.</div>
+    </div>
             </div>
             <span style="font-size:11px; color:#777;">10:45 AM</span>
         </div>
@@ -129,13 +124,8 @@
 
     <!-- Tab 2: Followers List -->
     <div class="list-container" id="tabFollowers" style="display:none;">
-        <div class="list-item">
-            <div class="user-left" onclick="showProfile('Anjali Dance Hub', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200', '@anjali_dance | Started following you')">
-                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200" class="list-avatar">
-                <div class="list-info">
-                    <h4>Anjali Dance Hub</h4>
-                    <p>Started following you • 2m ago</p>
-                </div>
+        <div class="empty-state">No verified follower activity to show yet.</div>
+    </div>
             </div>
             <button class="action-tag-btn" onclick="toggleFollow(this)">Follow Back</button>
         </div>
@@ -154,13 +144,8 @@
 
     <!-- Tab 3: Following List -->
     <div class="list-container" id="tabFollowing" style="display:none;">
-        <div class="list-item">
-            <div class="user-left" onclick="showProfile('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', '@priyance_official')">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="list-avatar">
-                <div class="list-info">
-                    <h4>Priyance Official</h4>
-                    <p>You are following this creator</p>
-                </div>
+        <div class="empty-state">Creators you follow will appear here.</div>
+    </div>
             </div>
             <button class="action-tag-btn following" onclick="toggleFollow(this)">Following</button>
         </div>
