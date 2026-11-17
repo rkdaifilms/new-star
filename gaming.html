@@ -352,6 +352,22 @@
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         
+
+        // Safety overrides: never claim a broadcast, gift, reward, or PK is live/paid
+        // until real server-side streaming and transaction systems are connected.
+        function startProGamingStream() {
+            alert('Screen capture is not a live broadcast. New Star gaming broadcast is unavailable until server streaming is connected. No stream was started.');
+        }
+        function sendRealGift() {
+            alert('Gifts are temporarily unavailable. No coins were deducted.');
+        }
+        function claimTreasureReward() {
+            alert('Rewards are unavailable until verified server-side prize claims are connected. No coins were added.');
+        }
+        function startPkBattle() {
+            alert('PK Battle is unavailable until real matchmaking and remote participants are connected.');
+        }
+
         function stopGameStreamSession() {
             if(screenStreamObj) screenStreamObj.getTracks().forEach(t => t.stop());
             if(facecamStreamObj) facecamStreamObj.getTracks().forEach(t => t.stop());
