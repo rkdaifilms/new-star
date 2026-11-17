@@ -62,7 +62,7 @@ header{height:58px;padding:9px 14px;background:#191920;display:flex;align-items:
 .videoCard video{display:block;width:100%;height:auto;max-height:420px;aspect-ratio:auto;object-fit:contain;background:#000;border-radius:8px}
 .videoFormat{display:block;color:#25f4ee;font-size:11px;margin:7px 2px 2px}
 .videoCard p{overflow-wrap:anywhere;font-size:13px;margin:7px 2px}
-.videoCard small{color:#aaa}
+.videoCard small{color:#aaa}.videoCardTop{display:flex;justify-content:space-between;align-items:center;gap:8px}.videoCardMenuWrap{position:relative}.videoCardMenuButton{padding:4px 10px;background:#30303a;border:1px solid #555;font-size:20px}.videoCardMenu{display:none;position:absolute;right:0;top:34px;z-index:20;width:170px;background:#252530;border:1px solid #555;border-radius:10px;padding:5px}.videoCardMenu.open{display:block}.videoCardMenu button{display:block;width:100%;text-align:left;padding:10px;background:transparent;font-size:12px}.videoCardMenu .danger{color:#ff9aaa}
 .modal{position:fixed;inset:0;background:#000d;z-index:100;display:none;overflow:auto;padding:12px}
 .modal.show{display:block}
 .modalBox{width:100%;max-width:600px;margin:12px auto;background:#20202a;border:1px solid #484854;border-radius:16px;padding:16px}
@@ -211,6 +211,8 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
  <p id="profileStatus" class="status"></p>
 </main>
 
+<div class="modal" id="videoEditModal" aria-hidden="true"><div class="modalBox"><div class="modalHead"><h2>Edit Video Details</h2><button class="secondary" id="closeVideoEdit" type="button">✕</button></div><label for="editVideoCaption">Title / Description / Hashtags</label><textarea id="editVideoCaption" rows="6" maxlength="4000"></textarea><p id="videoEditStatus" class="status"></p><div class="row"><button class="secondary" id="cancelVideoEdit" type="button">Cancel</button><button id="saveVideoEdit" type="button">Save Changes</button></div></div></div>
+
 <div class="modal" id="profileEditModal" aria-hidden="true">
  <div class="modalBox">
   <div class="modalHead">
@@ -277,7 +279,7 @@ const $=id=>document.getElementById(id);
 const db=window.supabaseClient||window.cloudClient||(typeof supabaseClient!=="undefined"?supabaseClient:null);
 const fallbackAvatar="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23333344'/%3E%3Ctext x='50%25' y='60%25' text-anchor='middle' font-size='48' fill='white'%3E%u263A%3C/text%3E%3C/svg%3E";
 
-let user=null,profileRow=null,busy=false,pendingEmail="";
+let user=null,profileRow=null,busy=false,pendingEmail="",editingVideo=null;
 let pendingAvatarFile=null,pendingAvatarPreviewUrl=null,pendingCoverFile=null,pendingCoverPreviewUrl=null;
 
 let coverTransform={scale:1,x:0,y:0};
@@ -398,9 +400,9 @@ async function loadStatsAndVideos(){
  $("videoGrid").replaceChildren();
 
  try{
-  const [vr,fr,fg]=await Promise.all([
-   db.from("videos").select("id,user_id,video_url,caption,created_at")
-    .eq("user_id",user.id).order("created_at",{ascending:false}),
+  let vr=await db.from("videos").select("id,user_id,video_url,caption,created_at,video_type").eq("user_id",user.id).order("created_at",{ascending:false});
+  if(vr.error&&/video_type/i.test(vr.error.message||""))vr=await db.from("videos").select("id,user_id,video_url,caption,created_at").eq("user_id",user.id).order("created_at",{ascending:false});
+  const [fr,fg]=await Promise.all([
    db.from("followers").select("id",{count:"exact",head:true})
     .eq("following_id",user.id),
    db.from("followers").select("id",{count:"exact",head:true})
@@ -451,13 +453,16 @@ async function loadStatsAndVideos(){
     format.textContent="Video load नहीं हुआ";
    });
 
-   const caption=document.createElement("p");
-   caption.textContent=item.caption||"Video";
-
-   const date=document.createElement("small");
-   date.textContent=item.created_at?new Date(item.created_at).toLocaleString():"";
-
-   card.append(video,format,caption,date);
+   const caption=document.createElement("p");caption.textContent=item.caption||"Video";
+   const top=document.createElement("div");top.className="videoCardTop";
+   const date=document.createElement("small");date.textContent=item.created_at?new Date(item.created_at).toLocaleString():"";
+   const wrap=document.createElement("div");wrap.className="videoCardMenuWrap";
+   const menuBtn=document.createElement("button");menuBtn.type="button";menuBtn.className="videoCardMenuButton";menuBtn.textContent="⋮";
+   const menu=document.createElement("div");menu.className="videoCardMenu";
+   const edit=document.createElement("button");edit.type="button";edit.textContent="Edit title / hashtags";edit.onclick=()=>{closeVideoMenus();openVideoEdit(item);};
+   const del=document.createElement("button");del.type="button";del.className="danger";del.textContent="Delete video";del.onclick=()=>{closeVideoMenus();deleteVideoPost(item,del);};
+   menu.append(edit,del);menuBtn.onclick=e=>{e.stopPropagation();const was=menu.classList.contains("open");closeVideoMenus();if(!was)menu.classList.add("open");};
+   wrap.append(menuBtn,menu);top.append(date,wrap);card.append(top,video,format,caption);
    $("videoGrid").append(card);
   });
 
@@ -472,6 +477,11 @@ async function loadStatsAndVideos(){
  }
 }
 
+function closeVideoMenus(){document.querySelectorAll(".videoCardMenu.open").forEach(x=>x.classList.remove("open"));}
+function openVideoEdit(item){if(!user||String(item.user_id)!==String(user.id))return;editingVideo=item;$("editVideoCaption").value=item.caption||"";$("videoEditStatus").textContent="";$("videoEditModal").classList.add("show");}
+function closeVideoEdit(){$("videoEditModal").classList.remove("show");editingVideo=null;}
+async function saveVideoEdit(){if(!user||!editingVideo)return;const caption=$("editVideoCaption").value.trim();if(!caption){$("videoEditStatus").textContent="Caption खाली नहीं हो सकता।";return;}const b=$("saveVideoEdit");b.disabled=true;try{const {error}=await db.from("videos").update({caption}).eq("id",editingVideo.id).eq("user_id",user.id);if(error)throw error;closeVideoEdit();await loadStatsAndVideos();}catch(e){$("videoEditStatus").textContent="Update Error: "+e.message;}finally{b.disabled=false;}}
+async function deleteVideoPost(item,button){if(!user||String(item.user_id)!==String(user.id))return;if(!confirm("क्या यह वीडियो पोस्ट हटानी है?"))return;button.disabled=true;try{const {error}=await db.from("videos").delete().eq("id",item.id).eq("user_id",user.id);if(error)throw error;await loadStatsAndVideos();}catch(e){$("videoStatus").textContent="Delete Error: "+e.message;button.disabled=false;}}
 function openEdit(){
  if(!user)return;
 
@@ -988,6 +998,8 @@ $("resendEmailButton").addEventListener("click",resendEmail);
 $("refreshVideosButton").addEventListener("click",loadStatsAndVideos);
 
 $("profileMenuButton").addEventListener("click",toggleMenu);
+$("closeVideoEdit").addEventListener("click",closeVideoEdit);$("cancelVideoEdit").addEventListener("click",closeVideoEdit);$("saveVideoEdit").addEventListener("click",saveVideoEdit);
+$("videoEditModal").addEventListener("click",e=>{if(e.target===$("videoEditModal"))closeVideoEdit();});
 $("editProfileButton").addEventListener("click",openEdit);
 $("closeEditButton").addEventListener("click",closeEdit);
 
@@ -1030,9 +1042,7 @@ $("coverEditModal").addEventListener("click",e=>{
  if(e.target===$("coverEditModal"))closeCoverEditor();
 });
 
-document.addEventListener("click",e=>{
- if(!e.target.closest(".menuWrap"))closeMenu();
-});
+document.addEventListener("click",e=>{if(!e.target.closest(".menuWrap"))closeMenu();if(!e.target.closest(".videoCardMenuWrap"))closeVideoMenus();});
 
 document.addEventListener("keydown",e=>{
  if(e.key==="Escape"){
