@@ -230,7 +230,15 @@ window.openChatFromPopup=function(){closeProfilePopup();};
 window.showProfileFromChat=function(){};
 window.openChat=async function(name,avatar){const {data}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").eq("username",name).maybeSingle();if(data)openChat(data.user_id,data);};
 window.toggleFollow=function(){setStatus("Follow action is not enabled until follow/unfollow server policy is connected.");};
-window.onload=()=>{boot().catch(e=>{console.error("Inbox boot:",e);setStatus("Inbox लोड नहीं हुआ: "+(e.message||"Unknown error"));$("tabMessages").textContent="Messages अभी लोड नहीं हो सके। Refresh करके फिर कोशिश करें।";});};
+function startInboxBoot(){
+ boot().catch(e=>{
+  console.error("Inbox boot:",e);
+  setStatus("Inbox लोड नहीं हुआ: "+(e?.message||"Unknown error"));
+  $("tabMessages").textContent="Messages अभी लोड नहीं हो सके। Refresh करके फिर कोशिश करें।";
+ });
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",startInboxBoot,{once:true});
+else startInboxBoot();
 })();
 </script>
 </body>
