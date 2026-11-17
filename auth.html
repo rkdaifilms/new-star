@@ -45,6 +45,13 @@ body{
  font-size:15px;cursor:pointer;margin-top:8px
 }
 .auth-btn:disabled{opacity:.55;cursor:not-allowed}
+.auth-alt{background:#24242b;border:1px solid #444;color:#fff;margin-top:10px}
+.auth-divider{display:flex;align-items:center;gap:10px;color:#777;font-size:11px;margin:18px 0}
+.auth-divider:before,.auth-divider:after{content:"";height:1px;background:#333;flex:1}
+.phone-auth{border-top:1px solid #292929;margin-top:16px;padding-top:14px}
+.phone-auth p{font-size:12px;color:#999;line-height:1.5;margin-bottom:10px}
+.phone-auth .input-group{margin-bottom:10px}
+.otp-hidden{display:none}
 .toggle-text{
  text-align:center;margin-top:20px;font-size:13px;color:#aaa;
  cursor:pointer
@@ -104,7 +111,25 @@ body{
   Login
  </button>
 
- <div class="toggle-text" id="toggleMode">
+ <div class="auth-divider">OR</div>
+  <button class="auth-btn auth-alt" id="googleAuthBtn" type="button">Continue with Google</button>
+  <section class="phone-auth" aria-label="Phone verification">
+   <p>Phone OTP Login · देश का कोड सहित नंबर लिखें, जैसे +977…। OTP केवल इसी ऐप में दर्ज करें; किसी से साझा न करें।</p>
+   <div class="input-group">
+    <label for="phoneNumber">Phone Number</label>
+    <input type="tel" id="phoneNumber" inputmode="tel" autocomplete="tel" placeholder="+97798XXXXXXXX">
+   </div>
+   <button class="auth-btn auth-alt" id="sendOtpBtn" type="button">Send SMS OTP</button>
+   <div class="otp-hidden" id="otpVerifyArea">
+    <div class="input-group" style="margin-top:12px">
+     <label for="phoneOtp">SMS Verification Code</label>
+     <input type="text" id="phoneOtp" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter code">
+    </div>
+    <button class="auth-btn" id="verifyOtpBtn" type="button">Verify Phone & Login</button>
+   </div>
+  </section>
+
+  <div class="toggle-text" id="toggleMode">
   Don't have an account? <span id="toggleLinkText">Sign Up</span>
  </div>
 
@@ -293,7 +318,7 @@ async function handleAuthAction(){
     email,
     password,
     options:{
-     emailRedirectTo:new URL("./profile.html",location.href).href
+     emailRedirectTo:new URL(getSafeNextPage(),location.href).href
     }
    });
 
@@ -348,8 +373,68 @@ async function handleAuthAction(){
  }
 }
 
+let otpPendingPhone = "";
+
+async function signInWithGoogle(){
+ const client=getAuthClient();
+ if(!client){showMessage("Supabase connection उपलब्ध नहीं है।","error");return;}
+ const button=$("googleAuthBtn");button.disabled=true;
+ try{
+  const redirectTo=new URL(getSafeNextPage(),location.href).href;
+  const {error}=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo}});
+  if(error)throw error;
+ }catch(error){
+  showMessage("Google Login शुरू नहीं हुआ: "+(error.message||"कृपया दोबारा कोशिश करें।"),"error");
+  button.disabled=false;
+ }
+}
+
+async function sendPhoneOtp(){
+ if(authBusy)return;
+ const phone=$("phoneNumber").value.trim();
+ const digits=phone.replace(/\D/g,"");
+ if(!phone.startsWith("+")||digits.length<8||digits.length>15){
+  showMessage("Phone number international format में लिखें, जैसे +97798XXXXXXXX।","error");return;
+ }
+ const client=getAuthClient();
+ if(!client){showMessage("Supabase connection उपलब्ध नहीं है।","error");return;}
+ authBusy=true;$("sendOtpBtn").disabled=true;
+ try{
+  const {error}=await client.auth.signInWithOtp({phone,options:{shouldCreateUser:true}});
+  if(error)throw error;
+  otpPendingPhone=phone;
+  $("otpVerifyArea").classList.remove("otp-hidden");
+  showMessage("SMS OTP भेजने का अनुरोध सफल रहा। कोड केवल इसी ऐप में दर्ज करें।","success");
+ }catch(error){
+  showMessage("OTP नहीं भेजा गया: "+(error.message||"SMS provider setup जाँचें।"),"error");
+ }finally{authBusy=false;$("sendOtpBtn").disabled=false;}
+}
+
+async function verifyPhoneOtp(){
+ if(authBusy)return;
+ const token=$("phoneOtp").value.trim();
+ if(!otpPendingPhone||!/^[0-9]{4,8}$/.test(token)){
+  showMessage("सही SMS verification code दर्ज करें।","error");return;
+ }
+ const client=getAuthClient();
+ if(!client){showMessage("Supabase connection उपलब्ध नहीं है।","error");return;}
+ authBusy=true;$("verifyOtpBtn").disabled=true;
+ try{
+  const {data,error}=await client.auth.verifyOtp({phone:otpPendingPhone,token,type:"sms"});
+  if(error)throw error;
+  if(!data?.session)throw new Error("Phone session नहीं बनी।");
+  showMessage("Phone verification सफल। ऐप खुल रहा है…","success");
+  setTimeout(goAfterLogin,400);
+ }catch(error){
+  showMessage("Phone verification नहीं हुई: "+(error.message||"Code जाँचें।"),"error");
+ }finally{authBusy=false;$("verifyOtpBtn").disabled=false;}
+}
+
 $("actionBtn").addEventListener("click",handleAuthAction);
 $("toggleMode").addEventListener("click",toggleAuthMode);
+$("googleAuthBtn").addEventListener("click",signInWithGoogle);
+$("sendOtpBtn").addEventListener("click",sendPhoneOtp);
+$("verifyOtpBtn").addEventListener("click",verifyPhoneOtp);
 
 $("userPassword").addEventListener("keydown",event=>{
  if(event.key==="Enter")handleAuthAction();
