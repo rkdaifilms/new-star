@@ -211,6 +211,7 @@
         <a href="wallet.html">💰 Wallet</a>
         <a href="inbox.html">✉️ Inbox</a>
         <a href="monetization.html">💎 Monetization</a>
+         <a href="admin.html">🛡️ Admin</a>
         <a href="live.html">🔴 Live</a>
         <a href="gaming.html">🎮 Gaming</a>
         <div class="menu-divider"></div>
@@ -338,6 +339,7 @@
       { page: "wallet.html", icon: "💰", label: "Wallet" },
       { page: "camera.html", icon: "+", label: "Create", plus: true },
       { page: "inbox.html", icon: "✉️", label: "Inbox" },
+      { page: "admin.html", icon: "🛡️", label: "Admin" },
       { page: "profile.html", icon: "👤", label: "Profile" }
     ];
 
