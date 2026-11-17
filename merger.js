@@ -1,7 +1,5 @@
-const STORAGE_API_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
-const STORAGE_API_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
-const { createClient } = window.supabase;
-const cloudClient = createClient(STORAGE_API_URL, STORAGE_API_KEY);
+// Reuse the one shared authenticated Supabase client configured by supabase-config.js.
+const cloudClient = window.supabaseClient || window.cloudClient || null;
 
 let selectedVideoFile = null;
 let finalMergedVideoBlob = null;
@@ -152,38 +150,151 @@ function stopDirectCameraRecording() {
 }
 
 async function publishVideoToGlobalCloudStorage() {
-    let titleInput = document.getElementById('videoCaptionInput');
-    let descInput = document.getElementById('videoDescriptionInput');
-    
-    let titleText = titleInput ? titleInput.value.trim() : 'Viral Video';
-    let descriptionText = descInput ? descInput.value.trim() : '';
+    const db = window.supabaseClient || window.cloudClient || cloudClient;
+    const titleInput = document.getElementById('videoCaptionInput');
+    const descInput = document.getElementById('videoDescriptionInput');
+    const titleText = titleInput ? titleInput.value.trim() : '';
+    const descriptionText = descInput ? descInput.value.trim() : '';
+    const source = finalMergedVideoBlob || selectedVideoFile;
 
-    if(!finalMergedVideoBlob) {
-        showToast('⚠️ वीडियो नहीं मिला!');
+    if (!db?.auth || !db?.storage) {
+        showToast('Supabase connection उपलब्ध नहीं है।');
+        return;
+    }
+    if (!source || !source.size) {
+        showToast('वीडियो फ़ाइल नहीं मिली।');
+        return;
+    }
+    const mimeType = String(source.type || '').toLowerCase().split(';')[0].trim();
+    if (!mimeType.startsWith('video/')) {
+        showToast('वीडियो का सही MIME type नहीं मिला। दोबारा वीडियो चुनें।');
         return;
     }
 
-    showToast('🚀 क्लाउड पर अपलोड हो रहा है...');
-
+    let uploadedPath = null;
+    let databaseSaved = false;
     try {
-        let fileName = 'global_merged_' + Date.now() + '.mp4';
-        let { error: uploadError } = await cloudClient.storage
-            .from('videos')
-            .upload(fileName, finalMergedVideoBlob, { cacheControl: '3600', upsert: true });
+        const { data: authData, error: authError } = await db.auth.getUser();
+        if (authError) throw authError;
+        const user = authData?.user;
+        if (!user) {
+            location.href = 'auth.html?next=camera.html';
+            return;
+        }
 
-        if (uploadError) throw new Error(uploadError.message);
+        const extensionByMime = {
+            'video/mp4': 'mp4',
+            'video/webm': 'webm',
+            'video/quicktime': 'mov',
+            'video/3gpp': '3gp',
+            'video/x-m4v': 'm4v'
+        };
+        const extension = extensionByMime[mimeType] ||
+            ((source.name || '').split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!extension) throw new Error('इस वीडियो फ़ॉर्मेट का extension पहचाना नहीं गया।');
 
-        let { data: urlData } = cloudClient.storage.from('videos').getPublicUrl(fileName);
-        let publicVideoUrl = urlData ? urlData.publicUrl : '';
+        const objectUrl = URL.createObjectURL(source);
+        let mediaInfo;
+        try {
+            mediaInfo = await new Promise((resolve, reject) => {
+                const probe = document.createElement('video');
+                probe.preload = 'metadata';
+                probe.muted = true;
+                const timeout = setTimeout(() => reject(new Error('वीडियो की जानकारी पढ़ने में समय समाप्त हुआ।')), 15000);
+                const cleanup = () => {
+                    clearTimeout(timeout);
+                    probe.onloadedmetadata = null;
+                    probe.onerror = null;
+                    probe.removeAttribute('src');
+                    probe.load();
+                };
+                probe.onloadedmetadata = () => {
+                    const info = {
+                        duration: Number(probe.duration) || 0,
+                        width: Number(probe.videoWidth) || 0,
+                        height: Number(probe.videoHeight) || 0
+                    };
+                    cleanup();
+                    if (!info.duration || !info.width || !info.height) {
+                        reject(new Error('वीडियो metadata अधूरा है।'));
+                    } else resolve(info);
+                };
+                probe.onerror = () => {
+                    cleanup();
+                    reject(new Error('यह वीडियो इस ब्राउज़र में पढ़ा नहीं जा सका।'));
+                };
+                probe.src = objectUrl;
+                probe.load();
+            });
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
 
-        await cloudClient.from('videos').insert([
-            { video_url: publicVideoUrl, caption: titleText, description: descriptionText, likes_count: 15 }
-        ]);
+        if (mediaInfo.duration > 10800) throw new Error('3 घंटे से लंबा वीडियो अभी समर्थित नहीं है।');
+        const fileId = typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : Date.now() + '-' + Math.random().toString(36).slice(2);
+        const filePath = user.id + '/' + fileId + '.' + extension;
+        const { error: uploadError } = await db.storage.from('videos').upload(
+            filePath,
+            source,
+            { cacheControl: '3600', upsert: false, contentType: mimeType }
+        );
+        if (uploadError) throw uploadError;
+        uploadedPath = filePath;
 
-        showToast('✨ सफलतापूर्वक पब्लिश हो गया!');
-        setTimeout(() => { window.location.href = 'profile.html'; }, 1000);
-    } catch(err) {
-        showToast('❌ Error: ' + err.message);
+        const { data: urlData } = db.storage.from('videos').getPublicUrl(filePath);
+        const publicVideoUrl = urlData?.publicUrl;
+        if (!publicVideoUrl) throw new Error('वीडियो का public URL नहीं मिला।');
+
+        let username = user.user_metadata?.username ||
+            user.user_metadata?.full_name || user.email?.split('@')[0] || 'New Star Creator';
+        try {
+            const { data: profile } = await db.from('profiles')
+                .select('username,full_name').eq('user_id', user.id).maybeSingle();
+            if (profile) username = profile.username || profile.full_name || username;
+        } catch (profileError) {
+            console.warn('Profile name lookup skipped:', profileError);
+        }
+
+        const caption = [titleText, descriptionText].filter(Boolean).join('\\n\\n') || 'New Star Video';
+        const categoryInput = document.getElementById('videoCategory');
+        const audienceInput = document.getElementById('audienceType');
+        const payload = {
+            user_id: user.id,
+            video_url: publicVideoUrl,
+            caption,
+            category: categoryInput?.value || 'General',
+            username: String(username),
+            likes_count: 0,
+            views_count: 0,
+            audience_type: audienceInput?.value || 'all',
+            duration_seconds: Math.ceil(mediaInfo.duration),
+            width: mediaInfo.width,
+            height: mediaInfo.height,
+            video_type: mediaInfo.duration <= 60 ? 'short' : 'long',
+            processing_status: 'published',
+            visibility: 'public'
+        };
+        const { data: inserted, error: insertError } = await db.from('videos')
+            .insert(payload).select('id').single();
+        if (insertError) throw new Error('Database Insert: ' + insertError.message);
+        if (!inserted?.id) throw new Error('Database से Video ID नहीं मिली।');
+
+        databaseSaved = true;
+        showToast('वीडियो सफलतापूर्वक Publish हो गया!');
+        setTimeout(() => { window.location.href = 'index.html?video=' + encodeURIComponent(inserted.id); }, 800);
+    } catch (err) {
+        console.error('Publish Error:', err);
+        if (uploadedPath && !databaseSaved) {
+            try {
+                const { error: cleanupError } = await db.storage.from('videos').remove([uploadedPath]);
+                if (cleanupError) console.warn('Storage cleanup:', cleanupError);
+            } catch (cleanupError) {
+                console.warn('Storage cleanup failed:', cleanupError);
+            }
+        }
+        showToast('Publish नहीं हुआ: ' + (err?.message || 'कृपया दोबारा कोशिश करें।'));
     }
 }
 
