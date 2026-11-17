@@ -740,7 +740,7 @@ async function publishVideo() {
   const payload = {
    user_id:user.id,video_url:videoUrl,caption,category,username:String(username),
    likes_count:0,views_count:0,affiliate_link:affiliate || null,audience_type:audience,
-   duration_seconds:Math.round(mediaInfo.duration),width:mediaInfo.width,height:mediaInfo.height,
+   duration_seconds:Math.ceil(mediaInfo.duration),width:mediaInfo.width,height:mediaInfo.height,
    video_type:videoType,processing_status:"published",visibility:"public"
   };
   const {data:inserted,error:insertError} = await db.from("videos")
