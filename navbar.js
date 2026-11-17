@@ -426,37 +426,39 @@
   async function start() {
     if (authPages.includes(currentPage)) return;
 
-    if (!db?.auth) {
-      console.error("New Star: Supabase client नहीं मिला।");
-      return;
-    }
+    // Navigation is a public UI layer: render it even if Auth is temporarily
+    // unavailable. A missing client must not make the menu disappear on Home.
+    applyPreferences();
+    removeDuplicateNavigation();
+    addStyles();
+    createMenu();
+    createTopMenuButton();
+    createBottomNavigation();
 
-    try {
-      const { data, error } = await db.auth.getSession();
+    document.addEventListener("click", event => {
+      if (!event.target.closest("#newstar-create-panel") &&
+          !event.target.closest(".newstar-plus-link")) closeCreatePanel();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closeCreatePanel();
+    });
 
-      if (error) throw error;
-
-      const user = data?.session?.user || null;
-
-      if (!user && protectedPages.includes(currentPage)) {
+    // Protected pages remain fail-closed. Public pages keep working and show
+    // navigation even when Supabase is offline or its SDK failed to load.
+    if (protectedPages.includes(currentPage)) {
+      if (!db?.auth) {
+        console.error("New Star: Supabase client unavailable on protected page.");
         location.replace("auth.html");
         return;
       }
-
-      applyPreferences();
-      removeDuplicateNavigation();
-      addStyles();
-      createMenu();
-
-      // Profile page keeps its original profile menu.
-      createTopMenuButton();
-
-      createBottomNavigation();
-      document.addEventListener("click",event=>{if(!event.target.closest("#newstar-create-panel")&&!event.target.closest(".newstar-plus-link"))closeCreatePanel();});
-      document.addEventListener("keydown",event=>{if(event.key==="Escape")closeCreatePanel();});
-
-    } catch (error) {
-      console.error("New Star Navigation Error:", error);
+      try {
+        const { data, error } = await db.auth.getSession();
+        if (error) throw error;
+        if (!data?.session?.user) location.replace("auth.html");
+      } catch (error) {
+        console.error("New Star Auth Check Error:", error);
+        location.replace("auth.html");
+      }
     }
   }
 
