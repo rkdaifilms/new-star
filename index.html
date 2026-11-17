@@ -434,11 +434,28 @@ function renderVideo(){
   const mode=duration>0&&duration<=60?"Shorts":duration>60?"Long Video":"Video";
   $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode+" · "+ratioLabel+" · "+width+"×"+height;
  };
- player.onerror=()=>{if(currentVideo&&String(currentVideo.id)===renderingId){$("playHint").style.display="block";showToast("यह वीडियो लोड नहीं हुआ। नेटवर्क या वीडियो फ़ाइल जाँचें।");}};
- player.onloadeddata=()=>{if(currentVideo&&String(currentVideo.id)===renderingId)$("playHint").style.display="none";};
+ // Android Chrome blocks autoplay when the media starts with sound.
+ player.muted=true;
+ player.autoplay=true;
+ player.playsInline=true;
+ player.controls=true;
+ player.onplaying=()=>{if(currentVideo&&String(currentVideo.id)===renderingId)$("playHint").style.display="none";};
+ player.onerror=()=>{
+  if(!currentVideo||String(currentVideo.id)!==renderingId)return;
+  const mediaError=player.error;
+  const reason=mediaError?("Media error "+mediaError.code):"Unknown media error";
+  console.error("Video playback failed:",reason,currentVideo.video_url);
+  $("playHint").textContent="↻";
+  $("playHint").style.display="block";
+  showToast("वीडियो फ़ाइल/फॉर्मेट नहीं चल पाया ("+reason+")");
+ };
  player.src=currentVideo.video_url;
  player.load();
- player.play().then(()=>startWatchSession(renderingId)).catch(()=>{$("playHint").style.display="block";});
+ player.play().then(()=>startWatchSession(renderingId)).catch(error=>{
+  console.warn("Autoplay blocked:",error);
+  $("playHint").textContent="▶";
+  $("playHint").style.display="block";
+ });
  player.onended=()=>{if(currentUser&&activeWatchSession)db.rpc("end_video_watch_session",{p_session_id:activeWatchSession,p_position_seconds:Number(player.currentTime||0)});};
  const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
  const currentDuration=Number(currentVideo.duration_seconds)||0;
@@ -781,7 +798,7 @@ $("playHint").addEventListener("click",()=>{
 });
 
 $("likeBtn").addEventListener("click",toggleLike);
-$("commentBtn").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openComments();});
+$("commentBtn").onclick=event=>{event.preventDefault();event.stopPropagation();openComments();};
 $("commentComposer").addEventListener("submit",event=>{event.preventDefault();postComment();});
 $("giftBtn").addEventListener("click",openGift);
 $("sendGift").addEventListener("click",sendGift);
