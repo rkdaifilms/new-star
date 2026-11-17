@@ -941,6 +941,7 @@ async function logout(){
 
 function profileVideoType(v){
  const duration=Number(v.duration_seconds)||0;if(duration>0)return duration<=60?"short":"long";
+ const stored=String(v.video_type||"").toLowerCase();if(stored==="short"||stored==="long")return stored;
  const w=Number(v.width)||0,h=Number(v.height)||0;
  return h>w?"short":"long";
 }
