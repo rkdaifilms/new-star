@@ -723,7 +723,7 @@ async function publishVideo() {
    user_id:user.id,video_url:videoUrl,caption,category,username:String(username),
    likes_count:0,views_count:0,affiliate_link:affiliate || null,audience_type:audience,video_type:selectedVideoType
   };
-  const {data:inserted,error:insertError} = await db.from("videos")
+  let {data:inserted,error:insertError} = await db.from("videos")
    .insert(payload).select("id").single();
   if(insertError&&/video_type/i.test(insertError.message||"")){const legacy={...payload};delete legacy.video_type;const retry=await db.from("videos").insert(legacy).select("id").single();inserted=retry.data;insertError=retry.error;}
   if (insertError) throw new Error("Database Insert: " + insertError.message);
