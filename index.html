@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -38,15 +39,15 @@ button{cursor:pointer}
 #empty{display:none;line-height:1.6}
 #empty button{margin-top:12px;background:#fe2c55;color:#fff;border:0;border-radius:20px;padding:10px 18px}
 #playHint{display:none;position:absolute;z-index:8;top:50%;left:50%;transform:translate(-50%,-50%);border:0;border-radius:50%;width:60px;height:60px;background:#0009;color:#fff;font-size:26px}
-.modal{display:none;position:fixed;z-index:100;left:0;bottom:0;width:100%;max-height:82dvh;background:#191919;border-radius:18px 18px 0 0;box-shadow:0 -5px 25px #000;flex-direction:column}
-.modal-head{display:flex;align-items:center;justify-content:space-between;padding:15px;border-bottom:1px solid #383838}
+.modal{display:none;position:fixed;z-index:100;left:0;bottom:0;width:100%;height:82dvh;max-height:82dvh;background:#191919;border-radius:18px 18px 0 0;box-shadow:0 -5px 25px #000;flex-direction:column}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:15px;border-bottom:1px solid #383838;flex-shrink:0}
 .modal-head h3{font-size:16px}
 .close{background:transparent;border:0;color:#fff;font-size:25px}
-.comment-list{overflow:auto;flex:1;padding:14px;min-height:100px}
+.comment-list{overflow:auto;flex:1;padding:14px;min-height:0}
 .comment{padding:10px 0;border-bottom:1px solid #333;overflow-wrap:anywhere}
 .comment strong{display:block;color:#bbb;font-size:12px;margin-bottom:5px}
 .comment p{font-size:14px;line-height:1.4}
-.comment-form{display:flex;gap:8px;padding:12px;border-top:1px solid #333}
+.comment-form{display:flex;gap:8px;padding:12px;border-top:1px solid #333;flex-shrink:0}
 .comment-form input{flex:1;min-width:0;background:#292929;color:#fff;border:1px solid #444;border-radius:22px;padding:11px;outline:none}
 .primary{background:#fe2c55;color:#fff;border:0;border-radius:22px;padding:11px 16px;font-weight:bold}
 .primary:disabled{opacity:.5}
@@ -84,6 +85,7 @@ button{cursor:pointer}
   <button class="category" data-cat="Following">👥 Following</button>
   <button class="category" data-cat="Shorts">⚡ Shorts</button>
   <button class="category" data-cat="Reels">🎬 Reels</button>
+  <button class="category" data-cat="Long Videos">▶ Long Videos</button>
   <button class="category" data-cat="Discover">🌍 Discover</button>
   <button class="category" data-cat="Friends">🤝 Friends</button>
   <button class="category" data-cat="Live">🔴 Live</button>
@@ -157,6 +159,7 @@ const $ = id => document.getElementById(id);
 const db = window.supabaseClient || window.cloudClient || null;
 let currentUser=null,videos=[],filtered=[],currentIndex=0,currentCategory="For You",currentVideo=null;
 let likedIds=new Set(),selectedGift=null,walletBalance=0,giftBusy=false,toastTimer;
+const aspectCache=new Map();
 
 const GIFTS=[
  {name:"Rose",emoji:"🌹",coins:1},{name:"Coffee",emoji:"☕",coins:5},
@@ -206,6 +209,54 @@ function showEmpty(message){
  $("affiliate").style.display="none";$("likeBtn").classList.remove("liked");currentVideo=null;
 }
 
+/* Read the actual video dimensions; no database columns are needed. */
+function getVideoAspect(item){
+ const url=item?.video_url;
+ if(!url)return Promise.resolve(null);
+ if(aspectCache.has(url))return aspectCache.get(url);
+ const promise=new Promise(resolve=>{
+  const probe=document.createElement("video");
+  let finished=false;
+  const timer=setTimeout(()=>finish(null),12000);
+  function finish(info){
+   if(finished)return;
+   finished=true;
+   clearTimeout(timer);
+   probe.onloadedmetadata=null;
+   probe.onerror=null;
+   probe.removeAttribute("src");
+   probe.load();
+   resolve(info);
+  }
+  probe.preload="metadata";
+  probe.muted=true;
+  probe.onloadedmetadata=()=>{
+   const width=probe.videoWidth,height=probe.videoHeight;
+   if(!width||!height){finish(null);return;}
+   const ratio=width/height;
+   let orientation="square";
+   if(ratio<0.95)orientation="portrait";
+   else if(ratio>1.05)orientation="landscape";
+   let ratioLabel=width+":"+height;
+   if(Math.abs(ratio-(9/16))<0.035)ratioLabel="9:16";
+   else if(Math.abs(ratio-(16/9))<0.08)ratioLabel="16:9";
+   finish({width,height,ratio,orientation,ratioLabel});
+  };
+  probe.onerror=()=>finish(null);
+  probe.src=url;
+  probe.load();
+ });
+ aspectCache.set(url,promise);
+ return promise;
+}
+
+function videoModeLabel(info){
+ if(!info)return "Video ratio unavailable";
+ if(info.orientation==="portrait")return "Shorts · "+info.ratioLabel;
+ if(info.orientation==="landscape")return "Long Video · "+info.ratioLabel;
+ return "Square / Other · "+info.ratioLabel;
+}
+
 async function loadLikes(){
  likedIds.clear();
  if(!currentUser||!videos.length)return;
@@ -227,7 +278,8 @@ async function loadFeed(){
    .order("created_at",{ascending:false});
   if(error)throw error;
   videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
-  await loadLikes();applyFilters();
+  await loadLikes();
+  await applyFilters();
  }catch(error){
   console.error("Feed error:",error);
   showEmpty("वीडियो लोड नहीं हुए। Supabase videos table और RLS जाँचें।");
@@ -249,17 +301,34 @@ async function applyFilters(){
   try{followingIds=await getFollowingIds();}
   catch(error){showEmpty("Following सूची लोड नहीं हुई।");return;}
  }
+
+ let aspectByUrl=new Map();
+ if(["Shorts","Reels","Long Videos"].includes(currentCategory)){
+  const results=await Promise.all(videos.map(async item=>[item.video_url,await getVideoAspect(item)]));
+  aspectByUrl=new Map(results);
+ }
+
  filtered=videos.filter(v=>{
   const text=[v.caption,v.username,v.category].join(" ").toLowerCase();
   if(keyword&&!text.includes(keyword))return false;
   if(currentCategory==="Following"||currentCategory==="Friends")return followingIds.includes(String(v.user_id));
   if(currentCategory==="Live")return false;
-  if(["For You","Discover","Shorts","Reels"].includes(currentCategory))return true;
+  if(currentCategory==="Shorts"||currentCategory==="Reels"){
+   return aspectByUrl.get(v.video_url)?.orientation==="portrait";
+  }
+  if(currentCategory==="Long Videos"){
+   return aspectByUrl.get(v.video_url)?.orientation==="landscape";
+  }
+  if(["For You","Discover"].includes(currentCategory))return true;
   return String(v.category||"").toLowerCase().includes(currentCategory.toLowerCase());
  });
  currentIndex=0;
  if(!filtered.length){
-  showEmpty(currentCategory==="Live"?"अभी कोई Live वीडियो उपलब्ध नहीं है।":"इस Category या Search में कोई वीडियो नहीं मिला।");
+  let message="इस Category या Search में कोई वीडियो नहीं मिला।";
+  if(currentCategory==="Live")message="अभी कोई Live वीडियो उपलब्ध नहीं है।";
+  if(currentCategory==="Shorts"||currentCategory==="Reels")message="अभी कोई Vertical Shorts / Reels वीडियो नहीं मिला।";
+  if(currentCategory==="Long Videos")message="अभी कोई Landscape Long Video नहीं मिला।";
+  showEmpty(message);
   return;
  }
  $("empty").style.display="none";
@@ -271,12 +340,28 @@ async function applyFilters(){
 function renderVideo(){
  if(!filtered.length)return;
  currentVideo=filtered[currentIndex];if(!currentVideo)return;
- const player=$("video");player.pause();player.src=currentVideo.video_url;player.load();
+ const player=$("video");
+ const renderingId=String(currentVideo.id);
+ player.pause();
+ player.onloadedmetadata=()=>{
+  if(!currentVideo||String(currentVideo.id)!==renderingId)return;
+  const width=player.videoWidth,height=player.videoHeight;
+  const ratio=width&&height?width/height:0;
+  let ratioLabel=width&&height?width+":"+height:"Unknown";
+  if(ratio&&Math.abs(ratio-(9/16))<0.035)ratioLabel="9:16";
+  else if(ratio&&Math.abs(ratio-(16/9))<0.08)ratioLabel="16:9";
+  let mode="Other Video";
+  if(ratio&&ratio<0.95)mode="Shorts";
+  else if(ratio&&ratio>1.05)mode="Long Video";
+  $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode+" · "+ratioLabel+" · "+width+"×"+height;
+ };
+ player.src=currentVideo.video_url;
+ player.load();
  player.play().catch(()=>{$("playHint").style.display="block";});
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
  $("caption").textContent=currentVideo.caption||"";
- $("meta").textContent=numberFormat(currentVideo.views_count)+" views";
+ $("meta").textContent=numberFormat(currentVideo.views_count)+" views · Video information loading...";
  $("likes").textContent=numberFormat(currentVideo.likes_count);
  $("counter").textContent=(currentIndex+1)+" / "+filtered.length;
  $("likeBtn").classList.toggle("liked",likedIds.has(String(currentVideo.id)));
@@ -308,23 +393,31 @@ async function toggleLike(){
   if(wasLiked){
    const {error}=await db.from("likes").delete().eq("video_id",id).eq("user_id",currentUser.id);
    if(error)throw error;
-   likedIds.delete(id);currentVideo.likes_count=Math.max(0,currentVideo.likes_count-1);
+   likedIds.delete(id);
   }else{
    const {error}=await db.from("likes").insert({video_id:id,user_id:currentUser.id});
    if(error)throw error;
-   likedIds.add(id);currentVideo.likes_count++;
+   likedIds.add(id);
   }
+  /* likes_count is maintained by the existing database trigger. */
+  const {data:latest,error:countError}=await db.from("videos")
+   .select("likes_count").eq("id",id).maybeSingle();
+  if(!countError&&latest)currentVideo.likes_count=Number(latest.likes_count||0);
+  else currentVideo.likes_count=Math.max(0,Number(currentVideo.likes_count||0)+(wasLiked?-1:1));
   $("likeBtn").classList.toggle("liked",!wasLiked);
   $("likes").textContent=numberFormat(currentVideo.likes_count);
-  const {error:updateError}=await db.from("videos").update({likes_count:currentVideo.likes_count}).eq("id",id);
-  if(updateError)console.warn("Like count update:",updateError.message);
   showToast(wasLiked?"Like हटाया गया":"❤️ Liked!");
- }catch(error){console.error("Like error:",error);showToast("Like सेव नहीं हुआ। Database/RLS जाँचें。");}
+ }catch(error){console.error("Like error:",error);showToast("Like सेव नहीं हुआ। Database/RLS जाँचें।");}
  finally{button.disabled=false;}
 }
 
 async function openComments(){
  if(!currentVideo)return;
+ if(!currentUser){
+  showToast("Comment करने के लिए Login करें।");
+  location.href="auth.html?next=index.html";
+  return;
+ }
  openModal("commentModal");await loadComments(currentVideo.id);
 }
 async function loadComments(videoId){
@@ -388,8 +481,7 @@ async function copyShareLink(){
 /* Download current feed video */
 async function downloadCurrentVideo(){
  if(!currentVideo){showToast("अभी कोई वीडियो उपलब्ध नहीं है।");return;}
- const button=$("downloadBtn");
- button.disabled=true;
+ const button=$("downloadBtn");button.disabled=true;
  try{
   const source=currentVideo.video_url;
   const response=await fetch(source,{mode:"cors"});
