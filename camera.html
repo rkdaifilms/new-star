@@ -710,7 +710,7 @@ async function publishVideo() {
   if(!accessToken)throw new Error("Login session समाप्त हो गई। दोबारा Login करें।");
   await new Promise((resolve,reject)=>{
    const tusUpload=new window.tus.Upload(selectedVideoFile,{
-    endpoint:"https://uzsusgoetrkujmofxcmb.supabase.co/storage/v1/upload/resumable",
+    endpoint:"https://uzsusgoetrkujmofxcmb.storage.supabase.co/storage/v1/upload/resumable",
     retryDelays:[0,3000,5000,10000,20000],
     headers:{authorization:"Bearer "+accessToken,apikey:db.supabaseKey},
     uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,
