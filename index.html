@@ -48,8 +48,9 @@ button{cursor:pointer}
 .comment{padding:8px 0;border-bottom:1px solid #333;overflow-wrap:anywhere}
 .comment strong{display:block;color:#bbb;font-size:12px;margin-bottom:5px}
 .comment p{font-size:14px;line-height:1.4}
-.comment-form{display:flex;gap:7px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid #333;flex-shrink:0;align-items:center;background:#191919}
-.comment-form input{flex:1;min-width:0;height:40px;background:#292929;color:#fff;border:1px solid #555;border-radius:22px;padding:0 13px;outline:none;font-size:14px;pointer-events:auto;user-select:text;-webkit-user-select:text}
+.comment-form{position:relative;z-index:10002;display:flex;gap:7px;padding:9px 10px calc(9px + env(safe-area-inset-bottom));border-top:1px solid #444;flex:0 0 auto;min-height:60px;align-items:center;background:#191919;pointer-events:auto}
+.comment-form input{display:block;flex:1 1 auto;width:1%;min-width:0;height:42px;background:#292929;color:#fff;border:1px solid #777;border-radius:22px;padding:0 14px;outline:none;font-size:14px;pointer-events:auto;user-select:text;-webkit-user-select:text;opacity:1}
+.comment-form input:disabled{opacity:1}
 .primary{background:#fe2c55;color:#fff;border:0;border-radius:22px;padding:10px 15px;font-weight:bold;min-height:40px;white-space:nowrap;touch-action:manipulation}
 .primary:disabled{opacity:.5}
 .share-option{margin:10px 14px;padding:13px;border:0;border-radius:10px;background:#303030;color:#fff;text-align:left}
@@ -460,12 +461,13 @@ async function openComments(){
  }
  openModal("commentModal");
  const input=$("commentInput");
- input.placeholder=currentUser?"यहाँ अपना Comment लिखें...":"Comment करने के लिए पहले Login करें";
- $("postComment").textContent=currentUser?"Send":"Login";
- input.disabled=!currentUser;
+ input.placeholder="यहाँ अपना Comment लिखें...";
+ input.disabled=false;
+ input.readOnly=false;
+ $("postComment").textContent=currentUser?"Send":"Login करके Send";
  $("postComment").disabled=false;
  await loadComments(currentVideo.id);
- if(currentUser){setTimeout(()=>input.focus({preventScroll:true}),120);}
+ setTimeout(()=>input.focus({preventScroll:true}),180);
 }
 
 async function loadComments(videoId){
