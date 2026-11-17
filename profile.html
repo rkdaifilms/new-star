@@ -940,9 +940,9 @@ async function logout(){
 }
 
 function profileVideoType(v){
- const t=String(v.video_type||"").toLowerCase();if(t==="short"||t==="long")return t;
- const w=Number(v.width)||0,h=Number(v.height)||0;if(w&&h)return h>w?"short":"long";
- return Number(v.duration_seconds)>60?"long":"short";
+ const duration=Number(v.duration_seconds)||0;if(duration>0)return duration<=60?"short":"long";
+ const w=Number(v.width)||0,h=Number(v.height)||0;
+ return h>w?"short":"long";
 }
 function renderProfileVideos(){
  const grid=$("videoGrid"),all=window.profileVideos||[],filter=window.profileVideoFilter||"all";grid.replaceChildren();
