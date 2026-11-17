@@ -93,6 +93,63 @@ button{cursor:pointer}
 #video:fullscreen{width:100vw;height:100vh;object-fit:contain;background:#000}
 .flying-like-heart{position:absolute;z-index:30;left:50%;top:48%;font-size:clamp(64px,18vw,112px);line-height:1;pointer-events:none;filter:drop-shadow(0 5px 16px #0009);animation:newStarHeartFly 900ms cubic-bezier(.16,.8,.25,1) forwards}
 @keyframes newStarHeartFly{0%{opacity:0;transform:translate(-50%,15%) scale(.25) rotate(-18deg)}18%{opacity:1;transform:translate(-50%,-15%) scale(1.18) rotate(8deg)}48%{opacity:1;transform:translate(-50%,-75%) scale(1) rotate(-5deg)}100%{opacity:0;transform:translate(-50%,-175%) scale(.72) rotate(12deg)}}
+ 
+/* Responsive comments: phone, tablet, desktop, and mobile keyboards */
+#commentModal{
+  box-sizing:border-box!important;
+  position:fixed!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:calc(68px + env(safe-area-inset-bottom) + var(--comment-keyboard-inset,0px))!important;
+  transform:translateX(-50%)!important;
+  width:min(100vw,520px)!important;
+  height:min(62dvh,560px)!important;
+  min-height:220px!important;
+  max-height:calc(100dvh - 92px - env(safe-area-inset-top) - var(--comment-keyboard-inset,0px))!important;
+  display:none;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  border-radius:16px 16px 0 0!important;
+  padding:0!important;
+  z-index:2147482000!important;
+}
+#commentModal[style*="display: flex"]{display:flex!important}
+#commentModal .modal-head{flex:0 0 auto!important;min-height:48px!important;padding:6px 12px!important}
+#commentModal .comment-list{display:block!important;flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important}
+#commentModal #commentComposer{
+  box-sizing:border-box!important;display:flex!important;visibility:visible!important;
+  position:relative!important;inset:auto!important;z-index:2147482001!important;
+  flex:0 0 auto!important;flex-wrap:nowrap!important;align-items:center!important;
+  width:100%!important;min-width:0!important;min-height:64px!important;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom))!important;
+  gap:8px!important;background:#202020!important;border-top:1px solid #666!important;
+}
+#commentModal #commentInput{
+  box-sizing:border-box!important;display:block!important;visibility:visible!important;
+  flex:1 1 0!important;width:0!important;min-width:0!important;max-width:none!important;
+  height:44px!important;min-height:44px!important;font-size:16px!important;
+  color:#fff!important;background:#303030!important;border:1px solid #aaa!important;
+  border-radius:24px!important;padding:0 13px!important;opacity:1!important;
+  pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important;
+}
+#commentModal #postComment{
+  box-sizing:border-box!important;display:inline-flex!important;visibility:visible!important;
+  flex:0 0 auto!important;width:auto!important;min-width:72px!important;max-width:112px!important;
+  min-height:44px!important;align-items:center!important;justify-content:center!important;
+  white-space:nowrap!important;touch-action:manipulation!important;
+}
+@media(max-width:360px){
+ #commentModal{width:100vw!important;height:min(58dvh,500px)!important}
+ #commentModal #commentComposer{gap:6px!important;padding-left:7px!important;padding-right:7px!important}
+ #commentModal #postComment{min-width:64px!important;padding-left:10px!important;padding-right:10px!important}
+}
+@media(min-width:700px){
+ #commentModal{width:min(92vw,520px)!important;height:min(64dvh,560px)!important;bottom:24px!important;border-radius:16px!important}
+}
+@media(orientation:landscape) and (max-height:500px){
+ #commentModal{height:calc(100dvh - 84px)!important;max-height:calc(100dvh - 84px)!important;min-height:180px!important}
+}
+
 </style>
 </head>
 <body>
@@ -761,6 +818,29 @@ async function startNewStar(){
  await loadFeed();
 }
 startNewStar();
+
+/* Keep the comments panel above Android/iOS on-screen keyboards. */
+(function(){
+ const panel=document.getElementById("commentModal");
+ if(!panel)return;
+ const update=()=>{
+  const vv=window.visualViewport;
+  let inset=0;
+  if(vv && window.innerWidth<700){
+   inset=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+  }
+  panel.style.setProperty("--comment-keyboard-inset",Math.round(inset)+"px");
+ };
+ if(window.visualViewport){
+  window.visualViewport.addEventListener("resize",update);
+  window.visualViewport.addEventListener("scroll",update);
+ }
+ window.addEventListener("orientationchange",()=>setTimeout(update,250));
+ document.addEventListener("focusin",e=>{if(e.target && e.target.id==="commentInput")setTimeout(update,80);});
+ document.addEventListener("focusout",e=>{if(e.target && e.target.id==="commentInput")setTimeout(update,180);});
+ update();
+})();
+
 </script>
 </body>
 </html>
