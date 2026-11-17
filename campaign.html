@@ -41,29 +41,12 @@
     <div class="campaign-container">
         <div class="header-title">🔥 Active Brand Campaigns</div>
 
-        <!-- Campaign 1 -->
         <div class="campaign-card">
-            <div class="brand-name">🎨 Asian Paints Wall Putty Challenge</div>
-            <div class="campaign-desc">Create a short video showing putty application or interior finishing using Asian Paints products. Use official hashtags to win rewards.</div>
-            <div class="reward-badge">💰 Earn up to NPR 5,000</div>
-            <button class="join-btn" onclick="joinCampaign('Asian Paints Challenge')">Join Campaign</button>
+            <div class="brand-name">Verified campaigns only</div>
+            <div class="campaign-desc">There are currently no verified brand campaigns. Real campaigns will appear here only after an authorized administrator publishes the offer, confirms the sponsor, reward terms and eligibility, and saves it to the server.</div>
+            <div class="reward-badge">No sample sponsors or unverified rewards</div>
         </div>
-
-        <!-- Campaign 2 -->
-        <div class="campaign-card">
-            <div class="brand-name">🛡️ Berger Paints Primer & Burnishing</div>
-            <div class="campaign-desc">Upload your wall painting and primer work process shorts. Showcase the smoothness and get featured on creator leaderboards.</div>
-            <div class="reward-badge">🎁 Bonus Rewards & Tokens</div>
-            <button class="join-btn" onclick="joinCampaign('Berger Paints Showcase')">Join Campaign</button>
-        </div>
-
-        <!-- Campaign 3 -->
-        <div class="campaign-card">
-            <div class="brand-name">💃 Viral Dance Shorts Creator Program</div>
-            <div class="campaign-desc">Publish high-engagement dance short videos, maintain audio levels, and grow your follower milestones organically.</div>
-            <div class="reward-badge">⭐ Creator Badge & Verification</div>
-            <button class="join-btn" onclick="joinCampaign('Viral Dance Program')">Join Campaign</button>
-        </div>
+    </div>
     </div>
 
     <!-- 🌟 BOTTOM NAVIGATION BAR -->
@@ -77,9 +60,7 @@
 
     <script src="navbar.js"></script>
     <script>
-        function joinCampaign(campaignTitle) {
-            showToast(`🎉 Successfully joined: ${campaignTitle}!`);
-        }
+        function joinCampaign(){ showToast("No verified campaign is currently available."); }
 
         function showToast(msg) {
             let toast = document.getElementById('floatingToastMessage');
