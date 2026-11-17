@@ -552,7 +552,23 @@ async function openComments(){
   return;
  }
  openModal("commentModal");
+ const panel=$("commentModal");
+ const composer=$("commentComposer");
  const input=$("commentInput");
+ const send=$("postComment");
+ // Force the composer to remain visible inside the panel even if older CSS overrides it.
+ composer.style.setProperty("display","flex","important");
+ composer.style.setProperty("visibility","visible","important");
+ composer.style.setProperty("position","relative","important");
+ composer.style.setProperty("inset","auto","important");
+ composer.style.setProperty("width","100%","important");
+ composer.style.setProperty("flex","0 0 auto","important");
+ input.style.setProperty("display","block","important");
+ input.style.setProperty("visibility","visible","important");
+ input.style.setProperty("min-width","0","important");
+ send.style.setProperty("display","inline-flex","important");
+ send.style.setProperty("visibility","visible","important");
+ panel.style.setProperty("--comment-keyboard-inset","0px");
  input.placeholder="यहाँ अपना Comment लिखें...";
  input.disabled=false;
  input.readOnly=false;
@@ -753,7 +769,16 @@ function changeVideo(direction){
  if(currentIndex>=filtered.length)currentIndex=filtered.length-1;
  renderVideo();
 }
-let feedPointerStart=null,lastWheelAt=0;
+let feedPointerStart=null,lastWheelAt=0,lastSwipeAt=0,touchFeedStart=null;
+function handleFeedSwipe(startX,startY,endX,endY){
+ const now=Date.now();
+ if(now-lastSwipeAt<450)return;
+ const dy=startY-endY,dx=startX-endX;
+ if(Math.abs(dy)>42&&Math.abs(dy)>Math.abs(dx)*1.12){
+  lastSwipeAt=now;
+  changeVideo(dy>0?1:-1);
+ }
+}
 $("feed").addEventListener("pointerdown",event=>{
  if($("feed").classList.contains("video-expanded"))return;
  if(event.target.closest("button,a,input"))return;
@@ -762,11 +787,21 @@ $("feed").addEventListener("pointerdown",event=>{
 });
 $("feed").addEventListener("pointerup",event=>{
  if(!feedPointerStart||feedPointerStart.id!==event.pointerId)return;
- const dy=feedPointerStart.y-event.clientY,dx=feedPointerStart.x-event.clientX;
- feedPointerStart=null;
+ const start=feedPointerStart;feedPointerStart=null;
  if($("feed").classList.contains("video-expanded"))return;
- if(Math.abs(dy)>48&&Math.abs(dy)>Math.abs(dx)*1.15)changeVideo(dy>0?1:-1);
+ handleFeedSwipe(start.x,start.y,event.clientX,event.clientY);
 });
+// Android/iOS fallback: native touch events cover WebViews that miss pointerup on video.
+$("feed").addEventListener("touchstart",event=>{
+ if($("feed").classList.contains("video-expanded")||event.target.closest("button,a,input"))return;
+ const t=event.changedTouches[0];if(t)touchFeedStart={x:t.clientX,y:t.clientY};
+},{passive:true});
+$("feed").addEventListener("touchend",event=>{
+ if(!touchFeedStart)return;
+ const start=touchFeedStart;touchFeedStart=null;
+ const t=event.changedTouches[0];if(!t||$("feed").classList.contains("video-expanded"))return;
+ handleFeedSwipe(start.x,start.y,t.clientX,t.clientY);
+},{passive:true});
 $("feed").addEventListener("pointercancel",()=>{feedPointerStart=null;});
 $("feed").addEventListener("wheel",event=>{
  if($("feed").classList.contains("video-expanded"))return;
