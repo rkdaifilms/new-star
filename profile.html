@@ -63,6 +63,16 @@ header{height:58px;padding:9px 14px;background:#191920;display:flex;align-items:
 .videoFormat{display:block;color:#25f4ee;font-size:11px;margin:7px 2px 2px}
 .videoCard p{overflow-wrap:anywhere;font-size:13px;margin:7px 2px}
 .videoCard small{color:#aaa}
+.profileVideoTabs{display:flex;gap:8px;overflow-x:auto;padding:8px 0 12px}
+.profileVideoTabs button{white-space:nowrap;background:#252535;border:1px solid #55556a;color:#fff;border-radius:22px;padding:9px 14px}
+.profileVideoTabs button.active{background:var(--accent,#ff3158);color:#fff}
+.videoCard{cursor:pointer}.videoCard video{pointer-events:none}
+.profileVideoViewer{position:fixed;inset:0;background:#000;z-index:9999;display:none;align-items:center;justify-content:center}
+.profileVideoViewer.show{display:flex}
+.profileVideoViewer video{width:100%;height:100%;max-height:100dvh;object-fit:contain;background:#000}
+.profileVideoViewer button{position:fixed;top:calc(env(safe-area-inset-top) + 12px);right:12px;z-index:10001;border-radius:50%;width:44px;height:44px;background:#171717d9;color:#fff;font-size:22px}
+.profileVideoViewer span{position:fixed;top:calc(env(safe-area-inset-top) + 18px);left:12px;z-index:10001;color:#fff;background:#111a;padding:7px 12px;border-radius:18px}
+
 .modal{position:fixed;inset:0;background:#000d;z-index:100;display:none;overflow:auto;padding:12px}
 .modal.show{display:block}
 .modalBox{width:100%;max-width:600px;margin:12px auto;background:#20202a;border:1px solid #484854;border-radius:16px;padding:16px}
@@ -206,9 +216,11 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
    <button class="secondary" id="refreshVideosButton" type="button">↻ Refresh</button>
   </div>
   <p id="videoStatus" class="muted">आपके वीडियो लोड हो रहे हैं...</p>
+  <div class="profileVideoTabs"><button type="button" data-video-filter="all" class="active">सभी</button><button type="button" data-video-filter="short">⚡ Shorts</button><button type="button" data-video-filter="long">▶ Long Videos</button></div>
   <div id="videoGrid" class="videoGrid"></div>
  </section>
- <p id="profileStatus" class="status"></p>
+ <div id="profileVideoViewer" class="profileVideoViewer"><button id="profileVideoViewerClose" type="button">✕</button><span id="profileVideoViewerLabel">Video</span><video id="profileVideoViewerPlayer" controls playsinline preload="metadata"></video></div>
+<p id="profileStatus" class="status"></p>
 </main>
 
 <div class="modal" id="profileEditModal" aria-hidden="true">
@@ -399,7 +411,7 @@ async function loadStatsAndVideos(){
 
  try{
   const [vr,fr,fg]=await Promise.all([
-   db.from("videos").select("id,user_id,video_url,caption,created_at")
+   db.from("videos").select("id,user_id,video_url,caption,created_at,video_type,duration_seconds,width,height,thumbnail_url")
     .eq("user_id",user.id).order("created_at",{ascending:false}),
    db.from("followers").select("id",{count:"exact",head:true})
     .eq("following_id",user.id),
@@ -422,44 +434,8 @@ async function loadStatsAndVideos(){
 
   $("videoStatus").textContent="आपकी पोस्ट: "+videos.length;
 
-  videos.forEach(item=>{
-   const card=document.createElement("article");
-   card.className="videoCard";
-
-   const video=document.createElement("video");
-   video.src=item.video_url||"";
-   video.controls=true;
-   video.playsInline=true;
-   video.preload="metadata";
-
-   const format=document.createElement("small");
-   format.className="videoFormat";
-   format.textContent="Video ratio पढ़ा जा रहा है...";
-
-   video.addEventListener("loadedmetadata",()=>{
-    const width=video.videoWidth;
-    const height=video.videoHeight;
-    if(width&&height){
-     video.style.aspectRatio=width+" / "+height;
-     format.textContent=getProfileVideoFormat(width,height);
-    }else{
-     format.textContent="Video ratio unavailable";
-    }
-   });
-
-   video.addEventListener("error",()=>{
-    format.textContent="Video load नहीं हुआ";
-   });
-
-   const caption=document.createElement("p");
-   caption.textContent=item.caption||"Video";
-
-   const date=document.createElement("small");
-   date.textContent=item.created_at?new Date(item.created_at).toLocaleString():"";
-
-   card.append(video,format,caption,date);
-   $("videoGrid").append(card);
-  });
+  window.profileVideos=videos;
+  renderProfileVideos();
 
   if(fr.error||fg.error){
    $("profileStatus").textContent="Follower count पढ़ने में समस्या: "+
@@ -963,6 +939,32 @@ async function logout(){
  showAuth("आप Logout हो गए हैं।");
 }
 
+function profileVideoType(v){
+ const t=String(v.video_type||"").toLowerCase();if(t==="short"||t==="long")return t;
+ const w=Number(v.width)||0,h=Number(v.height)||0;if(w&&h)return h>w?"short":"long";
+ return Number(v.duration_seconds)>60?"long":"short";
+}
+function renderProfileVideos(){
+ const grid=$("videoGrid"),all=window.profileVideos||[],filter=window.profileVideoFilter||"all";grid.replaceChildren();
+ const rows=all.filter(v=>filter==="all"||profileVideoType(v)===filter);
+ if(!rows.length){const p=document.createElement("p");p.className="muted";p.textContent=filter==="short"?"अभी कोई Short नहीं है।":filter==="long"?"अभी कोई Long Video नहीं है।":"अभी कोई वीडियो नहीं है।";grid.append(p);return;}
+ rows.forEach(item=>{
+  const type=profileVideoType(item),card=document.createElement("article");card.className="videoCard";card.tabIndex=0;
+  const v=document.createElement("video");v.src=item.video_url||"";v.controls=false;v.playsInline=true;v.preload="metadata";v.muted=true;v.poster=item.thumbnail_url||"";
+  v.addEventListener("loadedmetadata",()=>{if(v.videoWidth&&v.videoHeight)v.style.aspectRatio=v.videoWidth+" / "+v.videoHeight;});
+  const tag=document.createElement("small");tag.className="videoFormat";tag.textContent=type==="short"?"⚡ SHORTS":"▶ LONG VIDEO";
+  const title=document.createElement("p");title.textContent=item.caption||"Video";
+  card.append(v,tag,title);const open=()=>openProfileVideo(item,type);card.addEventListener("click",open);card.addEventListener("keydown",e=>{if(e.key==="Enter")open();});grid.append(card);
+ });
+}
+function openProfileVideo(item,type){
+ const viewer=$("profileVideoViewer"),v=$("profileVideoViewerPlayer");if(!item.video_url)return;
+ $("profileVideoViewerLabel").textContent=type==="short"?"⚡ SHORTS":"▶ LONG VIDEO";v.src=item.video_url;viewer.classList.add("show");document.body.style.overflow="hidden";v.play().catch(()=>{});
+}
+function closeProfileVideo(){
+ const viewer=$("profileVideoViewer"),v=$("profileVideoViewerPlayer");v.pause();v.removeAttribute("src");v.load();viewer.classList.remove("show");document.body.style.overflow="";
+}
+
 if(!db){
  authMsg("Supabase client नहीं मिला। supabase-config.js की जाँच करें।");
  return;
@@ -986,6 +988,14 @@ $("googleLoginButton").addEventListener("click",googleLogin);
 $("verifyEmailButton").addEventListener("click",verifyEmail);
 $("resendEmailButton").addEventListener("click",resendEmail);
 $("refreshVideosButton").addEventListener("click",loadStatsAndVideos);
+document.querySelectorAll("[data-video-filter]").forEach(b=>b.addEventListener("click",()=>{
+ window.profileVideoFilter=b.dataset.videoFilter;
+ document.querySelectorAll("[data-video-filter]").forEach(x=>x.classList.toggle("active",x===b));
+ renderProfileVideos();
+}));
+$("profileVideoViewerClose").addEventListener("click",closeProfileVideo);
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeProfileVideo();});
+
 
 $("profileMenuButton").addEventListener("click",toggleMenu);
 $("editProfileButton").addEventListener("click",openEdit);
