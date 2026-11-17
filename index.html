@@ -3,7 +3,7 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,">
 <meta name="theme-color" content="#000000">
 <title>New Star - Home Feed</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -22,8 +22,8 @@ button{cursor:pointer}
 .categories::-webkit-scrollbar{display:none}
 .category{white-space:nowrap;border:0;border-radius:20px;background:#303030;color:#fff;padding:8px 13px;font-size:12px}
 .category.active{background:#fe2c55;font-weight:bold}
-#feed{height:100%;width:100%;position:relative;background:#080808;overflow:hidden;touch-action:none}
-#video{height:100%;width:100%;object-fit:contain;background:#000;touch-action:none}
+#feed{height:100%;width:100%;position:relative;background:#080808;overflow:hidden;touch-action:pan-y pinch-zoom}
+#video{height:100%;width:100%;object-fit:contain;background:#000;touch-action:pan-y pinch-zoom}
 .video-info{position:absolute;z-index:5;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:none}
 .video-info h3{font-size:15px;margin-bottom:7px}
 .video-info p{font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -131,7 +131,7 @@ button{cursor:pointer}
    <button id="reload">फिर कोशिश करें</button>
   </div>
  </div>
- <video id="video" playsinline loop preload="metadata"></video>
+ <video id="video" playsinline webkit-playsinline controls loop preload="metadata"></video>
  <button id="videoExpandClose" type="button" aria-label="Close expanded video">×</button>
  <button id="playHint">▶</button>
  <div id="counter"></div>
@@ -721,8 +721,8 @@ function handleFeedSwipe(startX,startY,endX,endY){
 }
 $("feed").addEventListener("pointerdown",event=>{
  if(event.target.closest("button,a,input"))return;
+ if(event.isPrimary===false){feedPointerStart=null;return;}
  feedPointerStart={id:event.pointerId,x:event.clientX,y:event.clientY};
- try{$("feed").setPointerCapture(event.pointerId);}catch(error){}
 });
 $("feed").addEventListener("pointerup",event=>{
  if(!feedPointerStart||feedPointerStart.id!==event.pointerId)return;
@@ -755,7 +755,7 @@ function setVideoExpanded(expanded){
  feed.classList.toggle("video-expanded",!!expanded);
  document.body.style.overflow=expanded?"hidden":"";
  if(expanded){player.controls=true;player.play().catch(()=>{});}
- else{player.controls=false;}
+ else{player.controls=true;}
 }
 $("video").addEventListener("click",event=>{
  // Single tap toggles playback; it must not hide the Shorts action rail.
