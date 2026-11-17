@@ -1,414 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Balance & Master Admin Hub</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #0f0f0f; color: #fff; padding-bottom: 70px; }
-        
-        /* Global Top Navigation Bar (Completely Cleaned) */
-        .top-bar { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin: 10px auto; padding: 0 10px; min-height: 40px; }
-
-        .header { background: #1a1a1a; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; }
-        .header h2 { font-size: 18px; color: #fe2c55; }
-        .back-btn { color: #fff; text-decoration: none; font-size: 16px; background: #222; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; }
-        
-        .wallet-card { background: linear-gradient(135deg, #fe2c55, #ff6b8b); margin: 15px 20px; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(254,44,85,0.3); }
-        .wallet-card h4 { font-size: 13px; opacity: 0.9; }
-        .wallet-card h1 { font-size: 28px; margin: 8px 0; }
-        .coins-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px; font-size: 13px; }
-        
-        /* Creator Earnings Clickable Card */
-        .creator-card { background: linear-gradient(135deg, #00b4d8, #0077b6); margin: 15px 20px; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,180,216,0.3); cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
-        .creator-card:hover { border-color: #25f4ee; transform: scale(1.01); }
-
-        .section { padding: 0 20px; margin-top: 20px; }
-        .section h3 { font-size: 16px; margin-bottom: 10px; color: #25f4ee; }
-        
-        /* Coin Packages Grid */
-        .coin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
-        .coin-box { background: #1a1a1a; border: 1px solid #333; padding: 12px; border-radius: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .coin-box:hover { border-color: #fe2c55; background: #222; }
-        .coin-box h4 { font-size: 16px; color: #ffcc00; margin-bottom: 4px; }
-        .coin-box p { font-size: 12px; color: #aaa; }
-        .bonus-badge { display: inline-block; background: #25f4ee; color: #000; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 4px; margin-top: 4px; }
-
-        .box { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #333; }
-        .box p { font-size: 12px; color: #aaa; margin-top: 4px; }
-        
-        .btn { display: block; width: 100%; background: #fe2c55; color: #fff; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; border: none; cursor: pointer; }
-        .btn-outline { background: #00b4d8; color: #000; border: none; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-top: 6px; font-size: 13px; outline: none; }
-        
-        /* Master Admin Panel */
-        #developerHubSection { display: none; background: #1f1f1f; border: 2px dashed #ffcc00; padding: 20px; border-radius: 12px; margin: 15px 20px; }
-
-        /* Active Payment & Popup Creator Payout Container */
-        #paymentSection, #creatorPayoutSection { display: none; background: #1f1f1f; border: 2px solid #00b4d8; padding: 20px; border-radius: 12px; margin: 15px 20px; }
-        #paymentSection { border-color: #fe2c55; }
-
-        /* Real Bank SMS Simulation Box */
-        #smsBox { display: none; background: #112233; border: 2px solid #00b4d8; padding: 15px; border-radius: 10px; margin-top: 15px; }
-        #smsBox h4 { color: #90e0ef; font-size: 14px; margin-bottom: 5px; }
-        #smsBox p { font-size: 13px; color: #fff; line-height: 1.4; }
-
-        /* Professional Floating Status Toast (Replaces Alerts) */
-        #statusToast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #25f4ee; padding: 10px 20px; border-radius: 20px; border: 1px solid #25f4ee; font-size: 12px; display: none; z-index: 99999; box-shadow: 0 4px 15px rgba(0,0,0,0.8); text-align: center; }
-
-        /* Ultra-Secret Footer Trigger for Fingerprint & Passport Lock */
-        .secret-footer-trigger { text-align: center; padding: 25px 0 10px 0; opacity: 0.15; cursor: pointer; font-size: 10px; color: #666; }
-        .secret-footer-trigger:hover { opacity: 0.8; }
-    </style>
-</head>
-<body>
-
-    <!-- Professional Toast Notification -->
-    <div id="statusToast">Status message here</div>
-
-    <!-- Clean Top Bar (Completely Cleaned) -->
-    <div class="top-bar">
-        <div></div>
-        <div></div>
-    </div>
-
-    <div class="header">
-        <a href="index.html" class="back-btn">←</a>
-        <h2>My Balance</h2>
-        <div>🪙</div>
-    </div>
-
-    <!-- 🛠️ MASTER ADMIN & GLOBAL REVENUE ROUTING PANEL -->
-    <div class="section" id="developerHubSection">
-        <h3 style="color: #ffcc00;">⚙️ Master Admin & Global Revenue Routing Panel</h3>
-        <div class="box" style="border-color: #ffcc00; background: #1a1811;">
-            <strong>Global Payoneer & Google AdMob Control Hub</strong>
-            <p style="font-size:12px; color:#ccc;">All global coin purchases, 30% live gift commissions, brand campaign cuts, and AdMob revenues route directly here:</p>
-            
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Master Payoneer Email / Account ID:</label>
-            <input type="text" id="devMerchantAccount" value="ram060039@gmail.com">
-
-            <label style="font-size:11px; color:#ffcc00; display:block; margin-top:8px;">Google AdMob Publisher ID (ca-pub-xxxxxxxxxxxxxxxx):</label>
-            <input type="text" id="devAdMobPublisherID" placeholder="pub-xxxxxxxxxxxxxxxx" value="pub-0000000000000000">
-
-            <div style="background: #111; padding: 10px; border-radius: 6px; margin-top: 10px; border: 1px solid #444;">
-                <label style="font-size:11px; color:#25f4ee; display:block;">Set Your Custom Admin Passport / PIN:</label>
-                <input type="password" id="customAdminPassport" placeholder="Enter your custom passport/PIN" value="Ram@9811522480" style="margin-top:4px;">
-                <button class="btn" style="background: #25f4ee; color: #000; margin-top: 8px; padding: 8px;" onclick="saveCustomAdminSecurity()">🛡️ Save Custom Passport & Fingerprint Lock</button>
-            </div>
-
-            <button class="btn" style="background: #ffcc00; color: #000; margin-top: 12px;" onclick="saveDevMasterHub()">💾 Save & Route All App Funds Here</button>
-            <button class="btn" style="background: #00b4d8; color: #000; margin-top: 8px;" onclick="triggerAdminInstantTransfer()">💸 Send All Accumulated Revenue to Payoneer</button>
-            <button class="btn" style="background: #444; color: #fff; margin-top: 8px;" onclick="lockAdminPanelSecurely()">🔒 Lock & Hide Securely</button>
-        </div>
-    </div>
-
-    <!-- User Spendable Coins Card -->
-    <div class="wallet-card">
-        <h4>My Spendable Coins</h4>
-        <h1 id="userCoins">19,550 🪙</h1>
-        <div class="coins-row">
-            <span>Use coins to send gifts to global creators!</span>
-        </div>
-    </div>
-
-    <!-- 🎬 CLICKABLE CREATOR EARNINGS CARD -->
-    <div class="creator-card" onclick="toggleCreatorPayout()">
-        <h4>🎬 Creator Total Main Balance (Click to Withdraw) 👇</h4>
-        <h1 id="creatorTotalBalance">$1,250.00</h1>
-        <div class="coins-row">
-            <span>Net Redeemable Balance: <strong id="netCreatorEarn">$1,250.00</strong></span>
-            <span style="font-size:11px; opacity:0.9;">Gifts + Sponsorship</span>
-        </div>
-    </div>
-
-    <!-- 💸 POPUP CREATOR WITHDRAWAL & PAYOUT SYSTEM -->
-    <div id="creatorPayoutSection">
-        <h3 style="color: #00b4d8; margin-bottom: 8px;">💸 Creator Worldwide Payout System</h3>
-        <p style="font-size: 12px; color: #ccc; margin-bottom: 12px; line-height: 1.4;">
-            Min. withdrawal limit: <b>$20.00</b>.<br>
-            ⚠️ <b>Global Routing Active:</b> 30% gift commission & brand fees route straight to Payoneer.
-        </p>
-
-        <label style="font-size:11px; color:#aaa;">Enter Withdrawal Amount (USD):</label>
-        <input type="number" id="withdrawAmount" value="1250.00" min="20" placeholder="Enter amount (Min $20)">
-
-        <label style="font-size:11px; color:#aaa; margin-top:8px; display:block;">Select Your Country / Payout Method:</label>
-        <select id="creatorCountry">
-            <option value="nepal">🇳🇵 Nepal (eSewa / Khalti / Local Bank)</option>
-            <option value="india">🇮🇳 India (UPI / Google Pay / Paytm)</option>
-            <option value="usa">🇺🇸 USA / Americas (PayPal / Bank)</option>
-            <option value="europe">🇪🇺 Europe (IBAN / SEPA Transfer)</option>
-            <option value="payoneer">🌍 Global Payoneer Account</option>
-        </select>
-
-        <label style="font-size:11px; color:#aaa; margin-top:8px; display:block;">Enter Your Account Details / UPI / eSewa Number:</label>
-        <input type="text" id="creatorAccountDetails" placeholder="e.g. eSewa No, UPI ID, or Bank Account">
-
-        <button class="btn btn-outline" onclick="submitCreatorPayout()" style="margin-top: 15px;">🚀 Confirm & Request Payout</button>
-    </div>
-
-    <!-- 🪙 COIN PURCHASING PACKAGES (USER TOP-UP) -->
-    <div class="section">
-        <h3>🪙 Select Coin Package (Click to Pay)</h3>
-        <div class="coin-grid">
-            <div class="coin-box" onclick="selectPackage(100, 5, 1.00, '$1.00')">
-                <h4>100 🪙</h4>
-                <p>$1.00 USD</p>
-                <div class="bonus-badge">+5 Bonus Coins</div>
-            </div>
-            <div class="coin-box" onclick="selectPackage(200, 15, 2.00, '$2.00')">
-                <h4>200 🪙</h4>
-                <p>$2.00 USD</p>
-                <div class="bonus-badge">+15 Bonus Coins</div>
-            </div>
-            <div class="coin-box" onclick="selectPackage(500, 50, 5.00, '$5.00')">
-                <h4>500 🪙</h4>
-                <p>$5.00 USD</p>
-                <div class="bonus-badge">+50 Bonus Coins</div>
-            </div>
-            <div class="coin-box" onclick="selectPackage(1000, 120, 10.00, '$10.00')">
-                <h4>1,000 🪙</h4>
-                <p>$10.00 USD</p>
-                <div class="bonus-badge">+120 Bonus Coins</div>
-            </div>
-            <div class="coin-box" onclick="selectPackage(2000, 300, 20.00, '$20.00')">
-                <h4>2,000 🪙</h4>
-                <p>$20.00 USD</p>
-                <div class="bonus-badge">+300 Bonus Coins</div>
-            </div>
-            <div class="coin-box" onclick="selectPackage(5000, 850, 50.00, '$50.00')">
-                <h4>5,000 🪙</h4>
-                <p>$50.00 USD</p>
-                <div class="bonus-badge">+850 Bonus Coins</div>
-            </div>
-            <div class="coin-box" onclick="selectPackage(10000, 2000, 100.00, '$100.00')">
-                <h4>10,000 🪙</h4>
-                <p>$100.00 USD</p>
-                <div class="bonus-badge">+2,000 Bonus Coins</div>
-            </div>
-            <div class="coin-box" onclick="selectPackage(100000, 25000, 1000.00, '$1,000.00')">
-                <h4>100,000 🪙</h4>
-                <p>$1,000.00 USD</p>
-                <div class="bonus-badge">+25,000 Bonus</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dynamic Worldwide Payment Form -->
-    <div class="section" id="paymentSection">
-        <h3 id="selectedTitle" style="color: #ffcc00;">💳 Checkout: $1.00</h3>
-        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">Select your country and payment method to top-up coins instantly:</p>
-        
-        <label style="font-size:12px; color:#aaa;">Select Country / Global Payment Gateway:</label>
-        <select id="gatewayChoice" onchange="togglePaymentFields()">
-            <option value="nepal">🇳🇵 Nepal (eSewa / Khalti / Nabil Bank)</option>
-            <option value="india">🇮🇳 India (UPI / Google Pay / Paytm / PhonePe)</option>
-            <option value="usa">🇺🇸 USA & Americas (Credit/Debit Card / Apple Pay / PayPal)</option>
-            <option value="europe">🇪🇺 Europe (SEPA / Visa / Mastercard / Klarna)</option>
-            <option value="payoneer">🌍 Global Payoneer Account</option>
-        </select>
-
-        <div id="dynamicFields" style="margin-top: 12px;">
-            <input type="text" id="payInput1" placeholder="Enter eSewa Mobile Number / Nabil Bank Account">
-            <input type="password" id="securePin" placeholder="Enter eSewa MPIN / Password (4 Digits)" maxlength="4" style="margin-top:8px;">
-        </div>
-
-        <button class="btn" style="margin-top: 15px; background: #25f4ee; color: #000;" onclick="executeRealPayment()">🔒 Verify & Pay Now</button>
-        
-        <!-- Real SMS Alert Box -->
-        <div id="smsBox">
-            <h4>📩 Global Bank / Wallet SMS Notification</h4>
-            <p id="smsText">Your account has been debited successfully.</p>
-        </div>
-    </div>
-
-    <!-- 🕵️‍♂️ ULTRA-SECRET FOOTER TRIGGER FOR FINGERPRINT & PASSPORT LOCK -->
-    <div class="secret-footer-trigger" onclick="verifyBiometricAndUnlock()">
-        App v2.4.1 (Build 9811) • Secure Node Active
-    </div>
-
-    <!-- 🌟 NAVBAR SCRIPT LOADER -->
-    <script src="navbar.js"></script>
-
-    <script>
-        // 🌍 GLOBAL REVENUE ROUTING ENGINE INLINE
-        class NewStarRevenueRouter {
-            constructor() {
-                this.masterPayoneer = localStorage.getItem('appDevMerchantID') || 'ram060039@gmail.com';
-                this.masterAdMobID = localStorage.getItem('appAdMobID') || 'pub-0000000000000000';
-            }
-            routeRevenue(amountUSD, sourceDesc) {
-                let secretBalance = parseFloat(localStorage.getItem('developerSecretPayoutBalance') || '0.00');
-                secretBalance += amountUSD;
-                localStorage.setItem('developerSecretPayoutBalance', secretBalance.toFixed(2));
-                console.log(`[REVENUE ROUTED] $${amountUSD} from [${sourceDesc}] -> Payoneer: ${this.masterPayoneer}`);
-            }
-        }
-        window.RevenueRouter = new NewStarRevenueRouter();
-
-        window.onload = function() {
-            let savedDevMerchant = localStorage.getItem('appDevMerchantID') || 'ram060039@gmail.com';
-            document.getElementById('devMerchantAccount').value = savedDevMerchant;
-
-            let savedAdMob = localStorage.getItem('appAdMobID') || 'pub-0000000000000000';
-            document.getElementById('devAdMobPublisherID').value = savedAdMob;
-
-            let savedPass = localStorage.getItem('customAdminPass') || 'Ram@9811522480';
-            document.getElementById('customAdminPassport').value = savedPass;
-
-            let savedCoins = localStorage.getItem('userWalletCoins');
-            if(savedCoins) {
-                document.getElementById('userCoins').innerText = parseInt(savedCoins).toLocaleString() + ' 🪙';
-            }
-
-            if(localStorage.getItem('adminSecureUnlocked') === 'true') {
-                document.getElementById('developerHubSection').style.display = 'block';
-            }
-        };
-
-        function showToast(msg) {
-            let toast = document.getElementById('statusToast');
-            toast.innerText = msg;
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 3000);
-        }
-
-        function saveCustomAdminSecurity() {
-            let newPass = document.getElementById('customAdminPassport').value.trim();
-            if(!newPass) { return; }
-            localStorage.setItem('customAdminPass', newPass);
-            showToast('🛡️ Admin Security Saved Successfully!');
-        }
-
-        async function verifyBiometricAndUnlock() {
-            let correctPass = localStorage.getItem('customAdminPass') || 'Ram@9811522480';
-
-            if (window.PublicKeyCredential && navigator.credentials) {
-                try {
-                    let confirmBio = confirm("🔐 Fingerprint / Biometric Security Required!\nClick OK to scan fingerprint or Cancel to enter your Custom Passport PIN.");
-                    if(confirmBio) {
-                        localStorage.setItem('adminSecureUnlocked', 'true');
-                        document.getElementById('developerHubSection').style.display = 'block';
-                        document.getElementById('developerHubSection').scrollIntoView({ behavior: 'smooth' });
-                        showToast('🔓 Biometric Fingerprint Verified!');
-                        return;
-                    }
-                } catch(e) {}
-            }
-
-            let passwordPrompt = prompt("🔐 Enter Your Custom Admin Passport / PIN:");
-            if(passwordPrompt === correctPass) {
-                localStorage.setItem('adminSecureUnlocked', 'true');
-                document.getElementById('developerHubSection').style.display = 'block';
-                document.getElementById('developerHubSection').scrollIntoView({ behavior: 'smooth' });
-                showToast('🔓 Master Admin Panel Unlocked!');
-            } else if(passwordPrompt !== null) {
-                showToast('❌ Incorrect Password!');
-            }
-        }
-
-        function lockAdminPanelSecurely() {
-            localStorage.removeItem('adminSecureUnlocked');
-            document.getElementById('developerHubSection').style.display = 'none';
-            showToast('🔒 Admin Panel Locked Securely');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function saveDevMasterHub() {
-            let merchantId = document.getElementById('devMerchantAccount').value.trim();
-            let admobId = document.getElementById('devAdMobPublisherID').value.trim();
-
-            if(!merchantId || !admobId) { return; }
-
-            localStorage.setItem('appDevMerchantID', merchantId);
-            localStorage.setItem('appAdMobID', admobId);
-            localStorage.setItem('appAdMobActive', 'true');
-            showToast('✅ Master Revenue Hub & Payoneer Saved!');
-        }
-
-        function triggerAdminInstantTransfer() {
-            let merchantId = document.getElementById('devMerchantAccount').value.trim();
-            let pendingBal = localStorage.getItem('developerSecretPayoutBalance') || '0.00';
-            if(!merchantId) { return; }
-            showToast(`💸 Transferred $${pendingBal} USD directly to Payoneer (${merchantId})!`);
-            localStorage.setItem('developerSecretPayoutBalance', '0.00');
-        }
-
-        function toggleCreatorPayout() {
-            let pSec = document.getElementById('creatorPayoutSection');
-            pSec.style.display = (pSec.style.display === 'block') ? 'none' : 'block';
-            pSec.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function submitCreatorPayout() {
-            let amount = parseFloat(document.getElementById('withdrawAmount').value);
-            let details = document.getElementById('creatorAccountDetails').value.trim();
-            if (isNaN(amount) || amount < 20.00) { showToast('❌ Min withdrawal is $20.00'); return; }
-            if (!details) { showToast('⚠️ Enter account details'); return; }
-            showToast('✅ Payout Request Submitted Successfully for $' + amount.toFixed(2));
-            document.getElementById('creatorPayoutSection').style.display = 'none';
-        }
-
-        let currentCoins = 100, currentBonus = 5, currentAmountUSD = 1.00, currentPriceStr = '$1.00';
-
-        function selectPackage(coins, bonus, usd, priceStr) {
-            currentCoins = coins; currentBonus = bonus; currentAmountUSD = usd; currentPriceStr = priceStr;
-            document.getElementById('paymentSection').style.display = 'block';
-            document.getElementById('selectedTitle').innerText = '💳 Checkout: ' + priceStr + ' (' + (coins + bonus) + ' Coins)';
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        }
-
-        function togglePaymentFields() {
-            let choice = document.getElementById('gatewayChoice').value;
-            let fields = document.getElementById('dynamicFields');
-            
-            if(choice === 'nepal') {
-                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter eSewa Mobile Number / Nabil Bank Account">
-                                    <input type="password" id="securePin" placeholder="Enter eSewa MPIN / Password (4 Digits)" maxlength="4" style="margin-top:8px;">`;
-            } else if(choice === 'india') {
-                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Enter UPI ID (e.g. user@oksbi) or Phone Number">
-                                    <input type="password" id="securePin" placeholder="Enter 4 or 6 Digit UPI PIN" maxlength="6" style="margin-top:8px;">`;
-            } else if(choice === 'usa' || choice === 'europe') {
-                fields.innerHTML = `<input type="text" id="payInput1" placeholder="Card Number (4111 2222 3333 4444)">
-                                    <div style="display:flex; gap:10px; margin-top:8px;">
-                                        <input type="text" placeholder="MM/YY">
-                                        <input type="password" placeholder="CVV" maxlength="4">
-                                    </div>
-                                    <input type="password" id="securePin" placeholder="Enter Card PIN / OTP" maxlength="6" style="margin-top:8px;">`;
-            } else if(choice === 'payoneer') {
-                fields.innerHTML = `<input type="email" id="payInput1" placeholder="Enter Payoneer Registered Email">
-                                    <input type="password" id="securePin" placeholder="Enter Payoneer Password / PIN" style="margin-top:8px;">`;
-            }
-        }
-
-        function executeRealPayment() {
-            let accountNum = document.getElementById('payInput1').value;
-            let pinVal = document.getElementById('securePin').value;
-            let devMerchant = localStorage.getItem('appDevMerchantID') || 'ram060039@gmail.com';
-
-            if(!accountNum.trim()) { showToast('⚠️ Please enter account or card details.'); return; }
-            if(!pinVal.trim() || pinVal.length < 4) { showToast('⚠️ Please enter valid security PIN or OTP.'); return; }
-
-            // 🌍 GLOBAL REVENUE ROUTING TRIGGER (100% Coin Purchase + Developer Cut routed to Payoneer)
-            window.RevenueRouter.routeRevenue(currentAmountUSD, 'Global Coin Package Purchase');
-
-            let totalCoinsAdded = currentCoins + currentBonus;
-            let oldCoins = parseInt(localStorage.getItem('userWalletCoins') || '19550');
-            let newTotalCoins = oldCoins + totalCoinsAdded;
-            
-            localStorage.setItem('userWalletCoins', newTotalCoins);
-            document.getElementById('userCoins').innerText = newTotalCoins.toLocaleString() + ' 🪙';
-
-            let smsBox = document.getElementById('smsBox');
-            let smsText = document.getElementById('smsText');
-            smsBox.style.display = 'block';
-            smsText.innerHTML = `<b>[GLOBAL BANK / WALLET SMS]</b><br>Debit: <b>${currentPriceStr} USD</b>.<br>Routed Directly to Master Payoneer (${devMerchant}).<br>🎉 <b>${totalCoinsAdded.toLocaleString()} Coins</b> added to your account!`;
-
-            showToast(`✅ Payment Successful! ${currentPriceStr} routed to Payoneer.`);
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        }
-    </script>
-</body>
-</html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090b12"><title>New Star Wallet</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#090b12;--panel:#151925;--line:#293247;--pink:#fe2c55;--cyan:#25f4ee;--muted:#aab2c3}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#fff;font:15px system-ui,Arial;padding:12px 12px 90px}.wrap{max-width:780px;margin:auto}a{color:var(--cyan);text-decoration:none}.top{display:flex;justify-content:space-between;align-items:center;padding:8px 2px}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin:13px 0}.balance{font-size:36px;font-weight:800;color:#ffd65a}.muted{color:var(--muted);font-size:13px;line-height:1.45}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.pkg{border:1px solid var(--line);background:#101522;border-radius:12px;padding:13px;text-align:left;color:white}.pkg:disabled{opacity:.5}.btn{border:0;background:var(--pink);color:white;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}.field{width:100%;background:#090d17;color:white;border:1px solid var(--line);border-radius:9px;padding:12px;margin:6px 0 12px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.notice{border-left:3px solid #e6b84d;padding:10px;background:#282214;color:#ffe9ad;font-size:13px;line-height:1.5}.item{padding:11px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}.status{color:var(--cyan)}h2{font-size:18px;margin:0 0 10px}label{font-size:13px;color:#d7dbea}
+@media(max-width:440px){.row{grid-template-columns:1fr}}
+</style></head>
+<body><main class="wrap">
+<div class="top"><a href="index.html">← New Star</a><span id="userLabel" class="muted">Session checking…</span></div>
+<section class="card"><div class="muted">आपके असली Wallet Coins</div><div class="balance" id="balance">—</div><div class="muted">बैलेंस Supabase के लॉगिन अकाउंट से पढ़ा जाता है। ब्राउज़र में मनमाने Coins नहीं जोड़े जाते।</div></section>
+<section class="card"><h2>Coins खरीदें</h2><p class="muted">सिर्फ सर्वर से सत्यापित Payment के बाद Coins जुड़ेंगे। Merchant Gateway कॉन्फ़िगर होने तक खरीद अस्थायी रूप से बंद है।</p><div id="packages" class="grid"><p class="muted">Packages लोड हो रहे हैं…</p></div><div class="notice" style="margin-top:12px">अभी कोई Payment Provider सक्रिय नहीं है। इसीलिए यहाँ कोई नकली Pay Now या Payment Successful बटन नहीं है। eSewa, Khalti, Payoneer या Play Billing की Merchant Credentials जुड़ने के बाद ही खरीद चालू होगी।</div></section>
+<section class="card"><h2>Creator Payouts</h2><div class="notice">Payout requests are currently unavailable. This app must not collect bank details, wallet account identifiers, passwords, PINs or OTPs here. Any future payout feature requires a properly reviewed, adult-managed provider setup and secure server-side verification. No payout has been requested or sent.</div></section>
+<section class="card"><h2>Payment Orders</h2><div id="orders" class="muted">Loading…</div></section>
+<section class="card"><h2>Coin Ledger</h2><div id="ledger" class="muted">Loading…</div></section>
+<section class="card"><h2>Withdrawal History</h2><div id="withdrawals" class="muted">Loading…</div></section>
+</main>
+<script src="./navbar.js"></script>
+<script>
+(function(){"use strict";
+const db=window.supabaseClient||window.cloudClient;
+const $=function(id){return document.getElementById(id);};
+let user=null;
+function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function money(minor,currency){return esc(currency)+" "+(Number(minor||0)/100).toFixed(2);}
+function renderRows(el,rows,renderer,empty){if(!rows||!rows.length){el.textContent=empty;return;}el.innerHTML=rows.map(renderer).join("");}
+async function loadWallet(){
+ const r=await db.from("user_wallets").select("coin_balance").eq("user_id",user.id).maybeSingle();
+ $("balance").textContent=r.error?"Unavailable":Number(r.data&&r.data.coin_balance||0).toLocaleString();
+}
+async function loadPackages(){
+ const r=await db.from("coin_packages").select("id,code,coins,bonus_coins,amount_minor,currency,country_code,channel").eq("active",true).eq("channel","web").order("amount_minor");
+ const host=$("packages");host.innerHTML="";
+ if(r.error||!r.data||!r.data.length){host.innerHTML='<p class="muted">अभी कोई verified coin package प्रकाशित नहीं है।</p>';return;}
+ r.data.forEach(function(p){const b=document.createElement("button");b.className="pkg";b.disabled=true;b.innerHTML="<b>"+esc(Number(p.coins).toLocaleString())+" Coins</b><br><span class='muted'>+"+esc(p.bonus_coins)+" bonus · "+money(p.amount_minor,p.currency)+"</span><br><small>Gateway setup pending</small>";host.appendChild(b);});
+}
+async function loadOrders(){
+ const r=await db.from("payment_orders").select("id,provider,amount_minor,currency,status,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(20);
+ if(r.error){$("orders").textContent="Order history अभी उपलब्ध नहीं है।";return;}
+ renderRows($("orders"),r.data,function(x){return '<div class="item"><span>'+esc(x.provider)+'<br><small class="muted">'+esc(new Date(x.created_at).toLocaleString())+'</small></span><span>'+money(x.amount_minor,x.currency)+'<br><b class="status">'+esc(x.status)+'</b></span></div>'; },"अभी कोई Payment Order नहीं है।");
+}
+async function loadLedger(){
+ const r=await db.from("wallet_ledger").select("entry_type,coin_delta,amount_minor,currency,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(30);
+ if(r.error){$("ledger").textContent="Ledger अभी उपलब्ध नहीं है।";return;}
+ renderRows($("ledger"),r.data,function(x){return '<div class="item"><span>'+esc(x.entry_type)+'<br><small class="muted">'+esc(new Date(x.created_at).toLocaleString())+'</small></span><b class="status">'+(Number(x.coin_delta)>0?"+":"")+esc(x.coin_delta)+' Coins</b></div>'; },"अभी कोई Ledger Entry नहीं है।");
+}
+async function loadWithdrawals(){
+ const r=await db.from("withdrawal_requests").select("amount,currency,country_code,payout_method,status,created_at").eq("creator_id",user.id).order("created_at",{ascending:false}).limit(20);
+ if(r.error){$("withdrawals").textContent="Withdrawal history अभी उपलब्ध नहीं है।";return;}
+ renderRows($("withdrawals"),r.data,function(x){return '<div class="item"><span>'+esc(x.payout_method||"Payout")+' · '+esc(x.country_code||"")+'<br><small class="muted">'+esc(new Date(x.created_at).toLocaleString())+'</small></span><span>'+esc(x.currency||"USD")+" "+esc(x.amount)+'<br><b class="status">'+esc(x.status)+'</b></span></div>'; },"अभी कोई Withdrawal Request नहीं है।");
+}
+async function init(){
+ if(!db){$("balance").textContent="Supabase connection unavailable";return;}
+ const auth=await db.auth.getUser();
+ if(auth.error||!auth.data||!auth.data.user){location.href="auth.html?next=wallet.html";return;}
+ user=auth.data.user;$("userLabel").textContent=user.email||"Signed in";
+ await Promise.all([loadWallet(),loadPackages(),loadOrders(),loadLedger(),loadWithdrawals()]);
+}
+init().catch(function(e){console.error(e);$("balance").textContent="Load failed";});
+})();
+</script></body></html>

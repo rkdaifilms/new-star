@@ -22,14 +22,14 @@ button{cursor:pointer}
 .categories::-webkit-scrollbar{display:none}
 .category{white-space:nowrap;border:0;border-radius:20px;background:#303030;color:#fff;padding:8px 13px;font-size:12px}
 .category.active{background:#fe2c55;font-weight:bold}
-#feed{height:100%;width:100%;position:relative;background:#080808;overflow:hidden}
-#video{height:100%;width:100%;object-fit:contain;background:#000}
+#feed{height:100%;width:100%;position:relative;background:#080808;overflow:hidden;touch-action:none}
+#video{height:100%;width:100%;object-fit:contain;background:#000;touch-action:none}
 .video-info{position:absolute;z-index:5;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:none}
 .video-info h3{font-size:15px;margin-bottom:7px}
 .video-info p{font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
 .video-info a{pointer-events:auto;display:none;color:#25f4ee;font-size:12px;margin-top:8px}
 .video-meta{font-size:11px;color:#ddd;margin-top:6px}
-.actions{position:absolute;right:8px;bottom:90px;z-index:7;display:flex;flex-direction:column;align-items:center;gap:10px}
+.actions{position:absolute;right:8px;bottom:90px;z-index:30;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:auto;touch-action:manipulation}
 .action{border:0;background:transparent;color:#fff;min-width:48px;text-align:center;font-size:10px;padding:0}
 .action-icon{width:40px;height:40px;border-radius:50%;background:#252525c9;border:1px solid #ffffff55;display:flex;align-items:center;justify-content:center;font-size:21px;margin:0 auto 3px}
 .action.liked .action-icon{color:#fe2c55}
@@ -39,18 +39,29 @@ button{cursor:pointer}
 #empty{display:none;line-height:1.6}
 #empty button{margin-top:12px;background:#fe2c55;color:#fff;border:0;border-radius:20px;padding:10px 18px}
 #playHint{display:none;position:absolute;z-index:8;top:50%;left:50%;transform:translate(-50%,-50%);border:0;border-radius:50%;width:60px;height:60px;background:#0009;color:#fff;font-size:26px}
-.modal{display:none;position:fixed;z-index:100;left:0;bottom:0;width:100%;height:82dvh;max-height:82dvh;background:#191919;border-radius:18px 18px 0 0;box-shadow:0 -5px 25px #000;flex-direction:column}
-#commentModal{z-index:120}
-.modal-head{display:flex;align-items:center;justify-content:space-between;padding:15px;border-bottom:1px solid #383838;flex-shrink:0}
-.modal-head h3{font-size:16px}
-.close{background:transparent;border:0;color:#fff;font-size:25px}
-.comment-list{overflow:auto;flex:1;padding:14px;min-height:0}
-.comment{padding:10px 0;border-bottom:1px solid #333;overflow-wrap:anywhere}
+.modal{display:none;position:fixed;z-index:10000;left:0;bottom:calc(68px + env(safe-area-inset-bottom));width:100%;height:56dvh;max-height:520px;min-height:300px;background:#191919;border-radius:18px 18px 0 0;box-shadow:0 -5px 25px #000;flex-direction:column;pointer-events:auto;overscroll-behavior:contain;overflow:hidden}
+#commentModal{z-index:10000;bottom:calc(68px + env(safe-area-inset-bottom));height:56dvh;max-height:520px;min-height:300px;padding:0}
+#commentModal .comment-list{flex:1 1 auto;min-height:0;overflow-y:auto;padding:10px 14px 14px}
+#commentForm{position:relative!important;z-index:10001!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;min-height:62px;flex:0 0 auto;display:flex!important;align-items:center;gap:8px;background:#202020;border-top:1px solid #777;box-shadow:0 -4px 16px #0009;padding:9px 10px calc(9px + env(safe-area-inset-bottom));pointer-events:auto}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:8px 13px;border-bottom:1px solid #383838;flex-shrink:0;min-height:42px}
+.modal-head h3{font-size:15px}
+.close{background:transparent;border:0;color:#fff;font-size:25px;min-width:36px;min-height:36px}
+.comment-list{overflow:auto;flex:1;padding:10px 14px;min-height:0}
+.comment{padding:8px 0;border-bottom:1px solid #333;overflow-wrap:anywhere}
 .comment strong{display:block;color:#bbb;font-size:12px;margin-bottom:5px}
 .comment p{font-size:14px;line-height:1.4}
-.comment-form{display:flex;gap:8px;padding:12px;border-top:1px solid #333;flex-shrink:0}
-.comment-form input{flex:1;min-width:0;background:#292929;color:#fff;border:1px solid #444;border-radius:22px;padding:11px;outline:none}
-.primary{background:#fe2c55;color:#fff;border:0;border-radius:22px;padding:11px 16px;font-weight:bold}
+.comment-form{position:relative;z-index:10001;display:flex;gap:8px;padding:9px 10px calc(9px + env(safe-area-inset-bottom));border-top:1px solid #444;flex:0 0 auto;min-height:62px;align-items:center;background:#202020;pointer-events:auto}
+.comment-form input{display:block;flex:1 1 auto;width:1%;min-width:0;height:42px;background:#292929;color:#fff;border:1px solid #777;border-radius:22px;padding:0 14px;outline:none;font-size:14px;pointer-events:auto;user-select:text;-webkit-user-select:text;opacity:1}
+.comment-form input:disabled{opacity:1}
+#commentForm input{color:#fff!important;background:#303030!important;border:1px solid #aaa!important;min-height:44px!important}
+#commentModal{left:0!important;right:0!important;bottom:calc(68px + env(safe-area-inset-bottom))!important;width:100%!important;height:min(58dvh,520px)!important;max-height:520px!important;min-height:240px!important;padding:0!important;transform:none!important;display:none;flex-direction:column!important;overflow:hidden!important}
+#commentModal .modal-head{flex:0 0 auto!important}
+#commentModal .comment-list{display:block!important;flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;padding:10px 14px 14px!important}
+#commentComposer{position:relative!important;inset:auto!important;z-index:10001!important;display:flex!important;flex:0 0 auto!important;width:100%!important;min-height:66px!important;padding:9px 10px calc(9px + env(safe-area-inset-bottom))!important;gap:8px!important;align-items:center!important;background:#202020!important;border-top:1px solid #777!important;box-shadow:0 -4px 16px #0009!important;pointer-events:auto!important}
+#commentComposer input{display:block!important;flex:1 1 auto!important;width:1%!important;min-width:0!important;height:46px!important;min-height:46px!important;padding:0 14px!important;border:1px solid #aaa!important;border-radius:24px!important;background:#303030!important;color:#fff!important;font-size:16px!important;visibility:visible!important;pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important}
+#commentComposer button{display:inline-flex!important;flex:0 0 82px!important;align-items:center!important;justify-content:center!important;width:82px!important;min-width:82px!important;height:46px!important;min-height:46px!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;touch-action:manipulation!important}
+@media(min-width:700px){#commentModal{left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(100%,480px)!important}}
+.primary{background:#fe2c55;color:#fff;border:0;border-radius:22px;padding:10px 15px;font-weight:bold;min-height:40px;white-space:nowrap;touch-action:manipulation}
 .primary:disabled{opacity:.5}
 .share-option{margin:10px 14px;padding:13px;border:0;border-radius:10px;background:#303030;color:#fff;text-align:left}
 .balance{display:flex;justify-content:space-between;align-items:center;margin:12px 14px;padding:13px;background:#292929;border:1px solid #444;border-radius:12px}
@@ -71,6 +82,74 @@ button{cursor:pointer}
  .top-area{max-width:480px;left:50%;transform:translateX(-50%)}
  .modal{max-width:480px;left:50%;transform:translateX(-50%)}
 }
+
+/* Full-screen video viewing and flying like-heart feedback */
+#video{cursor:pointer;touch-action:manipulation}
+#feed.video-expanded{position:fixed!important;inset:0!important;z-index:99999!important;width:100vw!important;height:100vh!important;height:100dvh!important;background:#000!important;overflow:hidden!important}
+#feed.video-expanded #video{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:contain!important;background:#000}
+#feed.video-expanded .top-area,#feed.video-expanded .video-info,#feed.video-expanded .actions,#feed.video-expanded #counter,#feed.video-expanded #playHint{display:none!important}
+#videoExpandClose{display:none;position:absolute;z-index:100000;top:calc(env(safe-area-inset-top) + 12px);right:12px;width:44px;height:44px;border:1px solid #ffffff66;border-radius:50%;background:#111c;color:#fff;font-size:25px;align-items:center;justify-content:center;touch-action:manipulation}
+#feed.video-expanded #videoExpandClose{display:flex}
+#video:fullscreen{width:100vw;height:100vh;object-fit:contain;background:#000}
+.flying-like-heart{position:absolute;z-index:30;left:50%;top:48%;font-size:clamp(64px,18vw,112px);line-height:1;pointer-events:none;filter:drop-shadow(0 5px 16px #0009);animation:newStarHeartFly 900ms cubic-bezier(.16,.8,.25,1) forwards}
+@keyframes newStarHeartFly{0%{opacity:0;transform:translate(-50%,15%) scale(.25) rotate(-18deg)}18%{opacity:1;transform:translate(-50%,-15%) scale(1.18) rotate(8deg)}48%{opacity:1;transform:translate(-50%,-75%) scale(1) rotate(-5deg)}100%{opacity:0;transform:translate(-50%,-175%) scale(.72) rotate(12deg)}}
+ 
+/* Responsive comments: phone, tablet, desktop, and mobile keyboards */
+#commentModal{
+  box-sizing:border-box!important;
+  position:fixed!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:calc(68px + env(safe-area-inset-bottom) + var(--comment-keyboard-inset,0px))!important;
+  transform:translateX(-50%)!important;
+  width:min(100vw,520px)!important;
+  height:min(62dvh,560px)!important;
+  min-height:220px!important;
+  max-height:calc(100dvh - 92px - env(safe-area-inset-top) - var(--comment-keyboard-inset,0px))!important;
+  display:none;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  border-radius:16px 16px 0 0!important;
+  padding:0!important;
+  z-index:2147482000!important;
+}
+#commentModal[style*="display: flex"]{display:flex!important}#commentModal[style*="display: flex"] #commentComposer{display:flex!important;visibility:visible!important;opacity:1!important}
+#commentModal .modal-head{flex:0 0 auto!important;min-height:48px!important;padding:6px 12px!important}
+#commentModal .comment-list{display:block!important;flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important}
+#commentModal #commentComposer{
+  box-sizing:border-box!important;display:flex!important;visibility:visible!important;
+  position:relative!important;inset:auto!important;z-index:2147482001!important;
+  flex:0 0 auto!important;flex-wrap:nowrap!important;align-items:center!important;
+  width:100%!important;min-width:0!important;min-height:64px!important;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom))!important;
+  gap:8px!important;background:#202020!important;border-top:1px solid #666!important;
+}
+#commentModal #commentInput{
+  box-sizing:border-box!important;display:block!important;visibility:visible!important;
+  flex:1 1 0!important;width:0!important;min-width:0!important;max-width:none!important;
+  height:44px!important;min-height:44px!important;font-size:16px!important;
+  color:#fff!important;background:#303030!important;border:1px solid #aaa!important;
+  border-radius:24px!important;padding:0 13px!important;opacity:1!important;
+  pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important;
+}
+#commentModal #postComment{
+  box-sizing:border-box!important;display:inline-flex!important;visibility:visible!important;
+  flex:0 0 auto!important;width:auto!important;min-width:72px!important;max-width:112px!important;
+  min-height:44px!important;align-items:center!important;justify-content:center!important;
+  white-space:nowrap!important;touch-action:manipulation!important;
+}
+@media(max-width:360px){
+ #commentModal{width:100vw!important;height:min(58dvh,500px)!important}
+ #commentModal #commentComposer{gap:6px!important;padding-left:7px!important;padding-right:7px!important}
+ #commentModal #postComment{min-width:64px!important;padding-left:10px!important;padding-right:10px!important}
+}
+@media(min-width:700px){
+ #commentModal{width:min(92vw,520px)!important;height:min(64dvh,560px)!important;bottom:24px!important;border-radius:16px!important}
+}
+@media(orientation:landscape) and (max-height:500px){
+ #commentModal{height:calc(100dvh - 84px)!important;max-height:calc(100dvh - 84px)!important;min-height:180px!important}
+}
+
 </style>
 </head>
 <body>
@@ -108,6 +187,7 @@ button{cursor:pointer}
   </div>
  </div>
  <video id="video" playsinline loop preload="metadata"></video>
+ <button id="videoExpandClose" type="button" aria-label="Close expanded video">×</button>
  <button id="playHint">▶</button>
  <div id="counter"></div>
  <section class="video-info">
@@ -126,13 +206,13 @@ button{cursor:pointer}
 </main>
 </div>
 
-<section class="modal" id="commentModal">
- <div class="modal-head"><h3 id="commentTitle">Comments</h3><button class="close" data-close="commentModal">×</button></div>
- <div class="comment-list" id="commentList"></div>
- <div class="comment-form">
-  <input id="commentInput" maxlength="1000" placeholder="Write a comment...">
-  <button class="primary" id="postComment">Post</button>
- </div>
+<section class="modal" id="commentModal" aria-label="Comments">
+ <div class="modal-head"><h3 id="commentTitle">Comments</h3><button class="close" data-close="commentModal" aria-label="Close comments">×</button></div>
+ <div class="comment-list" id="commentList" aria-live="polite"></div>
+ <form id="commentComposer" class="comment-form" autocomplete="off" aria-label="Write a comment">
+  <input id="commentInput" type="text" maxlength="1000" placeholder="यहाँ Comment लिखें..." aria-label="Comment लिखें">
+  <button class="primary" id="postComment" type="submit">Send</button>
+ </form>
 </section>
 
 <section class="modal" id="shareModal">
@@ -186,9 +266,15 @@ function numberFormat(value){
 }
 function openModal(id){
  document.querySelectorAll(".modal").forEach(m=>m.style.display="none");
- $(id).style.display="flex";
+ const modal=$(id);
+ modal.style.display="flex";
+ modal.style.visibility="visible";
+ modal.style.pointerEvents="auto";
 }
-function closeModal(id){$(id).style.display="none";}
+function closeModal(id){
+ $(id).style.display="none";
+ 
+}
 document.querySelectorAll("[data-close]").forEach(btn=>{
  btn.addEventListener("click",()=>closeModal(btn.dataset.close));
 });
@@ -203,6 +289,7 @@ async function getUser(){
 }
 
 function showEmpty(message){
+ $(".actions").style.display="none";
  $("video").pause();$("video").removeAttribute("src");$("video").load();
  $("emptyMessage").textContent=message;$("empty").style.display="flex";
  $("counter").textContent="";$("username").textContent="";$("caption").textContent="";
@@ -240,7 +327,7 @@ function getVideoAspect(item){
    let ratioLabel=width+":"+height;
    if(Math.abs(ratio-(9/16))<0.035)ratioLabel="9:16";
    else if(Math.abs(ratio-(16/9))<0.08)ratioLabel="16:9";
-   finish({width,height,ratio,orientation,ratioLabel});
+   finish({width,height,duration:Number(probe.duration)||0,ratio,orientation,ratioLabel});
   };
   probe.onerror=()=>finish(null);
   probe.src=url;
@@ -257,6 +344,19 @@ function videoModeLabel(info){
  return "Square / Other · "+info.ratioLabel;
 }
 
+async function hydrateFeedVideoMetadata(){
+ await Promise.all(videos.map(async item=>{
+  if(Number(item.duration_seconds)>0&&Number(item.width)>0&&Number(item.height)>0)return;
+  try{
+   const info=await getVideoAspect(item);
+   if(!info||!info.duration)return;
+   item.duration_seconds=Math.ceil(info.duration);
+   item.width=info.width;item.height=info.height;
+   item.video_type=info.duration<=60?"short":"long";
+  }catch(error){console.warn("Video metadata:",item.id,error);}
+ }));
+}
+
 async function loadLikes(){
  likedIds.clear();
  if(!currentUser||!videos.length)return;
@@ -271,21 +371,30 @@ async function loadLikes(){
 
 async function loadFeed(){
  $("loading").style.display="flex";$("empty").style.display="none";
- if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला। supabase-config.js जाँचें।");return;}
+ if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला।");return;}
  try{
-  const {data,error}=await db.from("videos")
-   .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type")
-   .order("created_at",{ascending:false});
+  // Load the unfiltered feed first: older videos may have no duration/type columns yet.
+  const type=null;
+  const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
+  const {data,error}=await db.rpc("get_recommended_video_feed",{p_limit:50,p_offset:0,p_video_type:type,p_category:category});
   if(error)throw error;
   videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
-  await loadLikes();
-  await applyFilters();
+  await hydrateFeedVideoMetadata();
+  await loadLikes();await applyFilters();
  }catch(error){
   console.error("Feed error:",error);
-  showEmpty("वीडियो लोड नहीं हुए। Supabase videos table और RLS जाँचें।");
+  try{
+   const {data,error:fallbackError}=await db.from("videos")
+    .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type,duration_seconds,width,height,thumbnail_url,video_type")
+    .eq("processing_status","published").eq("visibility","public").eq("audience_type","all")
+    .order("created_at",{ascending:false}).range(0,49);
+   if(fallbackError)throw fallbackError;
+   videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+   await hydrateFeedVideoMetadata();
+   await loadLikes();await applyFilters();
+  }catch(fallbackError){console.error("Feed fallback:",fallbackError);showEmpty("वीडियो लोड नहीं हुए। Feed/RLS जाँचें।");}
  }finally{$("loading").style.display="none";}
 }
-
 async function getFollowingIds(){
  if(!currentUser)return [];
  const {data,error}=await db.from("followers").select("following_id").eq("follower_id",currentUser.id);
@@ -298,51 +407,72 @@ async function applyFilters(){
  let followingIds=[];
  if(currentCategory==="Following"||currentCategory==="Friends"){
   if(!currentUser){showEmpty("Following वीडियो देखने के लिए Login करें।");return;}
-  try{followingIds=await getFollowingIds();}
-  catch(error){showEmpty("Following सूची लोड नहीं हुई।");return;}
+  try{followingIds=await getFollowingIds();}catch(e){showEmpty("Following सूची लोड नहीं हुई।");return;}
  }
-
- let aspectByUrl=new Map();
- if(["Shorts","Reels","Long Videos"].includes(currentCategory)){
-  const results=await Promise.all(videos.map(async item=>[item.video_url,await getVideoAspect(item)]));
-  aspectByUrl=new Map(results);
- }
-
  filtered=videos.filter(v=>{
-  const text=[v.caption,v.username,v.category].join(" ").toLowerCase();
+  const text=[v.caption,v.username,v.category,...(v.tags||[])].join(" ").toLowerCase();
   if(keyword&&!text.includes(keyword))return false;
   if(currentCategory==="Following"||currentCategory==="Friends")return followingIds.includes(String(v.user_id));
   if(currentCategory==="Live")return false;
-  if(currentCategory==="Shorts"||currentCategory==="Reels"){
-   return aspectByUrl.get(v.video_url)?.orientation==="portrait";
-  }
-  if(currentCategory==="Long Videos"){
-   return aspectByUrl.get(v.video_url)?.orientation==="landscape";
-  }
+  const duration=Number(v.duration_seconds)||0;
+   const isShort=duration>0?duration<=60:(v.video_type==="short"||(Number(v.height)>Number(v.width)));
+   if(currentCategory==="Shorts"||currentCategory==="Reels")return isShort;
+  if(currentCategory==="Long Videos")return duration>60||(duration===0&&(v.video_type==="long"||Number(v.width)>=Number(v.height)));
   if(["For You","Discover"].includes(currentCategory))return true;
   return String(v.category||"").toLowerCase().includes(currentCategory.toLowerCase());
  });
  currentIndex=0;
- if(!filtered.length){
-  let message="इस Category या Search में कोई वीडियो नहीं मिला।";
-  if(currentCategory==="Live")message="अभी कोई Live वीडियो उपलब्ध नहीं है।";
-  if(currentCategory==="Shorts"||currentCategory==="Reels")message="अभी कोई Vertical Shorts / Reels वीडियो नहीं मिला।";
-  if(currentCategory==="Long Videos")message="अभी कोई Landscape Long Video नहीं मिला।";
-  showEmpty(message);
-  return;
- }
+ if(!filtered.length){showEmpty(currentCategory==="Live"?"अभी कोई Live Stream उपलब्ध नहीं है।":"इस Category में अभी कोई वीडियो नहीं मिला।");return;}
  $("empty").style.display="none";
  const wanted=new URLSearchParams(location.search).get("video");
  if(wanted){const found=filtered.findIndex(v=>String(v.id)===wanted);if(found>=0)currentIndex=found;}
  renderVideo();
 }
 
+let activeWatchSession=null,watchHeartbeatTimer=null,watchSessionStarting=false,lastWatchVideoId=null;
+async function stopWatchSession(){
+ if(watchHeartbeatTimer){clearInterval(watchHeartbeatTimer);watchHeartbeatTimer=null;}
+ const old=activeWatchSession;activeWatchSession=null;
+ if(old&&currentUser){try{await db.rpc("end_video_watch_session",{p_session_id:old,p_position_seconds:Number($("video").currentTime||0)});}catch(e){console.warn("Watch session close:",e.message);}}
+}
+async function startWatchSession(videoId){
+ if(!currentUser||!db||watchSessionStarting)return;
+ watchSessionStarting=true;
+ try{
+  await stopWatchSession();
+  const clientSessionId=crypto.randomUUID();
+  const {data,error}=await db.rpc("start_video_watch_session",{p_video_id:videoId,p_client_session_id:clientSessionId});
+  if(error)throw error;
+  activeWatchSession=data?.session_id||null;
+  lastWatchVideoId=videoId;
+  if(activeWatchSession){
+   watchHeartbeatTimer=setInterval(async()=>{
+    if(!activeWatchSession||$("video").paused||document.visibilityState!=="visible")return;
+    const session=activeWatchSession;
+    const {error:heartbeatError}=await db.rpc("heartbeat_video_watch_session",{
+     p_session_id:session,p_position_seconds:Number($("video").currentTime||0),p_is_playing:true
+    });
+    if(heartbeatError)console.warn("Watch heartbeat:",heartbeatError.message);
+   },8000);
+  }
+ }catch(e){console.warn("Watch tracking unavailable:",e.message);}
+ finally{watchSessionStarting=false;}
+}
+function recordEngagement(videoId,eventType){
+ if(!currentUser||!videoId)return;
+ db.rpc("record_video_engagement",{p_video_id:videoId,p_event_type:eventType}).then(({error})=>{
+  if(error)console.debug("Engagement not recorded:",error.message);
+ });
+}
+
 function renderVideo(){
  if(!filtered.length)return;
+ $(".actions").style.display="flex";
  currentVideo=filtered[currentIndex];if(!currentVideo)return;
  const player=$("video");
  const renderingId=String(currentVideo.id);
  player.pause();
+ stopWatchSession();
  player.onloadedmetadata=()=>{
   if(!currentVideo||String(currentVideo.id)!==renderingId)return;
   const width=player.videoWidth,height=player.videoHeight;
@@ -350,14 +480,18 @@ function renderVideo(){
   let ratioLabel=width&&height?width+":"+height:"Unknown";
   if(ratio&&Math.abs(ratio-(9/16))<0.035)ratioLabel="9:16";
   else if(ratio&&Math.abs(ratio-(16/9))<0.08)ratioLabel="16:9";
-  let mode="Other Video";
-  if(ratio&&ratio<0.95)mode="Shorts";
-  else if(ratio&&ratio>1.05)mode="Long Video";
+  const duration=Number(currentVideo.duration_seconds)||Number(player.duration)||0;
+  const mode=duration>0&&duration<=60?"Shorts":duration>60?"Long Video":"Video";
   $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode+" · "+ratioLabel+" · "+width+"×"+height;
  };
  player.src=currentVideo.video_url;
  player.load();
- player.play().catch(()=>{$("playHint").style.display="block";});
+ player.play().then(()=>startWatchSession(renderingId)).catch(()=>{$("playHint").style.display="block";});
+ player.onended=()=>{if(currentUser&&activeWatchSession)db.rpc("end_video_watch_session",{p_session_id:activeWatchSession,p_position_seconds:Number(player.currentTime||0)});};
+ const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
+ const currentDuration=Number(currentVideo.duration_seconds)||0;
+  const currentIsShort=currentDuration>0?currentDuration<=60:(currentVideo.video_type==="short"||Number(currentVideo.height)>Number(currentVideo.width));
+  player.style.objectFit=currentIsShort?"cover":"contain";
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
  $("caption").textContent=currentVideo.caption||"";
@@ -398,6 +532,7 @@ async function toggleLike(){
    const {error}=await db.from("likes").insert({video_id:id,user_id:currentUser.id});
    if(error)throw error;
    likedIds.add(id);
+   showFlyingHeart();
   }
   const {data:latest,error:countError}=await db.from("videos")
    .select("likes_count").eq("id",id).maybeSingle();
@@ -417,10 +552,30 @@ async function openComments(){
   return;
  }
  openModal("commentModal");
+ const panel=$("commentModal");
+ const composer=$("commentComposer");
  const input=$("commentInput");
- input.placeholder=currentUser?"Write a comment...":"Comment करने के लिए पहले Login करें";
- $("postComment").textContent=currentUser?"Post":"Login to Comment";
+ const send=$("postComment");
+ // Force the composer to remain visible inside the panel even if older CSS overrides it.
+ composer.style.setProperty("display","flex","important");
+ composer.style.setProperty("visibility","visible","important");
+ composer.style.setProperty("position","relative","important");
+ composer.style.setProperty("inset","auto","important");
+ composer.style.setProperty("width","100%","important");
+ composer.style.setProperty("flex","0 0 auto","important");
+ input.style.setProperty("display","block","important");
+ input.style.setProperty("visibility","visible","important");
+ input.style.setProperty("min-width","0","important");
+ send.style.setProperty("display","inline-flex","important");
+ send.style.setProperty("visibility","visible","important");
+ panel.style.setProperty("--comment-keyboard-inset","0px");
+ input.placeholder="यहाँ अपना Comment लिखें...";
+ input.disabled=false;
+ input.readOnly=false;
+ $("postComment").textContent=currentUser?"Send":"Login करके Send";
+ $("postComment").disabled=false;
  await loadComments(currentVideo.id);
+ setTimeout(()=>input.focus({preventScroll:true}),180);
 }
 
 async function loadComments(videoId){
@@ -468,6 +623,7 @@ function videoUrl(){
 }
 async function shareVideo(){
  if(!currentVideo)return;
+ recordEngagement(currentVideo.id,"share");
  const url=videoUrl();
  if(navigator.share){
   try{await navigator.share({title:"New Star Video",text:currentVideo.caption||"Watch on New Star",url});}
@@ -607,32 +763,86 @@ $("voice").addEventListener("click",()=>{
 });
 function changeVideo(direction){
  if(!filtered.length)return;
+ if(direction>0&&currentVideo)recordEngagement(currentVideo.id,"skip");
  currentIndex+=direction;
  if(currentIndex<0)currentIndex=0;
  if(currentIndex>=filtered.length)currentIndex=filtered.length-1;
  renderVideo();
 }
-let touchStartY=0;
-$("feed").addEventListener("touchstart",event=>{touchStartY=event.changedTouches[0].clientY;},{passive:true});
+let feedPointerStart=null,lastWheelAt=0,lastSwipeAt=0,touchFeedStart=null;
+function handleFeedSwipe(startX,startY,endX,endY){
+ const now=Date.now();
+ if(now-lastSwipeAt<450)return;
+ const dy=startY-endY,dx=startX-endX;
+ if(Math.abs(dy)>42&&Math.abs(dy)>Math.abs(dx)*1.12){
+  lastSwipeAt=now;
+  changeVideo(dy>0?1:-1);
+ }
+}
+$("feed").addEventListener("pointerdown",event=>{
+ if($("feed").classList.contains("video-expanded"))return;
+ if(event.target.closest("button,a,input"))return;
+ feedPointerStart={id:event.pointerId,x:event.clientX,y:event.clientY};
+ try{$("feed").setPointerCapture(event.pointerId);}catch(e){}
+});
+$("feed").addEventListener("pointerup",event=>{
+ if(!feedPointerStart||feedPointerStart.id!==event.pointerId)return;
+ const start=feedPointerStart;feedPointerStart=null;
+ if($("feed").classList.contains("video-expanded"))return;
+ handleFeedSwipe(start.x,start.y,event.clientX,event.clientY);
+});
+// Android/iOS fallback: native touch events cover WebViews that miss pointerup on video.
+$("feed").addEventListener("touchstart",event=>{
+ if($("feed").classList.contains("video-expanded")||event.target.closest("button,a,input"))return;
+ const t=event.changedTouches[0];if(t)touchFeedStart={x:t.clientX,y:t.clientY};
+},{passive:true});
 $("feed").addEventListener("touchend",event=>{
- const difference=touchStartY-event.changedTouches[0].clientY;
- if(Math.abs(difference)>65)changeVideo(difference>0?1:-1);
+ if(!touchFeedStart)return;
+ const start=touchFeedStart;touchFeedStart=null;
+ const t=event.changedTouches[0];if(!t||$("feed").classList.contains("video-expanded"))return;
+ handleFeedSwipe(start.x,start.y,t.clientX,t.clientY);
 },{passive:true});
+$("feed").addEventListener("pointercancel",()=>{feedPointerStart=null;});
 $("feed").addEventListener("wheel",event=>{
- if(Math.abs(event.deltaY)>25)changeVideo(event.deltaY>0?1:-1);
+ if($("feed").classList.contains("video-expanded"))return;
+ if(Math.abs(event.deltaY)<25)return;
+ const now=Date.now();if(now-lastWheelAt<350)return;lastWheelAt=now;
+ changeVideo(event.deltaY>0?1:-1);
 },{passive:true});
+function showFlyingHeart(){
+ const heart=document.createElement("div");
+ heart.className="flying-like-heart";
+ heart.setAttribute("aria-hidden","true");
+ heart.textContent="❤️";
+ $("feed").appendChild(heart);
+ heart.addEventListener("animationend",()=>heart.remove(),{once:true});
+}
+function setVideoExpanded(expanded){
+ const feed=$("feed"),player=$("video");
+ feed.classList.toggle("video-expanded",!!expanded);
+ document.body.style.overflow=expanded?"hidden":"";
+ if(expanded){player.controls=true;player.play().catch(()=>{});}
+ else{player.controls=false;}
+}
 $("video").addEventListener("click",()=>{
- const player=$("video");
- if(player.paused){player.play().catch(()=>{});$("playHint").style.display="none";}
- else{player.pause();$("playHint").style.display="block";}
+ const expanded=$("feed").classList.contains("video-expanded");
+ if(expanded){setVideoExpanded(false);return;}
+ setVideoExpanded(true);
+ $("playHint").style.display="none";
+});
+$("videoExpandClose").addEventListener("click",event=>{
+ event.preventDefault();event.stopPropagation();setVideoExpanded(false);
+});
+document.addEventListener("keydown",event=>{
+ if(event.key==="Escape"&&$("feed").classList.contains("video-expanded"))setVideoExpanded(false);
 });
 $("playHint").addEventListener("click",()=>{
  $("video").play().catch(()=>{});$("playHint").style.display="none";
 });
 
 $("likeBtn").addEventListener("click",toggleLike);
-$("commentBtn").addEventListener("click",openComments);
-$("postComment").addEventListener("click",postComment);
+$("commentBtn").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openComments();});
+$("commentComposer").addEventListener("submit",event=>{event.preventDefault();postComment();});
 $("giftBtn").addEventListener("click",openGift);
 $("sendGift").addEventListener("click",sendGift);
 $("shareBtn").addEventListener("click",shareVideo);
@@ -641,10 +851,11 @@ $("copyShare").addEventListener("click",copyShareLink);
 $("downloadBtn").addEventListener("click",downloadCurrentVideo);
 $("reload").addEventListener("click",loadFeed);
 $("commentInput").addEventListener("keydown",event=>{
- if(event.key==="Enter")postComment();
+ if(event.key==="Enter"){event.preventDefault();postComment();}
 });
 
 /* START */
+window.addEventListener("pagehide",()=>{if(watchHeartbeatTimer)clearInterval(watchHeartbeatTimer);});
 async function startNewStar(){
  if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला। supabase-config.js जाँचें।");return;}
  currentUser=await getUser();
@@ -652,6 +863,29 @@ async function startNewStar(){
  await loadFeed();
 }
 startNewStar();
+
+/* Keep the comments panel above Android/iOS on-screen keyboards. */
+(function(){
+ const panel=document.getElementById("commentModal");
+ if(!panel)return;
+ const update=()=>{
+  const vv=window.visualViewport;
+  let inset=0;
+  if(vv && window.innerWidth<700){
+   inset=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+  }
+  panel.style.setProperty("--comment-keyboard-inset",Math.round(inset)+"px");
+ };
+ if(window.visualViewport){
+  window.visualViewport.addEventListener("resize",update);
+  window.visualViewport.addEventListener("scroll",update);
+ }
+ window.addEventListener("orientationchange",()=>setTimeout(update,250));
+ document.addEventListener("focusin",e=>{if(e.target && e.target.id==="commentInput")setTimeout(update,80);});
+ document.addEventListener("focusout",e=>{if(e.target && e.target.id==="commentInput")setTimeout(update,180);});
+ update();
+})();
+
 </script>
 </body>
 </html>

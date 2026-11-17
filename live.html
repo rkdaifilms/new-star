@@ -105,7 +105,7 @@
     <div id="activeLiveView">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <span style="background:rgba(254,44,85,0.2); border:1px solid #fe2c55; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:bold; color:#fe2c55;"><span class="pulsing-dot"></span> LIVE ROOM ACTIVE</span>
-            <span style="font-size:11px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins">500</b> | 🔥 Rank: <b id="liveRoomRank" style="color:#25f4ee;">#1</b></span>
+            <span style="font-size:11px; color:#ffcc00;">🪙 Coins: <b id="userWalletCoins">—</b> | 🔥 Rank: <b id="liveRoomRank" style="color:#25f4ee;">#1</b></span>
         </div>
 
         <!-- PK BATTLE SCOREBOARD -->
@@ -296,8 +296,7 @@
         ];
 
         window.onload = function() {
-            let savedCoins = localStorage.getItem('userWalletCoins') || '500';
-            document.getElementById('userWalletCoins').innerText = parseInt(savedCoins).toLocaleString();
+            document.getElementById("userWalletCoins").innerText = "Unavailable";
             renderMegaGiftGrid();
         };
 
@@ -579,6 +578,23 @@
             document.getElementById('micStatusText').innerText = isMuted ? 'MUTED' : 'ON';
             if(liveStreamObj) liveStreamObj.getAudioTracks().forEach(t => t.enabled = !isMuted);
         }
+        // Disable local-only rewards and false broadcast claims until real server infrastructure exists.
+        function checkAndDeductCoins(){ alert('Gifts disabled: verified server transactions are not connected.'); return false; }
+        function sendTiktokGift(){ alert('Gift sending is disabled. No coins were deducted.'); }
+        function deployTreasureBox(){ alert('Treasure Box disabled until a server-managed prize pool exists.'); }
+        function executeClaimTreasure(){ alert('No reward was added; claims are not server-verified.'); }
+        function assignFriendToSeat(){ alert('Guest seats require a real WebRTC connection and are unavailable.'); }
+        function startGlobalPkSearch(){ alert('PK matchmaking is not connected to real participants.'); }
+        function startPkWithOpponent(){ alert('PK Battle is unavailable until real matchmaking exists.'); }
+        function startLiveBroadcastSession(){
+          const name=document.getElementById('liveCreatorNameInput').value.trim(); if(name) currentCreatorName=name;
+          navigator.mediaDevices?.getUserMedia({video:true,audio:true}).then(stream=>{
+            liveStreamObj=stream; const v=document.getElementById('roomVideo_1');
+            if(v){v.srcObject=stream;v.style.display='block';}
+            alert('Local camera preview only. This is NOT broadcast to viewers or recorded on a server.');
+          }).catch(()=>alert('Camera and microphone permission is required.'));
+        }
+        function stopLiveBroadcast(){ if(liveStreamObj)liveStreamObj.getTracks().forEach(t=>t.stop()); liveStreamObj=null; document.getElementById('activeLiveView').style.display='none'; document.getElementById('liveSetupPanel').style.display='block'; }
     </script>
 </body>
 </html>

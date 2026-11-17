@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inbox & Direct Messages</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
     
     <!-- 📱 PWA MANIFEST & APP INSTALL LINK -->
     <link rel="manifest" href="manifest.json">
@@ -86,84 +88,33 @@
         <h2>Direct Messages & Activity</h2>
     </div>
 
-    <!-- User's Own Profile Banner -->
+    <!-- Authenticated user's profile banner; populated from Supabase -->
     <div class="my-inbox-profile" onclick="window.location.href='profile.html'">
-        <img id="inboxUserPic" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" alt="My Profile">
+        <img id="inboxUserPic" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100%25' height='100%25' fill='%23333'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' fill='white' font-size='38'%3E★%3C/text%3E%3C/svg%3E" alt="Profile">
         <div>
-            <h4 id="inboxUserName">Ramkumar Dhobi</h4>
-            <p>Tap to view your Profile • Active Status</p>
+            <h4 id="inboxUserName">Your profile</h4>
+            <p>Open your profile</p>
         </div>
     </div>
 
-    <!-- Inbox Tabs -->
+    <div id="inboxStatus" class="empty-state" role="status" aria-live="polite">Connecting to your account…</div>
+
     <div class="inbox-tabs">
-        <div class="inbox-tab active" onclick="switchTab('messages', this)">Messages (2)</div>
-        <div class="inbox-tab" onclick="switchTab('followers', this)">Followers (3)</div>
-        <div class="inbox-tab" onclick="switchTab('following', this)">Following (2)</div>
+        <div class="inbox-tab active" onclick="switchTab('messages', this)">Messages</div>
+        <div class="inbox-tab" onclick="switchTab('followers', this)">Followers</div>
+        <div class="inbox-tab" onclick="switchTab('following', this)">Following</div>
     </div>
 
-    <!-- Tab 1: Messages List -->
     <div class="list-container" id="tabMessages">
-        <div class="list-item" onclick="openChat('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', 'Bhai video bahut mast banaya hai! 🔥')">
-            <div class="user-left">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="list-avatar" onclick="event.stopPropagation(); showProfile('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', '@priyance_official | Creator & Dancer')">
-                <div class="list-info">
-                    <h4 onclick="event.stopPropagation(); showProfile('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', '@priyance_official | Creator & Dancer')">Priyance Official</h4>
-                    <p>Bhai video bahut mast banaya hai! 🔥</p>
-                </div>
-            </div>
-            <span style="font-size:11px; color:#777;">10:45 AM</span>
-        </div>
-
-        <div class="list-item" onclick="openChat('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', 'Your coin purchase of $10.00 was successful.')">
-            <div class="user-left">
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200" class="list-avatar" onclick="event.stopPropagation(); showProfile('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', '@support | Official Helpdesk')">
-                <div class="list-info">
-                    <h4 onclick="event.stopPropagation(); showProfile('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', '@support | Official Helpdesk')">Call Priyance Support</h4>
-                    <p>Your coin purchase of $10.00 was successful.</p>
-                </div>
-            </div>
-            <span style="font-size:11px; color:#777;">Yesterday</span>
-        </div>
+        <div class="empty-state">Loading your real conversations…</div>
     </div>
 
-    <!-- Tab 2: Followers List -->
     <div class="list-container" id="tabFollowers" style="display:none;">
-        <div class="list-item">
-            <div class="user-left" onclick="showProfile('Anjali Dance Hub', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200', '@anjali_dance | Started following you')">
-                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200" class="list-avatar">
-                <div class="list-info">
-                    <h4>Anjali Dance Hub</h4>
-                    <p>Started following you • 2m ago</p>
-                </div>
-            </div>
-            <button class="action-tag-btn" onclick="toggleFollow(this)">Follow Back</button>
-        </div>
-
-        <div class="list-item">
-            <div class="user-left" onclick="showProfile('Rohit Painter', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200', '@rohit_paint | Wall Putty Expert')">
-                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200" class="list-avatar">
-                <div class="list-info">
-                    <h4>Rohit Painter</h4>
-                    <p>Started following you • 1h ago</p>
-                </div>
-            </div>
-            <button class="action-tag-btn following" onclick="toggleFollow(this)">Following</button>
-        </div>
+        <div class="empty-state">Verified follower activity will appear here.</div>
     </div>
 
-    <!-- Tab 3: Following List -->
     <div class="list-container" id="tabFollowing" style="display:none;">
-        <div class="list-item">
-            <div class="user-left" onclick="showProfile('Priyance Official', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200', '@priyance_official')">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" class="list-avatar">
-                <div class="list-info">
-                    <h4>Priyance Official</h4>
-                    <p>You are following this creator</p>
-                </div>
-            </div>
-            <button class="action-tag-btn following" onclick="toggleFollow(this)">Following</button>
-        </div>
+        <div class="empty-state">Creators you follow will appear here.</div>
     </div>
 
     <!-- REAL MESSENGER CHAT WINDOW (FIXED INPUT AREA) -->
@@ -207,139 +158,88 @@
     <script src="navbar.js"></script>
 
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((reg) => { console.log('Service Worker Registered!', reg); })
-                    .catch((err) => { console.log('Service Worker Failed!', err); });
-            });
-        }
-
-        window.onload = function() {
-            let savedName = localStorage.getItem('appName');
-            let savedPic = localStorage.getItem('appPic');
-
-            if(savedName) document.getElementById('inboxUserName').innerText = savedName;
-            if(savedPic) document.getElementById('inboxUserPic').src = savedPic;
-        };
-
-        function switchTab(tabName, el) {
-            document.querySelectorAll('.inbox-tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
-
-            document.getElementById('tabMessages').style.display = 'none';
-            document.getElementById('tabFollowers').style.display = 'none';
-            document.getElementById('tabFollowing').style.display = 'none';
-
-            if(tabName === 'messages') document.getElementById('tabMessages').style.display = 'block';
-            if(tabName === 'followers') document.getElementById('tabFollowers').style.display = 'block';
-            if(tabName === 'following') document.getElementById('tabFollowing').style.display = 'block';
-        }
-
-        let popupUser = '';
-        let popupAvatarUrl = '';
-
-        function showProfile(name, avatar, bio) {
-            popupUser = name;
-            popupAvatarUrl = avatar;
-            document.getElementById('popupName').innerText = name;
-            document.getElementById('popupAvatar').src = avatar;
-            document.getElementById('popupBio').innerText = bio;
-            document.getElementById('profilePopup').style.display = 'flex';
-        }
-
-        function closeProfilePopup() {
-            document.getElementById('profilePopup').style.display = 'none';
-        }
-
-        function openChatFromPopup() {
-            closeProfilePopup();
-            openChat(popupUser, popupAvatarUrl, 'Hello Ramkumar bhai! Let us chat.');
-        }
-
-        let activeAvatar = '';
-        let currentChatUser = '';
-
-        function openChat(name, avatar, lastMsg) {
-            currentChatUser = name;
-            activeAvatar = avatar;
-            document.getElementById('activeChatName').innerText = name;
-            document.getElementById('activeChatAvatar').src = avatar;
-            
-            let msgArea = document.getElementById('chatMessagesArea');
-            msgArea.innerHTML = `<div class="message incoming"><b>${name}:</b> ${lastMsg}</div>`;
-
-            document.getElementById('chatBoxWindow').style.display = 'flex';
-        }
-
-        function showProfileFromChat() {
-            showProfile(currentChatUser, activeAvatar, 'Verified Creator & Active User');
-        }
-
-        function closeChat() {
-            document.getElementById('chatBoxWindow').style.display = 'none';
-        }
-
-        function sendMessage() {
-            let input = document.getElementById('messageInput');
-            let text = input.value.trim();
-            if(text === '') return;
-
-            let msgArea = document.getElementById('chatMessagesArea');
-            msgArea.innerHTML += `<div class="message outgoing">${text}</div>`;
-            input.value = '';
-            msgArea.scrollTop = msgArea.scrollHeight;
-
-            setTimeout(() => {
-                msgArea.innerHTML += `<div class="message incoming"><b>${currentChatUser}:</b> Ramkumar bhai, message mil gaya! 👍</div>`;
-                msgArea.scrollTop = msgArea.scrollHeight;
-            }, 1000);
-        }
-
-        function startVoiceRecording() {
-            let btn = document.getElementById('micBtn');
-            btn.style.background = '#fe2c55';
-            alert('🎙️ Recording voice... Speak now!');
-
-            setTimeout(() => {
-                btn.style.background = '#222';
-                let voiceText = "Ramkumar bhai, ye raha voice message ka auto-typed text!";
-                document.getElementById('messageInput').value = voiceText;
-                alert('✍️ Voice converted to text successfully! Click Send.');
-            }, 1500);
-        }
-
-        function sendMediaFile(event) {
-            let file = event.target.files[0];
-            if (file) {
-                let reader = new FileReader();
-                reader.onload = function(e) {
-                    let msgArea = document.getElementById('chatMessagesArea');
-                    let fileType = file.type;
-                    if(fileType.includes('video')) {
-                        msgArea.innerHTML += `<div class="message outgoing"><video controls src="${e.target.result}"></video></div>`;
-                    } else {
-                        msgArea.innerHTML += `<div class="message outgoing"><img src="${e.target.result}" alt="Photo"></div>`;
-                    }
-                    msgArea.scrollTop = msgArea.scrollHeight;
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function toggleFollow(btn) {
-            if(btn.innerText === 'Follow Back') {
-                btn.innerText = 'Following';
-                btn.classList.add('following');
-            } else {
-                btn.innerText = 'Follow Back';
-                btn.classList.remove('following');
-            }
-        }
-
-        function handleKeyPress(e) {
-            if(e.key === 'Enter') { sendMessage(); }
-        }
-    </script>
+(function(){"use strict";
+const db=window.supabaseClient||window.cloudClient;
+const $=id=>document.getElementById(id);
+let me=null,activePeer=null,activeConversation=null,realtime=null;
+const fallback="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100%" height="100%" fill="#333"/><text x="50%" y="55%" text-anchor="middle" fill="white" font-size="35">★</text></svg>');
+function esc(s){return String(s??"").replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]));}
+function nameOf(p){return p?.full_name||p?.username||"New Star User";}
+function avatarOf(p){return p?.avatar_url||fallback;}
+function setStatus(s){const el=$("inboxStatus");if(el)el.textContent=s;}
+async function boot(){
+ if(!db){setStatus("Supabase SDK/config लोड नहीं हुआ। इंटरनेट और supabase-config.js जाँचें।");$("tabMessages").textContent="Inbox कनेक्शन उपलब्ध नहीं है। पेज Reload करें।";return;}
+ const {data:{user},error}=await db.auth.getUser();
+ if(error||!user){setStatus("Login session नहीं मिली। Login पेज खोला जा रहा है…");location.href="auth.html?next=inbox.html";return;}me=user;
+ const {data:mine}=await db.from("profiles").select("username,full_name,avatar_url").eq("user_id",me.id).maybeSingle();
+ $("inboxUserName").textContent=nameOf(mine);$("inboxUserPic").src=avatarOf(mine);
+ $("tabFollowers").innerHTML='<p class="muted">Follower list will appear here when the follow tables are connected.</p>';
+ $("tabFollowing").innerHTML='<p class="muted">Following list will appear here when the follow tables are connected.</p>';
+ await loadThreads();
+ db.channel("newstar-inbox-"+me.id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"recipient_id=eq."+me.id},async payload=>{
+   if(activeConversation===payload.new.conversation_id) await loadConversation();
+   await loadThreads();
+ }).subscribe();
+}
+async function loadThreads(){
+ const {data,error}=await db.from("messages").select("id,conversation_id,sender_id,recipient_id,body,media_url,created_at,read_at").or("sender_id.eq."+me.id+",recipient_id.eq."+me.id).order("created_at",{ascending:false}).limit(250);
+ const host=$("tabMessages");if(error){host.textContent="Messages load नहीं हुए: "+error.message;return;}
+ const map=new Map();
+ for(const m of data||[]){const peer=m.sender_id===me.id?m.recipient_id:m.sender_id;if(!map.has(peer))map.set(peer,m);}
+ if(!map.size){host.innerHTML='<p class="muted">अभी कोई मैसेज नहीं है। किसी Creator की Profile से Chat शुरू कर सकते हैं।</p>';return;}
+ const ids=[...map.keys()];
+ const {data:profiles}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").in("user_id",ids);
+ const pmap=new Map((profiles||[]).map(p=>[p.user_id,p]));
+ host.innerHTML="";
+ for(const [peer,m] of map){const p=pmap.get(peer)||{};const item=document.createElement("button");item.className="list-item";item.style.cssText="width:100%;background:transparent;color:white;border:0;text-align:left";
+ item.innerHTML='<span class="user-left"><img class="list-avatar" src="'+esc(avatarOf(p))+'"><span class="list-info"><h4>'+esc(nameOf(p))+'</h4><p>'+esc(m.body||"Media message")+'</p></span></span><small class="muted">'+esc(new Date(m.created_at).toLocaleDateString())+'</small>';
+ item.onclick=()=>openChat(peer,p);host.appendChild(item);}
+}
+async function openChat(peer,p){
+ activePeer=peer;$("activeChatName").textContent=nameOf(p);$("activeChatAvatar").src=avatarOf(p);
+ const {data:existing}=await db.from("messages").select("conversation_id,created_at").or("and(sender_id.eq."+me.id+",recipient_id.eq."+peer+"),and(sender_id.eq."+peer+",recipient_id.eq."+me.id+")").order("created_at",{ascending:false}).limit(1);
+ activeConversation=existing?.[0]?.conversation_id||crypto.randomUUID();
+ $("chatBoxWindow").style.display="flex";await loadConversation();
+}
+async function loadConversation(){
+ const {data,error}=await db.from("messages").select("id,sender_id,body,media_url,created_at").eq("conversation_id",activeConversation).order("created_at",{ascending:true}).limit(300);
+ const area=$("chatMessagesArea");if(error){area.textContent="Chat load error: "+error.message;return;}
+ area.innerHTML=(data||[]).map(m=>{
+ const cls=m.sender_id===me.id?"outgoing":"incoming";
+ const media=m.media_url?'<a href="'+esc(m.media_url)+'" target="_blank" rel="noopener">Open attachment</a>':"";
+ return '<div class="message '+cls+'">'+esc(m.body||"")+(media?'<br>'+media:"")+'<small style="display:block;opacity:.65">'+esc(new Date(m.created_at).toLocaleTimeString())+'</small></div>';
+ }).join("")||'<p class="muted">Conversation शुरू करें।</p>';
+ area.scrollTop=area.scrollHeight;
+ await db.from("messages").update({read_at:new Date().toISOString()}).eq("conversation_id",activeConversation).eq("recipient_id",me.id).is("read_at",null);
+}
+window.sendMessage=async function(){
+ const input=$("messageInput"),body=input.value.trim();if(!body||!activePeer)return;
+ const btn=document.querySelector(".send-btn");if(btn)btn.disabled=true;
+ const {error}=await db.from("messages").insert({conversation_id:activeConversation,sender_id:me.id,recipient_id:activePeer,body});
+ if(error){setStatus("Message नहीं भेजा गया: "+error.message);}else{input.value="";await loadConversation();await loadThreads();}
+ if(btn)btn.disabled=false;
+};
+window.closeChat=function(){$("chatBoxWindow").style.display="none";activePeer=null;activeConversation=null;};
+window.handleKeyPress=e=>{if(e.key==="Enter"){e.preventDefault();window.sendMessage();}};
+window.switchTab=function(tab,el){document.querySelectorAll(".inbox-tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");["messages","followers","following"].forEach(t=>{$("tab"+t[0].toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";});};
+window.startVoiceRecording=function(){setStatus("Voice message recording is not connected yet. No fake recording will be sent.");};
+window.sendMediaFile=function(e){setStatus("Media upload is not connected yet. Please send text until secure Storage upload is added.");e.target.value="";};
+window.showProfile=function(name,avatar,bio){$("popupName").textContent=name;$("popupAvatar").src=avatar||fallback;$("popupBio").textContent=bio||"";$("profilePopup").style.display="flex";};
+window.closeProfilePopup=function(){$("profilePopup").style.display="none";};
+window.openChatFromPopup=function(){closeProfilePopup();};
+window.showProfileFromChat=function(){};
+window.openChat=async function(name,avatar){const {data}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").eq("username",name).maybeSingle();if(data)openChat(data.user_id,data);};
+window.toggleFollow=function(){setStatus("Follow action is not enabled until follow/unfollow server policy is connected.");};
+function startInboxBoot(){
+ boot().catch(e=>{
+  console.error("Inbox boot:",e);
+  setStatus("Inbox लोड नहीं हुआ: "+(e?.message||"Unknown error"));
+  $("tabMessages").textContent="Messages अभी लोड नहीं हो सके। Refresh करके फिर कोशिश करें।";
+ });
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",startInboxBoot,{once:true});
+else startInboxBoot();
+})();
+</script>
 </body>
 </html>

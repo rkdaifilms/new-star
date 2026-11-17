@@ -87,7 +87,7 @@
                 <span style="font-size:14px; cursor:pointer; color:#ffcc00; background:#222; padding:3px 8px; border-radius:6px;" onclick="toggleControlModal()">⭐ Collapse</span>
             </div>
 
-            <div style="font-size:12px; color:#ffcc00; margin-bottom:12px;">🪙 Coins: <b id="userWalletCoins">500</b> | 🔥 Rank: <b style="color:#00b4d8;">#1</b></div>
+            <div style="font-size:12px; color:#ffcc00; margin-bottom:12px;">🪙 Coins: <b id="userWalletCoins">—</b> | 🔥 Rank: <b style="color:#00b4d8;">#1</b></div>
 
             <!-- Audio & Facecam Settings -->
             <div style="background:#111; padding:10px; border-radius:10px; margin-bottom:12px; text-align:left; font-size:12px;">
@@ -352,6 +352,22 @@
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         
+
+        // Safety overrides: never claim a broadcast, gift, reward, or PK is live/paid
+        // until real server-side streaming and transaction systems are connected.
+        function startProGamingStream() {
+            alert('Screen capture is not a live broadcast. New Star gaming broadcast is unavailable until server streaming is connected. No stream was started.');
+        }
+        function sendRealGift() {
+            alert('Gifts are temporarily unavailable. No coins were deducted.');
+        }
+        function claimTreasureReward() {
+            alert('Rewards are unavailable until verified server-side prize claims are connected. No coins were added.');
+        }
+        function startPkBattle() {
+            alert('PK Battle is unavailable until real matchmaking and remote participants are connected.');
+        }
+
         function stopGameStreamSession() {
             if(screenStreamObj) screenStreamObj.getTracks().forEach(t => t.stop());
             if(facecamStreamObj) facecamStreamObj.getTracks().forEach(t => t.stop());
@@ -362,6 +378,12 @@
             isLiveActive = false;
             alert('⏹️ Live stream ended successfully.');
         }
+        // Do not simulate coin rewards, gifts or a live broadcast.
+        function sendRealGift(){ alert('Gift sending disabled: verified server-side coin transactions are not connected.'); }
+        function claimTreasureReward(){ alert('No free coins were added. Rewards require server verification.'); }
+        function startGamingLive(){ alert('Screen capture may preview locally, but no viewer broadcast is connected. Live has NOT started.'); }
+        function startScreenShare(){ alert('Screen sharing is not being broadcast. A real WebRTC media server is required.'); }
+        function startPkBattle(){ alert('PK Battle is unavailable until real multiplayer matchmaking is connected.'); }
     </script>
 </body>
 </html>

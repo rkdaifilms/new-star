@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#000000">
 <title>New Star - Camera Studio</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
 <script src="./supabase-config.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
@@ -57,7 +58,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
  <div class="card" style="text-align:center;padding:22px 15px">
   <div style="font-size:40px">🎬</div>
   <h2>New Star Video Studio</h2>
-  <p>Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें। अधिकतम वीडियो अवधि 10 मिनट है।</p>
+  <p>Camera से वीडियो रिकॉर्ड करें या Gallery से वीडियो चुनें। Gallery Upload की अधिकतम अवधि 3 घंटे है। Camera Recording की सीमा 10 मिनट है।</p>
   <button class="primary" id="openCameraBtn">🎥 Open Camera Studio</button>
   <button class="secondary" id="galleryBtn">📁 Select Gallery Video</button>
   <input id="videoInput" type="file" accept="video/*" class="hidden">
@@ -226,7 +227,8 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 const $ = id => document.getElementById(id);
 const db = window.supabaseClient || window.cloudClient;
 const video = $("editorVideo");
-const MAX_VIDEO_SECONDS = 600;
+const MAX_UPLOAD_SECONDS = 3 * 60 * 60;
+const MAX_RECORD_SECONDS = 10 * 60;
 
 let selectedVideoFile = null;
 let videoObjectUrl = null;
@@ -391,8 +393,8 @@ function clearCameraRecordingTimers() {
 }
 function updateCameraTimer() {
  if(!cameraStartedAt)return;
- const elapsed=Math.min(MAX_VIDEO_SECONDS,Math.floor((Date.now()-cameraStartedAt)/1000));
- const remaining=Math.max(0,MAX_VIDEO_SECONDS-elapsed);
+ const elapsed=Math.min(MAX_RECORD_SECONDS,Math.floor((Date.now()-cameraStartedAt)/1000));
+ const remaining=Math.max(0,MAX_RECORD_SECONDS-elapsed);
  $("cameraTimer").textContent="Recording: "+formatClock(elapsed)+" / 10:00 · Remaining "+formatClock(remaining);
  if(remaining<=0&&cameraRecorder?.state==="recording") {
   toast("10 मिनट पूरे हो गए। Recording अपने-आप बंद हो रही है।");
@@ -417,7 +419,7 @@ $("recordBtn").onclick = () => {
    stopCameraStream();
    $("recordBtn").disabled = false;
    $("stopRecordBtn").disabled = true;
-   $("cameraTimer").textContent="Recording stopped. Maximum allowed duration: 10:00";
+   $("cameraTimer").textContent="Recording stopped. Maximum camera recording duration: 10:00";
    if (blob.size) {
     try {
      await loadVideo(new File([blob],"camera-recording.webm",{type:blob.type}));
@@ -432,7 +434,7 @@ $("recordBtn").onclick = () => {
   cameraTimerInterval=setInterval(updateCameraTimer,1000);
   cameraStopTimeout=setTimeout(()=>{
    if(cameraRecorder?.state==="recording")cameraRecorder.stop();
-  },MAX_VIDEO_SECONDS*1000);
+  },MAX_RECORD_SECONDS*1000);
   toast("Recording शुरू हो गई। अधिकतम समय 10 मिनट है।");
  } catch(error) { clearCameraRecordingTimers();toast("Recording शुरू नहीं हुई: " + error.message); }
 };
@@ -445,8 +447,8 @@ async function loadVideo(file) {
  if (!file || !file.type.startsWith("video/")) throw new Error("कृपया सही Video File चुनें।");
  const metadata=await readVideoMetadata(file);
  if(!Number.isFinite(metadata.duration)||metadata.duration<=0)throw new Error("वीडियो की अवधि पढ़ी नहीं जा सकी।");
- if(metadata.duration>MAX_VIDEO_SECONDS+0.05) {
-  throw new Error("वीडियो 10 मिनट से बड़ा है। कृपया 10 मिनट या उससे छोटा वीडियो चुनें।");
+ if(metadata.duration>MAX_UPLOAD_SECONDS+0.05) {
+  throw new Error("वीडियो 3 घंटे से बड़ा है। कृपया 3 घंटे या उससे छोटा वीडियो चुनें।");
  }
  if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
  selectedVideoFile = file;
@@ -610,7 +612,7 @@ function inspectVideo() {
   "<br>Aspect Ratio: " + getRatioLabel(width,height) +
   "<br>Video Mode: " + getVideoMode(width,height) +
   "<br>Duration: " + duration.toFixed(1) +
-  " sec<br>Maximum Allowed: 600 sec (10 minutes)" +
+  " sec<br>Gallery Upload Maximum: 10800 sec (3 hours)" +
   "<br>File Size: " + (file.size / 1048576).toFixed(2) +
   " MB<br>Format: " + (file.type || "Unknown") + "<br>Name: " + safeName;
 }
@@ -672,7 +674,7 @@ async function publishVideo() {
 
   const mediaInfo=await readVideoMetadata(selectedVideoFile);
   if(!Number.isFinite(mediaInfo.duration)||mediaInfo.duration<=0)throw new Error("वीडियो की अवधि पढ़ी नहीं जा सकी।");
-  if(mediaInfo.duration>MAX_VIDEO_SECONDS+0.05)throw new Error("10 मिनट से बड़ा वीडियो Publish नहीं हो सकता।");
+  if(mediaInfo.duration>MAX_UPLOAD_SECONDS+0.05)throw new Error("3 घंटे से बड़ा वीडियो Publish नहीं हो सकता।");
 
   const title = $("videoTitle").value.trim();
   const description = $("videoDescription").value.trim();
@@ -700,11 +702,33 @@ async function publishVideo() {
    Date.now() + "-" + Math.random().toString(36).slice(2);
   const filePath = user.id + "/" + uniqueName + "." + ext;
 
-  status.textContent = "वीडियो ("+getVideoMode(mediaInfo.width,mediaInfo.height)+", "+getRatioLabel(mediaInfo.width,mediaInfo.height)+") Supabase Storage में Upload हो रहा है...";
-  const {error:uploadError} = await db.storage.from("videos").upload(filePath,selectedVideoFile,{
-   cacheControl:"3600",upsert:false,contentType:selectedVideoFile.type || "video/" + ext
+  status.textContent = "वीडियो ("+getVideoMode(mediaInfo.width,mediaInfo.height)+", "+getRatioLabel(mediaInfo.width,mediaInfo.height)+") resumable upload से भेजा जा रहा है...";
+  if(!window.tus || !window.tus.Upload)throw new Error("Large video upload library लोड नहीं हुई। Internet जाँचकर पेज reload करें।");
+  const {data:sessionData,error:sessionError}=await db.auth.getSession();
+  if(sessionError)throw sessionError;
+  const accessToken=sessionData && sessionData.session && sessionData.session.access_token;
+  if(!accessToken)throw new Error("Login session समाप्त हो गई। दोबारा Login करें।");
+  await new Promise((resolve,reject)=>{
+   const tusUpload=new window.tus.Upload(selectedVideoFile,{
+    endpoint:"https://uzsusgoetrkujmofxcmb.storage.supabase.co/storage/v1/upload/resumable",
+    retryDelays:[0,3000,5000,10000,20000],
+    headers:{authorization:"Bearer "+accessToken,apikey:db.supabaseKey},
+    uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,
+    chunkSize:6*1024*1024,
+    metadata:{bucketName:"videos",objectName:filePath,contentType:selectedVideoFile.type || ("video/"+ext),cacheControl:"3600"},
+    onError(error){reject(error);},
+    onProgress(bytesUploaded,bytesTotal){
+     const percent=bytesTotal?Math.floor(bytesUploaded/bytesTotal*100):0;
+     const progressEl=$("uploadProgress");if(progressEl)progressEl.value=percent;
+     status.textContent="Upload "+percent+"% · "+(bytesUploaded/1048576).toFixed(1)+" / "+(bytesTotal/1048576).toFixed(1)+" MB";
+    },
+    onSuccess(){resolve();}
+   });
+   tusUpload.findPreviousUploads().then(previous=>{
+    if(previous.length)tusUpload.resumeFromPreviousUpload(previous[0]);
+    tusUpload.start();
+   }).catch(reject);
   });
-  if (uploadError) throw new Error("Storage Upload: " + uploadError.message);
   uploadedPath = filePath;
 
   const {data:urlData} = db.storage.from("videos").getPublicUrl(filePath);
@@ -712,9 +736,12 @@ async function publishVideo() {
   if (!videoUrl) throw new Error("Public Video URL नहीं मिला।");
 
   status.textContent = "वीडियो Database में सेव हो रहा है...";
+  const videoType=mediaInfo.duration<=60?"short":"long";
   const payload = {
    user_id:user.id,video_url:videoUrl,caption,category,username:String(username),
-   likes_count:0,views_count:0,affiliate_link:affiliate || null,audience_type:audience
+   likes_count:0,views_count:0,affiliate_link:affiliate || null,audience_type:audience,
+   duration_seconds:Math.ceil(mediaInfo.duration),width:mediaInfo.width,height:mediaInfo.height,
+   video_type:videoType,processing_status:"published",visibility:"public"
   };
   const {data:inserted,error:insertError} = await db.from("videos")
    .insert(payload).select("id").single();

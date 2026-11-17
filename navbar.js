@@ -24,6 +24,39 @@
 
   const $ = id => document.getElementById(id);
 
+  function getPrefs(){try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){return {};}}
+  function applyPreferences(){
+    const p=getPrefs(),theme=p.theme||"dark",lang=p.language||"hi";
+    document.documentElement.lang=lang;
+    const themes={
+      dark:{bg:"#080808",panel:"#171717",text:"#ffffff",muted:"#aaaaaa",accent:"#fe2c55"},
+      light:{bg:"#f4f6fa",panel:"#ffffff",text:"#171923",muted:"#5d6472",accent:"#d92350"},
+      ocean:{bg:"#071923",panel:"#102b3a",text:"#f4fbff",muted:"#a8c1cc",accent:"#25b8d0"},
+      forest:{bg:"#101b14",panel:"#1b2b20",text:"#f4fff6",muted:"#afc5b3",accent:"#39a96b"}
+    };
+    const t=themes[theme]||themes.dark;
+    const style=document.getElementById("newstar-preference-style")||document.createElement("style");
+    style.id="newstar-preference-style";
+    style.textContent=`
+      :root{--ns-bg:${t.bg};--ns-panel:${t.panel};--ns-text:${t.text};--ns-muted:${t.muted};--ns-accent:${t.accent}}
+      body{background-color:var(--ns-bg)!important;color:var(--ns-text)!important}
+      #newstar-global-nav{background:var(--ns-panel)!important}
+      #newstar-global-nav a.active{color:var(--ns-accent)!important}
+      #newstar-menu-panel{background:var(--ns-panel)!important;color:var(--ns-text)!important}
+      #newstar-menu-panel a,#newstar-menu-panel button{color:var(--ns-text)!important}
+      `;
+    if(!style.isConnected)document.head.appendChild(style);
+  }
+  function navText(key){
+    const lang=getPrefs().language||"hi";
+    const words={
+      Home:{hi:"होम",ne:"गृह",en:"Home"},Wallet:{hi:"वॉलेट",ne:"वालेट",en:"Wallet"},
+      Create:{hi:"बनाएँ",ne:"सिर्जना",en:"Create"},Inbox:{hi:"इनबॉक्स",ne:"इनबक्स",en:"Inbox"},
+      Admin:{hi:"एडमिन",ne:"एडमिन",en:"Admin"},Profile:{hi:"प्रोफाइल",ne:"प्रोफाइल",en:"Profile"}
+    };
+    return words[key]?.[lang]||words[key]?.en||key;
+  }
+
   function addStyles() {
     if ($("newstar-navbar-style")) return;
 
@@ -211,6 +244,7 @@
         <a href="wallet.html">💰 Wallet</a>
         <a href="inbox.html">✉️ Inbox</a>
         <a href="monetization.html">💎 Monetization</a>
+         <a href="admin.html">🛡️ Admin</a>
         <a href="live.html">🔴 Live</a>
         <a href="gaming.html">🎮 Gaming</a>
         <div class="menu-divider"></div>
@@ -334,11 +368,12 @@
     nav.setAttribute("aria-label", "Main navigation");
 
     const items = [
-      { page: "index.html", icon: "🏠", label: "Home" },
-      { page: "wallet.html", icon: "💰", label: "Wallet" },
-      { page: "camera.html", icon: "+", label: "Create", plus: true },
-      { page: "inbox.html", icon: "✉️", label: "Inbox" },
-      { page: "profile.html", icon: "👤", label: "Profile" }
+      { page: "index.html", icon: "🏠", label: navText("Home") },
+      { page: "wallet.html", icon: "💰", label: navText("Wallet") },
+      { page: "camera.html", icon: "+", label: navText("Create"), plus: true },
+      { page: "inbox.html", icon: "✉️", label: navText("Inbox") },
+      { page: "admin.html", icon: "🛡️", label: navText("Admin") },
+      { page: "profile.html", icon: "👤", label: navText("Profile") }
     ];
 
     items.forEach(item => {
@@ -392,6 +427,7 @@
         return;
       }
 
+      applyPreferences();
       removeDuplicateNavigation();
       addStyles();
       createMenu();
