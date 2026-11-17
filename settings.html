@@ -208,6 +208,51 @@
       </div>
     </div>
 
+    <div class="section-title">Voice & Language</div>
+
+    <div class="panel">
+      <div class="setting-row">
+        <h3>Voice Typing Language</h3>
+        <p>माइक से जिस भाषा में बोलना है, वही भाषा चुनें। Comment Voice Typing और Voice Search दोनों इसी भाषा का उपयोग करेंगे। Device / Browser चुनने पर फोन की पसंदीदा भाषा इस्तेमाल होगी।</p>
+        <select id="voiceInputLanguage" style="width:100%;margin-top:12px;padding:12px;border:1px solid #444;border-radius:8px;background:#080808;color:#fff;font-size:15px">
+        <option value="device">Device / Browser language</option>
+        <option value="en-US">English (United States)</option>
+        <option value="en-GB">English (United Kingdom)</option>
+        <option value="ne-NP">नेपाली (Nepal)</option>
+        <option value="hi-IN">हिन्दी (India)</option>
+        <option value="bn-BD">বাংলা (Bangladesh)</option>
+        <option value="ur-PK">اردو (Pakistan)</option>
+        <option value="ar-SA">العربية</option>
+        <option value="zh-CN">中文 (简体)</option>
+        <option value="zh-TW">中文 (繁體)</option>
+        <option value="ja-JP">日本語</option>
+        <option value="ko-KR">한국어</option>
+        <option value="es-ES">Español (España)</option>
+        <option value="es-MX">Español (México)</option>
+        <option value="fr-FR">Français</option>
+        <option value="de-DE">Deutsch</option>
+        <option value="pt-BR">Português (Brasil)</option>
+        <option value="ru-RU">Русский</option>
+        <option value="it-IT">Italiano</option>
+        <option value="tr-TR">Türkçe</option>
+        <option value="id-ID">Bahasa Indonesia</option>
+        <option value="ms-MY">Bahasa Melayu</option>
+        <option value="th-TH">ไทย</option>
+        <option value="vi-VN">Tiếng Việt</option>
+        <option value="pa-IN">ਪੰਜਾਬੀ</option>
+        <option value="ta-IN">தமிழ்</option>
+        <option value="te-IN">తెలుగు</option>
+        <option value="mr-IN">मराठी</option>
+        <option value="gu-IN">ગુજરાતી</option>
+        <option value="nl-NL">Nederlands</option>
+        <option value="sw-KE">Kiswahili</option>
+        <option value="fil-PH">Filipino</option>
+        <option value="fa-IR">فارسی</option>
+        </select>
+        <p id="voiceLanguageStatus" style="margin-top:8px" aria-live="polite">यह सेटिंग इसी डिवाइस पर सेव होगी।</p>
+      </div>
+    </div>
+
     <div class="section-title">Privacy & Security</div>
 
     <div class="panel">
@@ -248,6 +293,19 @@
         box.textContent = message;
         box.className = "status show " + type;
         window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      }
+
+      function loadVoiceLanguageSetting() {
+        const select=$("voiceInputLanguage");
+        if(!select)return;
+        const saved=localStorage.getItem("newstar_voice_input_language")||"device";
+        select.value=[...select.options].some(option=>option.value===saved)?saved:"device";
+        select.addEventListener("change",()=>{
+          localStorage.setItem("newstar_voice_input_language",select.value);
+          $("voiceLanguageStatus").textContent=select.value==="device"
+            ?"अब फोन / Browser की पसंदीदा भाषा इस्तेमाल होगी।"
+            :"Voice Typing भाषा सेव हो गई: "+select.options[select.selectedIndex].text;
+        });
       }
 
       function hideMessage() {
@@ -465,6 +523,7 @@
       $("saveProfileBtn").addEventListener("click", savePersonalInformation);
       $("logoutBtn").addEventListener("click", logout);
 
+      loadVoiceLanguageSetting();
       loadSettings();
     })();
   </script>
