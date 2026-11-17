@@ -481,7 +481,32 @@ function closeVideoMenus(){document.querySelectorAll(".videoCardMenu.open").forE
 function openVideoEdit(item){if(!user||String(item.user_id)!==String(user.id))return;editingVideo=item;$("editVideoCaption").value=item.caption||"";$("videoEditStatus").textContent="";$("videoEditModal").classList.add("show");}
 function closeVideoEdit(){$("videoEditModal").classList.remove("show");editingVideo=null;}
 async function saveVideoEdit(){if(!user||!editingVideo)return;const caption=$("editVideoCaption").value.trim();if(!caption){$("videoEditStatus").textContent="Caption खाली नहीं हो सकता।";return;}const b=$("saveVideoEdit");b.disabled=true;try{const {error}=await db.from("videos").update({caption}).eq("id",editingVideo.id).eq("user_id",user.id);if(error)throw error;closeVideoEdit();await loadStatsAndVideos();}catch(e){$("videoEditStatus").textContent="Update Error: "+e.message;}finally{b.disabled=false;}}
-async function deleteVideoPost(item,button){if(!user||String(item.user_id)!==String(user.id))return;if(!confirm("क्या यह वीडियो पोस्ट हटानी है?"))return;button.disabled=true;try{const {error}=await db.from("videos").delete().eq("id",item.id).eq("user_id",user.id);if(error)throw error;await loadStatsAndVideos();}catch(e){$("videoStatus").textContent="Delete Error: "+e.message;button.disabled=false;}}
+function getOwnedVideoStoragePath(item){
+ try{
+  const url=new URL(item.video_url,location.href);
+  const marker="/storage/v1/object/public/videos/";
+  const at=url.pathname.indexOf(marker);
+  if(at<0)return null;
+  const path=decodeURIComponent(url.pathname.slice(at+marker.length));
+  return path.startsWith(String(user.id)+"/")?path:null;
+ }catch(error){return null;}
+}
+async function deleteVideoPost(item,button){
+ if(!user||String(item.user_id)!==String(user.id))return;
+ if(!confirm("क्या यह वीडियो पोस्ट और उसकी Storage फाइल हटानी है?"))return;
+ button.disabled=true;
+ try{
+  const storagePath=getOwnedVideoStoragePath(item);
+  if(storagePath){
+   const {error:storageError}=await db.storage.from("videos").remove([storagePath]);
+   if(storageError)throw new Error("Storage Delete: "+storageError.message);
+  }
+  const {error}=await db.from("videos").delete().eq("id",item.id).eq("user_id",user.id);
+  if(error)throw error;
+  await loadStatsAndVideos();
+  if(!storagePath)$("videoStatus").textContent="पोस्ट हट गई। Storage file का सुरक्षित path verify नहीं हुआ, इसलिए वह अलग से नहीं हटाई गई।";
+ }catch(e){$("videoStatus").textContent="Delete Error: "+e.message;button.disabled=false;}
+}
 function openEdit(){
  if(!user)return;
 
