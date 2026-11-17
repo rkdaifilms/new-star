@@ -98,7 +98,7 @@
             <option value="10">👥 10 Rooms Grid (Party Room)</option>
         </select>
         
-        <button class="btn" onclick="startLiveBroadcastSession()">🔴 Go LIVE Now</button>
+        <button class="btn" onclick="startLiveBroadcastSession()">Start Camera Preview</button>
     </div>
 
     <!-- ACTIVE LIVE BROADCAST ROOM -->
@@ -111,7 +111,7 @@
         <!-- PK BATTLE SCOREBOARD -->
         <div id="pkScoreboard" class="pk-scoreboard">
             <span style="color:#25f4ee;">⚔️ You: <b id="myPkScore">0</b> pts</span>
-            <span style="color:#ffcc00; font-size:10px;" id="pkBattleTitleStatus">PK BATTLE LIVE</span>
+            <span style="color:#ffcc00; font-size:10px;" id="pkBattleTitleStatus">LIVE PREVIEW · NOT BROADCAST</span>
             <span style="color:#ff4444;"><span id="rivalNameDisplay">Opponent</span>: <b id="rivalPkScore">0</b> pts</span>
         </div>
 
@@ -156,7 +156,7 @@
             <div class="live-action-icon live-share-btn" onclick="nativeShareLiveRoom()" title="📤 Share">📤</div>
         </div>
 
-        <button class="btn" style="background: #333; color: #fff; margin-top:3px; padding:8px; font-size:12px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room</button>
+        <button class="btn" style="background: #333; color: #fff; margin-top:3px; padding:8px; font-size:12px;" onclick="stopLiveBroadcast()">Stop Camera Preview</button>
     </div>
 
     <!-- 👥 INVITE FRIENDS MODAL -->
@@ -243,7 +243,7 @@
             <h4 style="color:#ffcc00; font-size:14px; margin-bottom:8px;">⚙️ Moderator & Room Settings</h4>
             <label style="color:#25f4ee;">Assign Moderator:</label>
             <input type="text" id="modUserInput" placeholder="Username...">
-            <button class="btn" style="background:#25f4ee; color:#000; padding:8px; margin-top:0;" onclick="alert('Moderator assigned successfully!'); closeModal('modSettingsModal');">Make Mod</button>
+            <button class="btn" style="background:#25f4ee; color:#000; padding:8px; margin-top:0;" onclick="alert('Moderator roles are not connected to server permissions. No moderator was assigned.');">Make Mod</button>
             <button class="btn" style="background:#fe2c55; color:#fff; padding:8px; margin-top:8px;" onclick="closeModal('modSettingsModal')">Close</button>
         </div>
     </div>
@@ -301,30 +301,13 @@
         };
 
         function renderMegaGiftGrid() {
-            let container = document.getElementById('megaGiftGridContainer');
-            container.innerHTML = '';
-            tiktokGiftsList.forEach(g => {
-                container.innerHTML += `
-                    <div class="gift-item-card" onclick="sendTiktokGift('${g.name}', '${g.icon}', ${g.cost})">
-                        <div style="font-size:22px;">${g.icon}</div>
-                        <div style="font-size:10px; font-weight:bold; margin-top:2px;">${g.name}</div>
-                        <div style="font-size:9px; color:#ffcc00;">🪙 ${g.cost}</div>
-                    </div>
-                `;
-            });
+            const container = document.getElementById('megaGiftGridContainer');
+            if (container) container.textContent = 'Gifts and coin purchases are unavailable. No coins can be spent here.';
         }
 
-        function checkAndDeductCoins(requiredCoins) {
-            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
-            if (currentCoins < requiredCoins) {
-                alert(`⚠️ Insufficient Balance! You need ${requiredCoins.toLocaleString()} coins.`);
-                window.location.href = 'wallet.html';
-                return false;
-            }
-            currentCoins -= requiredCoins;
-            localStorage.setItem('userWalletCoins', currentCoins);
-            document.getElementById('userWalletCoins').innerText = currentCoins.toLocaleString();
-            return true;
+        function checkAndDeductCoins() {
+            alert('Coin spending is disabled. No coins were deducted.');
+            return false;
         }
 
         function startLiveBroadcastSession() {
@@ -552,16 +535,8 @@
         }
 
         function executeClaimTreasure() {
-            let sharePerPerson = Math.floor(activeTreasureData.coins / activeTreasureData.people);
-            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500') + sharePerPerson;
-            localStorage.setItem('userWalletCoins', currentCoins);
-            document.getElementById('userWalletCoins').innerText = currentCoins.toLocaleString();
-
-            document.getElementById('activeTreasureBanner').style.display = 'none';
-            activeTreasureData.active = false;
-            closeModal('treasureStatusModal');
-
-            alert(`🎉 Success! +${sharePerPerson} Coins added to your main wallet balance! 🪙`);
+            alert('Prize claims are unavailable. No coins were added.');
+            return false;
         }
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
