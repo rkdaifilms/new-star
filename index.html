@@ -651,11 +651,22 @@ $("copyShare").addEventListener("click",copyShareLink);
 $("downloadBtn").addEventListener("click",downloadCurrentVideo);
 $("fullscreenBtn").addEventListener("click",async()=>{
  const player=$("video");
- try{if(document.fullscreenElement){await document.exitFullscreen();return;}
- if(player.requestFullscreen)await player.requestFullscreen();
- else if(player.webkitEnterFullscreen)player.webkitEnterFullscreen();
- else showToast("इस Browser में Full Screen उपलब्ध नहीं है।");
- }catch(error){showToast("Full Screen शुरू नहीं हो पाया।");}
+ try{
+  if(document.fullscreenElement){await document.exitFullscreen();return;}
+  if(player.requestFullscreen){
+   await player.requestFullscreen();
+   if(screen.orientation?.lock && (currentVideo?.video_type==="long" || player.videoWidth>player.videoHeight)){
+    try{await screen.orientation.lock("landscape");}catch(error){}
+   }
+  }else if(player.webkitEnterFullscreen)player.webkitEnterFullscreen();
+  else showToast("इस Browser में Full Screen उपलब्ध नहीं है।");
+ }catch(error){showToast("Full Screen शुरू नहीं हो पाया। Browser support जाँचें।");}
+});
+document.addEventListener("fullscreenchange",()=>{
+ const active=!!document.fullscreenElement;
+ $("fullscreenBtn").querySelector(".action-icon").textContent=active?"⤢":"⛶";
+ $("fullscreenBtn").lastElementChild.textContent=active?"Exit Full Screen":"Full Screen";
+ if(!active&&screen.orientation?.unlock){try{screen.orientation.unlock();}catch(error){}}
 });
 $("reload").addEventListener("click",loadFeed);
 $("commentInput").addEventListener("keydown",event=>{
