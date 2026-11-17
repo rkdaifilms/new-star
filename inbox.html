@@ -86,69 +86,33 @@
         <h2>Direct Messages & Activity</h2>
     </div>
 
-    <!-- User's Own Profile Banner -->
+    <!-- Authenticated user's profile banner; populated from Supabase -->
     <div class="my-inbox-profile" onclick="window.location.href='profile.html'">
-        <img id="inboxUserPic" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" alt="My Profile">
+        <img id="inboxUserPic" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100%25' height='100%25' fill='%23333'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' fill='white' font-size='38'%3E★%3C/text%3E%3C/svg%3E" alt="Profile">
         <div>
-            <h4 id="inboxUserName">Ramkumar Dhobi</h4>
-            <p>Tap to view your Profile • Active Status</p>
+            <h4 id="inboxUserName">Your profile</h4>
+            <p>Open your profile</p>
         </div>
     </div>
 
-    <!-- Inbox Tabs -->
+    <div id="inboxStatus" class="empty-state" role="status" aria-live="polite">Connecting to your account…</div>
+
     <div class="inbox-tabs">
         <div class="inbox-tab active" onclick="switchTab('messages', this)">Messages</div>
         <div class="inbox-tab" onclick="switchTab('followers', this)">Followers</div>
         <div class="inbox-tab" onclick="switchTab('following', this)">Following</div>
     </div>
 
-    <!-- Tab 1: Messages List -->
     <div class="list-container" id="tabMessages">
-        <div class="empty-state">No messages yet. Real conversations will appear here when someone messages you.</div>
-    </div>
-            </div>
-            <span style="font-size:11px; color:#777;">10:45 AM</span>
-        </div>
-
-        <div class="list-item" onclick="openChat('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', 'Your coin purchase of $10.00 was successful.')">
-            <div class="user-left">
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200" class="list-avatar" onclick="event.stopPropagation(); showProfile('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', '@support | Official Helpdesk')">
-                <div class="list-info">
-                    <h4 onclick="event.stopPropagation(); showProfile('Call Priyance Support', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200', '@support | Official Helpdesk')">Call Priyance Support</h4>
-                    <p>Your coin purchase of $10.00 was successful.</p>
-                </div>
-            </div>
-            <span style="font-size:11px; color:#777;">Yesterday</span>
-        </div>
+        <div class="empty-state">Loading your real conversations…</div>
     </div>
 
-    <!-- Tab 2: Followers List -->
     <div class="list-container" id="tabFollowers" style="display:none;">
-        <div class="empty-state">No verified follower activity to show yet.</div>
-    </div>
-            </div>
-            <button class="action-tag-btn" onclick="toggleFollow(this)">Follow Back</button>
-        </div>
-
-        <div class="list-item">
-            <div class="user-left" onclick="showProfile('Rohit Painter', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200', '@rohit_paint | Wall Putty Expert')">
-                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200" class="list-avatar">
-                <div class="list-info">
-                    <h4>Rohit Painter</h4>
-                    <p>Started following you • 1h ago</p>
-                </div>
-            </div>
-            <button class="action-tag-btn following" onclick="toggleFollow(this)">Following</button>
-        </div>
+        <div class="empty-state">Verified follower activity will appear here.</div>
     </div>
 
-    <!-- Tab 3: Following List -->
     <div class="list-container" id="tabFollowing" style="display:none;">
         <div class="empty-state">Creators you follow will appear here.</div>
-    </div>
-            </div>
-            <button class="action-tag-btn following" onclick="toggleFollow(this)">Following</button>
-        </div>
     </div>
 
     <!-- REAL MESSENGER CHAT WINDOW (FIXED INPUT AREA) -->
