@@ -712,7 +712,7 @@ async function publishVideo() {
    const tusUpload=new window.tus.Upload(selectedVideoFile,{
     endpoint:"https://uzsusgoetrkujmofxcmb.supabase.co/storage/v1/upload/resumable",
     retryDelays:[0,3000,5000,10000,20000],
-    headers:{authorization:"Bearer "+accessToken},
+    headers:{authorization:"Bearer "+accessToken,apikey:db.supabaseKey},
     uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,
     chunkSize:6*1024*1024,
     metadata:{bucketName:"videos",objectName:filePath,contentType:selectedVideoFile.type || ("video/"+ext),cacheControl:"3600"},
