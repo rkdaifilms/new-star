@@ -318,8 +318,9 @@ async function applyFilters(){
   if(currentCategory==="Following"||currentCategory==="Friends")return followingIds.includes(String(v.user_id));
   if(currentCategory==="Live")return false;
   const duration=Number(v.duration_seconds)||0;
-   if(currentCategory==="Shorts"||currentCategory==="Reels")return duration>0&&duration<=60;
-  if(currentCategory==="Long Videos")return Number(v.duration_seconds)>60;
+   const isShort=duration>0?duration<=60:(v.video_type==="short"||(Number(v.height)>Number(v.width)));
+   if(currentCategory==="Shorts"||currentCategory==="Reels")return isShort;
+  if(currentCategory==="Long Videos")return duration>60||(duration===0&&(v.video_type==="long"||Number(v.width)>=Number(v.height)));
   if(["For You","Discover"].includes(currentCategory))return true;
   return String(v.category||"").toLowerCase().includes(currentCategory.toLowerCase());
  });
