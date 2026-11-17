@@ -39,8 +39,8 @@ button{cursor:pointer}
 #empty{display:none;line-height:1.6}
 #empty button{margin-top:12px;background:#fe2c55;color:#fff;border:0;border-radius:20px;padding:10px 18px}
 #playHint{display:none;position:absolute;z-index:8;top:50%;left:50%;transform:translate(-50%,-50%);border:0;border-radius:50%;width:60px;height:60px;background:#0009;color:#fff;font-size:26px}
-.modal{display:none;position:fixed;z-index:100;left:0;bottom:0;width:100%;height:82dvh;max-height:82dvh;background:#191919;border-radius:18px 18px 0 0;box-shadow:0 -5px 25px #000;flex-direction:column}
-#commentModal{z-index:120}
+.modal{display:none;position:fixed;z-index:10020;left:0;bottom:0;width:100%;height:82dvh;max-height:82dvh;background:#191919;border-radius:18px 18px 0 0;box-shadow:0 -5px 25px #000;flex-direction:column}
+#commentModal{z-index:10030}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:15px;border-bottom:1px solid #383838;flex-shrink:0}
 .modal-head h3{font-size:16px}
 .close{background:transparent;border:0;color:#fff;font-size:25px}
@@ -48,7 +48,7 @@ button{cursor:pointer}
 .comment{padding:10px 0;border-bottom:1px solid #333;overflow-wrap:anywhere}
 .comment strong{display:block;color:#bbb;font-size:12px;margin-bottom:5px}
 .comment p{font-size:14px;line-height:1.4}
-.comment-form{display:flex;gap:8px;padding:12px;border-top:1px solid #333;flex-shrink:0}
+.comment-form{display:flex;gap:8px;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom));border-top:1px solid #333;flex-shrink:0}
 .comment-form input{flex:1;min-width:0;background:#292929;color:#fff;border:1px solid #444;border-radius:22px;padding:11px;outline:none}
 .primary{background:#fe2c55;color:#fff;border:0;border-radius:22px;padding:11px 16px;font-weight:bold}
 .primary:disabled{opacity:.5}
@@ -65,11 +65,17 @@ button{cursor:pointer}
 .gift-note{font-size:11px;color:#aaa;text-align:center;padding:0 15px 10px;line-height:1.5}
 .gift-footer{padding:12px;border-top:1px solid #333}
 .gift-footer button{width:100%}
-#toast{display:none;position:fixed;z-index:999;bottom:75px;left:50%;transform:translateX(-50%);background:#292929;border:1px solid #555;border-radius:24px;padding:11px 17px;max-width:90%;text-align:center;font-size:13px}
+#toast{display:none;position:fixed;z-index:10040;bottom:75px;left:50%;transform:translateX(-50%);background:#292929;border:1px solid #555;border-radius:24px;padding:11px 17px;max-width:90%;text-align:center;font-size:13px}
 @media(min-width:700px){
  #app{max-width:480px;margin:auto}
  .top-area{max-width:480px;left:50%;transform:translateX(-50%)}
  .modal{max-width:480px;left:50%;transform:translateX(-50%)}
+}
+@media screen and (orientation:landscape) and (max-height:600px){
+ .top-area{display:none} #newstar-global-nav{display:none!important}
+ body.newstar-nav-active{padding-bottom:0!important}
+ .video-info{bottom:10px}.actions{bottom:10px;gap:6px}
+ .actions .action-icon{width:34px;height:34px;font-size:18px} #counter{top:8px}
 }
 </style>
 </head>
@@ -122,6 +128,7 @@ button{cursor:pointer}
   <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span>Gift</span></button>
   <button class="action" id="shareBtn"><div class="action-icon">↗️</div><span>Share</span></button>
   <button class="action" id="downloadBtn"><div class="action-icon">⬇️</div><span>Download</span></button>
+  <button class="action" id="fullscreenBtn"><div class="action-icon">⛶</div><span>Full Screen</span></button>
  </aside>
 </main>
 </div>
@@ -273,9 +280,13 @@ async function loadFeed(){
  $("loading").style.display="flex";$("empty").style.display="none";
  if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला। supabase-config.js जाँचें।");return;}
  try{
-  const {data,error}=await db.from("videos")
-   .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type")
+  let {data,error}=await db.from("videos")
+   .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type,video_type")
    .order("created_at",{ascending:false});
+  if(error && /video_type/i.test(error.message||"") && /(column|schema cache|does not exist)/i.test(error.message||"")){
+   const legacy=await db.from("videos").select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type").order("created_at",{ascending:false});
+   data=legacy.data;error=legacy.error;
+  }
   if(error)throw error;
   videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
   await loadLikes();
@@ -313,12 +324,9 @@ async function applyFilters(){
   if(keyword&&!text.includes(keyword))return false;
   if(currentCategory==="Following"||currentCategory==="Friends")return followingIds.includes(String(v.user_id));
   if(currentCategory==="Live")return false;
-  if(currentCategory==="Shorts"||currentCategory==="Reels"){
-   return aspectByUrl.get(v.video_url)?.orientation==="portrait";
-  }
-  if(currentCategory==="Long Videos"){
-   return aspectByUrl.get(v.video_url)?.orientation==="landscape";
-  }
+  const savedType=String(v.video_type||"").toLowerCase();
+  if(currentCategory==="Shorts"||currentCategory==="Reels")return savedType==="short"||(savedType!=="long"&&aspectByUrl.get(v.video_url)?.orientation==="portrait");
+  if(currentCategory==="Long Videos")return savedType==="long"||(savedType!=="short"&&aspectByUrl.get(v.video_url)?.orientation==="landscape");
   if(["For You","Discover"].includes(currentCategory))return true;
   return String(v.category||"").toLowerCase().includes(currentCategory.toLowerCase());
  });
@@ -351,7 +359,9 @@ function renderVideo(){
   if(ratio&&Math.abs(ratio-(9/16))<0.035)ratioLabel="9:16";
   else if(ratio&&Math.abs(ratio-(16/9))<0.08)ratioLabel="16:9";
   let mode="Other Video";
-  if(ratio&&ratio<0.95)mode="Shorts";
+  if(currentVideo.video_type==="short")mode="Shorts";
+  else if(currentVideo.video_type==="long")mode="Long Video";
+  else if(ratio&&ratio<0.95)mode="Shorts";
   else if(ratio&&ratio>1.05)mode="Long Video";
   $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode+" · "+ratioLabel+" · "+width+"×"+height;
  };
@@ -639,6 +649,25 @@ $("shareBtn").addEventListener("click",shareVideo);
 $("nativeShare").addEventListener("click",shareVideo);
 $("copyShare").addEventListener("click",copyShareLink);
 $("downloadBtn").addEventListener("click",downloadCurrentVideo);
+$("fullscreenBtn").addEventListener("click",async()=>{
+ const player=$("video");
+ try{
+  if(document.fullscreenElement){await document.exitFullscreen();return;}
+  if(player.requestFullscreen){
+   await player.requestFullscreen();
+   if(screen.orientation?.lock && (currentVideo?.video_type==="long" || player.videoWidth>player.videoHeight)){
+    try{await screen.orientation.lock("landscape");}catch(error){}
+   }
+  }else if(player.webkitEnterFullscreen)player.webkitEnterFullscreen();
+  else showToast("इस Browser में Full Screen उपलब्ध नहीं है।");
+ }catch(error){showToast("Full Screen शुरू नहीं हो पाया। Browser support जाँचें।");}
+});
+document.addEventListener("fullscreenchange",()=>{
+ const active=!!document.fullscreenElement;
+ $("fullscreenBtn").querySelector(".action-icon").textContent=active?"⤢":"⛶";
+ $("fullscreenBtn").lastElementChild.textContent=active?"Exit Full Screen":"Full Screen";
+ if(!active&&screen.orientation?.unlock){try{screen.orientation.unlock();}catch(error){}}
+});
 $("reload").addEventListener("click",loadFeed);
 $("commentInput").addEventListener("keydown",event=>{
  if(event.key==="Enter")postComment();
