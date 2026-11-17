@@ -959,10 +959,10 @@ function renderProfileVideos(){
 }
 function openProfileVideo(item,type){
  const viewer=$("profileVideoViewer"),v=$("profileVideoViewerPlayer");if(!item.video_url)return;
- $("profileVideoViewerLabel").textContent=type==="short"?"⚡ SHORTS":"▶ LONG VIDEO";v.src=item.video_url;viewer.classList.add("show");document.body.style.overflow="hidden";v.play().catch(()=>{});
+ $("profileVideoViewerLabel").textContent=type==="short"?"⚡ SHORTS":"▶ LONG VIDEO";v.src=item.video_url;viewer.classList.add("show");viewer.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";if(v.requestFullscreen){v.requestFullscreen().catch(()=>{});}else if(v.webkitEnterFullscreen){v.webkitEnterFullscreen();}v.play().catch(()=>{});
 }
 function closeProfileVideo(){
- const viewer=$("profileVideoViewer"),v=$("profileVideoViewerPlayer");v.pause();v.removeAttribute("src");v.load();viewer.classList.remove("show");document.body.style.overflow="";
+ const viewer=$("profileVideoViewer"),v=$("profileVideoViewerPlayer");v.pause();v.removeAttribute("src");v.load();if(document.fullscreenElement){document.exitFullscreen().catch(()=>{});}viewer.classList.remove("show");viewer.setAttribute("aria-hidden","true");document.body.style.overflow="";
 }
 
 if(!db){
