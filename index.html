@@ -71,6 +71,12 @@ button{cursor:pointer}
  .top-area{max-width:480px;left:50%;transform:translateX(-50%)}
  .modal{max-width:480px;left:50%;transform:translateX(-50%)}
 }
+
+/* Full-screen video viewing and flying like-heart feedback */
+#video{cursor:pointer;touch-action:manipulation}
+#video:fullscreen{width:100vw;height:100vh;object-fit:contain;background:#000}
+.flying-like-heart{position:absolute;z-index:30;left:50%;top:48%;font-size:clamp(64px,18vw,112px);line-height:1;pointer-events:none;filter:drop-shadow(0 5px 16px #0009);animation:newStarHeartFly 900ms cubic-bezier(.16,.8,.25,1) forwards}
+@keyframes newStarHeartFly{0%{opacity:0;transform:translate(-50%,15%) scale(.25) rotate(-18deg)}18%{opacity:1;transform:translate(-50%,-15%) scale(1.18) rotate(8deg)}48%{opacity:1;transform:translate(-50%,-75%) scale(1) rotate(-5deg)}100%{opacity:0;transform:translate(-50%,-175%) scale(.72) rotate(12deg)}}
 </style>
 </head>
 <body>
@@ -425,6 +431,7 @@ async function toggleLike(){
    const {error}=await db.from("likes").insert({video_id:id,user_id:currentUser.id});
    if(error)throw error;
    likedIds.add(id);
+   showFlyingHeart();
   }
   const {data:latest,error:countError}=await db.from("videos")
    .select("likes_count").eq("id",id).maybeSingle();
@@ -650,10 +657,23 @@ $("feed").addEventListener("touchend",event=>{
 $("feed").addEventListener("wheel",event=>{
  if(Math.abs(event.deltaY)>25)changeVideo(event.deltaY>0?1:-1);
 },{passive:true});
-$("video").addEventListener("click",()=>{
+function showFlyingHeart(){
+ const heart=document.createElement("div");
+ heart.className="flying-like-heart";
+ heart.setAttribute("aria-hidden","true");
+ heart.textContent="❤️";
+ $("feed").appendChild(heart);
+ heart.addEventListener("animationend",()=>heart.remove(),{once:true});
+}
+$("video").addEventListener("click",async()=>{
  const player=$("video");
+ try{
+  if(player.requestFullscreen){
+   if(!document.fullscreenElement)await player.requestFullscreen();
+   else await document.exitFullscreen();
+  }else if(player.webkitEnterFullscreen){player.webkitEnterFullscreen();}
+ }catch(error){console.warn("Fullscreen unavailable:",error);}
  if(player.paused){player.play().catch(()=>{});$("playHint").style.display="none";}
- else{player.pause();$("playHint").style.display="block";}
 });
 $("playHint").addEventListener("click",()=>{
  $("video").play().catch(()=>{});$("playHint").style.display="none";
