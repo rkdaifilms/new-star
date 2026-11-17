@@ -164,6 +164,12 @@ const $=id=>document.getElementById(id);
 let me=null,activePeer=null,activeConversation=null,realtime=null;
 const fallback="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100%" height="100%" fill="#333"/><text x="50%" y="55%" text-anchor="middle" fill="white" font-size="35">★</text></svg>');
 function esc(s){return String(s??"").replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]));}
+function safeMediaUrl(value){
+ try {
+  const u=new URL(String(value||""),location.href);
+  return ["http:","https:"].includes(u.protocol)?u.href:null;
+ } catch (_) { return null; }
+}
 function nameOf(p){return p?.full_name||p?.username||"New Star User";}
 function avatarOf(p){return p?.avatar_url||fallback;}
 function setStatus(s){const el=$("inboxStatus");if(el)el.textContent=s;}
@@ -204,14 +210,27 @@ async function openChat(peer,p){
 async function loadConversation(){
  const {data,error}=await db.from("messages").select("id,sender_id,body,media_url,created_at").eq("conversation_id",activeConversation).order("created_at",{ascending:true}).limit(300);
  const area=$("chatMessagesArea");if(error){area.textContent="Chat load error: "+error.message;return;}
- area.innerHTML=(data||[]).map(m=>{
- const cls=m.sender_id===me.id?"outgoing":"incoming";
- const media=m.media_url?'<a href="'+esc(m.media_url)+'" target="_blank" rel="noopener">Open attachment</a>':"";
- return '<div class="message '+cls+'">'+esc(m.body||"")+(media?'<br>'+media:"")+'<small style="display:block;opacity:.65">'+esc(new Date(m.created_at).toLocaleTimeString())+'</small></div>';
- }).join("")||'<p class="muted">Conversation शुरू करें।</p>';
+ area.replaceChildren();
+ const messages=data||[];
+ if(!messages.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="Conversation शुरू करें।";area.appendChild(empty);}
+ for(const m of messages){
+  const bubble=document.createElement("div");
+  bubble.className="message "+(m.sender_id===me.id?"outgoing":"incoming");
+  const body=document.createElement("span");body.textContent=m.body||"";bubble.appendChild(body);
+  const mediaUrl=safeMediaUrl(m.media_url);
+  if(mediaUrl){
+   const br=document.createElement("br");const link=document.createElement("a");
+   link.href=mediaUrl;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Open attachment";
+   bubble.append(br,link);
+  }
+  const time=document.createElement("small");time.style.cssText="display:block;opacity:.65";
+  time.textContent=new Date(m.created_at).toLocaleTimeString();bubble.appendChild(time);
+  area.appendChild(bubble);
+ }
  area.scrollTop=area.scrollHeight;
  await db.from("messages").update({read_at:new Date().toISOString()}).eq("conversation_id",activeConversation).eq("recipient_id",me.id).is("read_at",null);
 }
+
 window.sendMessage=async function(){
  const input=$("messageInput"),body=input.value.trim();if(!body||!activePeer)return;
  const btn=document.querySelector(".send-btn");if(btn)btn.disabled=true;
