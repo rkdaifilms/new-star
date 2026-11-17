@@ -311,40 +311,28 @@
             box.addEventListener('pointerup', function() { isDragging = false; });
         }
 
-        function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
-        function openTreasureBoxModal() { document.getElementById('treasureBoxModal').style.display = 'flex'; }
+        function openRealGiftModal() { alert('Gifts are unavailable. No coins can be spent.'); }
+        function openTreasureBoxModal() { alert('Prize features are unavailable. No coins can be claimed.'); }
         function openChatBoxModal() { document.getElementById('chatBoxModal').style.display = 'flex'; }
-        function openGamePkModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
+        function openGamePkModal() { alert('PK matchmaking is not connected. No match was started.'); }
 
-        function sendRealGift(name, cost) {
-            let wallet = document.getElementById('userWalletCoins');
-            let coins = parseInt(wallet.innerText);
-            if(coins >= cost) {
-                wallet.innerText = coins - cost;
-                alert('🎉 Sent ' + name + ' successfully!');
-                closeModal('realGiftModal');
-            } else { alert('❌ Not enough coins in wallet!'); }
-        }
-
-        function claimTreasureReward() {
-            let wallet = document.getElementById('userWalletCoins');
-            let coins = parseInt(wallet.innerText) + 50;
-            wallet.innerText = coins;
-            alert('✨ Claimed 50 Free Coins from Treasure Box!');
-            closeModal('treasureBoxModal');
-        }
+        function sendRealGift() { alert('Gifts are unavailable. No coins were deducted.'); }
+        function claimTreasureReward() { alert('Rewards are unavailable. No coins were added.'); }
 
         function sendLiveChatMessage() {
-            let input = document.getElementById('chatInputMsg');
-            let msg = input.value.trim();
-            if(msg !== '') {
-                let list = document.getElementById('chatMessagesList');
-                list.innerHTML += '<div><b>You:</b> ' + msg + '</div>';
-                input.value = '';
-                list.scrollTop = list.scrollHeight;
-            }
+            const input = document.getElementById('chatInputMsg');
+            const msg = input.value.trim();
+            if (!msg) return;
+            const list = document.getElementById('chatMessagesList');
+            const row = document.createElement('div');
+            const label = document.createElement('b');
+            label.textContent = 'You: ';
+            row.append(label, document.createTextNode(msg));
+            list.appendChild(row);
+            input.value = '';
+            list.scrollTop = list.scrollHeight;
         }
-        
+
         function startPkBattle() {
             alert('⚔️ PK Battle launched successfully!');
             closeModal('pkBattleModal');
