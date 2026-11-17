@@ -774,7 +774,18 @@ $("publishButton").onclick = publishVideo;
 /* Deep links used by the global + Create menu. */
 const createRoute=location.hash.toLowerCase();
 if(createRoute==="#camera")setTimeout(()=>openCamera(),120);
-if(createRoute==="#gallery")setTimeout(()=>$("videoInput").click(),180);
+if(createRoute==="#gallery"){
+ // Browsers block a file picker opened programmatically after navigation.
+ // Keep the gallery button visible and focused so the user can open it with
+ // a real tap (required by Android/iOS browser security).
+ setTimeout(()=>{
+  screen("sourceScreen");
+  const galleryButton=$("galleryBtn");
+  galleryButton?.scrollIntoView({behavior:"smooth",block:"center"});
+  galleryButton?.focus({preventScroll:true});
+  toast("Gallery से वीडियो चुनने के लिए Select Gallery Video दबाएँ।");
+ },180);
+}
 
 /* Cleanup */
 window.addEventListener("beforeunload",() => {
