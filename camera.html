@@ -712,9 +712,12 @@ async function publishVideo() {
   if (!videoUrl) throw new Error("Public Video URL नहीं मिला।");
 
   status.textContent = "वीडियो Database में सेव हो रहा है...";
+  const videoType=mediaInfo.height>mediaInfo.width?"short":mediaInfo.width>mediaInfo.height?"long":"square";
   const payload = {
    user_id:user.id,video_url:videoUrl,caption,category,username:String(username),
-   likes_count:0,views_count:0,affiliate_link:affiliate || null,audience_type:audience
+   likes_count:0,views_count:0,affiliate_link:affiliate || null,audience_type:audience,
+   duration_seconds:Math.round(mediaInfo.duration),width:mediaInfo.width,height:mediaInfo.height,
+   video_type:videoType,processing_status:"published",visibility:"public"
   };
   const {data:inserted,error:insertError} = await db.from("videos")
    .insert(payload).select("id").single();
