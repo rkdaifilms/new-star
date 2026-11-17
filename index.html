@@ -271,21 +271,27 @@ async function loadLikes(){
 
 async function loadFeed(){
  $("loading").style.display="flex";$("empty").style.display="none";
- if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला। supabase-config.js जाँचें।");return;}
+ if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला।");return;}
  try{
-  const {data,error}=await db.from("videos")
-   .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type")
-   .order("created_at",{ascending:false});
+  const type=currentCategory==="Shorts"||currentCategory==="Reels"?"short":currentCategory==="Long Videos"?"long":null;
+  const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
+  const {data,error}=await db.rpc("get_recommended_video_feed",{p_limit:50,p_offset:0,p_video_type:type,p_category:category});
   if(error)throw error;
   videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
-  await loadLikes();
-  await applyFilters();
+  await loadLikes();await applyFilters();
  }catch(error){
   console.error("Feed error:",error);
-  showEmpty("वीडियो लोड नहीं हुए। Supabase videos table और RLS जाँचें।");
+  try{
+   const {data,error:fallbackError}=await db.from("videos")
+    .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type,duration_seconds,width,height,thumbnail_url,video_type")
+    .eq("processing_status","published").eq("visibility","public").eq("audience_type","all")
+    .order("created_at",{ascending:false}).range(0,49);
+   if(fallbackError)throw fallbackError;
+   videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+   await loadLikes();await applyFilters();
+  }catch(fallbackError){console.error("Feed fallback:",fallbackError);showEmpty("वीडियो लोड नहीं हुए। Feed/RLS जाँचें।");}
  }finally{$("loading").style.display="none";}
 }
-
 async function getFollowingIds(){
  if(!currentUser)return [];
  const {data,error}=await db.from("followers").select("following_id").eq("follower_id",currentUser.id);
@@ -298,43 +304,60 @@ async function applyFilters(){
  let followingIds=[];
  if(currentCategory==="Following"||currentCategory==="Friends"){
   if(!currentUser){showEmpty("Following वीडियो देखने के लिए Login करें।");return;}
-  try{followingIds=await getFollowingIds();}
-  catch(error){showEmpty("Following सूची लोड नहीं हुई।");return;}
+  try{followingIds=await getFollowingIds();}catch(e){showEmpty("Following सूची लोड नहीं हुई।");return;}
  }
-
- let aspectByUrl=new Map();
- if(["Shorts","Reels","Long Videos"].includes(currentCategory)){
-  const results=await Promise.all(videos.map(async item=>[item.video_url,await getVideoAspect(item)]));
-  aspectByUrl=new Map(results);
- }
-
  filtered=videos.filter(v=>{
-  const text=[v.caption,v.username,v.category].join(" ").toLowerCase();
+  const text=[v.caption,v.username,v.category,...(v.tags||[])].join(" ").toLowerCase();
   if(keyword&&!text.includes(keyword))return false;
   if(currentCategory==="Following"||currentCategory==="Friends")return followingIds.includes(String(v.user_id));
   if(currentCategory==="Live")return false;
-  if(currentCategory==="Shorts"||currentCategory==="Reels"){
-   return aspectByUrl.get(v.video_url)?.orientation==="portrait";
-  }
-  if(currentCategory==="Long Videos"){
-   return aspectByUrl.get(v.video_url)?.orientation==="landscape";
-  }
+  if(currentCategory==="Shorts"||currentCategory==="Reels")return v.video_type==="short"||(v.height&&v.width&&v.height>v.width);
+  if(currentCategory==="Long Videos")return v.video_type==="long"||(v.height&&v.width&&v.width>=v.height);
   if(["For You","Discover"].includes(currentCategory))return true;
   return String(v.category||"").toLowerCase().includes(currentCategory.toLowerCase());
  });
  currentIndex=0;
- if(!filtered.length){
-  let message="इस Category या Search में कोई वीडियो नहीं मिला।";
-  if(currentCategory==="Live")message="अभी कोई Live वीडियो उपलब्ध नहीं है।";
-  if(currentCategory==="Shorts"||currentCategory==="Reels")message="अभी कोई Vertical Shorts / Reels वीडियो नहीं मिला।";
-  if(currentCategory==="Long Videos")message="अभी कोई Landscape Long Video नहीं मिला।";
-  showEmpty(message);
-  return;
- }
+ if(!filtered.length){showEmpty(currentCategory==="Live"?"अभी कोई Live Stream उपलब्ध नहीं है।":"इस Category में अभी कोई वीडियो नहीं मिला।");return;}
  $("empty").style.display="none";
  const wanted=new URLSearchParams(location.search).get("video");
  if(wanted){const found=filtered.findIndex(v=>String(v.id)===wanted);if(found>=0)currentIndex=found;}
  renderVideo();
+}
+
+let activeWatchSession=null,watchHeartbeatTimer=null,watchSessionStarting=false,lastWatchVideoId=null;
+async function stopWatchSession(){
+ if(watchHeartbeatTimer){clearInterval(watchHeartbeatTimer);watchHeartbeatTimer=null;}
+ const old=activeWatchSession;activeWatchSession=null;
+ if(old&&currentUser){try{await db.rpc("end_video_watch_session",{p_session_id:old,p_position_seconds:Number($("video").currentTime||0)});}catch(e){console.warn("Watch session close:",e.message);}}
+}
+async function startWatchSession(videoId){
+ if(!currentUser||!db||watchSessionStarting)return;
+ watchSessionStarting=true;
+ try{
+  await stopWatchSession();
+  const clientSessionId=crypto.randomUUID();
+  const {data,error}=await db.rpc("start_video_watch_session",{p_video_id:videoId,p_client_session_id:clientSessionId});
+  if(error)throw error;
+  activeWatchSession=data?.session_id||null;
+  lastWatchVideoId=videoId;
+  if(activeWatchSession){
+   watchHeartbeatTimer=setInterval(async()=>{
+    if(!activeWatchSession||$("video").paused||document.visibilityState!=="visible")return;
+    const session=activeWatchSession;
+    const {error:heartbeatError}=await db.rpc("heartbeat_video_watch_session",{
+     p_session_id:session,p_position_seconds:Number($("video").currentTime||0),p_is_playing:true
+    });
+    if(heartbeatError)console.warn("Watch heartbeat:",heartbeatError.message);
+   },8000);
+  }
+ }catch(e){console.warn("Watch tracking unavailable:",e.message);}
+ finally{watchSessionStarting=false;}
+}
+function recordEngagement(videoId,eventType){
+ if(!currentUser||!videoId)return;
+ db.rpc("record_video_engagement",{p_video_id:videoId,p_event_type:eventType}).then(({error})=>{
+  if(error)console.debug("Engagement not recorded:",error.message);
+ });
 }
 
 function renderVideo(){
@@ -343,6 +366,7 @@ function renderVideo(){
  const player=$("video");
  const renderingId=String(currentVideo.id);
  player.pause();
+ stopWatchSession();
  player.onloadedmetadata=()=>{
   if(!currentVideo||String(currentVideo.id)!==renderingId)return;
   const width=player.videoWidth,height=player.videoHeight;
@@ -357,7 +381,10 @@ function renderVideo(){
  };
  player.src=currentVideo.video_url;
  player.load();
- player.play().catch(()=>{$("playHint").style.display="block";});
+ player.play().then(()=>startWatchSession(renderingId)).catch(()=>{$("playHint").style.display="block";});
+ player.onended=()=>{if(currentUser&&activeWatchSession)db.rpc("end_video_watch_session",{p_session_id:activeWatchSession,p_position_seconds:Number(player.currentTime||0)});};
+ const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
+ player.style.objectFit=currentVideo.video_type==="short"?"cover":"contain";
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
  $("caption").textContent=currentVideo.caption||"";
@@ -468,6 +495,7 @@ function videoUrl(){
 }
 async function shareVideo(){
  if(!currentVideo)return;
+ recordEngagement(currentVideo.id,"share");
  const url=videoUrl();
  if(navigator.share){
   try{await navigator.share({title:"New Star Video",text:currentVideo.caption||"Watch on New Star",url});}
@@ -607,6 +635,7 @@ $("voice").addEventListener("click",()=>{
 });
 function changeVideo(direction){
  if(!filtered.length)return;
+ if(direction>0&&currentVideo)recordEngagement(currentVideo.id,"skip");
  currentIndex+=direction;
  if(currentIndex<0)currentIndex=0;
  if(currentIndex>=filtered.length)currentIndex=filtered.length-1;
@@ -645,6 +674,7 @@ $("commentInput").addEventListener("keydown",event=>{
 });
 
 /* START */
+window.addEventListener("pagehide",()=>{if(watchHeartbeatTimer)clearInterval(watchHeartbeatTimer);});
 async function startNewStar(){
  if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला। supabase-config.js जाँचें।");return;}
  currentUser=await getUser();
