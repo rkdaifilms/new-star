@@ -213,7 +213,6 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
  <section class="card">
   <div class="sectionTitle">
    <h3>🎬 My Videos</h3>
-   <button class="secondary" id="refreshVideosButton" type="button">↻ Refresh</button>
   </div>
   <p id="videoStatus" class="muted">आपके वीडियो लोड हो रहे हैं...</p>
   <div class="profileVideoTabs"><button type="button" data-video-filter="all" class="active">सभी</button><button type="button" data-video-filter="short">⚡ Shorts</button><button type="button" data-video-filter="long">▶ Long Videos</button></div>
@@ -960,7 +959,7 @@ function renderProfileVideos(){
 }
 function openProfileVideo(item,type){
  const viewer=$("profileVideoViewer"),v=$("profileVideoViewerPlayer");if(!item.video_url)return;
- $("profileVideoViewerLabel").textContent=type==="short"?"⚡ SHORTS":"▶ LONG VIDEO";v.src=item.video_url;viewer.classList.add("show");viewer.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";if(v.requestFullscreen){v.requestFullscreen().catch(()=>{});}else if(v.webkitEnterFullscreen){v.webkitEnterFullscreen();}v.play().catch(()=>{});
+ $("profileVideoViewerLabel").textContent=type==="short"?"⚡ SHORTS":"▶ LONG VIDEO";v.src=item.video_url;v.controls=true;viewer.classList.add("show");viewer.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";v.play().catch(()=>{});
 }
 function closeProfileVideo(){
  const viewer=$("profileVideoViewer"),v=$("profileVideoViewerPlayer");v.pause();v.removeAttribute("src");v.load();if(document.fullscreenElement){document.exitFullscreen().catch(()=>{});}viewer.classList.remove("show");viewer.setAttribute("aria-hidden","true");document.body.style.overflow="";
@@ -988,7 +987,6 @@ $("emailSignupButton").addEventListener("click",emailSignup);
 $("googleLoginButton").addEventListener("click",googleLogin);
 $("verifyEmailButton").addEventListener("click",verifyEmail);
 $("resendEmailButton").addEventListener("click",resendEmail);
-$("refreshVideosButton").addEventListener("click",loadStatsAndVideos);
 document.querySelectorAll("[data-video-filter]").forEach(b=>b.addEventListener("click",()=>{
  window.profileVideoFilter=b.dataset.videoFilter;
  document.querySelectorAll("[data-video-filter]").forEach(x=>x.classList.toggle("active",x===b));
