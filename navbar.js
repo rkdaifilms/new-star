@@ -162,6 +162,12 @@
       #newstar-menu-overlay.open {
         display: block;
       }
+      #newstar-create-panel{position:fixed;left:50%;bottom:calc(72px + env(safe-area-inset-bottom));transform:translate(-50%,12px);width:min(300px,calc(100vw - 24px));max-height:min(65dvh,460px);overflow:auto;z-index:10002;background:#191919;border:1px solid #444;border-radius:16px;padding:9px;box-shadow:0 12px 36px #000b;display:none;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}
+      #newstar-create-panel.open{display:block;opacity:1;transform:translate(-50%,0);pointer-events:auto}
+      #newstar-create-panel .create-title{font-size:12px;color:#aaa;padding:8px 10px 10px}
+      #newstar-create-panel a{display:flex;align-items:center;gap:10px;padding:13px 11px;color:#fff;text-decoration:none;border-radius:9px;font-size:14px}
+      #newstar-create-panel a:active{background:#333}
+      #newstar-create-panel a span{font-size:20px;width:26px;text-align:center}
 
       #newstar-menu-panel {
         position: absolute;
@@ -360,6 +366,17 @@
     }
   }
 
+  function toggleCreatePanel(){
+    let panel=$("newstar-create-panel");
+    if(!panel){
+      panel=document.createElement("section");panel.id="newstar-create-panel";panel.setAttribute("aria-label","Create menu");
+      panel.innerHTML=`<div class="create-title">CREATE ON NEW STAR</div><a href="camera.html#camera"><span>🎥</span><div><b>Record a Video</b><br><small>Open camera studio</small></div></a><a href="camera.html#gallery"><span>🖼️</span><div><b>Upload from Gallery</b><br><small>Select a video from your phone</small></div></a><a href="live.html"><span>🔴</span><div><b>Live Stream</b><br><small>Open live studio</small></div></a><a href="gaming.html"><span>🎮</span><div><b>Live Gaming</b><br><small>Open gaming studio</small></div></a>`;
+      document.body.appendChild(panel);
+    }
+    panel.classList.toggle("open");
+  }
+  function closeCreatePanel(){$("newstar-create-panel")?.classList.remove("open");}
+
   function createBottomNavigation() {
     if ($("newstar-global-nav")) return;
 
@@ -382,12 +399,11 @@
 
       if (item.plus) {
         link.className = "newstar-plus-link";
-        link.setAttribute("aria-label", "Create or upload video");
-
-        link.innerHTML = `
-          <span class="newstar-plus-icon" aria-hidden="true">+</span>
-          <span>Create</span>
-        `;
+        link.href = "#create";
+        link.setAttribute("aria-label", "Open create menu");
+        link.setAttribute("aria-expanded", "false");
+        link.innerHTML = `<span class="newstar-plus-icon" aria-hidden="true">+</span><span>Create</span>`;
+        link.addEventListener("click",event=>{event.preventDefault();toggleCreatePanel();link.setAttribute("aria-expanded",$("newstar-create-panel")?.classList.contains("open")?"true":"false");});
       } else {
         link.innerHTML = `
           <span class="nav-icon">${item.icon}</span>
@@ -436,6 +452,8 @@
       createTopMenuButton();
 
       createBottomNavigation();
+      document.addEventListener("click",event=>{if(!event.target.closest("#newstar-create-panel")&&!event.target.closest(".newstar-plus-link"))closeCreatePanel();});
+      document.addEventListener("keydown",event=>{if(event.key==="Escape")closeCreatePanel();});
 
     } catch (error) {
       console.error("New Star Navigation Error:", error);
