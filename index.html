@@ -29,7 +29,7 @@ button{cursor:pointer}
 .video-info p{font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
 .video-info a{pointer-events:auto;display:none;color:#25f4ee;font-size:12px;margin-top:8px}
 .video-meta{font-size:11px;color:#ddd;margin-top:6px}
-.actions{position:absolute;right:8px;bottom:90px;z-index:7;display:flex;flex-direction:column;align-items:center;gap:10px}
+.actions{position:absolute;right:8px;bottom:90px;z-index:30;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:auto;touch-action:manipulation}
 .action{border:0;background:transparent;color:#fff;min-width:48px;text-align:center;font-size:10px;padding:0}
 .action-icon{width:40px;height:40px;border-radius:50%;background:#252525c9;border:1px solid #ffffff55;display:flex;align-items:center;justify-content:center;font-size:21px;margin:0 auto 3px}
 .action.liked .action-icon{color:#fe2c55}
@@ -209,6 +209,7 @@ async function getUser(){
 }
 
 function showEmpty(message){
+ $(".actions").style.display="none";
  $("video").pause();$("video").removeAttribute("src");$("video").load();
  $("emptyMessage").textContent=message;$("empty").style.display="flex";
  $("counter").textContent="";$("username").textContent="";$("caption").textContent="";
@@ -370,6 +371,7 @@ function recordEngagement(videoId,eventType){
 
 function renderVideo(){
  if(!filtered.length)return;
+ $(".actions").style.display="flex";
  currentVideo=filtered[currentIndex];if(!currentVideo)return;
  const player=$("video");
  const renderingId=String(currentVideo.id);
@@ -683,7 +685,7 @@ $("playHint").addEventListener("click",()=>{
 });
 
 $("likeBtn").addEventListener("click",toggleLike);
-$("commentBtn").addEventListener("click",openComments);
+$("commentBtn").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openComments();});
 $("postComment").addEventListener("click",postComment);
 $("giftBtn").addEventListener("click",openGift);
 $("sendGift").addEventListener("click",sendGift);
