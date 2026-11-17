@@ -54,13 +54,13 @@ button{cursor:pointer}
 .comment-form input{display:block;flex:1 1 auto;width:1%;min-width:0;height:42px;background:#292929;color:#fff;border:1px solid #777;border-radius:22px;padding:0 14px;outline:none;font-size:14px;pointer-events:auto;user-select:text;-webkit-user-select:text;opacity:1}
 .comment-form input:disabled{opacity:1}
 #commentForm input{color:#fff!important;background:#303030!important;border:1px solid #aaa!important;min-height:44px!important}
-#commentComposer{display:none;position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:2147483000!important;width:100%!important;min-height:66px!important;padding:9px 10px calc(9px + env(safe-area-inset-bottom))!important;gap:8px!important;align-items:center!important;background:#171717!important;border-top:1px solid #777!important;box-shadow:0 -5px 20px #000!important;pointer-events:auto!important}
-#commentComposer input{display:block!important;flex:1 1 auto!important;width:1%!important;min-width:0!important;height:46px!important;min-height:46px!important;padding:0 14px!important;border:1px solid #aaa!important;border-radius:24px!important;background:#303030!important;color:#fff!important;font-size:16px!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important}
-#commentComposer input::placeholder{color:#ddd!important;opacity:1!important}
+#commentModal{left:0!important;right:0!important;bottom:calc(68px + env(safe-area-inset-bottom))!important;width:100%!important;height:min(58dvh,520px)!important;max-height:520px!important;min-height:240px!important;padding:0!important;transform:none!important;display:none;flex-direction:column!important;overflow:hidden!important}
+#commentModal .modal-head{flex:0 0 auto!important}
+#commentModal .comment-list{display:block!important;flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;padding:10px 14px 14px!important}
+#commentComposer{position:relative!important;inset:auto!important;z-index:10001!important;display:flex!important;flex:0 0 auto!important;width:100%!important;min-height:66px!important;padding:9px 10px calc(9px + env(safe-area-inset-bottom))!important;gap:8px!important;align-items:center!important;background:#202020!important;border-top:1px solid #777!important;box-shadow:0 -4px 16px #0009!important;pointer-events:auto!important}
+#commentComposer input{display:block!important;flex:1 1 auto!important;width:1%!important;min-width:0!important;height:46px!important;min-height:46px!important;padding:0 14px!important;border:1px solid #aaa!important;border-radius:24px!important;background:#303030!important;color:#fff!important;font-size:16px!important;visibility:visible!important;pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important}
 #commentComposer button{display:inline-flex!important;flex:0 0 82px!important;align-items:center!important;justify-content:center!important;width:82px!important;min-width:82px!important;height:46px!important;min-height:46px!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;touch-action:manipulation!important}
-#commentModal{bottom:0!important;height:65dvh!important;max-height:none!important;min-height:240px!important;padding-bottom:72px!important}
-#commentModal .comment-list{padding-bottom:18px!important}
-#commentForm button{display:inline-flex!important;align-items:center;justify-content:center;min-width:76px!important;min-height:44px!important;visibility:visible!important;opacity:1!important}
+@media(min-width:700px){#commentModal{left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(100%,480px)!important}}
 .primary{background:#fe2c55;color:#fff;border:0;border-radius:22px;padding:10px 15px;font-weight:bold;min-height:40px;white-space:nowrap;touch-action:manipulation}
 .primary:disabled{opacity:.5}
 .share-option{margin:10px 14px;padding:13px;border:0;border-radius:10px;background:#303030;color:#fff;text-align:left}
@@ -149,16 +149,14 @@ button{cursor:pointer}
 </main>
 </div>
 
-<section class="modal" id="commentModal">
- <div class="modal-head"><h3 id="commentTitle">Comments</h3><button class="close" data-close="commentModal">×</button></div>
- <div class="comment-list" id="commentList"></div>
-
+<section class="modal" id="commentModal" aria-label="Comments">
+ <div class="modal-head"><h3 id="commentTitle">Comments</h3><button class="close" data-close="commentModal" aria-label="Close comments">×</button></div>
+ <div class="comment-list" id="commentList" aria-live="polite"></div>
+ <form id="commentComposer" class="comment-form" autocomplete="off" aria-label="Write a comment">
+  <input id="commentInput" type="text" maxlength="1000" placeholder="यहाँ Comment लिखें..." aria-label="Comment लिखें">
+  <button class="primary" id="postComment" type="submit">Send</button>
+ </form>
 </section>
-
-<form id="commentComposer" autocomplete="off" aria-label="Write a comment">
- <input id="commentInput" type="text" maxlength="1000" placeholder="यहाँ Comment लिखें..." aria-label="Comment लिखें">
- <button class="primary" id="postComment" type="submit">Send</button>
-</form>
 
 <section class="modal" id="shareModal">
  <div class="modal-head"><h3>Share Video</h3><button class="close" data-close="shareModal">×</button></div>
@@ -218,7 +216,7 @@ function openModal(id){
 }
 function closeModal(id){
  $(id).style.display="none";
- if(id==="commentModal")$("commentComposer").style.display="none";
+ 
 }
 document.querySelectorAll("[data-close]").forEach(btn=>{
  btn.addEventListener("click",()=>closeModal(btn.dataset.close));
@@ -497,10 +495,6 @@ async function openComments(){
   return;
  }
  openModal("commentModal");
- const composer=$("commentComposer");
- composer.style.display="flex";
- composer.style.visibility="visible";
- composer.style.pointerEvents="auto";
  const input=$("commentInput");
  input.placeholder="यहाँ अपना Comment लिखें...";
  input.disabled=false;
@@ -757,14 +751,6 @@ $("reload").addEventListener("click",loadFeed);
 $("commentInput").addEventListener("keydown",event=>{
  if(event.key==="Enter"){event.preventDefault();postComment();}
 });
-if(window.visualViewport){
- const syncCommentComposer=()=>{
-  const keyboardInset=Math.max(0,window.innerHeight-window.visualViewport.height-window.visualViewport.offsetTop);
-  $("commentComposer").style.bottom=keyboardInset+"px";
- };
- window.visualViewport.addEventListener("resize",syncCommentComposer);
- window.visualViewport.addEventListener("scroll",syncCommentComposer);
-}
 
 /* START */
 window.addEventListener("pagehide",()=>{if(watchHeartbeatTimer)clearInterval(watchHeartbeatTimer);});
