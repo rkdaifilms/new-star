@@ -1,0 +1,42 @@
+name: Preview browser smoke tests
+
+on:
+  push:
+    branches:
+      - build/full-app-audit-20261117
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install Playwright
+        run: npm install --no-save --no-package-lock playwright@1.55.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for Vercel branch Preview
+        env:
+          BASE_URL: https://new-star-git-build-full-app-audit-20261117-rkdaifilms-8858.vercel.app
+        run: |
+          for i in $(seq 1 30); do
+            if curl --fail --silent --show-error "$BASE_URL/index.html" >/dev/null; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Vercel Preview did not become reachable."
+          exit 1
+
+      - name: Run mobile browser checks
+        env:
+          BASE_URL: https://new-star-git-build-full-app-audit-20261117-rkdaifilms-8858.vercel.app
+        run: node tests/smoke.cjs
