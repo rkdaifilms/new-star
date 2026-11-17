@@ -72,7 +72,7 @@
                 <p>Receive 16+ real creator gifts during live broadcasts</p>
             </div>
         </div>
-        <span class="hub-right" style="color:#ffcc00; font-weight:bold;">Active 🎁</span>
+        <span class="hub-right" style="color:#ffcc00; font-weight:bold;">Setup required</span>
     </div>
 
     <!-- 2. REFERRAL SYSTEM ($1.00) WITH DIRECT SOCIAL MEDIA SHARE -->
@@ -132,7 +132,7 @@
                 <p>Fan support features unlock after verified billing integration</p>
             </div>
         </div>
-        <span class="hub-right" style="color:#25f4ee; font-weight:bold;">Active ⭐</span>
+        <span class="hub-right" style="color:#ffcc00; font-weight:bold;">Coming after billing setup</span>
     </div>
 
     <!-- MODALS -->
@@ -182,7 +182,7 @@
     <div class="modal-overlay" id="referralModal">
         <div class="modal-card" style="border-color: #25f4ee;">
             <span class="close-modal" onclick="closeModal('referralModal')">✕</span>
-            <h3 style="color: #25f4ee;">👥 Referral Hub ($1.00 Reward)</h3>
+            <h3 style="color: #25f4ee;">👥 New Star Referral Hub</h3>
             <p style="font-size:11px; color:#aaa; margin-bottom:12px;">Share your invite link directly to WhatsApp, Facebook, Telegram & all social apps:</p>
             
             <input type="text" id="referralLinkInput" class="form-input" value="" placeholder="Login करके अपना referral link बनाएँ" readonly style="margin-bottom:8px;">
@@ -202,15 +202,15 @@
             
             <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(1000, 5)">
                 <h4 style="color:#ffcc00; font-size:13px;">🔥 1,000 Views Pack</h4>
-                <p style="font-size:11px; color:#aaa;">Price: $5.00 (500 Coins or Direct Bank)</p>
+                <p style="font-size:11px; color:#aaa;">Promotion price shown at verified checkout</p>
             </div>
             <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:10px; cursor:pointer;" onclick="boostPackage(10000, 35)">
                 <h4 style="color:#25f4ee; font-size:13px;">🚀 10,000 Views Pack</h4>
-                <p style="font-size:11px; color:#aaa;">Price: $35.00 (3,500 Coins or Direct Bank)</p>
+                <p style="font-size:11px; color:#aaa;">Promotion price shown at verified checkout</p>
             </div>
             <div style="background:#111; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:12px; cursor:pointer;" onclick="boostPackage(100000, 250)">
                 <h4 style="color:#fe2c55; font-size:13px;">🌟 100,000+ Mega Viral Pack</h4>
-                <p style="font-size:11px; color:#aaa;">Price: $250.00 (25,000 Coins or Direct Bank)</p>
+                <p style="font-size:11px; color:#aaa;">Promotion price shown at verified checkout</p>
             </div>
         </div>
     </div>
@@ -221,16 +221,19 @@
             <h3 style="color: #ffcc00;">💎 LIVE Gifts & Treasure Box Rules</h3>
             <p style="font-size:12px; color:#ccc; margin-bottom:12px; line-height: 1.5;">
                 • Receive 16+ real gifts during live broadcasting.<br>
-                • Drop Treasure Boxes with custom coin timers!
+                • Treasure Box rewards require verified balance and transaction checks.
             </p>
             <button class="action-pub-btn" style="background:#ffcc00; color:#000;" onclick="closeModal('liveGiftRulesModal')">Got It</button>
         </div>
     </div>
 
-    <!-- 🌟 NAVBAR SCRIPT LOADER -->
+    <!-- Shared Supabase client must load before creator dashboard logic. -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
     <script src="navbar.js"></script>
 
     <script>
+        const db = window.supabaseClient || window.cloudClient || null;
         let creatorProgress=null;
         window.addEventListener("DOMContentLoaded", loadCreatorProgress);
 
@@ -243,7 +246,7 @@
             const status=document.getElementById("monetizationMainStatus");
             const banner=document.getElementById("bannerStatusText");
             const action=document.getElementById("monetizationActionBtn");
-            if(!window.db){if(status)status.textContent="Connect to view";if(banner)banner.textContent="Supabase connection unavailable";return;}
+            if(!db){if(status)status.textContent="Connect to view";if(banner)banner.textContent="Supabase connection unavailable";return;}
             const {data:userData}=await db.auth.getUser();
             if(!userData?.user){if(status)status.textContent="Login required";if(banner)banner.textContent="Login to view verified creator progress";if(action)action.disabled=true;return;}
             const {data,error}=await db.rpc("get_creator_monetization_progress");
