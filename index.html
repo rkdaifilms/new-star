@@ -48,8 +48,13 @@ button{cursor:pointer}
 .comment{padding:10px 0;border-bottom:1px solid #333;overflow-wrap:anywhere}
 .comment strong{display:block;color:#bbb;font-size:12px;margin-bottom:5px}
 .comment p{font-size:14px;line-height:1.4}
-.comment-form{display:flex;gap:8px;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom));border-top:1px solid #333;flex-shrink:0}
-.comment-form input{flex:1;min-width:0;background:#292929;color:#fff;border:1px solid #444;border-radius:22px;padding:11px;outline:none}
+.comment-form{display:flex;align-items:center;gap:9px;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom));border-top:1px solid #333;flex-shrink:0}
+.comment-form input{flex:1;min-width:0;width:0;background:#292929;color:#fff;border:1px solid #444;border-radius:22px;padding:12px 14px;outline:none;font-size:15px}
+.comment-mic,.comment-send{flex:0 0 44px;width:44px;height:44px;border:0;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:21px;cursor:pointer}
+.comment-mic{background:#34343a;border:1px solid #555}
+.comment-mic.listening{background:#b4233b;box-shadow:0 0 0 4px #b4233b33}
+.comment-send{background:#fe2c55;font-size:23px;font-weight:bold}
+.comment-send:disabled{opacity:.5}
 .primary{background:#fe2c55;color:#fff;border:0;border-radius:22px;padding:11px 16px;font-weight:bold}
 .primary:disabled{opacity:.5}
 .share-option{margin:10px 14px;padding:13px;border:0;border-radius:10px;background:#303030;color:#fff;text-align:left}
@@ -137,8 +142,9 @@ button{cursor:pointer}
  <div class="modal-head"><h3 id="commentTitle">Comments</h3><button class="close" data-close="commentModal">×</button></div>
  <div class="comment-list" id="commentList"></div>
  <div class="comment-form">
-  <input id="commentInput" maxlength="1000" placeholder="Write a comment...">
-  <button class="primary" id="postComment">Post</button>
+  <button type="button" class="comment-mic" id="commentMic" aria-label="बोलकर Comment लिखें" title="बोलकर Comment लिखें">🎙</button>
+  <input id="commentInput" maxlength="1000" placeholder="Write a comment..." autocomplete="off">
+  <button type="button" class="comment-send" id="postComment" aria-label="Send comment" title="Send comment">➤</button>
  </div>
 </section>
 
@@ -427,9 +433,10 @@ async function openComments(){
   return;
  }
  openModal("commentModal");
+ stopCommentVoice();
  const input=$("commentInput");
- input.placeholder=currentUser?"Write a comment...":"Comment करने के लिए पहले Login करें";
- $("postComment").textContent=currentUser?"Post":"Login to Comment";
+ input.placeholder=currentUser?"अपना Comment लिखें या माइक से बोलें...":"Comment करने के लिए पहले Login करें";
+ $("postComment").title=currentUser?"Comment भेजें":"Login करके Comment भेजें";
  await loadComments(currentVideo.id);
 }
 
@@ -448,6 +455,65 @@ async function loadComments(videoId){
    item.append(name,message);list.appendChild(item);
   });
  }catch(error){console.error("Comments:",error);list.textContent="Comments लोड नहीं हुए।";}
+}
+
+let commentRecognition=null,commentVoiceActive=false;
+function setCommentMicState(active){
+ commentVoiceActive=active;
+ const mic=$("commentMic");
+ if(!mic)return;
+ mic.classList.toggle("listening",active);
+ mic.textContent=active?"■":"🎙";
+ mic.setAttribute("aria-pressed",active?"true":"false");
+ mic.title=active?"रिकॉर्डिंग रोकें":"बोलकर Comment लिखें";
+ mic.setAttribute("aria-label",mic.title);
+}
+function stopCommentVoice(){
+ if(commentRecognition){
+  try{commentRecognition.stop();}catch(error){}
+ }
+ setCommentMicState(false);
+}
+function toggleCommentVoice(){
+ if(commentVoiceActive){stopCommentVoice();return;}
+ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SpeechRecognition){
+  showToast("इस Browser में Voice Typing उपलब्ध नहीं है। Android Chrome में खोलकर Microphone अनुमति दें।");
+  return;
+ }
+ const input=$("commentInput");
+ const baseText=input.value.trim();
+ const recognition=new SpeechRecognition();
+ commentRecognition=recognition;
+ recognition.lang="hi-IN";
+ recognition.continuous=false;
+ recognition.interimResults=true;
+ recognition.onresult=event=>{
+  let finalText="",interimText="";
+  for(let i=0;i<event.results.length;i++){
+   const part=event.results[i][0]?.transcript||"";
+   if(event.results[i].isFinal)finalText+=part;
+   else interimText+=part;
+  }
+  input.value=[baseText,finalText,interimText].filter(Boolean).join(" ").replace(/\\s+/g," ").trim();
+ };
+ recognition.onerror=event=>{
+  setCommentMicState(false);
+  if(event.error==="not-allowed"||event.error==="service-not-allowed")showToast("Microphone की अनुमति दें, फिर दोबारा कोशिश करें।");
+  else if(event.error!=="no-speech"&&event.error!=="aborted")showToast("Voice Typing शुरू नहीं हो पाया।");
+ };
+ recognition.onend=()=>{
+  if(commentRecognition===recognition)commentRecognition=null;
+  setCommentMicState(false);
+ };
+ try{
+  recognition.start();
+  setCommentMicState(true);
+  showToast("बोलिए… आपकी आवाज़ Text में लिखी जाएगी।");
+ }catch(error){
+  commentRecognition=null;setCommentMicState(false);
+  showToast("माइक अभी व्यस्त है। एक बार फिर दबाएँ।");
+ }
 }
 
 async function postComment(){
@@ -643,6 +709,7 @@ $("playHint").addEventListener("click",()=>{
 $("likeBtn").addEventListener("click",toggleLike);
 $("commentBtn").addEventListener("click",openComments);
 $("postComment").addEventListener("click",postComment);
+$("commentMic").addEventListener("click",toggleCommentVoice);
 $("giftBtn").addEventListener("click",openGift);
 $("sendGift").addEventListener("click",sendGift);
 $("shareBtn").addEventListener("click",shareVideo);
@@ -670,7 +737,7 @@ document.addEventListener("fullscreenchange",()=>{
 });
 $("reload").addEventListener("click",loadFeed);
 $("commentInput").addEventListener("keydown",event=>{
- if(event.key==="Enter")postComment();
+ if(event.key==="Enter"){event.preventDefault();postComment();}
 });
 
 /* START */
