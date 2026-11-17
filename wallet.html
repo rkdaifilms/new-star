@@ -14,12 +14,7 @@
 <div class="top"><a href="index.html">← New Star</a><span id="userLabel" class="muted">Session checking…</span></div>
 <section class="card"><div class="muted">आपके असली Wallet Coins</div><div class="balance" id="balance">—</div><div class="muted">बैलेंस Supabase के लॉगिन अकाउंट से पढ़ा जाता है। ब्राउज़र में मनमाने Coins नहीं जोड़े जाते।</div></section>
 <section class="card"><h2>Coins खरीदें</h2><p class="muted">सिर्फ सर्वर से सत्यापित Payment के बाद Coins जुड़ेंगे। Merchant Gateway कॉन्फ़िगर होने तक खरीद अस्थायी रूप से बंद है।</p><div id="packages" class="grid"><p class="muted">Packages लोड हो रहे हैं…</p></div><div class="notice" style="margin-top:12px">अभी कोई Payment Provider सक्रिय नहीं है। इसीलिए यहाँ कोई नकली Pay Now या Payment Successful बटन नहीं है। eSewa, Khalti, Payoneer या Play Billing की Merchant Credentials जुड़ने के बाद ही खरीद चालू होगी।</div></section>
-<section class="card"><h2>Creator Withdrawal Request</h2><p class="muted">यह केवल payout request दर्ज करता है; अपने-आप पैसे ट्रांसफर नहीं करता। Account password, PIN, OTP या card secret कभी न डालें।</p>
-<label>राशि</label><input class="field" id="amount" type="number" min="1" step="0.01" placeholder="Amount">
-<div class="row"><div><label>Country Code</label><input class="field" id="country" maxlength="2" value="NP" autocomplete="country"></div><div><label>Currency Code</label><input class="field" id="currency" maxlength="3" value="NPR"></div></div>
-<label>Payout Method</label><select class="field" id="method"><option value="bank_transfer">Bank transfer</option><option value="payoneer">Payoneer</option><option value="esewa">eSewa</option><option value="khalti">Khalti</option></select>
-<label>Registered Account Identifier (सिर्फ ईमेल/खाता पहचान)</label><input class="field" id="reference" maxlength="160" placeholder="Registered email or account ID">
-<button class="btn" id="withdraw">Withdrawal Request भेजें</button><p id="withdrawMsg" class="muted" role="status"></p></section>
+<section class="card"><h2>Creator Payouts</h2><div class="notice">Payout requests are currently unavailable. This app must not collect bank details, wallet account identifiers, passwords, PINs or OTPs here. Any future payout feature requires a properly reviewed, adult-managed provider setup and secure server-side verification. No payout has been requested or sent.</div></section>
 <section class="card"><h2>Payment Orders</h2><div id="orders" class="muted">Loading…</div></section>
 <section class="card"><h2>Coin Ledger</h2><div id="ledger" class="muted">Loading…</div></section>
 <section class="card"><h2>Withdrawal History</h2><div id="withdrawals" class="muted">Loading…</div></section>
@@ -58,19 +53,6 @@ async function loadWithdrawals(){
  if(r.error){$("withdrawals").textContent="Withdrawal history अभी उपलब्ध नहीं है।";return;}
  renderRows($("withdrawals"),r.data,function(x){return '<div class="item"><span>'+esc(x.payout_method||"Payout")+' · '+esc(x.country_code||"")+'<br><small class="muted">'+esc(new Date(x.created_at).toLocaleString())+'</small></span><span>'+esc(x.currency||"USD")+" "+esc(x.amount)+'<br><b class="status">'+esc(x.status)+'</b></span></div>'; },"अभी कोई Withdrawal Request नहीं है।");
 }
-$("withdraw").addEventListener("click",async function(){
- const amount=Number($("amount").value),country=$("country").value.trim().toUpperCase(),currency=$("currency").value.trim().toUpperCase(),method=$("method").value,reference=$("reference").value.trim(),msg=$("withdrawMsg"),btn=$("withdraw");
- if(!Number.isFinite(amount)||amount<=0||amount>1000000||! /^[A-Z]{2}$/.test(country)||! /^[A-Z]{3}$/.test(currency)||reference.length<3){msg.textContent="कृपया सही राशि, Country, Currency और Account Identifier भरें।";return;}
- btn.disabled=true;msg.textContent="Request भेजी जा रही है…";
- try{
-  const result=await db.functions.invoke("admin-overview",{body:{action:"request_withdrawal",amount:amount,countryCode:country,currency:currency,method:method,accountReference:reference}});
-  if(result.error)throw result.error;
-  if(!result.data||!result.data.ok)throw new Error(result.data&&result.data.error||"Request असफल हुई");
-  msg.textContent="Request दर्ज हुई है। यह अभी Pending है; भुगतान पूरा नहीं हुआ है।";
-  $("amount").value="";$("reference").value="";await loadWithdrawals();
- }catch(e){msg.textContent="Request असफल: "+(e.message||"Unknown error");}
- finally{btn.disabled=false;}
-});
 async function init(){
  if(!db){$("balance").textContent="Supabase connection unavailable";return;}
  const auth=await db.auth.getUser();
