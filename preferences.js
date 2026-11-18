@@ -46,7 +46,7 @@ async function sync(){
   const {data:remote,error}=await db.from("user_preferences").select("preferences").eq("user_id",user.id).maybeSingle();
   if(error)throw error;
   if(remote?.preferences&&typeof remote.preferences==="object"){
-   localStorage.setItem(KEY,JSON.stringify(remote.preferences));apply();return true;
+   localStorage.setItem(KEY,JSON.stringify(remote.preferences));apply();window.dispatchEvent(new Event("newstar:preferences-loaded"));return true;
   }
   if(localStorage.getItem(KEY)){
    const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:read()},{onConflict:"user_id"});
