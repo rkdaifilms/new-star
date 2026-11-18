@@ -324,7 +324,7 @@ async function getUser(){
 }
 
 function showEmpty(message){
- $(".actions").style.display="none";
+ document.querySelector(".actions").style.display="none";
  $("video").pause();$("video").removeAttribute("src");$("video").load();
  $("emptyMessage").textContent=message;$("empty").style.display="flex";
  $("counter").textContent="";$("username").textContent="";$("caption").textContent="";
@@ -526,7 +526,7 @@ function recordEngagement(videoId,eventType){
 
 function renderVideo(){
  if(!filtered.length)return;
- $(".actions").style.display="flex";
+ document.querySelector(".actions").style.display="flex";
  currentVideo=filtered[currentIndex];if(!currentVideo)return;
  const player=$("video");
  const renderingId=String(currentVideo.id);
