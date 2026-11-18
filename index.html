@@ -406,14 +406,17 @@ async function loadFeed(){
   }catch(error){rpcError=error;}
   // An RPC can succeed but return an empty list. In that case, query the
   // public videos table directly instead of leaving the feed blank.
-  if(!rpcError&&Array.isArray(rpcData)&&rpcData.length){
-   videos=rpcData.filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+  const rpcVideos=Array.isArray(rpcData)?rpcData.filter(v=>v&&v.id&&typeof v.video_url==="string"&&v.video_url.trim()):[];
+  if(!rpcError&&rpcVideos.length){
+   videos=rpcVideos.map(v=>({...v,video_url:v.video_url.trim(),likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
   }else{
    if(rpcError)console.warn("Recommended feed RPC failed; using direct query:",rpcError.message||rpcError);
-   else console.info("Recommended feed RPC returned no videos; using direct query.");
+   else console.info("Recommended feed RPC returned no playable video rows; using direct query.");
    const direct=await loadDirectPublicFeed();
-   videos=direct.filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+   videos=direct.filter(v=>v&&v.id&&typeof v.video_url==="string"&&v.video_url.trim())
+    .map(v=>({...v,video_url:v.video_url.trim(),likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
   }
+  if(!videos.length)throw new Error("कोई playable public video नहीं मिला। वीडियो का Storage URL और publish status जाँचें।");
   await hydrateFeedVideoMetadata();
   await loadLikes();
   await applyFilters();
