@@ -21,7 +21,8 @@ function translateExactText(root){
   return node.nodeValue.trim()?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;
  }});
  const list=[];while(walker.nextNode())list.push(walker.currentNode);
- list.forEach(node=>{const raw=node.nodeValue,trim=raw.trim(),key=reverseEnglish[trim.toLowerCase()],translated=key&&map[key];if(translated&&translated!==trim){const start=raw.indexOf(trim),end=start+trim.length;node.nodeValue=raw.slice(0,start)+translated+raw.slice(end);}});
+ const phrases=Object.entries(dict.en).filter(([key,value])=>value&&map[key]&&map[key]!==value).sort((a,b)=>b[1].length-a[1].length);
+ list.forEach(node=>{let value=node.nodeValue;for(const [key,english] of phrases){value=value.split(english).join(map[key]);}if(value!==node.nodeValue)node.nodeValue=value;});
 }
 function translateCommonAttributes(root){
  const langCode=lang(),map=dict[langCode]||dict.en;
