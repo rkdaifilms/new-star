@@ -35,6 +35,31 @@ function apply(){
  #newstar-menu-panel a,#newstar-menu-panel button{color:var(--ns-text)!important}`;
  window.NewStarI18n?.apply();
 }
-window.NewStarPreferences={apply,get:read,set(patch){const next={...read(),...patch};localStorage.setItem(KEY,JSON.stringify(next));apply();return next}};
-apply();window.addEventListener("storage",e=>{if(e.key===KEY)apply()});
+let syncBusy=false;
+async function sync(){
+ const db=window.supabaseClient||window.cloudClient;
+ if(!db?.auth||syncBusy)return false;
+ syncBusy=true;
+ try{
+  const {data:{user},error:authError}=await db.auth.getUser();
+  if(authError||!user)return false;
+  const {data:remote,error}=await db.from("user_preferences").select("preferences").eq("user_id",user.id).maybeSingle();
+  if(error)throw error;
+  if(remote?.preferences&&typeof remote.preferences==="object"){
+   localStorage.setItem(KEY,JSON.stringify(remote.preferences));apply();return true;
+  }
+  if(localStorage.getItem(KEY)){
+   const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:read()},{onConflict:"user_id"});
+   if(saveError)throw saveError;
+  }
+  return true;
+ }catch(error){console.warn("New Star preferences cloud sync unavailable:",error?.message||error);return false}
+ finally{syncBusy=false}
+}
+window.NewStarPreferences={apply,get:read,set(patch){const next={...read(),...patch};localStorage.setItem(KEY,JSON.stringify(next));apply();sync();return next},sync};
+apply();
+window.addEventListener("storage",e=>{if(e.key===KEY){apply();sync()}});
+window.addEventListener("newstar:preferences-changed",sync);
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",sync,{once:true});else sync();
+window.addEventListener("focus",()=>{if(document.visibilityState==="visible")sync()});
 })();
