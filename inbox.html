@@ -85,14 +85,14 @@
     </div>
 
     <div class="header">
-        <h2>Direct Messages & Activity</h2>
+        <h2 data-i18n="nav.inbox">Inbox</h2>
     </div>
 
     <!-- Authenticated user's profile banner; populated from Supabase -->
     <div class="my-inbox-profile" onclick="window.location.href='profile.html'">
         <img id="inboxUserPic" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100%25' height='100%25' fill='%23333'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' fill='white' font-size='38'%3E★%3C/text%3E%3C/svg%3E" alt="Profile">
         <div>
-            <h4 id="inboxUserName">Your profile</h4>
+            <h4 id="inboxUserName" data-i18n="nav.profile">Profile</h4>
             <p>Open your profile</p>
         </div>
     </div>
@@ -100,9 +100,9 @@
     <div id="inboxStatus" class="empty-state" role="status" aria-live="polite">Connecting to your account…</div>
 
     <div class="inbox-tabs">
-        <div class="inbox-tab active" onclick="switchTab('messages', this)">Messages</div>
+        <div class="inbox-tab active" onclick="switchTab('messages', this)" data-i18n="nav.inbox">Inbox</div>
         <div class="inbox-tab" onclick="switchTab('followers', this)">Followers</div>
-        <div class="inbox-tab" onclick="switchTab('following', this)">Following</div>
+        <div class="inbox-tab" onclick="switchTab('following', this)" data-i18n="feed.following">Following</div>
         <div class="inbox-tab" onclick="switchTab('requests', this)">Follow Requests <span id="followRequestCount"></span></div>
         <div class="inbox-tab" onclick="switchTab('discover', this)">Discover Creators</div>
     </div>
@@ -124,7 +124,7 @@
     <div class="list-container" id="tabDiscover" style="display:none;">
         <div style="display:flex;gap:8px;margin-bottom:14px">
             <input data-i18n-placeholder="action.search" id="creatorSearchInput" type="search" maxlength="50" placeholder="Username या Creator का नाम खोजें" style="flex:1;min-width:0;padding:12px;border-radius:10px;border:1px solid #444;background:#171722;color:#fff">
-            <button id="creatorSearchButton" type="button" class="action-tag-btn">Search</button>
+            <button id="creatorSearchButton" type="button" class="action-tag-btn" data-i18n="action.search">Search</button>
         </div>
         <div id="creatorSearchResults" class="empty-state">Creator खोजने के लिए नाम या username लिखें।</div>
     </div>
@@ -148,7 +148,7 @@
             <div class="chat-icon-btn" onclick="startVoiceRecording()" id="micBtn" title="Voice to Text">🎙️</div>
             
             <!-- Text Input Box -->
-            <input type="text" id="messageInput" placeholder="Type a message or voice note..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="messageInput" data-i18n-placeholder="action.send" placeholder="Send" onkeypress="handleKeyPress(event)">
             
             <!-- Send Button -->
             <button class="send-btn" onclick="sendMessage()" data-i18n="action.send">Send</button>
@@ -162,7 +162,7 @@
             <img id="popupAvatar" src="" alt="Profile">
             <h3 id="popupName">Name</h3>
             <p id="popupBio">Bio details</p>
-            <button class="action-tag-btn" style="width:100%; margin-top:10px;" id="popupMsgBtn" onclick="openChatFromPopup()">Send Message</button>
+            <button class="action-tag-btn" style="width:100%; margin-top:10px;" id="popupMsgBtn" onclick="openChatFromPopup()" data-i18n="action.send">Send</button>
         </div>
     </div>
 
