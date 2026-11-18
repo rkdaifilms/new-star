@@ -126,7 +126,7 @@ async function loadSettings(){
 }
 async function savePrivacy(){
  if(!user)return;const btn=$("savePrivacyBtn");btn.disabled=true;
- try{const {error}=await db.from("profiles").upsert({user_id:user.id,is_private:$("privateAccount").checked},{onConflict:"user_id"});if(error)throw error;profile={...(profile||{}),is_private:$("privateAccount").checked};message("Privacy setting सेव हो गई।");}
+ try{const {data,error}=await db.from("profiles").update({is_private:$("privateAccount").checked}).eq("user_id",user.id).select("user_id").maybeSingle();if(error)throw error;if(!data)throw new Error("Profile row नहीं मिला; कोई बदलाव सेव नहीं हुआ।");profile={...(profile||{}),is_private:$("privateAccount").checked};message("Privacy setting सेव हो गई।");}
  catch(e){console.error(e);message(e.message||"Privacy setting सेव नहीं हुई।","error");}finally{btn.disabled=false;}
 }
 async function loadBlockedAccounts(){
