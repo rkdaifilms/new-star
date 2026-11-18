@@ -27,46 +27,19 @@
 
   function getPrefs(){try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){return {};}}
   function applyPreferences(){
-    const p=getPrefs(),theme=p.theme||"dark",lang=p.language||"hi";
-    document.documentElement.lang=lang;
-    document.documentElement.dir=["ar","ur","fa"].includes(lang)?"rtl":"ltr";
+    // preferences.js is the single source of truth for app-wide appearance.
+    const preferences = window.NewStarPreferences;
+    if (preferences && typeof preferences.apply === "function") {
+      preferences.apply();
+      return;
+    }
+    const p = getPrefs();
+    const lang = p.language || "hi";
+    document.documentElement.lang = lang;
+    document.documentElement.dir = ["ar","ur","fa"].includes(lang) ? "rtl" : "ltr";
     window.NewStarI18n?.apply();
-    const themes={
-      dark:{bg:"#080808",panel:"#171717",text:"#ffffff",muted:"#aaaaaa",accent:"#fe2c55"},light:{bg:"#f4f6fa",panel:"#ffffff",text:"#171923",muted:"#5d6472",accent:"#d92350"},
-      ocean:{bg:"#071923",panel:"#102b3a",text:"#f4fbff",muted:"#a8c1cc",accent:"#25b8d0"},forest:{bg:"#101b14",panel:"#1b2b20",text:"#f4fff6",muted:"#afc5b3",accent:"#39a96b"},
-      sunset:{bg:"#21130e",panel:"#3b2118",text:"#fff4ed",muted:"#d9a88d",accent:"#ff874d"},purple:{bg:"#160e28",panel:"#281943",text:"#f7f0ff",muted:"#c2addb",accent:"#b58cff"},
-      rose:{bg:"#260f1b",panel:"#3b1b2b",text:"#fff1f6",muted:"#d9a9bc",accent:"#ff6f9e"},crimson:{bg:"#210b10",panel:"#39131d",text:"#fff1f3",muted:"#d7a1aa",accent:"#ff405d"},
-      gold:{bg:"#211b0b",panel:"#382d12",text:"#fff8df",muted:"#d5c28a",accent:"#e9b949"},teal:{bg:"#08201e",panel:"#103532",text:"#eafffb",muted:"#a1cbc4",accent:"#26c6b5"},
-      cyan:{bg:"#071c27",panel:"#103344",text:"#edfbff",muted:"#a6cbd8",accent:"#48d5f5"},indigo:{bg:"#10132c",panel:"#1b2250",text:"#f0f2ff",muted:"#aeb6df",accent:"#7d8cff"},
-      lavender:{bg:"#1d1730",panel:"#30264a",text:"#f8f2ff",muted:"#c8b8df",accent:"#c2a0ff"},mint:{bg:"#0d211b",panel:"#18372c",text:"#edfff6",muted:"#add2bf",accent:"#62d6a2"},
-      emerald:{bg:"#071d16",panel:"#103526",text:"#edfff6",muted:"#a3cbb7",accent:"#28c985"},ruby:{bg:"#220c1c",panel:"#3b1530",text:"#fff0fa",muted:"#d7a5c6",accent:"#f34e9b"},
-      amber:{bg:"#211608",panel:"#3b2810",text:"#fff6e8",muted:"#d6bd91",accent:"#ffb02e"},coral:{bg:"#24120f",panel:"#3c211c",text:"#fff3ef",muted:"#d9aaa0",accent:"#ff806e"},
-      slate:{bg:"#111820",panel:"#202b36",text:"#f3f6fa",muted:"#aebbc8",accent:"#8ba8c4"},coffee:{bg:"#1b120d",panel:"#302117",text:"#fff5ec",muted:"#c9ae98",accent:"#c58b5a"},
-      plum:{bg:"#1e1021",panel:"#351d39",text:"#fff1ff",muted:"#c7a9cb",accent:"#c17acb"},sakura:{bg:"#27151d",panel:"#432632",text:"#fff3f7",muted:"#d9b2c0",accent:"#ff91b8"},
-      neon:{bg:"#080d16",panel:"#121d2b",text:"#f4ffff",muted:"#a5c2c7",accent:"#4dffdb"},sand:{bg:"#211d14",panel:"#383124",text:"#fff9e9",muted:"#d1c4a4",accent:"#d8a85d"},
-      aurora:{bg:"#0c1720",panel:"#192b38",text:"#f2ffff",muted:"#a8c7d0",accent:"#7ee0c3"}
-    };
-    const t=themes[theme]||themes.dark;
-    const style=document.getElementById("newstar-preference-style")||document.createElement("style");
-    style.id="newstar-preference-style";
-    style.textContent=`
-      :root{--ns-bg:${t.bg};--ns-panel:${t.panel};--ns-text:${t.text};--ns-muted:${t.muted};--ns-accent:${t.accent}}
-      body{background-color:var(--ns-bg)!important;color:var(--ns-text)!important}
-      header,.header,.panel,.card,.section,.settings-card,.setting-row,.modal-content,.menu,.intro,.row{color:var(--ns-text)}
-      .panel,.card,.settings-card,.setting-row,.modal-content,.row{background-color:var(--ns-panel)!important;border-color:var(--ns-muted)!important}
-      .intro{background:var(--ns-panel)!important;border-color:var(--ns-muted)!important}
-      input,select,textarea{background-color:var(--ns-bg)!important;color:var(--ns-text)!important;border-color:var(--ns-muted)!important}
-      .muted,.small-note,.setting-row p,.section-title{color:var(--ns-muted)!important}
-      button:not(.newstar-plus-icon){accent-color:var(--ns-accent)}
-      button:not(.danger):not(.newstar-plus-icon),.primary-button,.save-button{border-color:var(--ns-accent)!important}
-      button:not(.danger):not(.secondary):not(.newstar-plus-icon),.primary-button,.save-button{background-color:var(--ns-accent)!important;color:#fff!important}
-      #newstar-global-nav{background:var(--ns-panel)!important}
-      #newstar-global-nav a.active{color:var(--ns-accent)!important}
-      #newstar-menu-panel{background:var(--ns-panel)!important;color:var(--ns-text)!important}
-      #newstar-menu-panel a,#newstar-menu-panel button{color:var(--ns-text)!important}
-      `;
-    if(!style.isConnected)document.head.appendChild(style);
   }
+
   function navText(key){
     const lang=getPrefs().language||"hi";
     const words={
@@ -474,8 +447,14 @@
 
   window.NewStarNavbar = {
     openMenu, closeMenu, applyPreferences,
-    setLanguage(language){const p=getPrefs();p.language=language;localStorage.setItem("newstar_preferences",JSON.stringify(p));applyPreferences();window.NewStarPreferences?.sync?.(true);},
-    setTheme(theme){const p=getPrefs();p.theme=theme;localStorage.setItem("newstar_preferences",JSON.stringify(p));applyPreferences();window.NewStarPreferences?.sync?.(true);}
+    setLanguage(language){
+      if (window.NewStarPreferences?.set) window.NewStarPreferences.set({language});
+      else { const p=getPrefs(); p.language=language; localStorage.setItem("newstar_preferences",JSON.stringify(p)); applyPreferences(); }
+    },
+    setTheme(theme){
+      if (window.NewStarPreferences?.set) window.NewStarPreferences.set({theme});
+      else { const p=getPrefs(); p.theme=theme; localStorage.setItem("newstar_preferences",JSON.stringify(p)); applyPreferences(); }
+    }
   };
   window.addEventListener("storage",event=>{if(event.key==="newstar_preferences")applyPreferences();});
 
