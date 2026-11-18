@@ -123,7 +123,10 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </div></section>
 <p class="note">ध्यान दें: Browser Push Notifications, सभी स्क्रीन का पूर्ण अनुवाद और हर डिवाइस पर sync होने वाली preference storage अभी अलग implementation माँगते हैं। यहाँ केवल वही सुविधाएँ सक्रिय रखी गई हैं जिनका वास्तविक कार्य इस पेज से जोड़ा गया है।</p>
 </main>
-<!-- Load shared modules before Settings initialization to avoid preference/i18n timing conflicts. -->
+<script src="i18n.js"></script>
+<script src="navbar.js"></script>
+<script src="preferences.js"></script>
+<script src="ai-chat.js"></script>
 <script>
 (()=>{"use strict";
 const db=window.supabaseClient||window.cloudClient;const $=id=>document.getElementById(id);
@@ -234,8 +237,5 @@ $("textScale").addEventListener("change",saveAccessibility);$("reducedMotion").a
 window.addEventListener("newstar:preferences-loaded",loadAppearance);loadAppearance();loadSettings();
 })();
 </script>
-<script src="i18n.js"></script>
-<script src="navbar.js"></script>
-<script src="preferences.js"></script>
-<script src="ai-chat.js"></script>
+
 </body></html>
