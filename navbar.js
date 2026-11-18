@@ -29,7 +29,7 @@
     const p=getPrefs(),theme=p.theme||"dark",lang=p.language||"hi";
     document.documentElement.lang=lang;
     document.documentElement.dir=["ar","ur","fa"].includes(lang)?"rtl":"ltr";
-    document.querySelectorAll("[data-i18n]").forEach(el=>{const key=el.getAttribute("data-i18n");const translated=window.NewStarTranslations?.[key]?.[lang];if(translated)el.textContent=translated;});
+    window.NewStarI18n?.apply();
     const themes={
       dark:{bg:"#080808",panel:"#171717",text:"#ffffff",muted:"#aaaaaa",accent:"#fe2c55"},light:{bg:"#f4f6fa",panel:"#ffffff",text:"#171923",muted:"#5d6472",accent:"#d92350"},
       ocean:{bg:"#071923",panel:"#102b3a",text:"#f4fbff",muted:"#a8c1cc",accent:"#25b8d0"},forest:{bg:"#101b14",panel:"#1b2b20",text:"#f4fff6",muted:"#afc5b3",accent:"#39a96b"},
@@ -260,20 +260,20 @@
 
     overlay.innerHTML = `
       <div id="newstar-menu-panel">
-        <a href="camera.html">📷 Camera / Create / Upload</a>
-        <a href="profile.html">👤 My Profile</a>
-        <a href="wallet.html">💰 Wallet</a>
-        <a href="inbox.html">✉️ Inbox</a>
-        <a href="monetization.html">💎 Monetization</a>
+        <a href="camera.html" data-i18n="page.camera">📷 Camera / Create / Upload</a>
+        <a href="profile.html" data-i18n="nav.profile">👤 My Profile</a>
+        <a href="wallet.html" data-i18n="nav.wallet">💰 Wallet</a>
+        <a href="inbox.html" data-i18n="nav.inbox">✉️ Inbox</a>
+        <a href="monetization.html" data-i18n="page.monetization">💎 Monetization</a>
          <a href="admin.html">🛡️ Admin</a>
-        <a href="live.html">🔴 Live</a>
-        <a href="gaming.html">🎮 Gaming</a>
+        <a href="live.html" data-i18n="page.live">🔴 Live</a>
+        <a href="gaming.html" data-i18n="page.gaming">🎮 Gaming</a>
         <div class="menu-divider"></div>
         <button type="button" id="newstar-edit-profile">
-          ✏️ Edit Profile
+          ✏️ <span data-i18n="action.edit">Edit Profile</span>
         </button>
         <button type="button" id="newstar-logout">
-          🚪 Log Out
+          🚪 <span data-i18n="action.logout">Log Out</span>
         </button>
       </div>
     `;
@@ -407,7 +407,7 @@
 
         link.innerHTML = `
           <span class="newstar-plus-icon" aria-hidden="true">+</span>
-          <span>${item.label}</span>
+          <span data-i18n="nav.${item.page==="index.html"?"home":item.page==="wallet.html"?"wallet":item.page==="camera.html"?"create":item.page==="inbox.html"?"inbox":item.page==="admin.html"?"admin":"profile"}">${item.label}</span>
         `;
       } else {
         link.innerHTML = `
