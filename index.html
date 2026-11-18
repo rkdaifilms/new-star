@@ -35,7 +35,7 @@ button{cursor:pointer}
 .action.liked .action-icon{color:#fe2c55}
 .action:disabled{opacity:.5}
 .video-settings-wrap{position:relative;display:none;align-items:center;justify-content:center;min-height:34px;margin-bottom:2px}
-#videoSettingsBtn{width:30px;height:30px;min-width:30px;min-height:30px;border:1px solid #ffffff55;border-radius:50%;background:#252525dc;color:#fff;font-size:19px;line-height:1;padding:0}
+#videoSettingsBtn{width:34px;height:34px;min-width:34px;min-height:34px;border:1px solid #ffffff66;border-radius:50%;background:#252525e8;color:#fff;display:flex;align-items:center;justify-content:center;padding:0}#videoSettingsBtn svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
 .actions{gap:9px}
 #feed{overscroll-behavior:contain}
 #videoSettingsMenu{position:absolute;right:36px;bottom:0;width:185px;max-height:52vh;overflow:auto;background:#20202b;border:1px solid #55556a;border-radius:10px;padding:4px;z-index:100010;box-shadow:0 8px 24px #000b}
@@ -217,7 +217,7 @@ button{cursor:pointer}
   <div class="video-meta" id="meta"></div>
  </section>
  <aside class="actions">
-  <div class="video-settings-wrap" id="videoSettingsWrap"><button type="button" id="videoSettingsBtn" aria-label="Video settings" aria-expanded="false">⋮</button>
+  <div class="video-settings-wrap" id="videoSettingsWrap"><button type="button" id="videoSettingsBtn" aria-label="Video settings" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.1.9-1.2 2.1-1.4-.6a8 8 0 0 1-1.5.9l-.2 1.5h-2.5l-.3-1.5a8 8 0 0 1-1.6-.9l-1.4.6-1.2-2.1 1.2-1a7 7 0 0 1 0-1.8l-1.2-1 1.2-2.1 1.4.6a8 8 0 0 1 1.6-.9l.3-1.5h2.5l.2 1.5a8 8 0 0 1 1.5.9l1.4-.6 1.2 2.1-1.1.9a7 7 0 0 1 0 1.8Z"/></svg></button>
    <div id="videoSettingsMenu" hidden>
     <button type="button" data-feed-manage="title">✏️ Edit Title</button><button type="button" data-feed-manage="tags">#️⃣ Edit Hashtags</button>
     <button type="button" data-feed-manage="voice">🎙️ Record Voice</button><button type="button" data-feed-manage="gallery">🎵 Choose Audio from Gallery</button>
