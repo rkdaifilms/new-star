@@ -287,7 +287,7 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
  <div class="profileViewerInfo"><strong id="profileViewerCreator"></strong><p id="profileViewerCaption"></p><small id="profileViewerViews">0 views</small></div>
  <div class="profileViewerActions" aria-label="Video actions">
   <div id="profileViewerSettings" class="profileViewerSettings">
-   <button id="profileViewerSettingsButton" type="button" aria-label="Video settings" aria-expanded="false"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.1.9-1.2 2.1-1.4-.6a8 8 0 0 1-1.5.9l-.2 1.5h-2.5l-.3-1.5a8 8 0 0 1-1.6-.9l-1.4.6-1.2-2.1 1.2-1a7 7 0 0 1 0-1.8l-1.2-1 1.2-2.1 1.4.6a8 8 0 0 1 1.6-.9l.3-1.5h2.5l.2 1.5a8 8 0 0 1 1.5.9l1.4-.6 1.2 2.1-1.1.9a7 7 0 0 1 0 1.8Z"/></svg></span><small>Settings</small></button>
+   <button id="profileViewerSettingsButton" type="button" aria-label="Video settings" aria-expanded="false"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.1.9-1.2 2.1-1.4-.6a8 8 0 0 1-1.5.9l-.2 1.5h-2.5l-.3-1.5a8 8 0 0 1-1.6-.9l-1.4.6-1.2-2.1 1.2-1a7 7 0 0 1 0-1.8l-1.2-1 1.2-2.1 1.4.6a8 8 0 0 1 1.6-.9l.3-1.5h2.5l.2 1.5a8 8 0 0 1 1.5.9l1.4-.6 1.2 2.1-1.1.9a7 7 0 0 1 0 1.8Z"/></svg></span></button>
    <div id="profileViewerSettingsMenu" class="profileViewerSettingsMenu" hidden>
     <button type="button" data-profile-manage="title">✏️ Edit Title</button>
     <button type="button" data-profile-manage="tags">#️⃣ Edit Hashtags</button>
@@ -1371,6 +1371,10 @@ $("coverEditModal").addEventListener("click",e=>{
  if(e.target===$("coverEditModal"))closeCoverEditor();
 });
 
+document.addEventListener("pointerdown",e=>{
+ if(!e.target.closest(".menuWrap"))closeMenu();
+ if(!e.target.closest(".profileViewerSettings"))closeProfileViewerSettings();
+},true);
 document.addEventListener("click",e=>{
  if(!e.target.closest(".menuWrap"))closeMenu();
 });
