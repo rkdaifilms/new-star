@@ -105,8 +105,6 @@ const keys=["username","bio","phone","address","website","whatsapp","facebook","
 function message(s,type="success"){const el=$("status");el.textContent=s;el.className="status show "+type;el.scrollIntoView({behavior:"smooth",block:"nearest"});}
 function prefs(){try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){return {};}}
 function loadAppearance(){const p=prefs();$("appLanguage").value=p.language||"hi";$("appTheme").value=p.theme||"dark";}
-function applyAppearanceLive(){const p={...prefs(),language:$("appLanguage").value,theme:$("appTheme").value};localStorage.setItem("newstar_preferences",JSON.stringify(p));if(window.NewStarNavbar?.applyPreferences)window.NewStarNavbar.applyPreferences();
- window.NewStarI18n?.apply();else{document.documentElement.lang=p.language;document.documentElement.dir=["ar","ur","fa"].includes(p.language)?"rtl":"ltr";}return p;}
 function applyAppearanceLive(){
  const p={...prefs(),language:$("appLanguage").value,theme:$("appTheme").value};
  localStorage.setItem("newstar_preferences",JSON.stringify(p));
@@ -116,6 +114,7 @@ function applyAppearanceLive(){
   document.documentElement.lang=p.language;
   document.documentElement.dir=["ar","ur","fa"].includes(p.language)?"rtl":"ltr";
  }
+ window.NewStarI18n?.apply();
  return p;
 }
 function saveAppearance(){
