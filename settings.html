@@ -103,9 +103,9 @@ function message(s,type="success"){const el=$("status");el.textContent=s;el.clas
 function prefs(){try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){return {};}}
 function loadAppearance(){const p=prefs();$("appLanguage").value=p.language||"hi";$("appTheme").value=p.theme||"dark";}
 function applyAppearanceLive(){
- const p={...prefs(),language:$("appLanguage").value,theme:$("appTheme").value};
- localStorage.setItem("newstar_preferences",JSON.stringify(p));
- window.NewStarPreferences?.sync?.(true);
+ const p={language:$("appLanguage").value,theme:$("appTheme").value};
+ if(window.NewStarPreferences?.set)window.NewStarPreferences.set(p);
+ else{localStorage.setItem("newstar_preferences",JSON.stringify({...prefs(),...p,_updatedAt:new Date().toISOString()}));window.dispatchEvent(new Event("newstar:preferences-changed"));}
  if(window.NewStarNavbar?.applyPreferences)window.NewStarNavbar.applyPreferences();
  else if(window.NewStarPreferences?.apply)window.NewStarPreferences.apply();
  else{
@@ -171,7 +171,7 @@ async function logout(scope,buttonId){
  const btn=$(buttonId);btn.disabled=true;try{const {error}=await db.auth.signOut({scope});if(error)throw error;location.replace("auth.html");}catch(e){message(e.message||"Logout नहीं हुआ।","error");btn.disabled=false;}
 }
 $("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});$("saveAppearanceBtn").addEventListener("click",saveAppearance);$("savePrivacyBtn").addEventListener("click",savePrivacy);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
-window.addEventListener("newstar:preferences-loaded",loadAppearance);window.addEventListener("newstar:preferences-loaded",loadAppearance);loadAppearance();loadSettings();
+window.addEventListener("newstar:preferences-loaded",loadAppearance);loadAppearance();loadSettings();
 })();
 </script>
 <script src="i18n.js"></script>
