@@ -36,7 +36,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <main class="container">
 <section class="intro"><h2>New Star — Main Settings</h2><p>अकाउंट, प्रोफाइल, नोटिफिकेशन, भाषा और सुरक्षा की सेटिंग एक ही जगह से मैनेज करें। नीचे हर सेक्शन क्रम से दिया गया है।</p></section>
 <nav class="quick" aria-label="Settings sections">
-<a href="#notifications">🔔 Notifications</a><a href="#ai-location">✦ AI & Location</a><a href="#account">🔐 Account</a><a href="#profile">👤 Profile Information</a><a href="#privacy">🛡️ Privacy & Security</a><a href="#appearance">🌐 Language & Theme</a><a href="#monetization">💼 Creator & Monetization</a><a href="#help">❓ Help & About</a>
+<a href="#notifications">🔔 Notifications</a><a href="#ai-location">✦ AI & Location</a><a href="#account">🔐 Account</a><a href="#profile">👤 Profile Information</a><a href="#privacy">🛡️ Privacy & Security</a><a href="#appearance">🌐 Language & Theme</a><a href="#accessibility">♿ Accessibility</a><a href="#monetization">💼 Creator & Monetization</a><a href="#help">❓ Help & About</a>
 </nav>
 <div id="status" class="status" role="status" aria-live="polite"></div>
 
@@ -97,6 +97,16 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </select><button id="saveAppearanceBtn" data-i18n="action.save">Save Language & Theme</button></div>
 </div></section>
 
+<section class="section" id="accessibility">
+<h2 class="section-title">06 · Accessibility & Display</h2>
+<div class="panel">
+<div class="row"><h3>Text Size</h3><p>यह विकल्प पूरे ऐप के पेजों पर टेक्स्ट का आकार बदलता है।</p>
+<select id="textScale" aria-label="Text size"><option value="0.9">Small</option><option value="1">Default</option><option value="1.1">Large</option><option value="1.2">Extra large</option><option value="1.25">Largest</option></select></div>
+<div class="row"><h3>Reduce Motion</h3><p>Animation और transition कम करके पढ़ने और नेविगेशन को सरल बनाता है।</p><div class="inline"><input id="reducedMotion" type="checkbox"><label for="reducedMotion">Reduce animations across the app</label></div></div>
+<div class="row"><h3>High Contrast</h3><p>सीमाओं और कंट्रोल को अधिक स्पष्ट दिखाने में मदद करता है।</p><div class="inline"><input id="highContrast" type="checkbox"><label for="highContrast">Enable high contrast</label></div></div>
+<div class="row"><h3>Account Preference Sync</h3><p>Language, theme और accessibility पसंद को आपके signed-in account के साथ sync करें।</p><p id="preferenceSyncStatus" aria-live="polite">Sync status जाँचा नहीं गया।</p><button type="button" id="syncPreferencesBtn" class="secondary">Sync Preferences Now</button></div>
+</div></section>
+
 <section class="section" id="monetization">
 <h2 class="section-title">06 · Creator & Monetization</h2>
 <div class="panel">
@@ -120,7 +130,11 @@ let user=null,profile=null;
 
 function message(s,type="success"){const el=$("status");el.textContent=s;el.className="status show "+type;el.scrollIntoView({behavior:"smooth",block:"nearest"});}
 function prefs(){try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){return {};}}
-function loadAppearance(){const p=prefs();$("appLanguage").value=p.language||"hi";$("appTheme").value=p.theme||"dark";}
+function loadAppearance(){const p=prefs();$("appLanguage").value=p.language||"hi";$("appTheme").value=p.theme||"dark";loadAccessibility();}
+function accessibilityPrefs(){const a=prefs().accessibility||{};return {textScale:String(a.textScale||1),reducedMotion:a.reducedMotion===true,highContrast:a.highContrast===true};}
+function loadAccessibility(){const a=accessibilityPrefs();$("textScale").value=a.textScale;$("reducedMotion").checked=a.reducedMotion;$("highContrast").checked=a.highContrast;}
+function saveAccessibility(){const accessibility={textScale:Number($("textScale").value),reducedMotion:$("reducedMotion").checked,highContrast:$("highContrast").checked};if(window.NewStarPreferences?.set)window.NewStarPreferences.set({accessibility});else{localStorage.setItem("newstar_preferences",JSON.stringify({...prefs(),accessibility,_updatedAt:new Date().toISOString()}));window.dispatchEvent(new Event("newstar:preferences-changed"));}message("Accessibility सेटिंग पूरे ऐप पर लागू हो गईं।");}
+async function syncPreferencesNow(){const el=$("preferenceSyncStatus"),btn=$("syncPreferencesBtn");btn.disabled=true;el.textContent="Account preferences sync हो रही हैं…";try{if(!window.NewStarPreferences?.sync)throw new Error("Preference sync module उपलब्ध नहीं है।");const ok=await window.NewStarPreferences.sync(false);if(!ok)throw new Error("Sync पूरा नहीं हुआ। Login और Supabase connection जाँचें।");el.textContent="Preferences sync सफल · "+new Date().toLocaleString();message("Account preferences sync हो गईं।");}catch(e){el.textContent=e.message||"Sync unavailable";message(el.textContent,"error");}finally{btn.disabled=false;}}
 function notificationPrefs(){const p=prefs().notifications||{};return {follow:p.follow!==false,like:p.like!==false,comment:p.comment!==false,message:p.message!==false};}
 function loadNotificationPrefs(){const p=notificationPrefs();$("notifyFollow").checked=p.follow;$("notifyLike").checked=p.like;$("notifyComment").checked=p.comment;$("notifyMessage").checked=p.message;}
 function saveNotificationPrefs(){const notifications={follow:$("notifyFollow").checked,like:$("notifyLike").checked,comment:$("notifyComment").checked,message:$("notifyMessage").checked};if(window.NewStarPreferences?.set)window.NewStarPreferences.set({notifications});else{localStorage.setItem("newstar_preferences",JSON.stringify({...prefs(),notifications,_updatedAt:new Date().toISOString()}));window.dispatchEvent(new Event("newstar:preferences-changed"));}message("Notification preferences सेव हो गईं।");}
@@ -214,7 +228,8 @@ async function logout(scope,buttonId){
  if(!db?.auth)return;const all=scope==="global";if(!confirm(all?"सभी sessions से Logout करना है?":"इस डिवाइस से Logout करना है?"))return;
  const btn=$(buttonId);btn.disabled=true;try{const {error}=await db.auth.signOut({scope});if(error)throw error;location.replace("auth.html");}catch(e){message(e.message||"Logout नहीं हुआ।","error");btn.disabled=false;}
 }
-$("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});$("saveAppearanceBtn").addEventListener("click",saveAppearance);$("savePrivacyBtn").addEventListener("click",savePrivacy);$("openAiAssistantBtn").addEventListener("click",()=>{const launch=$("ns-ai-launch");if(launch)launch.click();else message("AI Chat अभी इस पेज पर लोड नहीं हुआ। पेज Reload करें।","error");});$("saveNotificationPrefsBtn").addEventListener("click",saveNotificationPrefs);$("markAllReadBtn").addEventListener("click",markAllNotificationsRead);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
+$("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});$("saveAppearanceBtn").addEventListener("click",saveAppearance);
+$("textScale").addEventListener("change",saveAccessibility);$("reducedMotion").addEventListener("change",saveAccessibility);$("highContrast").addEventListener("change",saveAccessibility);$("syncPreferencesBtn").addEventListener("click",syncPreferencesNow);$("savePrivacyBtn").addEventListener("click",savePrivacy);$("openAiAssistantBtn").addEventListener("click",()=>{const launch=$("ns-ai-launch");if(launch)launch.click();else message("AI Chat अभी इस पेज पर लोड नहीं हुआ। पेज Reload करें।","error");});$("saveNotificationPrefsBtn").addEventListener("click",saveNotificationPrefs);$("markAllReadBtn").addEventListener("click",markAllNotificationsRead);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
 window.addEventListener("newstar:preferences-loaded",loadAppearance);loadAppearance();loadSettings();
 })();
 </script>
