@@ -87,7 +87,13 @@ button{cursor:pointer}
 #video{cursor:pointer;touch-action:manipulation}
 #feed.video-expanded{position:fixed!important;inset:0!important;z-index:99999!important;width:100vw!important;height:100vh!important;height:100dvh!important;background:#000!important;overflow:hidden!important}
 #feed.video-expanded #video{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:contain!important;background:#000}
-#feed.video-expanded .top-area,#feed.video-expanded .video-info,#feed.video-expanded .actions,#feed.video-expanded #counter,#feed.video-expanded #playHint{display:none!important}
+#feed.video-expanded .top-area,#feed.video-expanded #playHint{display:none!important}
+#feed.video-expanded .video-info{display:block!important;left:12px;right:84px;bottom:calc(24px + env(safe-area-inset-bottom));z-index:100001}
+#feed.video-expanded .actions{display:flex!important;position:fixed!important;right:max(8px,env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom));z-index:100002!important}
+#feed.video-expanded #counter{display:block!important;top:calc(env(safe-area-inset-top) + 12px);left:12px;right:auto;z-index:100002}
+#feed.video-expanded #video{touch-action:none!important}
+#feed.video-expanded .action-icon{background:#171717dd;border-color:#ffffff99}
+#feed.video-expanded .action{font-size:11px;text-shadow:0 1px 4px #000}
 #videoExpandClose{display:none;position:absolute;z-index:100000;top:calc(env(safe-area-inset-top) + 12px);right:12px;width:44px;height:44px;border:1px solid #ffffff66;border-radius:50%;background:#111c;color:#fff;font-size:25px;align-items:center;justify-content:center;touch-action:manipulation}
 #feed.video-expanded #videoExpandClose{display:flex}
 #video:fullscreen{width:100vw;height:100vh;object-fit:contain;background:#000}
@@ -813,18 +819,18 @@ function changeVideo(direction){
  if(currentIndex>=filtered.length)currentIndex=filtered.length-1;
  renderVideo();
 }
-let feedPointerStart=null,lastWheelAt=0,lastSwipeAt=0,touchFeedStart=null;
+let feedPointerStart=null,lastWheelAt=0,lastSwipeAt=0,touchFeedStart=null,suppressExpandedTapUntil=0;
 function handleFeedSwipe(startX,startY,endX,endY){
  const now=Date.now();
  if(now-lastSwipeAt<450)return;
  const dy=startY-endY,dx=startX-endX;
  if(Math.abs(dy)>42&&Math.abs(dy)>Math.abs(dx)*1.12){
   lastSwipeAt=now;
+  suppressExpandedTapUntil=now+550;
   changeVideo(dy>0?1:-1);
  }
 }
 $("feed").addEventListener("pointerdown",event=>{
- if($("feed").classList.contains("video-expanded"))return;
  if(event.target.closest("button,a,input"))return;
  feedPointerStart={id:event.pointerId,x:event.clientX,y:event.clientY};
  try{$("feed").setPointerCapture(event.pointerId);}catch(e){}
@@ -832,23 +838,21 @@ $("feed").addEventListener("pointerdown",event=>{
 $("feed").addEventListener("pointerup",event=>{
  if(!feedPointerStart||feedPointerStart.id!==event.pointerId)return;
  const start=feedPointerStart;feedPointerStart=null;
- if($("feed").classList.contains("video-expanded"))return;
  handleFeedSwipe(start.x,start.y,event.clientX,event.clientY);
 });
 // Android/iOS fallback: native touch events cover WebViews that miss pointerup on video.
 $("feed").addEventListener("touchstart",event=>{
- if($("feed").classList.contains("video-expanded")||event.target.closest("button,a,input"))return;
+ if(event.target.closest("button,a,input"))return;
  const t=event.changedTouches[0];if(t)touchFeedStart={x:t.clientX,y:t.clientY};
 },{passive:true});
 $("feed").addEventListener("touchend",event=>{
  if(!touchFeedStart)return;
  const start=touchFeedStart;touchFeedStart=null;
- const t=event.changedTouches[0];if(!t||$("feed").classList.contains("video-expanded"))return;
+ const t=event.changedTouches[0];if(!t)return;
  handleFeedSwipe(start.x,start.y,t.clientX,t.clientY);
 },{passive:true});
 $("feed").addEventListener("pointercancel",()=>{feedPointerStart=null;});
 $("feed").addEventListener("wheel",event=>{
- if($("feed").classList.contains("video-expanded"))return;
  if(Math.abs(event.deltaY)<25)return;
  const now=Date.now();if(now-lastWheelAt<350)return;lastWheelAt=now;
  changeVideo(event.deltaY>0?1:-1);
@@ -869,6 +873,7 @@ function setVideoExpanded(expanded){
  else{player.controls=false;}
 }
 $("video").addEventListener("click",()=>{
+ if(Date.now()<suppressExpandedTapUntil)return;
  const expanded=$("feed").classList.contains("video-expanded");
  if(expanded){setVideoExpanded(false);return;}
  setVideoExpanded(true);
