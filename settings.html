@@ -145,12 +145,30 @@ function saveAppearance(){
  applyAppearanceLive();
  message("आपकी भाषा और Theme इसी समय इस डिवाइस पर लागू हो गई। दूसरे पेज खोलने पर भी यही preference रहेगी।");
 }
+async function checkAiGatewayStatus(){
+ const el=$("aiGatewayStatus");if(!el||!db?.functions)return;
+ el.textContent="Gateway और provider configuration जाँची जा रही है…";
+ try{
+  const {data,error}=await db.functions.invoke("ai-gateway",{body:{action:"status"}});
+  if(error)throw error;
+  if(!data?.ok||!data?.providers)throw new Error("Status response unavailable");
+  const p=data.providers;
+  const active=[p.openai&&"OpenAI",p.gemini&&"Gemini",p.openrouter&&"OpenRouter"].filter(Boolean);
+  el.textContent=active.length
+   ?"Gateway: connected · Server secrets configured: "+active.join(", ")+" · Live response test pending"
+   :"Gateway: connected · No provider secret detected on server";
+ }catch(e){
+  el.textContent="Gateway status unavailable · Login/session or server configuration जाँचें";
+  console.warn("AI gateway status check failed",e);
+ }
+}
 async function loadSettings(){
  if(!db?.auth){message("Supabase client नहीं मिला। supabase-config.js जाँचें।","error");return;}
  try{
   const {data,error}=await db.auth.getUser();if(error)throw error;user=data?.user;
   if(!user){location.replace("auth.html");return;}
   $("accountEmail").textContent=user.email||"Email उपलब्ध नहीं है";
+  await checkAiGatewayStatus();
   const {data:row,error:pe}=await db.from("profiles").select("user_id,is_private").eq("user_id",user.id).maybeSingle();
   if(pe)throw pe;profile=row||null;
   $("privateAccount").checked=!!profile?.is_private;
