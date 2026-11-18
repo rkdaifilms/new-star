@@ -59,14 +59,9 @@ Object.assign(dict.el,{"feed.forYou":"Για εσάς","feed.following":"Ακο�
 
 const reverseEnglish=Object.fromEntries(Object.entries(dict.en).map(([key,value])=>[String(value).trim().toLowerCase(),key]));
 function translateExactText(root){
- const langCode=lang(),map=dict[langCode]||dict.en;
- const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(node){
-  const parent=node.parentElement;if(!parent||/^(SCRIPT|STYLE|NOSCRIPT|TEXTAREA|INPUT|OPTION)$/.test(parent.tagName)||parent.closest("[data-no-translate]"))return NodeFilter.FILTER_REJECT;
-  return node.nodeValue.trim()?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;
- }});
- const list=[];while(walker.nextNode())list.push(walker.currentNode);
- const phrases=Object.entries(dict.en).filter(([key,value])=>value&&map[key]&&map[key]!==value).sort((a,b)=>b[1].length-a[1].length);
- list.forEach(node=>{let value=node.nodeValue;for(const [key,english] of phrases){value=value.split(english).join(map[key]);}if(value!==node.nodeValue)node.nodeValue=value;});
+ // Only translate elements explicitly marked with data-i18n.
+ // Do not rewrite creator captions, comments, usernames, or user-generated text.
+ return;
 }
 function translateCommonAttributes(root){
  const langCode=lang(),map=dict[langCode]||dict.en;
