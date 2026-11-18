@@ -51,4 +51,4 @@ A successful response includes `ok`, `provider`, and `answer`. If all providers 
 
 ## Important status
 
-The gateway is infrastructure only. It is not yet connected to the app's support/chat UI. Provider secrets have not been confirmed as configured, and live provider failover has not been end-to-end tested. Do not advertise AI support as live until secrets are configured and a test succeeds.
+The gateway is now connected to the shared floating AI assistant (`ai-chat.js`), which is loaded on signed-in app pages through `navbar.js`. The Settings page links to the assistant and shows provider readiness as unverified. Provider secrets have not been confirmed as configured, and live provider failover has not been end-to-end tested. The chat UI is integrated, but AI responses must not be advertised as active until an authorized project owner configures secrets and a live test succeeds.
