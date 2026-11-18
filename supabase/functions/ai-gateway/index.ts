@@ -167,7 +167,6 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false, autoRefreshToken: false }
   });
   const { data: allowed, error: limitError } = await admin
-    .schema("private")
     .rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
 
   if (limitError) {
