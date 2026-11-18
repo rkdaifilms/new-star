@@ -32,7 +32,9 @@
 (function(){"use strict";
 const db=window.supabaseClient||window.cloudClient;const $=id=>document.getElementById(id);
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function currencyDecimals(c){if(["BIF","CLP","DJF","GNF","ISK","JPY","KMF","KRW","PYG","RWF","UGX","UYI","VND","VUV","XAF","XOF","XPF"].includes(c))return 0;if(["BHD","IQD","JOD","KWD","LYD","OMR","TND"].includes(c))return 3;return 2;}\nfunction formatMinor(n,c){const d=currencyDecimals(c||"USD");return (Number(n||0)/Math.pow(10,d)).toFixed(d);}\nfunction packageBonusFor(coins){coins=Number(coins)||0;return coins>=1000?10:coins>=500?5:coins>=200?3:coins>=100?2:coins>=50?1:0;}
+function currencyDecimals(c){if(["BIF","CLP","DJF","GNF","ISK","JPY","KMF","KRW","PYG","RWF","UGX","UYI","VND","VUV","XAF","XOF","XPF"].includes(c))return 0;if(["BHD","IQD","JOD","KWD","LYD","OMR","TND"].includes(c))return 3;return 2;}
+function formatMinor(n,c){const d=currencyDecimals(c||"USD");return (Number(n||0)/Math.pow(10,d)).toFixed(d);}
+function packageBonusFor(coins){coins=Number(coins)||0;return coins>=1000?10:coins>=500?5:coins>=200?3:coins>=100?2:coins>=50?1:0;}
 function updatePackageBonus(){ $("packageBonus").value=String(packageBonusFor($("packageCoins").value)); }
 $("packageCoins").addEventListener("input",updatePackageBonus);
 async function load(){
