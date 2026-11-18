@@ -14,6 +14,7 @@
 <div class="top"><a href="index.html">← New Star</a><span id="userLabel" class="muted">Session checking…</span></div>
 <section class="card"><div class="muted">आपके असली Wallet Coins</div><div class="balance" id="balance">—</div><div class="muted">बैलेंस Supabase के लॉगिन अकाउंट से पढ़ा जाता है। ब्राउज़र में मनमाने Coins नहीं जोड़े जाते।</div></section>
 <section class="card"><h2>Coins खरीदें</h2><p class="muted">सिर्फ सर्वर से सत्यापित Payment के बाद Coins जुड़ेंगे। Merchant Gateway कॉन्फ़िगर होने तक खरीद अस्थायी रूप से बंद है।</p><div id="packages" class="grid"><p class="muted">Packages लोड हो रहे हैं…</p></div><div class="notice" style="margin-top:12px">अभी कोई Payment Provider सक्रिय नहीं है। इसीलिए यहाँ कोई नकली Pay Now या Payment Successful बटन नहीं है। eSewa, Khalti, Payoneer या Play Billing की Merchant Credentials जुड़ने के बाद ही खरीद चालू होगी।</div></section>
+<section class="card"><h2>Creator Earnings</h2><div class="row"><div><div class="muted">Gross gifts</div><strong id="giftGross">—</strong></div><div><div class="muted">Your net share</div><strong id="giftNet">—</strong></div></div><div class="muted">Platform fee: <span id="giftFee">—</span> Coins</div><p class="muted">Gift earnings are tracked separately from spendable Coins. Cash payout remains unavailable until a verified payout provider and server settlement are configured.</p></section>
 <section class="card"><h2>Creator Payouts</h2><div class="notice">Payout requests are currently unavailable. This app must not collect bank details, wallet account identifiers, passwords, PINs or OTPs here. Any future payout feature requires a properly reviewed, adult-managed provider setup and secure server-side verification. No payout has been requested or sent.</div></section>
 <section class="card"><h2>Payment Orders</h2><div id="orders" class="muted">Loading…</div></section>
 <section class="card"><h2>Coin Ledger</h2><div id="ledger" class="muted">Loading…</div></section>
@@ -29,8 +30,17 @@ function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){retur
 function money(minor,currency){return esc(currency)+" "+(Number(minor||0)/100).toFixed(2);}
 function renderRows(el,rows,renderer,empty){if(!rows||!rows.length){el.textContent=empty;return;}el.innerHTML=rows.map(renderer).join("");}
 async function loadWallet(){
- const r=await db.from("user_wallets").select("coin_balance").eq("user_id",user.id).maybeSingle();
+ const r=await db.from("user_wallets").select("coin_balance,real_balance").eq("user_id",user.id).maybeSingle();
  $("balance").textContent=r.error?"Unavailable":Number(r.data&&r.data.coin_balance||0).toLocaleString();
+ const e=await db.from("creator_gift_earnings").select("coins,gross_coins,platform_fee_coins").eq("creator_id",user.id);
+ if(e.error){$("giftGross").textContent="Unavailable";$("giftNet").textContent="Unavailable";$("giftFee").textContent="Unavailable";return;}
+ const rows=e.data||[];
+ const gross=rows.reduce((s,x)=>s+Number(x.gross_coins??x.coins??0),0);
+ const net=rows.reduce((s,x)=>s+Number(x.coins||0),0);
+ const fee=rows.reduce((s,x)=>s+Number(x.platform_fee_coins||0),0);
+ $("giftGross").textContent=gross.toLocaleString()+" Coins";
+ $("giftNet").textContent=net.toLocaleString()+" Coins";
+ $("giftFee").textContent=fee.toLocaleString();
 }
 async function loadPackages(){
  const r=await db.from("coin_packages").select("id,code,coins,bonus_coins,amount_minor,currency,country_code,channel").eq("active",true).eq("channel","web").order("amount_minor");
