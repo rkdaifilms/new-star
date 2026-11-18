@@ -103,6 +103,7 @@
         <div class="inbox-tab active" onclick="switchTab('messages', this)">Messages</div>
         <div class="inbox-tab" onclick="switchTab('followers', this)">Followers</div>
         <div class="inbox-tab" onclick="switchTab('following', this)">Following</div>
+        <div class="inbox-tab" onclick="switchTab('requests', this)">Follow Requests <span id="followRequestCount"></span></div>
     </div>
 
     <div class="list-container" id="tabMessages">
@@ -115,6 +116,9 @@
 
     <div class="list-container" id="tabFollowing" style="display:none;">
         <div class="empty-state">Creators you follow will appear here.</div>
+    </div>
+    <div class="list-container" id="tabRequests" style="display:none;">
+        <div class="empty-state">Follow requests will appear here.</div>
     </div>
 
     <!-- REAL MESSENGER CHAT WINDOW (FIXED INPUT AREA) -->
@@ -175,11 +179,61 @@ async function boot(){
  $("inboxUserName").textContent=nameOf(mine);$("inboxUserPic").src=avatarOf(mine);
  $("tabFollowers").innerHTML='<p class="muted">Follower list will appear here when the follow tables are connected.</p>';
  $("tabFollowing").innerHTML='<p class="muted">Following list will appear here when the follow tables are connected.</p>';
- await loadThreads();
+ await Promise.all([loadThreads(),loadFollowRequests()]);
  db.channel("newstar-inbox-"+me.id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"recipient_id=eq."+me.id},async payload=>{
    if(activeConversation===payload.new.conversation_id) await loadConversation();
    await loadThreads();
  }).subscribe();
+}
+async function loadFollowRequests(){
+ const host=$("tabRequests");
+ if(!me||!host)return;
+ host.innerHTML='<p class="muted">Follow requests लोड हो रहे हैं...</p>';
+ const {data:requests,error}=await db.from("follow_requests")
+  .select("id,requester_id,created_at,status")
+  .eq("target_user_id",me.id).eq("status","pending")
+  .order("created_at",{ascending:false}).limit(100);
+ if(error){
+  host.textContent="Follow requests लोड नहीं हुए: "+error.message;
+  $("followRequestCount").textContent="";
+  return;
+ }
+ $("followRequestCount").textContent=requests?.length?"("+requests.length+")":"";
+ if(!requests?.length){
+  host.innerHTML='<p class="muted">अभी कोई नया Follow Request नहीं है।</p>';
+  return;
+ }
+ const ids=[...new Set(requests.map(x=>String(x.requester_id)))];
+ const {data:profiles}=await db.from("creator_public_profiles")
+  .select("user_id,username,full_name,avatar_url,bio").in("user_id",ids);
+ const map=new Map((profiles||[]).map(p=>[String(p.user_id),p]));
+ host.replaceChildren();
+ for(const request of requests){
+  const profile=map.get(String(request.requester_id))||{};
+  const row=document.createElement("div");row.className="list-item";
+  const left=document.createElement("span");left.className="user-left";
+  const img=document.createElement("img");img.className="list-avatar";img.src=avatarOf(profile);img.alt="";
+  const info=document.createElement("span");info.className="list-info";
+  const title=document.createElement("h4");title.textContent=nameOf(profile);
+  const note=document.createElement("p");note.textContent="आपको Follow करना चाहते हैं";
+  info.append(title,note);left.append(img,info);
+  const actions=document.createElement("span");actions.style.cssText="display:flex;gap:6px;flex-shrink:0";
+  const accept=document.createElement("button");accept.className="action-tag-btn";accept.textContent="Accept";
+  const reject=document.createElement("button");reject.className="action-tag-btn following";reject.textContent="Decline";
+  accept.onclick=()=>respondFollowRequest(request.id,"accepted",accept,reject);
+  reject.onclick=()=>respondFollowRequest(request.id,"rejected",accept,reject);
+  actions.append(accept,reject);row.append(left,actions);host.append(row);
+ }
+}
+async function respondFollowRequest(id,status,accept,reject){
+ accept.disabled=true;reject.disabled=true;
+ const {error}=await db.from("follow_requests").update({status}).eq("id",id).eq("target_user_id",me.id).eq("status","pending");
+ if(error){
+  setStatus("Follow request update नहीं हुआ: "+error.message);
+  accept.disabled=false;reject.disabled=false;return;
+ }
+ setStatus(status==="accepted"?"Follow request स्वीकार कर लिया गया।":"Follow request अस्वीकार कर दिया गया।");
+ await loadFollowRequests();
 }
 async function loadThreads(){
  const {data,error}=await db.from("messages").select("id,conversation_id,sender_id,recipient_id,body,media_url,created_at,read_at").or("sender_id.eq."+me.id+",recipient_id.eq."+me.id).order("created_at",{ascending:false}).limit(250);
@@ -221,7 +275,7 @@ window.sendMessage=async function(){
 };
 window.closeChat=function(){$("chatBoxWindow").style.display="none";activePeer=null;activeConversation=null;};
 window.handleKeyPress=e=>{if(e.key==="Enter"){e.preventDefault();window.sendMessage();}};
-window.switchTab=function(tab,el){document.querySelectorAll(".inbox-tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");["messages","followers","following"].forEach(t=>{$("tab"+t[0].toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";});};
+window.switchTab=function(tab,el){document.querySelectorAll(".inbox-tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");["messages","followers","following","requests"].forEach(t=>{$("tab"+t[0].toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";});if(tab==="requests")loadFollowRequests();};
 window.startVoiceRecording=function(){setStatus("Voice message recording is not connected yet. No fake recording will be sent.");};
 window.sendMediaFile=function(e){setStatus("Media upload is not connected yet. Please send text until secure Storage upload is added.");e.target.value="";};
 window.showProfile=function(name,avatar,bio){$("popupName").textContent=name;$("popupAvatar").src=avatar||fallback;$("popupBio").textContent=bio||"";$("profilePopup").style.display="flex";};
