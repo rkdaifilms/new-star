@@ -18,6 +18,13 @@ Supabase also supplies `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVIC
 
 Adding keys alone will not activate payments. A payment Edge Function must be implemented and deployed, callbacks/lookups verified server-side, packages explicitly approved, and sandbox tests passed.
 
+## Payment ledger protections already applied
+
+- `complete_coin_purchase` is callable only by the server `service_role`; anonymous and signed-in client users cannot credit coins directly.
+- The database enforces a unique `(provider, provider_reference)` for non-empty provider transaction references, preventing one provider transaction from being attached to multiple orders.
+- `payment_orders.idempotency_key` and `wallet_ledger.idempotency_key` are unique, and the coin-credit function locks the order before writing the ledger and wallet.
+- The payment-order table currently has no orders. No live payment has been processed or simulated.
+
 ## Khalti Web Checkout
 
 Official docs: https://docs.khalti.com/khalti-epayment/
