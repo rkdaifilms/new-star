@@ -1151,6 +1151,7 @@ async function sendProfileGift(){
  }catch(error){profileViewerToast("Gift पूरा नहीं हुआ: "+error.message);btn.disabled=false;}
 }
 function moveProfileViewer(direction){
+ if($("profileComments").classList.contains("show")||$("profileGiftSheet").classList.contains("show"))return;
  if(!profileViewerRows.length)return;
  const next=profileViewerIndex+direction;if(next<0||next>=profileViewerRows.length)return;
  profileViewerIndex=next;profileViewerLiked=false;renderProfileViewer();
