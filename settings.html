@@ -119,7 +119,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <h2 class="section-title">08 · Help & About</h2>
 <div class="panel">
 <div class="row"><h3>Help & Support</h3><p>Account, messages और app support के लिए Inbox खोलें।</p><a class="action" href="inbox.html">✉️ Open Support Inbox</a></div>
-<div class="row"><h3>About New Star</h3><p>New Star Creator Hub · आपकी प्रोफाइल, वीडियो और Creator सुविधाएँ।</p><p>Settings build: 2.0 · Preferences इस डिवाइस पर सेव होती हैं; अकाउंट जानकारी Supabase में सेव होती है।</p></div>
+<div class="row"><h3>About New Star</h3><p>New Star Creator Hub · आपकी प्रोफाइल, वीडियो और Creator सुविधाएँ।</p><p>Settings build: 2.1 · Language, Theme और Accessibility preferences डिवाइस पर लागू होती हैं और signed-in account के साथ sync की जाती हैं। सभी पेजों का पूर्ण अनुवाद अभी उपलब्ध नहीं है।</p></div>
 </div></section>
 <p class="note">ध्यान दें: Browser Push Notifications, सभी स्क्रीन का पूर्ण अनुवाद और हर डिवाइस पर sync होने वाली preference storage अभी अलग implementation माँगते हैं। यहाँ केवल वही सुविधाएँ सक्रिय रखी गई हैं जिनका वास्तविक कार्य इस पेज से जोड़ा गया है।</p>
 </main>
@@ -157,7 +157,7 @@ function applyAppearanceLive(){
 }
 function saveAppearance(){
  applyAppearanceLive();
- message("आपकी भाषा और Theme इसी समय इस डिवाइस पर लागू हो गई। दूसरे पेज खोलने पर भी यही preference रहेगी।");
+ message("भाषा और Theme इस डिवाइस पर लागू हो गईं। Account sync बैकग्राउंड में होगा; दूसरे पेजों पर अनुवाद तभी दिखेगा जब उस पेज के टेक्स्ट का अनुवाद उपलब्ध हो।");
 }
 async function checkAiGatewayStatus(){
  const el=$("aiGatewayStatus");if(!el||!db?.functions)return;
