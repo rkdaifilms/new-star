@@ -41,6 +41,7 @@ async function sync(preferLocal=false){
  if(!db?.auth)return false;
  if(syncBusy){syncPending=true;syncPendingWrite=syncPendingWrite||preferLocal;return false;}
  syncBusy=true;
+ const localSnapshot=localStorage.getItem(KEY);
  try{
   const {data:{user},error:authError}=await db.auth.getUser();
   if(authError||!user)return false;
@@ -51,6 +52,11 @@ async function sync(preferLocal=false){
   }
   const {data:remote,error}=await db.from("user_preferences").select("preferences").eq("user_id",user.id).maybeSingle();
   if(error)throw error;
+  if(localStorage.getItem(KEY)!==localSnapshot){
+   const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:read()},{onConflict:"user_id"});
+   if(saveError)throw saveError;
+   return true;
+  }
   if(remote?.preferences&&typeof remote.preferences==="object"){
    localStorage.setItem(KEY,JSON.stringify(remote.preferences));apply();window.dispatchEvent(new Event("newstar:preferences-loaded"));return true;
   }
