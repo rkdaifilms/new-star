@@ -38,6 +38,17 @@
     window.supabaseClient = client;
     window.cloudClient = client;
 
+    // Register the static-shell service worker on HTTPS pages.
+    // It deliberately does not cache Supabase auth, database, storage, or function responses.
+    if ("serviceWorker" in navigator && location.protocol === "https:") {
+        window.addEventListener("load", function () {
+            navigator.serviceWorker.register("/sw.js", { scope: "/" })
+                .catch(function (error) {
+                    console.warn("New Star offline shell could not be registered:", error);
+                });
+        }, { once: true });
+    }
+
     // Global toast notification
     window.showGlobalFastToast = function (message) {
         let toast = document.getElementById("globalFastToast");
