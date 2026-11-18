@@ -27,7 +27,8 @@ const db=window.supabaseClient||window.cloudClient;
 const $=function(id){return document.getElementById(id);};
 let user=null;
 function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
-function money(minor,currency){return esc(currency)+" "+(Number(minor||0)/100).toFixed(2);}
+function currencyDecimals(c){if(["BIF","CLP","DJF","GNF","ISK","JPY","KMF","KRW","PYG","RWF","UGX","UYI","VND","VUV","XAF","XOF","XPF"].includes(c))return 0;if(["BHD","IQD","JOD","KWD","LYD","OMR","TND"].includes(c))return 3;return 2;}
+function money(minor,currency){const d=currencyDecimals(currency||"USD");return esc(currency)+" "+(Number(minor||0)/Math.pow(10,d)).toFixed(d);}
 function renderRows(el,rows,renderer,empty){if(!rows||!rows.length){el.textContent=empty;return;}el.innerHTML=rows.map(renderer).join("");}
 async function loadWallet(){
  const r=await db.from("user_wallets").select("coin_balance,real_balance").eq("user_id",user.id).maybeSingle();
