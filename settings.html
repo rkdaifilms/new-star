@@ -105,7 +105,7 @@ function loadAppearance(){const p=prefs();$("appLanguage").value=p.language||"hi
 function applyAppearanceLive(){
  const p={...prefs(),language:$("appLanguage").value,theme:$("appTheme").value};
  localStorage.setItem("newstar_preferences",JSON.stringify(p));
- window.NewStarPreferences?.sync?.();
+ window.NewStarPreferences?.sync?.(true);
  if(window.NewStarNavbar?.applyPreferences)window.NewStarNavbar.applyPreferences();
  else if(window.NewStarPreferences?.apply)window.NewStarPreferences.apply();
  else{
