@@ -265,8 +265,7 @@
         <a href="wallet.html" data-i18n="nav.wallet">💰 Wallet</a>
         <a href="inbox.html" data-i18n="nav.inbox">✉️ Inbox</a>
         <a href="monetization.html" data-i18n="page.monetization">💎 Monetization</a>
-         <a href="admin.html">🛡️ Admin</a>
-        <a href="live.html" data-i18n="page.live">🔴 Live</a>
+         <a href="live.html" data-i18n="page.live">🔴 Live</a>
         <a href="gaming.html" data-i18n="page.gaming">🎮 Gaming</a>
         <div class="menu-divider"></div>
         <button type="button" id="newstar-edit-profile">
@@ -393,7 +392,6 @@
       { page: "wallet.html", icon: "💰", label: navText("Wallet") },
       { page: "camera.html", icon: "+", label: navText("Create"), plus: true },
       { page: "inbox.html", icon: "✉️", label: navText("Inbox") },
-      { page: "admin.html", icon: "🛡️", label: navText("Admin") },
       { page: "profile.html", icon: "👤", label: navText("Profile") }
     ];
 
