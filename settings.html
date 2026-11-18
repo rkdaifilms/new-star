@@ -27,7 +27,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </style>
 </head>
 <body>
-<header class="header"><a class="back" href="profile.html" aria-label="Back to profile">‹</a><h1>⚙️ Main Settings</h1></header>
+<header class="header"><a class="back" href="profile.html" aria-label="Back to profile">‹</a><h1 data-i18n="settings.title">⚙️ Main Settings</h1></header>
 <main class="container">
 <section class="intro"><h2>New Star — Main Settings</h2><p>अकाउंट, प्रोफाइल, नोटिफिकेशन, भाषा और सुरक्षा की सेटिंग एक ही जगह से मैनेज करें। नीचे हर सेक्शन क्रम से दिया गया है।</p></section>
 <nav class="quick" aria-label="Settings sections">
@@ -36,14 +36,14 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <div id="status" class="status" role="status" aria-live="polite"></div>
 
 <section class="section" id="notifications">
-<h2 class="section-title">01 · Notifications</h2>
+<h2 class="section-title" data-i18n="settings.notifications">01 · Notifications</h2>
 <div class="panel">
 <div class="row"><h3>आपकी Notifications</h3><p>Inbox में backend द्वारा बनाई गई notification entries दिखाई देंगी। अभी app pages या database triggers में Follow, Like और Comment के लिए notification बनाने वाला flow नहीं मिला; इसलिए count शून्य रह सकता है।</p><p>Unread notifications: <span class="count" id="unreadCount">लोड हो रहा है…</span></p><a class="action" href="inbox.html">✉️ Open Inbox</a></div>
 <div class="row"><h3>Notification delivery</h3><p>अभी ऐप के Inbox में notifications उपलब्ध हैं। इस पेज से मोबाइल Push Notification चालू होने का दावा नहीं किया जा रहा; उसके लिए अलग Push subscription और server delivery सेटअप चाहिए।</p></div>
 </div></section>
 
 <section class="section" id="account">
-<h2 class="section-title">02 · Account</h2>
+<h2 class="section-title" data-i18n="settings.account">02 · Account</h2>
 <div class="panel">
 <div class="row"><h3>Signed-in Email</h3><p class="account-email" id="accountEmail">Account लोड हो रहा है…</p></div>
 <div class="row"><h3>Change Email</h3><p>नया ईमेल डालें। Supabase verification माँग सकता है। नया ईमेल confirm होने तक पुराना ईमेल काम कर सकता है।</p><input type="email" id="newEmail" autocomplete="email" placeholder="नया ईमेल पता"><button id="changeEmailBtn">Update Email</button></div>
@@ -69,7 +69,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </div></section>
 
 <section class="section" id="privacy">
-<h2 class="section-title">04 · Privacy & Security</h2>
+<h2 class="section-title" data-i18n="settings.privacy">04 · Privacy & Security</h2>
 <div class="panel">
 <div class="row"><h3>Private Account</h3><p>Private account चालू होने पर आपके वीडियो देखने के लिए Follow approval आवश्यक होगा।</p><div class="inline"><input id="privateAccount" type="checkbox"><label for="privateAccount">🔒 मेरा अकाउंट Private रखें</label></div><button id="savePrivacyBtn">Save Privacy</button></div>
 <div class="row"><h3>Logout this device</h3><p>इस डिवाइस के New Star session से Logout करें।</p><button class="danger" id="logoutBtn">Log Out</button></div>
@@ -80,13 +80,13 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <section class="section" id="appearance">
 <h2 class="section-title">05 · Language & Appearance</h2>
 <div class="panel">
-<div class="row"><h3>App Language</h3><p>आपकी पसंद इस डिवाइस पर सेव होगी। नीचे ऐप के लिए भाषा चुनेँ। जिन स्क्रीन पर अनुवाद अभी उपलब्ध नहीं है, वहाँ मूल टेक्स्ट दिख सकता है।</p>
+<div class="row"><h3 data-i18n="settings.language">App Language</h3><p>आपकी पसंद इस डिवाइस पर सेव होगी। नीचे ऐप के लिए भाषा चुनेँ। जिन स्क्रीन पर अनुवाद अभी उपलब्ध नहीं है, वहाँ मूल टेक्स्ट दिख सकता है।</p>
 <select id="appLanguage" aria-label="App language">
 <option value="hi">हिन्दी — Hindi</option><option value="ne">नेपाली — Nepali</option><option value="en">English</option><option value="zh">中文 — Chinese</option><option value="es">Español — Spanish</option><option value="fr">Français — French</option><option value="ar">العربية — Arabic</option><option value="ja">日本語 — Japanese</option><option value="de">Deutsch — German</option><option value="ru">Русский — Russian</option><option value="pt">Português — Portuguese</option><option value="it">Italiano — Italian</option><option value="ko">한국어 — Korean</option><option value="tr">Türkçe — Turkish</option><option value="bn">বাংলা — Bengali</option><option value="ur">اردو — Urdu</option><option value="id">Bahasa Indonesia</option><option value="vi">Tiếng Việt — Vietnamese</option><option value="th">ไทย — Thai</option><option value="fa">فارسی — Persian</option><option value="sw">Kiswahili — Swahili</option><option value="nl">Nederlands — Dutch</option><option value="pl">Polski — Polish</option><option value="uk">Українська — Ukrainian</option><option value="el">Ελληνικά — Greek</option>
 </select></div>
-<div class="row"><h3>App Theme</h3><p>Dark, Light और रंगीन थीम चुनें।</p><select id="appTheme" aria-label="App theme">
+<div class="row"><h3 data-i18n="settings.theme">App Theme</h3><p>Dark, Light और रंगीन थीम चुनें।</p><select id="appTheme" aria-label="App theme">
 <option value="dark">01 · Midnight Dark</option><option value="light">02 · Clean Light</option><option value="ocean">03 · Ocean Blue</option><option value="forest">04 · Forest Green</option><option value="sunset">05 · Sunset Orange</option><option value="purple">06 · Royal Purple</option><option value="rose">07 · Rose Pink</option><option value="crimson">08 · Crimson Red</option><option value="gold">09 · Golden Hour</option><option value="teal">10 · Tropical Teal</option><option value="cyan">11 · Arctic Cyan</option><option value="indigo">12 · Deep Indigo</option><option value="lavender">13 · Lavender</option><option value="mint">14 · Fresh Mint</option><option value="emerald">15 · Emerald</option><option value="ruby">16 · Ruby</option><option value="amber">17 · Amber</option><option value="coral">18 · Coral</option><option value="slate">19 · Slate Grey</option><option value="coffee">20 · Coffee Brown</option><option value="plum">21 · Plum</option><option value="sakura">22 · Sakura</option><option value="neon">23 · Neon Night</option><option value="sand">24 · Desert Sand</option><option value="aurora">25 · Aurora</option>
-</select><button id="saveAppearanceBtn">Save Language & Theme</button></div>
+</select><button id="saveAppearanceBtn" data-i18n="action.save">Save Language & Theme</button></div>
 </div></section>
 
 <section class="section" id="help">
@@ -105,7 +105,8 @@ const keys=["username","bio","phone","address","website","whatsapp","facebook","
 function message(s,type="success"){const el=$("status");el.textContent=s;el.className="status show "+type;el.scrollIntoView({behavior:"smooth",block:"nearest"});}
 function prefs(){try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){return {};}}
 function loadAppearance(){const p=prefs();$("appLanguage").value=p.language||"hi";$("appTheme").value=p.theme||"dark";}
-function applyAppearanceLive(){const p={...prefs(),language:$("appLanguage").value,theme:$("appTheme").value};localStorage.setItem("newstar_preferences",JSON.stringify(p));if(window.NewStarNavbar?.applyPreferences)window.NewStarNavbar.applyPreferences();else{document.documentElement.lang=p.language;document.documentElement.dir=["ar","ur","fa"].includes(p.language)?"rtl":"ltr";}return p;}
+function applyAppearanceLive(){const p={...prefs(),language:$("appLanguage").value,theme:$("appTheme").value};localStorage.setItem("newstar_preferences",JSON.stringify(p));if(window.NewStarNavbar?.applyPreferences)window.NewStarNavbar.applyPreferences();
+ window.NewStarI18n?.apply();else{document.documentElement.lang=p.language;document.documentElement.dir=["ar","ur","fa"].includes(p.language)?"rtl":"ltr";}return p;}
 function applyAppearanceLive(){
  const p={...prefs(),language:$("appLanguage").value,theme:$("appTheme").value};
  localStorage.setItem("newstar_preferences",JSON.stringify(p));
@@ -169,5 +170,6 @@ $("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("�
 loadAppearance();loadSettings();
 })();
 </script>
+<script src="i18n.js"></script>
 <script src="navbar.js"></script>
 </body></html>
