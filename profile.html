@@ -1149,6 +1149,8 @@ function activeProfileVideo(){return profileViewerRows[profileViewerIndex]||null
 function profileViewerToast(message){$("profileStatus").textContent=message;setTimeout(()=>{if($("profileStatus").textContent===message)$("profileStatus").textContent="";},3000);}
 function renderProfileViewer(){
  const item=activeProfileVideo();if(!item)return;
+ const canManage=!!user&&String(item.user_id)===String(user.id);
+ $("profileViewerSettings").style.display=canManage?"flex":"none";
  const v=$("profileVideoViewerPlayer"),playButton=$("profileViewerPlayButton");v.pause();playButton.hidden=true;v.style.objectFit=profileVideoType(item)==="short"?"cover":"contain";v.src=item.video_url;v.load();
  $("profileViewerCreator").textContent="@"+(item.username||meta().username||"creator").replace(/^@/,"");
  $("profileViewerCaption").textContent=item.caption||"";
