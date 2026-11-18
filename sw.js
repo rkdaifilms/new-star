@@ -1,4 +1,4 @@
-const CACHE_NAME = "newstar-app-shell-v3";
+const CACHE_NAME = "newstar-app-shell-v4";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -82,4 +82,51 @@ self.addEventListener("fetch", event => {
       return fetch(request);
     })());
   }
+});
+
+self.addEventListener("push", event => {
+  event.waitUntil((async () => {
+    let payload = {};
+    try {
+      payload = event.data ? event.data.json() : {};
+    } catch {
+      payload = { body: event.data ? event.data.text() : "" };
+    }
+    const title = String(payload.title || "New Star");
+    const body = String(payload.body || payload.message || "आपके अकाउंट में नई activity है।");
+    const rawUrl = typeof payload.url === "string" ? payload.url : "/inbox.html";
+    let targetUrl = "/inbox.html";
+    try {
+      const parsed = new URL(rawUrl, self.location.origin);
+      if (parsed.origin === self.location.origin) targetUrl = parsed.pathname + parsed.search + parsed.hash;
+    } catch {}
+    await self.registration.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: String(payload.tag || "newstar-activity"),
+      data: { url: targetUrl },
+      renotify: false
+    });
+  })());
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const rawUrl = event.notification.data && event.notification.data.url;
+  let targetUrl = "/inbox.html";
+  try {
+    const parsed = new URL(typeof rawUrl === "string" ? rawUrl : "/inbox.html", self.location.origin);
+    if (parsed.origin === self.location.origin) targetUrl = parsed.pathname + parsed.search + parsed.hash;
+  } catch {}
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windows) {
+      if (new URL(client.url).origin === self.location.origin) {
+        await client.navigate(targetUrl);
+        return client.focus();
+      }
+    }
+    return self.clients.openWindow(targetUrl);
+  })());
 });
