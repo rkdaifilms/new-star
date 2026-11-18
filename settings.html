@@ -1,527 +1,156 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101010">
-  <title>Settings - New Star</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-config.js"></script>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-    }
-
-    body {
-      background: #080808;
-      color: #fff;
-      padding-bottom: 90px;
-    }
-
-    .header {
-      padding: 18px 16px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      border-bottom: 1px solid #292929;
-      position: sticky;
-      top: 0;
-      background: #101010;
-      z-index: 10;
-    }
-
-    .back {
-      color: white;
-      text-decoration: none;
-      font-size: 25px;
-    }
-
-    .header h2 {
-      font-size: 20px;
-    }
-
-    .container {
-      max-width: 650px;
-      margin: auto;
-      padding: 18px 14px;
-    }
-
-    .section-title {
-      color: #aaa;
-      font-size: 13px;
-      margin: 23px 5px 10px;
-      text-transform: uppercase;
-    }
-
-    .panel {
-      background: #171717;
-      border: 1px solid #292929;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    .setting-row {
-      padding: 16px;
-      border-bottom: 1px solid #292929;
-    }
-
-    .setting-row:last-child {
-      border-bottom: none;
-    }
-
-    .setting-row h3 {
-      font-size: 15px;
-      margin-bottom: 6px;
-    }
-
-    .setting-row p {
-      font-size: 12px;
-      color: #aaa;
-      line-height: 1.5;
-    }
-
-    .setting-row input, .setting-row select {
-      width: 100%;
-      margin-top: 12px;
-      padding: 12px;
-      border: 1px solid #444;
-      border-radius: 8px;
-      background: #080808;
-      color: white;
-      outline: none;
-      font-size: 15px;
-    }
-
-    button {
-      border: 0;
-      border-radius: 8px;
-      padding: 11px 15px;
-      margin-top: 12px;
-      background: #fff;
-      color: #111;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
-
-    .danger {
-      background: #d92f40;
-      color: white;
-    }
-
-    .status {
-      margin-top: 14px;
-      padding: 12px;
-      border-radius: 8px;
-      display: none;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .status.show {
-      display: block;
-    }
-
-    .status.error {
-      background: #461b20;
-      color: #ffb7bd;
-    }
-
-    .status.success {
-      background: #153d29;
-      color: #a9f5c6;
-    }
-
-    .account-email {
-      color: #ddd !important;
-      word-break: break-word;
-    }
-
-    .small-note {
-      color: #999;
-      font-size: 12px;
-      line-height: 1.6;
-      margin: 15px 5px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101014">
+<title>Main Settings - New Star</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<style>
+:root{--bg:#080808;--panel:#171717;--text:#fff;--muted:#aaa;--line:#303038;--accent:#fe2c55}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif;padding-bottom:90px}
+.header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:13px;padding:14px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.back{font-size:27px;color:var(--text);text-decoration:none}.header h1{font-size:19px;margin:0}.container{max-width:760px;margin:auto;padding:14px}
+.intro{padding:16px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(130deg,#33202a,#171722);margin-bottom:15px}.intro h2{font-size:20px;margin:0 0 6px}.intro p{font-size:13px;line-height:1.5;color:#ddd}
+.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0 20px}.quick a{padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);text-decoration:none;font-size:13px}
+.section{scroll-margin-top:75px;margin:20px 0}.section-title{font-size:12px;letter-spacing:.8px;color:var(--muted);margin:0 4px 9px;text-transform:uppercase}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}.row{padding:15px;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}.row h3{font-size:15px;margin:0 0 6px}.row p{font-size:12px;line-height:1.5;color:var(--muted);margin:4px 0}
+input,select,textarea{width:100%;margin-top:9px;padding:12px;border:1px solid #484852;border-radius:9px;background:#0d0d12;color:var(--text);font-size:15px;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+button,.action{display:inline-flex;align-items:center;justify-content:center;gap:7px;margin-top:10px;padding:11px 14px;border:0;border-radius:9px;background:var(--accent);color:white;font-weight:700;text-decoration:none;cursor:pointer;font-size:13px}
+button.secondary,.action.secondary{background:#34343e;color:white}button.danger{background:#a92335;color:white}button:disabled{opacity:.55;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid .full{grid-column:1/-1}.account-email{overflow-wrap:anywhere;color:var(--text)!important}
+.status{display:none;padding:12px;margin:12px 0;border-radius:9px;font-size:13px;line-height:1.5}.status.show{display:block}.status.error{background:#461b20;color:#ffb7bd}.status.success{background:#153d29;color:#a9f5c6}
+.inline{display:flex;align-items:center;gap:10px}.inline input[type=checkbox]{width:20px;height:20px;margin:0;accent-color:var(--accent)}.inline label{font-size:14px;line-height:1.4}
+.count{font-weight:700;color:var(--accent)}.note{font-size:12px;color:var(--muted);line-height:1.55;margin:14px 4px}
+@media(max-width:520px){.container{padding:10px}.grid{grid-template-columns:1fr}.grid .full{grid-column:auto}.quick{gap:7px}.quick a{padding:11px 9px}}
+</style>
 </head>
-
 <body>
-
-  <header class="header">
-    <a class="back" href="profile.html">‹</a>
-    <h2>Settings & Privacy</h2>
-  </header>
-
-  <main class="container">
-
-    <div class="section-title">App Language & Appearance</div>
-    <div class="panel">
-      <div class="setting-row">
-        <h3>App Language</h3>
-        <p>यह विकल्प अभी साझा Navigation को बदलता है। बाकी स्क्रीन के अनुवाद चरणबद्ध रूप से जोड़े जाएँगे।</p>
-        <select id="appLanguage" aria-label="App language">
-          <option value="hi">हिन्दी</option><option value="ne">नेपाली</option><option value="en">English</option>
-        </select>
-      </div>
-      <div class="setting-row">
-        <h3>App Colour Theme</h3>
-        <p>चुना हुआ रंग पूरे ऐप के साझा हिस्सों और समर्थित पेजों पर लागू होगा।</p>
-        <select id="appTheme" aria-label="App colour theme">
-          <option value="dark">Dark</option><option value="light">Light</option><option value="ocean">Ocean Blue</option><option value="forest">Forest Green</option>
-        </select>
-        <button id="saveAppearanceBtn">Save Appearance</button>
-      </div>
-    </div>
-
-    <div class="section-title">Account</div>
-
-    <div class="panel">
-      <div class="setting-row">
-        <h3>Account Email</h3>
-        <p class="account-email" id="accountEmail">Loading account...</p>
-      </div>
-
-      <div class="setting-row">
-        <h3>Change Email</h3>
-        <p>अपने अकाउंट का नया ईमेल डालें। Supabase verification की आवश्यकता हो सकती है।</p>
-        <input type="email" id="newEmail" placeholder="नया ईमेल पता">
-        <button id="changeEmailBtn">Update Email</button>
-      </div>
-
-      <div class="setting-row">
-        <h3>Change Password</h3>
-        <p>नया पासवर्ड कम से कम 8 अक्षर का रखें।</p>
-        <input type="password" id="newPassword" placeholder="नया पासवर्ड" minlength="8">
-        <input type="password" id="confirmPassword" placeholder="नया पासवर्ड दोबारा लिखें">
-        <button id="changePasswordBtn">Update Password</button>
-      </div>
-    </div>
-
-    <div class="section-title">Personal Information</div>
-
-    <div class="panel">
-      <div class="setting-row">
-        <h3>Full Name</h3>
-        <input type="text" id="fullName" placeholder="अपना नाम">
-      </div>
-
-      <div class="setting-row">
-        <h3>Username</h3>
-        <input type="text" id="username" placeholder="अपना Username">
-      </div>
-
-      <div class="setting-row">
-        <h3>Bio</h3>
-        <input type="text" id="bio" placeholder="अपने बारे में लिखें">
-        <button id="saveProfileBtn">Save Personal Information</button>
-      </div>
-    </div>
-
-    <div class="section-title">Privacy & Security</div>
-
-    <div class="panel">
-      <div class="setting-row">
-        <h3>Account Security</h3>
-        <p>अपने अकाउंट को सुरक्षित रखने के लिए मजबूत पासवर्ड इस्तेमाल करें। अपना OTP या पासवर्ड किसी के साथ साझा न करें।</p>
-      </div>
-
-      <div class="setting-row">
-        <h3>Sign Out</h3>
-        <p>इस डिवाइस से अपने New Star अकाउंट को Logout करें।</p>
-        <button class="danger" id="logoutBtn">Log Out</button>
-      </div>
-      <div class="setting-row">
-        <h3>सभी डिवाइस से Logout</h3>
-        <p>अगर आपको लगता है कि किसी दूसरे डिवाइस पर आपका अकाउंट खुला है, तो सभी active sessions बंद करें। आपको फिर से Login करना होगा।</p>
-        <button class="danger" id="logoutAllBtn">Log Out From All Devices</button>
-      </div>
-      <div class="setting-row">
-        <h3>Privacy Reminder</h3>
-        <p>अपना पासवर्ड, OTP या recovery link किसी को न दें। Public वीडियो और creator profile की visibility उनके अपने audience/privacy controls से तय होती है। केवल भरोसेमंद डिवाइस पर Login करें।</p>
-      </div>
-    </div>
-
-    <p class="small-note">
-      New Star आपकी अकाउंट जानकारी Supabase के माध्यम से संभालता है।
-      Password कभी भी इस पेज पर दिखाया या सेव नहीं किया जाता।
-    </p>
-
-    <div id="status" class="status"></div>
-
-  </main>
-
-  <script>
-    (() => {
-      "use strict";
-
-      const db = window.supabaseClient || window.cloudClient;
-
-      const $ = id => document.getElementById(id);
-
-      let currentUser = null;
-      let profileRow = null;
-
-      function showMessage(message, type = "success") {
-        const box = $("status");
-        box.textContent = message;
-        box.className = "status show " + type;
-        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-      }
-
-      function hideMessage() {
-        $("status").className = "status";
-      }
-
-      function loadAppearance(){
-        let prefs={};try{prefs=JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){}
-        $("appLanguage").value=prefs.language||"hi";
-        $("appTheme").value=prefs.theme||"dark";
-      }
-      function saveAppearance(){
-        const prefs={language:$("appLanguage").value,theme:$("appTheme").value};
-        localStorage.setItem("newstar_preferences",JSON.stringify(prefs));
-        showMessage("Language and colour preference saved. Shared navigation will update now.");
-        location.reload();
-      }
-
-      async function loadSettings() {
-        if (!db?.auth) {
-          $("accountEmail").textContent = "Supabase client नहीं मिला। supabase-config.js जाँचें।";
-          showMessage("Supabase connection उपलब्ध नहीं है।", "error");
-          return;
-        }
-
-        try {
-          const { data, error } = await db.auth.getUser();
-
-          if (error) throw error;
-
-          currentUser = data?.user;
-
-          if (!currentUser) {
-            location.replace("auth.html");
-            return;
-          }
-
-          $("accountEmail").textContent = currentUser.email || "Email उपलब्ध नहीं है";
-
-          const { data: profile, error: profileError } = await db
-            .from("profiles")
-            .select("id,user_id,username,avatar_url,bio")
-            .eq("user_id", currentUser.id)
-            .maybeSingle();
-
-          if (profileError) {
-            console.error("Profile loading error:", profileError);
-          }
-
-          profileRow = profile || null;
-
-          $("fullName").value =
-            currentUser.user_metadata?.full_name || "";
-
-          $("username").value =
-            profileRow?.username ||
-            currentUser.user_metadata?.username ||
-            "";
-
-          $("bio").value =
-            profileRow?.bio ||
-            currentUser.user_metadata?.bio ||
-            "";
-
-        } catch (error) {
-          console.error(error);
-          showMessage(error.message || "Settings लोड नहीं हो सके।", "error");
-        }
-      }
-
-      async function changeEmail() {
-        hideMessage();
-
-        if (!currentUser) return;
-
-        const email = $("newEmail").value.trim();
-
-        if (!email || !email.includes("@")) {
-          showMessage("कृपया सही ईमेल पता डालें।", "error");
-          return;
-        }
-
-        const button = $("changeEmailBtn");
-        button.disabled = true;
-
-        try {
-          const { error } = await db.auth.updateUser({ email });
-
-          if (error) throw error;
-
-          $("newEmail").value = "";
-          showMessage(
-            "ईमेल अपडेट अनुरोध भेजा गया। अगर verification ईमेल आए तो उसमें दिए गए निर्देश पूरे करें।"
-          );
-        } catch (error) {
-          showMessage(error.message || "Email update नहीं हुआ।", "error");
-        } finally {
-          button.disabled = false;
-        }
-      }
-
-      async function changePassword() {
-        hideMessage();
-
-        if (!currentUser) return;
-
-        const password = $("newPassword").value;
-        const confirm = $("confirmPassword").value;
-
-        if (password.length < 8) {
-          showMessage("पासवर्ड कम से कम 8 अक्षर का होना चाहिए।", "error");
-          return;
-        }
-
-        if (password !== confirm) {
-          showMessage("दोनों पासवर्ड एक जैसे नहीं हैं।", "error");
-          return;
-        }
-
-        const button = $("changePasswordBtn");
-        button.disabled = true;
-
-        try {
-          const { error } = await db.auth.updateUser({
-            password: password
-          });
-
-          if (error) throw error;
-
-          $("newPassword").value = "";
-          $("confirmPassword").value = "";
-
-          showMessage("पासवर्ड अपडेट हो गया।");
-        } catch (error) {
-          showMessage(error.message || "Password update नहीं हुआ।", "error");
-        } finally {
-          button.disabled = false;
-        }
-      }
-
-      async function savePersonalInformation() {
-        hideMessage();
-
-        if (!currentUser) return;
-
-        const fullName = $("fullName").value.trim();
-        const username = $("username").value.trim();
-        const bio = $("bio").value.trim();
-
-        if (!username) {
-          showMessage("Username खाली नहीं हो सकता।", "error");
-          return;
-        }
-
-        const button = $("saveProfileBtn");
-        button.disabled = true;
-
-        try {
-          const { error: metadataError } = await db.auth.updateUser({
-            data: {
-              full_name: fullName,
-              username: username,
-              bio: bio
-            }
-          });
-
-          if (metadataError) throw metadataError;
-
-          const profileData = {
-            user_id: currentUser.id,
-            username: username,
-            bio: bio
-          };
-
-          let result;
-
-          if (profileRow?.id) {
-            result = await db
-              .from("profiles")
-              .update(profileData)
-              .eq("user_id", currentUser.id);
-          } else {
-            result = await db
-              .from("profiles")
-              .insert(profileData);
-          }
-
-          if (result.error) throw result.error;
-
-          showMessage("Personal Information सेव हो गई।");
-
-          await loadSettings();
-
-        } catch (error) {
-          console.error(error);
-          showMessage(
-            error.message || "जानकारी सेव नहीं हो सकी। Supabase permissions जाँचें।",
-            "error"
-          );
-        } finally {
-          button.disabled = false;
-        }
-      }
-
-      async function logout() {
-        if (!db?.auth) return;
-        if (!confirm("क्या आप इस डिवाइस से Logout करना चाहते हैं?")) return;
-        const button = $("logoutBtn");
-        button.disabled = true;
-        try {
-          const { error } = await db.auth.signOut({ scope: "local" });
-          if (error) throw error;
-          location.replace("auth.html");
-        } catch (error) {
-          showMessage(error.message || "Logout नहीं हुआ।", "error");
-          button.disabled = false;
-        }
-      }
-
-      async function logoutAllDevices() {
-        if (!db?.auth) return;
-        if (!confirm("सभी डिवाइस से Logout करने पर आपको दोबारा Login करना होगा। जारी रखें?")) return;
-        const button = $("logoutAllBtn");
-        button.disabled = true;
-        try {
-          const { error } = await db.auth.signOut({ scope: "global" });
-          if (error) throw error;
-          location.replace("auth.html");
-        } catch (error) {
-          showMessage(error.message || "सभी sessions बंद नहीं हो सके।", "error");
-          button.disabled = false;
-        }
-      }
-
-      $("saveAppearanceBtn").addEventListener("click", saveAppearance);
-      loadAppearance();
-      $("changeEmailBtn").addEventListener("click", changeEmail);
-      $("changePasswordBtn").addEventListener("click", changePassword);
-      $("saveProfileBtn").addEventListener("click", savePersonalInformation);
-      $("logoutBtn").addEventListener("click", logout);
-      $("logoutAllBtn").addEventListener("click", logoutAllDevices);
-
-      loadSettings();
-    })();
-  </script>
-
-  <script src="navbar.js"></script>
-</body>
-</html>
+<header class="header"><a class="back" href="profile.html" aria-label="Back to profile">‹</a><h1>⚙️ Main Settings</h1></header>
+<main class="container">
+<section class="intro"><h2>New Star — Main Settings</h2><p>अकाउंट, प्रोफाइल, नोटिफिकेशन, भाषा और सुरक्षा की सेटिंग एक ही जगह से मैनेज करें। नीचे हर सेक्शन क्रम से दिया गया है।</p></section>
+<nav class="quick" aria-label="Settings sections">
+<a href="#notifications">🔔 Notifications</a><a href="#account">🔐 Account</a><a href="#profile">👤 Profile Information</a><a href="#privacy">🛡️ Privacy & Security</a><a href="#appearance">🌐 Language & Theme</a><a href="#help">❓ Help & About</a>
+</nav>
+<div id="status" class="status" role="status" aria-live="polite"></div>
+
+<section class="section" id="notifications">
+<h2 class="section-title">01 · Notifications</h2>
+<div class="panel">
+<div class="row"><h3>आपकी Notifications</h3><p>नए Follow, Like, Comment और अन्य ऐप अलर्ट देखने के लिए Inbox खोलें।</p><p>Unread notifications: <span class="count" id="unreadCount">लोड हो रहा है…</span></p><a class="action" href="inbox.html">✉️ Open Inbox</a></div>
+<div class="row"><h3>Notification delivery</h3><p>अभी ऐप के Inbox में notifications उपलब्ध हैं। इस पेज से मोबाइल Push Notification चालू होने का दावा नहीं किया जा रहा; उसके लिए अलग Push subscription और server delivery सेटअप चाहिए।</p></div>
+</div></section>
+
+<section class="section" id="account">
+<h2 class="section-title">02 · Account</h2>
+<div class="panel">
+<div class="row"><h3>Signed-in Email</h3><p class="account-email" id="accountEmail">Account लोड हो रहा है…</p></div>
+<div class="row"><h3>Change Email</h3><p>नया ईमेल डालें। Supabase verification माँग सकता है। नया ईमेल confirm होने तक पुराना ईमेल काम कर सकता है।</p><input type="email" id="newEmail" autocomplete="email" placeholder="नया ईमेल पता"><button id="changeEmailBtn">Update Email</button></div>
+<div class="row"><h3>Change Password</h3><p>कम-से-कम 8 अक्षर का नया पासवर्ड रखें।</p><input type="password" id="newPassword" autocomplete="new-password" minlength="8" placeholder="नया पासवर्ड"><input type="password" id="confirmPassword" autocomplete="new-password" placeholder="नया पासवर्ड दोबारा लिखें"><button id="changePasswordBtn">Update Password</button></div>
+</div></section>
+
+<section class="section" id="profile">
+<h2 class="section-title">03 · Profile Information</h2>
+<div class="panel">
+<div class="row"><p>यहाँ की जानकारी आपके New Star प्रोफाइल रिकॉर्ड में सेव होगी। फोटो और Cover Photo बदलने के लिए Profile Editor खोलें।</p><div class="grid">
+<div><label for="fullName">पूरा नाम</label><input id="fullName" maxlength="80" autocomplete="name" placeholder="आपका नाम"></div>
+<div><label for="username">Username</label><input id="username" maxlength="30" autocomplete="username" placeholder="username"></div>
+<div class="full"><label for="bio">Bio</label><textarea id="bio" rows="3" maxlength="300" placeholder="अपने बारे में लिखें"></textarea></div>
+<div><label for="phone">मोबाइल नंबर</label><input id="phone" type="tel" autocomplete="tel" placeholder="+977…"></div>
+<div><label for="address">Address / City</label><input id="address" autocomplete="street-address" placeholder="शहर / पता"></div>
+<div><label for="website">Website</label><input id="website" type="url" placeholder="https://…"></div>
+<div><label for="whatsapp">WhatsApp</label><input id="whatsapp" type="tel" placeholder="+977…"></div>
+<div><label for="facebook">Facebook URL</label><input id="facebook" type="url" placeholder="https://…"></div>
+<div><label for="instagram">Instagram URL</label><input id="instagram" type="url" placeholder="https://…"></div>
+<div><label for="youtube">YouTube URL</label><input id="youtube" type="url" placeholder="https://…"></div>
+<div><label for="tiktok">TikTok URL</label><input id="tiktok" type="url" placeholder="https://…"></div>
+</div><button id="saveProfileBtn">💾 Save Profile Information</button> <a class="action secondary" href="profile.html">Open Profile</a></div>
+</div></section>
+
+<section class="section" id="privacy">
+<h2 class="section-title">04 · Privacy & Security</h2>
+<div class="panel">
+<div class="row"><h3>Private Account</h3><p>Private account चालू होने पर आपके वीडियो देखने के लिए Follow approval आवश्यक होगा।</p><div class="inline"><input id="privateAccount" type="checkbox"><label for="privateAccount">🔒 मेरा अकाउंट Private रखें</label></div><button id="savePrivacyBtn">Save Privacy</button></div>
+<div class="row"><h3>Logout this device</h3><p>इस डिवाइस के New Star session से Logout करें।</p><button class="danger" id="logoutBtn">Log Out</button></div>
+<div class="row"><h3>Logout all sessions</h3><p>यह Supabase के दूसरे refresh sessions को revoke करने का अनुरोध करेगा। पहले से जारी access token expiry तक कुछ समय चल सकता है।</p><button class="danger" id="logoutAllBtn">Log Out From All Devices</button></div>
+<div class="row"><h3>Safety reminder</h3><p>अपना Password, OTP, recovery link या private credentials किसी के साथ साझा न करें। केवल भरोसेमंद डिवाइस पर Login करें।</p></div>
+</div></section>
+
+<section class="section" id="appearance">
+<h2 class="section-title">05 · Language & Appearance</h2>
+<div class="panel">
+<div class="row"><h3>App Language</h3><p>आपकी पसंद इस डिवाइस पर सेव होगी। नीचे ऐप के लिए भाषा चुनेँ। जिन स्क्रीन पर अनुवाद अभी उपलब्ध नहीं है, वहाँ मूल टेक्स्ट दिख सकता है।</p>
+<select id="appLanguage" aria-label="App language">
+<option value="hi">हिन्दी</option><option value="ne">नेपाली</option><option value="en">English</option><option value="zh">中文</option><option value="es">Español</option><option value="fr">Français</option><option value="ar">العربية</option><option value="ja">日本語</option><option value="de">Deutsch</option><option value="ru">Русский</option><option value="pt">Português</option><option value="it">Italiano</option><option value="ko">한국어</option><option value="tr">Türkçe</option><option value="bn">বাংলা</option>
+</select></div>
+<div class="row"><h3>App Theme</h3><p>Dark, Light और रंगीन थीम चुनें।</p><select id="appTheme" aria-label="App theme"><option value="dark">Dark</option><option value="light">Light</option><option value="ocean">Ocean Blue</option><option value="forest">Forest Green</option></select><button id="saveAppearanceBtn">Save Language & Theme</button></div>
+</div></section>
+
+<section class="section" id="help">
+<h2 class="section-title">06 · Help & About</h2>
+<div class="panel">
+<div class="row"><h3>Help & Support</h3><p>Account, messages और app support के लिए Inbox खोलें।</p><a class="action" href="inbox.html">✉️ Open Support Inbox</a></div>
+<div class="row"><h3>About New Star</h3><p>New Star Creator Hub · आपकी प्रोफाइल, वीडियो और Creator सुविधाएँ।</p><p>Settings build: 2.0 · Preferences इस डिवाइस पर सेव होती हैं; अकाउंट जानकारी Supabase में सेव होती है।</p></div>
+</div></section>
+<p class="note">ध्यान दें: Browser Push Notifications, सभी स्क्रीन का पूर्ण अनुवाद और हर डिवाइस पर sync होने वाली preference storage अभी अलग implementation माँगते हैं। यहाँ केवल वही सुविधाएँ सक्रिय रखी गई हैं जिनका वास्तविक कार्य इस पेज से जोड़ा गया है।</p>
+</main>
+<script>
+(()=>{"use strict";
+const db=window.supabaseClient||window.cloudClient;const $=id=>document.getElementById(id);
+let user=null,profile=null;
+const keys=["username","bio","phone","address","website","whatsapp","facebook","instagram","youtube","tiktok"];
+function message(s,type="success"){const el=$("status");el.textContent=s;el.className="status show "+type;el.scrollIntoView({behavior:"smooth",block:"nearest"});}
+function prefs(){try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){return {};}}
+function loadAppearance(){const p=prefs();$("appLanguage").value=p.language||"hi";$("appTheme").value=p.theme||"dark";}
+function saveAppearance(){const p={...prefs(),language:$("appLanguage").value,theme:$("appTheme").value};localStorage.setItem("newstar_preferences",JSON.stringify(p));message("भाषा और Theme preference इस डिवाइस पर सेव हो गई। जिन पेजों का अनुवाद उपलब्ध है, वहाँ चुनी भाषा लागू होगी।");setTimeout(()=>location.reload(),500);}
+async function loadSettings(){
+ if(!db?.auth){message("Supabase client नहीं मिला। supabase-config.js जाँचें।","error");return;}
+ try{
+  const {data,error}=await db.auth.getUser();if(error)throw error;user=data?.user;
+  if(!user){location.replace("auth.html");return;}
+  $("accountEmail").textContent=user.email||"Email उपलब्ध नहीं है";
+  const {data:row,error:pe}=await db.from("profiles").select("id,user_id,full_name,username,bio,phone,address,website,whatsapp,facebook,instagram,youtube,tiktok,is_private").eq("user_id",user.id).maybeSingle();
+  if(pe)throw pe;profile=row||null;
+  $("fullName").value=profile?.full_name||user.user_metadata?.full_name||user.user_metadata?.name||"";
+  for(const k of keys)$(k).value=profile?.[k]||user.user_metadata?.[k]||"";
+  $("privateAccount").checked=!!profile?.is_private;
+  const {count,error:ne}=await db.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",user.id).eq("is_read",false);
+  $("unreadCount").textContent=ne?"Unavailable":String(count??0);
+ }catch(e){console.error(e);message(e.message||"Settings load नहीं हुई।","error");}
+}
+async function saveProfile(){
+ if(!user)return;const btn=$("saveProfileBtn");btn.disabled=true;
+ try{
+  const full_name=$("fullName").value.trim(),username=$("username").value.trim().replace(/^@/,""),bio=$("bio").value.trim();
+  if(!username){throw new Error("Username खाली नहीं हो सकता।");}
+  const row={user_id:user.id,full_name,username,bio};
+  for(const k of keys.slice(2))row[k]=$(k).value.trim();
+  const {error}=await db.from("profiles").upsert(row,{onConflict:"user_id"});if(error)throw error;
+  const {data,error:ae}=await db.auth.updateUser({data:{full_name,username,bio}});if(ae)throw ae;user=data.user;
+  message("Profile की जानकारी सफलतापूर्वक सेव हो गई।");await loadSettings();
+ }catch(e){console.error(e);message(e.message||"Profile सेव नहीं हुई।","error");}finally{btn.disabled=false;}
+}
+async function savePrivacy(){
+ if(!user)return;const btn=$("savePrivacyBtn");btn.disabled=true;
+ try{const {error}=await db.from("profiles").upsert({user_id:user.id,is_private:$("privateAccount").checked},{onConflict:"user_id"});if(error)throw error;profile={...(profile||{}),is_private:$("privateAccount").checked};message("Privacy setting सेव हो गई।");}
+ catch(e){console.error(e);message(e.message||"Privacy setting सेव नहीं हुई।","error");}finally{btn.disabled=false;}
+}
+async function changeEmail(){
+ if(!user)return;const email=$("newEmail").value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){message("कृपया सही ईमेल पता डालें।","error");return;}
+ const btn=$("changeEmailBtn");btn.disabled=true;try{const {error}=await db.auth.updateUser({email});if(error)throw error;$("newEmail").value="";message("Email update request भेजा गया। नए ईमेल पर verification पूरा करें।");}catch(e){message(e.message||"Email update नहीं हुआ।","error");}finally{btn.disabled=false;}
+}
+async function changePassword(){
+ if(!user)return;const p=$("newPassword").value,c=$("confirmPassword").value;if(p.length<8){message("नया Password कम-से-कम 8 अक्षर का होना चाहिए।","error");return;}if(p!==c){message("दोनों Password एक जैसे नहीं हैं।","error");return;}
+ const btn=$("changePasswordBtn");btn.disabled=true;try{const {error}=await db.auth.updateUser({password:p});if(error)throw error;$("newPassword").value="";$("confirmPassword").value="";message("Password अपडेट हो गया।");}catch(e){message(e.message||"Password update नहीं हुआ।","error");}finally{btn.disabled=false;}
+}
+async function logout(scope,buttonId){
+ if(!db?.auth)return;const all=scope==="global";if(!confirm(all?"सभी sessions से Logout करना है?":"इस डिवाइस से Logout करना है?"))return;
+ const btn=$(buttonId);btn.disabled=true;try{const {error}=await db.auth.signOut({scope});if(error)throw error;location.replace("auth.html");}catch(e){message(e.message||"Logout नहीं हुआ।","error");btn.disabled=false;}
+}
+$("saveAppearanceBtn").addEventListener("click",saveAppearance);$("saveProfileBtn").addEventListener("click",saveProfile);$("savePrivacyBtn").addEventListener("click",savePrivacy);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
+loadAppearance();loadSettings();
+})();
+</script>
+<script src="navbar.js"></script>
+</body></html>
