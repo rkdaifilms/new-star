@@ -25,7 +25,7 @@ panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
  add(text,"user");input.value="";send.disabled=true;send.textContent="…";
  const pending=add("जवाब तैयार हो रहा है…","bot");
  try{
-  const requestMessages=[...history.slice(-9),{role:"user",content:text}];
+  const requestMessages=[...history.slice(-8),{role:"user",content:text}];
   const {data:result,error:invokeError}=await db.functions.invoke("ai-gateway",{body:{messages:requestMessages}});
   if(invokeError)throw invokeError;
   if(!result?.ok||typeof result.answer!=="string")throw new Error(result?.error||"AI सेवा अभी उपलब्ध नहीं है।");
