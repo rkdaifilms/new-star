@@ -57,6 +57,34 @@ Object.assign(dict.pl,{"feed.forYou":"Dla Ciebie","feed.following":"Obserwowani"
 Object.assign(dict.uk,{"feed.forYou":"Для вас","feed.following":"Підписки","feed.shorts":"Короткі відео","feed.reels":"Рілси","feed.longVideos":"Довгі відео","feed.discover":"Відкрити","feed.friends":"Друзі","feed.live":"Ефір","feed.comedy":"Комедія","feed.music":"Музика","feed.gaming":"Ігри","feed.tech":"Технології","feed.vlogs":"Влоги","feed.search":"Пошук авторів і відео...","feed.voiceSearch":"Голосовий пошук","feed.emptyTitle":"Відео поки немає","feed.emptyText":"Нові відео з’являться тут.","feed.retry":"Спробувати ще раз","action.follow":"Стежити","action.editTitle":"Редагувати назву","action.editHashtags":"Редагувати хештеги","action.recordVoice":"Записати голос","action.chooseAudio":"Вибрати аудіо з галереї","action.mixSave":"Змішати й зберегти","action.deleteVideo":"Видалити відео","action.videoSettings":"Налаштування відео","action.shareVideo":"Поділитися відео","action.sharePhone":"Поділитися через додатки телефону","action.copyLink":"Копіювати посилання на відео","action.sendGift":"Надіслати подарунок","action.videoCaption":"Назва / підпис відео","action.saveTitleTags":"Зберегти назву й хештеги","action.stopRecording":"Зупинити запис"});
 Object.assign(dict.el,{"feed.forYou":"Για εσάς","feed.following":"Ακολουθείτε","feed.shorts":"Σύντομα βίντεο","feed.reels":"Reels","feed.longVideos":"Μεγάλα βίντεο","feed.discover":"Ανακάλυψη","feed.friends":"Φίλοι","feed.live":"Ζωντανά","feed.comedy":"Κωμωδία","feed.music":"Μουσική","feed.gaming":"Παιχνίδια","feed.tech":"Τεχνολογία","feed.vlogs":"Vlogs","feed.search":"Αναζήτηση δημιουργών και βίντεο...","feed.voiceSearch":"Φωνητική αναζήτηση","feed.emptyTitle":"Δεν υπάρχουν ακόμη βίντεο","feed.emptyText":"Τα νέα βίντεο θα εμφανίζονται εδώ.","feed.retry":"Δοκιμάστε ξανά","action.follow":"Ακολουθήστε","action.editTitle":"Επεξεργασία τίτλου","action.editHashtags":"Επεξεργασία hashtag","action.recordVoice":"Εγγραφή φωνής","action.chooseAudio":"Επιλογή ήχου από τη συλλογή","action.mixSave":"Μίξη και αποθήκευση","action.deleteVideo":"Διαγραφή βίντεο","action.videoSettings":"Ρυθμίσεις βίντεο","action.shareVideo":"Κοινοποίηση βίντεο","action.sharePhone":"Κοινοποίηση μέσω εφαρμογών τηλεφώνου","action.copyLink":"Αντιγραφή συνδέσμου βίντεο","action.sendGift":"Αποστολή δώρου","action.videoCaption":"Τίτλος / λεζάντα βίντεο","action.saveTitleTags":"Αποθήκευση τίτλου και hashtag","action.stopRecording":"Διακοπή εγγραφής"});
 
+
+// Search, comment composer and feed loading labels.
+Object.assign(dict.hi,{"feed.commentPlaceholder":"यहाँ अपना कमेंट लिखें...","feed.loading":"🌟 New Star वीडियो लोड हो रहे हैं..."});
+Object.assign(dict.ne,{"feed.commentPlaceholder":"यहाँ आफ्नो टिप्पणी लेख्नुहोस्...","feed.loading":"🌟 New Star भिडियो लोड हुँदैछन्..."});
+Object.assign(dict.en,{"feed.commentPlaceholder":"Write a comment...","feed.loading":"🌟 New Star videos are loading..."});
+Object.assign(dict.zh,{"feed.commentPlaceholder":"在这里发表评论...","feed.loading":"🌟 New Star 视频正在加载..."});
+Object.assign(dict.es,{"feed.commentPlaceholder":"Escribe un comentario...","feed.loading":"🌟 Cargando videos de New Star..."});
+Object.assign(dict.fr,{"feed.commentPlaceholder":"Écrivez un commentaire...","feed.loading":"🌟 Chargement des vidéos New Star..."});
+Object.assign(dict.ar,{"feed.commentPlaceholder":"اكتب تعليقًا هنا...","feed.loading":"🌟 جارٍ تحميل فيديوهات New Star..."});
+Object.assign(dict.ja,{"feed.commentPlaceholder":"ここにコメントを書く...","feed.loading":"🌟 New Star の動画を読み込み中..."});
+Object.assign(dict.de,{"feed.commentPlaceholder":"Schreibe hier einen Kommentar...","feed.loading":"🌟 New Star-Videos werden geladen..."});
+Object.assign(dict.ru,{"feed.commentPlaceholder":"Напишите комментарий...","feed.loading":"🌟 Загружаются видео New Star..."});
+Object.assign(dict.pt,{"feed.commentPlaceholder":"Escreva um comentário...","feed.loading":"🌟 Carregando vídeos do New Star..."});
+Object.assign(dict.it,{"feed.commentPlaceholder":"Scrivi un commento...","feed.loading":"🌟 Caricamento dei video New Star..."});
+Object.assign(dict.ko,{"feed.commentPlaceholder":"여기에 댓글을 작성하세요...","feed.loading":"🌟 New Star 동영상 로딩 중..."});
+Object.assign(dict.tr,{"feed.commentPlaceholder":"Buraya yorum yazın...","feed.loading":"🌟 New Star videoları yükleniyor..."});
+Object.assign(dict.bn,{"feed.commentPlaceholder":"এখানে মন্তব্য লিখুন...","feed.loading":"🌟 New Star ভিডিও লোড হচ্ছে..."});
+Object.assign(dict.ur,{"feed.commentPlaceholder":"یہاں تبصرہ لکھیں...","feed.loading":"🌟 New Star ویڈیوز لوڈ ہو رہی ہیں..."});
+Object.assign(dict.id,{"feed.commentPlaceholder":"Tulis komentar di sini...","feed.loading":"🌟 Memuat video New Star..."});
+Object.assign(dict.vi,{"feed.commentPlaceholder":"Viết bình luận tại đây...","feed.loading":"🌟 Đang tải video New Star..."});
+Object.assign(dict.th,{"feed.commentPlaceholder":"เขียนความคิดเห็นที่นี่...","feed.loading":"🌟 กำลังโหลดวิดีโอ New Star..."});
+Object.assign(dict.fa,{"feed.commentPlaceholder":"اینجا نظر بنویسید...","feed.loading":"🌟 ویدیوهای New Star در حال بارگذاری..."});
+Object.assign(dict.sw,{"feed.commentPlaceholder":"Andika maoni hapa...","feed.loading":"🌟 Video za New Star zinapakia..."});
+Object.assign(dict.nl,{"feed.commentPlaceholder":"Schrijf hier een reactie...","feed.loading":"🌟 New Star-video's worden geladen..."});
+Object.assign(dict.pl,{"feed.commentPlaceholder":"Napisz komentarz...","feed.loading":"🌟 Ładowanie filmów New Star..."});
+Object.assign(dict.uk,{"feed.commentPlaceholder":"Напишіть коментар тут...","feed.loading":"🌟 Завантажуються відео New Star..."});
+Object.assign(dict.el,{"feed.commentPlaceholder":"Γράψτε ένα σχόλιο εδώ...","feed.loading":"🌟 Φόρτωση βίντεο New Star..."});
+
 const reverseEnglish=Object.fromEntries(Object.entries(dict.en).map(([key,value])=>[String(value).trim().toLowerCase(),key]));
 function translateExactText(root){
  // Only translate elements explicitly marked with data-i18n.
