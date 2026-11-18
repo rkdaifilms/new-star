@@ -232,18 +232,18 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
     <button id="profileMenuButton" class="iconButton" type="button" aria-label="Profile settings" aria-expanded="false">⋮</button>
 
     <nav id="profileMenu" class="menu hidden" aria-label="Profile and app settings menu">
-     <div class="menuLabel">SETTINGS & CONTROL</div>
-     <a href="settings.html">⚙️ Main Settings — App Control</a>
+     <div class="menuLabel" data-i18n="settings.title">Main Settings</div>
+     <a href="settings.html" data-i18n="settings.title">Main Settings</a>
      <hr>
      <div class="menuLabel">NEW STAR APP</div>
-     <a href="index.html">🏠 Home</a>
+     <a href="index.html" data-i18n="nav.home">Home</a>
      <a href="camera.html">📷 Camera / Create / Upload</a>
      <a href="wallet.html">💰 Wallet</a>
-     <a href="inbox.html">✉️ Inbox & Messages</a>
+     <a href="inbox.html" data-i18n="nav.inbox">Inbox</a>
      <a href="monetization.html">💎 Monetization</a>
      <a href="live.html">🔴 Live</a>
      <a href="gaming.html">🎮 Gaming</a>
-     <a href="profile.html">👤 My Profile</a>
+     <a href="profile.html" data-i18n="nav.profile">Profile</a>
      <hr>
      <button type="button" data-action="logout" class="danger" data-i18n="action.logout">Log out</button>
     </nav>
@@ -293,14 +293,14 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
     <button type="button" data-profile-manage="voice">🎙️ Record Voice</button>
     <button type="button" data-profile-manage="gallery">🎵 Choose Audio from Gallery</button>
     <button type="button" data-profile-manage="mix">🎚️ Mix & Save</button>
-    <button type="button" data-profile-manage="delete" class="danger">🗑️ Delete Video</button>
+    <button type="button" data-profile-manage="delete" class="danger" data-i18n="action.delete">Delete Video</button>
    </div>
   </div>
   <button id="profileViewerLike" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="filled" d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.3 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg></span><small id="profileViewerLikes">0</small></button>
   <button id="profileViewerComment" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-6.5A7.5 7.5 0 1 1 20 11.5Z"/></svg></span><small id="profileViewerComments">0</small></button>
   <button id="profileViewerGift" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18v11H3zM2 6h20v4H2zM12 6v15M12 6H7.5a2.5 2.5 0 1 1 2.5-2.5C10 5 12 6 12 6Zm0 0h4.5A2.5 2.5 0 1 0 14 3.5C14 5 12 6 12 6Z"/></svg></span><small>Gift</small></button>
-  <button id="profileViewerShare" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg></span><small>Share</small></button>
-  <button id="profileViewerDownload" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 20h16"/></svg></span><small>Download</small></button>
+  <button id="profileViewerShare" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg></span><small data-i18n="action.share">Share</small></button>
+  <button id="profileViewerDownload" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 20h16"/></svg></span><small data-i18n="action.download">Download</small></button>
  </div>
 </div>
 <div class="modal" id="videoManageModal" aria-hidden="true"><div class="modalBox">
@@ -364,7 +364,7 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
    <div><label for="editWhatsapp">WhatsApp</label><input id="editWhatsapp" type="tel" placeholder="+977..."></div>
   </div>
 
-  <button id="saveProfileButton" style="width:100%;margin-top:10px" type="button">💾 Save Profile</button>
+  <button id="saveProfileButton" style="width:100%;margin-top:10px" type="button" data-i18n="action.saveProfile">Save Profile</button>
   <p id="editStatus" class="status" role="status"></p>
  </div>
 </div>
