@@ -491,6 +491,10 @@ document.querySelectorAll("[data-panel]").forEach(button => {
  button.onclick = () => openPanel(button.dataset.panel);
 });
 document.querySelectorAll(".close").forEach(button => button.onclick = closePanels);
+document.addEventListener("pointerdown",e=>{
+ const openPanel=document.querySelector(".panel:not(.hidden)");
+ if(openPanel && !openPanel.contains(e.target)) closePanels();
+},true);
 
 /* Zoom and Rotate */
 document.querySelectorAll("[data-zoom]").forEach(button => {
