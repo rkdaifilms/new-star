@@ -17,12 +17,21 @@ aurora:["#0c1720","#192b38","#f2ffff","#a8c7d0","#7ee0c3"]};
 function read(){try{const v=JSON.parse(localStorage.getItem(KEY)||"{}");return v&&typeof v==="object"?v:{}}catch(_){return {}}}
 function apply(){
  const p=read(),t=themes[p.theme]||themes.dark,light=(p.theme||"dark")==="light",root=document.documentElement;
+ const accessibility=p.accessibility&&typeof p.accessibility==="object"?p.accessibility:{};
+ const scale=Math.min(1.25,Math.max(0.9,Number(accessibility.textScale)||1));
+ root.style.setProperty("--ns-font-scale",String(scale));
+ root.dataset.nsReducedMotion=accessibility.reducedMotion===true?"true":"false";
+ root.dataset.nsHighContrast=accessibility.highContrast===true?"true":"false";
  root.lang=p.language||"hi";root.dir=["ar","ur","fa"].includes(p.language)?"rtl":"ltr";root.style.colorScheme=light?"light":"dark";
  let style=document.getElementById("newstar-preference-style");
  if(!style){style=document.createElement("style");style.id="newstar-preference-style";document.head.appendChild(style)}
  style.textContent=`
  :root{--ns-bg:${t[0]};--ns-panel:${t[1]};--ns-text:${t[2]};--ns-muted:${t[3]};--ns-accent:${t[4]};--bg:${t[0]};--panel:${t[1]};--text:${t[2]};--muted:${t[3]};--accent:${t[4]}}
+ html{font-size:calc(16px * var(--ns-font-scale,1))}
  body{background-color:var(--ns-bg)!important;color:var(--ns-text)!important}
+ [data-ns-high-contrast="true"]{--ns-muted:var(--ns-text)}
+ [data-ns-high-contrast="true"] .panel,[data-ns-high-contrast="true"] .card,[data-ns-high-contrast="true"] input,[data-ns-high-contrast="true"] select,[data-ns-high-contrast="true"] textarea{border-width:2px!important}
+ [data-ns-reduced-motion="true"] *,[data-ns-reduced-motion="true"] *::before,[data-ns-reduced-motion="true"] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
  header,.header,.top,.intro,.panel,.card,.section,.settings-card,.setting-row,.modal-content,.menu,.row,.quick a{color:var(--ns-text)}
  .panel,.card,.settings-card,.setting-row,.modal-content,.menu,.quick a{background-color:var(--ns-panel)!important;border-color:var(--ns-muted)!important}
  input,select,textarea{background-color:var(--ns-bg)!important;color:var(--ns-text)!important;border-color:var(--ns-muted)!important}
