@@ -30,7 +30,11 @@ p,.muted{font-size:12px;color:#aaa;line-height:1.6}
 .input,.select{width:100%;padding:11px;margin:5px 0 10px;background:#08080b;border:1px solid #444;color:#fff;border-radius:8px}
 label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .hidden{display:none!important}
-.preview{height:min(70vh,650px);background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.preview{width:100%;height:min(68vh,640px);min-height:260px;background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #292930;border-radius:12px;margin:0 auto 12px}
+#editorVideo{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;background:#000}
+#editorActions{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 14px}
+#editorActions .primary{margin:0}
+.editor-meta{font-size:12px;color:#aeb4bf;text-align:center;padding:7px 4px}
 #editorVideo{width:100%;height:100%;object-fit:contain;transform-origin:center}
 #previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;max-width:90%;overflow-wrap:anywhere;z-index:5;pointer-events:none}
 .editor-menu{position:absolute;top:10px;right:10px;z-index:20}
@@ -109,9 +113,10 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
     <button id="resetButton">↩ Reset Preview Edits</button>
    </div>
   </div>
-  <div class="savebar">
-   <button class="primary" id="publishPanelButton">🚀 Publish Video</button>
-  </div>
+ </div>
+ <div id="editorActions">
+  <div class="editor-meta" id="editorMeta">Video select करें — पूरा frame preview में दिखेगा</div>
+  <button class="primary" id="publishPanelButton">🚀 Continue to Publish</button>
  </div>
 
  <section id="trimPanel" class="panel hidden">
@@ -211,6 +216,34 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
    <option>Entertainment & Comedy</option><option>Music</option><option data-i18n="page.gaming">Gaming</option>
    <option>Education & Tech</option><option>Vlogs & People</option><option>Shorts</option><option data-i18n="feed.reels">Reels</option>
   </select>
+  <label>Media Type</label>
+  <select class="select" id="mediaKind">
+   <option value="video">General Video</option>
+   <option value="movie">Film / Movie</option>
+   <option value="music">Song / Music Video</option>
+   <option value="story">Story / Documentary</option>
+  </select>
+  <label>Short / Long Format & Aspect Ratio</label>
+  <select class="select" id="aspectRatioSetting">
+   <option value="original">Original Ratio (पूरा वीडियो)</option>
+   <option value="9:16">Short Vertical — 9:16</option>
+   <option value="16:9">Long / Landscape — 16:9</option>
+   <option value="1:1">Square — 1:1</option>
+  </select>
+  <label>Frame Fit</label>
+  <select class="select" id="frameFit">
+   <option value="contain">Fit — पूरा वीडियो दिखाएँ, crop नहीं</option>
+   <option value="cover">Fill — frame भरें (किनारे crop हो सकते हैं)</option>
+  </select>
+  <label>Quality Preference</label>
+  <select class="select" id="qualityPreference">
+   <option value="original">Original Source Quality</option>
+   <option value="720p">720p HD preference</option>
+   <option value="1080p">1080p Full HD preference</option>
+   <option value="1440p">1440p QHD preference</option>
+   <option value="2160p">2160p 4K preference</option>
+  </select>
+  <div class="status" id="qualityNotice">अभी मूल फाइल ही अपलोड होती है। अलग-अलग HD क्वालिटी बनाने के लिए server-side transcoding service जुड़नी बाकी है।</div>
   <label>Affiliate / Promotion Link (optional)</label>
   <input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
   <label>Video Privacy</label>
@@ -219,9 +252,9 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
    <option value="unlisted">🔗 Unlisted — लिंक वाले (Private Account पर केवल approved followers)</option>
    <option value="private">🔒 Private — केवल मैं देख सकता हूँ</option>
   </select>
-  <label>Audience</label>
+  <label>Audience Setting (Privacy से अलग)</label>
   <select class="select" id="audienceType">
-   <option value="all">Public / Everyone</option>
+   <option value="all">General Audience</option>
    <option value="kids">Made for Kids</option>
    <option value="adult">18+ Restricted Content</option>
   </select>
@@ -260,6 +293,8 @@ let zoom = 1;
 let rotation = 0;
 let trimEnd = null;
 let publishing = false;
+let sourceMetadata = null;
+const CURRENT_VIDEO_BUCKET_LIMIT = 1024 * 1024 * 1024; // Existing videos bucket limit: 1 GiB
 
 function toast(message) {
  const el = $("toast");
@@ -464,6 +499,7 @@ async function loadVideo(file) {
  }
  if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
  selectedVideoFile = file;
+ sourceMetadata=metadata;
  videoObjectUrl = URL.createObjectURL(file);
  closePanels();
  screen("editorScreen");
@@ -486,6 +522,12 @@ async function loadVideo(file) {
  rotation = 0;
  video.style.transform = "";
  video.style.filter = "none";
+ video.style.objectFit="contain";
+ $("aspectRatioSetting").value="original";
+ $("frameFit").value="contain";
+ $("qualityPreference").value="original";
+ applyOutputFrame();
+ $("editorMeta").textContent=metadata.width+" × "+metadata.height+" · "+getRatioLabel(metadata.width,metadata.height)+" · "+formatClock(metadata.duration)+" · "+(file.size/1048576).toFixed(1)+" MB";
  video.playbackRate = 1;
  inspectVideo();
  video.play().catch(() => {});
@@ -513,9 +555,24 @@ document.querySelectorAll("[data-zoom]").forEach(button => {
  button.onclick = () => { zoom = Number(button.dataset.zoom); applyTransform(); };
 });
 $("rotateButton").onclick = () => { rotation = (rotation + 90) % 360; applyTransform(); };
+["aspectRatioSetting","frameFit","qualityPreference"].forEach(id=>$(id).addEventListener("change",applyOutputFrame));
 function applyTransform() {
  video.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
  toast("Preview Crop/Rotate लागू हुआ।");
+}
+function applyOutputFrame() {
+ const setting=$("aspectRatioSetting").value;
+ const preview=document.querySelector(".preview");
+ preview.style.aspectRatio=setting==="original" && sourceMetadata?.width && sourceMetadata?.height
+  ? sourceMetadata.width+" / "+sourceMetadata.height
+  : setting==="9:16"?"9 / 16":setting==="16:9"?"16 / 9":setting==="1:1"?"1 / 1":"auto";
+ video.style.objectFit=$("frameFit").value;
+ const quality=$("qualityPreference").value;
+ const requested=quality==="original"?0:Number(quality.replace("p",""));
+ const sourceMax=Math.max(sourceMetadata?.width||0,sourceMetadata?.height||0);
+ $("qualityNotice").textContent=requested && sourceMax && requested>sourceMax
+  ? "चुनी गई "+quality+" क्वालिटी स्रोत वीडियो से अधिक है; इससे वास्तविक HD detail नहीं बन सकती।"
+  : "चुनी गई preference: "+(quality==="original"?"Original Source":quality)+". अभी मूल फाइल ही सेव होगी; HD variants के लिए transcoding service जरूरी है।";
 }
 
 /* Filters */
@@ -623,10 +680,12 @@ function inspectVideo() {
  const width=video.videoWidth;
  const height=video.videoHeight;
  const duration=Number.isFinite(video.duration)?video.duration:0;
+ const quality=width>=3840||height>=3840?"4K":width>=2560||height>=2560?"1440p":width>=1920||height>=1920?"1080p":width>=1280||height>=1280?"720p":"SD";
  $("videoInfo").innerHTML =
   "Resolution: " + width + " × " + height +
   "<br>Aspect Ratio: " + getRatioLabel(width,height) +
   "<br>Video Mode: " + getVideoMode(width,height) +
+  "<br>Source Quality: " + quality +
   "<br>Duration: " + duration.toFixed(1) +
   " sec<br>Gallery Upload Maximum: 10800 sec (3 hours)" +
   "<br>File Size: " + (file.size / 1048576).toFixed(2) +
@@ -687,6 +746,9 @@ async function publishVideo() {
   if (!selectedVideoFile) throw new Error("पहले Camera या Gallery से वीडियो चुनें।");
   if (!selectedVideoFile.type.startsWith("video/")) throw new Error("सही Video File चुनें।");
   if (selectedVideoFile.size <= 0) throw new Error("Video File खाली है।");
+  if (selectedVideoFile.size > CURRENT_VIDEO_BUCKET_LIMIT) {
+   throw new Error("यह वीडियो "+(selectedVideoFile.size/1073741824).toFixed(2)+" GB है, लेकिन मौजूदा Supabase videos bucket की सीमा 1 GB है। Storage plan/limit जाँचे बिना 4 GB फिल्म अपलोड नहीं होगी।");
+  }
 
   const mediaInfo=await readVideoMetadata(selectedVideoFile);
   if(!Number.isFinite(mediaInfo.duration)||mediaInfo.duration<=0)throw new Error("वीडियो की अवधि पढ़ी नहीं जा सकी।");
@@ -697,6 +759,11 @@ async function publishVideo() {
   const category = $("videoCategory").value;
   const audience = $("audienceType").value;
   const visibility = $("videoVisibility").value;
+  const mediaKind=$("mediaKind").value;
+  const aspectRatioSetting=$("aspectRatioSetting").value;
+  const qualityPreference=$("qualityPreference").value;
+  const videoType=aspectRatioSetting==="9:16"?"short":aspectRatioSetting==="16:9"?"long":
+   aspectRatioSetting==="original"?(mediaInfo.width<mediaInfo.height?"short":"long"):"long";
   const affiliate = $("affiliateLink").value.trim();
   if (affiliate) {
    let link;
@@ -752,8 +819,9 @@ async function publishVideo() {
   const videoUrl = "storage://videos/" + filePath;
 
   status.textContent = "वीडियो Database में सेव हो रहा है...";
-  const videoType=mediaInfo.duration<=60?"short":"long";
   const payload = {
+   media_kind:mediaKind,aspect_ratio_setting:aspectRatioSetting,quality_preference:qualityPreference,
+   source_quality:(mediaInfo.width+"x"+mediaInfo.height),
    user_id:user.id,video_url:videoUrl,caption,category,username:String(username),
    likes_count:0,views_count:0,affiliate_link:affiliate || null,audience_type:audience,
    duration_seconds:Math.ceil(mediaInfo.duration),width:mediaInfo.width,height:mediaInfo.height,
