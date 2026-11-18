@@ -185,7 +185,7 @@ function setFollowButtonState(button,state){
  button.dataset.followState=state;
  button.classList.toggle("following",state==="following"||state==="requested");
  const key=keys[state];
- if(key){button.setAttribute("data-i18n",key);button.textContent=window.NewStarTranslations?.[JSON.parse(localStorage.getItem("newstar_preferences")||"{}").language||"hi"]?.[key]||window.NewStarTranslations?.en?.[key]||state;}
+ if(key){button.setAttribute("data-i18n",key);button.textContent=state;window.NewStarI18n?.apply(button);}
  else{button.removeAttribute("data-i18n");button.textContent="Unavailable";}
 }
 async function boot(){
