@@ -55,6 +55,7 @@
       .muted,.small-note,.setting-row p,.section-title{color:var(--ns-muted)!important}
       button:not(.newstar-plus-icon){accent-color:var(--ns-accent)}
       button:not(.danger):not(.newstar-plus-icon),.primary-button,.save-button{border-color:var(--ns-accent)!important}
+      button:not(.danger):not(.secondary):not(.newstar-plus-icon),.primary-button,.save-button{background-color:var(--ns-accent)!important;color:#fff!important}
       #newstar-global-nav{background:var(--ns-panel)!important}
       #newstar-global-nav a.active{color:var(--ns-accent)!important}
       #newstar-menu-panel{background:var(--ns-panel)!important;color:var(--ns-text)!important}
