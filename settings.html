@@ -31,7 +31,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <main class="container">
 <section class="intro"><h2>New Star — Main Settings</h2><p>अकाउंट, प्रोफाइल, नोटिफिकेशन, भाषा और सुरक्षा की सेटिंग एक ही जगह से मैनेज करें। नीचे हर सेक्शन क्रम से दिया गया है।</p></section>
 <nav class="quick" aria-label="Settings sections">
-<a href="#notifications">🔔 Notifications</a><a href="#account">🔐 Account</a><a href="#profile">👤 Profile Information</a><a href="#privacy">🛡️ Privacy & Security</a><a href="#appearance">🌐 Language & Theme</a><a href="#monetization">💼 Creator & Monetization</a><a href="#help">❓ Help & About</a>
+<a href="#notifications">🔔 Notifications</a><a href="#ai-location">✦ AI & Location</a><a href="#account">🔐 Account</a><a href="#profile">👤 Profile Information</a><a href="#privacy">🛡️ Privacy & Security</a><a href="#appearance">🌐 Language & Theme</a><a href="#monetization">💼 Creator & Monetization</a><a href="#help">❓ Help & About</a>
 </nav>
 <div id="status" class="status" role="status" aria-live="polite"></div>
 
@@ -46,6 +46,14 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <div class="inline"><input type="checkbox" id="notifyMessage" checked><label for="notifyMessage">Direct messages</label></div>
 <button type="button" id="saveNotificationPrefsBtn">Save Notification Preferences</button></div>
 <div class="row"><h3>Browser Push Notifications</h3><p>अभी यह सिस्टम Inbox के अंदर in-app notifications देता है। Browser push के लिए अलग subscription, VAPID keys और server delivery की जरूरत है; इसलिए push चालू होने का गलत दावा नहीं किया जा रहा।</p></div>
+</div></section>
+
+<section class="section" id="ai-location">
+<h2 class="section-title">AI Assistant & Location Services</h2>
+<div class="panel">
+<div class="row"><h3>✦ New Star AI Chat</h3><p>Shared AI chat अब signed-in app pages पर उपलब्ध है। यह Supabase के सुरक्षित ai-gateway से OpenAI → Gemini → OpenRouter क्रम में configured providers को call करता है। Provider key या quota उपलब्ध न होने पर साफ error दिखेगा; कोई secret browser में नहीं रखा जाता।</p><button type="button" id="openAiAssistantBtn">Open AI Assistant</button></div>
+<div class="row"><h3>AI Provider Configuration</h3><p>OpenAI, Gemini और OpenRouter की secret keys केवल Supabase Edge Function Secrets में project owner द्वारा configure की जानी चाहिए। इस Settings page में API-key fields नहीं हैं। Gateway deployed है, लेकिन provider secrets की मौजूदगी और live failover अभी verify नहीं हुई है।</p><p id="aiGatewayStatus">Gateway endpoint: configured · Provider readiness: not verified</p></div>
+<div class="row"><h3>Mapbox Location & Maps</h3><p>Repository में अभी Mapbox SDK/token integration नहीं मिला। Mapbox को map/location वाली screens में जोड़ना होगा, Settings में नहीं। इसके लिए Mapbox public token और approved domain restrictions चाहिए; token मिलने तक map feature को connected नहीं दिखाया जाएगा। Browser की location permission user के control में रहेगी।</p><p id="mapboxStatus">Mapbox: Not configured</p></div>
 </div></section>
 
 <section class="section" id="account">
@@ -183,7 +191,7 @@ async function logout(scope,buttonId){
  if(!db?.auth)return;const all=scope==="global";if(!confirm(all?"सभी sessions से Logout करना है?":"इस डिवाइस से Logout करना है?"))return;
  const btn=$(buttonId);btn.disabled=true;try{const {error}=await db.auth.signOut({scope});if(error)throw error;location.replace("auth.html");}catch(e){message(e.message||"Logout नहीं हुआ।","error");btn.disabled=false;}
 }
-$("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});$("saveAppearanceBtn").addEventListener("click",saveAppearance);$("savePrivacyBtn").addEventListener("click",savePrivacy);$("saveNotificationPrefsBtn").addEventListener("click",saveNotificationPrefs);$("markAllReadBtn").addEventListener("click",markAllNotificationsRead);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
+$("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});$("saveAppearanceBtn").addEventListener("click",saveAppearance);$("savePrivacyBtn").addEventListener("click",savePrivacy);$("openAiAssistantBtn").addEventListener("click",()=>{const launch=$("ns-ai-launch");if(launch)launch.click();else message("AI Chat अभी इस पेज पर लोड नहीं हुआ। पेज Reload करें।","error");});$("saveNotificationPrefsBtn").addEventListener("click",saveNotificationPrefs);$("markAllReadBtn").addEventListener("click",markAllNotificationsRead);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
 window.addEventListener("newstar:preferences-loaded",loadAppearance);loadAppearance();loadSettings();
 })();
 </script>
