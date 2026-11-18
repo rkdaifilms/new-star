@@ -56,7 +56,7 @@ async function loadWallet(){
 async function loadPackages(){
  const r=await db.from("coin_packages").select("id,code,coins,bonus_coins,amount_minor,currency,country_code,channel,active").eq("channel","web").order("amount_minor");
  const host=$("packages");host.innerHTML="";
- if(r.error||!r.data||!r.data.length){host.innerHTML='<p class="muted">अभी कोई Coin Package नहीं बनाया गया है। Developer Dashboard से देश, कीमत और Coins वाला पैकेज बनाया जाएगा।</p>';return;}
+ if(r.error||!r.data||!r.data.length){host.innerHTML='<p class="muted">अभी कोई Coin Package प्रकाशित नहीं है। Developer Dashboard में verified package configuration आने तक खरीद बंद रहेगी।</p><button class="btn" type="button" disabled aria-disabled="true">🪙 Buy Coins · Payment setup pending</button>';return;}
  r.data.forEach(function(p){const b=document.createElement("div");b.className="pkg";const total=Number(p.coins||0)+Number(p.bonus_coins||0);b.innerHTML="<b>"+esc(Number(p.coins).toLocaleString())+" Coins</b><br><span class='muted'>+"+esc(Number(p.bonus_coins||0).toLocaleString())+" bonus · "+esc(total.toLocaleString())+" total</span><br><strong>"+money(p.amount_minor,p.currency)+"</strong><br><small>"+esc(p.country_code||"Global")+" · "+(p.active?"Listed · checkout not enabled":"Draft · not for sale")+"</small><br><button class='btn' type='button' disabled style='margin-top:10px;width:100%'>Buy Coins · Payment setup pending</button>";b.setAttribute("aria-label",total+" coins, "+money(p.amount_minor,p.currency));b.title=p.active?"Checkout is not available until a verified payment gateway is connected.":"This package is not on sale.";host.appendChild(b);});
 }
 async function loadOrders(){
