@@ -113,6 +113,35 @@ Object.assign(dict.pl,{"action.following":"Obserwujesz","action.requested":"Wys�
 Object.assign(dict.uk,{"action.following":"Ви стежите","action.requested":"Запит надіслано","action.requestFollow":"Запитати підписку"});
 Object.assign(dict.el,{"action.following":"Ακολουθείτε","action.requested":"Υποβλήθηκε αίτημα","action.requestFollow":"Αίτημα ακολούθησης"});
 
+
+ 
+// Follow-request actions across all supported app languages.
+Object.assign(dict.hi,{"action.accept":"स्वीकार करें","action.decline":"अस्वीकार करें"});
+Object.assign(dict.ne,{"action.accept":"स्वीकार गर्नुहोस्","action.decline":"अस्वीकार गर्नुहोस्"});
+Object.assign(dict.en,{"action.accept":"Accept","action.decline":"Decline"});
+Object.assign(dict.zh,{"action.accept":"接受","action.decline":"拒绝"});
+Object.assign(dict.es,{"action.accept":"Aceptar","action.decline":"Rechazar"});
+Object.assign(dict.fr,{"action.accept":"Accepter","action.decline":"Refuser"});
+Object.assign(dict.ar,{"action.accept":"قبول","action.decline":"رفض"});
+Object.assign(dict.ja,{"action.accept":"承認","action.decline":"拒否"});
+Object.assign(dict.de,{"action.accept":"Annehmen","action.decline":"Ablehnen"});
+Object.assign(dict.ru,{"action.accept":"Принять","action.decline":"Отклонить"});
+Object.assign(dict.pt,{"action.accept":"Aceitar","action.decline":"Recusar"});
+Object.assign(dict.it,{"action.accept":"Accetta","action.decline":"Rifiuta"});
+Object.assign(dict.ko,{"action.accept":"수락","action.decline":"거절"});
+Object.assign(dict.tr,{"action.accept":"Kabul et","action.decline":"Reddet"});
+Object.assign(dict.bn,{"action.accept":"গ্রহণ করুন","action.decline":"প্রত্যাখ্যান করুন"});
+Object.assign(dict.ur,{"action.accept":"قبول کریں","action.decline":"مسترد کریں"});
+Object.assign(dict.id,{"action.accept":"Terima","action.decline":"Tolak"});
+Object.assign(dict.vi,{"action.accept":"Chấp nhận","action.decline":"Từ chối"});
+Object.assign(dict.th,{"action.accept":"ยอมรับ","action.decline":"ปฏิเสธ"});
+Object.assign(dict.fa,{"action.accept":"پذیرفتن","action.decline":"رد کردن"});
+Object.assign(dict.sw,{"action.accept":"Kubali","action.decline":"Kataa"});
+Object.assign(dict.nl,{"action.accept":"Accepteren","action.decline":"Weigeren"});
+Object.assign(dict.pl,{"action.accept":"Akceptuj","action.decline":"Odrzuć"});
+Object.assign(dict.uk,{"action.accept":"Прийняти","action.decline":"Відхилити"});
+Object.assign(dict.el,{"action.accept":"Αποδοχή","action.decline":"Απόρριψη"});
+
 const reverseEnglish=Object.fromEntries(Object.entries(dict.en).map(([key,value])=>[String(value).trim().toLowerCase(),key]));
 function translateExactText(root){
  // Only translate elements explicitly marked with data-i18n.
