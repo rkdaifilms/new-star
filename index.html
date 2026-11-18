@@ -369,30 +369,51 @@ async function loadLikes(){
  }catch(error){console.warn("Likes load:",error.message);}
 }
 
+async function loadDirectPublicFeed(){
+ const fields="id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type,duration_seconds,width,height,thumbnail_url,video_type";
+ let result=await db.from("videos").select(fields)
+  .or("processing_status.eq.published,processing_status.is.null")
+  .or("visibility.eq.public,visibility.is.null")
+  .or("audience_type.eq.all,audience_type.is.null")
+  .order("created_at",{ascending:false}).range(0,49);
+ if(result.error && /(column|schema cache|does not exist)/i.test(result.error.message||"")){
+  result=await db.from("videos")
+   .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type")
+   .or("processing_status.eq.published,processing_status.is.null")
+   .or("visibility.eq.public,visibility.is.null")
+   .or("audience_type.eq.all,audience_type.is.null")
+   .order("created_at",{ascending:false}).range(0,49);
+ }
+ if(result.error)throw result.error;
+ return result.data||[];
+}
+
 async function loadFeed(){
  $("loading").style.display="flex";$("empty").style.display="none";
  if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला।");return;}
  try{
-  // Load the unfiltered feed first: older videos may have no duration/type columns yet.
-  const type=null;
-  const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
-  const {data,error}=await db.rpc("get_recommended_video_feed",{p_limit:50,p_offset:0,p_video_type:type,p_category:category});
-  if(error)throw error;
-  videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+  let rpcData=null,rpcError=null;
+  try{
+   const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
+   const result=await db.rpc("get_recommended_video_feed",{p_limit:50,p_offset:0,p_video_type:null,p_category:category});
+   rpcData=result.data;rpcError=result.error;
+  }catch(error){rpcError=error;}
+  // An RPC can succeed but return an empty list. In that case, query the
+  // public videos table directly instead of leaving the feed blank.
+  if(!rpcError&&Array.isArray(rpcData)&&rpcData.length){
+   videos=rpcData.filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+  }else{
+   if(rpcError)console.warn("Recommended feed RPC failed; using direct query:",rpcError.message||rpcError);
+   else console.info("Recommended feed RPC returned no videos; using direct query.");
+   const direct=await loadDirectPublicFeed();
+   videos=direct.filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+  }
   await hydrateFeedVideoMetadata();
-  await loadLikes();await applyFilters();
+  await loadLikes();
+  await applyFilters();
  }catch(error){
   console.error("Feed error:",error);
-  try{
-   const {data,error:fallbackError}=await db.from("videos")
-    .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type,duration_seconds,width,height,thumbnail_url,video_type")
-    .eq("processing_status","published").eq("visibility","public").eq("audience_type","all")
-    .order("created_at",{ascending:false}).range(0,49);
-   if(fallbackError)throw fallbackError;
-   videos=(data||[]).filter(v=>v.id&&v.video_url).map(v=>({...v,likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
-   await hydrateFeedVideoMetadata();
-   await loadLikes();await applyFilters();
-  }catch(fallbackError){console.error("Feed fallback:",fallbackError);showEmpty("वीडियो लोड नहीं हुए। Feed/RLS जाँचें।");}
+  showEmpty("वीडियो लोड नहीं हुए: "+(error.message||"Supabase Feed/RLS जाँचें।"));
  }finally{$("loading").style.display="none";}
 }
 async function getFollowingIds(){
@@ -556,28 +577,51 @@ async function openComments(){
  const composer=$("commentComposer");
  const input=$("commentInput");
  const send=$("postComment");
- // Force the composer to remain visible inside the panel even if older CSS overrides it.
+ // Keep the entire comments sheet above the fixed navigation and mobile keyboard.
+ panel.style.setProperty("position","fixed","important");
+ panel.style.setProperty("z-index","2147483000","important");
+ panel.style.setProperty("left","50%","important");
+ panel.style.setProperty("right","auto","important");
+ panel.style.setProperty("bottom","calc(var(--comment-keyboard-inset,0px) + env(safe-area-inset-bottom))","important");
+ panel.style.setProperty("transform","translateX(-50%)","important");
+ panel.style.setProperty("width","min(100vw,520px)","important");
+ panel.style.setProperty("height","min(62dvh,560px)","important");
+ panel.style.setProperty("max-height","calc(100dvh - env(safe-area-inset-top) - 12px)","important");
+ panel.style.setProperty("min-height","220px","important");
+ panel.style.setProperty("display","flex","important");
+ panel.style.setProperty("visibility","visible","important");
+ panel.style.setProperty("pointer-events","auto","important");
+ panel.style.setProperty("overflow","hidden","important");
  composer.style.setProperty("display","flex","important");
  composer.style.setProperty("visibility","visible","important");
  composer.style.setProperty("position","relative","important");
  composer.style.setProperty("inset","auto","important");
+ composer.style.setProperty("z-index","2147483001","important");
  composer.style.setProperty("width","100%","important");
+ composer.style.setProperty("min-height","66px","important");
  composer.style.setProperty("flex","0 0 auto","important");
+ composer.style.setProperty("opacity","1","important");
+ composer.style.setProperty("pointer-events","auto","important");
  input.style.setProperty("display","block","important");
  input.style.setProperty("visibility","visible","important");
+ input.style.setProperty("flex","1 1 0","important");
+ input.style.setProperty("width","0","important");
  input.style.setProperty("min-width","0","important");
- send.style.setProperty("display","inline-flex","important");
- send.style.setProperty("visibility","visible","important");
- panel.style.setProperty("--comment-keyboard-inset","0px");
- input.placeholder="यहाँ अपना Comment लिखें...";
+ input.style.setProperty("height","46px","important");
+ input.style.setProperty("font-size","16px","important");
+ input.style.setProperty("opacity","1","important");
  input.disabled=false;
  input.readOnly=false;
+ send.style.setProperty("display","inline-flex","important");
+ send.style.setProperty("visibility","visible","important");
+ send.style.setProperty("z-index","2147483002","important");
+ send.style.setProperty("opacity","1","important");
+ send.disabled=false;
+ input.placeholder="यहाँ अपना Comment लिखें...";
  $("postComment").textContent=currentUser?"Send":"Login करके Send";
- $("postComment").disabled=false;
  await loadComments(currentVideo.id);
  setTimeout(()=>input.focus({preventScroll:true}),180);
 }
-
 async function loadComments(videoId){
  const list=$("commentList");list.textContent="Comments लोड हो रहे हैं...";
  try{
