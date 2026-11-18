@@ -102,8 +102,6 @@ self.addEventListener("push", event => {
     } catch {}
     await self.registration.showNotification(title, {
       body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
       tag: String(payload.tag || "newstar-activity"),
       data: { url: targetUrl },
       renotify: false
