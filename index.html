@@ -211,7 +211,10 @@ button{cursor:pointer}
  <button id="playHint">▶</button>
  <div id="counter"></div>
  <section class="video-info">
-  <h3 id="username"></h3>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+   <h3 id="username"></h3>
+   <button id="followCreatorBtn" type="button" style="display:none;background:#fe2c55;color:#fff;border:0;border-radius:18px;padding:6px 14px;font-weight:700">Follow</button>
+  </div>
   <p id="caption"></p>
   <a id="affiliate" href="#" target="_blank" rel="noopener noreferrer">🛒 Product Link</a>
   <div class="video-meta" id="meta"></div>
@@ -540,6 +543,55 @@ function recordEngagement(videoId,eventType){
  });
 }
 
+let followButtonVideoId=null;
+async function refreshCreatorFollowButton(item){
+ const button=$("followCreatorBtn");
+ if(!button)return;
+ followButtonVideoId=String(item?.id||"");
+ if(!currentUser||!item?.user_id||String(item.user_id)===String(currentUser.id)){
+  button.style.display="none";return;
+ }
+ button.style.display="inline-block";button.disabled=true;button.textContent="…";
+ try{
+  const {data:card,error:profileError}=await db.from("creator_public_profiles")
+   .select("user_id,is_private").eq("user_id",String(item.user_id)).maybeSingle();
+  if(profileError)throw profileError;
+  if(!card||card.is_private===true){button.style.display="none";return;}
+  const {data:row,error}=await db.from("followers").select("id")
+   .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
+  if(error)throw error;
+  if(followButtonVideoId!==String(item.id))return;
+  button.textContent=row?"Following":"Follow";
+  button.classList.toggle("following",!!row);
+ }catch(error){
+  console.warn("Follow state:",error.message);
+  button.textContent="Follow";
+ }finally{button.disabled=false;}
+}
+async function toggleCreatorFollow(){
+ const item=currentVideo,button=$("followCreatorBtn");
+ if(!currentUser){showToast("Follow करने के लिए Login करें।");return;}
+ if(!item?.user_id||String(item.user_id)===String(currentUser.id))return;
+ button.disabled=true;
+ try{
+  const {data:row,error:readError}=await db.from("followers").select("id")
+   .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
+  if(readError)throw readError;
+  if(row){
+   const {error}=await db.from("followers").delete().eq("id",row.id).eq("follower_id",currentUser.id);
+   if(error)throw error;
+   showToast("अब आप इस Creator को Follow नहीं करते।");
+  }else{
+   const {error}=await db.from("followers").insert({follower_id:currentUser.id,following_id:String(item.user_id)});
+   if(error)throw error;
+   showToast("Creator Follow हो गया!");
+  }
+  await refreshCreatorFollowButton(item);
+ }catch(error){
+  showToast("Follow अपडेट नहीं हुआ: "+(error.message||"Permission error"));
+  button.disabled=false;
+ }
+}
 function renderVideo(){
  if(!filtered.length)return;
  document.querySelector(".actions").style.display="flex";
@@ -569,6 +621,7 @@ function renderVideo(){
   player.style.objectFit=currentIsShort?"cover":"contain";
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
+ refreshCreatorFollowButton(currentVideo);
  $("caption").textContent=currentVideo.caption||"";
  $("meta").textContent=numberFormat(currentVideo.views_count)+" views · Video information loading...";
  $("likes").textContent=numberFormat(currentVideo.likes_count);
@@ -966,6 +1019,7 @@ $("feedVoiceStart").addEventListener("click",startFeedVoice);$("feedVoiceStop").
 async function mixFeedVideo(){if(!feedOwnsVideo())return;const item=currentVideo,audio=$("feedManageAudio").files?.[0]||feedManagedAudio;if(!audio){$("feedManageStatus").textContent="पहले Gallery Audio चुनें या Voice रिकॉर्ड करें।";return;}const v=document.createElement("video");v.crossOrigin="anonymous";v.preload="auto";v.playsInline=true;v.src=item.video_url;const cap=v.captureStream||v.mozCaptureStream;if(!cap||!window.MediaRecorder||!window.AudioContext){$("feedManageStatus").textContent="इस ब्राउज़र में वास्तविक मिक्सिंग सपोर्ट नहीं है; Original सुरक्षित है।";return;}const b=$("feedMixSave");b.disabled=true;$("feedManageStatus").textContent="Mix चल रहा है—पेज बंद न करें।";let ctx,extra,rec,stream;try{await new Promise((ok,no)=>{v.onloadedmetadata=ok;v.onerror=()=>no(Error("Video load failed"));v.load();});ctx=new AudioContext();await ctx.resume();const dest=ctx.createMediaStreamDestination(),src=ctx.createMediaElementSource(v),gain=ctx.createGain();src.connect(gain);gain.connect(ctx.destination);gain.connect(dest);extra=document.createElement("audio");extra.src=URL.createObjectURL(audio);extra.loop=true;const es=ctx.createMediaElementSource(extra),eg=ctx.createGain();eg.gain.value=.85;es.connect(eg);eg.connect(ctx.destination);eg.connect(dest);stream=cap.call(v);const output=new MediaStream([...stream.getVideoTracks(),...dest.stream.getAudioTracks()]);const mime=["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(x=>MediaRecorder.isTypeSupported(x));if(!mime)throw Error("WebM export unsupported");const chunks=[];rec=new MediaRecorder(output,{mimeType:mime});const done=new Promise((ok,no)=>{rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};rec.onerror=e=>no(e.error||Error("Recorder failed"));rec.onstop=()=>ok(new Blob(chunks,{type:mime}));});await v.play();await extra.play().catch(()=>{});rec.start(1000);await new Promise((ok,no)=>{let finished=false;const finish=()=>{if(!finished){finished=true;clearInterval(timer);ok();}};v.onended=finish;v.onerror=()=>{if(!finished){finished=true;clearInterval(timer);no(Error("Video playback failed"));}};const timer=setInterval(()=>{if(v.ended)finish();},500);});rec.stop();const blob=await done;if(blob.size<10000)throw Error("Export खाली है");const path=currentUser.id+"/"+item.id+"-mix-"+Date.now()+".webm",up=await db.storage.from("videos").upload(path,blob,{contentType:"video/webm"});if(up.error)throw up.error;const storageRef="storage://videos/"+path;const saved=await db.from("videos").update({video_url:storageRef}).eq("id",item.id).eq("user_id",String(currentUser.id)).select("id").maybeSingle();if(saved.error||!saved.data){await db.storage.from("videos").remove([path]);throw saved.error||Error("Database update failed; Original safe");}const old=feedObjectPath(item.video_url);if(old)await db.storage.from("videos").remove([old]);const fresh=await resolveFeedVideoUrls([{...item,video_url:storageRef}]);if(!fresh.length)throw Error("नया सुरक्षित वीडियो URL नहीं मिला।");item.video_url=fresh[0].video_url;videos=videos.map(x=>String(x.id)===String(item.id)?{...x,video_url:item.video_url}:x);filtered=filtered.map(x=>String(x.id)===String(item.id)?{...x,video_url:item.video_url}:x);$("feedManageStatus").textContent="✅ Audio Mix होकर सेव हुआ।";$("feedAudioStatus").textContent="Mix पूरा हुआ।";feedManagedAudio=null;$("feedManageAudio").value="";const player=$("video");player.pause();player.src=item.video_url;player.load();player.play().catch(()=>{});}catch(e){$("feedManageStatus").textContent="Mix Error: "+e.message+" Original सुरक्षित है।";}finally{if(rec&&rec.state!=="inactive")rec.stop();if(extra){extra.pause();URL.revokeObjectURL(extra.src);}v.pause();v.removeAttribute("src");v.load();stream?.getTracks().forEach(t=>t.stop());if(ctx)await ctx.close().catch(()=>{});b.disabled=false;}}
 $("feedMixSave").addEventListener("click",mixFeedVideo);
 
+$("followCreatorBtn").addEventListener("click",toggleCreatorFollow);
 $("likeBtn").addEventListener("click",toggleLike);
 $("commentBtn").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openComments();});
 $("giftBtn").addEventListener("click",openGift);
