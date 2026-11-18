@@ -556,13 +556,18 @@ async function refreshCreatorFollowButton(item){
   const {data:card,error:profileError}=await db.from("creator_public_profiles")
    .select("user_id,is_private").eq("user_id",String(item.user_id)).maybeSingle();
   if(profileError)throw profileError;
-  if(!card||card.is_private===true){button.style.display="none";return;}
+  if(!card){button.style.display="none";return;}
   const {data:row,error}=await db.from("followers").select("id")
    .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
   if(error)throw error;
   if(followButtonVideoId!==String(item.id))return;
-  button.textContent=row?"Following":"Follow";
-  button.classList.toggle("following",!!row);
+  if(row){button.textContent="Following";button.classList.add("following");}
+  else if(card.is_private){
+   const {data:request,error:requestError}=await db.from("follow_requests").select("id")
+    .eq("requester_id",currentUser.id).eq("target_user_id",String(item.user_id)).eq("status","pending").maybeSingle();
+   if(requestError)throw requestError;
+   button.textContent=request?"Requested":"Request Follow";button.classList.toggle("following",!!request);
+  }else{button.textContent="Follow";button.classList.remove("following");}
  }catch(error){
   console.warn("Follow state:",error.message);
   button.textContent="Follow";
@@ -574,6 +579,10 @@ async function toggleCreatorFollow(){
  if(!item?.user_id||String(item.user_id)===String(currentUser.id))return;
  button.disabled=true;
  try{
+  const {data:card,error:profileError}=await db.from("creator_public_profiles")
+   .select("user_id,is_private").eq("user_id",String(item.user_id)).maybeSingle();
+  if(profileError)throw profileError;
+  if(!card)throw new Error("Creator profile नहीं मिली।");
   const {data:row,error:readError}=await db.from("followers").select("id")
    .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
   if(readError)throw readError;
@@ -581,6 +590,16 @@ async function toggleCreatorFollow(){
    const {error}=await db.from("followers").delete().eq("id",row.id).eq("follower_id",currentUser.id);
    if(error)throw error;
    showToast("अब आप इस Creator को Follow नहीं करते।");
+  }else if(card.is_private){
+   const {data:request,error:requestError}=await db.from("follow_requests").select("id")
+    .eq("requester_id",currentUser.id).eq("target_user_id",String(item.user_id)).eq("status","pending").maybeSingle();
+   if(requestError)throw requestError;
+   if(request){showToast("आपकी Follow Request पहले से Pending है।");}
+   else{
+    const {error}=await db.from("follow_requests").insert({requester_id:currentUser.id,target_user_id:String(item.user_id),status:"pending"});
+    if(error)throw error;
+    showToast("Private Creator को Follow Request भेज दी गई।");
+   }
   }else{
    const {error}=await db.from("followers").insert({follower_id:currentUser.id,following_id:String(item.user_id)});
    if(error)throw error;
@@ -592,6 +611,7 @@ async function toggleCreatorFollow(){
   button.disabled=false;
  }
 }
+
 function renderVideo(){
  if(!filtered.length)return;
  document.querySelector(".actions").style.display="flex";
