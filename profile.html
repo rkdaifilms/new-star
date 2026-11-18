@@ -410,12 +410,14 @@ async function loadStatsAndVideos(){
 
  try{
   const [vr,fr,fg]=await Promise.all([
-   db.from("videos").select("id,user_id,video_url,caption,created_at,video_type,duration_seconds,width,height,thumbnail_url")
-    .eq("user_id",user.id).order("created_at",{ascending:false}),
+   // Select the row's current schema instead of hard-coding optional metadata
+   // columns; older deployments may not have every video metadata field.
+   db.from("videos").select("*")
+    .eq("user_id",String(user.id)).order("created_at",{ascending:false}),
    db.from("followers").select("id",{count:"exact",head:true})
-    .eq("following_id",user.id),
+    .eq("following_id",String(user.id)),
    db.from("followers").select("id",{count:"exact",head:true})
-    .eq("follower_id",user.id)
+    .eq("follower_id",String(user.id))
   ]);
 
   if(vr.error)throw vr.error;
@@ -423,7 +425,7 @@ async function loadStatsAndVideos(){
   $("followerCount").textContent=fr.error?"—":String(fr.count??0);
   $("followingCount").textContent=fg.error?"—":String(fg.count??0);
 
-  const videos=vr.data||[];
+  const videos=(vr.data||[]).filter(item=>item&&item.video_url);
   await Promise.all(videos.map(async item=>{
    if(Number(item.duration_seconds)>0&&Number(item.width)>0&&Number(item.height)>0)return;
    try{
