@@ -40,6 +40,11 @@
     style.textContent=`
       :root{--ns-bg:${t.bg};--ns-panel:${t.panel};--ns-text:${t.text};--ns-muted:${t.muted};--ns-accent:${t.accent}}
       body{background-color:var(--ns-bg)!important;color:var(--ns-text)!important}
+      .panel,.card,.setting-row,.section-title{color:var(--ns-text)}
+      .panel,.card{background-color:var(--ns-panel)!important;border-color:color-mix(in srgb,var(--ns-muted) 28%,transparent)!important}
+      input,select,textarea{background:color-mix(in srgb,var(--ns-bg) 88%,var(--ns-panel))!important;color:var(--ns-text)!important;border-color:color-mix(in srgb,var(--ns-muted) 45%,transparent)!important}
+      .muted,.small-note,.setting-row p{color:var(--ns-muted)!important}
+      button:not(.newstar-plus-icon){accent-color:var(--ns-accent)}
       #newstar-global-nav{background:var(--ns-panel)!important}
       #newstar-global-nav a.active{color:var(--ns-accent)!important}
       #newstar-menu-panel{background:var(--ns-panel)!important;color:var(--ns-text)!important}
@@ -50,9 +55,12 @@
   function navText(key){
     const lang=getPrefs().language||"hi";
     const words={
-      Home:{hi:"होम",ne:"गृह",en:"Home"},Wallet:{hi:"वॉलेट",ne:"वालेट",en:"Wallet"},
-      Create:{hi:"बनाएँ",ne:"सिर्जना",en:"Create"},Inbox:{hi:"इनबॉक्स",ne:"इनबक्स",en:"Inbox"},
-      Admin:{hi:"एडमिन",ne:"एडमिन",en:"Admin"},Profile:{hi:"प्रोफाइल",ne:"प्रोफाइल",en:"Profile"}
+      Home:{hi:"होम",ne:"गृह",en:"Home",zh:"首页",es:"Inicio",fr:"Accueil",ar:"الرئيسية",ja:"ホーム",de:"Start",ru:"Главная",pt:"Início",it:"Home",ko:"홈",tr:"Ana Sayfa",bn:"হোম"},
+      Wallet:{hi:"वॉलेट",ne:"वालेट",en:"Wallet",zh:"钱包",es:"Billetera",fr:"Portefeuille",ar:"المحفظة",ja:"ウォレット",de:"Wallet",ru:"Кошелёк",pt:"Carteira",it:"Portafoglio",ko:"지갑",tr:"Cüzdan",bn:"ওয়ালেট"},
+      Create:{hi:"बनाएँ",ne:"सिर्जना",en:"Create",zh:"创建",es:"Crear",fr:"Créer",ar:"إنشاء",ja:"作成",de:"Erstellen",ru:"Создать",pt:"Criar",it:"Crea",ko:"만들기",tr:"Oluştur",bn:"তৈরি"},
+      Inbox:{hi:"इनबॉक्स",ne:"इनबक्स",en:"Inbox",zh:"收件箱",es:"Bandeja",fr:"Boîte",ar:"الوارد",ja:"受信箱",de:"Postfach",ru:"Входящие",pt:"Caixa",it:"Posta",ko:"받은편지함",tr:"Gelen Kutusu",bn:"ইনবক্স"},
+      Admin:{hi:"एडमिन",ne:"एडमिन",en:"Admin",zh:"管理",es:"Admin",fr:"Admin",ar:"المشرف",ja:"管理",de:"Admin",ru:"Админ",pt:"Admin",it:"Admin",ko:"관리자",tr:"Yönetici",bn:"অ্যাডমিন"},
+      Profile:{hi:"प्रोफाइल",ne:"प्रोफाइल",en:"Profile",zh:"个人资料",es:"Perfil",fr:"Profil",ar:"الملف",ja:"プロフィール",de:"Profil",ru:"Профиль",pt:"Perfil",it:"Profilo",ko:"프로필",tr:"Profil",bn:"প্রোফাইল"}
     };
     return words[key]?.[lang]||words[key]?.en||key;
   }
@@ -385,7 +393,7 @@
 
         link.innerHTML = `
           <span class="newstar-plus-icon" aria-hidden="true">+</span>
-          <span>Create</span>
+          <span>${item.label}</span>
         `;
       } else {
         link.innerHTML = `
