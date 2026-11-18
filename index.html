@@ -34,6 +34,18 @@ button{cursor:pointer}
 .action-icon{width:40px;height:40px;border-radius:50%;background:#252525c9;border:1px solid #ffffff55;display:flex;align-items:center;justify-content:center;font-size:21px;margin:0 auto 3px}
 .action.liked .action-icon{color:#fe2c55}
 .action:disabled{opacity:.5}
+.video-settings-wrap{position:relative;display:none;align-items:center;justify-content:center}
+#videoSettingsBtn{width:30px;height:30px;border:1px solid #ffffff55;border-radius:50%;background:#252525dc;color:#fff;font-size:19px;line-height:1;padding:0}
+#videoSettingsMenu{position:absolute;right:36px;bottom:0;width:185px;max-height:52vh;overflow:auto;background:#20202b;border:1px solid #55556a;border-radius:10px;padding:4px;z-index:100010;box-shadow:0 8px 24px #000b}
+#videoSettingsMenu[hidden]{display:none!important}
+#videoSettingsMenu button{display:block;width:100%;padding:9px;text-align:left;border:0;border-radius:7px;background:transparent;color:#fff;font-size:12px}
+#feedManageModal{display:none;position:fixed;inset:0;z-index:2147483000;background:#000d;align-items:center;justify-content:center;padding:12px}
+#feedManageModal.show{display:flex}
+#feedManageModal .manage-box{width:100%;max-width:480px;max-height:88dvh;overflow:auto;background:#20202a;border:1px solid #484854;border-radius:15px;padding:15px}
+#feedManageModal label{display:block;margin:10px 0 5px;font-size:13px}
+#feedManageModal input{width:100%;padding:11px;background:#111;color:#fff;border:1px solid #55556a;border-radius:8px}
+#feedManageModal .manage-btn{width:100%;margin-top:9px;padding:11px;border:0;border-radius:8px;background:#343442;color:#fff}
+#feedManageStatus{font-size:12px;color:#ddd;line-height:1.5;margin-top:9px}
 #counter{position:absolute;z-index:6;right:12px;top:125px;background:#0009;padding:5px 9px;border-radius:15px;font-size:11px}
 #loading,#empty{position:absolute;z-index:10;inset:0;background:#080808;display:flex;align-items:center;justify-content:center;text-align:center;padding:25px}
 #empty{display:none;line-height:1.6}
@@ -208,6 +220,12 @@ button{cursor:pointer}
   <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span>Gift</span></button>
   <button class="action" id="shareBtn"><div class="action-icon">↗️</div><span>Share</span></button>
   <button class="action" id="downloadBtn"><div class="action-icon">⬇️</div><span>Download</span></button>
+  <div class="video-settings-wrap" id="videoSettingsWrap"><button type="button" id="videoSettingsBtn" aria-label="Video settings" aria-expanded="false">⋮</button>
+   <div id="videoSettingsMenu" hidden>
+    <button type="button" data-feed-manage="title">✏️ Edit Title</button><button type="button" data-feed-manage="tags">#️⃣ Edit Hashtags</button>
+    <button type="button" data-feed-manage="voice">🎙️ Record Voice</button><button type="button" data-feed-manage="gallery">🎵 Choose Audio from Gallery</button>
+    <button type="button" data-feed-manage="mix">🎚️ Mix & Save</button><button type="button" data-feed-manage="delete">🗑️ Delete Video</button>
+   </div></div>
  </aside>
 </main>
 </div>
@@ -235,7 +253,16 @@ button{cursor:pointer}
  <p class="gift-note">Gift भेजने पर Coins आपके Supabase Wallet से कटेंगे। सफल Transaction की पुष्टि सर्वर से होगी।</p>
  <div class="gift-footer"><button class="primary" id="sendGift" disabled>पहले Gift चुनें</button></div>
 </section>
-<div id="toast"></div>
+<div id="feedManageModal" aria-hidden="true"><div class="manage-box">
+ <div style="display:flex;align-items:center;justify-content:space-between"><strong>Video Settings</strong><button type="button" id="feedManageClose" class="close">×</button></div>
+ <label for="feedManageTitle">Video Title / Caption</label><input id="feedManageTitle" maxlength="2000">
+ <label for="feedManageTags">Hashtags (comma से अलग करें)</label><input id="feedManageTags" maxlength="1000" placeholder="#nepal, #newstar">
+ <button type="button" class="manage-btn" id="feedManageSave">💾 Save Title & Hashtags</button><hr style="border-color:#444;margin:13px 0">
+ <strong>🎙️ Voice / Music</strong><p style="font-size:12px;color:#bbb">Gallery Audio चुनें या Voice रिकॉर्ड करें। Mix & Save वीडियो को real-time दोबारा रिकॉर्ड करता है; पेज खुला रखें।</p>
+ <input id="feedManageAudio" type="file" accept="audio/*"><button type="button" class="manage-btn" id="feedVoiceStart">🎙️ Record Voice</button>
+ <button type="button" class="manage-btn" id="feedVoiceStop" disabled>⏹ Stop Recording</button><p id="feedAudioStatus" style="font-size:12px;color:#bbb">अभी कोई Audio नहीं चुना गया।</p>
+ <button type="button" class="manage-btn" id="feedMixSave">🎚️ Mix & Save</button><button type="button" class="manage-btn" id="feedDeleteVideo" style="background:#632b38">🗑️ Delete Video</button>
+ <p id="feedManageStatus" aria-live="polite"></p></div></div><div id="toast"></div>
 
 <script src="navbar.js"></script>
 <script src="editor.js"></script>
@@ -529,6 +556,8 @@ function renderVideo(){
  $("likes").textContent=numberFormat(currentVideo.likes_count);
  $("counter").textContent=(currentIndex+1)+" / "+filtered.length;
  $("likeBtn").classList.toggle("liked",likedIds.has(String(currentVideo.id)));
+ const ownVideo=!!currentUser&&String(currentVideo.user_id)===String(currentUser.id);
+ $("videoSettingsWrap").style.display=ownVideo?"flex":"none";$("videoSettingsMenu").hidden=true;$("videoSettingsBtn").setAttribute("aria-expanded","false");
  $("playHint").style.display="none";
  const affiliate=$("affiliate");affiliate.style.display="none";
  if(currentVideo.affiliate_link){
@@ -898,6 +927,26 @@ document.addEventListener("keydown",event=>{
 $("playHint").addEventListener("click",()=>{
  $("video").play().catch(()=>{});$("playHint").style.display="none";
 });
+
+
+let feedManagedAudio=null,feedVoiceRecorder=null,feedVoiceStream=null,feedVoiceChunks=[];
+function feedOwnsVideo(){return !!(currentUser&&currentVideo&&String(currentVideo.user_id)===String(currentUser.id));}
+function feedObjectPath(url){try{const p=new URL(url).pathname,m="/storage/v1/object/public/videos/",i=p.indexOf(m);return i<0?null:decodeURIComponent(p.slice(i+m.length));}catch(e){return null;}}
+function openFeedSettings(){if(!feedOwnsVideo())return;$("feedManageTitle").value=currentVideo.caption||"";$("feedManageTags").value=Array.isArray(currentVideo.tags)?currentVideo.tags.join(", "):"";$("feedManageAudio").value="";feedManagedAudio=null;$("feedAudioStatus").textContent="अभी कोई Audio नहीं चुना गया।";$("feedManageStatus").textContent="";$("feedManageModal").classList.add("show");}
+function closeFeedSettings(){if(feedVoiceRecorder&&feedVoiceRecorder.state!=="inactive")feedVoiceRecorder.stop();if(feedVoiceStream)feedVoiceStream.getTracks().forEach(t=>t.stop());feedVoiceStream=null;$("feedManageModal").classList.remove("show");}
+$("videoSettingsBtn").addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(!feedOwnsVideo())return;const m=$("videoSettingsMenu");m.hidden=!m.hidden;$("videoSettingsBtn").setAttribute("aria-expanded",String(!m.hidden));});
+$("videoSettingsMenu").addEventListener("click",e=>e.stopPropagation());
+document.addEventListener("click",e=>{if(!e.target.closest("#videoSettingsWrap")){$("videoSettingsMenu").hidden=true;$("videoSettingsBtn").setAttribute("aria-expanded","false");}});
+$("videoSettingsMenu").querySelectorAll("[data-feed-manage]").forEach(b=>b.addEventListener("click",()=>{const a=b.dataset.feedManage;$("videoSettingsMenu").hidden=true;if(!feedOwnsVideo())return;if(a==="delete")return deleteFeedVideo();openFeedSettings();if(a==="title")$("feedManageTitle").focus();if(a==="tags")$("feedManageTags").focus();if(a==="voice")startFeedVoice();if(a==="gallery")$("feedManageAudio").click();if(a==="mix")$("feedMixSave").focus();}));
+$("feedManageClose").addEventListener("click",closeFeedSettings);$("feedManageModal").addEventListener("click",e=>{if(e.target===$("feedManageModal"))closeFeedSettings();});
+$("feedManageAudio").addEventListener("change",()=>{feedManagedAudio=$("feedManageAudio").files?.[0]||null;$("feedAudioStatus").textContent=feedManagedAudio?"Audio चुना गया: "+feedManagedAudio.name:"अभी कोई Audio नहीं चुना गया।";});
+$("feedManageSave").addEventListener("click",async()=>{if(!feedOwnsVideo())return;const v=currentVideo,caption=$("feedManageTitle").value.trim(),tags=$("feedManageTags").value.split(/[ ,]+/).filter(Boolean).map(x=>x.startsWith("#")?x:"#"+x).slice(0,30),b=$("feedManageSave");b.disabled=true;try{const{data,error}=await db.from("videos").update({caption,tags}).eq("id",v.id).eq("user_id",String(currentUser.id)).select("id").maybeSingle();if(error)throw error;if(!data)throw Error("Owner permission से update नहीं हुआ।");v.caption=caption;v.tags=tags;$("caption").textContent=caption;$("feedManageStatus").textContent="✅ Title और Hashtags सेव हो गए।";}catch(e){$("feedManageStatus").textContent="Save Error: "+e.message;}finally{b.disabled=false;}});
+async function deleteFeedVideo(){if(!feedOwnsVideo()||!confirm("क्या यह वीडियो हमेशा के लिए Delete करना चाहते हैं?"))return;const v=currentVideo;try{const{data,error}=await db.from("videos").delete().eq("id",v.id).eq("user_id",String(currentUser.id)).select("id").maybeSingle();if(error)throw error;if(!data)throw Error("Owner permission से delete नहीं हुआ।");const path=feedObjectPath(v.video_url);if(path){const r=await db.storage.from("videos").remove([path]);if(r.error)console.warn(r.error.message);}videos=videos.filter(x=>String(x.id)!==String(v.id));filtered=filtered.filter(x=>String(x.id)!==String(v.id));closeFeedSettings();if(!filtered.length)showEmpty("आपका वीडियो Delete हो गया।");else{currentIndex=Math.min(currentIndex,filtered.length-1);renderVideo();}showToast("आपका वीडियो Delete हो गया।");}catch(e){$("feedManageStatus").textContent="Delete Error: "+e.message;}}
+$("feedDeleteVideo").addEventListener("click",deleteFeedVideo);
+async function startFeedVoice(){if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){$("feedAudioStatus").textContent="इस ब्राउज़र में Voice Recording उपलब्ध नहीं।";return;}try{feedVoiceStream=await navigator.mediaDevices.getUserMedia({audio:true});feedVoiceChunks=[];feedVoiceRecorder=new MediaRecorder(feedVoiceStream);feedVoiceRecorder.ondataavailable=e=>{if(e.data.size)feedVoiceChunks.push(e.data);};feedVoiceRecorder.onstop=()=>{feedManagedAudio=new Blob(feedVoiceChunks,{type:feedVoiceRecorder.mimeType||"audio/webm"});$("feedAudioStatus").textContent="Voice रिकॉर्ड हो गई।";feedVoiceStream?.getTracks().forEach(t=>t.stop());feedVoiceStream=null;$("feedVoiceStart").disabled=false;$("feedVoiceStop").disabled=true;};feedVoiceRecorder.start();$("feedVoiceStart").disabled=true;$("feedVoiceStop").disabled=false;$("feedAudioStatus").textContent="🔴 Recording...";}catch(e){$("feedAudioStatus").textContent="Mic Error: "+e.message;}}
+$("feedVoiceStart").addEventListener("click",startFeedVoice);$("feedVoiceStop").addEventListener("click",()=>{if(feedVoiceRecorder&&feedVoiceRecorder.state!=="inactive")feedVoiceRecorder.stop();});
+async function mixFeedVideo(){if(!feedOwnsVideo())return;const item=currentVideo,audio=$("feedManageAudio").files?.[0]||feedManagedAudio;if(!audio){$("feedManageStatus").textContent="पहले Gallery Audio चुनें या Voice रिकॉर्ड करें।";return;}const v=document.createElement("video");v.crossOrigin="anonymous";v.preload="auto";v.playsInline=true;v.src=item.video_url;const cap=v.captureStream||v.mozCaptureStream;if(!cap||!window.MediaRecorder||!window.AudioContext){$("feedManageStatus").textContent="इस ब्राउज़र में वास्तविक मिक्सिंग सपोर्ट नहीं है; Original सुरक्षित है।";return;}const b=$("feedMixSave");b.disabled=true;$("feedManageStatus").textContent="Mix चल रहा है—पेज बंद न करें।";let ctx,extra,rec,stream;try{await new Promise((ok,no)=>{v.onloadedmetadata=ok;v.onerror=()=>no(Error("Video load failed"));v.load();});ctx=new AudioContext();await ctx.resume();const dest=ctx.createMediaStreamDestination(),src=ctx.createMediaElementSource(v),gain=ctx.createGain();src.connect(gain);gain.connect(ctx.destination);gain.connect(dest);extra=document.createElement("audio");extra.src=URL.createObjectURL(audio);extra.loop=true;const es=ctx.createMediaElementSource(extra),eg=ctx.createGain();eg.gain.value=.85;es.connect(eg);eg.connect(ctx.destination);eg.connect(dest);stream=cap.call(v);const output=new MediaStream([...stream.getVideoTracks(),...dest.stream.getAudioTracks()]);const mime=["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(x=>MediaRecorder.isTypeSupported(x));if(!mime)throw Error("WebM export unsupported");const chunks=[];rec=new MediaRecorder(output,{mimeType:mime});const done=new Promise((ok,no)=>{rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};rec.onerror=e=>no(e.error||Error("Recorder failed"));rec.onstop=()=>ok(new Blob(chunks,{type:mime}));});await v.play();await extra.play().catch(()=>{});rec.start(1000);await new Promise((ok,no)=>{let finished=false;const finish=()=>{if(!finished){finished=true;clearInterval(timer);ok();}};v.onended=finish;v.onerror=()=>{if(!finished){finished=true;clearInterval(timer);no(Error("Video playback failed"));}};const timer=setInterval(()=>{if(v.ended)finish();},500);});rec.stop();const blob=await done;if(blob.size<10000)throw Error("Export खाली है");const path=currentUser.id+"/"+item.id+"-mix-"+Date.now()+".webm",up=await db.storage.from("videos").upload(path,blob,{contentType:"video/webm"});if(up.error)throw up.error;const url=db.storage.from("videos").getPublicUrl(path).data.publicUrl;const saved=await db.from("videos").update({video_url:url}).eq("id",item.id).eq("user_id",String(currentUser.id)).select("id").maybeSingle();if(saved.error||!saved.data){await db.storage.from("videos").remove([path]);throw saved.error||Error("Database update failed; Original safe");}const old=feedObjectPath(item.video_url);item.video_url=url;if(old)await db.storage.from("videos").remove([old]);$("feedManageStatus").textContent="✅ Audio Mix होकर सेव हुआ।";$("feedAudioStatus").textContent="Mix पूरा हुआ।";feedManagedAudio=null;$("feedManageAudio").value="";const player=$("video");player.pause();player.src=url;player.load();player.play().catch(()=>{});}catch(e){$("feedManageStatus").textContent="Mix Error: "+e.message+" Original सुरक्षित है।";}finally{if(rec&&rec.state!=="inactive")rec.stop();if(extra){extra.pause();URL.revokeObjectURL(extra.src);}v.pause();v.removeAttribute("src");v.load();stream?.getTracks().forEach(t=>t.stop());if(ctx)await ctx.close().catch(()=>{});b.disabled=false;}}
+$("feedMixSave").addEventListener("click",mixFeedVideo);
 
 $("likeBtn").addEventListener("click",toggleLike);
 $("commentBtn").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openComments();});
