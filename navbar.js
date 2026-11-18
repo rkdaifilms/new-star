@@ -263,6 +263,7 @@
       <div id="newstar-menu-panel">
         <a href="camera.html" data-i18n="page.camera">📷 Camera / Create / Upload</a>
         <a href="profile.html" data-i18n="nav.profile">👤 My Profile</a>
+        <a href="settings.html" data-i18n="settings.title">⚙️ Main Settings</a>
         <a href="wallet.html" data-i18n="nav.wallet">💰 Wallet</a>
         <a href="inbox.html" data-i18n="nav.inbox">✉️ Inbox</a>
         <a href="monetization.html" data-i18n="page.monetization">💎 Monetization</a>
