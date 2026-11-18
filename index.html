@@ -205,7 +205,6 @@ button{cursor:pointer}
  <aside class="actions">
   <button class="action" id="likeBtn"><div class="action-icon">❤️</div><span id="likes">0</span></button>
   <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount">Comments</span></button>
-  <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span>Gift</span></button>
   <button class="action" id="shareBtn"><div class="action-icon">↗️</div><span>Share</span></button>
   <button class="action" id="downloadBtn"><div class="action-icon">⬇️</div><span>Download</span></button>
  </aside>
@@ -902,7 +901,6 @@ $("playHint").addEventListener("click",()=>{
 $("likeBtn").addEventListener("click",toggleLike);
 $("commentBtn").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openComments();});
 $("commentComposer").addEventListener("submit",event=>{event.preventDefault();postComment();});
-$("giftBtn").addEventListener("click",openGift);
 $("sendGift").addEventListener("click",sendGift);
 $("shareBtn").addEventListener("click",shareVideo);
 $("nativeShare").addEventListener("click",shareVideo);
