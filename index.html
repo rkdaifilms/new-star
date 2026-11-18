@@ -198,7 +198,7 @@ button{cursor:pointer}
 </header>
 
 <main id="feed">
- <div id="loading">🌟 New Star वीडियो लोड हो रहे हैं...</div>
+ <div id="loading" data-i18n="feed.loading">🌟 New Star videos are loading...</div>
  <div id="empty">
   <div>
    <h3 data-i18n="feed.emptyTitle">No videos available yet</h3>
@@ -239,7 +239,7 @@ button{cursor:pointer}
  <div class="modal-head"><h3 id="commentTitle"><span data-i18n="action.comment">Comments</span> (<span id="commentTotal">0</span>)</h3><button class="close" data-close="commentModal" aria-label="Close comments" data-i18n-aria-label="action.close">×</button></div>
  <div class="comment-list" id="commentList" aria-live="polite"></div>
  <form id="commentComposer" class="comment-form" autocomplete="off" aria-label="Write a comment" data-i18n-aria-label="action.comment">
-  <input id="commentInput" type="text" maxlength="1000" placeholder="यहाँ Comment लिखें..." aria-label="Comment लिखें">
+  <input id="commentInput" type="text" maxlength="1000" placeholder="Write a comment..." data-i18n-placeholder="feed.commentPlaceholder" aria-label="Comment लिखें">
   <button class="primary" id="postComment" type="submit">Send</button>
  </form>
 </section>
@@ -753,7 +753,7 @@ async function openComments(){
  send.style.setProperty("z-index","2147483002","important");
  send.style.setProperty("opacity","1","important");
  send.disabled=false;
- input.placeholder="यहाँ अपना Comment लिखें...";
+ input.placeholder=feedText("feed.commentPlaceholder","Write a comment...");
  $("postComment").textContent=feedText("action.send","Send");
  await loadComments(commentTargetVideoId);
  // Do not auto-open the mobile keyboard; let the viewer tap the comment field.
