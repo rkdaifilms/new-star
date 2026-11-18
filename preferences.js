@@ -52,16 +52,16 @@ async function sync(preferLocal=false){
  try{
   const {data:{user},error:authError}=await db.auth.getUser();if(authError||!user)return false;
   const local=read();
-  if(preferLocal){const {error}=await db.from("user_preferences").upsert({user_id:user.id,preferences:local},{onConflict:"user_id"});if(error)throw error;return true;}
+  if(preferLocal){const {error}=await db.from("user_preferences").upsert({user_id:user.id,preferences:local,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(error)throw error;return true;}
   const {data:remote,error}=await db.from("user_preferences").select("preferences,updated_at").eq("user_id",user.id).maybeSingle();if(error)throw error;
   const localTime=Date.parse(local._updatedAt||0)||0,remoteTime=Date.parse(remote?.updated_at||0)||0;
   if(remote?.preferences&&typeof remote.preferences==="object"){
-   if(localTime>remoteTime){const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:local},{onConflict:"user_id"});if(saveError)throw saveError;}
+   if(localTime>remoteTime){const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:local,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(saveError)throw saveError;}
    else{localStorage.setItem(KEY,JSON.stringify(remote.preferences));apply();window.dispatchEvent(new Event("newstar:preferences-loaded"));}
    return true;
   }
   const initial={...local,_updatedAt:local._updatedAt||new Date().toISOString()};
-  const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:initial},{onConflict:"user_id"});if(saveError)throw saveError;
+  const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:initial,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(saveError)throw saveError;
   if(!local._updatedAt)localStorage.setItem(KEY,JSON.stringify(initial));return true;
  }catch(error){console.warn("New Star preferences cloud sync unavailable:",error?.message||error);return false;}
  finally{syncBusy=false;if(syncPending){const write=syncPendingWrite;syncPending=false;syncPendingWrite=false;queueMicrotask(()=>sync(write));}}
