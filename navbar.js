@@ -29,10 +29,19 @@
     const p=getPrefs(),theme=p.theme||"dark",lang=p.language||"hi";
     document.documentElement.lang=lang;
     const themes={
-      dark:{bg:"#080808",panel:"#171717",text:"#ffffff",muted:"#aaaaaa",accent:"#fe2c55"},
-      light:{bg:"#f4f6fa",panel:"#ffffff",text:"#171923",muted:"#5d6472",accent:"#d92350"},
-      ocean:{bg:"#071923",panel:"#102b3a",text:"#f4fbff",muted:"#a8c1cc",accent:"#25b8d0"},
-      forest:{bg:"#101b14",panel:"#1b2b20",text:"#f4fff6",muted:"#afc5b3",accent:"#39a96b"}
+      dark:{bg:"#080808",panel:"#171717",text:"#ffffff",muted:"#aaaaaa",accent:"#fe2c55"},light:{bg:"#f4f6fa",panel:"#ffffff",text:"#171923",muted:"#5d6472",accent:"#d92350"},
+      ocean:{bg:"#071923",panel:"#102b3a",text:"#f4fbff",muted:"#a8c1cc",accent:"#25b8d0"},forest:{bg:"#101b14",panel:"#1b2b20",text:"#f4fff6",muted:"#afc5b3",accent:"#39a96b"},
+      sunset:{bg:"#21130e",panel:"#3b2118",text:"#fff4ed",muted:"#d9a88d",accent:"#ff874d"},purple:{bg:"#160e28",panel:"#281943",text:"#f7f0ff",muted:"#c2addb",accent:"#b58cff"},
+      rose:{bg:"#260f1b",panel:"#3b1b2b",text:"#fff1f6",muted:"#d9a9bc",accent:"#ff6f9e"},crimson:{bg:"#210b10",panel:"#39131d",text:"#fff1f3",muted:"#d7a1aa",accent:"#ff405d"},
+      gold:{bg:"#211b0b",panel:"#382d12",text:"#fff8df",muted:"#d5c28a",accent:"#e9b949"},teal:{bg:"#08201e",panel:"#103532",text:"#eafffb",muted:"#a1cbc4",accent:"#26c6b5"},
+      cyan:{bg:"#071c27",panel:"#103344",text:"#edfbff",muted:"#a6cbd8",accent:"#48d5f5"},indigo:{bg:"#10132c",panel:"#1b2250",text:"#f0f2ff",muted:"#aeb6df",accent:"#7d8cff"},
+      lavender:{bg:"#1d1730",panel:"#30264a",text:"#f8f2ff",muted:"#c8b8df",accent:"#c2a0ff"},mint:{bg:"#0d211b",panel:"#18372c",text:"#edfff6",muted:"#add2bf",accent:"#62d6a2"},
+      emerald:{bg:"#071d16",panel:"#103526",text:"#edfff6",muted:"#a3cbb7",accent:"#28c985"},ruby:{bg:"#220c1c",panel:"#3b1530",text:"#fff0fa",muted:"#d7a5c6",accent:"#f34e9b"},
+      amber:{bg:"#211608",panel:"#3b2810",text:"#fff6e8",muted:"#d6bd91",accent:"#ffb02e"},coral:{bg:"#24120f",panel:"#3c211c",text:"#fff3ef",muted:"#d9aaa0",accent:"#ff806e"},
+      slate:{bg:"#111820",panel:"#202b36",text:"#f3f6fa",muted:"#aebbc8",accent:"#8ba8c4"},coffee:{bg:"#1b120d",panel:"#302117",text:"#fff5ec",muted:"#c9ae98",accent:"#c58b5a"},
+      plum:{bg:"#1e1021",panel:"#351d39",text:"#fff1ff",muted:"#c7a9cb",accent:"#c17acb"},sakura:{bg:"#27151d",panel:"#432632",text:"#fff3f7",muted:"#d9b2c0",accent:"#ff91b8"},
+      neon:{bg:"#080d16",panel:"#121d2b",text:"#f4ffff",muted:"#a5c2c7",accent:"#4dffdb"},sand:{bg:"#211d14",panel:"#383124",text:"#fff9e9",muted:"#d1c4a4",accent:"#d8a85d"},
+      aurora:{bg:"#0c1720",panel:"#192b38",text:"#f2ffff",muted:"#a8c7d0",accent:"#7ee0c3"}
     };
     const t=themes[theme]||themes.dark;
     const style=document.getElementById("newstar-preference-style")||document.createElement("style");
@@ -40,11 +49,12 @@
     style.textContent=`
       :root{--ns-bg:${t.bg};--ns-panel:${t.panel};--ns-text:${t.text};--ns-muted:${t.muted};--ns-accent:${t.accent}}
       body{background-color:var(--ns-bg)!important;color:var(--ns-text)!important}
-      .panel,.card,.setting-row,.section-title{color:var(--ns-text)}
-      .panel,.card{background-color:var(--ns-panel)!important;border-color:color-mix(in srgb,var(--ns-muted) 28%,transparent)!important}
-      input,select,textarea{background:color-mix(in srgb,var(--ns-bg) 88%,var(--ns-panel))!important;color:var(--ns-text)!important;border-color:color-mix(in srgb,var(--ns-muted) 45%,transparent)!important}
-      .muted,.small-note,.setting-row p{color:var(--ns-muted)!important}
+      header,.header,.panel,.card,.section,.settings-card,.setting-row,.modal-content,.menu{color:var(--ns-text)}
+      .panel,.card,.settings-card,.setting-row,.modal-content{background-color:var(--ns-panel)!important;border-color:var(--ns-muted)!important}
+      input,select,textarea{background-color:var(--ns-bg)!important;color:var(--ns-text)!important;border-color:var(--ns-muted)!important}
+      .muted,.small-note,.setting-row p,.section-title{color:var(--ns-muted)!important}
       button:not(.newstar-plus-icon){accent-color:var(--ns-accent)}
+      button:not(.danger):not(.newstar-plus-icon),.primary-button,.save-button{border-color:var(--ns-accent)!important}
       #newstar-global-nav{background:var(--ns-panel)!important}
       #newstar-global-nav a.active{color:var(--ns-accent)!important}
       #newstar-menu-panel{background:var(--ns-panel)!important;color:var(--ns-text)!important}
@@ -55,11 +65,11 @@
   function navText(key){
     const lang=getPrefs().language||"hi";
     const words={
-      Home:{hi:"होम",ne:"गृह",en:"Home",zh:"首页",es:"Inicio",fr:"Accueil",ar:"الرئيسية",ja:"ホーム",de:"Start",ru:"Главная",pt:"Início",it:"Home",ko:"홈",tr:"Ana Sayfa",bn:"হোম"},
-      Wallet:{hi:"वॉलेट",ne:"वालेट",en:"Wallet",zh:"钱包",es:"Billetera",fr:"Portefeuille",ar:"المحفظة",ja:"ウォレット",de:"Wallet",ru:"Кошелёк",pt:"Carteira",it:"Portafoglio",ko:"지갑",tr:"Cüzdan",bn:"ওয়ালেট"},
-      Create:{hi:"बनाएँ",ne:"सिर्जना",en:"Create",zh:"创建",es:"Crear",fr:"Créer",ar:"إنشاء",ja:"作成",de:"Erstellen",ru:"Создать",pt:"Criar",it:"Crea",ko:"만들기",tr:"Oluştur",bn:"তৈরি"},
-      Inbox:{hi:"इनबॉक्स",ne:"इनबक्स",en:"Inbox",zh:"收件箱",es:"Bandeja",fr:"Boîte",ar:"الوارد",ja:"受信箱",de:"Postfach",ru:"Входящие",pt:"Caixa",it:"Posta",ko:"받은편지함",tr:"Gelen Kutusu",bn:"ইনবক্স"},
-      Admin:{hi:"एडमिन",ne:"एडमिन",en:"Admin",zh:"管理",es:"Admin",fr:"Admin",ar:"المشرف",ja:"管理",de:"Admin",ru:"Админ",pt:"Admin",it:"Admin",ko:"관리자",tr:"Yönetici",bn:"অ্যাডমিন"},
+      Home:{hi:"होम",ne:"गृह",en:"Home",zh:"首页",es:"Inicio",fr:"Accueil",ar:"الرئيسية",ja:"ホーム",de:"Start",ru:"Главная",pt:"Início",it:"Home",ko:"홈",tr:"Ana Sayfa",bn:"হোম",ur:"صفحہ اول",id:"Beranda",vi:"Trang chủ",th:"หน้าหลัก",fa:"خانه",sw:"Nyumbani",nl:"Home",pl:"Start",uk:"Головна",el:"Αρχική",sv:"Hem"},
+      Wallet:{hi:"वॉलेट",ne:"वालेट",en:"Wallet",zh:"钱包",es:"Billetera",fr:"Portefeuille",ar:"المحفظة",ja:"ウォレット",de:"Wallet",ru:"Кошелёк",pt:"Carteira",it:"Portafoglio",ko:"지갑",tr:"Cüzdan",bn:"ওয়ালেট",ur:"والٹ",id:"Dompet",vi:"Ví",th:"กระเป๋าเงิน",fa:"کیف پول",sw:"Pochi",nl:"Portemonnee",pl:"Portfel",uk:"Гаманець",el:"Πορτοφόλι",sv:"Plånbok"},
+      Create:{hi:"बनाएँ",ne:"सिर्जना",en:"Create",zh:"创建",es:"Crear",fr:"Créer",ar:"إنشاء",ja:"作成",de:"Erstellen",ru:"Создать",pt:"Criar",it:"Crea",ko:"만들기",tr:"Oluştur",bn:"তৈরি",ur:"بنائیں",id:"Buat",vi:"Tạo",th:"สร้าง",fa:"ایجاد",sw:"Unda",nl:"Maken",pl:"Utwórz",uk:"Створити",el:"Δημιουργία",sv:"Skapa"},
+      Inbox:{hi:"इनबॉक्स",ne:"इनबक्स",en:"Inbox",zh:"收件箱",es:"Bandeja",fr:"Boîte",ar:"الوارد",ja:"受信箱",de:"Postfach",ru:"Входящие",pt:"Caixa",it:"Posta",ko:"받은편지함",tr:"Gelen Kutusu",bn:"ইনবক্স",ur:"پیغامات",id:"Kotak Masuk",vi:"Hộp thư",th:"กล่องข้อความ",fa:"صندوق ورودی",sw:"Kikasha",nl:"Inbox",pl:"Skrzynka",uk:"Вхідні",el:"Εισερχόμενα",sv:"Inkorg"},
+      Admin:{hi:"एडमिन",ne:"एडमिन",en:"Admin",zh:"管理",es:"Admin",fr:"Admin",ar:"المشرف",ja:"管理",de:"Admin",ru:"Админ",pt:"Admin",it:"Admin",ko:"관리자",tr:"Yönetici",bn:"অ্যাডমিন",ur:"منتظم",id:"Admin",vi:"Quản trị",th:"ผู้ดูแล",fa:"مدیر",sw:"Msimamizi",nl:"Beheer",pl:"Admin",uk:"Адмін",el:"Διαχειριστής",sv:"Admin"},
       Profile:{hi:"प्रोफाइल",ne:"प्रोफाइल",en:"Profile",zh:"个人资料",es:"Perfil",fr:"Profil",ar:"الملف",ja:"プロフィール",de:"Profil",ru:"Профиль",pt:"Perfil",it:"Profilo",ko:"프로필",tr:"Profil",bn:"প্রোফাইল"}
     };
     return words[key]?.[lang]||words[key]?.en||key;
@@ -375,7 +385,7 @@
     nav.setAttribute("aria-label", "Main navigation");
 
     const items = [
-      { page: "index.html", icon: "🏠", label: navText("Home") },
+      { page: "index.html", icon: "🏠", label: navText("Home") ,ur:"پروفائل",id:"Profil",vi:"Hồ sơ",th:"โปรไฟล์",fa:"نمایه",sw:"Wasifu",nl:"Profiel",pl:"Profil",uk:"Профіль",el:"Προφίλ",sv:"Profil"},
       { page: "wallet.html", icon: "💰", label: navText("Wallet") },
       { page: "camera.html", icon: "+", label: navText("Create"), plus: true },
       { page: "inbox.html", icon: "✉️", label: navText("Inbox") },
