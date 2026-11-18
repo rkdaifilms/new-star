@@ -563,16 +563,16 @@ async function refreshCreatorFollowButton(item){
    .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
   if(error)throw error;
   if(followButtonVideoId!==String(item.id))return;
-  if(row){button.textContent="Following";button.classList.add("following");}
+  if(row){button.textContent=feedText("action.following","Following");button.classList.add("following");}
   else if(card.is_private){
    const {data:request,error:requestError}=await db.from("follow_requests").select("id")
     .eq("requester_id",currentUser.id).eq("target_user_id",String(item.user_id)).eq("status","pending").maybeSingle();
    if(requestError)throw requestError;
-   button.textContent=request?"Requested":"Request Follow";button.classList.toggle("following",!!request);
-  }else{button.textContent="Follow";button.classList.remove("following");}
+   button.textContent=request?feedText("action.requested","Requested"):feedText("action.requestFollow","Request Follow");button.classList.toggle("following",!!request);
+  }else{button.textContent=feedText("action.follow","Follow");button.classList.remove("following");}
  }catch(error){
   console.warn("Follow state:",error.message);
-  button.textContent="Follow";
+  button.textContent=feedText("action.follow","Follow");
  }finally{button.disabled=false;}
 }
 async function toggleCreatorFollow(){
