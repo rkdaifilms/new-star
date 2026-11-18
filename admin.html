@@ -7,6 +7,7 @@
 <div class="head"><div><a href="index.html">← New Star</a><h1>Admin Dashboard</h1><p class="muted">Server-verified metrics and withdrawal requests. No client-side admin PIN.</p></div><button id="refresh" class="btn">Refresh</button></div>
 <div id="status">Checking authenticated admin permission…</div>
 <div id="metrics" class="grid"></div>
+<section class="card"><h2>Platform Financial Overview</h2><div id="financials" class="grid"><p class="muted">Loading owner-only financial totals…</p></div><p class="muted">Only verified paid orders are included. Amounts are grouped by currency; gift totals are in Coins.</p></section>
 <section class="card"><h2>Recent Withdrawal Requests</h2><div style="overflow:auto"><table><thead><tr><th>Creator</th><th>Amount</th><th>Country</th><th>Method</th><th>Status</th><th>Date</th></tr></thead><tbody id="withdrawals"><tr><td colspan="6">Loading…</td></tr></tbody></table></div></section>
 <section class="card"><h2>Admin Security</h2><p class="muted">Admin access is checked against the private admin_users table on the server. Every dashboard view is written to the audit log. Provider payouts are not auto-approved.</p></section>
 </main>
@@ -24,6 +25,15 @@ async function load(){
  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error||"Admin access denied");
  $("status").textContent="Signed in as verified admin role: "+data.role+" · Updated "+new Date(data.generated_at).toLocaleString();
  for(const [key,value] of Object.entries(data.metrics||{})){const el=document.createElement("div");el.className="card";el.innerHTML='<div class="muted">'+esc(key.replaceAll("_"," "))+'</div><div class="metric">'+(value===null?"Unavailable":esc(value))+'</div>'; $("metrics").appendChild(el);}
+ const f=data.financials||{};const financialCards=[];
+ financialCards.push(["Verified paid orders",f.paid_orders_count??"Unavailable"]);
+ (f.paid_totals_by_currency||[]).forEach(x=>financialCards.push(["Paid receipts · "+x.currency,(Number(x.amount_minor||0)/100).toFixed(2)+" "+x.currency]));
+ financialCards.push(["Creator gifts · gross",f.creator_gift_gross_coins??"Unavailable"]);
+ financialCards.push(["Creator gifts · net",f.creator_gift_net_coins??"Unavailable"]);
+ financialCards.push(["Platform gift fees",f.platform_gift_fee_coins??"Unavailable"]);
+ (f.pending_withdrawals_by_currency||[]).forEach(x=>financialCards.push(["Pending payouts · "+x.currency,Number(x.amount||0).toFixed(2)+" "+x.currency]));
+ $("financials").replaceChildren();
+ financialCards.forEach(([label,value])=>{const el=document.createElement("div");el.className="card";el.innerHTML='<div class="muted">'+esc(label)+'</div><div class="metric">'+esc(value)+'</div>';$("financials").appendChild(el);});
  const rows=data.withdrawals||[];$("withdrawals").innerHTML=rows.length?rows.map(w=>'<tr><td>'+esc(w.creator_id)+'</td><td>'+esc(w.currency||"USD")+' '+esc(w.amount)+'</td><td>'+esc(w.country_code||"—")+'</td><td>'+esc(w.payout_method||"—")+'</td><td>'+esc(w.status)+'</td><td>'+esc(new Date(w.created_at).toLocaleString())+'</td></tr>').join(""):'<tr><td colspan="6">No withdrawal requests.</td></tr>';
  }catch(e){$("status").textContent="Dashboard could not load: "+e.message;$("withdrawals").innerHTML='<tr><td colspan="6">Not available.</td></tr>';}
 }
