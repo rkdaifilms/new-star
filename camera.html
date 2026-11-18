@@ -735,9 +735,8 @@ async function publishVideo() {
   });
   uploadedPath = filePath;
 
-  const {data:urlData} = db.storage.from("videos").getPublicUrl(filePath);
-  const videoUrl = urlData?.publicUrl;
-  if (!videoUrl) throw new Error("Public Video URL नहीं मिला।");
+  // Store the bucket-relative object reference, never a permanent public URL.
+  const videoUrl = "storage://videos/" + filePath;
 
   status.textContent = "वीडियो Database में सेव हो रहा है...";
   const videoType=mediaInfo.duration<=60?"short":"long";
