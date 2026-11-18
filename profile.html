@@ -245,7 +245,7 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
      <a href="gaming.html">🎮 Gaming</a>
      <a href="profile.html">👤 My Profile</a>
      <hr>
-     <button type="button" data-action="logout" class="danger">↪ Logout</button>
+     <button type="button" data-action="logout" class="danger" data-i18n="action.logout">Log out</button>
     </nav>
    </div>
   </div>
@@ -261,7 +261,7 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
   <div class="bio" id="viewBio">अपना Creator Bio सेट करें।</div>
 
   <div class="heroActions">
-   <button id="editProfileButton" type="button">✏️ Edit Profile</button>
+   <button id="editProfileButton" type="button" data-i18n="action.editProfile">Edit Profile</button>
   </div>
 
   <div class="stats">
@@ -339,8 +339,8 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
   <div class="photoRow">
    <img id="settingsAvatar" class="photoPreview" alt="Photo preview">
    <div>
-    <button class="secondary" id="cameraPickButton" type="button">📷 Camera</button>
-    <button class="secondary" id="galleryPickButton" type="button">🖼️ Gallery</button>
+    <button class="secondary" id="cameraPickButton" type="button" data-i18n="action.camera">Camera</button>
+    <button class="secondary" id="galleryPickButton" type="button" data-i18n="action.gallery">Gallery</button>
    </div>
   </div>
   <input id="cameraPhoto" class="hidden" type="file" accept="image/*" capture="user">
