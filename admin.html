@@ -24,6 +24,15 @@
 <button id="saveMonetization" class="btn" type="button">Save AdMob IDs</button>
 <p id="monetizationStatus" class="muted" aria-live="polite"></p>
 </section>
+<section class="card"><h2>Production Provider Readiness</h2>
+<p class="muted">Provider credentials must stay server-side. Do not paste secret keys, bank details, passwords or OTPs into this page. This dashboard can save public AdMob identifiers only; it does not yet activate payment processing or ads.</p>
+<div class="row"><span>Khalti Web Checkout</span><strong>Server integration pending</strong></div>
+<div class="row"><span>eSewa ePay v2</span><strong>Server integration pending</strong></div>
+<div class="row"><span>Google AdMob (native mobile)</span><strong>IDs only · SDK/review required</strong></div>
+<div class="row"><span>Google AdSense (website)</span><strong>Not configured · site approval required</strong></div>
+<div class="row"><span>Creator payout API</span><strong>Disabled · provider settlement integration pending</strong></div>
+<p class="muted">Exact server secret names, callback rules, test requirements and go-live checklist are documented in <a href="PROVIDER_SETUP.md" target="_blank" rel="noopener noreferrer">PROVIDER_SETUP.md</a>.</p>
+</section>
 <section class="card"><h2>🪙 Coin Package Setup</h2><p class="muted">यहाँ किसी देश और उसकी स्थानीय मुद्रा के लिए Coin package Draft बनाएँ। Country और Currency ISO codes दें। Draft अपने-आप बिक्री चालू नहीं करता; उस देश के लिए approved payment provider और server verification जरूरी हैं।</p><div class="grid"><div><label for="packageCountry">Country code (ISO-2)</label><input id="packageCountry" maxlength="2" value="NP" placeholder="NP"></div><div><label for="packageCurrency">Currency code (ISO-4217)</label><input id="packageCurrency" maxlength="3" value="NPR" placeholder="NPR"></div><div><label for="packageCoins">Coins</label><input id="packageCoins" type="number" min="1" max="10000000" placeholder="100"></div><div><label for="packageBonus">Bonus Coins (automatic)</label><input id="packageBonus" type="number" value="0" readonly><small class="muted">50→1 · 100→2 · 200→3 · 500→5 · 1,000→10</small></div><div><label for="packagePrice">Package price (selected currency)</label><input id="packagePrice" type="number" min="0.01" max="1000000" step="0.001" placeholder="100.00"></div></div><button id="createCoinPackage" class="btn" type="button">Save Coin Package as Draft</button><p id="packageStatus" class="muted" aria-live="polite"></p><div id="coinPackageList" class="muted">Loading packages…</div></section>
 <section class="card"><h2>Recent Withdrawal Requests</h2><div style="overflow:auto"><table><thead><tr><th>Creator</th><th>Amount</th><th>Country</th><th>Method</th><th>Status</th><th>Date</th></tr></thead><tbody id="withdrawals"><tr><td colspan="6">Loading…</td></tr></tbody></table></div></section>
 <section class="card"><h2>Admin Security</h2><p class="muted">Admin access is checked against the private admin_users table on the server. Every dashboard view is written to the audit log. Provider payouts are not auto-approved.</p></section>
