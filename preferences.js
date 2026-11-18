@@ -57,8 +57,8 @@ async function sync(preferLocal=false){
  }catch(error){console.warn("New Star preferences cloud sync unavailable:",error?.message||error);return false;}
  finally{syncBusy=false;if(syncPending){const write=syncPendingWrite;syncPending=false;syncPendingWrite=false;queueMicrotask(()=>sync(write));}}
 }
-window.NewStarPreferences={apply,get:read,set(patch){const next=stampLocal(patch);apply();sync(true);window.dispatchEvent(new Event("newstar:preferences-changed"));return next},sync};
-window.NewStarPreferences={apply,get:read,set(patch){const next={...read(),...patch};localStorage.setItem(KEY,JSON.stringify(next));apply();sync(true);return next},sync};
+window.NewStarPreferences={apply,get:read,set(patch){const next=stampLocal(patch);apply();window.dispatchEvent(new Event("newstar:preferences-changed"));return next},sync};
+
 apply();
 window.addEventListener("storage",e=>{if(e.key===KEY){apply();sync(true)}});
 window.addEventListener("newstar:preferences-changed",()=>sync(true));
