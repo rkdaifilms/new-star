@@ -128,7 +128,18 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
 .profileViewerActions{position:fixed;z-index:10012;right:10px;top:calc(env(safe-area-inset-top) + 70px);bottom:calc(env(safe-area-inset-bottom) + 18px);display:flex;flex-direction:column;gap:10px;align-items:center;overflow-y:auto;overflow-x:visible;overscroll-behavior:contain;scrollbar-width:none;padding:4px 2px}
 .profileViewerActions::-webkit-scrollbar{display:none}
 .profileViewerActions button{flex:0 0 54px;width:54px;min-height:54px;padding:5px 2px;border-radius:28px;background:#151515c9;border:1px solid #ffffff66;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 2px 12px #0008}
-.profileViewerActions button span{font-size:24px;line-height:1.2}.profileViewerActions .viewerIcon{width:25px;height:25px;display:flex;align-items:center;justify-content:center}.profileViewerActions .viewerIcon svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.profileViewerActions .viewerIcon .filled{fill:currentColor;stroke:currentColor}
+.profileViewerActions button span{font-size:24px;line-height:1.2}
+
+/* Keep legacy viewer-wide button/span rules from overriding the action rail */
+.profileViewerActions>button,
+.profileViewerSettings>button{position:relative;inset:auto;top:auto;right:auto;left:auto;bottom:auto;z-index:auto;width:54px;height:54px;min-width:54px;min-height:54px;flex:0 0 54px;margin:0;padding:5px 2px;border-radius:28px;background:#151515c9;color:#fff;border:1px solid #ffffff66;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 2px 12px #0008}
+.profileViewerActions button span{position:static;inset:auto;top:auto;right:auto;left:auto;bottom:auto;z-index:auto;display:flex;align-items:center;justify-content:center;width:auto;height:auto;margin:0;padding:0;background:transparent;color:inherit;border-radius:0}
+.profileViewerActions .viewerIcon{width:25px;height:25px;flex:0 0 25px}
+.profileViewerActions .viewerIcon svg{width:23px;height:23px;display:block}
+.profileViewerActions button small{position:static;display:block;margin:0;padding:0;background:transparent;color:#fff;font-size:11px;line-height:1.1;white-space:nowrap}
+.profileViewerSettingsMenu button{position:static;inset:auto;width:100%;height:auto;min-width:0;min-height:42px;flex:none;margin:0;padding:10px 12px;border:0;border-radius:8px;background:transparent;color:#fff;display:block;text-align:left;box-shadow:none;font-size:13px}
+.profileViewerSettingsMenu button.danger{color:#ff8498}
+.profileViewerActions .viewerIcon{width:25px;height:25px;display:flex;align-items:center;justify-content:center}.profileViewerActions .viewerIcon svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.profileViewerActions .viewerIcon .filled{fill:currentColor;stroke:currentColor}
 .profileViewerActions button small{font-size:11px;color:#fff}
 .profileViewerActions button.liked span{filter:drop-shadow(0 0 5px #fe2c55)}
 .profileViewerSettings{position:relative;flex:0 0 auto}
