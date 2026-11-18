@@ -3,7 +3,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#0a0d14;color:#f4f6fb;font:15px system-ui;padding:18px}.wrap{max-width:1100px;margin:auto}a{color:#25f4ee;text-decoration:none}.head{display:flex;justify-content:space-between;align-items:center;gap:12px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.card{background:#171d29;border:1px solid #30394c;border-radius:14px;padding:16px;margin:14px 0}.metric{font-size:28px;font-weight:800;color:#25f4ee}.muted{color:#9ba6ba;font-size:13px}.btn{background:#fe2c55;color:white;border:0;border-radius:9px;padding:10px 14px;font-weight:700}.row{padding:12px 0;border-bottom:1px solid #30394c;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:10px;border-bottom:1px solid #30394c;font-size:13px}#status{white-space:pre-wrap;color:#ffcf70}
-</style></head><body><main class="wrap">
+</style>
+<link rel="manifest" href="/manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#fe2c55">
+</head><body><main class="wrap">
 <div class="head"><div><a href="index.html">← New Star</a><h1>Admin Dashboard</h1><p class="muted">Server-verified metrics and withdrawal requests. No client-side admin PIN.</p></div><button id="refresh" class="btn">Refresh</button></div>
 <div id="status">Checking authenticated admin permission…</div>
 <div id="metrics" class="grid"></div>
