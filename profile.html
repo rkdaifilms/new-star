@@ -1296,9 +1296,9 @@ $("profileGiftClose").addEventListener("click",()=>closeProfileSheet("profileGif
 $("profileSendGift").addEventListener("click",sendProfileGift);
 renderProfileGiftChoices();
 const profileViewer=$("profileVideoViewer");
-profileViewer.addEventListener("touchstart",e=>{const t=e.changedTouches[0];if(t)profileViewerTouch={x:t.clientX,y:t.clientY};},{passive:true});
+profileViewer.addEventListener("touchstart",e=>{if(e.target.closest(".profileViewerActions,.profileSheet,button,input,textarea")){profileViewerTouch=null;return;}const t=e.changedTouches[0];if(t)profileViewerTouch={x:t.clientX,y:t.clientY};},{passive:true});
 profileViewer.addEventListener("touchend",e=>{if(!profileViewerTouch)return;const start=profileViewerTouch;profileViewerTouch=null;const t=e.changedTouches[0];if(!t)return;const dy=start.y-t.clientY,dx=start.x-t.clientX;if(Math.abs(dy)>55&&Math.abs(dy)>Math.abs(dx)*1.15&&Date.now()-profileViewerLastSwipe>420){profileViewerLastSwipe=Date.now();moveProfileViewer(dy>0?1:-1);}},{passive:true});
-profileViewer.addEventListener("wheel",e=>{if(Math.abs(e.deltaY)>25&&Date.now()-profileViewerLastSwipe>420){profileViewerLastSwipe=Date.now();moveProfileViewer(e.deltaY>0?1:-1);}},{passive:true});
+profileViewer.addEventListener("wheel",e=>{if(e.target.closest(".profileViewerActions,.profileSheet"))return;if(Math.abs(e.deltaY)>25&&Date.now()-profileViewerLastSwipe>420){profileViewerLastSwipe=Date.now();moveProfileViewer(e.deltaY>0?1:-1);}},{passive:true});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeProfileVideo();if($("profileVideoViewer").classList.contains("show")&&e.key==="ArrowDown")moveProfileViewer(1);if($("profileVideoViewer").classList.contains("show")&&e.key==="ArrowUp")moveProfileViewer(-1);});
 
 
