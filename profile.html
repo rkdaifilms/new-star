@@ -1293,7 +1293,7 @@ $("videoManageClose").addEventListener("click",closeVideoManage);$("videoSaveDet
 $("profileViewerLike").addEventListener("click",toggleProfileViewerLike);
 $("profileViewerComment").addEventListener("click",openProfileComments);
 $("profileViewerGift").addEventListener("click",openProfileGift);
-$("profileViewerSettingsButton").addEventListener("click",e=>{e.preventDefault();e.stopPropagation();const menu=$("profileViewerSettingsMenu");menu.hidden=!menu.hidden;$("profileViewerSettingsButton").setAttribute("aria-expanded",String(!menu.hidden));});
+document.addEventListener("click",e=>{const gear=e.target.closest("#profileViewerSettingsButton");if(!gear)return;e.preventDefault();e.stopPropagation();const menu=$("profileViewerSettingsMenu");if(!menu)return;menu.hidden=!menu.hidden;gear.setAttribute("aria-expanded",String(!menu.hidden));},true);
 $("profileViewerSettingsMenu").addEventListener("click",e=>e.stopPropagation());
 $("profileViewerSettingsMenu").querySelectorAll("[data-profile-manage]").forEach(b=>b.addEventListener("click",()=>runProfileViewerSetting(b.dataset.profileManage)));
 $("profileViewerShare").addEventListener("click",shareProfileViewerVideo);
