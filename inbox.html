@@ -179,11 +179,53 @@ async function boot(){
  $("inboxUserName").textContent=nameOf(mine);$("inboxUserPic").src=avatarOf(mine);
  $("tabFollowers").innerHTML='<p class="muted">Follower list will appear here when the follow tables are connected.</p>';
  $("tabFollowing").innerHTML='<p class="muted">Following list will appear here when the follow tables are connected.</p>';
- await Promise.all([loadThreads(),loadFollowRequests()]);
+ await Promise.all([loadThreads(),loadFollowRequests(),loadFollowerLists()]);
  db.channel("newstar-inbox-"+me.id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"recipient_id=eq."+me.id},async payload=>{
    if(activeConversation===payload.new.conversation_id) await loadConversation();
    await loadThreads();
  }).subscribe();
+}
+async function loadFollowerLists(){
+ if(!me)return;
+ await Promise.all([renderRelationList("followers"),renderRelationList("following")]);
+}
+async function renderRelationList(kind){
+ const host=$("tab"+kind[0].toUpperCase()+kind.slice(1));
+ if(!host||!me)return;
+ host.innerHTML='<p class="muted">लिस्ट लोड हो रही है...</p>';
+ let query=db.from("followers").select("follower_id,following_id,created_at");
+ query=kind==="followers"?query.eq("following_id",me.id):query.eq("follower_id",me.id);
+ const {data:rows,error}=await query.order("created_at",{ascending:false}).limit(200);
+ if(error){host.textContent="लिस्ट लोड नहीं हुई: "+error.message;return;}
+ if(!rows?.length){host.innerHTML=kind==="followers"?'<p class="muted">अभी कोई Follower नहीं है।</p>':'<p class="muted">आप अभी किसी Creator को Follow नहीं करते।</p>';return;}
+ const ids=rows.map(r=>kind==="followers"?r.follower_id:r.following_id);
+ const {data:profiles,error:profileError}=await db.from("creator_public_profiles")
+  .select("user_id,username,full_name,avatar_url,bio,is_private").in("user_id",ids);
+ if(profileError){host.textContent="Creator जानकारी नहीं मिली: "+profileError.message;return;}
+ const map=new Map((profiles||[]).map(p=>[String(p.user_id),p]));
+ host.replaceChildren();
+ for(const relation of rows){
+  const peer=String(kind==="followers"?relation.follower_id:relation.following_id);
+  const p=map.get(peer)||{};
+  const row=document.createElement("div");row.className="list-item";
+  const left=document.createElement("span");left.className="user-left";
+  const img=document.createElement("img");img.className="list-avatar";img.src=avatarOf(p);img.alt="";
+  const info=document.createElement("span");info.className="list-info";
+  const title=document.createElement("h4");title.textContent=nameOf(p);
+  const note=document.createElement("p");note.textContent=p.is_private?"🔒 Private account":"@"+(p.username||"creator");
+  info.append(title,note);left.append(img,info);row.append(left);
+  if(kind==="following"){
+   const unfollow=document.createElement("button");unfollow.className="action-tag-btn following";unfollow.textContent="Following";
+   unfollow.onclick=async()=>{
+    unfollow.disabled=true;
+    const {error}=await db.from("followers").delete().eq("follower_id",me.id).eq("following_id",peer);
+    if(error){setStatus("Unfollow नहीं हुआ: "+error.message);unfollow.disabled=false;return;}
+    await renderRelationList("following");setStatus("Creator को Unfollow कर दिया गया।");
+   };
+   row.append(unfollow);
+  }
+  host.append(row);
+ }
 }
 async function loadFollowRequests(){
  const host=$("tabRequests");
