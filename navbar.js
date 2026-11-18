@@ -237,6 +237,7 @@
         <a href="camera.html" data-i18n="page.camera">📷 Camera / Create / Upload</a>
         <a href="profile.html" data-i18n="nav.profile">👤 My Profile</a>
         <a href="settings.html" data-i18n="settings.title">⚙️ Main Settings</a>
+        <a href="admin.html" id="newstar-owner-dashboard-link" hidden>🛡️ Developer / Owner Dashboard</a>
         <a href="wallet.html" data-i18n="nav.wallet">💰 Wallet</a>
         <a href="inbox.html" data-i18n="nav.inbox">✉️ Inbox</a>
         <a href="monetization.html" data-i18n="page.monetization">💎 Monetization</a>
@@ -426,6 +427,28 @@
       removeDuplicateNavigation();
       addStyles();
       createMenu();
+
+      // Display the dashboard link only after the server verifies this session's owner role.
+      if (user) {
+        try {
+          const response = await fetch("https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/admin-overview", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + data.session.access_token,
+              apikey: "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr",
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ action: "check_owner_access" })
+          });
+          const result = await response.json();
+          if (response.ok && result?.ok && result.is_owner) {
+            const ownerLink = $("newstar-owner-dashboard-link");
+            if (ownerLink) ownerLink.hidden = false;
+          }
+        } catch (ownerCheckError) {
+          console.warn("New Star owner menu check unavailable:", ownerCheckError);
+        }
+      }
 
       // Profile page keeps its original profile menu.
       createTopMenuButton();
