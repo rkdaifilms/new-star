@@ -76,4 +76,5 @@ $("campaignForm").addEventListener("submit",async e=>{
 (async()=>{if(!db?.auth){say("Supabase connection उपलब्ध नहीं है।",true);$("activeCampaigns").textContent="Service unavailable.";return;}try{const {data,error}=await db.auth.getUser();if(error)throw error;user=data?.user||null;await loadCampaigns();}catch(e){console.error(e);$("activeCampaigns").textContent="Campaigns load नहीं हो पाए।";}})();
 })();
 </script>
+<script src="preferences.js"></script>
 </body></html>
