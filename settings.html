@@ -94,7 +94,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </select></div>
 <div class="row"><h3 data-i18n="settings.theme">App Theme</h3><p>Dark, Light और रंगीन थीम चुनें।</p><select id="appTheme" aria-label="App theme">
 <option value="dark">01 · Midnight Dark</option><option value="light">02 · Clean Light</option><option value="ocean">03 · Ocean Blue</option><option value="forest">04 · Forest Green</option><option value="sunset">05 · Sunset Orange</option><option value="purple">06 · Royal Purple</option><option value="rose">07 · Rose Pink</option><option value="crimson">08 · Crimson Red</option><option value="gold">09 · Golden Hour</option><option value="teal">10 · Tropical Teal</option><option value="cyan">11 · Arctic Cyan</option><option value="indigo">12 · Deep Indigo</option><option value="lavender">13 · Lavender</option><option value="mint">14 · Fresh Mint</option><option value="emerald">15 · Emerald</option><option value="ruby">16 · Ruby</option><option value="amber">17 · Amber</option><option value="coral">18 · Coral</option><option value="slate">19 · Slate Grey</option><option value="coffee">20 · Coffee Brown</option><option value="plum">21 · Plum</option><option value="sakura">22 · Sakura</option><option value="neon">23 · Neon Night</option><option value="sand">24 · Desert Sand</option><option value="aurora">25 · Aurora</option>
-</select><button id="saveAppearanceBtn" data-i18n="action.save">Save Language & Theme</button></div>
+</select><p class="note">भाषा और Theme चुनते ही अपने-आप सेव और लागू हो जाते हैं।</p></div>
 </div></section>
 
 <section class="section" id="accessibility">
@@ -158,10 +158,6 @@ function applyAppearanceLive(){
  }
  window.NewStarI18n?.apply();
  return p;
-}
-function saveAppearance(){
- applyAppearanceLive();
- message("भाषा और Theme इस डिवाइस पर लागू हो गईं। Account sync बैकग्राउंड में होगा; दूसरे पेजों पर अनुवाद तभी दिखेगा जब उस पेज के टेक्स्ट का अनुवाद उपलब्ध हो।");
 }
 async function checkAiGatewayStatus(){
  const el=$("aiGatewayStatus");if(!el||!db?.functions)return;
@@ -232,7 +228,7 @@ async function logout(scope,buttonId){
  if(!db?.auth)return;const all=scope==="global";if(!confirm(all?"सभी sessions से Logout करना है?":"इस डिवाइस से Logout करना है?"))return;
  const btn=$(buttonId);btn.disabled=true;try{const {error}=await db.auth.signOut({scope});if(error)throw error;location.replace("auth.html");}catch(e){message(e.message||"Logout नहीं हुआ।","error");btn.disabled=false;}
 }
-$("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});$("saveAppearanceBtn").addEventListener("click",saveAppearance);
+$("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});
 $("textScale").addEventListener("change",saveAccessibility);$("reducedMotion").addEventListener("change",saveAccessibility);$("highContrast").addEventListener("change",saveAccessibility);$("syncPreferencesBtn").addEventListener("click",syncPreferencesNow);$("savePrivacyBtn").addEventListener("click",savePrivacy);$("openAiAssistantBtn").addEventListener("click",()=>{const launch=$("ns-ai-launch");if(launch)launch.click();else message("AI Chat अभी इस पेज पर लोड नहीं हुआ। पेज Reload करें।","error");});$("saveNotificationPrefsBtn").addEventListener("click",saveNotificationPrefs);$("markAllReadBtn").addEventListener("click",markAllNotificationsRead);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
 window.addEventListener("newstar:preferences-loaded",loadAppearance);loadAppearance();loadSettings();
 })();
