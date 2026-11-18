@@ -397,7 +397,7 @@ async function hydrateFeedVideoMetadata(){
    if(!info||!info.duration)return;
    item.duration_seconds=Math.ceil(info.duration);
    item.width=info.width;item.height=info.height;
-   item.video_type=info.duration<=60?"short":"long";
+   item.video_type=["short","long"].includes(item.video_type)?item.video_type:(info.duration<=60?"short":"long");
   }catch(error){console.warn("Video metadata:",item.id,error);}
  }));
 }
@@ -500,9 +500,9 @@ async function applyFilters(){
   if(currentCategory==="Following"||currentCategory==="Friends")return followingIds.includes(String(v.user_id));
   if(currentCategory==="Live")return false;
   const duration=Number(v.duration_seconds)||0;
-   const isShort=duration>0?duration<=60:(v.video_type==="short"||(Number(v.height)>Number(v.width)));
+   const isShort=v.video_type==="short"?true:v.video_type==="long"?false:(duration>0?duration<=60:Number(v.height)>Number(v.width));
    if(currentCategory==="Shorts"||currentCategory==="Reels")return isShort;
-  if(currentCategory==="Long Videos")return duration>60||(duration===0&&(v.video_type==="long"||Number(v.width)>=Number(v.height)));
+  if(currentCategory==="Long Videos")return v.video_type==="long"||(v.video_type!=="short"&&(duration>60||(duration===0&&Number(v.width)>=Number(v.height))));
   if(["For You","Discover"].includes(currentCategory))return true;
   return String(v.category||"").toLowerCase().includes(currentCategory.toLowerCase());
  });
@@ -644,7 +644,7 @@ function renderVideo(){
  player.onended=()=>{if(currentUser&&activeWatchSession)db.rpc("end_video_watch_session",{p_session_id:activeWatchSession,p_position_seconds:Number(player.currentTime||0)});};
  const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
  const currentDuration=Number(currentVideo.duration_seconds)||0;
-  const currentIsShort=currentDuration>0?currentDuration<=60:(currentVideo.video_type==="short"||Number(currentVideo.height)>Number(currentVideo.width));
+  const currentIsShort=currentVideo.video_type==="short"?true:currentVideo.video_type==="long"?false:(currentDuration>0?currentDuration<=60:Number(currentVideo.height)>Number(currentVideo.width));
   player.style.objectFit=currentIsShort?"cover":"contain";
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
