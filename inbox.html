@@ -123,7 +123,7 @@
     </div>
     <div class="list-container" id="tabDiscover" style="display:none;">
         <div style="display:flex;gap:8px;margin-bottom:14px">
-            <input id="creatorSearchInput" type="search" maxlength="50" placeholder="Username या Creator का नाम खोजें" style="flex:1;min-width:0;padding:12px;border-radius:10px;border:1px solid #444;background:#171722;color:#fff">
+            <input data-i18n-placeholder="action.search" id="creatorSearchInput" type="search" maxlength="50" placeholder="Username या Creator का नाम खोजें" style="flex:1;min-width:0;padding:12px;border-radius:10px;border:1px solid #444;background:#171722;color:#fff">
             <button id="creatorSearchButton" type="button" class="action-tag-btn">Search</button>
         </div>
         <div id="creatorSearchResults" class="empty-state">Creator खोजने के लिए नाम या username लिखें।</div>
@@ -151,7 +151,7 @@
             <input type="text" id="messageInput" placeholder="Type a message or voice note..." onkeypress="handleKeyPress(event)">
             
             <!-- Send Button -->
-            <button class="send-btn" onclick="sendMessage()">Send</button>
+            <button class="send-btn" onclick="sendMessage()" data-i18n="action.send">Send</button>
         </div>
     </div>
 
