@@ -62,6 +62,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <div class="row"><h3>Private Account</h3><p>Private account चालू होने पर आपके वीडियो देखने के लिए Follow approval आवश्यक होगा।</p><div class="inline"><input id="privateAccount" type="checkbox"><label for="privateAccount">🔒 मेरा अकाउंट Private रखें</label></div><button id="savePrivacyBtn">Save Privacy</button></div>
 <div class="row"><h3>Logout this device</h3><p>इस डिवाइस के New Star session से Logout करें।</p><button class="danger" id="logoutBtn">Log Out</button></div>
 <div class="row"><h3>Logout all sessions</h3><p>यह Supabase के दूसरे refresh sessions को revoke करने का अनुरोध करेगा। पहले से जारी access token expiry तक कुछ समय चल सकता है।</p><button class="danger" id="logoutAllBtn">Log Out From All Devices</button></div>
+<div class="row"><h3>Blocked Accounts</h3><p>आपने जिन accounts को Block किया है, उन्हें यहाँ देख सकते हैं और जरूरत पड़ने पर Unblock कर सकते हैं।</p><div id="blockedAccountsList" aria-live="polite">Blocked accounts लोड हो रहे हैं…</div></div>
 <div class="row"><h3>Safety reminder</h3><p>अपना Password, OTP, recovery link या private credentials किसी के साथ साझा न करें। केवल भरोसेमंद डिवाइस पर Login करें।</p></div>
 </div></section>
 
@@ -120,12 +121,33 @@ async function loadSettings(){
   $("privateAccount").checked=!!profile?.is_private;
   const {count,error:ne}=await db.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",user.id).eq("is_read",false);
   $("unreadCount").textContent=ne?"Unavailable":String(count??0);
+  await loadBlockedAccounts();
  }catch(e){console.error(e);message(e.message||"Settings load नहीं हुई।","error");}
 }
 async function savePrivacy(){
  if(!user)return;const btn=$("savePrivacyBtn");btn.disabled=true;
  try{const {error}=await db.from("profiles").upsert({user_id:user.id,is_private:$("privateAccount").checked},{onConflict:"user_id"});if(error)throw error;profile={...(profile||{}),is_private:$("privateAccount").checked};message("Privacy setting सेव हो गई।");}
  catch(e){console.error(e);message(e.message||"Privacy setting सेव नहीं हुई।","error");}finally{btn.disabled=false;}
+}
+async function loadBlockedAccounts(){
+ const host=$("blockedAccountsList");if(!host||!user)return;
+ host.textContent="Blocked accounts लोड हो रहे हैं…";
+ try{
+  const {data:rows,error}=await db.from("user_blocks").select("id,blocked_id,created_at").eq("blocker_id",user.id).order("created_at",{ascending:false});
+  if(error)throw error;
+  host.replaceChildren();
+  if(!rows?.length){host.textContent="आपने अभी किसी account को Block नहीं किया है।";return;}
+  const ids=rows.map(r=>r.blocked_id);
+  const {data:profiles}=await db.from("profiles").select("user_id,username").in("user_id",ids);
+  const names=new Map((profiles||[]).map(p=>[p.user_id,p.username]));
+  for(const row of rows){
+   const item=document.createElement("div");item.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #333";
+   const label=document.createElement("span");label.textContent=names.get(row.blocked_id)||("User "+String(row.blocked_id).slice(0,8));
+   const btn=document.createElement("button");btn.type="button";btn.className="secondary";btn.textContent="Unblock";
+   btn.addEventListener("click",async()=>{btn.disabled=true;try{const {error:de}=await db.from("user_blocks").delete().eq("id",row.id).eq("blocker_id",user.id);if(de)throw de;await loadBlockedAccounts();}catch(e){message(e.message||"Unblock नहीं हुआ।","error");btn.disabled=false;}});
+   item.append(label,btn);host.append(item);
+  }
+ }catch(e){console.error(e);host.textContent="Blocked accounts अभी लोड नहीं हो सके।";}
 }
 async function changeEmail(){
  if(!user)return;const email=$("newEmail").value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){message("कृपया सही ईमेल पता डालें।","error");return;}
