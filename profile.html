@@ -128,7 +128,7 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
 .profileViewerActions{position:fixed;z-index:10012;right:10px;top:calc(env(safe-area-inset-top) + 70px);bottom:calc(env(safe-area-inset-bottom) + 18px);display:flex;flex-direction:column;gap:10px;align-items:center;overflow-y:auto;overflow-x:visible;overscroll-behavior:contain;scrollbar-width:none;padding:4px 2px}
 .profileViewerActions::-webkit-scrollbar{display:none}
 .profileViewerActions button{flex:0 0 54px;width:54px;min-height:54px;padding:5px 2px;border-radius:28px;background:#151515c9;border:1px solid #ffffff66;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 2px 12px #0008}
-.profileViewerActions button span{font-size:24px;line-height:1.2}
+.profileViewerActions button span{font-size:24px;line-height:1.2}.profileViewerActions .viewerIcon{width:25px;height:25px;display:flex;align-items:center;justify-content:center}.profileViewerActions .viewerIcon svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.profileViewerActions .viewerIcon .filled{fill:currentColor;stroke:currentColor}
 .profileViewerActions button small{font-size:11px;color:#fff}
 .profileViewerActions button.liked span{filter:drop-shadow(0 0 5px #fe2c55)}
 .profileViewerSettings{position:relative;flex:0 0 auto}
@@ -263,7 +263,7 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
  <div class="profileViewerInfo"><strong id="profileViewerCreator"></strong><p id="profileViewerCaption"></p><small id="profileViewerViews">0 views</small></div>
  <div class="profileViewerActions" aria-label="Video actions">
   <div class="profileViewerSettings">
-   <button id="profileViewerSettingsButton" type="button" aria-label="Video settings" aria-expanded="false"><span>⋮</span><small>Settings</small></button>
+   <button id="profileViewerSettingsButton" type="button" aria-label="Video settings" aria-expanded="false"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.1.9-1.2 2.1-1.4-.6a8 8 0 0 1-1.5.9l-.2 1.5h-2.5l-.3-1.5a8 8 0 0 1-1.6-.9l-1.4.6-1.2-2.1 1.2-1a7 7 0 0 1 0-1.8l-1.2-1 1.2-2.1 1.4.6a8 8 0 0 1 1.6-.9l.3-1.5h2.5l.2 1.5a8 8 0 0 1 1.5.9l1.4-.6 1.2 2.1-1.1.9a7 7 0 0 1 0 1.8Z"/></svg></span><small>Settings</small></button>
    <div id="profileViewerSettingsMenu" class="profileViewerSettingsMenu" hidden>
     <button type="button" data-profile-manage="title">✏️ Edit Title</button>
     <button type="button" data-profile-manage="tags">#️⃣ Edit Hashtags</button>
@@ -273,11 +273,11 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
     <button type="button" data-profile-manage="delete" class="danger">🗑️ Delete Video</button>
    </div>
   </div>
-  <button id="profileViewerLike" type="button"><span>❤️</span><small id="profileViewerLikes">0</small></button>
-  <button id="profileViewerComment" type="button"><span>💬</span><small id="profileViewerComments">0</small></button>
-  <button id="profileViewerGift" type="button"><span>🎁</span><small>Gift</small></button>
-  <button id="profileViewerShare" type="button"><span>↗️</span><small>Share</small></button>
-  <button id="profileViewerDownload" type="button"><span>⬇️</span><small>Download</small></button>
+  <button id="profileViewerLike" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="filled" d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.3 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg></span><small id="profileViewerLikes">0</small></button>
+  <button id="profileViewerComment" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-6.5A7.5 7.5 0 1 1 20 11.5Z"/></svg></span><small id="profileViewerComments">0</small></button>
+  <button id="profileViewerGift" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18v11H3zM2 6h20v4H2zM12 6v15M12 6H7.5a2.5 2.5 0 1 1 2.5-2.5C10 5 12 6 12 6Zm0 0h4.5A2.5 2.5 0 1 0 14 3.5C14 5 12 6 12 6Z"/></svg></span><small>Gift</small></button>
+  <button id="profileViewerShare" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg></span><small>Share</small></button>
+  <button id="profileViewerDownload" type="button"><span class="viewerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 20h16"/></svg></span><small>Download</small></button>
  </div>
 </div>
 <div class="modal" id="videoManageModal" aria-hidden="true"><div class="modalBox">
