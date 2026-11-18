@@ -465,8 +465,8 @@
 
   window.NewStarNavbar = {
     openMenu, closeMenu, applyPreferences,
-    setLanguage(language){const p=getPrefs();p.language=language;localStorage.setItem("newstar_preferences",JSON.stringify(p));applyPreferences();window.NewStarPreferences?.sync?.();},
-    setTheme(theme){const p=getPrefs();p.theme=theme;localStorage.setItem("newstar_preferences",JSON.stringify(p));applyPreferences();window.NewStarPreferences?.sync?.();}
+    setLanguage(language){const p=getPrefs();p.language=language;localStorage.setItem("newstar_preferences",JSON.stringify(p));applyPreferences();window.NewStarPreferences?.sync?.(true);},
+    setTheme(theme){const p=getPrefs();p.theme=theme;localStorage.setItem("newstar_preferences",JSON.stringify(p));applyPreferences();window.NewStarPreferences?.sync?.(true);}
   };
   window.addEventListener("storage",event=>{if(event.key==="newstar_preferences")applyPreferences();});
 
