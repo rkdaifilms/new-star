@@ -26,7 +26,7 @@
 <div class="row"><span>AdMob setup state</span><strong id="admobState">Not configured</strong></div>
 <div class="row"><span>Payoneer / bank payout onboarding</span><span id="payoutState">Not connected</span></div>
 <p class="muted">Open the official provider site to create/verify an eligible adult-managed account. New Star will not claim payouts are active until the official provider integration, country eligibility check, server verification and settlement testing are complete.</p><div class="row"><span>Payoneer provider status</span><strong id="payoneerProviderStatus">Not connected</strong></div><h3>Country payout readiness</h3><p class="muted">All listed countries are catalogued, but every Payoneer route starts disabled and unverified. This is a country directory, not a promise that Payoneer supports every country.</p><input id="countrySearch" class="field" placeholder="Search country or ISO code"><div style="overflow:auto;max-height:360px"><table><thead><tr><th>Country</th><th>Currency</th><th>Payoneer status</th></tr></thead><tbody id="countryPayoutRows"><tr><td colspan="3">Loading country routes…</td></tr></tbody></table></div>
-<p><a href="https://www.payoneer.com/" target="_blank" rel="noopener noreferrer">Open Payoneer official site</a> · <a href="https://www.google.com/adsense/start/" target="_blank" rel="noopener noreferrer">Google AdMob / AdSense</a></p>
+<p><a href="https://www.payoneer.com/" target="_blank" rel="noopener noreferrer">Payoneer official account & payout setup</a></p><p><a href="https://admob.google.com/home/" target="_blank" rel="noopener noreferrer">Google AdMob — app ads setup</a> · <a href="https://adsense.google.com/start/" target="_blank" rel="noopener noreferrer">Google AdSense — website ads setup</a></p>
 <button id="saveMonetization" class="btn" type="button">Save AdMob IDs</button>
 <p id="monetizationStatus" class="muted" aria-live="polite"></p>
 </section>
@@ -103,7 +103,7 @@ $("createCoinPackage").addEventListener("click",async()=>{
  const {data:{session}}=await db.auth.getSession();if(!session)throw new Error("Please sign in again.");
  const response=await fetch("https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/admin-overview",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,apikey:"sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr","Content-Type":"application/json"},body:JSON.stringify({action:"create_coin_package",coins:Number($("packageCoins").value),bonus_coins:Number($("packageBonus").value||0),country_code:String($("packageCountry").value).trim().toUpperCase(),currency:String($("packageCurrency").value).trim().toUpperCase(),price:Number($("packagePrice").value)})});
  const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||"Package save failed.");
- status.textContent="Coin package saved as Draft. Purchases remain disabled."; $("packageCoins").value="";updatePackageBonus();$("packagePrice").value="";await load();
+ status.textContent="Coin package draft saved. Once a payment provider is verified and the package is published, any eligible signed-in user can buy it; no per-purchase developer approval is needed."; $("packageCoins").value="";updatePackageBonus();$("packagePrice").value="";await load();
  }catch(e){status.textContent="Could not save: "+e.message;}finally{btn.disabled=false;}
 });
 $("refresh").addEventListener("click",load);load();
