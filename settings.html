@@ -240,6 +240,15 @@
         <p>इस डिवाइस से अपने New Star अकाउंट को Logout करें।</p>
         <button class="danger" id="logoutBtn">Log Out</button>
       </div>
+      <div class="setting-row">
+        <h3>सभी डिवाइस से Logout</h3>
+        <p>अगर आपको लगता है कि किसी दूसरे डिवाइस पर आपका अकाउंट खुला है, तो सभी active sessions बंद करें। आपको फिर से Login करना होगा।</p>
+        <button class="danger" id="logoutAllBtn">Log Out From All Devices</button>
+      </div>
+      <div class="setting-row">
+        <h3>Privacy Reminder</h3>
+        <p>अपना पासवर्ड, OTP या recovery link किसी को न दें। Public वीडियो और creator profile की visibility उनके अपने audience/privacy controls से तय होती है। केवल भरोसेमंद डिवाइस पर Login करें।</p>
+      </div>
     </div>
 
     <p class="small-note">
@@ -473,17 +482,12 @@
 
       async function logout() {
         if (!db?.auth) return;
-
-        if (!confirm("क्या आप Logout करना चाहते हैं?")) return;
-
+        if (!confirm("क्या आप इस डिवाइस से Logout करना चाहते हैं?")) return;
         const button = $("logoutBtn");
         button.disabled = true;
-
         try {
-          const { error } = await db.auth.signOut();
-
+          const { error } = await db.auth.signOut({ scope: "local" });
           if (error) throw error;
-
           location.replace("auth.html");
         } catch (error) {
           showMessage(error.message || "Logout नहीं हुआ।", "error");
@@ -491,10 +495,28 @@
         }
       }
 
-      $("saveAppearanceBtn").addEventListener("click", saveAppearance);\n      loadAppearance();\n      $("changeEmailBtn").addEventListener("click", changeEmail);
+      async function logoutAllDevices() {
+        if (!db?.auth) return;
+        if (!confirm("सभी डिवाइस से Logout करने पर आपको दोबारा Login करना होगा। जारी रखें?")) return;
+        const button = $("logoutAllBtn");
+        button.disabled = true;
+        try {
+          const { error } = await db.auth.signOut({ scope: "global" });
+          if (error) throw error;
+          location.replace("auth.html");
+        } catch (error) {
+          showMessage(error.message || "सभी sessions बंद नहीं हो सके।", "error");
+          button.disabled = false;
+        }
+      }
+
+      $("saveAppearanceBtn").addEventListener("click", saveAppearance);
+      loadAppearance();
+      $("changeEmailBtn").addEventListener("click", changeEmail);
       $("changePasswordBtn").addEventListener("click", changePassword);
       $("saveProfileBtn").addEventListener("click", savePersonalInformation);
       $("logoutBtn").addEventListener("click", logout);
+      $("logoutAllBtn").addEventListener("click", logoutAllDevices);
 
       loadSettings();
     })();
