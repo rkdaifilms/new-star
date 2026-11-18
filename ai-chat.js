@@ -22,13 +22,16 @@ launch.addEventListener("click",()=>panel.classList.toggle("open"));panel.queryS
 panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
  e.preventDefault();const text=input.value.trim();if(!text||send.disabled)return;
  const {data,error}=await db.auth.getSession();if(error||!data?.session){add("पहले अपने New Star account में Login करें।","bot");return;}
- add(text,"user");history.push({role:"user",content:text});input.value="";send.disabled=true;send.textContent="…";
+ add(text,"user");input.value="";send.disabled=true;send.textContent="…";
  const pending=add("जवाब तैयार हो रहा है…","bot");
  try{
-  const {data:result,error:invokeError}=await db.functions.invoke("ai-gateway",{body:{messages:history.slice(-10)}});
+  const requestMessages=[...history.slice(-9),{role:"user",content:text}];
+  const {data:result,error:invokeError}=await db.functions.invoke("ai-gateway",{body:{messages:requestMessages}});
   if(invokeError)throw invokeError;
   if(!result?.ok||typeof result.answer!=="string")throw new Error(result?.error||"AI सेवा अभी उपलब्ध नहीं है।");
-  pending.textContent=result.answer;history.push({role:"assistant",content:result.answer});
+  pending.textContent=result.answer;
+  history.push({role:"user",content:text},{role:"assistant",content:result.answer});
+  if(history.length>10)history.splice(0,history.length-10);
  }catch(err){pending.textContent=err?.message||"AI सेवा अभी उपलब्ध नहीं है। Provider setup और connection जाँचें।";}
  finally{send.disabled=false;send.textContent="Send";input.focus();}
 });
