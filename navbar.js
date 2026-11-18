@@ -28,6 +28,8 @@
   function applyPreferences(){
     const p=getPrefs(),theme=p.theme||"dark",lang=p.language||"hi";
     document.documentElement.lang=lang;
+    document.documentElement.dir=["ar","ur","fa"].includes(lang)?"rtl":"ltr";
+    document.querySelectorAll("[data-i18n]").forEach(el=>{const key=el.getAttribute("data-i18n");const translated=window.NewStarTranslations?.[key]?.[lang];if(translated)el.textContent=translated;});
     const themes={
       dark:{bg:"#080808",panel:"#171717",text:"#ffffff",muted:"#aaaaaa",accent:"#fe2c55"},light:{bg:"#f4f6fa",panel:"#ffffff",text:"#171923",muted:"#5d6472",accent:"#d92350"},
       ocean:{bg:"#071923",panel:"#102b3a",text:"#f4fbff",muted:"#a8c1cc",accent:"#25b8d0"},forest:{bg:"#101b14",panel:"#1b2b20",text:"#f4fff6",muted:"#afc5b3",accent:"#39a96b"},
@@ -49,8 +51,9 @@
     style.textContent=`
       :root{--ns-bg:${t.bg};--ns-panel:${t.panel};--ns-text:${t.text};--ns-muted:${t.muted};--ns-accent:${t.accent}}
       body{background-color:var(--ns-bg)!important;color:var(--ns-text)!important}
-      header,.header,.panel,.card,.section,.settings-card,.setting-row,.modal-content,.menu{color:var(--ns-text)}
-      .panel,.card,.settings-card,.setting-row,.modal-content{background-color:var(--ns-panel)!important;border-color:var(--ns-muted)!important}
+      header,.header,.panel,.card,.section,.settings-card,.setting-row,.modal-content,.menu,.intro,.row{color:var(--ns-text)}
+      .panel,.card,.settings-card,.setting-row,.modal-content,.row{background-color:var(--ns-panel)!important;border-color:var(--ns-muted)!important}
+      .intro{background:var(--ns-panel)!important;border-color:var(--ns-muted)!important}
       input,select,textarea{background-color:var(--ns-bg)!important;color:var(--ns-text)!important;border-color:var(--ns-muted)!important}
       .muted,.small-note,.setting-row p,.section-title{color:var(--ns-muted)!important}
       button:not(.newstar-plus-icon){accent-color:var(--ns-accent)}
@@ -71,7 +74,7 @@
       Create:{hi:"बनाएँ",ne:"सिर्जना",en:"Create",zh:"创建",es:"Crear",fr:"Créer",ar:"إنشاء",ja:"作成",de:"Erstellen",ru:"Создать",pt:"Criar",it:"Crea",ko:"만들기",tr:"Oluştur",bn:"তৈরি",ur:"بنائیں",id:"Buat",vi:"Tạo",th:"สร้าง",fa:"ایجاد",sw:"Unda",nl:"Maken",pl:"Utwórz",uk:"Створити",el:"Δημιουργία",sv:"Skapa"},
       Inbox:{hi:"इनबॉक्स",ne:"इनबक्स",en:"Inbox",zh:"收件箱",es:"Bandeja",fr:"Boîte",ar:"الوارد",ja:"受信箱",de:"Postfach",ru:"Входящие",pt:"Caixa",it:"Posta",ko:"받은편지함",tr:"Gelen Kutusu",bn:"ইনবক্স",ur:"پیغامات",id:"Kotak Masuk",vi:"Hộp thư",th:"กล่องข้อความ",fa:"صندوق ورودی",sw:"Kikasha",nl:"Inbox",pl:"Skrzynka",uk:"Вхідні",el:"Εισερχόμενα",sv:"Inkorg"},
       Admin:{hi:"एडमिन",ne:"एडमिन",en:"Admin",zh:"管理",es:"Admin",fr:"Admin",ar:"المشرف",ja:"管理",de:"Admin",ru:"Админ",pt:"Admin",it:"Admin",ko:"관리자",tr:"Yönetici",bn:"অ্যাডমিন",ur:"منتظم",id:"Admin",vi:"Quản trị",th:"ผู้ดูแล",fa:"مدیر",sw:"Msimamizi",nl:"Beheer",pl:"Admin",uk:"Адмін",el:"Διαχειριστής",sv:"Admin"},
-      Profile:{hi:"प्रोफाइल",ne:"प्रोफाइल",en:"Profile",zh:"个人资料",es:"Perfil",fr:"Profil",ar:"الملف",ja:"プロフィール",de:"Profil",ru:"Профиль",pt:"Perfil",it:"Profilo",ko:"프로필",tr:"Profil",bn:"প্রোফাইল"}
+      Profile:{hi:"प्रोफाइल",ne:"प्रोफाइल",en:"Profile",zh:"个人资料",es:"Perfil",fr:"Profil",ar:"الملف الشخصي",ja:"プロフィール",de:"Profil",ru:"Профиль",pt:"Perfil",it:"Profilo",ko:"프로필",tr:"Profil",bn:"প্রোফাইল",ur:"پروفائل",id:"Profil",vi:"Hồ sơ",th:"โปรไฟล์",fa:"نمایه",sw:"Wasifu",nl:"Profiel",pl:"Profil",uk:"Профіль",el:"Προφίλ",sv:"Profil"}
     };
     return words[key]?.[lang]||words[key]?.en||key;
   }
@@ -386,7 +389,7 @@
     nav.setAttribute("aria-label", "Main navigation");
 
     const items = [
-      { page: "index.html", icon: "🏠", label: navText("Home") ,ur:"پروفائل",id:"Profil",vi:"Hồ sơ",th:"โปรไฟล์",fa:"نمایه",sw:"Wasifu",nl:"Profiel",pl:"Profil",uk:"Профіль",el:"Προφίλ",sv:"Profil"},
+      { page: "index.html", icon: "🏠", label: navText("Home") },
       { page: "wallet.html", icon: "💰", label: navText("Wallet") },
       { page: "camera.html", icon: "+", label: navText("Create"), plus: true },
       { page: "inbox.html", icon: "✉️", label: navText("Inbox") },
@@ -426,6 +429,7 @@
   }
 
   async function start() {
+    applyPreferences();
     if (authPages.includes(currentPage)) return;
 
     if (!db?.auth) {
@@ -461,9 +465,11 @@
   }
 
   window.NewStarNavbar = {
-    openMenu,
-    closeMenu
+    openMenu, closeMenu, applyPreferences,
+    setLanguage(language){const p=getPrefs();p.language=language;localStorage.setItem("newstar_preferences",JSON.stringify(p));applyPreferences();},
+    setTheme(theme){const p=getPrefs();p.theme=theme;localStorage.setItem("newstar_preferences",JSON.stringify(p));applyPreferences();}
   };
+  window.addEventListener("storage",event=>{if(event.key==="newstar_preferences")applyPreferences();});
 
   // Allow the profile's existing ⋮ button to open the global menu
   // only when explicitly requested by its own page code.
