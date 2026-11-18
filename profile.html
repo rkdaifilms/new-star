@@ -475,23 +475,13 @@ async function loadStatsAndVideos(){
  $("videoGrid").replaceChildren();
 
  try{
-  const [vr,fr,fg]=await Promise.all([
-   // Select the row's current schema instead of hard-coding optional metadata
-   // columns; older deployments may not have every video metadata field.
-   db.from("videos").select("*")
-    .eq("user_id",String(user.id)).order("created_at",{ascending:false}),
-   db.from("followers").select("id",{count:"exact",head:true})
-    .eq("following_id",String(user.id)),
-   db.from("followers").select("id",{count:"exact",head:true})
-    .eq("follower_id",String(user.id))
-  ]);
+  // Load and render the creator's videos independently. Follower-count
+  // requests must never hold the profile's video grid back.
+  const {data:videoRows,error:videoError}=await db.from("videos").select("*")
+   .eq("user_id",String(user.id)).order("created_at",{ascending:false});
+  if(videoError)throw videoError;
 
-  if(vr.error)throw vr.error;
-
-  $("followerCount").textContent=fr.error?"—":String(fr.count??0);
-  $("followingCount").textContent=fg.error?"—":String(fg.count??0);
-
-  const videos=(vr.data||[]).filter(item=>item&&item.video_url);
+  const videos=(videoRows||[]).filter(item=>item&&item.video_url);
   await Promise.all(videos.map(async item=>{
    if(Number(item.duration_seconds)>0&&Number(item.width)>0&&Number(item.height)>0)return;
    try{
@@ -527,6 +517,15 @@ async function loadStatsAndVideos(){
   window.profileVideos=videos;
   renderProfileVideos();
 
+  // Counts are secondary profile information; fetch them after videos render.
+  const [fr,fg]=await Promise.all([
+   db.from("followers").select("id",{count:"exact",head:true})
+    .eq("following_id",String(user.id)),
+   db.from("followers").select("id",{count:"exact",head:true})
+    .eq("follower_id",String(user.id))
+  ]);
+  $("followerCount").textContent=fr.error?"—":String(fr.count??0);
+  $("followingCount").textContent=fg.error?"—":String(fg.count??0);
   if(fr.error||fg.error){
    $("profileStatus").textContent="Follower count पढ़ने में समस्या: "+
     [fr.error,fg.error].filter(Boolean).map(e=>e.message).join(" | ");
