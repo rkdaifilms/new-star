@@ -811,9 +811,9 @@ async function sendGift(){
  giftBusy=true;const button=$("sendGift");button.disabled=true;button.textContent="Gift भेजा जा रहा है...";
  try{
   const gift=selectedGift;const requestId=newRequestId();
-  const {data,error}=await db.rpc("send_creator_gift",{
-   p_video_id:String(currentVideo.id),p_gift_name:gift.name,p_coins:gift.coins,p_request_id:requestId
-  });
+  const {data,error}=await db.functions.invoke("admin-overview",{body:{
+   action:"send_gift",videoId:String(currentVideo.id),giftName:gift.name,coins:gift.coins,requestId
+  }});
   if(error)throw error;
   const result=Array.isArray(data)?data[0]:data;
   if(!result||result.success!==true)throw new Error("Server ने Gift की पुष्टि नहीं की।");
