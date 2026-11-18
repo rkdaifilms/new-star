@@ -197,7 +197,7 @@ function getSafeNextPage(){
   const allowed=[
    "index.html","profile.html","camera.html","upload.html",
    "wallet.html","inbox.html","settings.html",
-   "monetization.html","live.html","gaming.html","campaign.html"
+   "monetization.html","live.html","gaming.html","campaign.html","admin.html"
   ];
 
   if(!allowed.includes(page))return "profile.html";
@@ -354,6 +354,8 @@ async function handleAuthAction(){
  }
 }
 
+$("forgotPassword").addEventListener("click",async()=>{const client=getAuthClient(),email=$("userEmail").value.trim();if(!client){showMessage("Supabase उपलब्ध नहीं है।","error");return;}if(!email){showMessage("पहले अपना Owner Gmail लिखें।","error");return;}try{const redirectTo=new URL("./auth.html?mode=recovery&next=admin.html",location.href).href;const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo});if(error)throw error;showMessage("यदि इस ईमेल का अकाउंट है, तो पासवर्ड रिकवरी लिंक भेजा गया है। अपने ईमेल में लिंक खोलें।","success");}catch(error){showMessage(error.message||"Recovery email नहीं भेजा जा सका।","error");}});
+if(isRecoveryMode){$("formTitle").textContent="Set a new password";$("actionBtn").textContent="Update Password";$("userEmail").style.display="none";$("forgotPassword").style.display="none";$("userPassword").autocomplete="new-password";$("userPassword").placeholder="Enter new password";}
 $("actionBtn").addEventListener("click",handleAuthAction);
 $("toggleMode").addEventListener("click",toggleAuthMode);
 
