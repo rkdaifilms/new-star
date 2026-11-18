@@ -19,7 +19,8 @@
     "gaming.html",
     "camera.html",
     "upload.html",
-    "settings.html"
+    "settings.html",
+    "admin.html"
   ];
 
   const $ = id => document.getElementById(id);
