@@ -14,7 +14,7 @@ The `_headers` file applies baseline browser security headers. It intentionally 
 2. Verify every exposed table has least-privilege grants and RLS policies.
 3. Verify SECURITY DEFINER functions use a fixed search_path and explicit authorization checks.
 4. Configure Supabase Auth leaked-password protection and appropriate rate limits in the dashboard.
-5. Test OAuth, uploads, camera/microphone/screen capture, video playback, realtime, wallet and payment webhooks on the deployed domain.
+5. Test OAuth, uploads, camera/microphone/screen capture, video playback, follow requests, realtime, wallet and payment webhooks on the deployed domain. Static JavaScript syntax checks do not replace browser/end-to-end tests.
 6. Treat provider downtime as a recoverable error. Never credit coins or creator earnings based on a client-side success message.
 
 ## Security hardening applied to the connected Supabase project
@@ -22,17 +22,22 @@ The `_headers` file applies baseline browser security headers. It intentionally 
 - Browser roles cannot access the `private` schema directly.
 - Removed browser-role `TRUNCATE`, `TRIGGER`, and `REFERENCES` privileges from public tables; removed anonymous table mutations and only retained authenticated mutations where an explicit RLS policy exists.
 - Removed browser access to public-schema sequences.
-- Tightened video row visibility to published public/unlisted videos for everyone, while owners can still see their own rows.
-- Comments and likes are now readable/writable only in relation to videos visible to that viewer.
+- Tightened video row visibility to published public videos for the public feed, while owners can still see their own rows. Private-account videos are visible only to approved followers under the row policy.
+- The `videos` Storage bucket is private. Owner-only storage policies protect uploads and direct object reads; the `video-url` Edge Function issues short-lived signed playback URLs after checking publication, visibility, audience, account privacy, and approved-follow status.
+- Comments and likes are readable/writable only in relation to videos visible to that viewer; private account discovery cards omit full name, avatar URL, and bio while the account is private.
+- Follow requests are participant-scoped; only the target account can accept/reject a pending request, and acceptance creates the follower relationship through a database trigger.
+- Gift transactions are service-role-only through the trusted Edge Function path. The database RPC checks the fixed gift price, idempotency key, video publication/visibility, private-account approval, wallet balance, and commission before writing ledgers.
+- Legacy merged-video publishing now requires an authenticated owner, uploads into that owner's storage folder, stores a `storage://videos/` reference, and cleans up the uploaded object if the metadata insert fails.
 - Wallet balances, wallet ledger, payment orders, messages, notifications, blocks, and withdrawal requests retain owner/participant-based policies.
 - Enabled RLS on all private-schema tables. Private tables intentionally have no browser policies, so browser access is denied; server-side service-role code remains the trusted access path.
 - Avatar uploads are limited to 5 MiB and JPEG, PNG, WebP, or AVIF.
 
 ## Remaining production blockers — do not mark security complete yet
-- The `videos` Storage bucket is still public because the current app stores public video URLs and does not yet generate signed URLs. Public bucket URLs can be opened by anyone who has the URL, so private/unlisted media is not fully protected at the file layer. Migrate playback, profile grids, editor previews, and downloads to short-lived signed URLs before switching this bucket to private; switching it immediately would break existing playback.
-- Supabase Auth leaked-password protection is still disabled and must be enabled in the Supabase Auth dashboard.
-- Seven authenticated RPC functions remain `SECURITY DEFINER` by design for watch sessions, feed ranking, and creator eligibility. Each must retain its explicit `auth.uid()` ownership check and fixed `search_path`; do not remove these checks or blindly revoke the RPCs without replacing their app calls.
-- Default privileges for future objects in the `public` schema still need to be restricted by the owning database role.
+- Supabase Auth leaked-password protection is still disabled and must be enabled in the Supabase Auth dashboard by the authorized project owner.
+- Seven authenticated RPC functions remain `SECURITY DEFINER` for watch sessions, feed ranking, and creator eligibility. Their authorization logic and fixed `search_path` need continued review; do not blindly revoke them without replacing their app calls.
+- Default privileges for future `public` objects were tightened for the `postgres` owner. The available database role could not alter `supabase_admin` default privileges, so that role's defaults remain unverified.
+- The Security Advisor still reports 18 RLS-enabled tables with no policies (private-schema tables intentionally deny browser access; `public.app_settings` and `public.star_campaign_events` need separate review) and seven authenticated SECURITY DEFINER RPC warnings.
+- Avatar objects remain in a public bucket for current profile-avatar URL compatibility. Private-account discovery metadata is masked, but an already-known public avatar URL is not revoked by that masking.
 - A restrictive Content-Security-Policy and full deployed-domain regression testing remain outstanding.
 - GitHub changes do not prove that Netlify has deployed them. Verify the live deployment before treating browser changes as active.
 
