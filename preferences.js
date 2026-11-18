@@ -66,7 +66,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 window.addEventListener("focus",()=>{if(document.visibilityState==="visible")sync()});
 const authClient=window.supabaseClient||window.cloudClient;
 authClient?.auth?.onAuthStateChange((event,session)=>{
- if(event==="SIGNED_IN"||event==="TOKEN_REFRESHED"||event==="USER_UPDATED")queueMicrotask(()=>sync(!!session?.user&&!!read()._updatedAt));
+ if(event==="SIGNED_IN"||event==="TOKEN_REFRESHED"||event==="USER_UPDATED")queueMicrotask(()=>sync(false));
  if(event==="SIGNED_OUT")apply();
 });
 })();
