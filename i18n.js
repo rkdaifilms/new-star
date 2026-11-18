@@ -143,10 +143,27 @@ Object.assign(dict.uk,{"action.accept":"Прийняти","action.decline":"Ві
 Object.assign(dict.el,{"action.accept":"Αποδοχή","action.decline":"Απόρριψη"});
 
 const reverseEnglish=Object.fromEntries(Object.entries(dict.en).map(([key,value])=>[String(value).trim().toLowerCase(),key]));
+const originalUiText=new WeakMap();
+const lastUiTranslation=new WeakMap();
 function translateExactText(root){
- // Only translate elements explicitly marked with data-i18n.
- // Do not rewrite creator captions, comments, usernames, or user-generated text.
- return;
+ const langCode=lang(),map=dict[langCode]||dict.en;
+ const scope=root||document;
+ const selector="h1,h2,h3,h4,h5,h6,button,label,a,th,option,summary";
+ const nodes=[];
+ if(scope.nodeType===1&&scope.matches?.(selector))nodes.push(scope);
+ scope.querySelectorAll?.(selector).forEach(el=>nodes.push(el));
+ for(const el of nodes){
+  if(el.hasAttribute("data-i18n")||el.closest("[data-user-content],[data-preserve-text],[contenteditable='true'],.caption,.comment,.message,.chat-message,.username,.creator-name,.video-description"))continue;
+  if(el.children.length)continue;
+  let original=originalUiText.get(el);
+  const last=lastUiTranslation.get(el);
+  const current=(el.textContent||"").trim();
+  if(original===undefined){original=current;originalUiText.set(el,original);}
+  else if(current!==last&&current!==original){original=current;originalUiText.set(el,original);}
+  const key=reverseEnglish[original.toLowerCase()];
+  if(key&&map[key]){el.textContent=map[key];lastUiTranslation.set(el,map[key]);}
+  else if(last!==undefined){el.textContent=original;lastUiTranslation.delete(el);}
+ }
 }
 function translateCommonAttributes(root){
  const langCode=lang(),map=dict[langCode]||dict.en;
