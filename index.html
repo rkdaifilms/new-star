@@ -177,23 +177,23 @@ button{cursor:pointer}
 <header class="top-area">
  <div class="search-row">
   <span>🔍</span>
-  <input id="search" type="search" placeholder="Search creators, videos..." autocomplete="off">
-  <button id="voice" aria-label="Voice search">🎙️</button>
+  <input id="search" type="search" placeholder="Search creators, videos..." data-i18n-placeholder="feed.search" autocomplete="off">
+  <button id="voice" aria-label="Voice search" data-i18n-aria-label="feed.voiceSearch">🎙️</button>
  </div>
  <nav class="categories" id="categories">
-  <button class="category active" data-cat="For You">🔥 For You</button>
-  <button class="category" data-cat="Following">👥 Following</button>
-  <button class="category" data-cat="Shorts">⚡ Shorts</button>
-  <button class="category" data-cat="Reels">🎬 Reels</button>
-  <button class="category" data-cat="Long Videos">▶ Long Videos</button>
-  <button class="category" data-cat="Discover">🌍 Discover</button>
-  <button class="category" data-cat="Friends">🤝 Friends</button>
-  <button class="category" data-cat="Live">🔴 Live</button>
-  <button class="category" data-cat="Comedy">😂 Comedy</button>
-  <button class="category" data-cat="Music">🎵 Music</button>
-  <button class="category" data-cat="Gaming">🎮 Gaming</button>
-  <button class="category" data-cat="Tech">💻 Tech</button>
-  <button class="category" data-cat="Vlogs">📹 Vlogs</button>
+  <button class="category active" data-cat="For You">🔥 <span data-i18n="feed.forYou">For You</span></button>
+  <button class="category" data-cat="Following">👥 <span data-i18n="feed.following">Following</span></button>
+  <button class="category" data-cat="Shorts">⚡ <span data-i18n="feed.shorts">Shorts</span></button>
+  <button class="category" data-cat="Reels">🎬 <span data-i18n="feed.reels">Reels</span></button>
+  <button class="category" data-cat="Long Videos">▶ <span data-i18n="feed.longVideos">Long Videos</span></button>
+  <button class="category" data-cat="Discover">🌍 <span data-i18n="feed.discover">Discover</span></button>
+  <button class="category" data-cat="Friends">🤝 <span data-i18n="feed.friends">Friends</span></button>
+  <button class="category" data-cat="Live">🔴 <span data-i18n="feed.live">Live</span></button>
+  <button class="category" data-cat="Comedy">😂 <span data-i18n="feed.comedy">Comedy</span></button>
+  <button class="category" data-cat="Music">🎵 <span data-i18n="feed.music">Music</span></button>
+  <button class="category" data-cat="Gaming">🎮 <span data-i18n="feed.gaming">Gaming</span></button>
+  <button class="category" data-cat="Tech">💻 <span data-i18n="feed.tech">Tech</span></button>
+  <button class="category" data-cat="Vlogs">📹 <span data-i18n="feed.vlogs">Vlogs</span></button>
  </nav>
 </header>
 
@@ -201,9 +201,9 @@ button{cursor:pointer}
  <div id="loading">🌟 New Star वीडियो लोड हो रहे हैं...</div>
  <div id="empty">
   <div>
-   <h3>अभी कोई वीडियो उपलब्ध नहीं है</h3>
-   <p id="emptyMessage">नया वीडियो पोस्ट होने पर यहाँ दिखाई देगा।</p>
-   <button id="reload">फिर कोशिश करें</button>
+   <h3 data-i18n="feed.emptyTitle">No videos available yet</h3>
+   <p id="emptyMessage" data-i18n="feed.emptyText">New videos will appear here when creators post.</p>
+   <button id="reload" data-i18n="feed.retry">Try again</button>
   </div>
  </div>
  <video id="video" playsinline loop preload="metadata"></video>
@@ -213,45 +213,45 @@ button{cursor:pointer}
  <section class="video-info">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
    <h3 id="username"></h3>
-   <button id="followCreatorBtn" type="button" style="display:none;background:#fe2c55;color:#fff;border:0;border-radius:18px;padding:6px 14px;font-weight:700">Follow</button>
+   <button id="followCreatorBtn" type="button" style="display:none;background:#fe2c55;color:#fff;border:0;border-radius:18px;padding:6px 14px;font-weight:700" data-i18n="action.follow">Follow</button>
   </div>
   <p id="caption"></p>
   <a id="affiliate" href="#" target="_blank" rel="noopener noreferrer nofollow sponsored">🔗 Brand / Affiliate Link</a>
   <div class="video-meta" id="meta"></div>
  </section>
  <aside class="actions">
-  <div class="video-settings-wrap" id="videoSettingsWrap"><button type="button" id="videoSettingsBtn" aria-label="Video settings" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.1.9-1.2 2.1-1.4-.6a8 8 0 0 1-1.5.9l-.2 1.5h-2.5l-.3-1.5a8 8 0 0 1-1.6-.9l-1.4.6-1.2-2.1 1.2-1a7 7 0 0 1 0-1.8l-1.2-1 1.2-2.1 1.4.6a8 8 0 0 1 1.6-.9l.3-1.5h2.5l.2 1.5a8 8 0 0 1 1.5.9l1.4-.6 1.2 2.1-1.1.9a7 7 0 0 1 0 1.8Z"/></svg></button>
+  <div class="video-settings-wrap" id="videoSettingsWrap"><button type="button" id="videoSettingsBtn" aria-label="Video settings" data-i18n-aria-label="action.videoSettings" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.1.9-1.2 2.1-1.4-.6a8 8 0 0 1-1.5.9l-.2 1.5h-2.5l-.3-1.5a8 8 0 0 1-1.6-.9l-1.4.6-1.2-2.1 1.2-1a7 7 0 0 1 0-1.8l-1.2-1 1.2-2.1 1.4.6a8 8 0 0 1 1.6-.9l.3-1.5h2.5l.2 1.5a8 8 0 0 1 1.5.9l1.4-.6 1.2 2.1-1.1.9a7 7 0 0 1 0 1.8Z"/></svg></button>
    <div id="videoSettingsMenu" hidden>
-    <button type="button" data-feed-manage="title">✏️ Edit Title</button><button type="button" data-feed-manage="tags">#️⃣ Edit Hashtags</button>
-    <button type="button" data-feed-manage="voice">🎙️ Record Voice</button><button type="button" data-feed-manage="gallery">🎵 Choose Audio from Gallery</button>
-    <button type="button" data-feed-manage="mix">🎚️ Mix & Save</button><button type="button" data-feed-manage="delete">🗑️ Delete Video</button>
+    <button type="button" data-feed-manage="title">✏️ <span data-i18n="action.editTitle">Edit Title</span></button><button type="button" data-feed-manage="tags">#️⃣ <span data-i18n="action.editHashtags">Edit Hashtags</span></button>
+    <button type="button" data-feed-manage="voice">🎙️ <span data-i18n="action.recordVoice">Record Voice</span></button><button type="button" data-feed-manage="gallery">🎵 <span data-i18n="action.chooseAudio">Choose Audio from Gallery</span></button>
+    <button type="button" data-feed-manage="mix">🎚️ <span data-i18n="action.mixSave">Mix & Save</span></button><button type="button" data-feed-manage="delete">🗑️ <span data-i18n="action.deleteVideo">Delete Video</span></button>
    </div></div>
   <button class="action" id="likeBtn"><div class="action-icon">❤️</div><span id="likes">0</span></button>
-  <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount">Comments</span></button>
-  <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span>Gift</span></button>
-  <button class="action" id="shareBtn"><div class="action-icon">↗️</div><span>Share</span></button>
-  <button class="action" id="downloadBtn"><div class="action-icon">⬇️</div><span>Download</span></button>
+  <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount" data-i18n="action.comment">Comments</span></button>
+  <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span data-i18n="action.gift">Gift</span></button>
+  <button class="action" id="shareBtn"><div class="action-icon">↗️</div><span data-i18n="action.share">Share</span></button>
+  <button class="action" id="downloadBtn"><div class="action-icon">⬇️</div><span data-i18n="action.download">Download</span></button>
  </aside>
 </main>
 </div>
 
-<section class="modal" id="commentModal" aria-label="Comments">
- <div class="modal-head"><h3 id="commentTitle">Comments</h3><button class="close" data-close="commentModal" aria-label="Close comments">×</button></div>
+<section class="modal" id="commentModal" aria-label="Comments" data-i18n-aria-label="action.comment">
+ <div class="modal-head"><h3 id="commentTitle" data-i18n="action.comment">Comments</h3><button class="close" data-close="commentModal" aria-label="Close comments" data-i18n-aria-label="action.close">×</button></div>
  <div class="comment-list" id="commentList" aria-live="polite"></div>
- <form id="commentComposer" class="comment-form" autocomplete="off" aria-label="Write a comment">
+ <form id="commentComposer" class="comment-form" autocomplete="off" aria-label="Write a comment" data-i18n-aria-label="action.comment">
   <input id="commentInput" type="text" maxlength="1000" placeholder="यहाँ Comment लिखें..." aria-label="Comment लिखें">
-  <button class="primary" id="postComment" type="submit">Send</button>
+  <button class="primary" id="postComment" type="submit" data-i18n="action.send">Send</button>
  </form>
 </section>
 
 <section class="modal" id="shareModal">
- <div class="modal-head"><h3>Share Video</h3><button class="close" data-close="shareModal">×</button></div>
- <button class="share-option" id="nativeShare">🌐 Share using phone apps</button>
- <button class="share-option" id="copyShare">🔗 Copy video link</button>
+ <div class="modal-head"><h3 data-i18n="action.shareVideo">Share Video</h3><button class="close" data-close="shareModal">×</button></div>
+ <button class="share-option" id="nativeShare">🌐 <span data-i18n="action.sharePhone">Share using phone apps</span></button>
+ <button class="share-option" id="copyShare">🔗 <span data-i18n="action.copyLink">Copy video link</span></button>
 </section>
 
 <section class="modal" id="giftModal">
- <div class="modal-head"><h3>🎁 Send a Gift</h3><button class="close" data-close="giftModal">×</button></div>
+ <div class="modal-head"><h3>🎁 <span data-i18n="action.sendGift">Send a Gift</span></h3><button class="close" data-close="giftModal">×</button></div>
  <div class="balance"><span>आपका Coin Balance</span><strong id="coinBalance">लोड हो रहा है...</strong></div>
  <a class="buy-link" href="wallet.html#buy-coins">＋ Wallet में Coins खरीदें</a>
  <div class="gift-grid" id="giftGrid"></div>
@@ -259,14 +259,14 @@ button{cursor:pointer}
  <div class="gift-footer"><button class="primary" id="sendGift" disabled>पहले Gift चुनें</button></div>
 </section>
 <div id="feedManageModal" aria-hidden="true"><div class="manage-box">
- <div style="display:flex;align-items:center;justify-content:space-between"><strong>Video Settings</strong><button type="button" id="feedManageClose" class="close">×</button></div>
- <label for="feedManageTitle">Video Title / Caption</label><input id="feedManageTitle" maxlength="2000">
+ <div style="display:flex;align-items:center;justify-content:space-between"><strong data-i18n="action.videoSettings">Video Settings</strong><button type="button" id="feedManageClose" class="close">×</button></div>
+ <label for="feedManageTitle" data-i18n="action.videoCaption">Video Title / Caption</label><input id="feedManageTitle" maxlength="2000">
  <label for="feedManageTags">Hashtags (comma से अलग करें)</label><input id="feedManageTags" maxlength="1000" placeholder="#nepal, #newstar">
- <button type="button" class="manage-btn" id="feedManageSave">💾 Save Title & Hashtags</button><hr style="border-color:#444;margin:13px 0">
+ <button type="button" class="manage-btn" id="feedManageSave">💾 <span data-i18n="action.saveTitleTags">Save Title & Hashtags</span></button><hr style="border-color:#444;margin:13px 0">
  <strong>🎙️ Voice / Music</strong><p style="font-size:12px;color:#bbb">Gallery Audio चुनें या Voice रिकॉर्ड करें। Mix & Save वीडियो को real-time दोबारा रिकॉर्ड करता है; पेज खुला रखें।</p>
- <input id="feedManageAudio" type="file" accept="audio/*"><button type="button" class="manage-btn" id="feedVoiceStart">🎙️ Record Voice</button>
- <button type="button" class="manage-btn" id="feedVoiceStop" disabled>⏹ Stop Recording</button><p id="feedAudioStatus" style="font-size:12px;color:#bbb">अभी कोई Audio नहीं चुना गया।</p>
- <button type="button" class="manage-btn" id="feedMixSave">🎚️ Mix & Save</button><button type="button" class="manage-btn" id="feedDeleteVideo" style="background:#632b38">🗑️ Delete Video</button>
+ <input id="feedManageAudio" type="file" accept="audio/*"><button type="button" class="manage-btn" id="feedVoiceStart">🎙️ <span data-i18n="action.recordVoice">Record Voice</span></button>
+ <button type="button" class="manage-btn" id="feedVoiceStop" disabled>⏹ <span data-i18n="action.stopRecording">Stop Recording</span></button><p id="feedAudioStatus" style="font-size:12px;color:#bbb">अभी कोई Audio नहीं चुना गया।</p>
+ <button type="button" class="manage-btn" id="feedMixSave">🎚️ <span data-i18n="action.mixSave">Mix & Save</span></button><button type="button" class="manage-btn" id="feedDeleteVideo" style="background:#632b38">🗑️ <span data-i18n="action.deleteVideo">Delete Video</span></button>
  <p id="feedManageStatus" aria-live="polite"></p></div></div><div id="toast"></div>
 
 <script src="i18n.js"></script>
