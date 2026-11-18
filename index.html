@@ -34,8 +34,10 @@ button{cursor:pointer}
 .action-icon{width:40px;height:40px;border-radius:50%;background:#252525c9;border:1px solid #ffffff55;display:flex;align-items:center;justify-content:center;font-size:21px;margin:0 auto 3px}
 .action.liked .action-icon{color:#fe2c55}
 .action:disabled{opacity:.5}
-.video-settings-wrap{position:relative;display:none;align-items:center;justify-content:center}
-#videoSettingsBtn{width:30px;height:30px;border:1px solid #ffffff55;border-radius:50%;background:#252525dc;color:#fff;font-size:19px;line-height:1;padding:0}
+.video-settings-wrap{position:relative;display:none;align-items:center;justify-content:center;min-height:34px;margin-bottom:2px}
+#videoSettingsBtn{width:30px;height:30px;min-width:30px;min-height:30px;border:1px solid #ffffff55;border-radius:50%;background:#252525dc;color:#fff;font-size:19px;line-height:1;padding:0}
+.actions{gap:9px}
+#feed{overscroll-behavior:contain}
 #videoSettingsMenu{position:absolute;right:36px;bottom:0;width:185px;max-height:52vh;overflow:auto;background:#20202b;border:1px solid #55556a;border-radius:10px;padding:4px;z-index:100010;box-shadow:0 8px 24px #000b}
 #videoSettingsMenu[hidden]{display:none!important}
 #videoSettingsMenu button{display:block;width:100%;padding:9px;text-align:left;border:0;border-radius:7px;background:transparent;color:#fff;font-size:12px}
@@ -89,7 +91,7 @@ button{cursor:pointer}
 .gift-footer{padding:12px;border-top:1px solid #333}
 .gift-footer button{width:100%}
 #toast{display:none;position:fixed;z-index:999;bottom:75px;left:50%;transform:translateX(-50%);background:#292929;border:1px solid #555;border-radius:24px;padding:11px 17px;max-width:90%;text-align:center;font-size:13px}
-@media(min-width:700px){
+@media(min-width:700px) and (pointer:fine){
  #app{max-width:480px;margin:auto}
  .top-area{max-width:480px;left:50%;transform:translateX(-50%)}
  .modal{max-width:480px;left:50%;transform:translateX(-50%)}
@@ -215,17 +217,17 @@ button{cursor:pointer}
   <div class="video-meta" id="meta"></div>
  </section>
  <aside class="actions">
-  <button class="action" id="likeBtn"><div class="action-icon">❤️</div><span id="likes">0</span></button>
-  <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount">Comments</span></button>
-  <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span>Gift</span></button>
-  <button class="action" id="shareBtn"><div class="action-icon">↗️</div><span>Share</span></button>
-  <button class="action" id="downloadBtn"><div class="action-icon">⬇️</div><span>Download</span></button>
   <div class="video-settings-wrap" id="videoSettingsWrap"><button type="button" id="videoSettingsBtn" aria-label="Video settings" aria-expanded="false">⋮</button>
    <div id="videoSettingsMenu" hidden>
     <button type="button" data-feed-manage="title">✏️ Edit Title</button><button type="button" data-feed-manage="tags">#️⃣ Edit Hashtags</button>
     <button type="button" data-feed-manage="voice">🎙️ Record Voice</button><button type="button" data-feed-manage="gallery">🎵 Choose Audio from Gallery</button>
     <button type="button" data-feed-manage="mix">🎚️ Mix & Save</button><button type="button" data-feed-manage="delete">🗑️ Delete Video</button>
    </div></div>
+  <button class="action" id="likeBtn"><div class="action-icon">❤️</div><span id="likes">0</span></button>
+  <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount">Comments</span></button>
+  <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span>Gift</span></button>
+  <button class="action" id="shareBtn"><div class="action-icon">↗️</div><span>Share</span></button>
+  <button class="action" id="downloadBtn"><div class="action-icon">⬇️</div><span>Download</span></button>
  </aside>
 </main>
 </div>
@@ -663,7 +665,7 @@ async function openComments(){
  input.placeholder="यहाँ अपना Comment लिखें...";
  $("postComment").textContent=currentUser?"Send":"Login करके Send";
  await loadComments(commentTargetVideoId);
- setTimeout(()=>input.focus({preventScroll:true}),180);
+ // Do not auto-open the mobile keyboard; let the viewer tap the comment field.
 }
 async function loadComments(videoId){
  const list=$("commentList");list.textContent="Comments लोड हो रहे हैं...";
