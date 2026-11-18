@@ -51,21 +51,9 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </div></section>
 
 <section class="section" id="profile">
-<h2 class="section-title">03 · Profile Information</h2>
+<h2 class="section-title">03 · Profile & Edit Profile</h2>
 <div class="panel">
-<div class="row"><p>यहाँ की जानकारी आपके New Star प्रोफाइल रिकॉर्ड में सेव होगी। फोटो और Cover Photo बदलने के लिए Profile Editor खोलें।</p><div class="grid">
-<div><label for="fullName">पूरा नाम</label><input id="fullName" maxlength="80" autocomplete="name" placeholder="आपका नाम"></div>
-<div><label for="username">Username</label><input id="username" maxlength="30" autocomplete="username" placeholder="username"></div>
-<div class="full"><label for="bio">Bio</label><textarea id="bio" rows="3" maxlength="300" placeholder="अपने बारे में लिखें"></textarea></div>
-<div><label for="phone">मोबाइल नंबर</label><input id="phone" type="tel" autocomplete="tel" placeholder="+977…"></div>
-<div><label for="address">Address / City</label><input id="address" autocomplete="street-address" placeholder="शहर / पता"></div>
-<div><label for="website">Website</label><input id="website" type="url" placeholder="https://…"></div>
-<div><label for="whatsapp">WhatsApp</label><input id="whatsapp" type="tel" placeholder="+977…"></div>
-<div><label for="facebook">Facebook URL</label><input id="facebook" type="url" placeholder="https://…"></div>
-<div><label for="instagram">Instagram URL</label><input id="instagram" type="url" placeholder="https://…"></div>
-<div><label for="youtube">YouTube URL</label><input id="youtube" type="url" placeholder="https://…"></div>
-<div><label for="tiktok">TikTok URL</label><input id="tiktok" type="url" placeholder="https://…"></div>
-</div><button id="saveProfileBtn">💾 Save Profile Information</button> <a class="action secondary" href="profile.html">Open Profile</a></div>
+<div class="row"><h3>Profile details</h3><p>नाम, Username, Bio, फोटो, Cover Photo और Social links बदलने के लिए Profile के मौजूदा Edit Profile विकल्प का उपयोग करें। एक ही Profile Editor रखा गया है ताकि अलग-अलग जगह दो सेटिंग्स आपस में न टकराएँ।</p><a class="action" href="profile.html">👤 Open Profile & Edit Profile</a></div>
 </div></section>
 
 <section class="section" id="privacy">
@@ -101,7 +89,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 (()=>{"use strict";
 const db=window.supabaseClient||window.cloudClient;const $=id=>document.getElementById(id);
 let user=null,profile=null;
-const keys=["username","bio","phone","address","website","whatsapp","facebook","instagram","youtube","tiktok"];
+
 function message(s,type="success"){const el=$("status");el.textContent=s;el.className="status show "+type;el.scrollIntoView({behavior:"smooth",block:"nearest"});}
 function prefs(){try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){return {};}}
 function loadAppearance(){const p=prefs();$("appLanguage").value=p.language||"hi";$("appTheme").value=p.theme||"dark";}
@@ -127,26 +115,12 @@ async function loadSettings(){
   const {data,error}=await db.auth.getUser();if(error)throw error;user=data?.user;
   if(!user){location.replace("auth.html");return;}
   $("accountEmail").textContent=user.email||"Email उपलब्ध नहीं है";
-  const {data:row,error:pe}=await db.from("profiles").select("id,user_id,full_name,username,bio,phone,address,website,whatsapp,facebook,instagram,youtube,tiktok,is_private").eq("user_id",user.id).maybeSingle();
+  const {data:row,error:pe}=await db.from("profiles").select("user_id,is_private").eq("user_id",user.id).maybeSingle();
   if(pe)throw pe;profile=row||null;
-  $("fullName").value=profile?.full_name||user.user_metadata?.full_name||user.user_metadata?.name||"";
-  for(const k of keys)$(k).value=profile?.[k]||user.user_metadata?.[k]||"";
   $("privateAccount").checked=!!profile?.is_private;
   const {count,error:ne}=await db.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",user.id).eq("is_read",false);
   $("unreadCount").textContent=ne?"Unavailable":String(count??0);
  }catch(e){console.error(e);message(e.message||"Settings load नहीं हुई।","error");}
-}
-async function saveProfile(){
- if(!user)return;const btn=$("saveProfileBtn");btn.disabled=true;
- try{
-  const full_name=$("fullName").value.trim(),username=$("username").value.trim().replace(/^@/,""),bio=$("bio").value.trim();
-  if(!username){throw new Error("Username खाली नहीं हो सकता।");}
-  const row={user_id:user.id,full_name,username,bio};
-  for(const k of keys.slice(2))row[k]=$(k).value.trim();
-  const {error}=await db.from("profiles").upsert(row,{onConflict:"user_id"});if(error)throw error;
-  const {data,error:ae}=await db.auth.updateUser({data:{full_name,username,bio}});if(ae)throw ae;user=data.user;
-  message("Profile की जानकारी सफलतापूर्वक सेव हो गई।");await loadSettings();
- }catch(e){console.error(e);message(e.message||"Profile सेव नहीं हुई।","error");}finally{btn.disabled=false;}
 }
 async function savePrivacy(){
  if(!user)return;const btn=$("savePrivacyBtn");btn.disabled=true;
@@ -165,7 +139,7 @@ async function logout(scope,buttonId){
  if(!db?.auth)return;const all=scope==="global";if(!confirm(all?"सभी sessions से Logout करना है?":"इस डिवाइस से Logout करना है?"))return;
  const btn=$(buttonId);btn.disabled=true;try{const {error}=await db.auth.signOut({scope});if(error)throw error;location.replace("auth.html");}catch(e){message(e.message||"Logout नहीं हुआ।","error");btn.disabled=false;}
 }
-$("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});$("saveAppearanceBtn").addEventListener("click",saveAppearance);$("saveProfileBtn").addEventListener("click",saveProfile);$("savePrivacyBtn").addEventListener("click",savePrivacy);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
+$("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});$("saveAppearanceBtn").addEventListener("click",saveAppearance);$("savePrivacyBtn").addEventListener("click",savePrivacy);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
 loadAppearance();loadSettings();
 })();
 </script>
