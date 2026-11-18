@@ -1,4 +1,4 @@
-const CACHE_NAME = "newstar-app-shell-v2";
+const CACHE_NAME = "newstar-app-shell-v3";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -6,6 +6,9 @@ const APP_SHELL = [
   "/profile.html",
   "/settings.html",
   "/navbar.js",
+  "/ai-chat.js",
+  "/preferences.js",
+  "/i18n.js",
   "/supabase-config.js",
   "/manifest.json"
 ];
