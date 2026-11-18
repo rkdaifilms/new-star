@@ -202,7 +202,7 @@ button{cursor:pointer}
  <div id="empty">
   <div>
    <h3 data-i18n="feed.emptyTitle">No videos available yet</h3>
-   <p id="emptyMessage" data-i18n="feed.emptyText">New videos will appear here when creators post.</p>
+   <p id="emptyMessage">New videos will appear here when creators post.</p>
    <button id="reload" data-i18n="feed.retry">Try again</button>
   </div>
  </div>
@@ -213,7 +213,7 @@ button{cursor:pointer}
  <section class="video-info">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
    <h3 id="username"></h3>
-   <button id="followCreatorBtn" type="button" style="display:none;background:#fe2c55;color:#fff;border:0;border-radius:18px;padding:6px 14px;font-weight:700" data-i18n="action.follow">Follow</button>
+   <button id="followCreatorBtn" type="button" style="display:none;background:#fe2c55;color:#fff;border:0;border-radius:18px;padding:6px 14px;font-weight:700">Follow</button>
   </div>
   <p id="caption"></p>
   <a id="affiliate" href="#" target="_blank" rel="noopener noreferrer nofollow sponsored">🔗 Brand / Affiliate Link</a>
@@ -227,7 +227,7 @@ button{cursor:pointer}
     <button type="button" data-feed-manage="mix">🎚️ <span data-i18n="action.mixSave">Mix & Save</span></button><button type="button" data-feed-manage="delete">🗑️ <span data-i18n="action.deleteVideo">Delete Video</span></button>
    </div></div>
   <button class="action" id="likeBtn"><div class="action-icon">❤️</div><span id="likes">0</span></button>
-  <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount" data-i18n="action.comment">Comments</span></button>
+  <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount">0</span><span data-i18n="action.comment">Comments</span></button>
   <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span data-i18n="action.gift">Gift</span></button>
   <button class="action" id="shareBtn"><div class="action-icon">↗️</div><span data-i18n="action.share">Share</span></button>
   <button class="action" id="downloadBtn"><div class="action-icon">⬇️</div><span data-i18n="action.download">Download</span></button>
@@ -236,11 +236,11 @@ button{cursor:pointer}
 </div>
 
 <section class="modal" id="commentModal" aria-label="Comments" data-i18n-aria-label="action.comment">
- <div class="modal-head"><h3 id="commentTitle" data-i18n="action.comment">Comments</h3><button class="close" data-close="commentModal" aria-label="Close comments" data-i18n-aria-label="action.close">×</button></div>
+ <div class="modal-head"><h3 id="commentTitle"><span data-i18n="action.comment">Comments</span> (<span id="commentTotal">0</span>)</h3><button class="close" data-close="commentModal" aria-label="Close comments" data-i18n-aria-label="action.close">×</button></div>
  <div class="comment-list" id="commentList" aria-live="polite"></div>
  <form id="commentComposer" class="comment-form" autocomplete="off" aria-label="Write a comment" data-i18n-aria-label="action.comment">
   <input id="commentInput" type="text" maxlength="1000" placeholder="यहाँ Comment लिखें..." aria-label="Comment लिखें">
-  <button class="primary" id="postComment" type="submit" data-i18n="action.send">Send</button>
+  <button class="primary" id="postComment" type="submit">Send</button>
  </form>
 </section>
 
@@ -276,6 +276,7 @@ button{cursor:pointer}
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
+function feedText(key,fallback){const p=(()=>{try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}")}catch(_){return {}}})();return window.NewStarTranslations?.[p.language||"hi"]?.[key]||window.NewStarTranslations?.en?.[key]||fallback;}
 const db = window.supabaseClient || window.cloudClient || null;
 let currentUser=null,videos=[],filtered=[],currentIndex=0,currentCategory="For You",currentVideo=null;
 let likedIds=new Set(),selectedGift=null,walletBalance=0,giftBusy=false,toastTimer,commentTargetVideoId=null;
@@ -332,7 +333,7 @@ function showEmpty(message){
  $("video").pause();$("video").removeAttribute("src");$("video").load();
  $("emptyMessage").textContent=message;$("empty").style.display="flex";
  $("counter").textContent="";$("username").textContent="";$("caption").textContent="";
- $("meta").textContent="";$("likes").textContent="0";$("commentCount").textContent="Comments";
+ $("meta").textContent="";$("likes").textContent="0";$("commentCount").textContent="0";
  $("affiliate").style.display="none";$("likeBtn").classList.remove("liked");currentVideo=null;
 }
 
@@ -666,7 +667,7 @@ async function loadCommentCount(videoId){
   const {count,error}=await db.from("video_comments").select("id",{count:"exact",head:true}).eq("video_id",String(videoId));
   if(error)throw error;
   if(currentVideo&&String(currentVideo.id)===String(videoId))$("commentCount").textContent=numberFormat(count||0);
- }catch(error){$("commentCount").textContent="Comments";}
+ }catch(error){$("commentCount").textContent="0";}
 }
 
 async function toggleLike(){
@@ -753,7 +754,7 @@ async function openComments(){
  send.style.setProperty("opacity","1","important");
  send.disabled=false;
  input.placeholder="यहाँ अपना Comment लिखें...";
- $("postComment").textContent=currentUser?"Send":"Login करके Send";
+ $("postComment").textContent=feedText("action.send","Send");
  await loadComments(commentTargetVideoId);
  // Do not auto-open the mobile keyboard; let the viewer tap the comment field.
 }
@@ -763,7 +764,7 @@ async function loadComments(videoId){
   const {data,error}=await db.from("video_comments").select("*")
    .eq("video_id",String(videoId)).order("created_at",{ascending:true});
   if(error)throw error;
-  list.innerHTML="";$("commentTitle").textContent="Comments ("+(data||[]).length+")";
+  list.innerHTML="";$("commentTotal").textContent=String((data||[]).length);
   if(!data||!data.length){list.textContent="अभी कोई Comment नहीं है। पहला Comment करें।";return;}
   data.forEach(row=>{
    const item=document.createElement("div");item.className="comment";
