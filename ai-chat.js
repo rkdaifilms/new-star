@@ -9,13 +9,25 @@ const style=document.createElement("style");style.textContent=`
 .ns-ai-msg{padding:10px 12px;border-radius:12px;max-width:88%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}
 .ns-ai-user{align-self:flex-end;background:#fe2c55;color:#fff}.ns-ai-bot{align-self:flex-start;background:#303039;color:#fff}
 #ns-ai-form{display:flex;gap:7px;padding:10px;border-top:1px solid #393941}#ns-ai-input{flex:1;min-width:0;background:#09090d;color:#fff;border:1px solid #555;border-radius:9px;padding:11px}
-#ns-ai-send{border:0;border-radius:9px;background:#fe2c55;color:#fff;padding:0 14px;font-weight:700}#ns-ai-note{font-size:11px;color:#aaa;padding:0 12px 9px}
+#ns-ai-send{border:0;border-radius:9px;background:#fe2c55;color:#fff;padding:0 14px;font-weight:700}#ns-ai-mic{border:1px solid #666;border-radius:9px;background:#303039;color:#fff;padding:0 12px;font-size:18px}#ns-ai-mic[aria-pressed="true"]{background:#b4233c;border-color:#ff7890}#ns-ai-voice-status{font-size:11px;color:#ffc2ce;padding:0 12px 7px;min-height:14px}#ns-ai-note{font-size:11px;color:#aaa;padding:0 12px 9px}
 `;document.head.appendChild(style);
 const launch=document.createElement("button");launch.id="ns-ai-launch";launch.type="button";launch.textContent="✦ AI Help";
 const panel=document.createElement("section");panel.id="ns-ai-panel";panel.setAttribute("aria-label","AI assistant");
-panel.innerHTML='<div id="ns-ai-head"><strong>New Star AI Assistant</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! New Star के उपयोग में मदद चाहिए तो पूछें।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="अपना सवाल लिखें…" required><button id="ns-ai-send" type="submit">Send</button></form>';
+panel.innerHTML='<div id="ns-ai-head"><strong>New Star AI Assistant</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! New Star के उपयोग में मदद चाहिए तो पूछें।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><div id="ns-ai-voice-status" role="status" aria-live="polite"></div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="अपना सवाल लिखें…" required><button id="ns-ai-mic" type="button" aria-label="Start voice input" aria-pressed="false" title="Speak your message">🎙️</button><button id="ns-ai-send" type="submit">Send</button></form>';
 document.body.append(launch,panel);
 const log=panel.querySelector("#ns-ai-log"),input=panel.querySelector("#ns-ai-input"),send=panel.querySelector("#ns-ai-send");
+const mic=panel.querySelector("#ns-ai-mic"),voiceStatus=panel.querySelector("#ns-ai-voice-status");
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+let recognition=null,recording=false,voiceBase="";
+if(!SpeechRecognition){mic.disabled=true;mic.title="Voice input is not supported in this browser";voiceStatus.textContent="इस browser में voice typing उपलब्ध नहीं है। Chrome में खोलकर देखें।";}
+else{
+ recognition=new SpeechRecognition();recognition.continuous=true;recognition.interimResults=true;recognition.lang=document.documentElement.lang||"hi-IN";
+ recognition.onstart=()=>{recording=true;mic.setAttribute("aria-pressed","true");mic.setAttribute("aria-label","Stop voice input");mic.textContent="■";voiceStatus.textContent="सुन रहा है… बोलना पूरा होने पर Stop दबाएँ।";};
+ recognition.onresult=event=>{let finalText="",interimText="";for(let i=event.resultIndex;i<event.results.length;i++){const transcript=event.results[i][0].transcript;if(event.results[i].isFinal)finalText+=transcript;else interimText+=transcript;}input.value=(voiceBase+(voiceBase&&finalText?" ":"")+finalText+(interimText?" "+interimText:"")).slice(0,2000);};
+ recognition.onerror=event=>{voiceStatus.textContent=event.error==="not-allowed"?"Microphone permission नहीं मिली। Browser settings में अनुमति दें।":"Voice input error: "+event.error;};
+ recognition.onend=()=>{recording=false;mic.setAttribute("aria-pressed","false");mic.setAttribute("aria-label","Start voice input");mic.textContent="🎙️";if(input.value.trim())voiceStatus.textContent="आवाज़ टेक्स्ट में बदल गई। भेजने से पहले जाँचें, फिर Send दबाएँ।";};
+ mic.addEventListener("click",()=>{if(recording){recognition.stop();return;}if(!window.isSecureContext){voiceStatus.textContent="Microphone के लिए HTTPS page ज़रूरी है।";return;}voiceBase=input.value.trim();try{recognition.start();}catch(e){voiceStatus.textContent="Mic शुरू नहीं हुआ। थोड़ी देर बाद फिर कोशिश करें।";}});
+}
 const history=[];
 function add(text,who){const el=document.createElement("div");el.className="ns-ai-msg "+(who==="user"?"ns-ai-user":"ns-ai-bot");el.textContent=text;log.appendChild(el);log.scrollTop=log.scrollHeight;return el;}
 launch.addEventListener("click",()=>panel.classList.toggle("open"));panel.querySelector("#ns-ai-close").addEventListener("click",()=>panel.classList.remove("open"));
