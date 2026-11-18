@@ -256,12 +256,11 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
  <button id="profileVideoViewerClose" class="viewerClose" type="button" aria-label="Close video">✕</button>
  <span id="profileVideoViewerLabel" class="viewerLabel">Video</span>
  <video id="profileVideoViewerPlayer" controls playsinline preload="metadata"></video>
- <div class="profileViewerInfo"><strong id="profileViewerCreator"></strong><p id="profileViewerCaption"></p></div>
+ <div class="profileViewerInfo"><strong id="profileViewerCreator"></strong><p id="profileViewerCaption"></p><small id="profileViewerViews">0 views</small></div>
  <div class="profileViewerActions">
   <button id="profileViewerLike" type="button"><span>❤️</span><small id="profileViewerLikes">0</small></button>
   <button id="profileViewerComment" type="button"><span>💬</span><small id="profileViewerComments">0</small></button>
   <button id="profileViewerGift" type="button"><span>🎁</span><small>Gift</small></button>
-  <button id="profileViewerShare" type="button"><span>↗️</span><small>Share</small></button>
  </div>
  <div class="profileViewerHint">ऊपर / नीचे स्वाइप करें · अगला वीडियो</div>
 </div>
@@ -1049,7 +1048,7 @@ function openProfileVideo(item,type){
 
 
 /* Profile video viewer: same vertical short-video interactions as the home feed. */
-let profileViewerRows=[],profileViewerIndex=0,profileViewerLiked=false,profileGiftChoice=null,profileViewerTouch=null,profileViewerLastSwipe=0;
+let profileViewerRows=[],profileViewerIndex=0,profileViewerLiked=false,profileGiftChoice=null,profileViewerTouch=null,profileViewerLastSwipe=0,profileCommentTargetVideoId=null;
 const profileGifts=[["Rose","🌹",1],["Coffee","☕",5],["Heart","❤️",10],["Glasses","🕶️",20],["Car","🚗",100],["Diamond","💎",1500],["Crown","👑",2000],["Galaxy","🌌",20000]];
 function activeProfileVideo(){return profileViewerRows[profileViewerIndex]||null;}
 function profileViewerToast(message){$("profileStatus").textContent=message;setTimeout(()=>{if($("profileStatus").textContent===message)$("profileStatus").textContent="";},3000);}
@@ -1060,18 +1059,22 @@ function renderProfileViewer(){
  $("profileViewerCaption").textContent=item.caption||"";
  $("profileVideoViewerLabel").textContent=profileVideoType(item)==="short"?"⚡ SHORTS":"▶ LONG VIDEO";
  $("profileViewerLikes").textContent=String(Number(item.likes_count)||0);
+ $("profileViewerViews").textContent=String(Number(item.views_count)||0)+" views";
  $("profileViewerLike").classList.toggle("liked",profileViewerLiked);
  $("profileVideoViewer").classList.add("show");$("profileVideoViewer").setAttribute("aria-hidden","false");
  document.body.style.overflow="hidden";v.play().catch(()=>{});
  loadProfileViewerLike(item);loadProfileViewerCommentCount(item);
 }
 async function loadProfileViewerLike(item){
- profileViewerLiked=false;
+ let isLiked=false;
  if(user){
   const {data,error}=await db.from("likes").select("id").eq("video_id",String(item.id)).eq("user_id",String(user.id)).maybeSingle();
-  if(!error)profileViewerLiked=!!data;
+  if(!error)isLiked=!!data;
  }
- if(activeProfileVideo()?.id===item.id)$("profileViewerLike").classList.toggle("liked",profileViewerLiked);
+ if(String(activeProfileVideo()?.id)===String(item.id)){
+  profileViewerLiked=isLiked;
+  $("profileViewerLike").classList.toggle("liked",isLiked);
+ }
 }
 async function loadProfileViewerCommentCount(item){
  const {count,error}=await db.from("video_comments").select("id",{count:"exact",head:true}).eq("video_id",String(item.id));
@@ -1085,36 +1088,41 @@ async function toggleProfileViewerLike(){
   if(was){const {error}=await db.from("likes").delete().eq("video_id",String(item.id)).eq("user_id",String(user.id));if(error)throw error;}
   else{const {error}=await db.from("likes").insert({video_id:String(item.id),user_id:String(user.id)});if(error)throw error;}
   profileViewerLiked=!was;
-  const {data}=await db.from("videos").select("likes_count").eq("id",String(item.id)).maybeSingle();
-  item.likes_count=data?Number(data.likes_count)||0:Math.max(0,(Number(item.likes_count)||0)+(was?-1:1));
-  $("profileViewerLikes").textContent=String(item.likes_count);
-  btn.classList.toggle("liked",profileViewerLiked);
+  const {count,error:countError}=await db.from("likes").select("id",{count:"exact",head:true}).eq("video_id",String(item.id));
+  item.likes_count=!countError?Number(count||0):Math.max(0,(Number(item.likes_count)||0)+(was?-1:1));
+  if(String(activeProfileVideo()?.id)===String(item.id)){
+   $("profileViewerLikes").textContent=String(item.likes_count);
+   btn.classList.toggle("liked",profileViewerLiked);
+  }
  }catch(error){profileViewerToast("Like सेव नहीं हुआ: "+error.message);}
  finally{btn.disabled=false;}
 }
 async function loadProfileComments(){
- const item=activeProfileVideo();if(!item)return;
+ const targetId=profileCommentTargetVideoId;if(!targetId)return;
  const list=$("profileCommentsList");list.textContent="Comments लोड हो रहे हैं...";
- const {data,error}=await db.from("video_comments").select("*").eq("video_id",String(item.id)).order("created_at",{ascending:true});
+ const {data,error}=await db.from("video_comments").select("*").eq("video_id",targetId).order("created_at",{ascending:true});
  if(error){list.textContent="Comments लोड नहीं हुए: "+error.message;return;}
  list.replaceChildren();$("profileCommentsTitle").textContent="Comments ("+(data||[]).length+")";
  if(!data?.length){list.textContent="अभी कोई Comment नहीं है। पहला Comment करें।";return;}
  data.forEach(row=>{const wrap=document.createElement("div");wrap.className="profileCommentRow";const name=document.createElement("strong");name.textContent=row.username||"New Star User";const msg=document.createElement("p");msg.textContent=row.comment||"";wrap.append(name,msg);list.append(wrap);});
 }
 async function openProfileComments(){
+ const active=activeProfileVideo();if(!active)return;
+ profileCommentTargetVideoId=String(active.id);
  $("profileComments").classList.add("show");$("profileComments").setAttribute("aria-hidden","false");
  $("profileCommentInput").placeholder=user?"यहाँ अपना Comment लिखें...":"Comment करने के लिए Login करें";
  await loadProfileComments();setTimeout(()=>$("profileCommentInput").focus({preventScroll:true}),120);
 }
 async function submitProfileComment(event){
- event.preventDefault();const item=activeProfileVideo();if(!item)return;
+ event.preventDefault();const targetId=profileCommentTargetVideoId;if(!targetId)return;
  if(!user){profileViewerToast("Comment करने के लिए Login करें।");return;}
  const input=$("profileCommentInput"),comment=input.value.trim();if(!comment)return;
  const button=$("profileCommentForm").querySelector("button");button.disabled=true;
  try{
   const username=user.user_metadata?.username||user.user_metadata?.full_name||user.email?.split("@")[0]||"New Star User";
-  const {error}=await db.from("video_comments").insert({video_id:String(item.id),user_id:user.id,username,comment});
-  if(error)throw error;input.value="";await loadProfileComments();await loadProfileViewerCommentCount(item);
+  const {error}=await db.from("video_comments").insert({video_id:targetId,user_id:user.id,username,comment});
+  if(error)throw error;input.value="";await loadProfileComments();
+  const target=profileViewerRows.find(v=>String(v.id)===targetId);if(target)await loadProfileViewerCommentCount(target);
  }catch(error){profileViewerToast("Comment सेव नहीं हुआ: "+error.message);}
  finally{button.disabled=false;}
 }
@@ -1185,7 +1193,6 @@ $("profileVideoViewerClose").addEventListener("click",closeProfileVideo);
 $("profileViewerLike").addEventListener("click",toggleProfileViewerLike);
 $("profileViewerComment").addEventListener("click",openProfileComments);
 $("profileViewerGift").addEventListener("click",openProfileGift);
-$("profileViewerShare").addEventListener("click",async()=>{const item=activeProfileVideo();if(!item)return;const url=new URL("index.html",location.href);url.searchParams.set("video",item.id);try{if(navigator.share)await navigator.share({title:"New Star Video",text:item.caption||"Watch on New Star",url:url.href});else{await navigator.clipboard.writeText(url.href);profileViewerToast("Video Link कॉपी हो गया।");}}catch(e){}});
 $("profileCommentForm").addEventListener("submit",submitProfileComment);
 $("profileCommentsClose").addEventListener("click",()=>closeProfileSheet("profileComments"));
 $("profileGiftClose").addEventListener("click",()=>closeProfileSheet("profileGiftSheet"));
