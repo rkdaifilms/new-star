@@ -35,10 +35,11 @@ function apply(){
  #newstar-menu-panel a,#newstar-menu-panel button{color:var(--ns-text)!important}`;
  window.NewStarI18n?.apply();
 }
-let syncBusy=false;
+let syncBusy=false,syncPending=false;
 async function sync(){
  const db=window.supabaseClient||window.cloudClient;
- if(!db?.auth||syncBusy)return false;
+ if(!db?.auth)return false;
+ if(syncBusy){syncPending=true;return false;}
  syncBusy=true;
  try{
   const {data:{user},error:authError}=await db.auth.getUser();
@@ -54,7 +55,7 @@ async function sync(){
   }
   return true;
  }catch(error){console.warn("New Star preferences cloud sync unavailable:",error?.message||error);return false}
- finally{syncBusy=false}
+ finally{syncBusy=false;if(syncPending){syncPending=false;queueMicrotask(sync)}}
 }
 window.NewStarPreferences={apply,get:read,set(patch){const next={...read(),...patch};localStorage.setItem(KEY,JSON.stringify(next));apply();sync();return next},sync};
 apply();
