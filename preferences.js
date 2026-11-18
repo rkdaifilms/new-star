@@ -35,15 +35,20 @@ function apply(){
  #newstar-menu-panel a,#newstar-menu-panel button{color:var(--ns-text)!important}`;
  window.NewStarI18n?.apply();
 }
-let syncBusy=false,syncPending=false;
-async function sync(){
+let syncBusy=false,syncPending=false,syncPendingWrite=false;
+async function sync(preferLocal=false){
  const db=window.supabaseClient||window.cloudClient;
  if(!db?.auth)return false;
- if(syncBusy){syncPending=true;return false;}
+ if(syncBusy){syncPending=true;syncPendingWrite=syncPendingWrite||preferLocal;return false;}
  syncBusy=true;
  try{
   const {data:{user},error:authError}=await db.auth.getUser();
   if(authError||!user)return false;
+  if(preferLocal){
+   const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:read()},{onConflict:"user_id"});
+   if(saveError)throw saveError;
+   return true;
+  }
   const {data:remote,error}=await db.from("user_preferences").select("preferences").eq("user_id",user.id).maybeSingle();
   if(error)throw error;
   if(remote?.preferences&&typeof remote.preferences==="object"){
@@ -55,12 +60,15 @@ async function sync(){
   }
   return true;
  }catch(error){console.warn("New Star preferences cloud sync unavailable:",error?.message||error);return false}
- finally{syncBusy=false;if(syncPending){syncPending=false;queueMicrotask(sync)}}
+ finally{
+  syncBusy=false;
+  if(syncPending){const write=syncPendingWrite;syncPending=false;syncPendingWrite=false;queueMicrotask(()=>sync(write));}
+ }
 }
-window.NewStarPreferences={apply,get:read,set(patch){const next={...read(),...patch};localStorage.setItem(KEY,JSON.stringify(next));apply();sync();return next},sync};
+window.NewStarPreferences={apply,get:read,set(patch){const next={...read(),...patch};localStorage.setItem(KEY,JSON.stringify(next));apply();sync(true);return next},sync};
 apply();
-window.addEventListener("storage",e=>{if(e.key===KEY){apply();sync()}});
-window.addEventListener("newstar:preferences-changed",sync);
+window.addEventListener("storage",e=>{if(e.key===KEY){apply();sync(true)}});
+window.addEventListener("newstar:preferences-changed",()=>sync(true));
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",sync,{once:true});else sync();
 window.addEventListener("focus",()=>{if(document.visibilityState==="visible")sync()});
 })();
