@@ -36,45 +36,37 @@ function apply(){
  window.NewStarI18n?.apply();
 }
 let syncBusy=false,syncPending=false,syncPendingWrite=false;
+function stampLocal(patch){const next={...read(),...patch,_updatedAt:new Date().toISOString()};localStorage.setItem(KEY,JSON.stringify(next));return next;}
 async function sync(preferLocal=false){
- const db=window.supabaseClient||window.cloudClient;
- if(!db?.auth)return false;
- if(syncBusy){syncPending=true;syncPendingWrite=syncPendingWrite||preferLocal;return false;}
- syncBusy=true;
- const localSnapshot=localStorage.getItem(KEY);
+ const db=window.supabaseClient||window.cloudClient;if(!db?.auth)return false;
+ if(syncBusy){syncPending=true;syncPendingWrite=syncPendingWrite||preferLocal;return false;}syncBusy=true;
  try{
-  const {data:{user},error:authError}=await db.auth.getUser();
-  if(authError||!user)return false;
-  if(preferLocal){
-   const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:read()},{onConflict:"user_id"});
-   if(saveError)throw saveError;
-   return true;
-  }
-  const {data:remote,error}=await db.from("user_preferences").select("preferences").eq("user_id",user.id).maybeSingle();
-  if(error)throw error;
-  if(localStorage.getItem(KEY)!==localSnapshot){
-   const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:read()},{onConflict:"user_id"});
-   if(saveError)throw saveError;
-   return true;
-  }
+  const {data:{user},error:authError}=await db.auth.getUser();if(authError||!user)return false;
+  const local=read();
+  if(preferLocal){const {error}=await db.from("user_preferences").upsert({user_id:user.id,preferences:local},{onConflict:"user_id"});if(error)throw error;return true;}
+  const {data:remote,error}=await db.from("user_preferences").select("preferences,updated_at").eq("user_id",user.id).maybeSingle();if(error)throw error;
+  const localTime=Date.parse(local._updatedAt||0)||0,remoteTime=Date.parse(remote?.updated_at||0)||0;
   if(remote?.preferences&&typeof remote.preferences==="object"){
-   localStorage.setItem(KEY,JSON.stringify(remote.preferences));apply();window.dispatchEvent(new Event("newstar:preferences-loaded"));return true;
+   if(localTime>remoteTime){const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:local},{onConflict:"user_id"});if(saveError)throw saveError;}
+   else{localStorage.setItem(KEY,JSON.stringify(remote.preferences));apply();window.dispatchEvent(new Event("newstar:preferences-loaded"));}
+   return true;
   }
-  if(localStorage.getItem(KEY)){
-   const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:read()},{onConflict:"user_id"});
-   if(saveError)throw saveError;
-  }
-  return true;
- }catch(error){console.warn("New Star preferences cloud sync unavailable:",error?.message||error);return false}
- finally{
-  syncBusy=false;
-  if(syncPending){const write=syncPendingWrite;syncPending=false;syncPendingWrite=false;queueMicrotask(()=>sync(write));}
- }
+  const initial={...local,_updatedAt:local._updatedAt||new Date().toISOString()};
+  const {error:saveError}=await db.from("user_preferences").upsert({user_id:user.id,preferences:initial},{onConflict:"user_id"});if(saveError)throw saveError;
+  if(!local._updatedAt)localStorage.setItem(KEY,JSON.stringify(initial));return true;
+ }catch(error){console.warn("New Star preferences cloud sync unavailable:",error?.message||error);return false;}
+ finally{syncBusy=false;if(syncPending){const write=syncPendingWrite;syncPending=false;syncPendingWrite=false;queueMicrotask(()=>sync(write));}}
 }
+window.NewStarPreferences={apply,get:read,set(patch){const next=stampLocal(patch);apply();sync(true);window.dispatchEvent(new Event("newstar:preferences-changed"));return next},sync};
 window.NewStarPreferences={apply,get:read,set(patch){const next={...read(),...patch};localStorage.setItem(KEY,JSON.stringify(next));apply();sync(true);return next},sync};
 apply();
 window.addEventListener("storage",e=>{if(e.key===KEY){apply();sync(true)}});
 window.addEventListener("newstar:preferences-changed",()=>sync(true));
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",sync,{once:true});else sync();
 window.addEventListener("focus",()=>{if(document.visibilityState==="visible")sync()});
+const authClient=window.supabaseClient||window.cloudClient;
+authClient?.auth?.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_IN"||event==="TOKEN_REFRESHED"||event==="USER_UPDATED")queueMicrotask(()=>sync(!!session?.user&&!!read()._updatedAt));
+ if(event==="SIGNED_OUT")apply();
+});
 })();
