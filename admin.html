@@ -19,7 +19,7 @@
 </div>
 <div class="row"><span>AdMob setup state</span><strong id="admobState">Not configured</strong></div>
 <div class="row"><span>Payoneer / bank payout onboarding</span><span id="payoutState">Not connected</span></div>
-<p class="muted">Open the official provider site to create/verify an eligible account and add bank details there. New Star will not claim payouts are active until a real provider integration and verification are completed.</p>
+<p class="muted">Open the official provider site to create/verify an eligible adult-managed account. New Star will not claim payouts are active until the official provider integration, country eligibility check, server verification and settlement testing are complete.</p><div class="row"><span>Payoneer provider status</span><strong id="payoneerProviderStatus">Not connected</strong></div><h3>Country payout readiness</h3><p class="muted">All listed countries are catalogued, but every Payoneer route starts disabled and unverified. This is a country directory, not a promise that Payoneer supports every country.</p><input id="countrySearch" class="field" placeholder="Search country or ISO code"><div style="overflow:auto;max-height:360px"><table><thead><tr><th>Country</th><th>Currency</th><th>Payoneer status</th></tr></thead><tbody id="countryPayoutRows"><tr><td colspan="3">Loading country routes…</td></tr></tbody></table></div>
 <p><a href="https://www.payoneer.com/" target="_blank" rel="noopener noreferrer">Open Payoneer official site</a> · <a href="https://www.google.com/adsense/start/" target="_blank" rel="noopener noreferrer">Google AdMob / AdSense</a></p>
 <button id="saveMonetization" class="btn" type="button">Save AdMob IDs</button>
 <p id="monetizationStatus" class="muted" aria-live="polite"></p>
@@ -32,7 +32,10 @@
 (function(){"use strict";
 const db=window.supabaseClient||window.cloudClient;const $=id=>document.getElementById(id);
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function packageBonusFor(coins){coins=Number(coins)||0;return coins>=1000?10:coins>=500?5:coins>=200?3:coins>=100?2:coins>=50?1:0;}\nfunction updatePackageBonus(){ $("packageBonus").value=String(packageBonusFor($("packageCoins").value)); }\n$("packageCoins").addEventListener("input",updatePackageBonus);\nasync function load(){
+function currencyDecimals(c){if(["BIF","CLP","DJF","GNF","ISK","JPY","KMF","KRW","PYG","RWF","UGX","UYI","VND","VUV","XAF","XOF","XPF"].includes(c))return 0;if(["BHD","IQD","JOD","KWD","LYD","OMR","TND"].includes(c))return 3;return 2;}\nfunction formatMinor(n,c){const d=currencyDecimals(c||"USD");return (Number(n||0)/Math.pow(10,d)).toFixed(d);}\nfunction packageBonusFor(coins){coins=Number(coins)||0;return coins>=1000?10:coins>=500?5:coins>=200?3:coins>=100?2:coins>=50?1:0;}
+function updatePackageBonus(){ $("packageBonus").value=String(packageBonusFor($("packageCoins").value)); }
+$("packageCoins").addEventListener("input",updatePackageBonus);
+async function load(){
  $("status").textContent="Authenticating…";$("metrics").innerHTML="";
  if(!db){$("status").textContent="Supabase unavailable.";return;}
  const {data:{session},error}=await db.auth.getSession();
@@ -52,7 +55,10 @@ function packageBonusFor(coins){coins=Number(coins)||0;return coins>=1000?10:coi
  $("financials").replaceChildren();
  financialCards.forEach(([label,value])=>{const el=document.createElement("div");el.className="card";el.innerHTML='<div class="muted">'+esc(label)+'</div><div class="metric">'+esc(value)+'</div>';$("financials").appendChild(el);});
  const cfg=data.monetization||{};$("admobAppId").value=cfg.admob_app_id||"";$("admobBannerId").value=cfg.admob_banner_id||"";$("admobInterstitialId").value=cfg.admob_interstitial_id||"";$("admobRewardedId").value=cfg.admob_rewarded_id||"";$("admobState").textContent=cfg.admob_configured?"IDs saved · SDK integration/approval still required":"Not configured";$("payoutState").textContent=cfg.payout_setup_status||"Not connected";
- const packages=data.coin_packages||[];$("coinPackageList").innerHTML=packages.length?packages.map(p=>'<div class="row"><span>'+esc(p.coins)+' Coins + '+esc(p.bonus_coins)+' bonus · '+esc(p.country_code||'—')+' · '+esc(p.currency)+' '+(Number(p.amount_minor)/100).toFixed(2)+'</span><strong>'+ (p.active?'Active':'Draft / payments off')+'</strong></div>').join(""):'No packages created yet.';
+ const pp=data.payout_provider||{};$("payoneerProviderStatus").textContent=pp.enabled&&pp.onboarding_status==="approved"?"Approved · integration still requires verification":(pp.onboarding_status||"not_connected").replaceAll("_"," ");
+ const routes=data.payout_routes||[];const renderRoutes=list=>{$("countryPayoutRows").innerHTML=list.map(x=>'<tr><td>'+esc(x.country_code)+'</td><td>'+esc(x.currency||"Not configured")+'</td><td>'+esc(x.availability_status||"not_verified")+(x.enabled?" · enabled":" · disabled")+'</td></tr>').join("")||'<tr><td colspan="3">No matching countries.</td></tr>';};renderRoutes(routes);
+ $("countrySearch").oninput=()=>{const q=$("countrySearch").value.trim().toLowerCase();renderRoutes(routes.filter(x=>(x.country_code||"").toLowerCase().includes(q)));};
+ const packages=data.coin_packages||[];$("coinPackageList").innerHTML=packages.length?packages.map(p=>'<div class="row"><span>'+esc(p.coins)+' Coins + '+esc(p.bonus_coins)+' bonus · '+esc(p.country_code||'—')+' · '+esc(p.currency)+' '+formatMinor(p.amount_minor,p.currency)+'</span><strong>'+ (p.active?'Active':'Draft / payments off')+'</strong></div>').join(""):'No packages created yet.';
  const rows=data.withdrawals||[];$("withdrawals").innerHTML=rows.length?rows.map(w=>'<tr><td>'+esc(w.creator_id)+'</td><td>'+esc(w.currency||"USD")+' '+esc(w.amount)+'</td><td>'+esc(w.country_code||"—")+'</td><td>'+esc(w.payout_method||"—")+'</td><td>'+esc(w.status)+'</td><td>'+esc(new Date(w.created_at).toLocaleString())+'</td></tr>').join(""):'<tr><td colspan="6">No withdrawal requests.</td></tr>';
  }catch(e){$("status").textContent="Dashboard could not load: "+e.message;$("withdrawals").innerHTML='<tr><td colspan="6">Not available.</td></tr>';}
 }
