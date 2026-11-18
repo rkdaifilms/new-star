@@ -24,6 +24,8 @@ Adding keys alone will not activate payments. A payment Edge Function must be im
 - The database enforces a unique `(provider, provider_reference)` for non-empty provider transaction references, preventing one provider transaction from being attached to multiple orders.
 - `payment_orders.idempotency_key` and `wallet_ledger.idempotency_key` are unique, and the coin-credit function locks the order before writing the ledger and wallet.
 - The payment-order table currently has no orders. No live payment has been processed or simulated.
+- Amount/currency mismatches are now recorded as `review` and return a structured review result; the status update is not rolled back by an exception.
+- Isolated database regression checks exercised correct credit, mismatch-to-review, and duplicate-callback idempotency; all test orders and ledger entries were rolled back. No real payment was made.
 
 ## Khalti Web Checkout
 
