@@ -98,6 +98,7 @@ async function callOpenRouter(key: string, messages: ChatMessage[]) {
 }
 
 Deno.serve(async (req: Request) => {
+  try {
   const origin = req.headers.get("Origin") || "";
   const headers = corsHeaders(origin);
   if (req.method === "OPTIONS") return new Response("ok", { headers });
@@ -208,4 +209,10 @@ Deno.serve(async (req: Request) => {
     code: "ALL_AI_PROVIDERS_FAILED",
     attempted: failedProviders
   }, 503, headers);
+  } catch (error) {
+    const errorName = error instanceof Error ? error.name : "UNKNOWN";
+    console.error("AI gateway unhandled error:", errorName);
+    const origin = req.headers.get("Origin") || "";
+    return json({ ok: false, error: "AI gateway internal error. Please retry later.", code: "AI_GATEWAY_INTERNAL" }, 500, corsHeaders(origin));
+  }
 });
