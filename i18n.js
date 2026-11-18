@@ -85,6 +85,34 @@ Object.assign(dict.pl,{"feed.commentPlaceholder":"Napisz komentarz...","feed.loa
 Object.assign(dict.uk,{"feed.commentPlaceholder":"Напишіть коментар тут...","feed.loading":"🌟 Завантажуються відео New Star..."});
 Object.assign(dict.el,{"feed.commentPlaceholder":"Γράψτε ένα σχόλιο εδώ...","feed.loading":"🌟 Φόρτωση βίντεο New Star..."});
 
+
+// Follow button state labels.
+Object.assign(dict.hi,{"action.following":"फॉलो कर रहे हैं","action.requested":"अनुरोध भेजा गया","action.requestFollow":"फॉलो करने का अनुरोध"});
+Object.assign(dict.ne,{"action.following":"फलो गर्दै","action.requested":"अनुरोध पठाइयो","action.requestFollow":"फलो अनुरोध"});
+Object.assign(dict.en,{"action.following":"Following","action.requested":"Requested","action.requestFollow":"Request Follow"});
+Object.assign(dict.zh,{"action.following":"已关注","action.requested":"已发送请求","action.requestFollow":"请求关注"});
+Object.assign(dict.es,{"action.following":"Siguiendo","action.requested":"Solicitado","action.requestFollow":"Solicitar seguimiento"});
+Object.assign(dict.fr,{"action.following":"Abonné","action.requested":"Demandé","action.requestFollow":"Demander à suivre"});
+Object.assign(dict.ar,{"action.following":"تتابع","action.requested":"تم إرسال الطلب","action.requestFollow":"طلب متابعة"});
+Object.assign(dict.ja,{"action.following":"フォロー中","action.requested":"リクエスト済み","action.requestFollow":"フォローをリクエスト"});
+Object.assign(dict.de,{"action.following":"Folge ich","action.requested":"Angefragt","action.requestFollow":"Folgen anfragen"});
+Object.assign(dict.ru,{"action.following":"Вы подписаны","action.requested":"Запрошено","action.requestFollow":"Запросить подписку"});
+Object.assign(dict.pt,{"action.following":"Seguindo","action.requested":"Solicitado","action.requestFollow":"Solicitar para seguir"});
+Object.assign(dict.it,{"action.following":"Segui","action.requested":"Richiesto","action.requestFollow":"Richiedi di seguire"});
+Object.assign(dict.ko,{"action.following":"팔로잉","action.requested":"요청됨","action.requestFollow":"팔로우 요청"});
+Object.assign(dict.tr,{"action.following":"Takip ediliyor","action.requested":"İstek gönderildi","action.requestFollow":"Takip isteği"});
+Object.assign(dict.bn,{"action.following":"অনুসরণ করছেন","action.requested":"অনুরোধ পাঠানো হয়েছে","action.requestFollow":"অনুসরণের অনুরোধ"});
+Object.assign(dict.ur,{"action.following":"فالو کر رہے ہیں","action.requested":"درخواست بھیج دی گئی","action.requestFollow":"فالو کی درخواست"});
+Object.assign(dict.id,{"action.following":"Mengikuti","action.requested":"Diminta","action.requestFollow":"Minta untuk mengikuti"});
+Object.assign(dict.vi,{"action.following":"Đang theo dõi","action.requested":"Đã yêu cầu","action.requestFollow":"Yêu cầu theo dõi"});
+Object.assign(dict.th,{"action.following":"กำลังติดตาม","action.requested":"ส่งคำขอแล้ว","action.requestFollow":"ขอติดตาม"});
+Object.assign(dict.fa,{"action.following":"دنبال می‌کنید","action.requested":"درخواست ارسال شد","action.requestFollow":"درخواست دنبال کردن"});
+Object.assign(dict.sw,{"action.following":"Unafuata","action.requested":"Ombi limetumwa","action.requestFollow":"Omba kufuata"});
+Object.assign(dict.nl,{"action.following":"Volgend","action.requested":"Aangevraagd","action.requestFollow":"Volgen aanvragen"});
+Object.assign(dict.pl,{"action.following":"Obserwujesz","action.requested":"Wysłano prośbę","action.requestFollow":"Poproś o obserwowanie"});
+Object.assign(dict.uk,{"action.following":"Ви стежите","action.requested":"Запит надіслано","action.requestFollow":"Запитати підписку"});
+Object.assign(dict.el,{"action.following":"Ακολουθείτε","action.requested":"Υποβλήθηκε αίτημα","action.requestFollow":"Αίτημα ακολούθησης"});
+
 const reverseEnglish=Object.fromEntries(Object.entries(dict.en).map(([key,value])=>[String(value).trim().toLowerCase(),key]));
 function translateExactText(root){
  // Only translate elements explicitly marked with data-i18n.
