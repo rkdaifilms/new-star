@@ -104,6 +104,7 @@
         <div class="inbox-tab" onclick="switchTab('followers', this)">Followers</div>
         <div class="inbox-tab" onclick="switchTab('following', this)">Following</div>
         <div class="inbox-tab" onclick="switchTab('requests', this)">Follow Requests <span id="followRequestCount"></span></div>
+        <div class="inbox-tab" onclick="switchTab('discover', this)">Discover Creators</div>
     </div>
 
     <div class="list-container" id="tabMessages">
@@ -119,6 +120,13 @@
     </div>
     <div class="list-container" id="tabRequests" style="display:none;">
         <div class="empty-state">Follow requests will appear here.</div>
+    </div>
+    <div class="list-container" id="tabDiscover" style="display:none;">
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+            <input id="creatorSearchInput" type="search" maxlength="50" placeholder="Username या Creator का नाम खोजें" style="flex:1;min-width:0;padding:12px;border-radius:10px;border:1px solid #444;background:#171722;color:#fff">
+            <button id="creatorSearchButton" type="button" class="action-tag-btn">Search</button>
+        </div>
+        <div id="creatorSearchResults" class="empty-state">Creator खोजने के लिए नाम या username लिखें।</div>
     </div>
 
     <!-- REAL MESSENGER CHAT WINDOW (FIXED INPUT AREA) -->
@@ -227,6 +235,61 @@ async function renderRelationList(kind){
   host.append(row);
  }
 }
+async function searchCreators(){
+ const input=$("creatorSearchInput"),host=$("creatorSearchResults");
+ if(!me||!input||!host)return;
+ const term=input.value.trim().replace(/[,%()]/g," ").replace(/\s+/g," ").slice(0,50);
+ if(term.length<2){host.textContent="कम से कम 2 अक्षर लिखें।";return;}
+ host.textContent="Creators खोजे जा रहे हैं...";
+ const pattern="%"+term+"%";
+ const {data:profiles,error}=await db.from("creator_public_profiles")
+  .select("user_id,username,full_name,avatar_url,bio,is_private")
+  .or("username.ilike."+pattern+",full_name.ilike."+pattern)
+  .neq("user_id",me.id).order("username",{ascending:true}).limit(30);
+ if(error){host.textContent="Search नहीं हो सकी: "+error.message;return;}
+ if(!profiles?.length){host.textContent="कोई Creator नहीं मिला।";return;}
+ host.replaceChildren();
+ for(const p of profiles){
+  const row=document.createElement("div");row.className="list-item";
+  const left=document.createElement("span");left.className="user-left";
+  const img=document.createElement("img");img.className="list-avatar";img.src=avatarOf(p);img.alt="";
+  const info=document.createElement("span");info.className="list-info";
+  const title=document.createElement("h4");title.textContent=nameOf(p);
+  const note=document.createElement("p");note.textContent=(p.username?"@"+p.username:"Creator")+(p.is_private?" · 🔒 Private":" · Public");
+  info.append(title,note);left.append(img,info);
+  const action=document.createElement("button");action.className="action-tag-btn";action.textContent="…";action.disabled=true;
+  try{
+   const {data:follow,error:followError}=await db.from("followers").select("id")
+    .eq("follower_id",me.id).eq("following_id",p.user_id).maybeSingle();
+   if(followError)throw followError;
+   if(follow){action.textContent="Following";action.classList.add("following");}
+   else if(p.is_private){
+    const {data:request,error:requestError}=await db.from("follow_requests").select("id")
+     .eq("requester_id",me.id).eq("target_user_id",p.user_id).eq("status","pending").maybeSingle();
+    if(requestError)throw requestError;
+    action.textContent=request?"Requested":"Request Follow";
+   }else action.textContent="Follow";
+   action.disabled=false;
+  }catch(error){action.textContent="Unavailable";action.title=error.message;}
+  action.onclick=async()=>{
+   action.disabled=true;
+   try{
+    if(action.textContent==="Following"){
+     const {data:follow}=await db.from("followers").select("id").eq("follower_id",me.id).eq("following_id",p.user_id).maybeSingle();
+     if(follow){const {error}=await db.from("followers").delete().eq("id",follow.id).eq("follower_id",me.id);if(error)throw error;}
+    }else if(p.is_private){
+     const {data:request}=await db.from("follow_requests").select("id").eq("requester_id",me.id).eq("target_user_id",p.user_id).eq("status","pending").maybeSingle();
+     if(request){setStatus("आपकी request पहले से pending है।");}
+     else{const {error}=await db.from("follow_requests").insert({requester_id:me.id,target_user_id:p.user_id,status:"pending"});if(error)throw error;setStatus("Follow Request भेज दी गई।");}
+    }else{
+     const {error}=await db.from("followers").insert({follower_id:me.id,following_id:p.user_id});if(error)throw error;setStatus("Creator Follow हो गया।");
+    }
+    await searchCreators();
+   }catch(error){setStatus("Follow अपडेट नहीं हुआ: "+error.message);action.disabled=false;}
+  };
+  row.append(left,action);host.append(row);
+ }
+}
 async function loadFollowRequests(){
  const host=$("tabRequests");
  if(!me||!host)return;
@@ -317,7 +380,7 @@ window.sendMessage=async function(){
 };
 window.closeChat=function(){$("chatBoxWindow").style.display="none";activePeer=null;activeConversation=null;};
 window.handleKeyPress=e=>{if(e.key==="Enter"){e.preventDefault();window.sendMessage();}};
-window.switchTab=function(tab,el){document.querySelectorAll(".inbox-tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");["messages","followers","following","requests"].forEach(t=>{$("tab"+t[0].toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";});if(tab==="requests")loadFollowRequests();};
+window.switchTab=function(tab,el){document.querySelectorAll(".inbox-tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");["messages","followers","following","requests","discover"].forEach(t=>{$("tab"+t[0].toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";});if(tab==="requests")loadFollowRequests();if(tab==="discover")$("creatorSearchInput").focus();};
 window.startVoiceRecording=function(){setStatus("Voice message recording is not connected yet. No fake recording will be sent.");};
 window.sendMediaFile=function(e){setStatus("Media upload is not connected yet. Please send text until secure Storage upload is added.");e.target.value="";};
 window.showProfile=function(name,avatar,bio){$("popupName").textContent=name;$("popupAvatar").src=avatar||fallback;$("popupBio").textContent=bio||"";$("profilePopup").style.display="flex";};
@@ -326,6 +389,8 @@ window.openChatFromPopup=function(){closeProfilePopup();};
 window.showProfileFromChat=function(){};
 window.openChat=async function(name,avatar){const {data}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").eq("username",name).maybeSingle();if(data)openChat(data.user_id,data);};
 window.toggleFollow=function(){setStatus("Follow action is not enabled until follow/unfollow server policy is connected.");};
+$("creatorSearchButton").addEventListener("click",searchCreators);
+$("creatorSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchCreators();}});
 function startInboxBoot(){
  boot().catch(e=>{
   console.error("Inbox boot:",e);
