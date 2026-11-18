@@ -37,10 +37,12 @@ function currencyDecimals(c){if(["BIF","CLP","DJF","GNF","ISK","JPY","KMF","KRW"
 function money(minor,currency){const d=currencyDecimals(currency||"USD");return esc(currency)+" "+(Number(minor||0)/Math.pow(10,d)).toFixed(d);}
 function renderRows(el,rows,renderer,empty){if(!rows||!rows.length){el.textContent=empty;return;}el.innerHTML=rows.map(renderer).join("");}
 async function loadWallet(){
- const r=await db.from("user_wallets").select("coin_balance,real_balance").eq("user_id",user.id).maybeSingle();
- $("balance").textContent=r.error?"Unavailable":Number(r.data&&r.data.coin_balance||0).toLocaleString();
+ // wallet_ledger is the verified balance source; there is no client-editable balance table.
+ const r=await db.from("wallet_ledger").select("coin_delta").eq("user_id",user.id);
+ if(r.error){$("balance").textContent="Unavailable";console.error("Wallet ledger:",r.error);}
+ else {$("balance").textContent=(r.data||[]).reduce((sum,row)=>sum+Number(row.coin_delta||0),0).toLocaleString();}
  const e=await db.from("creator_gift_earnings").select("coins,gross_coins,platform_fee_coins").eq("creator_id",user.id);
- if(e.error){$("giftGross").textContent="Unavailable";$("giftNet").textContent="Unavailable";$("giftFee").textContent="Unavailable";return;}
+ if(e.error){$("giftGross").textContent="Unavailable";$("giftNet").textContent="Unavailable";$("giftFee").textContent="Unavailable";console.error("Creator earnings:",e.error);return;}
  const rows=e.data||[];
  const gross=rows.reduce((s,x)=>s+Number(x.gross_coins??x.coins??0),0);
  const net=rows.reduce((s,x)=>s+Number(x.coins||0),0);
@@ -53,7 +55,7 @@ async function loadPackages(){
  const r=await db.from("coin_packages").select("id,code,coins,bonus_coins,amount_minor,currency,country_code,channel,active").eq("channel","web").order("amount_minor");
  const host=$("packages");host.innerHTML="";
  if(r.error||!r.data||!r.data.length){host.innerHTML='<p class="muted">अभी कोई Coin Package नहीं बनाया गया है। Developer Dashboard से देश, कीमत और Coins वाला पैकेज बनाया जाएगा।</p>';return;}
- r.data.forEach(function(p){const b=document.createElement("div");b.className="pkg";const total=Number(p.coins||0)+Number(p.bonus_coins||0);b.innerHTML="<b>"+esc(Number(p.coins).toLocaleString())+" Coins</b><br><span class='muted'>+"+esc(Number(p.bonus_coins||0).toLocaleString())+" bonus · "+esc(total.toLocaleString())+" total</span><br><strong>"+money(p.amount_minor,p.currency)+"</strong><br><small>"+esc(p.country_code||"Global")+" · "+(p.active?"Payment setup required":"Draft · not for sale")+"</small>";host.appendChild(b);});
+ r.data.forEach(function(p){const b=document.createElement("div");b.className="pkg";const total=Number(p.coins||0)+Number(p.bonus_coins||0);b.innerHTML="<b>"+esc(Number(p.coins).toLocaleString())+" Coins</b><br><span class='muted'>+"+esc(Number(p.bonus_coins||0).toLocaleString())+" bonus · "+esc(total.toLocaleString())+" total</span><br><strong>"+money(p.amount_minor,p.currency)+"</strong><br><small>"+esc(p.country_code||"Global")+" · "+(p.active?"Listed · checkout not enabled":"Draft · not for sale")+"</small>";b.setAttribute("aria-label",total+" coins, "+money(p.amount_minor,p.currency));b.title=p.active?"Checkout is not available until a verified payment gateway is connected.":"This package is not on sale.";host.appendChild(b);});
 }
 async function loadOrders(){
  const r=await db.from("payment_orders").select("id,provider,amount_minor,currency,status,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(20);
