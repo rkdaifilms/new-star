@@ -354,6 +354,7 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
    <div class="full"><label for="editEmail">Login Email (बदलने के लिए Account Settings)</label><input id="editEmail" type="email" readonly></div>
    <div><label for="editPhone">मोबाइल नंबर (सिर्फ़ प्रोफाइल जानकारी)</label><input id="editPhone" type="tel" placeholder="+977..."></div>
    <div><label for="editAddress">Address</label><input id="editAddress" placeholder="शहर / पता"></div>
+   <div class="full"><label style="display:flex;align-items:center;gap:10px;padding:12px;background:#151520;border:1px solid #454552;border-radius:10px"><input id="accountPrivateToggle" type="checkbox" style="width:20px;height:20px;margin:0;accent-color:#fe2c55"> 🔒 Private Account — केवल मंज़ूर किए गए Followers मेरे वीडियो देख सकेंगे</label><p class="muted full">Public account में आपके Public वीडियो सभी देख सकते हैं। Private account में केवल आप और approved followers देख पाएँगे।</p></div>
    <div class="full"><label for="editBio">Bio</label><textarea id="editBio" rows="3" maxlength="300" placeholder="अपने बारे में लिखें..."></textarea></div>
    <div><label for="editWebsite">Website</label><input id="editWebsite" type="url" placeholder="https://..."></div>
    <div><label for="editFacebook">Facebook</label><input id="editFacebook" type="url" placeholder="Facebook profile link"></div>
@@ -468,7 +469,7 @@ function toggleMenu(){
 async function loadProfileRow(){
  profileRow=null;
  const {data,error}=await db.from("profiles")
-  .select("user_id,username,avatar_url,bio")
+  .select("user_id,username,avatar_url,bio,is_private")
   .eq("user_id",user.id)
   .maybeSingle();
 
@@ -601,6 +602,7 @@ function openEdit(){
  $("editUsername").value=r.username||m.username||"";
  $("editEmail").value=user.email||"";
  $("editBio").value=r.bio||m.bio||"";
+ $("accountPrivateToggle").checked=!!r.is_private;
 
  extraKeys.forEach(k=>{
   $("edit"+k[0].toUpperCase()+k.slice(1)).value=m[k]||"";
@@ -891,7 +893,8 @@ async function saveProfile(){
   const values={
    user_id:user.id,
    username,
-   bio:updated.bio
+   bio:updated.bio,
+   is_private:!!$("accountPrivateToggle").checked
   };
 
   if(newAvatarUrl)values.avatar_url=newAvatarUrl;
