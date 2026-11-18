@@ -148,7 +148,7 @@ const lastUiTranslation=new WeakMap();
 function translateExactText(root){
  const langCode=lang(),map=dict[langCode]||dict.en;
  const scope=root||document;
- const selector="h1,h2,h3,h4,h5,h6,button,label,a,th,option,summary";
+ const selector="h1,h2,h3,h4,h5,h6,button,label,a,span,th,option,summary";
  const nodes=[];
  if(scope.nodeType===1&&scope.matches?.(selector))nodes.push(scope);
  scope.querySelectorAll?.(selector).forEach(el=>nodes.push(el));
