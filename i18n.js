@@ -158,10 +158,11 @@ function translateExactText(root){
   let original=originalUiText.get(el);
   const last=lastUiTranslation.get(el);
   const current=(el.textContent||"").trim();
+  if(last!==undefined&&current===last)continue;
   if(original===undefined){original=current;originalUiText.set(el,original);}
   else if(current!==last&&current!==original){original=current;originalUiText.set(el,original);}
   const key=reverseEnglish[original.toLowerCase()];
-  if(key&&map[key]){el.textContent=map[key];lastUiTranslation.set(el,map[key]);}
+  if(key&&map[key]){if(current!==map[key])el.textContent=map[key];lastUiTranslation.set(el,map[key]);}
   else if(last!==undefined){el.textContent=original;lastUiTranslation.delete(el);}
  }
 }
