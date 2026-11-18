@@ -1,6 +1,6 @@
 (()=>{"use strict";
 if(window.__NEWSTAR_AI_CHAT__)return;window.__NEWSTAR_AI_CHAT__=true;
-const db=window.supabaseClient||window.cloudClient;
+const getDb=()=>window.supabaseClient||window.cloudClient;
 const style=document.createElement("style");style.textContent=`
 #ns-ai-launch{position:fixed;right:16px;bottom:calc(82px + env(safe-area-inset-bottom));z-index:10020;border:0;border-radius:999px;background:#fe2c55;color:#fff;padding:13px 16px;font-weight:700;box-shadow:0 5px 22px #0007}
 #ns-ai-panel{position:fixed;right:12px;bottom:calc(140px + env(safe-area-inset-bottom));z-index:10021;width:min(360px,calc(100vw - 24px));height:min(510px,65vh);display:none;flex-direction:column;background:#171717;color:#fff;border:1px solid #444;border-radius:16px;box-shadow:0 12px 40px #0009;overflow:hidden;font:14px Arial,sans-serif}
@@ -21,7 +21,8 @@ function add(text,who){const el=document.createElement("div");el.className="ns-a
 launch.addEventListener("click",()=>panel.classList.toggle("open"));panel.querySelector("#ns-ai-close").addEventListener("click",()=>panel.classList.remove("open"));
 panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
  e.preventDefault();const text=input.value.trim();if(!text||send.disabled)return;
- if(!db?.auth){add("AI चैट दिखाई दे रहा है, लेकिन Supabase login connection इस पेज पर initialize नहीं हुआ। supabase-config.js और script loading ठीक करनी होगी।","bot");return;}
+ const db=getDb();
+ if(!db?.auth){add("Supabase connection अभी उपलब्ध नहीं है। पेज Reload करें; समस्या रहे तो Settings में connection status देखें।","bot");return;}
  const {data,error}=await db.auth.getSession();if(error||!data?.session){add("पहले अपने New Star account में Login करें।","bot");return;}
  add(text,"user");input.value="";send.disabled=true;send.textContent="…";
  const pending=add("जवाब तैयार हो रहा है…","bot");
@@ -29,7 +30,7 @@ panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
   const requestMessages=[...history.slice(-8),{role:"user",content:text}];
   const {data:result,error:invokeError}=await db.functions.invoke("ai-gateway",{body:{messages:requestMessages}});
   if(invokeError)throw invokeError;
-  if(!result?.ok||typeof result.answer!=="string")throw new Error(result?.error||"AI सेवा अभी उपलब्ध नहीं है।");
+  if(!result?.ok||typeof result.answer!=="string"){const attempted=Array.isArray(result?.attempted)&&result.attempted.length?" (जाँच: "+result.attempted.join(", ")+")":"";throw new Error((result?.error||"AI सेवा अभी उपलब्ध नहीं है।")+attempted);}
   pending.textContent=result.answer;
   history.push({role:"user",content:text},{role:"assistant",content:result.answer});
   if(history.length>10)history.splice(0,history.length-10);
