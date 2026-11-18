@@ -229,6 +229,9 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
    <option value="9:16">Short Vertical — 9:16</option>
    <option value="16:9">Long / Landscape — 16:9</option>
    <option value="1:1">Square — 1:1</option>
+   <option value="4:3">Classic — 4:3</option>
+   <option value="3:4">Portrait — 3:4</option>
+   <option value="21:9">Cinema Wide — 21:9</option>
   </select>
   <label>Frame Fit</label>
   <select class="select" id="frameFit">
@@ -238,12 +241,14 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
   <label>Quality Preference</label>
   <select class="select" id="qualityPreference">
    <option value="original">Original Source Quality</option>
+   <option value="360p">360p SD preference</option>
+   <option value="480p">480p SD preference</option>
    <option value="720p">720p HD preference</option>
    <option value="1080p">1080p Full HD preference</option>
    <option value="1440p">1440p QHD preference</option>
    <option value="2160p">2160p 4K preference</option>
   </select>
-  <div class="status" id="qualityNotice">अभी मूल फाइल ही अपलोड होती है। अलग-अलग HD क्वालिटी बनाने के लिए server-side transcoding service जुड़नी बाकी है।</div>
+  <div class="status" id="qualityNotice">SD/HD/Full HD/2K/4K विकल्प आपकी पसंद सेव करते हैं। वास्तविक अलग-अलग क्वालिटी बनाने के लिए वीडियो transcoding provider का account और server credentials जोड़ना बाकी है।</div>
   <label>Affiliate / Promotion Link (optional)</label>
   <input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
   <label>Video Privacy</label>
@@ -565,7 +570,8 @@ function applyOutputFrame() {
  const preview=document.querySelector(".preview");
  preview.style.aspectRatio=setting==="original" && sourceMetadata?.width && sourceMetadata?.height
   ? sourceMetadata.width+" / "+sourceMetadata.height
-  : setting==="9:16"?"9 / 16":setting==="16:9"?"16 / 9":setting==="1:1"?"1 / 1":"auto";
+  : ["9:16","16:9","1:1","4:3","3:4","21:9"].includes(setting)
+   ? setting.replace(":"," / ") : "auto";
  video.style.objectFit=$("frameFit").value;
  const quality=$("qualityPreference").value;
  const requested=quality==="original"?0:Number(quality.replace("p",""));
@@ -762,6 +768,7 @@ async function publishVideo() {
   const mediaKind=$("mediaKind").value;
   const aspectRatioSetting=$("aspectRatioSetting").value;
   const qualityPreference=$("qualityPreference").value;
+  const frameFit=$("frameFit").value;
   const videoType=aspectRatioSetting==="9:16"?"short":aspectRatioSetting==="16:9"?"long":
    aspectRatioSetting==="original"?(mediaInfo.width<mediaInfo.height?"short":"long"):"long";
   const affiliate = $("affiliateLink").value.trim();
@@ -820,7 +827,7 @@ async function publishVideo() {
 
   status.textContent = "वीडियो Database में सेव हो रहा है...";
   const payload = {
-   media_kind:mediaKind,aspect_ratio_setting:aspectRatioSetting,quality_preference:qualityPreference,
+   media_kind:mediaKind,aspect_ratio_setting:aspectRatioSetting,frame_fit:frameFit,quality_preference:qualityPreference,
    source_quality:(mediaInfo.width+"x"+mediaInfo.height),
    user_id:user.id,video_url:videoUrl,caption,category,username:String(username),
    likes_count:0,views_count:0,affiliate_link:affiliate || null,audience_type:audience,
