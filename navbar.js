@@ -325,9 +325,9 @@
   }
 
   function createTopMenuButton() {
-    // IMPORTANT: profile.html already contains its own ⋮ menu.
-    // Never create a second menu button on the profile page.
-    if (currentPage === "profile.html") return;
+    // Profile has its own menu; Index keeps the video controls untouched
+    // and does not show the global three-dot menu button.
+    if (currentPage === "profile.html" || currentPage === "index.html") return;
 
     if ($("newstar-menu-button")) return;
 
