@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Video LIVE Room - Star New Star</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
     
     <meta name="theme-color" content="#fe2c55">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -598,5 +600,6 @@
         function stopLiveBroadcast(){ if(liveStreamObj)liveStreamObj.getTracks().forEach(t=>t.stop()); liveStreamObj=null; document.getElementById('activeLiveView').style.display='none'; document.getElementById('liveSetupPanel').style.display='block'; }
     </script>
 <script src="preferences.js"></script>
+<script src="ai-chat.js" defer></script>
 </body>
 </html>
