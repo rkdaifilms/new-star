@@ -56,8 +56,8 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <section class="section" id="ai-location">
 <h2 class="section-title">AI Assistant & Location Services</h2>
 <div class="panel">
-<div class="row"><h3>✦ New Star AI Chat</h3><p>Shared AI chat अब signed-in app pages पर उपलब्ध है। यह Supabase के सुरक्षित ai-gateway से OpenAI → Gemini → OpenRouter क्रम में configured providers को call करता है। Provider key या quota उपलब्ध न होने पर साफ error दिखेगा; कोई secret browser में नहीं रखा जाता।</p><button type="button" id="openAiAssistantBtn">Open AI Assistant</button></div>
-<div class="row"><h3>AI Provider Configuration</h3><p>OpenAI, Gemini और OpenRouter की secret keys केवल Supabase Edge Function Secrets में project owner द्वारा configure की जानी चाहिए। इस Settings page में API-key fields नहीं हैं। Gateway deployed है, लेकिन provider secrets की मौजूदगी और live failover अभी verify नहीं हुई है।</p><p id="aiGatewayStatus" role="status">Gateway endpoint: configured · Provider readiness: not verified</p><button type="button" class="secondary" id="checkAiGatewayBtn">Check AI Provider Status</button></div>
+<div class="row"><h3>✦ New Star AI</h3><p>New Star AI ऐप का Help Center है। यह अकाउंट, प्रोफाइल, वीडियो अपलोड, लाइव, मैसेज, सेटिंग्स और ऐप में आने वाली समस्याओं पर मार्गदर्शन देगा। जवाब उपलब्ध AI providers के जरिए सुरक्षित server से आते हैं; AI को आपके निजी अकाउंट या स्क्रीन का स्वतः access नहीं है।</p><button type="button" id="openAiAssistantBtn">Open New Star AI</button></div>
+<div class="row"><h3>New Star AI — Provider Status</h3><p>OpenAI, Gemini और OpenRouter की secret keys केवल Supabase Edge Function Secrets में project owner द्वारा configure की जानी चाहिए। इस Settings page में API-key fields नहीं हैं। Gateway deployed है, लेकिन provider secrets की मौजूदगी और live failover अभी verify नहीं हुई है।</p><p id="aiGatewayStatus" role="status">New Star AI Gateway: connected status will be checked · Provider live response: not yet verified</p><button type="button" class="secondary" id="checkAiGatewayBtn">Check AI Provider Status</button></div>
 <div class="row"><h3>Mapbox Location & Maps</h3><p>Repository में अभी Mapbox SDK/token integration नहीं मिला। Mapbox को map/location वाली screens में जोड़ना होगा, Settings में नहीं। इसके लिए Mapbox public token और approved domain restrictions चाहिए; token मिलने तक map feature को connected नहीं दिखाया जाएगा। Browser की location permission user के control में रहेगी।</p><p id="mapboxStatus">Mapbox: Not configured</p></div>
 </div></section>
 
@@ -159,23 +159,6 @@ function applyAppearanceLive(){
  window.NewStarI18n?.apply();
  return p;
 }
-async function checkAiGatewayStatus(){
- const el=$("aiGatewayStatus");if(!el||!db?.functions)return;
- el.textContent="Gateway और provider configuration जाँची जा रही है…";
- try{
-  const {data,error}=await db.functions.invoke("ai-gateway",{body:{action:"status"}});
-  if(error)throw error;
-  if(!data?.ok||!data?.providers)throw new Error("Status response unavailable");
-  const p=data.providers;
-  const active=[p.openai&&"OpenAI",p.gemini&&"Gemini",p.openrouter&&"OpenRouter"].filter(Boolean);
-  el.textContent=active.length
-   ?"Gateway: connected · Server secrets configured: "+active.join(", ")+" · Live response test pending"
-   :"Gateway: connected · No provider secret detected on server";
- }catch(e){
-  el.textContent="Gateway status unavailable · Login/session or server configuration जाँचें";
-  console.warn("AI gateway status check failed",e);
- }
-}
 async function loadSettings(){
  if(!db?.auth){message("Supabase client नहीं मिला। supabase-config.js जाँचें।","error");return;}
  try{
@@ -183,11 +166,13 @@ async function loadSettings(){
   if(!user){location.replace("auth.html");return;}
   $("accountEmail").textContent=user.email||"Email उपलब्ध नहीं है";
   await checkAiGatewayStatus();
+  loadNotificationPrefs();
   const {data:row,error:pe}=await db.from("profiles").select("user_id,is_private").eq("user_id",user.id).maybeSingle();
   if(pe)throw pe;profile=row||null;
   $("privateAccount").checked=!!profile?.is_private;
   const {count,error:ne}=await db.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",user.id).eq("is_read",false);
   $("unreadCount").textContent=ne?"Unavailable":String(count??0);
+  await loadNotifications();
   await loadBlockedAccounts();
  }catch(e){console.error(e);message(e.message||"Settings load नहीं हुई।","error");}
 }
