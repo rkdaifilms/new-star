@@ -1140,7 +1140,6 @@ function renderProfileViewer(){
  const v=$("profileVideoViewerPlayer");v.pause();v.src=item.video_url;v.load();
  $("profileViewerCreator").textContent="@"+(item.username||meta().username||"creator").replace(/^@/,"");
  $("profileViewerCaption").textContent=item.caption||"";
- $("profileVideoViewerLabel").textContent=profileVideoType(item)==="short"?"⚡ SHORTS":"▶ LONG VIDEO";
  $("profileViewerLikes").textContent=String(Number(item.likes_count)||0);
  $("profileViewerViews").textContent=String(Number(item.views_count)||0)+" views";
  $("profileViewerComments").textContent=String(Number(item.comments_count)||0);
