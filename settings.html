@@ -31,7 +31,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <main class="container">
 <section class="intro"><h2>New Star — Main Settings</h2><p>अकाउंट, प्रोफाइल, नोटिफिकेशन, भाषा और सुरक्षा की सेटिंग एक ही जगह से मैनेज करें। नीचे हर सेक्शन क्रम से दिया गया है।</p></section>
 <nav class="quick" aria-label="Settings sections">
-<a href="#notifications">🔔 Notifications</a><a href="#account">🔐 Account</a><a href="#profile">👤 Profile Information</a><a href="#privacy">🛡️ Privacy & Security</a><a href="#appearance">🌐 Language & Theme</a><a href="#help">❓ Help & About</a>
+<a href="#notifications">🔔 Notifications</a><a href="#account">🔐 Account</a><a href="#profile">👤 Profile Information</a><a href="#privacy">🛡️ Privacy & Security</a><a href="#appearance">🌐 Language & Theme</a><a href="#monetization">💼 Creator & Monetization</a><a href="#help">❓ Help & About</a>
 </nav>
 <div id="status" class="status" role="status" aria-live="polite"></div>
 
@@ -78,8 +78,16 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </select><button id="saveAppearanceBtn" data-i18n="action.save">Save Language & Theme</button></div>
 </div></section>
 
+<section class="section" id="monetization">
+<h2 class="section-title">06 · Creator & Monetization</h2>
+<div class="panel">
+<div class="row"><h3>Creator Monetization Hub</h3><p>Creator eligibility, monetization review, referral links, campaign access, affiliate features, live gifts, video promotion and fan support का मुख्य स्थान Monetization Hub है। एक ही canonical hub रखा गया है; duplicate monetization controls Main Settings में नहीं बनाए गए हैं।</p><a class="action" href="monetization.html">💼 Open Creator & Monetization Hub</a></div>
+<div class="row"><h3>Wallet & Earnings</h3><p>Coin balance, purchase history, gifts, creator earnings और payout history देखने के लिए Wallet खोलें। Payment और payout सुविधाएँ केवल verified provider integration सक्रिय होने पर काम करेंगी।</p><a class="action secondary" href="wallet.html">🪙 Open Wallet</a></div>
+<div class="row"><h3>Provider & Payment Status</h3><p>Payment gateway, AdMob/AdSense और creator payout की configuration अलग-अलग provider approval तथा server-side integration पर निर्भर है। Main Settings में कोई duplicate API-key या bank-detail form नहीं रखा गया है।</p><a class="action secondary" href="admin.html">🔒 Admin Provider Setup</a></div>
+</div></section>
+
 <section class="section" id="help">
-<h2 class="section-title">06 · Help & About</h2>
+<h2 class="section-title">07 · Help & About</h2>
 <div class="panel">
 <div class="row"><h3>Help & Support</h3><p>Account, messages और app support के लिए Inbox खोलें।</p><a class="action" href="inbox.html">✉️ Open Support Inbox</a></div>
 <div class="row"><h3>About New Star</h3><p>New Star Creator Hub · आपकी प्रोफाइल, वीडियो और Creator सुविधाएँ।</p><p>Settings build: 2.0 · Preferences इस डिवाइस पर सेव होती हैं; अकाउंट जानकारी Supabase में सेव होती है।</p></div>
