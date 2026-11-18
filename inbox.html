@@ -238,7 +238,7 @@ async function renderRelationList(kind){
 async function searchCreators(){
  const input=$("creatorSearchInput"),host=$("creatorSearchResults");
  if(!me||!input||!host)return;
- const term=input.value.trim().replace(/[,%()]/g," ").replace(/\s+/g," ").slice(0,50);
+ const term=input.value.trim().replace(/[^\p{L}\p{N}_\-\s]/gu," ").replace(/\s+/g," ").slice(0,50);
  if(term.length<2){host.textContent="कम से कम 2 अक्षर लिखें।";return;}
  host.textContent="Creators खोजे जा रहे हैं...";
  const pattern="%"+term+"%";
