@@ -208,6 +208,12 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
   </select>
   <label>Affiliate / Promotion Link (optional)</label>
   <input class="input" id="affiliateLink" type="url" placeholder="https://example.com">
+  <label>Video Privacy</label>
+  <select class="select" id="videoVisibility">
+   <option value="public">🌍 Public — सभी देख सकते हैं</option>
+   <option value="unlisted">🔗 Unlisted — लिंक वाले (Private Account पर केवल approved followers)</option>
+   <option value="private">🔒 Private — केवल मैं देख सकता हूँ</option>
+  </select>
   <label>Audience</label>
   <select class="select" id="audienceType">
    <option value="all">Public / Everyone</option>
@@ -684,6 +690,7 @@ async function publishVideo() {
   const description = $("videoDescription").value.trim();
   const category = $("videoCategory").value;
   const audience = $("audienceType").value;
+  const visibility = $("videoVisibility").value;
   const affiliate = $("affiliateLink").value.trim();
   if (affiliate) {
    let link;
@@ -744,7 +751,7 @@ async function publishVideo() {
    user_id:user.id,video_url:videoUrl,caption,category,username:String(username),
    likes_count:0,views_count:0,affiliate_link:affiliate || null,audience_type:audience,
    duration_seconds:Math.ceil(mediaInfo.duration),width:mediaInfo.width,height:mediaInfo.height,
-   video_type:videoType,processing_status:"published",visibility:"public"
+   video_type:videoType,processing_status:"published",visibility
   };
   const {data:inserted,error:insertError} = await db.from("videos")
    .insert(payload).select("id").single();
