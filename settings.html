@@ -106,7 +106,21 @@ function message(s,type="success"){const el=$("status");el.textContent=s;el.clas
 function prefs(){try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){return {};}}
 function loadAppearance(){const p=prefs();$("appLanguage").value=p.language||"hi";$("appTheme").value=p.theme||"dark";}
 function applyAppearanceLive(){const p={...prefs(),language:$("appLanguage").value,theme:$("appTheme").value};localStorage.setItem("newstar_preferences",JSON.stringify(p));if(window.NewStarNavbar?.applyPreferences)window.NewStarNavbar.applyPreferences();else{document.documentElement.lang=p.language;document.documentElement.dir=["ar","ur","fa"].includes(p.language)?"rtl":"ltr";}return p;}
-function saveAppearance(){applyAppearanceLive();message("आपकी भाषा और Theme इसी समय इस डिवाइस पर लागू हो गई। दूसरे पेज खोलने पर भी यही preference रहेगी।");};localStorage.setItem("newstar_preferences",JSON.stringify(p));message("25 भाषाएँ और 25 रंगीन Themes preference इस डिवाइस पर सेव हो गई। Theme ऐप के साझा रंगों पर लागू होगी; भाषा अनुवाद उन्हीं स्क्रीन पर दिखेगा जहाँ अनुवाद जोड़ा गया है।");setTimeout(()=>location.reload(),500);}
+function applyAppearanceLive(){
+ const p={...prefs(),language:$("appLanguage").value,theme:$("appTheme").value};
+ localStorage.setItem("newstar_preferences",JSON.stringify(p));
+ if(window.NewStarNavbar?.applyPreferences)window.NewStarNavbar.applyPreferences();
+ else if(window.NewStarPreferences?.apply)window.NewStarPreferences.apply();
+ else{
+  document.documentElement.lang=p.language;
+  document.documentElement.dir=["ar","ur","fa"].includes(p.language)?"rtl":"ltr";
+ }
+ return p;
+}
+function saveAppearance(){
+ applyAppearanceLive();
+ message("आपकी भाषा और Theme इसी समय इस डिवाइस पर लागू हो गई। दूसरे पेज खोलने पर भी यही preference रहेगी।");
+}
 async function loadSettings(){
  if(!db?.auth){message("Supabase client नहीं मिला। supabase-config.js जाँचें।","error");return;}
  try{
