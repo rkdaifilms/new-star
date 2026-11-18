@@ -126,11 +126,18 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
 .profileVideoViewer video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;touch-action:pan-y}
 .profileVideoViewer .viewerClose{position:fixed;top:calc(env(safe-area-inset-top) + 12px);right:12px;z-index:10010}
 .profileVideoViewer .viewerLabel{top:calc(env(safe-area-inset-top) + 18px);left:12px;right:auto;z-index:10010}
-.profileViewerActions{position:fixed;z-index:10012;right:10px;bottom:calc(100px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px;align-items:center}
-.profileViewerActions button{width:54px;min-height:56px;padding:5px 2px;border-radius:28px;background:#151515c9;border:1px solid #ffffff66;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 2px 12px #0008}
+.profileViewerActions{position:fixed;z-index:10012;right:10px;top:calc(env(safe-area-inset-top) + 70px);bottom:calc(env(safe-area-inset-bottom) + 18px);display:flex;flex-direction:column;gap:10px;align-items:center;overflow-y:auto;overflow-x:visible;overscroll-behavior:contain;scrollbar-width:none;padding:4px 2px}
+.profileViewerActions::-webkit-scrollbar{display:none}
+.profileViewerActions button{flex:0 0 54px;width:54px;min-height:54px;padding:5px 2px;border-radius:28px;background:#151515c9;border:1px solid #ffffff66;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 2px 12px #0008}
 .profileViewerActions button span{font-size:24px;line-height:1.2}
 .profileViewerActions button small{font-size:11px;color:#fff}
 .profileViewerActions button.liked span{filter:drop-shadow(0 0 5px #fe2c55)}
+.profileViewerSettings{position:relative;flex:0 0 auto}
+.profileViewerSettingsMenu{position:absolute;right:62px;top:0;width:min(245px,calc(100vw - 100px));max-height:min(65dvh,470px);overflow-y:auto;padding:7px;background:#24242e;border:1px solid #555;border-radius:12px;box-shadow:0 10px 28px #000b;z-index:10025}
+.profileViewerSettingsMenu[hidden]{display:none!important}
+.profileViewerSettingsMenu button{width:100%;min-height:42px;flex:none;display:block;text-align:left;padding:10px 12px;border:0;border-radius:8px;background:transparent;box-shadow:none;font-size:13px}
+.profileViewerSettingsMenu button:hover{background:#383844}
+.profileViewerSettingsMenu button.danger{color:#ff8498}
 .profileViewerInfo{position:fixed;z-index:10011;left:14px;right:82px;bottom:calc(28px + env(safe-area-inset-bottom));text-shadow:0 1px 5px #000;pointer-events:none}
 .profileViewerInfo strong{font-size:15px}.profileViewerInfo p{font-size:13px;line-height:1.4;margin-top:5px;white-space:pre-wrap;overflow-wrap:anywhere}
 .profileViewerHint{position:fixed;z-index:10011;top:calc(env(safe-area-inset-top) + 62px);left:50%;transform:translateX(-50%);padding:6px 10px;border-radius:18px;background:#1119;color:#fff;font-size:11px;white-space:nowrap;pointer-events:none}
@@ -257,10 +264,23 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
  <span id="profileVideoViewerLabel" class="viewerLabel">Video</span>
  <video id="profileVideoViewerPlayer" controls playsinline preload="metadata"></video>
  <div class="profileViewerInfo"><strong id="profileViewerCreator"></strong><p id="profileViewerCaption"></p><small id="profileViewerViews">0 views</small></div>
- <div class="profileViewerActions">
+ <div class="profileViewerActions" aria-label="Video actions">
+  <div class="profileViewerSettings">
+   <button id="profileViewerSettingsButton" type="button" aria-label="Video settings" aria-expanded="false"><span>⋮</span><small>Settings</small></button>
+   <div id="profileViewerSettingsMenu" class="profileViewerSettingsMenu" hidden>
+    <button type="button" data-profile-manage="title">✏️ Edit Title</button>
+    <button type="button" data-profile-manage="tags">#️⃣ Edit Hashtags</button>
+    <button type="button" data-profile-manage="voice">🎙️ Record Voice</button>
+    <button type="button" data-profile-manage="gallery">🎵 Choose Audio from Gallery</button>
+    <button type="button" data-profile-manage="mix">🎚️ Mix & Save</button>
+    <button type="button" data-profile-manage="delete" class="danger">🗑️ Delete Video</button>
+   </div>
+  </div>
   <button id="profileViewerLike" type="button"><span>❤️</span><small id="profileViewerLikes">0</small></button>
   <button id="profileViewerComment" type="button"><span>💬</span><small id="profileViewerComments">0</small></button>
   <button id="profileViewerGift" type="button"><span>🎁</span><small>Gift</small></button>
+  <button id="profileViewerShare" type="button"><span>↗️</span><small>Share</small></button>
+  <button id="profileViewerDownload" type="button"><span>⬇️</span><small>Download</small></button>
  </div>
  <div class="profileViewerHint">ऊपर / नीचे स्वाइप करें · अगला वीडियो</div>
 </div>
@@ -1063,6 +1083,54 @@ function openProfileVideo(item,type){
  profileViewerIndex=Math.max(0,profileViewerRows.findIndex(v=>String(v.id)===String(item.id)));
  renderProfileViewer();
 }
+function profileVideoShareUrl(item){
+ const url=new URL("index.html",location.href);
+ url.searchParams.set("video",String(item.id));
+ return url.toString();
+}
+async function shareProfileViewerVideo(){
+ const item=activeProfileVideo();if(!item)return;
+ const url=profileVideoShareUrl(item);
+ try{
+  if(navigator.share)await navigator.share({title:"New Star Video",text:item.caption||"Watch on New Star",url});
+  else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);profileViewerToast("वीडियो लिंक कॉपी हो गया!");}
+  else{const input=document.createElement("textarea");input.value=url;document.body.append(input);input.select();document.execCommand("copy");input.remove();profileViewerToast("वीडियो लिंक कॉपी हो गया!");}
+ }catch(error){if(error.name!=="AbortError")profileViewerToast("Share नहीं हो सका: "+error.message);}
+}
+async function downloadProfileViewerVideo(){
+ const item=activeProfileVideo();if(!item?.video_url)return;
+ const button=$("profileViewerDownload");button.disabled=true;
+ try{
+  const response=await fetch(item.video_url,{mode:"cors"});
+  if(!response.ok)throw new Error("वीडियो डाउनलोड नहीं हो पाया।");
+  const blob=await response.blob();if(!blob.size)throw new Error("वीडियो फाइल खाली मिली।");
+  const objectUrl=URL.createObjectURL(blob),anchor=document.createElement("a");
+  const extension=(blob.type.split("/")[1]||"mp4").split(";")[0].replace(/[^a-z0-9]/gi,"")||"mp4";
+  anchor.href=objectUrl;anchor.download="new-star-video-"+String(item.id)+"."+extension;
+  document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),60000);
+  profileViewerToast("वीडियो डाउनलोड शुरू हो गया।");
+ }catch(error){
+  console.error("Profile video download:",error);
+  try{const a=document.createElement("a");a.href=item.video_url;a.target="_blank";a.rel="noopener";a.download="new-star-video";document.body.append(a);a.click();a.remove();profileViewerToast("वीडियो नए टैब में खुला है।");}
+  catch(fallback){profileViewerToast("डाउनलोड नहीं हुआ। Storage access जाँचें।");}
+ }finally{button.disabled=false;}
+}
+function closeProfileViewerSettings(){
+ const menu=$("profileViewerSettingsMenu"),button=$("profileViewerSettingsButton");
+ if(menu)menu.hidden=true;if(button)button.setAttribute("aria-expanded","false");
+}
+function runProfileViewerSetting(action){
+ const item=activeProfileVideo();if(!item||!user||String(item.user_id)!==String(user.id)){profileViewerToast("यह वीडियो आपके अकाउंट का नहीं है।");return;}
+ closeProfileViewerSettings();
+ if(action==="delete"){managedVideoId=String(item.id);deleteManagedVideo();return;}
+ openVideoManage(item);
+ if(action==="title")$("videoEditTitle").focus();
+ else if(action==="tags")$("videoEditTags").focus();
+ else if(action==="voice")startManagedVoice();
+ else if(action==="gallery")$("videoAudioFile").click();
+ else if(action==="mix")$("videoMixSave").focus();
+}
+
 
 
 
@@ -1079,6 +1147,8 @@ function renderProfileViewer(){
  $("profileVideoViewerLabel").textContent=profileVideoType(item)==="short"?"⚡ SHORTS":"▶ LONG VIDEO";
  $("profileViewerLikes").textContent=String(Number(item.likes_count)||0);
  $("profileViewerViews").textContent=String(Number(item.views_count)||0)+" views";
+ $("profileViewerComments").textContent=String(Number(item.comments_count)||0);
+ closeProfileViewerSettings();
  $("profileViewerLike").classList.toggle("liked",profileViewerLiked);
  $("profileVideoViewer").classList.add("show");$("profileVideoViewer").setAttribute("aria-hidden","false");
  document.body.style.overflow="hidden";v.play().catch(()=>{});
@@ -1213,6 +1283,13 @@ $("videoManageClose").addEventListener("click",closeVideoManage);$("videoSaveDet
 $("profileViewerLike").addEventListener("click",toggleProfileViewerLike);
 $("profileViewerComment").addEventListener("click",openProfileComments);
 $("profileViewerGift").addEventListener("click",openProfileGift);
+$("profileViewerSettingsButton").addEventListener("click",e=>{e.preventDefault();e.stopPropagation();const menu=$("profileViewerSettingsMenu");menu.hidden=!menu.hidden;$("profileViewerSettingsButton").setAttribute("aria-expanded",String(!menu.hidden));});
+$("profileViewerSettingsMenu").addEventListener("click",e=>e.stopPropagation());
+$("profileViewerSettingsMenu").querySelectorAll("[data-profile-manage]").forEach(b=>b.addEventListener("click",()=>runProfileViewerSetting(b.dataset.profileManage)));
+$("profileViewerShare").addEventListener("click",shareProfileViewerVideo);
+$("profileViewerDownload").addEventListener("click",downloadProfileViewerVideo);
+document.addEventListener("click",e=>{if(!e.target.closest(".profileViewerSettings"))closeProfileViewerSettings();});
+
 $("profileCommentForm").addEventListener("submit",submitProfileComment);
 $("profileCommentsClose").addEventListener("click",()=>closeProfileSheet("profileComments"));
 $("profileGiftClose").addEventListener("click",()=>closeProfileSheet("profileGiftSheet"));
