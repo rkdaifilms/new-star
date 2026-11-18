@@ -180,6 +180,14 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&l
 function nameOf(p){return p?.full_name||p?.username||"New Star User";}
 function avatarOf(p){return p?.avatar_url||fallback;}
 function setStatus(s){const el=$("inboxStatus");if(el)el.textContent=s;}
+function setFollowButtonState(button,state){
+ const keys={following:"action.following",requested:"action.requested","request-follow":"action.requestFollow",follow:"action.follow",unavailable:null};
+ button.dataset.followState=state;
+ button.classList.toggle("following",state==="following"||state==="requested");
+ const key=keys[state];
+ if(key){button.setAttribute("data-i18n",key);button.textContent=window.NewStarTranslations?.[JSON.parse(localStorage.getItem("newstar_preferences")||"{}").language||"hi"]?.[key]||window.NewStarTranslations?.en?.[key]||state;}
+ else{button.removeAttribute("data-i18n");button.textContent="Unavailable";}
+}
 async function boot(){
  if(!db){setStatus("Supabase SDK/config लोड नहीं हुआ। इंटरनेट और supabase-config.js जाँचें।");$("tabMessages").textContent="Inbox कनेक्शन उपलब्ध नहीं है। पेज Reload करें।";return;}
  const {data:{user},error}=await db.auth.getUser();
@@ -263,19 +271,19 @@ async function searchCreators(){
    const {data:follow,error:followError}=await db.from("followers").select("id")
     .eq("follower_id",me.id).eq("following_id",p.user_id).maybeSingle();
    if(followError)throw followError;
-   if(follow){action.textContent="Following";action.classList.add("following");}
+   if(follow){setFollowButtonState(action,"following");}
    else if(p.is_private){
     const {data:request,error:requestError}=await db.from("follow_requests").select("id")
      .eq("requester_id",me.id).eq("target_user_id",p.user_id).eq("status","pending").maybeSingle();
     if(requestError)throw requestError;
-    action.textContent=request?"Requested":"Request Follow";
-   }else action.textContent="Follow";
+    setFollowButtonState(action,request?"requested":"request-follow");
+   }else setFollowButtonState(action,"follow");
    action.disabled=false;
-  }catch(error){action.textContent="Unavailable";action.title=error.message;}
+  }catch(error){setFollowButtonState(action,"unavailable");action.title=error.message;}
   action.onclick=async()=>{
    action.disabled=true;
    try{
-    if(action.textContent==="Following"){
+    if(action.dataset.followState==="following"){
      const {data:follow}=await db.from("followers").select("id").eq("follower_id",me.id).eq("following_id",p.user_id).maybeSingle();
      if(follow){const {error}=await db.from("followers").delete().eq("id",follow.id).eq("follower_id",me.id);if(error)throw error;}
     }else if(p.is_private){
@@ -324,8 +332,9 @@ async function loadFollowRequests(){
   const note=document.createElement("p");note.textContent="आपको Follow करना चाहते हैं";
   info.append(title,note);left.append(img,info);
   const actions=document.createElement("span");actions.style.cssText="display:flex;gap:6px;flex-shrink:0";
-  const accept=document.createElement("button");accept.className="action-tag-btn";accept.textContent="Accept";
-  const reject=document.createElement("button");reject.className="action-tag-btn following";reject.textContent="Decline";
+  const accept=document.createElement("button");accept.className="action-tag-btn";accept.setAttribute("data-i18n","action.accept");accept.textContent="Accept";
+  const reject=document.createElement("button");reject.className="action-tag-btn following";reject.setAttribute("data-i18n","action.decline");reject.textContent="Decline";
+  window.NewStarI18n?.apply(accept);window.NewStarI18n?.apply(reject);
   accept.onclick=()=>respondFollowRequest(request.id,"accepted",accept,reject);
   reject.onclick=()=>respondFollowRequest(request.id,"rejected",accept,reject);
   actions.append(accept,reject);row.append(left,actions);host.append(row);
