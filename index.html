@@ -643,25 +643,33 @@ async function loadLiveRooms(){
    .order("started_at",{ascending:false}).limit(30);
   if(error)throw error;
   if(version!==liveRoomsLoadVersion)return;
-  const keyword=$("search").value.trim().toLowerCase();
-  const rooms=(data||[]).filter(room=>
-   !keyword||String(room.room_title||"").toLowerCase().includes(keyword)||String(room.creator_id||"").toLowerCase().includes(keyword)
-  );
+  const rooms=data||[];
   if(!rooms.length){
    list.innerHTML='<div class="live-feed-empty">अभी कोई Creator LIVE नहीं है। Creator के LIVE होने पर stream यहाँ दिखाई देगी।</div>';
    return;
   }
-  let profilesByUser=new Map();
-  try{
-   const ids=[...new Set(rooms.map(room=>String(room.creator_id)).filter(Boolean))];
-   if(ids.length){
-    const {data:profiles}=await db.from("profiles").select("user_id,username,full_name").in("user_id",ids);
-    for(const profile of profiles||[])profilesByUser.set(String(profile.user_id),profile);
-   }
-  }catch(profileError){console.info("LIVE creator profile names unavailable:",profileError?.message);}
+  const ids=[...new Set(rooms.map(room=>String(room.creator_id)).filter(Boolean))];
+  const {data:profiles,error:profileError}=await db.from("creator_public_profiles")
+   .select("user_id,username,full_name,is_private").in("user_id",ids);
+  if(profileError)throw profileError;
+  const profilesByUser=new Map((profiles||[]).map(profile=>[String(profile.user_id),profile]));
+  const followingIds=new Set(currentUser?await getFollowingIds():[]);
+  const keyword=$("search").value.trim().toLowerCase();
+  const visibleRooms=rooms.filter(room=>{
+   const profile=profilesByUser.get(String(room.creator_id));
+   if(!profile)return false;
+   const isOwner=String(room.creator_id)===String(currentUser?.id||"");
+   if(profile.is_private&&!isOwner&&!followingIds.has(String(room.creator_id)))return false;
+   const creatorText=[profile.username,profile.full_name].filter(Boolean).join(" ").toLowerCase();
+   return !keyword||String(room.room_title||"").toLowerCase().includes(keyword)||creatorText.includes(keyword);
+  });
   if(version!==liveRoomsLoadVersion)return;
+  if(!visibleRooms.length){
+   list.innerHTML='<div class="live-feed-empty">अभी कोई सार्वजनिक या आपके लिए उपलब्ध LIVE room नहीं है।</div>';
+   return;
+  }
   list.replaceChildren();
-  for(const room of rooms){
+  for(const room of visibleRooms){
    const profile=profilesByUser.get(String(room.creator_id))||{};
    const creator=profile.username||profile.full_name||"New Star Creator";
    const card=document.createElement("article");card.className="live-room-card";
