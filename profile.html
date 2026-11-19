@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#101014">
 <title>New Star - Profile</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 <script src="./supabase-config.js"></script>
 
 <style>
@@ -1108,13 +1109,24 @@ function profileVideoType(v){
  const w=Number(v.width)||0,h=Number(v.height)||0;
  return h>w?"short":"long";
 }
+const profileHlsPlayers=new WeakMap();
+function attachProfileVideoSource(player,source){
+ const previous=profileHlsPlayers.get(player);if(previous){previous.destroy();profileHlsPlayers.delete(player);}
+ player.pause();player.removeAttribute("src");player.load();
+ if(!source)return;
+ const isHls=/\\.m3u8(?:$|[?#])/i.test(source);
+ if(isHls&&window.Hls&&window.Hls.isSupported()){
+  const hls=new window.Hls({enableWorker:true,lowLatencyMode:false,backBufferLength:30});
+  profileHlsPlayers.set(player,hls);hls.loadSource(source);hls.attachMedia(player);
+ }else{player.src=source;player.load();}
+}
 function renderProfileVideos(){
  const grid=$("videoGrid"),all=window.profileVideos||[],filter=window.profileVideoFilter||"all";grid.replaceChildren();
  const rows=all.filter(v=>filter==="all"||profileVideoType(v)===filter);
  if(!rows.length){const p=document.createElement("p");p.className="muted";p.textContent=filter==="short"?"अभी कोई Short नहीं है।":filter==="long"?"अभी कोई Long Video नहीं है।":"अभी कोई वीडियो नहीं है।";grid.append(p);return;}
  rows.forEach(item=>{
   const type=profileVideoType(item),card=document.createElement("article");card.className="videoCard";card.tabIndex=0;
-  const v=document.createElement("video");v.src=item.video_url||"";v.controls=false;v.playsInline=true;v.preload="metadata";v.muted=true;v.poster=item.thumbnail_url||"";
+  const v=document.createElement("video");attachProfileVideoSource(v,item.video_url||"");v.controls=false;v.playsInline=true;v.preload="metadata";v.muted=true;v.poster=item.thumbnail_url||"";
   v.addEventListener("loadedmetadata",()=>{if(v.videoWidth&&v.videoHeight)v.style.aspectRatio=v.videoWidth+" / "+v.videoHeight;});
   const tag=document.createElement("small");tag.className="videoFormat";tag.textContent=item.processing_status==="processing"?"⏳ PROCESSING":item.processing_status==="failed"?"⚠️ UPLOAD FAILED":(type==="short"?"⚡ SHORTS":"▶ LONG VIDEO");
   const title=document.createElement("p");title.textContent=item.caption||"Video";
@@ -1187,7 +1199,7 @@ function renderProfileViewer(){
  const item=activeProfileVideo();if(!item)return;
  const canManage=!!user&&String(item.user_id)===String(user.id);
  $("profileViewerSettings").style.display=canManage?"flex":"none";
- const v=$("profileVideoViewerPlayer"),playButton=$("profileViewerPlayButton");v.pause();playButton.hidden=true;v.style.objectFit=profileVideoType(item)==="short"?"cover":"contain";v.src=item.video_url;v.load();
+ const v=$("profileVideoViewerPlayer"),playButton=$("profileViewerPlayButton");v.pause();playButton.hidden=true;v.style.objectFit=profileVideoType(item)==="short"?"cover":"contain";attachProfileVideoSource(v,item.video_url);
  $("profileViewerCreator").textContent="@"+(item.username||meta().username||"creator").replace(/^@/,"");
  $("profileViewerCaption").textContent=item.caption||"";
  $("profileViewerLikes").textContent=String(Number(item.likes_count)||0);
