@@ -15,13 +15,13 @@ const onHomeFeed=/\/index\.html?$/.test(location.pathname)||location.pathname===
 if(onHomeFeed){
  style.textContent += `
  #ns-ai-launch{position:relative;left:auto;right:auto;top:auto;bottom:auto;display:block;margin:8px 0 0 auto;padding:8px 13px;font-size:13px;z-index:25}
- #ns-ai-panel{top:150px;bottom:calc(82px + env(safe-area-inset-bottom));right:10px;left:10px;width:auto;height:auto;max-height:calc(100dvh - 245px)}
+ #ns-ai-panel{position:relative;inset:auto;right:auto;bottom:auto;left:auto;top:auto;width:calc(100% - 24px);height:420px;max-height:65vh;margin:8px 12px 14px;z-index:25}
  `;
 }
 const launch=document.createElement("button");launch.id="ns-ai-launch";launch.type="button";launch.textContent="✦ New Star AI";
 const panel=document.createElement("section");panel.id="ns-ai-panel";panel.setAttribute("aria-label","New Star AI Help Center");
 panel.innerHTML='<div id="ns-ai-head"><strong>New Star AI · Help Center</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-provider-status" role="status" aria-live="polite">AI सेवाओं की स्थिति जाँची जा रही है…</div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! मैं New Star AI Help Center हूँ। अकाउंट, प्रोफाइल, वीडियो अपलोड, लाइव, मैसेज, नोटिफिकेशन, सेटिंग्स या ऐप की किसी समस्या में मदद चाहिए तो बताइए।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><div id="ns-ai-voice-status" role="status" aria-live="polite"></div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="New Star के बारे में पूछें…" required><button id="ns-ai-mic" type="button" aria-label="Start voice input" aria-pressed="false" title="Speak your message">🎙️</button><button id="ns-ai-send" type="submit">Send</button></form>';
-if(onHomeFeed){const host=document.querySelector(".top-area");if(host)host.append(launch);else document.body.append(launch);}else{document.body.append(launch);}document.body.append(panel);
+if(onHomeFeed){const host=document.querySelector(".top-area");if(host){host.append(launch,panel);}else{document.body.append(launch,panel);}}else{document.body.append(launch,panel);}
 const log=panel.querySelector("#ns-ai-log"),input=panel.querySelector("#ns-ai-input"),send=panel.querySelector("#ns-ai-send"),providerStatus=panel.querySelector("#ns-ai-provider-status");
 const mic=panel.querySelector("#ns-ai-mic"),voiceStatus=panel.querySelector("#ns-ai-voice-status");
 const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
