@@ -171,6 +171,24 @@ button{cursor:pointer}
  #commentModal{height:calc(100dvh - 84px)!important;max-height:calc(100dvh - 84px)!important;min-height:180px!important}
 }
 
+
+#liveRoomsPanel[hidden]{display:none!important}
+#liveRoomsPanel{position:absolute;inset:0;z-index:12;overflow-y:auto;background:#080808;padding:14px 12px 110px;color:#fff;box-sizing:border-box}
+.live-feed-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 14px}
+.live-feed-head h2{font-size:18px;margin:0}
+.live-feed-head button,.live-viewer-stop,.live-room-watch{border:0;border-radius:18px;padding:9px 14px;font-weight:700;background:#fe2c55;color:#fff}
+.live-room-list{display:grid;grid-template-columns:1fr;gap:10px}
+.live-room-card{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#191919;border:1px solid #383838;border-radius:12px;padding:13px}
+.live-room-copy{min-width:0}
+.live-room-copy strong{display:block;font-size:14px;overflow-wrap:anywhere}
+.live-room-copy span{display:block;color:#aaa;font-size:11px;margin-top:5px}
+.live-room-tag{display:inline-block!important;color:#ff536f!important;font-weight:800;margin-top:0!important}
+#liveViewerWrap{margin:0 0 14px;padding:10px;background:#141414;border:1px solid #fe2c55;border-radius:12px}
+#liveViewerVideo{display:block;width:100%;max-height:62vh;aspect-ratio:16/9;object-fit:contain;background:#000;border-radius:8px}
+.live-viewer-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px;font-size:12px}
+#liveViewerStatus{color:#ccc;overflow-wrap:anywhere}
+.live-feed-empty{padding:22px 14px;text-align:center;color:#aaa;background:#151515;border:1px dashed #444;border-radius:12px;font-size:13px}
+@media(min-width:650px){.live-room-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 
 <link rel="manifest" href="/manifest.json">
@@ -205,6 +223,15 @@ button{cursor:pointer}
 
 <main id="feed">
  <div id="loading" data-i18n="feed.loading">🌟 New Star videos are loading...</div>
+ <section id="liveRoomsPanel" hidden aria-live="polite">
+  <div class="live-feed-head"><h2>🔴 LIVE Now</h2><button id="refreshLiveRooms" type="button">Refresh</button></div>
+  <div id="liveViewerWrap" hidden>
+   <video id="liveViewerVideo" autoplay playsinline controls></video>
+   <div class="live-viewer-controls"><span id="liveViewerStatus">Connecting to LIVE…</span><button class="live-viewer-stop" id="stopLiveViewing" type="button">Stop viewing</button></div>
+  </div>
+  <div id="liveRoomsList" class="live-room-list"><div class="live-feed-empty">Loading LIVE rooms…</div></div>
+ </section>
+
  <div id="empty">
   <div>
    <h3 data-i18n="feed.emptyTitle">No videos available yet</h3>
@@ -309,6 +336,7 @@ const $ = id => document.getElementById(id);
 function feedText(key,fallback){const p=(()=>{try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}")}catch(_){return {}}})();return window.NewStarTranslations?.[p.language||"hi"]?.[key]||window.NewStarTranslations?.en?.[key]||fallback;}
 const db = window.supabaseClient || window.cloudClient || null;
 let currentUser=null,videos=[],filtered=[],currentIndex=0,currentCategory="For You",currentVideo=null;
+let activeLiveViewerPeer=null,activeLiveViewerSessionUrl=null,liveRoomsLoadVersion=0;
 let likedIds=new Set(),selectedGift=null,walletBalance=0,giftBusy=false,toastTimer,commentTargetVideoId=null;
 const aspectCache=new Map();
 
@@ -527,7 +555,138 @@ async function getFollowingIds(){
  return (data||[]).map(x=>String(x.following_id));
 }
 
+async function stopLiveViewer(){
+ const sessionUrl=activeLiveViewerSessionUrl;
+ const peer=activeLiveViewerPeer;
+ activeLiveViewerSessionUrl=null;
+ activeLiveViewerPeer=null;
+ if(sessionUrl){try{await fetch(sessionUrl,{method:"DELETE"});}catch(error){console.warn("WHEP session cleanup:",error);}}
+ if(peer)peer.close();
+ const player=$("liveViewerVideo");
+ if(player){player.pause();player.srcObject=null;}
+ $("liveViewerWrap").hidden=true;
+}
+function showLiveFeedMode(){
+ stopWatchSession();
+ const player=$("video");
+ player.pause();player.removeAttribute("src");player.load();player.style.display="none";
+ $("empty").style.display="none";
+ $("videoExpandClose").style.display="none";
+ $("playHint").style.display="none";
+ $("counter").style.display="none";
+ document.querySelector(".video-info").style.display="none";
+ document.querySelector(".actions").style.display="none";
+ $("liveRoomsPanel").hidden=false;
+}
+function restoreVideoFeedMode(){
+ $("liveRoomsPanel").hidden=true;
+ $("video").style.display="";
+ $("videoExpandClose").style.display="";
+ $("counter").style.display="";
+ document.querySelector(".video-info").style.display="";
+ document.querySelector(".actions").style.display="flex";
+}
+async function connectLiveViewer(room){
+ await stopLiveViewer();
+ const player=$("liveViewerVideo");
+ const status=$("liveViewerStatus");
+ $("liveViewerWrap").hidden=false;
+ status.textContent="Connecting to "+(room.room_title||"LIVE")+"…";
+ let peer=null;
+ try{
+  const endpoint=String(room.stream_playback_url||"");
+  if(!/^https:\/\//i.test(endpoint))throw new Error("This LIVE room has no valid playback address.");
+  if(!window.RTCPeerConnection)throw new Error("This browser does not support WebRTC playback.");
+  peer=new RTCPeerConnection();
+  activeLiveViewerPeer=peer;
+  const media=new MediaStream();
+  player.srcObject=media;
+  peer.addTransceiver("video",{direction:"recvonly"});
+  peer.addTransceiver("audio",{direction:"recvonly"});
+  peer.ontrack=event=>{
+   const tracks=event.streams?.[0]?.getTracks?.()||[event.track];
+   for(const track of tracks){if(!media.getTracks().some(existing=>existing.id===track.id))media.addTrack(track);}
+   player.play().catch(()=>{status.textContent="LIVE जुड़ गया है — आवाज़/वीडियो चलाने के लिए Play दबाएँ।";});
+  };
+  peer.onconnectionstatechange=()=>{
+   if(peer.connectionState==="connected")status.textContent="🔴 LIVE · "+(room.room_title||"New Star");
+   else if(peer.connectionState==="failed")status.textContent="Connection failed. Refresh and try again.";
+   else if(peer.connectionState==="disconnected")status.textContent="Connection interrupted…";
+  };
+  const offer=await peer.createOffer();
+  await peer.setLocalDescription(offer);
+  const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/sdp"},body:offer.sdp});
+  if(!response.ok)throw new Error("Cloudflare playback connection failed ("+response.status+").");
+  const answer=await response.text();
+  const location=response.headers.get("Location");
+  if(!answer||!location)throw new Error("Cloudflare returned an incomplete playback session.");
+  await peer.setRemoteDescription({type:"answer",sdp:answer});
+  activeLiveViewerSessionUrl=new URL(location,endpoint).toString();
+  status.textContent="Waiting for creator’s LIVE signal…";
+  await player.play().catch(()=>{});
+ }catch(error){
+  if(peer)peer.close();
+  if(activeLiveViewerPeer===peer)activeLiveViewerPeer=null;
+  const player=$("liveViewerVideo");player.srcObject=null;
+  status.textContent=error?.message||"Could not connect to this LIVE room.";
+ }
+}
+async function loadLiveRooms(){
+ showLiveFeedMode();
+ const version=++liveRoomsLoadVersion;
+ const list=$("liveRoomsList");
+ list.innerHTML='<div class="live-feed-empty">Loading LIVE rooms…</div>';
+ try{
+  const {data,error}=await db.from("live_rooms")
+   .select("id,creator_id,room_title,started_at,stream_playback_url")
+   .eq("is_live",true).eq("moderation_status","active")
+   .order("started_at",{ascending:false}).limit(30);
+  if(error)throw error;
+  if(version!==liveRoomsLoadVersion)return;
+  const keyword=$("search").value.trim().toLowerCase();
+  const rooms=(data||[]).filter(room=>
+   !keyword||String(room.room_title||"").toLowerCase().includes(keyword)||String(room.creator_id||"").toLowerCase().includes(keyword)
+  );
+  if(!rooms.length){
+   list.innerHTML='<div class="live-feed-empty">अभी कोई Creator LIVE नहीं है। Creator के LIVE होने पर stream यहाँ दिखाई देगी।</div>';
+   return;
+  }
+  let profilesByUser=new Map();
+  try{
+   const ids=[...new Set(rooms.map(room=>String(room.creator_id)).filter(Boolean))];
+   if(ids.length){
+    const {data:profiles}=await db.from("profiles").select("user_id,username,full_name").in("user_id",ids);
+    for(const profile of profiles||[])profilesByUser.set(String(profile.user_id),profile);
+   }
+  }catch(profileError){console.info("LIVE creator profile names unavailable:",profileError?.message);}
+  if(version!==liveRoomsLoadVersion)return;
+  list.replaceChildren();
+  for(const room of rooms){
+   const profile=profilesByUser.get(String(room.creator_id))||{};
+   const creator=profile.username||profile.full_name||"New Star Creator";
+   const card=document.createElement("article");card.className="live-room-card";
+   const copy=document.createElement("div");copy.className="live-room-copy";
+   const tag=document.createElement("span");tag.className="live-room-tag";tag.textContent="● LIVE";
+   const title=document.createElement("strong");title.textContent=room.room_title||"Live stream";
+   const owner=document.createElement("span");owner.textContent="@"+String(creator).replace(/^@/,"");
+   copy.append(tag,title,owner);
+   const watch=document.createElement("button");watch.type="button";watch.className="live-room-watch";watch.textContent="Watch";
+   watch.addEventListener("click",()=>connectLiveViewer(room));
+   card.append(copy,watch);list.append(card);
+  }
+ }catch(error){
+  if(version!==liveRoomsLoadVersion)return;
+  list.innerHTML="";
+  const message=document.createElement("div");message.className="live-feed-empty";
+  message.textContent="LIVE rooms load नहीं हुए: "+(error?.message||"Database permission या connection जाँचें।");
+  list.append(message);
+ }
+}
+
 async function applyFilters(){
+ if(currentCategory==="Live"){await loadLiveRooms();return;}
+ await stopLiveViewer();
+ if(!$('liveRoomsPanel').hidden)restoreVideoFeedMode();
  const keyword=$("search").value.trim().toLowerCase();
  let followingIds=[];
  if(currentCategory==="Following"||currentCategory==="Friends"){
@@ -1130,7 +1289,10 @@ $("shareBtn").addEventListener("click",shareVideo);
 $("nativeShare").addEventListener("click",shareVideo);
 $("copyShare").addEventListener("click",copyShareLink);
 $("downloadBtn").addEventListener("click",downloadCurrentVideo);
-$("reload").addEventListener("click",loadFeed);
+$("reload").addEventListener("click",()=>currentCategory==="Live"?loadLiveRooms():loadFeed());
+$("refreshLiveRooms").addEventListener("click",loadLiveRooms);
+$("stopLiveViewing").addEventListener("click",stopLiveViewer);
+window.addEventListener("pagehide",()=>{stopLiveViewer();});
 $("commentInput").addEventListener("keydown",event=>{
  if(event.key==="Enter"){event.preventDefault();postComment();}
 });
