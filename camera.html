@@ -753,7 +753,7 @@ async function publishVideo() {
   if (!selectedVideoFile.type.startsWith("video/")) throw new Error("सही Video File चुनें।");
   if (selectedVideoFile.size <= 0) throw new Error("Video File खाली है।");
   if (selectedVideoFile.size > CURRENT_VIDEO_BUCKET_LIMIT) {
-   throw new Error("यह वीडियो "+(selectedVideoFile.size/1073741824).toFixed(2)+" GB है, लेकिन मौजूदा Supabase videos bucket की सीमा 1 GB है। Storage plan/limit जाँचे बिना 4 GB फिल्म अपलोड नहीं होगी।");
+   throw new Error("यह वीडियो 5 GiB की वर्तमान New Star upload सीमा से बड़ा है।");
   }
 
   const mediaInfo=await readVideoMetadata(selectedVideoFile);
@@ -806,7 +806,7 @@ async function publishVideo() {
     metadata:{
      maxDurationSeconds:String(Math.ceil(mediaInfo.duration)),
      name:displayName,
-     filetype:selectedVideoFile.type || ("video/"+ext)
+     filetype:selectedVideoFile.type || "application/octet-stream"
     },
     onAfterResponse(_request,response){
      const receivedId=response.getHeader("stream-media-id");
