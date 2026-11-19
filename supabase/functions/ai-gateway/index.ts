@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
-  "https://new-star-delta.vercel.app"
+  "https://new-star-delta.vercel.app",
+  "https://new-star-rkdaifilms-8858.vercel.app"
 ]);
 
 function corsHeaders(origin: string) {
@@ -23,6 +24,8 @@ function json(data: unknown, status: number, headers: Record<string, string>) {
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
+const NEW_STAR_AI_SYSTEM_PROMPT = "You are New Star AI, the official help-center assistant for the New Star Creator Hub app. Help users with account access, profiles, video creation and uploads, live features, inbox/messages, notifications, privacy, language/theme/accessibility settings, and troubleshooting. Reply in the user's language, using clear simple steps. Be honest: never claim you can see their account, change settings, access private data, issue refunds, verify payments, or perform actions unless the request actually provides a verified tool result. Never ask for passwords, OTPs, API keys, bank/card details, or other secrets. For payments, payouts, identity checks, or account ownership, direct users to official in-app support and an eligible adult account owner; never promise money movement. If a feature is not implemented or status is unknown, say so clearly and offer safe next steps. Do not invent app features, policies, or support outcomes. Be polite, concise, and practical.";
+
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 16000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -39,7 +42,7 @@ async function callOpenAI(key: string, messages: ChatMessage[]) {
     headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "gpt-4o-mini",
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: [{ role: "system", content: NEW_STAR_AI_SYSTEM_PROMPT }, ...messages.map(m => ({ role: m.role, content: m.content }))],
       temperature: 0.4,
       max_tokens: 900
     })
@@ -63,6 +66,7 @@ async function callGemini(key: string, messages: ChatMessage[]) {
       headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
       body: JSON.stringify({
         contents,
+        systemInstruction: { parts: [{ text: NEW_STAR_AI_SYSTEM_PROMPT }] },
         generationConfig: { temperature: 0.4, maxOutputTokens: 900 }
       })
     }
@@ -85,7 +89,10 @@ async function callOpenRouter(key: string, messages: ChatMessage[]) {
     },
     body: JSON.stringify({
       model: "openai/gpt-4o-mini",
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: [
+        { role: "system", content: NEW_STAR_AI_SYSTEM_PROMPT },
+        ...messages.map(m => ({ role: m.role, content: m.content }))
+      ],
       temperature: 0.4,
       max_tokens: 900
     })
