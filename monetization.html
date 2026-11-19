@@ -156,7 +156,7 @@
                 </div>
 
                 <p style="margin-bottom: 6px; color: #25f4ee;"><b>📜 Official Eligibility & Quality Standards:</b></p>
-                <p style="margin-bottom: 4px;">• Original public content, verified identity, policy compliance and payout eligibility are reviewed. Payout setup is completed only when a supported merchant account is available.</p>
+                <p style="margin-bottom: 4px;">• Minimum: 5,000 genuine followers AND either (A) 1,000 eligible public long-video watch hours in the last 60 days OR (B) 300,000 eligible public Shorts views in the last 60 days. You need one video-performance route, not both. Original content, policy standing and quality are reviewed separately; payout setup requires a verified supported provider.</p>
                 
                 <!-- 📊 FOLLOWER REQUIREMENT -->
                 <div style="margin-top: 10px;">
@@ -320,7 +320,7 @@
                 alert(data?.already_pending?"आपका आवेदन पहले से Review में है।":"New Star Creator Review के लिए आवेदन भेज दिया गया है।");
                 await loadCreatorProgress();
             }catch(e){alert("आवेदन नहीं भेजा गया: "+(e.message||"कृपया दोबारा प्रयास करें।"));}
-            finally{if(btn)btn.disabled=false;}
+            finally{if(btn)btn.disabled=!creatorProgress?.eligible_for_review||creatorProgress?.application_status==="pending";}
         }
         function shareToSocialMedia(){
             const link=document.getElementById("referralLinkInput").value;
