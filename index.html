@@ -236,6 +236,7 @@ button{cursor:pointer}
   <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount">0</span><span data-i18n="action.comment">Comments</span></button>
   <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span data-i18n="action.gift">Gift</span></button>
   <button class="action" id="shareBtn"><div class="action-icon">↗️</div><span data-i18n="action.share">Share</span></button>
+  <button class="action" id="reportVideoBtn" type="button" aria-label="Report video"><div class="action-icon">⚑</div><span>Report</span></button>
   <button class="action" id="downloadBtn"><div class="action-icon">⬇️</div><span data-i18n="action.download">Download</span></button>
  </aside>
 </main>
@@ -247,6 +248,29 @@ button{cursor:pointer}
  <form id="commentComposer" class="comment-form" autocomplete="off" aria-label="Write a comment" data-i18n-aria-label="action.comment">
   <input id="commentInput" type="text" maxlength="1000" placeholder="Write a comment..." data-i18n-placeholder="feed.commentPlaceholder" aria-label="Comment लिखें">
   <button class="primary" id="postComment" type="submit">Send</button>
+ </form>
+</section>
+
+<section class="modal" id="reportVideoModal" aria-label="Report video">
+ <div class="modal-head"><h3>⚑ Report this video</h3><button class="close" data-close="reportVideoModal" type="button">×</button></div>
+ <form id="contentReportForm" style="display:grid;gap:12px;padding:16px">
+  <label for="contentReportReason">कारण चुनें</label>
+  <select id="contentReportReason" required>
+   <option value="copyright">Copyright / बिना अनुमति का Content</option>
+   <option value="harassment">Harassment / परेशान करना</option>
+   <option value="spam">Spam / बार-बार प्रचार</option>
+   <option value="scam">Scam / धोखाधड़ी</option>
+   <option value="nudity_or_sexual_content">अनुचित यौन सामग्री</option>
+   <option value="violence">हिंसक सामग्री</option>
+   <option value="dangerous_content">खतरनाक गतिविधि</option>
+   <option value="child_safety">Child Safety Concern</option>
+   <option value="privacy">Privacy Violation</option>
+   <option value="other">Other</option>
+  </select>
+  <label for="contentReportDetails">अतिरिक्त जानकारी (वैकल्पिक)</label>
+  <textarea id="contentReportDetails" maxlength="1200" rows="4" placeholder="समस्या के बारे में संक्षेप में लिखें"></textarea>
+  <p id="contentReportStatus" role="status" aria-live="polite"></p>
+  <button class="primary" id="submitContentReport" type="submit">Report भेजें</button>
  </form>
 </section>
 
@@ -722,6 +746,35 @@ async function toggleLike(){
 }
 
 /* FIX: Comment box opens first. Login is needed only to submit a comment. */
+async function submitCurrentVideoReport(event){
+ event.preventDefault();
+ if(!currentVideo){showToast("Report करने के लिए वीडियो उपलब्ध नहीं है।");return;}
+ const user=await getUser();
+ if(!user){location.href="auth.html?next=index.html";return;}
+ const button=$("submitContentReport"),status=$("contentReportStatus");
+ button.disabled=true;status.textContent="Report भेजा जा रहा है…";
+ try{
+  const {error}=await db.from("content_reports").insert({
+   reporter_id:user.id,target_type:"video",target_id:String(currentVideo.id),
+   reason:$("contentReportReason").value,
+   details:$("contentReportDetails").value.trim()||null
+  });
+  if(error)throw error;
+  status.textContent="आपकी Report मिल गई है। Moderation Team इसकी समीक्षा करेगी।";
+  $("contentReportDetails").value="";
+  setTimeout(()=>closeModal("reportVideoModal"),1200);
+ }catch(error){
+  console.error("Content report:",error);
+  status.textContent="Report जमा नहीं हुई। कृपया फिर कोशिश करें।";
+ }finally{button.disabled=false;}
+}
+$("reportVideoBtn").addEventListener("click",()=>{
+ if(!currentVideo){showToast("अभी कोई वीडियो खुला नहीं है।");return;}
+ $("contentReportStatus").textContent="";
+ openModal("reportVideoModal");
+});
+$("contentReportForm").addEventListener("submit",submitCurrentVideoReport);
+
 async function openComments(){
  if(!currentVideo){
   showToast("पहले कोई वीडियो खुलने दें।");
