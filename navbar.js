@@ -235,6 +235,7 @@
     overlay.innerHTML = `
       <div id="newstar-menu-panel">
         <a href="camera.html" data-i18n="page.camera">📷 Camera / Create / Upload</a>
+        <a href="creator-ai.html">✨ Creator AI Studio</a>
         <a href="profile.html" data-i18n="nav.profile">👤 My Profile</a>
         <a href="settings.html" data-i18n="settings.title">⚙️ Main Settings</a>
         <a href="admin.html" id="newstar-owner-dashboard-link" hidden>🛡️ Developer / Owner Dashboard</a>
