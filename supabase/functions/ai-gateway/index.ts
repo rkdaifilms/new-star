@@ -92,7 +92,7 @@ async function callGemini(key: string, messages: ChatMessage[]) {
     }
   );
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`HTTP_${response.status}`);
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
   const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
   if (typeof text !== "string" || !text.trim()) throw new Error("EMPTY_RESPONSE");
   return text;
@@ -118,7 +118,7 @@ async function callOpenRouter(key: string, messages: ChatMessage[]) {
     })
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`HTTP_${response.status}`);
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
   const text = data?.choices?.[0]?.message?.content;
   if (typeof text !== "string" || !text.trim()) throw new Error("EMPTY_RESPONSE");
   return text;
