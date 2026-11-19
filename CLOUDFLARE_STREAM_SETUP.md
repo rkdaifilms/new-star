@@ -3,10 +3,13 @@
 ## Current rollout state
 
 - The Cloudflare TUS proxy source lives at `supabase/functions/cloudflare-tus-proxy/index.ts`.
-- `cloudflare-tus-proxy` is deployed as Supabase Edge Function version 1 with JWT verification enabled. It returns HTTP 503 until both Cloudflare secrets are configured.
-- `video-url` is deployed as version 6. It checks Cloudflare processing status, marks ready videos as published, and returns short-lived signed HLS playback URLs.
+- `cloudflare-tus-proxy` is deployed as Supabase Edge Function version 4 with JWT verification enabled. It returns HTTP 503 until both Cloudflare secrets are configured.
+- `video-url` is deployed as Supabase Edge Function version 11. It checks Cloudflare processing status, marks ready videos as published, and returns short-lived signed HLS playback URLs.
+- `cloudflare-live` is deployed as Supabase Edge Function version 1 with JWT verification enabled. It creates/reuses an authenticated creator's Cloudflare Live Input, stores room metadata, and returns the private WHIP broadcast URL only to that creator.
 - `camera.html` now sends uploads through the TUS proxy and saves Cloudflare provider metadata. The client-side target cap is 5 GiB and duration cap is 3 hours; real uploads are not verified until secrets/account capacity are configured.
 - `index.html` and `profile.html` load HLS.js for adaptive playback and retain the old Supabase Storage path.
+- `live.html` now connects the creator camera/microphone to Cloudflare Stream using browser-native WebRTC/WHIP, and marks the `live_rooms` row active only after the WHIP handshake succeeds. It closes the WHIP session and stops local media when the creator ends the broadcast.
+- Viewer-side WHEP playback is not yet wired into the Live feed. The current `index.html` Live category intentionally filters out ordinary videos and does not yet query `live_rooms`; do not advertise end-to-end viewer playback as complete.
 - Existing Supabase Storage videos remain supported during migration.
 - Do not put Cloudflare API tokens or signing keys in browser code, GitHub, or chat.
 
@@ -41,6 +44,7 @@ Use a TUS chunk size of at least 5 MiB. Cloudflare requires TUS for files over 2
 3. The proxy is already deployed with JWT verification enabled; after adding secrets, confirm it no longer returns the configuration 503.
 4. `camera.html` is updated to request a TUS upload session through the proxy, upload directly to Cloudflare, and save the returned Stream UID/provider metadata in the existing `videos` row with `processing_status=processing`.
 5. Server-side playback-token creation and processing-state checks are implemented in `video-url`. Never expose the Cloudflare API token or signing key to the browser.
+6. Live broadcast uses `cloudflare-live` to create a Live Input and browser-native WHIP. The WHIP URL is a stream credential and must only be returned to the authenticated creator. The WHEP playback URL is stored with the room for viewer integration.
 6. Feed and profile HLS.js playback support is implemented while preserving the existing Supabase Storage path for older videos.
 7. Test with a small owned/licensed video first, then a 200+ MB file, interrupted/resumed upload, processing completion, playback permissions, and deletion.
 8. Only after successful end-to-end tests should the UI advertise the 5 GiB limit.
