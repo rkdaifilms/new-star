@@ -84,7 +84,7 @@ async function callOpenRouter(key: string, messages: ChatMessage[]) {
     headers: {
       "Authorization": `Bearer ${key}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://new-star-nepal.netlify.app",
+      "HTTP-Referer": "https://new-star-delta.vercel.app",
       "X-Title": "New Star Creator Hub"
     },
     body: JSON.stringify({
