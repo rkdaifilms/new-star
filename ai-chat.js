@@ -80,7 +80,7 @@ panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
  const pending=add("जवाब तैयार हो रहा है…","bot");
  try{
   const requestMessages=[...history.slice(-8),{role:"user",content:text}];
-  const {data:result,error:invokeError}=await db.functions.invoke("ai-gateway",{body:{messages:requestMessages}});
+  const {data:result,error:invokeError}=await db.functions.invoke("ai-gateway",{body:{messages:requestMessages,mode:"help"}});
   if(invokeError){let message=invokeError.message||"AI Gateway request failed";try{const response=invokeError.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();if(payload?.error)message=payload.error;}}catch(_){}throw new Error(message);}
   if(!result?.ok||typeof result.answer!=="string"){const attempted=Array.isArray(result?.attempted)&&result.attempted.length?" (Provider check: "+result.attempted.join(", ")+")":"";throw new Error((result?.error||"AI सेवा अभी उपलब्ध नहीं है।")+attempted);}
   pending.textContent=result.answer;
