@@ -198,11 +198,10 @@ Deno.serve(async (req: Request) => {
       target_id: applicationId,
       details: { creator_id: application.creator_id, status: nextStatus, review_note: reviewNote || null }
     });
-    if (auditError) {
-      console.error("Creator monetization audit log failed:", auditError.message);
-      return fail("Review saved but audit logging failed; contact support before taking further action", 500);
-    }
-    return new Response(JSON.stringify({ ok: true, application: reviewed }), { headers: cors });
+    if (auditError) console.error("Creator monetization audit log failed:", auditError.message);
+    return new Response(JSON.stringify({
+      ok: true, application: reviewed, audit_logged: !auditError
+    }), { headers: cors });
   }
 
   if (body.action === "review_content_report") {
