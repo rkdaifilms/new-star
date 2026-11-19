@@ -69,7 +69,12 @@ panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
   pending.textContent=result.answer;
   history.push({role:"user",content:text},{role:"assistant",content:result.answer});
   if(history.length>10)history.splice(0,history.length-10);
- }catch(err){pending.textContent=err?.message||"AI सेवा अभी उपलब्ध नहीं है। Provider setup और connection जाँचें।";}
+ }catch(err){
+  let detail=err?.message||"AI सेवा अभी उपलब्ध नहीं है।";
+  try{const response=err?.context;if(response&&typeof response.json==="function"){const payload=await response.clone().json();if(payload?.error)detail=payload.error;}}
+  catch(_){}
+  pending.textContent=detail+" कृपया थोड़ी देर बाद फिर कोशिश करें।";
+ }
  finally{send.disabled=false;send.textContent="Send";input.focus();}
 });
 })();
