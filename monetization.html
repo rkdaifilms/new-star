@@ -158,21 +158,32 @@
                 <p style="margin-bottom: 6px; color: #25f4ee;"><b>📜 Official Eligibility & Quality Standards:</b></p>
                 <p style="margin-bottom: 4px;">• Original public content, verified identity, policy compliance and payout eligibility are reviewed. Payout setup is completed only when a supported merchant account is available.</p>
                 
-                <!-- 📊 FOLLOWER PROGRESS BAR -->
+                <!-- 📊 FOLLOWER REQUIREMENT -->
                 <div style="margin-top: 10px;">
                     <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
-                        <span>⏱️ Public long-video watch time (last 60 days): <b id="followerProgressText">0 / 2,000 hours</b></span>
-                        <span id="followerPercentText" style="color: #ffcc00;">0%</span>
+                        <span>👥 Genuine followers (all time): <b id="followersProgressText">0 / 5,000</b></span>
+                        <span id="followersPercentText" style="color: #ffcc00;">0%</span>
                     </div>
                     <div class="progress-container">
-                        <div class="progress-fill" id="followerProgressBar"></div>
+                        <div class="progress-fill" id="followersProgressBar"></div>
                     </div>
                 </div>
 
-                <!-- 📊 VIEWS PROGRESS BAR -->
+                <!-- 📊 LONG VIDEO WATCH TIME -->
                 <div style="margin-top: 8px;">
                     <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
-                        <span>⚡ Qualified Shorts views (last 30 days): <b id="viewsProgressText">0 / 2,00,000</b></span>
+                        <span>⏱️ Public long-video watch time (last 60 days): <b id="watchHoursProgressText">0 / 1,000 hours</b></span>
+                        <span id="watchHoursPercentText" style="color: #ffcc00;">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-fill" id="watchHoursProgressBar"></div>
+                    </div>
+                </div>
+
+                <!-- 📊 SHORTS VIEWS -->
+                <div style="margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                        <span>⚡ Qualified Shorts views (last 60 days): <b id="viewsProgressText">0 / 3,00,000</b></span>
                         <span id="viewsPercentText" style="color: #ffcc00;">0%</span>
                     </div>
                     <div class="progress-container">
@@ -262,14 +273,20 @@
             if(error){console.error("Creator progress:",error);if(status)status.textContent="Unable to load";if(banner)banner.textContent="Progress could not be verified. Please retry.";return;}
             creatorProgress=data||{};
             const hours=Number(creatorProgress.watch_hours_60d||0);
-            const shorts=Number(creatorProgress.short_views_30d||0);
-            document.getElementById("followerProgressText").textContent=fmt(hours)+" / 2,000 hours";
-            document.getElementById("viewsProgressText").textContent=fmt(shorts)+" / 2,00,000";
-            const hp=Math.min(100,Math.floor(hours/2000*100)),sp=Math.min(100,Math.floor(shorts/200000*100));
-            document.getElementById("followerPercentText").textContent=hp+"%";
+            const shorts=Number(creatorProgress.short_views_60d ?? creatorProgress.short_views_30d ?? 0);
+            const followers=Number(creatorProgress.follower_count||0);
+            document.getElementById("followersProgressText").textContent=fmt(followers)+" / 5,000";
+            document.getElementById("watchHoursProgressText").textContent=fmt(hours)+" / 1,000 hours";
+            document.getElementById("viewsProgressText").textContent=fmt(shorts)+" / 3,00,000";
+            const fp=Math.min(100,Math.floor(followers/5000*100));
+            const hp=Math.min(100,Math.floor(hours/1000*100));
+            const sp=Math.min(100,Math.floor(shorts/300000*100));
+            document.getElementById("followersPercentText").textContent=fp+"%";
+            document.getElementById("watchHoursPercentText").textContent=hp+"%";
             document.getElementById("viewsPercentText").textContent=sp+"%";
-            setProgressBar("followerProgressBar",hours,2000);
-            setProgressBar("viewsProgressBar",shorts,200000);
+            setProgressBar("followersProgressBar",followers,5000);
+            setProgressBar("watchHoursProgressBar",hours,1000);
+            setProgressBar("viewsProgressBar",shorts,300000);
             const eligible=!!creatorProgress.eligible_for_review;
             if(status)status.textContent=creatorProgress.application_status==="pending"?"Review pending":eligible?"Eligible for quality review":"Building audience";
             if(banner)banner.textContent=creatorProgress.application_status==="pending"?"Your application is waiting for review":eligible?"Threshold reached — quality and policy review required":"Keep publishing original public videos and build genuine audience activity";
