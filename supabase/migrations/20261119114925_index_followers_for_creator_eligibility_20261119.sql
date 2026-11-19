@@ -1,0 +1,1 @@
+create index if not exists followers_following_follower_idx on public.followers (following_id, follower_id);
