@@ -11,10 +11,17 @@ const style=document.createElement("style");style.textContent=`
 #ns-ai-form{display:flex;gap:7px;padding:10px;border-top:1px solid #393941}#ns-ai-input{flex:1;min-width:0;background:#09090d;color:#fff;border:1px solid #555;border-radius:9px;padding:11px}
 #ns-ai-send{border:0;border-radius:9px;background:#fe2c55;color:#fff;padding:0 14px;font-weight:700}#ns-ai-mic{border:1px solid #666;border-radius:9px;background:#303039;color:#fff;padding:0 12px;font-size:18px}#ns-ai-mic[aria-pressed="true"]{background:#b4233c;border-color:#ff7890}#ns-ai-voice-status{font-size:11px;color:#ffc2ce;padding:0 12px 7px;min-height:14px}#ns-ai-note{font-size:11px;color:#aaa;padding:0 12px 9px}
 `;document.head.appendChild(style);
+const onHomeFeed=/\/index\.html?$/.test(location.pathname)||location.pathname==="/"||location.pathname.endsWith("/");
+if(onHomeFeed){
+ style.textContent += `
+ #ns-ai-launch{position:relative;left:auto;right:auto;top:auto;bottom:auto;display:block;margin:8px 0 0 auto;padding:8px 13px;font-size:13px;z-index:25}
+ #ns-ai-panel{top:150px;bottom:calc(82px + env(safe-area-inset-bottom));right:10px;left:10px;width:auto;height:auto;max-height:calc(100dvh - 245px)}
+ `;
+}
 const launch=document.createElement("button");launch.id="ns-ai-launch";launch.type="button";launch.textContent="✦ New Star AI";
 const panel=document.createElement("section");panel.id="ns-ai-panel";panel.setAttribute("aria-label","New Star AI Help Center");
 panel.innerHTML='<div id="ns-ai-head"><strong>New Star AI · Help Center</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-provider-status" role="status" aria-live="polite">AI सेवाओं की स्थिति जाँची जा रही है…</div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! मैं New Star AI Help Center हूँ। अकाउंट, प्रोफाइल, वीडियो अपलोड, लाइव, मैसेज, नोटिफिकेशन, सेटिंग्स या ऐप की किसी समस्या में मदद चाहिए तो बताइए।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><div id="ns-ai-voice-status" role="status" aria-live="polite"></div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="New Star के बारे में पूछें…" required><button id="ns-ai-mic" type="button" aria-label="Start voice input" aria-pressed="false" title="Speak your message">🎙️</button><button id="ns-ai-send" type="submit">Send</button></form>';
-document.body.append(launch,panel);
+if(onHomeFeed){const host=document.querySelector(".top-area");if(host)host.append(launch);else document.body.append(launch);}else{document.body.append(launch);}document.body.append(panel);
 const log=panel.querySelector("#ns-ai-log"),input=panel.querySelector("#ns-ai-input"),send=panel.querySelector("#ns-ai-send"),providerStatus=panel.querySelector("#ns-ai-provider-status");
 const mic=panel.querySelector("#ns-ai-mic"),voiceStatus=panel.querySelector("#ns-ai-voice-status");
 const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
