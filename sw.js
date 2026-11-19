@@ -16,6 +16,8 @@ const APP_SHELL = [
   "/admin.html",
   "/navbar.js",
   "/ai-chat.js",
+  "/creator-ai.html",
+  "/creator-ai.js",
   "/preferences.js",
   "/i18n.js",
   "/supabase-config.js",
