@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
   if (action === "stop") {
     if (!body.room_id) return json({ error: "Room ID is required." }, 400, headers);
     const { data, error } = await admin.from("live_rooms").update({
-      is_live: false, ended_at: new Date().toISOString(), recording_status: "processing",
+      is_live: false, ended_at: new Date().toISOString(), recording_status: "not_supported",
     }).eq("id", body.room_id).eq("creator_id", creatorId).select("id").maybeSingle();
     if (error) return json({ error: "Could not end the live room." }, 500, headers);
     if (!data) return json({ error: "Live room not found." }, 404, headers);
@@ -63,7 +63,7 @@ Deno.serve(async (req: Request) => {
   if (action === "confirm") {
     if (!body.room_id) return json({ error: "Room ID is required." }, 400, headers);
     const { data, error } = await admin.from("live_rooms").update({
-      is_live: true, started_at: new Date().toISOString(), ended_at: null, recording_status: "recording",
+      is_live: true, started_at: new Date().toISOString(), ended_at: null, recording_status: "not_supported",
     }).eq("id", body.room_id).eq("creator_id", creatorId).select("id").maybeSingle();
     if (error) return json({ error: "Could not mark the live room active." }, 500, headers);
     if (!data) return json({ error: "Live room not found." }, 404, headers);
@@ -105,7 +105,6 @@ Deno.serve(async (req: Request) => {
           enabled: true,
           defaultCreator: creatorId,
           meta: { app: "New Star", creatorId, roomTitle: title },
-          recording: { mode: "automatic", requireSignedURLs: false, hideLiveViewerCount: false },
         }),
       });
     } catch (e) {
@@ -133,7 +132,7 @@ Deno.serve(async (req: Request) => {
     stream_provider: "cloudflare",
     stream_room_name: input.uid,
     stream_playback_url: whepUrl,
-    recording_status: "starting",
+    recording_status: "not_supported",
     started_at: null,
     ended_at: null,
     stream_mode: "camera",
