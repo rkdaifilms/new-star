@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
   const uploadMetadata = req.headers.get("Upload-Metadata") || "";
 
   if (tusVersion !== "1.0.0") return json({ error: "Unsupported resumable upload protocol." }, 400, cors);
-  if (!uploadLengthHeader || !/^\\d+$/.test(uploadLengthHeader)) return json({ error: "Upload-Length is required." }, 400, cors);
+  if (!uploadLengthHeader || !/^\d+$/.test(uploadLengthHeader)) return json({ error: "Upload-Length is required." }, 400, cors);
 
   const uploadLength = Number(uploadLengthHeader);
   if (!Number.isSafeInteger(uploadLength) || uploadLength <= 0 || uploadLength > MAX_FILE_BYTES) {
@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
 
   const metadata = new Map<string, string>();
   for (const part of uploadMetadata.split(",")) {
-    const [key, value = ""] = part.trim().split(/\\s+/, 2);
+    const [key, value = ""] = part.trim().split(/\s+/, 2);
     if (key) metadata.set(key, value);
   }
 
