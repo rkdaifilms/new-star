@@ -31,7 +31,7 @@ if(onHomeFeed){
 }
 const launch=document.createElement("button");launch.id="ns-ai-launch";launch.type="button";launch.textContent="✦ New Star AI";
 const panel=document.createElement("section");panel.id="ns-ai-panel";panel.setAttribute("aria-label","New Star AI Help Center");
-panel.innerHTML='<div id="ns-ai-head"><strong>New Star AI · Assistant</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-provider-status" role="status" aria-live="polite">AI सेवाओं की स्थिति जाँची जा रही है…</div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! मैं New Star AI हूँ। आप मुझसे सामान्य ज्ञान, पढ़ाई, विज्ञान, तकनीक, लेखन और रोज़मर्रा के सवाल पूछ सकते हैं। New Star के अकाउंट, वीडियो, अपलोड, लाइव, मैसेज और सुरक्षा में भी मदद कर सकता हूँ।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><div id="ns-ai-voice-status" role="status" aria-live="polite"></div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="कुछ भी पूछें…" required><button id="ns-ai-mic" type="button" aria-label="Start voice input" aria-pressed="false" title="Speak your message">🎙️</button><button id="ns-ai-send" type="submit">Send</button></form>';
+panel.innerHTML='<div id="ns-ai-head"><strong>New Star AI · Assistant</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-provider-status" role="status" aria-live="polite">AI सर्वर की स्थिति जाँची जा रही है…</div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! मैं New Star Help Center AI हूँ। मैं New Star अकाउंट, लॉगिन, प्रोफ़ाइल, वीडियो अपलोड/प्लेबैक, लाइव, मैसेज, सेटिंग्स, रिपोर्ट, सुरक्षा और अपील से जुड़ी सहायता कर सकता हूँ। रचनात्मक लेखन, कहानी, स्क्रिप्ट, थंबनेल, इमेज और कोडिंग के लिए Creator Studio AI खोलें।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><div id="ns-ai-voice-status" role="status" aria-live="polite"></div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="कुछ भी पूछें…" required><button id="ns-ai-mic" type="button" aria-label="Start voice input" aria-pressed="false" title="Speak your message">🎙️</button><button id="ns-ai-send" type="submit">Send</button></form>';
 if(onHomeFeed){const host=document.querySelector(".top-area");if(host){host.append(launch,panel);}else{document.body.append(launch,panel);}}else{document.body.append(launch,panel);}
 const log=panel.querySelector("#ns-ai-log"),input=panel.querySelector("#ns-ai-input"),send=panel.querySelector("#ns-ai-send"),providerStatus=panel.querySelector("#ns-ai-provider-status");
 const mic=panel.querySelector("#ns-ai-mic"),voiceStatus=panel.querySelector("#ns-ai-voice-status");
@@ -46,7 +46,7 @@ else{
  recognition.onend=()=>{recording=false;mic.setAttribute("aria-pressed","false");mic.setAttribute("aria-label","Start voice input");mic.textContent="🎙️";if(!voiceCaptureLocked&&input.value.trim())voiceStatus.textContent="आवाज़ टेक्स्ट में बदल गई। भेजने से पहले जाँचें, फिर Send दबाएँ।"};
  mic.addEventListener("click",()=>{if(recording){recognition.stop();return;}if(!window.isSecureContext){voiceStatus.textContent="Microphone के लिए HTTPS page ज़रूरी है।";return;}voiceCaptureLocked=false;voiceBase=input.value.trim();try{recognition.start();}catch(e){voiceStatus.textContent="Mic शुरू नहीं हुआ। थोड़ी देर बाद फिर कोशिश करें।";}});
 }
-const history=[];
+const chatHistory=[];
 function add(text,who){const el=document.createElement("div");el.className="ns-ai-msg "+(who==="user"?"ns-ai-user":"ns-ai-bot");el.textContent=text;log.appendChild(el);log.scrollTop=log.scrollHeight;return el;}
 let statusCheckedAt=0;
 async function checkProviderStatus(force=false){
@@ -61,11 +61,11 @@ async function checkProviderStatus(force=false){
   if(error||!data?.ok)throw error||new Error(data?.error||"Status unavailable");
   const names=[["openai","OpenAI"],["gemini","Gemini"],["openrouter","OpenRouter"]];
   const ready=names.filter(([key])=>data.providers?.[key]).map(([,label])=>label);
-  providerStatus.textContent=ready.length?"AI Provider उपलब्ध: "+ready.join(" · ")+" · संदेश भेजकर Live Response जाँचें।":"AI अभी चालू नहीं है: Server पर OpenAI, Gemini या OpenRouter की API Key नहीं मिली। अधिकृत Owner Supabase → Edge Functions → Secrets में Provider Key सेट करे।";
+  providerStatus.textContent=ready.length?"Server पर configured AI keys: "+ready.join(" · ")+" · यह केवल key की मौजूदगी बताता है, provider की live validity नहीं।":"AI अभी चालू नहीं है: Server पर OpenAI, Gemini या OpenRouter की API Key नहीं मिली। अधिकृत Owner Supabase → Edge Functions → Secrets में Provider Key सेट करे।";
  }catch(error){providerStatus.textContent="AI status जाँच नहीं हो सकी। Login और network connection जाँचें।";}
 }
 let aiHistoryEntry=false;const previousBodyOverflow=document.body.style.overflow;
-function openAiPanel(){if(panel.classList.contains("open"))return;panel.classList.add("open");document.body.style.overflow="hidden";if(!aiHistoryEntry){try{history.pushState({...(window.history.state||{}),nsAiOpen:true},"","#new-star-ai");aiHistoryEntry=true;}catch(_){}}checkProviderStatus();}
+function openAiPanel(){if(panel.classList.contains("open"))return;panel.classList.add("open");document.body.style.overflow="hidden";if(!aiHistoryEntry){try{window.history.pushState({...(window.history.state||{}),nsAiOpen:true},"","#new-star-ai");aiHistoryEntry=true;}catch(_){}}checkProviderStatus();}
 function closeAiPanel(fromPop=false){if(!panel.classList.contains("open"))return;panel.classList.remove("open");document.body.style.overflow=previousBodyOverflow;if(recording&&recognition){voiceCaptureLocked=true;try{recognition.stop();}catch(_){}}if(aiHistoryEntry){aiHistoryEntry=false;if(!fromPop&&window.history.state?.nsAiOpen){try{window.history.back();}catch(_){}}}}
 launch.addEventListener("click",openAiPanel);panel.querySelector("#ns-ai-close").addEventListener("click",()=>closeAiPanel(false));
 window.addEventListener("popstate",()=>{if(panel.classList.contains("open"))closeAiPanel(true);});
@@ -79,13 +79,13 @@ panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
  add(text,"user");send.disabled=true;mic.disabled=true;send.textContent="…";
  const pending=add("जवाब तैयार हो रहा है…","bot");
  try{
-  const requestMessages=[...history.slice(-8),{role:"user",content:text}];
+  const requestMessages=[...chatHistory.slice(-8),{role:"user",content:text}];
   const {data:result,error:invokeError}=await db.functions.invoke("ai-gateway",{body:{messages:requestMessages,mode:"help"}});
   if(invokeError){let message=invokeError.message||"AI Gateway request failed";try{const response=invokeError.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();if(payload?.error)message=payload.error;}}catch(_){}throw new Error(message);}
   if(!result?.ok||typeof result.answer!=="string"){const attempted=Array.isArray(result?.attempted)&&result.attempted.length?" (Provider check: "+result.attempted.join(", ")+")":"";throw new Error((result?.error||"AI सेवा अभी उपलब्ध नहीं है।")+attempted);}
   pending.textContent=result.answer;
-  history.push({role:"user",content:text},{role:"assistant",content:result.answer});
-  if(history.length>10)history.splice(0,history.length-10);
+  chatHistory.push({role:"user",content:text},{role:"assistant",content:result.answer});
+  if(chatHistory.length>10)chatHistory.splice(0,chatHistory.length-10);
  }catch(err){
   let detail=err?.message||"AI सेवा अभी उपलब्ध नहीं है।";
   try{const response=err?.context;if(response&&typeof response.json==="function"){const payload=await response.clone().json();if(payload?.error)detail=payload.error;}}
