@@ -127,6 +127,10 @@ Deno.serve(async (req: Request) => {
     await admin.schema("private").from("admin_audit_logs").insert({
       actor_id: user.id, action: "admin_dashboard_view", target_type: "dashboard", details: { role: adminRole.role }
     });
+    const { data: contentReports, error: reportReadError } = await admin.from("content_reports")
+      .select("id,reporter_id,target_type,target_id,reason,details,status,created_at")
+      .order("created_at", { ascending: false }).limit(100);
+    if (reportReadError) console.error("Content report list unavailable:", reportReadError.message);
     const { data: packageRows } = await admin.from("coin_packages").select("id,code,coins,bonus_coins,amount_minor,currency,country_code,channel,active,created_at").order("created_at", { ascending: false }).limit(200);
     const { data: settingsRow } = await admin.schema("private").from("monetization_settings").select("setting_value").eq("setting_key","provider_config").maybeSingle();
     const cfg = settingsRow?.setting_value ?? {};
@@ -145,7 +149,7 @@ Deno.serve(async (req: Request) => {
         shorts_views_window_days: 60,
         eligibility_logic: "5,000 genuine followers AND (1,000 eligible public long-video watch hours in 60 days OR 300,000 qualified public Shorts views in 60 days)"
       },
-      withdrawals: withdrawals ?? [], coin_packages: packageRows ?? [], monetization: cfg,
+      withdrawals: withdrawals ?? [], content_reports: contentReports ?? [], coin_packages: packageRows ?? [], monetization: cfg,
       payout_provider: payoutProvider ?? { provider: "payoneer", enabled: false, onboarding_status: "not_connected" },
       payout_routes: (payoutRoutes ?? []).map((route: any) => ({ ...route, country_name: (countryRows ?? []).find((c: any) => c.iso2 === route.country_code)?.country_name ?? route.country_code })), generated_at: new Date().toISOString()
     }), { headers: cors });
@@ -154,6 +158,25 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return fail("Method not allowed", 405);
   let body: any;
   try { body = await req.json(); } catch { return fail("Invalid JSON"); }
+
+  if (body.action === "review_content_report") {
+    const { data: adminRole, error: roleError } = await admin.schema("private").from("admin_users")
+      .select("role").eq("user_id", user.id).maybeSingle();
+    if (roleError || !adminRole || adminRole.role !== "owner") return fail("Developer owner access only", 403);
+    const reportId = String(body.report_id || "");
+    const nextStatus = String(body.status || "");
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(reportId) ||
+        !["reviewing", "actioned", "dismissed"].includes(nextStatus)) return fail("Invalid report review request");
+    const { data: report, error } = await admin.from("content_reports").update({
+      status: nextStatus, reviewed_by: user.id, reviewed_at: new Date().toISOString()
+    }).eq("id", reportId).select("id,status,target_type,target_id").single();
+    if (error) return fail("Could not update content report", 500);
+    await admin.schema("private").from("admin_audit_logs").insert({
+      actor_id: user.id, action: "content_report_reviewed", target_type: report.target_type,
+      target_id: report.target_id, details: { report_id: report.id, status: nextStatus }
+    });
+    return new Response(JSON.stringify({ ok: true, report }), { headers: cors });
+  }
 
   if (body.action === "claim_owner") {
     const verifiedEmail = String(user.email || "").trim().toLowerCase();
