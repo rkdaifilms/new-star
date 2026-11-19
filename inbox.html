@@ -189,18 +189,26 @@ function setFollowButtonState(button,state){
  else{button.removeAttribute("data-i18n");button.textContent="Unavailable";}
 }
 async function boot(){
- if(!db){setStatus("Supabase SDK/config लोड नहीं हुआ। इंटरनेट और supabase-config.js जाँचें।");$("tabMessages").textContent="Inbox कनेक्शन उपलब्ध नहीं है। पेज Reload करें।";return;}
- const {data:{user},error}=await db.auth.getUser();
- if(error||!user){setStatus("Login session नहीं मिली। Login पेज खोला जा रहा है…");location.href="auth.html?next=inbox.html";return;}me=user;
- const {data:mine}=await db.from("profiles").select("username,full_name,avatar_url").eq("user_id",me.id).maybeSingle();
+ if(!db?.auth){setStatus("Supabase SDK/config लोड नहीं हुआ। इंटरनेट और supabase-config.js जाँचें।");$("tabMessages").textContent="Inbox कनेक्शन उपलब्ध नहीं है। पेज Reload करें।";return;}
+ setStatus("आपका Login session जाँचा जा रहा है…");
+ const {data,error}=await db.auth.getUser();
+ if(error)throw new Error("Login session जाँच विफल: "+error.message);
+ const user=data?.user;
+ if(!user){setStatus("Login session नहीं मिली। Login पेज खोला जा रहा है…");location.href="auth.html?next=inbox.html";return;}
+ me=user;
+ setStatus("आपकी Profile लोड हो रही है…");
+ const {data:mine,error:profileError}=await db.from("profiles").select("username,full_name,avatar_url").eq("user_id",me.id).maybeSingle();
+ if(profileError)console.warn("Inbox profile:",profileError.message);
  $("inboxUserName").textContent=nameOf(mine);$("inboxUserPic").src=avatarOf(mine);
- $("tabFollowers").innerHTML='<p class="muted">Follower list will appear here when the follow tables are connected.</p>';
- $("tabFollowing").innerHTML='<p class="muted">Following list will appear here when the follow tables are connected.</p>';
- await Promise.all([loadThreads(),loadFollowRequests(),loadFollowerLists()]);
+ setStatus("Messages और Follow Requests लोड हो रहे हैं…");
+ const results=await Promise.allSettled([loadThreads(),loadFollowRequests(),loadFollowerLists()]);
+ const failed=results.filter(x=>x.status==="rejected");
+ if(failed.length)console.error("Inbox sections failed:",failed.map(x=>x.reason?.message||x.reason));
  db.channel("newstar-inbox-"+me.id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"recipient_id=eq."+me.id},async payload=>{
    if(activeConversation===payload.new.conversation_id) await loadConversation();
    await loadThreads();
  }).subscribe();
+ setStatus(failed.length?"Inbox खुला है, लेकिन कुछ sections लोड नहीं हुए।":"Inbox तैयार है।");
 }
 async function loadFollowerLists(){
  if(!me)return;
