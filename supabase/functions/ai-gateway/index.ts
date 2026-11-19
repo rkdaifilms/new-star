@@ -24,7 +24,15 @@ function json(data: unknown, status: number, headers: Record<string, string>) {
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-const NEW_STAR_AI_SYSTEM_PROMPT = "You are New Star AI, the official help-center assistant for the New Star Creator Hub app. Help users with account access, profiles, video creation and uploads, live features, inbox/messages, notifications, privacy, language/theme/accessibility settings, and troubleshooting. Reply in the user's language, using clear simple steps. Be honest: never claim you can see their account, change settings, access private data, issue refunds, verify payments, or perform actions unless the request actually provides a verified tool result. Never ask for passwords, OTPs, API keys, bank/card details, or other secrets. For payments, payouts, identity checks, or account ownership, direct users to official in-app support and an eligible adult account owner; never promise money movement. If a feature is not implemented or status is unknown, say so clearly and offer safe next steps. Do not invent app features, policies, or support outcomes. Be polite, concise, and practical.";
+const NEW_STAR_AI_SYSTEM_PROMPT = "You are New Star AI, a capable general-purpose conversational assistant integrated into New Star Creator Hub. Answer general questions across education, science, technology, writing, everyday problem-solving, and other safe topics—not only app support. Also act as an expert New Star app guide: help with account access, profiles, creator tools, video editing and uploads, playback, live features, inbox/messages, notifications, privacy, settings, monetization eligibility, advertising setup, and troubleshooting. Explain steps clearly in the user's language, including Hindi, Nepali, Bengali, and English. Product context: New Star is a creator/video platform; Supabase handles authentication/database and Cloudflare Stream is intended for large video uploads and streaming. Do not claim a feature is live unless verified; distinguish planned, configured, deployed, and tested states. Never claim you can see a user's account, change settings, access private data, issue refunds, verify payments, or perform actions unless a verified tool result provides it. Never ask for passwords, OTPs, API keys, bank/card details, or secrets. For payments, payouts, identity checks, or account ownership, direct users to official in-app support and an eligible adult account owner; never promise money movement. If uncertain, say so and give a useful next step. Be accurate, practical, respectful, and concise.";
+
+function firstSecret(...names: string[]) {
+  for (const name of names) {
+    const value = Deno.env.get(name);
+    if (value && value.trim()) return value.trim();
+  }
+  return "";
+}
 
 function providerHttpError(status: number, data: any) {
   const providerMessage = String(data?.error?.message || data?.message || "").toLowerCase();
@@ -165,9 +173,9 @@ Deno.serve(async (req: Request) => {
       ok: true,
       status: true,
       providers: {
-        openai: Boolean(Deno.env.get("OPENAI_API_KEY")),
-        gemini: Boolean(Deno.env.get("GEMINI_API_KEY")),
-        openrouter: Boolean(Deno.env.get("OPENROUTER_API_KEY"))
+        openai: Boolean(firstSecret("OPENAI_API_KEY", "OPENAI_KEY")),
+        gemini: Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY")),
+        openrouter: Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"))
       }
     }, 200, headers);
   }
@@ -204,9 +212,9 @@ Deno.serve(async (req: Request) => {
   }
 
   const providers = [
-    { name: "openai", key: Deno.env.get("OPENAI_API_KEY"), run: callOpenAI },
-    { name: "gemini", key: Deno.env.get("GEMINI_API_KEY"), run: callGemini },
-    { name: "openrouter", key: Deno.env.get("OPENROUTER_API_KEY"), run: callOpenRouter }
+    { name: "openai", key: firstSecret("OPENAI_API_KEY", "OPENAI_KEY"), run: callOpenAI },
+    { name: "gemini", key: firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"), run: callGemini },
+    { name: "openrouter", key: firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter }
   ].filter((p): p is { name: string; key: string; run: (key: string, messages: ChatMessage[]) => Promise<string> } => Boolean(p.key));
 
   if (providers.length === 0) {
