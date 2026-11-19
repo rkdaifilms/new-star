@@ -431,7 +431,7 @@ async function loadLikes(){
 }
 
 async function loadDirectPublicFeed(){
- const fields="id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type,duration_seconds,width,height,thumbnail_url,video_type";
+ const fields="id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type,duration_seconds,width,height,thumbnail_url,video_type,frame_fit";
  let result=await db.from("videos").select(fields)
   .or("processing_status.eq.published,processing_status.is.null")
   .or("visibility.eq.public,visibility.is.null")
@@ -439,7 +439,7 @@ async function loadDirectPublicFeed(){
   .order("created_at",{ascending:false}).range(0,49);
  if(result.error && /(column|schema cache|does not exist)/i.test(result.error.message||"")){
   result=await db.from("videos")
-   .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type")
+   .select("id,video_url,caption,category,username,likes_count,views_count,created_at,user_id,affiliate_link,audience_type,frame_fit")
    .or("processing_status.eq.published,processing_status.is.null")
    .or("visibility.eq.public,visibility.is.null")
    .or("audience_type.eq.all,audience_type.is.null")
@@ -660,7 +660,7 @@ function renderVideo(){
  const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
  const currentDuration=Number(currentVideo.duration_seconds)||0;
   const currentIsShort=currentVideo.video_type==="short"?true:currentVideo.video_type==="long"?false:(currentDuration>0?currentDuration<=60:Number(currentVideo.height)>Number(currentVideo.width));
-  player.style.objectFit=currentIsShort?"cover":"contain";
+  player.style.objectFit=currentVideo.frame_fit==="cover"?"cover":"contain";
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
  refreshCreatorFollowButton(currentVideo);
