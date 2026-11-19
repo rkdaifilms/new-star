@@ -30,7 +30,7 @@ p,.muted{font-size:12px;color:#aaa;line-height:1.6}
 .input,.select{width:100%;padding:11px;margin:5px 0 10px;background:#08080b;border:1px solid #444;color:#fff;border-radius:8px}
 label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .hidden{display:none!important}
-.preview{width:min(100%,calc(min(68vh,640px)*var(--preview-ratio,.5625)));height:auto;aspect-ratio:var(--preview-ratio,.5625);max-height:min(68vh,640px);min-height:0;background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #292930;border-radius:12px;margin:0 auto 12px}
+.preview{width:100%;max-width:640px;height:auto;aspect-ratio:var(--preview-ratio,.5625);max-height:min(68vh,640px);min-height:0;background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #292930;border-radius:12px;margin:0 auto 12px}
 #editorVideo{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;background:#000}
 #editorActions{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 14px}
 #editorActions .primary{margin:0}
@@ -561,6 +561,7 @@ document.querySelectorAll("[data-zoom]").forEach(button => {
 });
 $("rotateButton").onclick = () => { rotation = (rotation + 90) % 360; applyTransform(); };
 ["aspectRatioSetting","frameFit","qualityPreference"].forEach(id=>$(id).addEventListener("change",applyOutputFrame));
+window.addEventListener("resize",applyOutputFrame);
 function applyTransform() {
  video.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
  toast("Preview Crop/Rotate लागू हुआ।");
@@ -577,6 +578,9 @@ function applyOutputFrame() {
  if(!Number.isFinite(ratio)||ratio<=0)ratio=9/16;
  preview.style.setProperty("--preview-ratio",String(ratio));
  preview.style.aspectRatio=String(ratio);
+ const availableWidth=preview.parentElement?.clientWidth||preview.clientWidth||640;
+ const maxPreviewHeight=Math.min(window.innerHeight*0.68,640);
+ preview.style.width=Math.max(120,Math.min(availableWidth,maxPreviewHeight*ratio))+"px";
  video.style.objectFit=$("frameFit").value;
  const quality=$("qualityPreference").value;
  const requested=quality==="original"?0:Number(quality.replace("p",""));
