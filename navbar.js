@@ -20,7 +20,8 @@
     "camera.html",
     "upload.html",
     "settings.html",
-    "admin.html"
+    "admin.html",
+    "creator-ai.html"
   ];
 
   const $ = id => document.getElementById(id);
