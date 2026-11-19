@@ -455,13 +455,6 @@
 
       createBottomNavigation();
 
-      if (!document.querySelector('script[data-newstar-ai-chat]')) {
-        const aiScript = document.createElement("script");
-        aiScript.src = "/ai-chat.js";
-        aiScript.defer = true;
-        aiScript.dataset.newstarAiChat = "true";
-        document.body.appendChild(aiScript);
-      }
 
     } catch (error) {
       console.error("New Star Navigation Error:", error);
