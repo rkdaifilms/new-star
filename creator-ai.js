@@ -42,6 +42,6 @@ async function startRecording(){if(!navigator.mediaDevices?.getUserMedia||!windo
 recorder.start();recording=true;voice.disabled=true;stopVoice.hidden=false;voiceStatus.textContent="Recording… tap Stop when finished. Keep it short for reliable transcription.";}catch(e){voiceStatus.textContent=e.name==="NotAllowedError"?"Microphone permission denied. Allow microphone access in browser settings.":(e.message||"Could not start microphone.");}}
 voice.addEventListener("click",startRecording);stopVoice.addEventListener("click",()=>{if(recording&&recorder?.state!=="inactive")recorder.stop();});
 document.querySelectorAll("[data-starter]").forEach(btn=>btn.addEventListener("keydown",()=>{}));
-(async()=>{try{await session();status.textContent="AI connected";notice.textContent="Signed in · Your messages are sent securely to the AI gateway. Do not share secrets."; }catch(e){status.textContent="Login needed";notice.textContent=e.message;}if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};})();
+(async()=>{try{await session();status.textContent="Signed in";notice.textContent="Login verified · AI provider availability is checked when you send a request. Do not share secrets."; }catch(e){status.textContent="Login needed";notice.textContent=e.message;}if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};})();
 window.addEventListener("pagehide",()=>{if(recording&&recorder?.state!=="inactive")recorder.stop();stream?.getTracks().forEach(t=>t.stop());});
 })();
