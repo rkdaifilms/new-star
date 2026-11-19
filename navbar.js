@@ -420,6 +420,15 @@
 
       const user = data?.session?.user || null;
 
+      // One shared Help Center AI widget across signed-in app pages; Creator Studio stays separate.
+      if (user && currentPage !== "creator-ai.html" && !document.querySelector('script[data-newstar-help-ai="true"]')) {
+        const helpScript = document.createElement("script");
+        helpScript.src = "ai-chat.js";
+        helpScript.defer = true;
+        helpScript.dataset.newstarHelpAi = "true";
+        document.head.appendChild(helpScript);
+      }
+
       if (!user && protectedPages.includes(currentPage)) {
         location.replace("auth.html");
         return;
