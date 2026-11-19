@@ -326,7 +326,7 @@
   function createTopMenuButton() {
     // Profile has its own menu; Index keeps the video controls untouched
     // and does not show the global three-dot menu button.
-    if (currentPage === "profile.html" || currentPage === "index.html") return;
+    if (currentPage === "profile.html" || currentPage === "index.html" || currentPage === "settings.html") return;
 
     if ($("newstar-menu-button")) return;
 
