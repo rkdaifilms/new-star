@@ -16,15 +16,16 @@ if(onHomeFeed){
  style.textContent += `
  #ns-ai-launch{position:relative;left:auto;right:auto;top:auto;bottom:auto;display:block;margin:8px 0 0 auto;padding:8px 13px;font-size:13px;z-index:25}
  #ns-ai-panel{position:relative;inset:auto;right:auto;bottom:auto;left:auto;top:auto;width:calc(100% - 24px);height:420px;max-height:65vh;margin:8px 12px 14px;z-index:25}
- @media(max-width:699px){
-  #ns-ai-panel,#ns-ai-panel.open{position:fixed!important;inset:0!important;right:0!important;bottom:0!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;max-height:none!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;z-index:2147483001!important;box-shadow:none!important;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
-  #ns-ai-head{position:relative;flex:0 0 auto;min-height:58px;padding:10px 14px;background:#202027;border-bottom:1px solid #393941}
-  #ns-ai-head button{width:44px;height:44px;min-width:44px;border-radius:50%;background:#383843;font-size:28px;line-height:1}
-  #ns-ai-provider-status{flex:0 0 auto}
-  #ns-ai-log{min-height:0}
-  #ns-ai-form{flex:0 0 auto;padding:10px 10px calc(10px + env(safe-area-inset-bottom));background:#171717}
-  #ns-ai-input{font-size:16px}
- }
+ /* Universal full-screen layout: phones, tablets, laptops and desktops */
+ #ns-ai-panel,#ns-ai-panel.open{position:fixed!important;inset:0!important;right:0!important;bottom:0!important;left:0!important;top:0!important;width:100vw!important;width:100dvw!important;height:100vh!important;height:100dvh!important;max-height:none!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;z-index:2147483001!important;box-shadow:none!important;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box!important}
+ #ns-ai-head{position:relative;flex:0 0 auto;min-height:58px;padding:10px 14px;background:#202027;border-bottom:1px solid #393941;box-sizing:border-box}
+ #ns-ai-head button{width:44px;height:44px;min-width:44px;border-radius:50%;background:#383843;font-size:28px;line-height:1}
+ #ns-ai-provider-status{flex:0 0 auto}
+ #ns-ai-log{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+ #ns-ai-note,#ns-ai-voice-status{flex:0 0 auto}
+ #ns-ai-form{flex:0 0 auto;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#171717;box-sizing:border-box}
+ #ns-ai-input{font-size:16px;min-width:0}
+ @supports not (height:100dvh){#ns-ai-panel,#ns-ai-panel.open{height:100vh!important;width:100vw!important}}
 
  `;
 }
