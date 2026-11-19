@@ -165,7 +165,7 @@ async function loadSettings(){
   const {data,error}=await db.auth.getUser();if(error)throw error;user=data?.user;
   if(!user){location.replace("auth.html");return;}
   $("accountEmail").textContent=user.email||"Email उपलब्ध नहीं है";
-  await checkAiGatewayStatus();
+  await checkAiGateway();
   loadNotificationPrefs();
   const {data:row,error:pe}=await db.from("profiles").select("user_id,is_private").eq("user_id",user.id).maybeSingle();
   if(pe)throw pe;profile=row||null;
