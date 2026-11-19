@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#000000">
 <title>New Star - Home Feed</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 <script src="supabase-config.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
@@ -402,6 +403,21 @@ async function hydrateFeedVideoMetadata(){
  }));
 }
 
+const newStarHlsPlayers=new WeakMap();
+function attachNewStarVideoSource(player,source){
+ const previous=newStarHlsPlayers.get(player);if(previous){previous.destroy();newStarHlsPlayers.delete(player);}
+ player.pause();player.removeAttribute("src");player.load();
+ if(!source)return;
+ const isHls=/\\.m3u8(?:$|[?#])/i.test(source);
+ if(isHls&&window.Hls&&window.Hls.isSupported()){
+  const hls=new window.Hls({enableWorker:true,lowLatencyMode:false,backBufferLength:30});
+  newStarHlsPlayers.set(player,hls);hls.loadSource(source);hls.attachMedia(player);
+ }else{
+  if(isHls&&player.canPlayType("application/vnd.apple.mpegurl"))player.src=source;
+  else player.src=source;
+  player.load();
+ }
+}
 async function loadLikes(){
  likedIds.clear();
  if(!currentUser||!videos.length)return;
@@ -638,8 +654,7 @@ function renderVideo(){
   const mode=duration>0&&duration<=60?"Shorts":duration>60?"Long Video":"Video";
   $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode+" · "+ratioLabel+" · "+width+"×"+height;
  };
- player.src=currentVideo.video_url;
- player.load();
+ attachNewStarVideoSource(player,currentVideo.video_url);
  player.play().then(()=>startWatchSession(renderingId)).catch(()=>{$("playHint").style.display="block";});
  player.onended=()=>{if(currentUser&&activeWatchSession)db.rpc("end_video_watch_session",{p_session_id:activeWatchSession,p_position_seconds:Number(player.currentTime||0)});};
  const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
