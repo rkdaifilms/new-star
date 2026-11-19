@@ -3,7 +3,10 @@
 ## Current rollout state
 
 - The Cloudflare TUS proxy source lives at `supabase/functions/cloudflare-tus-proxy/index.ts`.
-- It is not deployed or enabled until the Cloudflare credentials are configured as Supabase Edge Function secrets and the upload client is updated.
+- `cloudflare-tus-proxy` is deployed as Supabase Edge Function version 1 with JWT verification enabled. It returns HTTP 503 until both Cloudflare secrets are configured.
+- `video-url` is deployed as version 6. It checks Cloudflare processing status, marks ready videos as published, and returns short-lived signed HLS playback URLs.
+- `camera.html` now sends uploads through the TUS proxy and saves Cloudflare provider metadata. The client-side target cap is 5 GiB and duration cap is 3 hours; real uploads are not verified until secrets/account capacity are configured.
+- `index.html` and `profile.html` load HLS.js for adaptive playback and retain the old Supabase Storage path.
 - Existing Supabase Storage videos remain supported during migration.
 - Do not put Cloudflare API tokens or signing keys in browser code, GitHub, or chat.
 
@@ -35,10 +38,10 @@ Use a TUS chunk size of at least 5 MiB. Cloudflare requires TUS for files over 2
 
 1. Confirm Cloudflare Stream is enabled on the intended Cloudflare account and that the account has sufficient video storage capacity.
 2. Add the two Cloudflare secrets above in Supabase.
-3. Deploy `cloudflare-tus-proxy` with JWT verification enabled.
-4. Update `camera.html` to request a TUS upload session through the proxy, upload directly to Cloudflare, and save the returned Stream UID/provider metadata in the existing `videos` row.
-5. Add a server-side playback-token path for private Stream videos. Never expose the Cloudflare API token or signing key to the browser.
-6. Update the feed and profile player to support Cloudflare Stream HLS playback while preserving the existing Supabase Storage path for older videos.
+3. The proxy is already deployed with JWT verification enabled; after adding secrets, confirm it no longer returns the configuration 503.
+4. `camera.html` is updated to request a TUS upload session through the proxy, upload directly to Cloudflare, and save the returned Stream UID/provider metadata in the existing `videos` row with `processing_status=processing`.
+5. Server-side playback-token creation and processing-state checks are implemented in `video-url`. Never expose the Cloudflare API token or signing key to the browser.
+6. Feed and profile HLS.js playback support is implemented while preserving the existing Supabase Storage path for older videos.
 7. Test with a small owned/licensed video first, then a 200+ MB file, interrupted/resumed upload, processing completion, playback permissions, and deletion.
 8. Only after successful end-to-end tests should the UI advertise the 5 GiB limit.
 
