@@ -525,7 +525,7 @@ async function resolvePrivateVideoUrls(items){
  if(!response.ok)throw new Error("Secure video access could not be authorized.");
  const payload=await response.json();
  if(!payload?.ok||!payload.urls)throw new Error("Secure video URL response is invalid.");
- return rows.map(v=>({...v,video_url:payload.urls[String(v.id)]||""})).filter(v=>v.video_url);
+ return rows.map(v=>({...v,video_url:payload.urls[String(v.id)]||""}));
 }
 
 async function loadStatsAndVideos(){
@@ -544,7 +544,8 @@ async function loadStatsAndVideos(){
 
   const videos=await resolvePrivateVideoUrls((videoRows||[]).filter(item=>item&&item.video_url));
   await Promise.all(videos.map(async item=>{
-   if(Number(item.duration_seconds)>0&&Number(item.width)>0&&Number(item.height)>0)return;
+   if(!item.video_url||item.video_provider==="cloudflare"&&item.processing_status!=="published")return;
+    if(Number(item.duration_seconds)>0&&Number(item.width)>0&&Number(item.height)>0)return;
    try{
     const probe=document.createElement("video");
     probe.preload="metadata";probe.muted=true;
@@ -1115,7 +1116,7 @@ function renderProfileVideos(){
   const type=profileVideoType(item),card=document.createElement("article");card.className="videoCard";card.tabIndex=0;
   const v=document.createElement("video");v.src=item.video_url||"";v.controls=false;v.playsInline=true;v.preload="metadata";v.muted=true;v.poster=item.thumbnail_url||"";
   v.addEventListener("loadedmetadata",()=>{if(v.videoWidth&&v.videoHeight)v.style.aspectRatio=v.videoWidth+" / "+v.videoHeight;});
-  const tag=document.createElement("small");tag.className="videoFormat";tag.textContent=type==="short"?"⚡ SHORTS":"▶ LONG VIDEO";
+  const tag=document.createElement("small");tag.className="videoFormat";tag.textContent=item.processing_status==="processing"?"⏳ PROCESSING":item.processing_status==="failed"?"⚠️ UPLOAD FAILED":(type==="short"?"⚡ SHORTS":"▶ LONG VIDEO");
   const title=document.createElement("p");title.textContent=item.caption||"Video";
   const manage=document.createElement("button");manage.type="button";manage.className="videoManageButton";manage.textContent="⋮";manage.setAttribute("aria-label","Video settings");manage.setAttribute("aria-expanded","false");const menu=document.createElement("div");menu.className="videoManageMenu";menu.hidden=true;const actions=[["✏️ Edit Title","title"],["#️⃣ Edit Hashtags","tags"],["🎙️ Record Voice","voice"],["🎵 Choose Audio from Gallery","gallery"],["🎚️ Mix & Save","mix"],["🗑️ Delete Video","delete"]];actions.forEach(([label,action])=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.addEventListener("click",e=>{e.stopPropagation();menu.hidden=true;manage.setAttribute("aria-expanded","false");if(action==="delete"){managedVideoId=String(item.id);deleteManagedVideo();return;}openVideoManage(item);if(action==="title")$("videoEditTitle").focus();else if(action==="tags")$("videoEditTags").focus();else if(action==="voice")startManagedVoice();else if(action==="gallery")$("videoAudioFile").click();else if(action==="mix")$("videoMixSave").focus();});menu.append(b);});manage.addEventListener("click",e=>{e.stopPropagation();document.querySelectorAll(".videoManageMenu").forEach(m=>{if(m!==menu)m.hidden=true;});menu.hidden=!menu.hidden;manage.setAttribute("aria-expanded",String(!menu.hidden));});menu.addEventListener("click",e=>e.stopPropagation());card.append(v,tag,title,manage,menu);const open=()=>openProfileVideo(item,type);card.addEventListener("click",open);card.addEventListener("keydown",e=>{if(e.key==="Enter")open();});grid.append(card);
  });
