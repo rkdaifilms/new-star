@@ -568,6 +568,10 @@ async function startWatchSession(videoId){
   const clientSessionId=crypto.randomUUID();
   const {data,error}=await db.rpc("start_video_watch_session",{p_video_id:videoId,p_client_session_id:clientSessionId});
   if(error)throw error;
+  if($("video").paused||document.visibilityState!=="visible"||!currentVideo||String(currentVideo.id)!==String(videoId)){
+   if(data?.session_id)await db.rpc("end_video_watch_session",{p_session_id:data.session_id,p_position_seconds:Number($("video").currentTime||0)});
+   return;
+  }
   activeWatchSession=data?.session_id||null;
   lastWatchVideoId=videoId;
   if(activeWatchSession){
@@ -679,7 +683,9 @@ function renderVideo(){
   $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode+" · "+ratioLabel+" · "+width+"×"+height;
  };
  attachNewStarVideoSource(player,currentVideo.video_url);
- player.play().then(()=>startWatchSession(renderingId)).catch(()=>{$("playHint").style.display="block";});
+ player.onplay=()=>{if(currentVideo&&String(currentVideo.id)===renderingId)startWatchSession(renderingId);};
+ player.onpause=()=>{stopWatchSession();};
+ player.play().catch(()=>{$("playHint").style.display="block";});
  player.onended=()=>{stopWatchSession();};
  const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
  const currentDuration=Number(currentVideo.duration_seconds)||0;
