@@ -7,6 +7,8 @@
 
     const SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr";
+    // Public publishable key for authenticated Edge Function/TUS requests.
+    window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
 
     // Check Supabase SDK
     if (!window.supabase || typeof window.supabase.createClient !== "function") {
