@@ -16,6 +16,16 @@ if(onHomeFeed){
  style.textContent += `
  #ns-ai-launch{position:relative;left:auto;right:auto;top:auto;bottom:auto;display:block;margin:8px 0 0 auto;padding:8px 13px;font-size:13px;z-index:25}
  #ns-ai-panel{position:relative;inset:auto;right:auto;bottom:auto;left:auto;top:auto;width:calc(100% - 24px);height:420px;max-height:65vh;margin:8px 12px 14px;z-index:25}
+ @media(max-width:699px){
+  #ns-ai-panel,#ns-ai-panel.open{position:fixed!important;inset:0!important;right:0!important;bottom:0!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;max-height:none!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;z-index:2147483001!important;box-shadow:none!important;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+  #ns-ai-head{position:relative;flex:0 0 auto;min-height:58px;padding:10px 14px;background:#202027;border-bottom:1px solid #393941}
+  #ns-ai-head button{width:44px;height:44px;min-width:44px;border-radius:50%;background:#383843;font-size:28px;line-height:1}
+  #ns-ai-provider-status{flex:0 0 auto}
+  #ns-ai-log{min-height:0}
+  #ns-ai-form{flex:0 0 auto;padding:10px 10px calc(10px + env(safe-area-inset-bottom));background:#171717}
+  #ns-ai-input{font-size:16px}
+ }
+
  `;
 }
 const launch=document.createElement("button");launch.id="ns-ai-launch";launch.type="button";launch.textContent="✦ New Star AI";
@@ -53,7 +63,12 @@ async function checkProviderStatus(force=false){
   providerStatus.textContent=ready.length?"AI Provider उपलब्ध: "+ready.join(" · ")+" · संदेश भेजकर Live Response जाँचें।":"AI अभी चालू नहीं है: Server पर OpenAI, Gemini या OpenRouter की API Key नहीं मिली। अधिकृत Owner Supabase → Edge Functions → Secrets में Provider Key सेट करे।";
  }catch(error){providerStatus.textContent="AI status जाँच नहीं हो सकी। Login और network connection जाँचें।";}
 }
-launch.addEventListener("click",()=>{panel.classList.toggle("open");if(panel.classList.contains("open"))checkProviderStatus();});panel.querySelector("#ns-ai-close").addEventListener("click",()=>panel.classList.remove("open"));
+let aiHistoryEntry=false;const previousBodyOverflow=document.body.style.overflow;
+function openAiPanel(){if(panel.classList.contains("open"))return;panel.classList.add("open");document.body.style.overflow="hidden";if(!aiHistoryEntry){try{history.pushState({...(window.history.state||{}),nsAiOpen:true},"","#new-star-ai");aiHistoryEntry=true;}catch(_){}}checkProviderStatus();}
+function closeAiPanel(fromPop=false){if(!panel.classList.contains("open"))return;panel.classList.remove("open");document.body.style.overflow=previousBodyOverflow;if(recording&&recognition){voiceCaptureLocked=true;try{recognition.stop();}catch(_){}}if(aiHistoryEntry){aiHistoryEntry=false;if(!fromPop&&window.history.state?.nsAiOpen){try{window.history.back();}catch(_){}}}}
+launch.addEventListener("click",openAiPanel);panel.querySelector("#ns-ai-close").addEventListener("click",()=>closeAiPanel(false));
+window.addEventListener("popstate",()=>{if(panel.classList.contains("open"))closeAiPanel(true);});
+window.addEventListener("keydown",e=>{if(e.key==="Escape"&&panel.classList.contains("open"))closeAiPanel(false);});
 panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
  e.preventDefault();const text=input.value.trim();if(!text||send.disabled)return;
  voiceCaptureLocked=true;if(recording&&recognition){try{recognition.stop();}catch(_){}}voiceBase="";input.value="";input.dispatchEvent(new Event("input",{bubbles:true}));voiceStatus.textContent="";
