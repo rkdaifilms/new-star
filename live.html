@@ -261,6 +261,10 @@
 
     <script>
         let liveStreamObj = null;
+        let liveWhipPeer = null;
+        let liveWhipSessionUrl = null;
+        let liveRoomId = null;
+        let liveStartBusy = false;
         let likePoints = 0;
         let myPkPoints = 0;
         let isPkActive = false;
@@ -594,15 +598,115 @@
         function assignFriendToSeat(){ alert('Guest seats require a real WebRTC connection and are unavailable.'); }
         function startGlobalPkSearch(){ alert('PK matchmaking is not connected to real participants.'); }
         function startPkWithOpponent(){ alert('PK Battle is unavailable until real matchmaking exists.'); }
-        function startLiveBroadcastSession(){
-          const name=document.getElementById('liveCreatorNameInput').value.trim(); if(name) currentCreatorName=name;
-          navigator.mediaDevices?.getUserMedia({video:true,audio:true}).then(stream=>{
-            liveStreamObj=stream; const v=document.getElementById('roomVideo_1');
-            if(v){v.srcObject=stream;v.style.display='block';}
-            alert('Local camera preview only. This is NOT broadcast to viewers or recorded on a server.');
-          }).catch(()=>alert('Camera and microphone permission is required.'));
+        async function liveApi(action, extra = {}) {
+          const client = window.supabaseClient;
+          if (!client) throw new Error('Supabase connection is not ready. Refresh and sign in again.');
+          const { data: sessionData, error: sessionError } = await client.auth.getSession();
+          if (sessionError || !sessionData?.session?.access_token) throw new Error('Please sign in before starting LIVE.');
+          const response = await fetch('https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-live', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': window.SUPABASE_ANON_KEY || '',
+              'Authorization': 'Bearer ' + sessionData.session.access_token
+            },
+            body: JSON.stringify({ action, ...extra })
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload.ok) throw new Error(payload.error || 'LIVE service request failed (' + response.status + ').');
+          return payload;
         }
-        function stopLiveBroadcast(){ if(liveStreamObj)liveStreamObj.getTracks().forEach(t=>t.stop()); liveStreamObj=null; document.getElementById('activeLiveView').style.display='none'; document.getElementById('liveSetupPanel').style.display='block'; }
+
+        async function startLiveBroadcastSession() {
+          if (liveStartBusy) return;
+          liveStartBusy = true;
+          const startButton = document.querySelector('#liveSetupPanel .btn');
+          const oldLabel = startButton ? startButton.textContent : '';
+          if (startButton) { startButton.disabled = true; startButton.textContent = 'Connecting to LIVE…'; }
+          let stream = null;
+          let peer = null;
+          let roomId = null;
+          try {
+            const name = document.getElementById('liveCreatorNameInput').value.trim();
+            if (name) currentCreatorName = name;
+            if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) {
+              throw new Error('This browser does not support secure camera/microphone streaming. Open New Star over HTTPS in an updated browser.');
+            }
+            const title = document.getElementById('liveTitleInput').value.trim();
+            if (!title) throw new Error('Please enter a LIVE room title.');
+            const prepared = await liveApi('prepare', { room_title: title });
+            roomId = prepared.room_id;
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } },
+              audio: { echoCancellation: true, noiseSuppression: true }
+            });
+            peer = new RTCPeerConnection();
+            stream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
+            const offer = await peer.createOffer();
+            await peer.setLocalDescription(offer);
+            const whipResponse = await fetch(prepared.whip_url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/sdp' },
+              body: offer.sdp
+            });
+            if (!whipResponse.ok) throw new Error('Cloudflare broadcast handshake failed (' + whipResponse.status + '). Please check Stream availability and retry.');
+            const answerSdp = await whipResponse.text();
+            const location = whipResponse.headers.get('Location');
+            if (!answerSdp || !location) throw new Error('Cloudflare returned an incomplete broadcast session.');
+            await peer.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+            await liveApi('confirm', { room_id: roomId });
+
+            liveStreamObj = stream;
+            liveWhipPeer = peer;
+            liveWhipSessionUrl = new URL(location, prepared.whip_url).toString();
+            liveRoomId = roomId;
+            const size = document.getElementById('setupRoomSize').value;
+            renderLiveRooms(size);
+            const hostVideo = document.getElementById('roomVideo_1');
+            if (hostVideo) {
+              hostVideo.srcObject = stream;
+              hostVideo.style.display = 'block';
+              hostVideo.muted = true;
+              await hostVideo.play().catch(() => {});
+            }
+            document.getElementById('liveSetupPanel').style.display = 'none';
+            document.getElementById('activeLiveView').style.display = 'block';
+            const status = document.querySelector('#activeLiveView .pulsing-dot');
+            if (status) status.title = 'Broadcast connected to Cloudflare Stream';
+            if (typeof window.showGlobalFastToast === 'function') window.showGlobalFastToast('You are LIVE on New Star');
+          } catch (error) {
+            if (peer) peer.close();
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            if (roomId) {
+              try { await liveApi('stop', { room_id: roomId }); } catch (_) {}
+            }
+            alert(error?.message || 'Could not start LIVE. Please try again.');
+          } finally {
+            liveStartBusy = false;
+            if (startButton) { startButton.disabled = false; startButton.textContent = oldLabel || '🔴 Go LIVE Now'; }
+          }
+        }
+
+        async function stopLiveBroadcast() {
+          const peer = liveWhipPeer;
+          const sessionUrl = liveWhipSessionUrl;
+          const roomId = liveRoomId;
+          if (sessionUrl) {
+            try { await fetch(sessionUrl, { method: 'DELETE' }); } catch (error) { console.warn('WHIP session cleanup:', error); }
+          }
+          if (peer) peer.close();
+          if (liveStreamObj) liveStreamObj.getTracks().forEach(track => track.stop());
+          liveWhipPeer = null;
+          liveWhipSessionUrl = null;
+          liveRoomId = null;
+          liveStreamObj = null;
+          if (roomId) {
+            try { await liveApi('stop', { room_id: roomId }); }
+            catch (error) { console.warn('Live room cleanup:', error); alert('The camera is off, but the server could not update the room status: ' + error.message); }
+          }
+          document.getElementById('activeLiveView').style.display = 'none';
+          document.getElementById('liveSetupPanel').style.display = 'block';
+        }
     </script>
 <script src="preferences.js"></script>
 
