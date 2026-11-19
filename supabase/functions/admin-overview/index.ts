@@ -50,6 +50,35 @@ Deno.serve(async (req: Request) => {
       const { count, error } = await admin.from(table).select("*", { count: "exact", head: true });
       metrics[table] = error ? null : (count ?? 0);
     }
+
+    // Owner-only playback quality telemetry. Rejected sessions are diagnostics,
+    // not automatic evidence of fraud (they can be caused by stale tabs or seeks).
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const [
+      watchTotal, watchActive, watchCompleted, watchRejected, watchStarted24h, watchRejected24h,
+      uniqueViewsTotal, uniqueViews24h, watchDailyTotal, watchDaily24h
+    ] = await Promise.all([
+      admin.schema("private").from("video_watch_sessions").select("id", { count: "exact", head: true }),
+      admin.schema("private").from("video_watch_sessions").select("id", { count: "exact", head: true }).eq("status", "active"),
+      admin.schema("private").from("video_watch_sessions").select("id", { count: "exact", head: true }).eq("status", "completed"),
+      admin.schema("private").from("video_watch_sessions").select("id", { count: "exact", head: true }).eq("status", "rejected"),
+      admin.schema("private").from("video_watch_sessions").select("id", { count: "exact", head: true }).gte("started_at", since24h),
+      admin.schema("private").from("video_watch_sessions").select("id", { count: "exact", head: true }).eq("status", "rejected").gte("started_at", since24h),
+      admin.schema("private").from("video_view_dedupe").select("video_id", { count: "exact", head: true }),
+      admin.schema("private").from("video_view_dedupe").select("video_id", { count: "exact", head: true }).gte("created_at", since24h),
+      admin.schema("private").from("creator_watch_daily").select("video_id", { count: "exact", head: true }),
+      admin.schema("private").from("creator_watch_daily").select("video_id", { count: "exact", head: true }).gte("updated_at", since24h)
+    ]);
+    metrics.watch_sessions_total = watchTotal.error ? null : (watchTotal.count ?? 0);
+    metrics.watch_sessions_active = watchActive.error ? null : (watchActive.count ?? 0);
+    metrics.watch_sessions_completed = watchCompleted.error ? null : (watchCompleted.count ?? 0);
+    metrics.watch_sessions_rejected = watchRejected.error ? null : (watchRejected.count ?? 0);
+    metrics.watch_sessions_started_24h = watchStarted24h.error ? null : (watchStarted24h.count ?? 0);
+    metrics.watch_sessions_rejected_24h = watchRejected24h.error ? null : (watchRejected24h.count ?? 0);
+    metrics.qualified_unique_view_records_total = uniqueViewsTotal.error ? null : (uniqueViewsTotal.count ?? 0);
+    metrics.qualified_unique_view_records_24h = uniqueViews24h.error ? null : (uniqueViews24h.count ?? 0);
+    metrics.long_watch_credit_rows_total = watchDailyTotal.error ? null : (watchDailyTotal.count ?? 0);
+    metrics.long_watch_credit_rows_24h = watchDaily24h.error ? null : (watchDaily24h.count ?? 0);
     const { data: withdrawals } = await admin.from("withdrawal_requests")
       .select("id,creator_id,amount,currency,country_code,payout_method,status,created_at")
       .order("created_at", { ascending: false }).limit(100);
