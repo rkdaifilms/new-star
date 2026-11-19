@@ -5,7 +5,7 @@ const style=document.createElement("style");style.textContent=`
 #ns-ai-launch{position:fixed;right:16px;bottom:calc(82px + env(safe-area-inset-bottom));z-index:10020;border:0;border-radius:999px;background:#fe2c55;color:#fff;padding:13px 16px;font-weight:700;box-shadow:0 5px 22px #0007}
 #ns-ai-panel{position:fixed;right:12px;bottom:calc(140px + env(safe-area-inset-bottom));z-index:10021;width:min(360px,calc(100vw - 24px));height:min(510px,65vh);display:none;flex-direction:column;background:#171717;color:#fff;border:1px solid #444;border-radius:16px;box-shadow:0 12px 40px #0009;overflow:hidden;font:14px Arial,sans-serif}
 #ns-ai-panel.open{display:flex}#ns-ai-head{display:flex;justify-content:space-between;align-items:center;padding:13px;background:#24242b}
-#ns-ai-head button{background:transparent;color:#fff;border:0;font-size:20px}#ns-ai-log{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:9px}
+#ns-ai-head button{background:transparent;color:#fff;border:0;font-size:20px}#ns-ai-provider-status{padding:7px 12px;background:#202027;color:#bbb;font-size:11px;border-bottom:1px solid #393941}#ns-ai-log{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:9px}
 .ns-ai-msg{padding:10px 12px;border-radius:12px;max-width:88%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}
 .ns-ai-user{align-self:flex-end;background:#fe2c55;color:#fff}.ns-ai-bot{align-self:flex-start;background:#303039;color:#fff}
 #ns-ai-form{display:flex;gap:7px;padding:10px;border-top:1px solid #393941}#ns-ai-input{flex:1;min-width:0;background:#09090d;color:#fff;border:1px solid #555;border-radius:9px;padding:11px}
@@ -13,9 +13,9 @@ const style=document.createElement("style");style.textContent=`
 `;document.head.appendChild(style);
 const launch=document.createElement("button");launch.id="ns-ai-launch";launch.type="button";launch.textContent="✦ New Star AI";
 const panel=document.createElement("section");panel.id="ns-ai-panel";panel.setAttribute("aria-label","New Star AI Help Center");
-panel.innerHTML='<div id="ns-ai-head"><strong>New Star AI · Help Center</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! मैं New Star AI Help Center हूँ। अकाउंट, प्रोफाइल, वीडियो अपलोड, लाइव, मैसेज, नोटिफिकेशन, सेटिंग्स या ऐप की किसी समस्या में मदद चाहिए तो बताइए।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><div id="ns-ai-voice-status" role="status" aria-live="polite"></div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="New Star के बारे में पूछें…" required><button id="ns-ai-mic" type="button" aria-label="Start voice input" aria-pressed="false" title="Speak your message">🎙️</button><button id="ns-ai-send" type="submit">Send</button></form>';
+panel.innerHTML='<div id="ns-ai-head"><strong>New Star AI · Help Center</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-provider-status" role="status" aria-live="polite">AI सेवाओं की स्थिति जाँची जा रही है…</div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! मैं New Star AI Help Center हूँ। अकाउंट, प्रोफाइल, वीडियो अपलोड, लाइव, मैसेज, नोटिफिकेशन, सेटिंग्स या ऐप की किसी समस्या में मदद चाहिए तो बताइए।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><div id="ns-ai-voice-status" role="status" aria-live="polite"></div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="New Star के बारे में पूछें…" required><button id="ns-ai-mic" type="button" aria-label="Start voice input" aria-pressed="false" title="Speak your message">🎙️</button><button id="ns-ai-send" type="submit">Send</button></form>';
 document.body.append(launch,panel);
-const log=panel.querySelector("#ns-ai-log"),input=panel.querySelector("#ns-ai-input"),send=panel.querySelector("#ns-ai-send");
+const log=panel.querySelector("#ns-ai-log"),input=panel.querySelector("#ns-ai-input"),send=panel.querySelector("#ns-ai-send"),providerStatus=panel.querySelector("#ns-ai-provider-status");
 const mic=panel.querySelector("#ns-ai-mic"),voiceStatus=panel.querySelector("#ns-ai-voice-status");
 const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 let recognition=null,recording=false,voiceBase="";
@@ -30,7 +30,23 @@ else{
 }
 const history=[];
 function add(text,who){const el=document.createElement("div");el.className="ns-ai-msg "+(who==="user"?"ns-ai-user":"ns-ai-bot");el.textContent=text;log.appendChild(el);log.scrollTop=log.scrollHeight;return el;}
-launch.addEventListener("click",()=>panel.classList.toggle("open"));panel.querySelector("#ns-ai-close").addEventListener("click",()=>panel.classList.remove("open"));
+let statusCheckedAt=0;
+async function checkProviderStatus(force=false){
+ if(!force&&Date.now()-statusCheckedAt<60000)return;
+ statusCheckedAt=Date.now();
+ const db=getDb();
+ if(!db?.functions){providerStatus.textContent="AI स्थिति उपलब्ध नहीं है: Supabase कनेक्शन नहीं मिला।";return;}
+ try{
+  const {data:sessionData}=await db.auth.getSession();
+  if(!sessionData?.session){providerStatus.textContent="AI इस्तेमाल करने के लिए पहले Login करें।";return;}
+  const {data,error}=await db.functions.invoke("ai-gateway",{body:{action:"status"}});
+  if(error||!data?.ok)throw error||new Error(data?.error||"Status unavailable");
+  const names=[["openai","OpenAI"],["gemini","Gemini"],["openrouter","OpenRouter"]];
+  const ready=names.filter(([key])=>data.providers?.[key]).map(([,label])=>label);
+  providerStatus.textContent=ready.length?"Configured: "+ready.join(" · ")+" (API response test संदेश भेजने पर होगा)।":"कोई AI Provider server पर configured नहीं है।";
+ }catch(error){providerStatus.textContent="AI status जाँच नहीं हो सकी। Login और network connection जाँचें।";}
+}
+launch.addEventListener("click",()=>{panel.classList.toggle("open");if(panel.classList.contains("open"))checkProviderStatus();});panel.querySelector("#ns-ai-close").addEventListener("click",()=>panel.classList.remove("open"));
 panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
  e.preventDefault();const text=input.value.trim();if(!text||send.disabled)return;
  const db=getDb();
