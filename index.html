@@ -408,7 +408,7 @@ function attachNewStarVideoSource(player,source){
  const previous=newStarHlsPlayers.get(player);if(previous){previous.destroy();newStarHlsPlayers.delete(player);}
  player.pause();player.removeAttribute("src");player.load();
  if(!source)return;
- const isHls=/\\.m3u8(?:$|[?#])/i.test(source);
+ const isHls=/\.m3u8(?:$|[?#])/i.test(source);
  if(isHls&&window.Hls&&window.Hls.isSupported()){
   const hls=new window.Hls({enableWorker:true,lowLatencyMode:false,backBufferLength:30});
   newStarHlsPlayers.set(player,hls);hls.loadSource(source);hls.attachMedia(player);
