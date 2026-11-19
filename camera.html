@@ -560,15 +560,20 @@ $("menuButton").onclick = e => {
  if(!editing) closePanels();
  applyOutputFrame();
 };
-$("saveEditsButton").onclick = () => {
- const preview=document.querySelector(".preview");
- preview.classList.remove("editing-compact");
- $("menuButton").textContent="✏️ Edit";
- $("menuButton").setAttribute("aria-expanded","false");
- $("editorMenu").classList.remove("open");
- closePanels();
- applyOutputFrame();
- openPanel("publishPanel");
+$("saveEditsButton").onclick = async () => {
+ try {
+  await requireUser();
+  const preview=document.querySelector(".preview");
+  preview.classList.remove("editing-compact");
+  $("menuButton").textContent="✏️ Edit";
+  $("menuButton").setAttribute("aria-expanded","false");
+  $("editorMenu").classList.remove("open");
+  closePanels();
+  applyOutputFrame();
+  openPanel("publishPanel");
+ } catch(error) {
+  if (error.message !== "पहले Login करें।") toast(error.message);
+ }
 };
 document.addEventListener("click",() => $("editorMenu").classList.remove("open"));
 $("editorMenu").onclick = e => e.stopPropagation();
