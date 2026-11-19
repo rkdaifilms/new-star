@@ -76,8 +76,15 @@ async function load(){
  (f.paid_totals_by_currency||[]).forEach(x=>financialCards.push(["Paid receipts · "+x.currency,formatMinor(x.amount_minor,x.currency)+" "+x.currency]));
  financialCards.push(["Creator gifts · gross",f.creator_gift_gross_coins??"Unavailable"]);
  financialCards.push(["Creator gifts · net",f.creator_gift_net_coins??"Unavailable"]);
- financialCards.push(["Platform gift fees",f.platform_gift_fee_coins??"Unavailable"]);
+ financialCards.push(["Developer gift commission",f.developer_gift_commission_coins??"Unavailable"]);
+ financialCards.push(["Live gift commission rate",f.gift_commission_rate_percent===null||f.gift_commission_rate_percent===undefined?"Not configured":f.gift_commission_rate_percent+"%"]);
+ financialCards.push(["Gift ledger reconciliation",f.gift_commission_ledger_matches===true?"Matched":f.gift_commission_ledger_matches===false?"Mismatch · investigate":"Unavailable"]);
+ financialCards.push(["Commission ledger rows",f.gift_commission_ledger_rows??"Unavailable"]);
  financialCards.push(["Campaign / affiliate / creator ad-share ledger","Not connected · no payout totals reported"]);
+ const rules=data.creator_monetization_rules||{};
+ financialCards.push(["Creator eligibility · followers",rules.follower_threshold??"Unavailable"]);
+ financialCards.push(["Long video watch time",String(rules.long_watch_hours_threshold??"—")+" hours / "+String(rules.long_watch_window_days??"—")+" days"]);
+ financialCards.push(["Shorts views",Number(rules.shorts_views_threshold||0).toLocaleString()+" / "+String(rules.shorts_views_window_days??"—")+" days"]);
  (f.pending_withdrawals_by_currency||[]).forEach(x=>financialCards.push(["Pending payouts · "+x.currency,Number(x.amount||0).toFixed(2)+" "+x.currency]));
  $("financials").replaceChildren();
  financialCards.forEach(([label,value])=>{const el=document.createElement("div");el.className="card";el.innerHTML='<div class="muted">'+esc(label)+'</div><div class="metric">'+esc(value)+'</div>';$("financials").appendChild(el);});
