@@ -36,7 +36,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <main class="container">
 <section class="intro"><h2>New Star — Main Settings</h2><p>अकाउंट, प्रोफाइल, नोटिफिकेशन, भाषा और सुरक्षा की सेटिंग एक ही जगह से मैनेज करें। नीचे हर सेक्शन क्रम से दिया गया है।</p></section>
 <nav class="quick" aria-label="Settings sections">
-<a href="#notifications">🔔 Notifications</a><a href="#ai-location">✦ AI & Location</a><a href="#account">🔐 Account</a><a href="#profile">👤 Profile Information</a><a href="#privacy">🛡️ Privacy & Security</a><a href="#appearance">🌐 Language & Theme</a><a href="#accessibility">♿ Accessibility</a><a href="#monetization">💼 Creator & Monetization</a><a href="#help">❓ Help & About</a>
+<a href="#notifications">🔔 Notifications</a><a href="#ai-location">✦ AI & Location</a><a href="#account">🔐 Account</a><a href="#profile">👤 Profile Information</a><a href="#privacy">🛡️ Privacy & Security</a><a href="#appearance">🌐 Language & Theme</a><a href="#accessibility">♿ Accessibility</a><a href="#monetization">💼 Creator & Monetization</a><a href="#adsense-readiness">📢 AdSense Approval</a><a href="#help">❓ Help & About</a>
 </nav>
 <div id="status" class="status" role="status" aria-live="polite"></div>
 
@@ -115,8 +115,35 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <div class="row"><h3>Provider & Payment Status</h3><p>Payment gateway, AdMob/AdSense और creator payout की configuration अलग-अलग provider approval तथा server-side integration पर निर्भर है। Main Settings में कोई duplicate API-key या bank-detail form नहीं रखा गया है।</p><a class="action secondary" href="admin.html">🔒 Admin Provider Setup</a></div>
 </div></section>
 
+<section class="section" id="adsense-readiness">
+<h2 class="section-title">09 · Google AdSense Approval & Ads Policy</h2>
+<div class="panel">
+<div class="row"><h3>🌐 Website Ads — Google AdSense</h3><p>यह हिस्सा वेबसाइट के लिए है। Google approval अपने-आप नहीं मिलता; Google पूरी live site, content quality, navigation और policy compliance की समीक्षा करता है। Site review पास होने तक ads बंद रहेंगे।</p><p><strong>वयस्क Account Owner:</strong> AdSense publisher account और payment profile का संचालन 18+ parent/guardian या अधिकृत वयस्क ही करे। यदि publisher 18 से कम है, Google के अनुसार parent/guardian अपने Google Account से आवेदन कर सकता है और भुगतान उसी वयस्क को होता है।</p><a class="action secondary" href="https://support.google.com/adsense/answer/9724" target="_blank" rel="noopener">Google की Eligibility शर्तें</a> <a class="action secondary" href="https://support.google.com/adsense/answer/7584263" target="_blank" rel="noopener">Site Review प्रक्रिया</a></div>
+<div class="row"><h3>Approval से पहले जरूरी Site Checklist</h3>
+<ul class="policy-list">
+<li>Site पूरी तरह live हो; under-construction, blank, template-only या broken pages न हों।</li>
+<li>Original, useful और पर्याप्त text content हो; केवल वीडियो, images या headlines पर निर्भर न रहे।</li>
+<li>Home, About, Contact/Support, Privacy Policy और Terms जैसी जानकारी आसानी से मिले।</li>
+<li>Navigation, buttons, public content pages और mobile layout सही काम करें; broken links, misleading redirects या excessive pop-ups न हों।</li>
+<li>Creator uploads के लिए copyright ownership/permission, report, block और moderation process हो। चोरी की फिल्में, संगीत, clips या copied articles को monetize न करें।</li>
+<li>Prohibited content, spam, malware, deceptive downloads और policy-violating user uploads पर रोक व review प्रक्रिया हो।</li>
+<li>Privacy Policy में cookies/advertising technologies, data use, third-party services और user choices साफ बताए जाएँ।</li>
+<li>Google की site verification/ad code instructions को exact तरीके से लागू करें; approval से पहले live ads दिखाने का दावा न करें।</li>
+</ul></div>
+<div class="row"><h3>Ad Placement — सुरक्षित नियम</h3><ul class="policy-list">
+<li>Ads को Video Play/Pause, Like, Follow, Download, Menu या navigation buttons के पास न रखें।</li>
+<li>Ads को floating overlay, pop-up, misleading button या content जैसा दिखाकर न रखें।</li>
+<li>Inbox/Private Messages, login, account/security और non-content screens पर AdSense न लगाएँ।</li>
+<li>किसी user से ad click/view करने, “support us” कहकर click कराने या click के बदले reward देने की अनुमति नहीं।</li>
+<li>अपने ads पर खुद click न करें; bots, paid-to-click, click-exchange या artificial traffic न खरीदें।</li>
+<li>Ad को साफ “Advertisement” या “Sponsored” label दें और content से अलग रखें।</li>
+</ul><a class="action secondary" href="https://support.google.com/publisherpolicies/answer/48182" target="_blank" rel="noopener">Google Publisher Policies</a> <a class="action secondary" href="https://support.google.com/adsense/answer/16737" target="_blank" rel="noopener">Invalid Traffic नियम</a></div>
+<div class="row"><h3>📱 Android App Ads — Google AdMob</h3><p>Android app में Google Mobile Ads SDK और AdMob App ID/Ad Unit IDs की अलग integration व review चाहिए। Website AdSense code को mobile app में सीधे लगाने के बजाय app ads के लिए AdMob integration रखें। अभी कोई live AdMob ad या earning verified नहीं है।</p><a class="action secondary" href="https://support.google.com/admob/answer/6128543" target="_blank" rel="noopener">AdMob Policies</a></div>
+<div class="row"><h3>New Star Ads Status</h3><p id="adsenseReadinessStatus" role="status">Checklist केवल तैयारी track करती है; Google approval status का सीधा API सत्यापन इस पेज में उपलब्ध नहीं है।</p><p><strong>Current status:</strong> Not submitted / Approval not verified. Publisher ID, AdSense code, AdMob App ID और Ad Unit IDs यहाँ जानबूझकर blank हैं जब तक वयस्क Account Owner आधिकारिक Google console से पुष्टि न करे।</p><a class="action secondary" href="privacy-policy.html">Privacy Policy</a> <a class="action secondary" href="terms.html">Terms</a> <a class="action secondary" href="about.html">About</a> <a class="action secondary" href="contact.html">Contact & Support</a></div>
+</div></section>
+
 <section class="section" id="help">
-<h2 class="section-title">08 · Help & About</h2>
+<h2 class="section-title">10 · Help & About</h2>
 <div class="panel">
 <div class="row"><h3>Help & Support</h3><p>Account, messages और app support के लिए Inbox खोलें।</p><a class="action" href="inbox.html">✉️ Open Support Inbox</a></div>
 <div class="row"><h3>About New Star</h3><p>New Star Creator Hub · आपकी प्रोफाइल, वीडियो और Creator सुविधाएँ।</p><p>Settings build: 2.1 · Language, Theme और Accessibility preferences डिवाइस पर लागू होती हैं और signed-in account के साथ sync की जाती हैं। सभी पेजों का पूर्ण अनुवाद अभी उपलब्ध नहीं है।</p></div>
