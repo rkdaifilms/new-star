@@ -159,6 +159,52 @@ Deno.serve(async (req: Request) => {
   let body: any;
   try { body = await req.json(); } catch { return fail("Invalid JSON"); }
 
+  if (body.action === "review_creator_monetization") {
+    const { data: adminRole, error: roleError } = await admin.schema("private").from("admin_users")
+      .select("role").eq("user_id", user.id).maybeSingle();
+    if (roleError || !adminRole || adminRole.role !== "owner") return fail("Developer owner access only", 403);
+
+    const applicationId = String(body.application_id || "");
+    const nextStatus = String(body.status || "");
+    const reviewNote = String(body.review_note || "").trim().slice(0, 1000);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(applicationId) ||
+        !["approved", "rejected", "suspended"].includes(nextStatus)) {
+      return fail("Invalid creator monetization review request");
+    }
+    if (nextStatus !== "approved" && reviewNote.length < 3) {
+      return fail("A review reason is required for rejection or suspension");
+    }
+    const { data: application, error: applicationError } = await admin.from("creator_monetization_applications")
+      .select("id,creator_id,status").eq("id", applicationId).maybeSingle();
+    if (applicationError) return fail("Could not load creator application", 500);
+    if (!application) return fail("Creator application not found", 404);
+    if (application.status !== "pending") return fail("Only pending applications can be reviewed", 409);
+
+    const { data: reviewed, error: updateError } = await admin.from("creator_monetization_applications")
+      .update({
+        status: nextStatus,
+        reviewer_id: user.id,
+        reviewed_at: new Date().toISOString(),
+        review_note: reviewNote || null
+      }).eq("id", applicationId).eq("status", "pending")
+      .select("id,creator_id,status,reviewer_id,reviewed_at,review_note").maybeSingle();
+    if (updateError) return fail("Could not save creator monetization review", 500);
+    if (!reviewed) return fail("Application was already reviewed; refresh the dashboard", 409);
+
+    const { error: auditError } = await admin.schema("private").from("admin_audit_logs").insert({
+      actor_id: user.id,
+      action: "creator_monetization_reviewed",
+      target_type: "creator_monetization_application",
+      target_id: applicationId,
+      details: { creator_id: application.creator_id, status: nextStatus, review_note: reviewNote || null }
+    });
+    if (auditError) {
+      console.error("Creator monetization audit log failed:", auditError.message);
+      return fail("Review saved but audit logging failed; contact support before taking further action", 500);
+    }
+    return new Response(JSON.stringify({ ok: true, application: reviewed }), { headers: cors });
+  }
+
   if (body.action === "review_content_report") {
     const { data: adminRole, error: roleError } = await admin.schema("private").from("admin_users")
       .select("role").eq("user_id", user.id).maybeSingle();
