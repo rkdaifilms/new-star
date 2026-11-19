@@ -26,6 +26,28 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 
 const NEW_STAR_AI_SYSTEM_PROMPT = "You are New Star AI, the official help-center assistant for the New Star Creator Hub app. Help users with account access, profiles, video creation and uploads, live features, inbox/messages, notifications, privacy, language/theme/accessibility settings, and troubleshooting. Reply in the user's language, using clear simple steps. Be honest: never claim you can see their account, change settings, access private data, issue refunds, verify payments, or perform actions unless the request actually provides a verified tool result. Never ask for passwords, OTPs, API keys, bank/card details, or other secrets. For payments, payouts, identity checks, or account ownership, direct users to official in-app support and an eligible adult account owner; never promise money movement. If a feature is not implemented or status is unknown, say so clearly and offer safe next steps. Do not invent app features, policies, or support outcomes. Be polite, concise, and practical.";
 
+function providerHttpError(status: number, data: any) {
+  const providerMessage = String(data?.error?.message || data?.message || "").toLowerCase();
+  if (status === 401) return "INVALID_API_KEY";
+  if (status === 403) return providerMessage.includes("billing") || providerMessage.includes("quota") ? "BILLING_OR_QUOTA_BLOCKED" : "PROVIDER_ACCESS_DENIED";
+  if (status === 404) return "MODEL_NOT_FOUND_OR_UNAVAILABLE";
+  if (status === 429) return "RATE_LIMIT_OR_QUOTA_EXCEEDED";
+  if (status >= 500) return "PROVIDER_SERVER_ERROR";
+  return `HTTP_${status}`;
+}
+
+function normalizeGeminiContents(messages: ChatMessage[]) {
+  const contents: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }> = [];
+  for (const message of messages) {
+    const role = message.role === "assistant" ? "model" : "user";
+    const previous = contents[contents.length - 1];
+    if (previous && previous.role === role) previous.parts.push({ text: message.content });
+    else contents.push({ role, parts: [{ text: message.content }] });
+  }
+  while (contents[0]?.role === "model") contents.shift();
+  return contents;
+}
+
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 16000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -48,17 +70,15 @@ async function callOpenAI(key: string, messages: ChatMessage[]) {
     })
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`HTTP_${response.status}`);
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
   const text = data?.choices?.[0]?.message?.content;
   if (typeof text !== "string" || !text.trim()) throw new Error("EMPTY_RESPONSE");
   return text;
 }
 
 async function callGemini(key: string, messages: ChatMessage[]) {
-  const contents = messages.map(m => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }]
-  }));
+  const contents = normalizeGeminiContents(messages);
+  if (!contents.length || contents[contents.length - 1].role !== "user") throw new Error("INVALID_GEMINI_TURN_SEQUENCE");
   const response = await fetchWithTimeout(
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
     {
