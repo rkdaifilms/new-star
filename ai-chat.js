@@ -50,7 +50,7 @@ async function checkProviderStatus(force=false){
   if(error||!data?.ok)throw error||new Error(data?.error||"Status unavailable");
   const names=[["openai","OpenAI"],["gemini","Gemini"],["openrouter","OpenRouter"]];
   const ready=names.filter(([key])=>data.providers?.[key]).map(([,label])=>label);
-  providerStatus.textContent=ready.length?"Configured: "+ready.join(" · ")+" (API response test संदेश भेजने पर होगा)।":"कोई AI Provider server पर configured नहीं है।";
+  providerStatus.textContent=ready.length?"AI Provider उपलब्ध: "+ready.join(" · ")+" · संदेश भेजकर Live Response जाँचें।":"AI अभी चालू नहीं है: Server पर OpenAI, Gemini या OpenRouter की API Key नहीं मिली। अधिकृत Owner Supabase → Edge Functions → Secrets में Provider Key सेट करे।";
  }catch(error){providerStatus.textContent="AI status जाँच नहीं हो सकी। Login और network connection जाँचें।";}
 }
 launch.addEventListener("click",()=>{panel.classList.toggle("open");if(panel.classList.contains("open"))checkProviderStatus();});panel.querySelector("#ns-ai-close").addEventListener("click",()=>panel.classList.remove("open"));
@@ -64,8 +64,8 @@ panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
  try{
   const requestMessages=[...history.slice(-8),{role:"user",content:text}];
   const {data:result,error:invokeError}=await db.functions.invoke("ai-gateway",{body:{messages:requestMessages}});
-  if(invokeError)throw invokeError;
-  if(!result?.ok||typeof result.answer!=="string"){const attempted=Array.isArray(result?.attempted)&&result.attempted.length?" (जाँच: "+result.attempted.join(", ")+")":"";throw new Error((result?.error||"AI सेवा अभी उपलब्ध नहीं है।")+attempted);}
+  if(invokeError){let message=invokeError.message||"AI Gateway request failed";try{const response=invokeError.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();if(payload?.error)message=payload.error;}}catch(_){}throw new Error(message);}
+  if(!result?.ok||typeof result.answer!=="string"){const attempted=Array.isArray(result?.attempted)&&result.attempted.length?" (Provider check: "+result.attempted.join(", ")+")":"";throw new Error((result?.error||"AI सेवा अभी उपलब्ध नहीं है।")+attempted);}
   pending.textContent=result.answer;
   history.push({role:"user",content:text},{role:"assistant",content:result.answer});
   if(history.length>10)history.splice(0,history.length-10);
@@ -73,7 +73,7 @@ panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
   let detail=err?.message||"AI सेवा अभी उपलब्ध नहीं है।";
   try{const response=err?.context;if(response&&typeof response.json==="function"){const payload=await response.clone().json();if(payload?.error)detail=payload.error;}}
   catch(_){}
-  pending.textContent=detail+" कृपया थोड़ी देर बाद फिर कोशिश करें।";
+  pending.textContent=detail.includes("No AI provider is configured")?"AI अभी चालू नहीं है क्योंकि Server पर कोई Provider API Key configured नहीं है। अधिकृत Owner को Supabase Edge Function Secrets में OpenAI, Gemini या OpenRouter की Key जोड़नी होगी।":detail+" कृपया थोड़ी देर बाद फिर कोशिश करें।";
  }
  finally{send.disabled=false;send.textContent="Send";input.focus();}
 });
