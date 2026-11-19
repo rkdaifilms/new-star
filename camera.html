@@ -299,7 +299,7 @@ let rotation = 0;
 let trimEnd = null;
 let publishing = false;
 let sourceMetadata = null;
-const CURRENT_VIDEO_BUCKET_LIMIT = 1024 * 1024 * 1024; // Existing videos bucket limit: 1 GiB
+const CURRENT_VIDEO_BUCKET_LIMIT = 5 * 1024 * 1024 * 1024; // Cloudflare Stream target limit: 5 GiB; provider secrets/quota required
 
 function toast(message) {
  const el = $("toast");
@@ -787,31 +787,36 @@ async function publishVideo() {
   } catch(error) { console.warn("Profile lookup skipped:",error); }
 
   const originalName = selectedVideoFile.name || "video.webm";
-  let ext = originalName.split(".").pop().toLowerCase().replace(/[^a-z0-9]/g,"");
-  if (!ext || ext.length > 8) ext = selectedVideoFile.type.includes("mp4") ? "mp4" : "webm";
-  const uniqueName = typeof crypto.randomUUID === "function" ? crypto.randomUUID() :
-   Date.now() + "-" + Math.random().toString(36).slice(2);
-  const filePath = user.id + "/" + uniqueName + "." + ext;
-
-  status.textContent = "वीडियो ("+getVideoMode(mediaInfo.width,mediaInfo.height)+", "+getRatioLabel(mediaInfo.width,mediaInfo.height)+") resumable upload से भेजा जा रहा है...";
-  if(!window.tus || !window.tus.Upload)throw new Error("Large video upload library लोड नहीं हुई। Internet जाँचकर पेज reload करें।");
+  const displayName = originalName.slice(0,180);
+  status.textContent = "Cloudflare Stream के लिए सुरक्षित resumable upload तैयार हो रहा है...";
+  if(!window.tus || !window.tus.Upload)throw new Error("Resumable upload library लोड नहीं हुई। Internet जाँचकर पेज reload करें।");
   const {data:sessionData,error:sessionError}=await db.auth.getSession();
   if(sessionError)throw sessionError;
-  const accessToken=sessionData && sessionData.session && sessionData.session.access_token;
+  const accessToken=sessionData?.session?.access_token;
   if(!accessToken)throw new Error("Login session समाप्त हो गई। दोबारा Login करें।");
+  let cloudflareVideoId=null;
+  const tusEndpoint="https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy";
   await new Promise((resolve,reject)=>{
    const tusUpload=new window.tus.Upload(selectedVideoFile,{
-    endpoint:"https://uzsusgoetrkujmofxcmb.storage.supabase.co/storage/v1/upload/resumable",
+    endpoint:tusEndpoint,
     retryDelays:[0,3000,5000,10000,20000],
     headers:{authorization:"Bearer "+accessToken,apikey:db.supabaseKey},
     uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,
-    chunkSize:6*1024*1024,
-    metadata:{bucketName:"videos",objectName:filePath,contentType:selectedVideoFile.type || ("video/"+ext),cacheControl:"3600"},
+    chunkSize:50*1024*1024,
+    metadata:{
+     maxDurationSeconds:String(Math.ceil(mediaInfo.duration)),
+     name:displayName,
+     filetype:selectedVideoFile.type || ("video/"+ext)
+    },
+    onAfterResponse(_request,response){
+     const receivedId=response.getHeader("stream-media-id");
+     if(receivedId)cloudflareVideoId=receivedId;
+    },
     onError(error){reject(error);},
     onProgress(bytesUploaded,bytesTotal){
      const percent=bytesTotal?Math.floor(bytesUploaded/bytesTotal*100):0;
      const progressEl=$("uploadProgress");if(progressEl)progressEl.value=percent;
-     status.textContent="Upload "+percent+"% · "+(bytesUploaded/1048576).toFixed(1)+" / "+(bytesTotal/1048576).toFixed(1)+" MB";
+     status.textContent="Cloudflare Upload "+percent+"% · "+(bytesUploaded/1048576).toFixed(1)+" / "+(bytesTotal/1048576).toFixed(1)+" MB";
     },
     onSuccess(){resolve();}
    });
@@ -820,30 +825,26 @@ async function publishVideo() {
     tusUpload.start();
    }).catch(reject);
   });
-  uploadedPath = filePath;
-
-  // Store the bucket-relative object reference, never a permanent public URL.
-  const videoUrl = "storage://videos/" + filePath;
-
-  status.textContent = "वीडियो Database में सेव हो रहा है...";
-  const payload = {
+  if(!cloudflareVideoId)throw new Error("Cloudflare upload पूरा हुआ, लेकिन Stream Video ID नहीं मिली। Support के लिए upload session ID सुरक्षित रखें।");
+  const videoUrl="cloudflare://"+cloudflareVideoId;
+  status.textContent="Cloudflare वीडियो को प्रोसेस कर रहा है; पोस्ट को Processing स्थिति में सेव किया जा रहा है...";
+  const payload={
    media_kind:mediaKind,aspect_ratio_setting:aspectRatioSetting,frame_fit:frameFit,quality_preference:qualityPreference,
    source_quality:(mediaInfo.width+"x"+mediaInfo.height),
-   user_id:user.id,video_url:videoUrl,caption,category,username:String(username),
-   likes_count:0,views_count:0,affiliate_link:affiliate || null,audience_type:audience,
+   user_id:user.id,video_url:videoUrl,video_provider:"cloudflare",provider_video_id:cloudflareVideoId,
+   provider_status:"processing",caption,category,username:String(username),
+   likes_count:0,views_count:0,affiliate_link:affiliate||null,audience_type:audience,
    duration_seconds:Math.ceil(mediaInfo.duration),width:mediaInfo.width,height:mediaInfo.height,
-   video_type:videoType,processing_status:"published",visibility
+   video_type:videoType,processing_status:"processing",visibility
   };
-  const {data:inserted,error:insertError} = await db.from("videos")
-   .insert(payload).select("id").single();
-  if (insertError) throw new Error("Database Insert: " + insertError.message);
-  if (!inserted?.id) throw new Error("Database से Video ID नहीं मिली।");
-
-  databaseSaved = true;
-  progress.value = 100;
-  status.textContent = "वीडियो सफलतापूर्वक Publish हो गया!";
-  toast("🌟 New Star Feed पर वीडियो Publish हो गया!");
-  setTimeout(() => location.href = "index.html?video=" + encodeURIComponent(inserted.id),1000);
+  const {data:inserted,error:insertError}=await db.from("videos").insert(payload).select("id").single();
+  if(insertError)throw new Error("Cloudflare upload सफल है (Stream ID: "+cloudflareVideoId+"), लेकिन Database Insert असफल: "+insertError.message+". वीडियो Cloudflare में सुरक्षित है; इसे हटाएँ नहीं।");
+  if(!inserted?.id)throw new Error("Database से Video ID नहीं मिली। Cloudflare Stream ID: "+cloudflareVideoId);
+  databaseSaved=true;
+  progress.value=100;
+  status.textContent="वीडियो Cloudflare पर अपलोड हो गया है और प्रोसेसिंग में है। तैयार होते ही Publish होगा।";
+  toast("🌟 वीडियो अपलोड हुआ; HD processing जारी है।");
+  setTimeout(()=>location.href="profile.html",1200);
  } catch(error) {
   console.error("Publish Error:",error);
   if (uploadedPath && !databaseSaved) {
