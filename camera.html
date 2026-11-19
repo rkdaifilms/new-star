@@ -495,8 +495,14 @@ $("stopRecordBtn").onclick = () => {
 };
 
 /* Load Video: inspect metadata before opening Editor */
+function isVideoFile(file) {
+ if (!file) return false;
+ if (file.type && file.type.toLowerCase().startsWith("video/")) return true;
+ const extension = String(file.name || "").split(".").pop().toLowerCase();
+ return ["mp4","m4v","mov","webm","3gp","3gpp","mkv","avi","mpeg","mpg","ogv"].includes(extension);
+}
 async function loadVideo(file) {
- if (!file || !file.type.startsWith("video/")) throw new Error("कृपया सही Video File चुनें।");
+ if (!isVideoFile(file)) throw new Error("कृपया MP4, MOV, WebM या अन्य समर्थित Video File चुनें।");
  const metadata=await readVideoMetadata(file);
  if(!Number.isFinite(metadata.duration)||metadata.duration<=0)throw new Error("वीडियो की अवधि पढ़ी नहीं जा सकी।");
  if(metadata.duration>MAX_UPLOAD_SECONDS+0.05) {
@@ -759,7 +765,7 @@ async function publishVideo() {
    throw new Error("पहले Login करें।");
   }
   if (!selectedVideoFile) throw new Error("पहले Camera या Gallery से वीडियो चुनें।");
-  if (!selectedVideoFile.type.startsWith("video/")) throw new Error("सही Video File चुनें।");
+  if (!isVideoFile(selectedVideoFile)) throw new Error("सही Video File चुनें।");
   if (selectedVideoFile.size <= 0) throw new Error("Video File खाली है।");
   if (selectedVideoFile.size > CURRENT_VIDEO_BUCKET_LIMIT) {
    throw new Error("यह वीडियो 5 GiB की वर्तमान New Star upload सीमा से बड़ा है।");
@@ -810,12 +816,12 @@ async function publishVideo() {
     endpoint:tusEndpoint,
     retryDelays:[0,3000,5000,10000,20000],
     headers:{authorization:"Bearer "+accessToken,apikey:window.SUPABASE_ANON_KEY},
-    uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,
-    chunkSize:50*1024*1024,
+    uploadDataDuringCreation:false,removeFingerprintOnSuccess:true,
+    chunkSize:8*1024*1024,
     metadata:{
      maxDurationSeconds:String(Math.ceil(mediaInfo.duration)),
      name:displayName,
-     filetype:selectedVideoFile.type || "application/octet-stream"
+     filetype:selectedVideoFile.type || "video/mp4"
     },
     onAfterResponse(_request,response){
      const receivedId=response.getHeader("stream-media-id");
