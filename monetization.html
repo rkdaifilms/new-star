@@ -145,6 +145,14 @@
         <span class="hub-right" id="campLockStatus" style="color:#ffcc00;">Locked 🔒</span>
     </div>
 
+    <!-- SPONSORSHIP & BRAND DEALS: 1,000-follower creator access -->
+    <div class="hub-item" onclick="checkCampaignAccess()" style="background:linear-gradient(135deg,#171a2c,#202033)">
+        <div class="hub-left"><span class="hub-icon">🤝</span><div class="hub-text">
+            <h4>Creator Sponsorship & Brand Deals</h4>
+            <p>1,000 followers पर अपना brand sponsorship draft बनाएँ या दूसरे brand campaigns में apply करें</p>
+        </div></div><span class="hub-right" id="sponsorLockStatus" style="color:#ffcc00">1,000 followers 🔒</span>
+    </div>
+
     <!-- 4. AFFILIATE MARKETING -->
     <div class="hub-item" aria-disabled="true">
         <div class="hub-left">
@@ -345,6 +353,7 @@
             if(action){action.disabled=!eligible||creatorProgress.application_status==="pending";action.textContent=creatorProgress.application_status==="pending"?"Application under review":!checksReady?"Complete account verification":eligible?"Apply for New Star Creator Review":"Continue growing";}
             const sub=document.getElementById("mainHubSubText");if(sub)sub.textContent="Originality + audience quality + verified activity";
             const camp=document.getElementById("campLockStatus");if(camp)camp.textContent=featureAccess?.campaign_create_access?"Unlocked ✓":"1,000 followers 🔒";
+            const sponsor=document.getElementById("sponsorLockStatus");if(sponsor)sponsor.textContent=featureAccess?.sponsorship_access?"Unlocked ✓":"1,000 followers 🔒";
             const liveGift=document.querySelector('[onclick="openLiveGiftRulesModal()"] .hub-right');if(liveGift)liveGift.textContent=featureAccess?.live_gifts_access?"Unlocked at 1,000 ✓":"1,000 followers 🔒";
             const videoGift=document.getElementById("videoGiftLockStatus");if(videoGift)videoGift.textContent=featureAccess?.video_gifts_access?"Unlocked ✓":"Video Monetization approval 🔒";
             const aff=document.getElementById("affLockStatus");if(aff)aff.textContent="Coming soon";
