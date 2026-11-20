@@ -112,6 +112,16 @@
     <div class="list-container" id="tabMessages">
         <div class="empty-state" data-i18n="inbox.loading">Loading your conversations…</div>
     </div>
+    <section class="list-container" id="inboxQuickComposer" aria-label="New message composer" style="margin-top:12px;border:1px solid #393943;border-radius:14px;background:#171720;padding:14px">
+      <strong style="display:block;margin-bottom:8px">✉ नया मैसेज</strong>
+      <p id="quickComposerHint" class="muted" style="font-size:13px;margin:0 0 10px">पहले Discover Creators में किसी Creator को चुनें। फिर यहाँ से भी मैसेज भेज सकेंगे।</p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="quickMessageInput" type="text" maxlength="2000" placeholder="मैसेज लिखें…" disabled style="flex:1;min-width:130px;padding:12px;border-radius:22px;border:1px solid #444;background:#222;color:#fff">
+        <button id="quickMicButton" type="button" class="chat-icon-btn" disabled aria-label="Voice typing">🎙️</button>
+        <button id="quickSendButton" type="button" class="send-btn" disabled>Send</button>
+      </div>
+      <small id="quickComposerStatus" class="muted" aria-live="polite">अभी कोई Creator चुना नहीं गया है।</small>
+    </section>
 
     <div class="list-container" id="tabFollowers" style="display:none;">
         <div class="empty-state" data-i18n="inbox.noFollowers">Follower activity will appear here.</div>
@@ -387,13 +397,32 @@ async function openChat(peer,p){
  const {data:existing,error:lookupError}=await db.from("messages").select("conversation_id,created_at").or("and(sender_id.eq."+me.id+",recipient_id.eq."+peer+"),and(sender_id.eq."+peer+",recipient_id.eq."+me.id+")").order("created_at",{ascending:false}).limit(1);
  if(lookupError){setStatus("Conversation जाँच नहीं हुई: "+lookupError.message);return;}
  activeConversation=existing?.[0]?.conversation_id||await stableConversationId(me.id,peer);
+ syncQuickComposer();
  $("chatBoxWindow").style.display="flex";await loadConversation();
  $("messageInput").focus();
 }
 window.startNewMessage=function(){
- switchTab("discover",document.querySelector(".inbox-tab[onclick*=\"discover\"]"));
+ switchTab("discover",document.querySelector(".inbox-tab[onclick*="discover"]"));
  $("creatorSearchInput").focus();
 };
+function syncQuickComposer(){
+ const enabled=!!activePeer;
+ $("quickMessageInput").disabled=!enabled;$("quickMicButton").disabled=!enabled;$("quickSendButton").disabled=!enabled;
+ $("quickComposerHint").textContent=enabled?"अब "+$("activeChatName").textContent+" को मैसेज भेज सकते हैं।":"पहले Discover Creators में किसी Creator को चुनें।";
+ $("quickComposerStatus").textContent=enabled?"चुना गया Creator: "+$("activeChatName").textContent:"अभी कोई Creator चुना नहीं गया है।";
+}
+$("quickSendButton").addEventListener("click",async()=>{
+ if(!activePeer){$("quickComposerStatus").textContent="पहले Creator चुनें।";return;}
+ const value=$("quickMessageInput").value.trim();if(!value)return;
+ $("messageInput").value=value;await window.sendMessage();$("quickMessageInput").value="";
+});
+$("quickMessageInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("quickSendButton").click();}});
+$("quickMicButton").addEventListener("click",()=>{
+ if(!activePeer){$("quickComposerStatus").textContent="पहले Creator चुनें।";return;}
+ $("messageInput").value=$("quickMessageInput").value;
+ window.startVoiceRecording();
+ $("quickComposerStatus").textContent="ऊपर Chat composer में voice typing शुरू हुई है।";
+});
 window.openDirectMessage=async function(peer,name,avatar,bio){
  const p={full_name:name,username:name,avatar_url:avatar,bio};
  await openChat(peer,p);
@@ -416,7 +445,7 @@ window.sendMessage=async function(){
  if(error){setStatus("Message नहीं भेजा गया: "+error.message);}else{input.value="";input.dataset.voiceBase="";inboxVoiceStatus.textContent="";await loadConversation();await loadThreads();}
  if(btn)btn.disabled=false;
 };
-window.closeChat=function(){$("chatBoxWindow").style.display="none";activePeer=null;activeConversation=null;};
+window.closeChat=function(){$("chatBoxWindow").style.display="none";activePeer=null;activeConversation=null;syncQuickComposer();};
 window.handleKeyPress=e=>{if(e.key==="Enter"){e.preventDefault();window.sendMessage();}};
 window.switchTab=function(tab,el){document.querySelectorAll(".inbox-tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");["messages","followers","following","requests","discover"].forEach(t=>{$("tab"+t[0].toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";});if(tab==="requests")loadFollowRequests();if(tab==="discover")$("creatorSearchInput").focus();};
 let inboxRecognition=null,inboxRecording=false;
