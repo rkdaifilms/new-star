@@ -190,12 +190,9 @@
                 <h4 style="color: #ffcc00; font-size: 15px;">⚔️ Start Gamer PK Battle</h4>
                 <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('pkBattleModal')">✕</span>
             </div>
-            <label style="color:#ffcc00; margin-bottom:4px;">Select Battle Mode:</label>
-            <select id="pkModeSelect" style="margin-bottom:12px;">
-                <option value="1v1">⚔️ 1v1 Battle (2 Players)</option>
-                <option value="2v2" selected>👥 2v2 Battle (4 Rooms)</option>
-            </select>
-            <button class="btn" style="background:#ffcc00; color:#000; font-weight:bold; margin-top:0;" onclick="startPkBattle()">🚀 Launch PK Battle Now</button>
+            <p id="gamingPkStatusText" style="font-size:12px;color:#ccc;line-height:1.5;">Friendly 1v1 creator battle. Score is based on real LIVE likes; no coins, paid entry, or prizes.</p>
+            <button id="gamingPkStartButton" class="btn" style="background:#ffcc00;color:#111;font-weight:bold;" onclick="startPkBattle()">🌐 Find real opponent</button>
+            <button id="gamingPkStopButton" class="btn" style="display:none;background:#444;color:#fff;margin-top:8px;" onclick="cancelGamingPk()">Cancel search / End battle</button>
         </div>
     </div>
 
@@ -923,7 +920,56 @@
             } catch (error) { if (!error.message?.includes('wait')) console.warn('Gaming reaction:', error); }
             finally { gamingReactionBusy = false; }
         }
-        function startPkBattle() { alert('Gaming PK matchmaking is not yet connected to real participants. No battle was created.'); }
+        let gamingPkPollTimer = null;
+        let gamingPkMatchId = null;
+        async function startPkBattle() {
+            if (!gamingRoomId || gamingIsGuest) { alert('Only the host of an active gaming LIVE can enter PK matchmaking.'); return; }
+            const status = document.getElementById('gamingPkStatusText');
+            const start = document.getElementById('gamingPkStartButton');
+            if (start) { start.disabled = true; start.textContent = 'Joining queue…'; }
+            try {
+                const result = await gamingLiveApi('pk-join-queue', { room_id: gamingRoomId });
+                if (status) status.textContent = result.status === 'matched' ? 'Opponent found. Loading battle status…' : 'You are in the real creator queue. Waiting for another gaming LIVE…';
+                document.getElementById('gamingPkStopButton').style.display = 'block';
+                if (gamingPkPollTimer) clearInterval(gamingPkPollTimer);
+                gamingPkPollTimer = setInterval(refreshGamingPkStatus, 3500);
+                await refreshGamingPkStatus();
+            } catch (error) { if (status) status.textContent = error.message; }
+            finally { if (start) { start.disabled = false; start.textContent = '🌐 Find real opponent'; } }
+        }
+        async function refreshGamingPkStatus() {
+            if (!gamingRoomId) return;
+            try {
+                const result = await gamingLiveApi('pk-status', { room_id: gamingRoomId });
+                const status = document.getElementById('gamingPkStatusText');
+                const stop = document.getElementById('gamingPkStopButton');
+                const start = document.getElementById('gamingPkStartButton');
+                if (result.status === 'matched') {
+                    gamingPkMatchId = result.match_id;
+                    if (status) status.textContent = '⚔️ ' + result.opponent_name + ' · Your likes: ' + result.own_score + ' · Opponent likes: ' + result.opponent_score;
+                    if (stop) { stop.style.display = 'block'; stop.textContent = 'End friendly battle'; }
+                    if (start) start.style.display = 'none';
+                } else if (result.status === 'waiting') {
+                    if (status) status.textContent = 'Searching… waiting for another real gaming LIVE creator.';
+                    if (stop) { stop.style.display = 'block'; stop.textContent = 'Cancel search'; }
+                } else {
+                    gamingPkMatchId = null;
+                    if (status) status.textContent = 'No active PK search or battle.';
+                    if (stop) stop.style.display = 'none';
+                    if (start) { start.style.display = 'block'; start.textContent = '🌐 Find real opponent'; }
+                    if (gamingPkPollTimer) clearInterval(gamingPkPollTimer);
+                    gamingPkPollTimer = null;
+                }
+            } catch (error) { console.warn('Gaming PK status:', error); }
+        }
+        async function cancelGamingPk() {
+            try {
+                if (gamingPkMatchId) await gamingLiveApi('pk-finish', { match_id: gamingPkMatchId });
+                else await gamingLiveApi('pk-leave-queue');
+                gamingPkMatchId = null;
+                await refreshGamingPkStatus();
+            } catch (error) { alert(error.message); }
+        }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     </script>
 <script src="preferences.js"></script>
