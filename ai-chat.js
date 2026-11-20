@@ -29,6 +29,18 @@ if(onHomeFeed){
 
  `;
 }
+
+/* Help Center AI opens as a true full-screen workspace on every app page. */
+style.textContent += `
+#ns-ai-panel,#ns-ai-panel.open{position:fixed!important;inset:0!important;right:0!important;bottom:0!important;left:0!important;top:0!important;width:100vw!important;width:100dvw!important;height:100vh!important;height:100dvh!important;max-height:none!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;z-index:2147483001!important;box-shadow:none!important;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box!important}
+#ns-ai-head{position:relative;flex:0 0 auto;min-height:58px;padding:10px 14px;background:#202027;border-bottom:1px solid #393941;box-sizing:border-box}
+#ns-ai-head button{width:44px;height:44px;min-width:44px;border-radius:50%;background:#383843;font-size:28px;line-height:1}
+#ns-ai-provider-status{flex:0 0 auto}
+#ns-ai-log{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+#ns-ai-note,#ns-ai-voice-status{flex:0 0 auto}
+#ns-ai-form{flex:0 0 auto;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#171717;box-sizing:border-box}
+#ns-ai-input{font-size:16px;min-width:0}
+`;
 const launch=document.createElement("button");launch.id="ns-ai-launch";launch.type="button";launch.textContent="✦ New Star Help AI";
 const panel=document.createElement("section");panel.id="ns-ai-panel";panel.setAttribute("aria-label","New Star AI Help Center");
 panel.innerHTML='<div id="ns-ai-head"><strong>New Star Help Center AI</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-provider-status" role="status" aria-live="polite">AI सर्वर की स्थिति जाँची जा रही है…</div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! मैं New Star Help Center AI हूँ। मैं New Star अकाउंट, लॉगिन, प्रोफ़ाइल, वीडियो अपलोड/प्लेबैक, लाइव, मैसेज, सेटिंग्स, रिपोर्ट, सुरक्षा और अपील से जुड़ी सहायता कर सकता हूँ। रचनात्मक लेखन, कहानी, स्क्रिप्ट, थंबनेल, इमेज और कोडिंग के लिए Creator Studio AI खोलें।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><div id="ns-ai-voice-status" role="status" aria-live="polite"></div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="कुछ भी पूछें…" required><button id="ns-ai-mic" type="button" aria-label="Start voice input" aria-pressed="false" title="Speak your message">🎙️</button><button id="ns-ai-send" type="submit">Send</button></form>';
