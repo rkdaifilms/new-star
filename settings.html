@@ -142,7 +142,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <section class="section" id="help">
 <h2 class="section-title">09 · Help & About</h2>
 <div class="panel">
-<div class="row"><h3>Help & Support</h3><p>Account, messages और app support के लिए Inbox खोलें।</p><a class="action" href="inbox.html">✉️ Open Support Inbox</a></div>
+<div class="row"><h3>Help & Support — New Star AI</h3><p>Account, settings, upload और technical help के लिए New Star Help Center AI खोलें।</p><button type="button" id="openHelpCenterFromSupport">✦ Open Help Center AI</button></div><div class="row"><h3>Messages & Inbox</h3><p>Creators के साथ Direct Messages, Followers और Follow Requests देखने के लिए Inbox खोलें।</p><a class="action secondary" href="inbox.html">✉️ Open Messages Inbox</a></div>
 <div class="row"><h3>About New Star</h3><p>New Star Creator Hub · आपकी प्रोफाइल, वीडियो और Creator सुविधाएँ।</p><p>Settings build: 2.1 · Language, Theme और Accessibility preferences डिवाइस पर लागू होती हैं और signed-in account के साथ sync की जाती हैं। सभी पेजों का पूर्ण अनुवाद अभी उपलब्ध नहीं है।</p></div>
 </div></section>
 <p class="note">ध्यान दें: Browser Push Notifications, सभी स्क्रीन का पूर्ण अनुवाद और हर डिवाइस पर sync होने वाली preference storage अभी अलग implementation माँगते हैं। यहाँ केवल वही सुविधाएँ सक्रिय रखी गई हैं जिनका वास्तविक कार्य इस पेज से जोड़ा गया है।</p>
@@ -238,7 +238,16 @@ async function logout(scope,buttonId){
 }
 $("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});
 $("textScale").addEventListener("change",saveAccessibility);$("reducedMotion").addEventListener("change",saveAccessibility);$("highContrast").addEventListener("change",saveAccessibility);$("syncPreferencesBtn").addEventListener("click",syncPreferencesNow);$("savePrivacyBtn").addEventListener("click",savePrivacy);async function checkAiGateway(){const out=$("aiGatewayStatus"),btn=$("checkAiGatewayBtn");btn.disabled=true;out.textContent="AI providers जाँचे जा रहे हैं…";try{if(!db?.auth)throw new Error("Supabase connection उपलब्ध नहीं है।");const {data:sessionData}=await db.auth.getSession();if(!sessionData?.session)throw new Error("पहले account में Login करें।");const {data,error}=await db.functions.invoke("ai-gateway",{body:{action:"status"}});if(error)throw error;if(!data?.ok||!data?.providers)throw new Error(data?.error||"Gateway status नहीं मिला।");const p=data.providers;const state=k=>p[k]?"Configured":"Missing";out.textContent="OpenAI: "+state("openai")+" · Gemini: "+state("gemini")+" · OpenRouter: "+state("openrouter")+". Configured का अर्थ key मौजूद है; live API validity अलग से जाँचना बाकी है।";}catch(e){out.textContent="AI status check failed: "+(e?.message||"Unknown error");}finally{btn.disabled=false;}}window.checkAiGatewayStatus=checkAiGateway;
-$("checkAiGatewayBtn").addEventListener("click",checkAiGateway);$("openAiAssistantBtn").addEventListener("click",()=>{const launch=$("ns-ai-launch");if(launch)launch.click();else message("New Star AI अभी इस पेज पर लोड नहीं हुआ। पेज Reload करें।","error");});$("saveNotificationPrefsBtn").addEventListener("click",saveNotificationPrefs);$("markAllReadBtn").addEventListener("click",markAllNotificationsRead);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
+$("checkAiGatewayBtn").addEventListener("click",checkAiGateway);function openHelpCenterAI(){
+ if(window.NewStarHelpAI?.open){window.NewStarHelpAI.open();return;}
+ let script=document.querySelector('script[data-newstar-help-ai="true"]');
+ if(!script){script=document.createElement("script");script.src="ai-chat.js";script.dataset.newstarHelpAi="true";document.head.appendChild(script);}
+ const open=()=>{if(window.NewStarHelpAI?.open)window.NewStarHelpAI.open();else message("Help Center AI लोड नहीं हुआ। पेज Reload करके फिर कोशिश करें।","error");};
+ script.addEventListener("load",open,{once:true});
+ script.addEventListener("error",()=>message("Help Center AI script लोड नहीं हुई। Internet connection जाँचें।","error"),{once:true});
+}
+$("openAiAssistantBtn").addEventListener("click",openHelpCenterAI);
+$("openHelpCenterFromSupport").addEventListener("click",openHelpCenterAI);$("saveNotificationPrefsBtn").addEventListener("click",saveNotificationPrefs);$("markAllReadBtn").addEventListener("click",markAllNotificationsRead);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
 window.addEventListener("newstar:preferences-loaded",loadAppearance);loadAppearance();loadSettings();
 })();
 </script>
