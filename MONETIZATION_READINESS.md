@@ -24,9 +24,9 @@ This document records verified implementation state. It is not a claim that live
 - `sponsorship`: 10,000 basis points, **draft** (100% platform share only for contracts with no creator share; never apply as a universal default).
 - `ads`: 5,500 basis points, **draft** (55% platform / 45% creator proposal; earnings require verified network reporting).
 - Draft values are setup records only. They must not be treated as active payable earnings or used to move money until an eligible adult-managed account owner approves the commercial terms and the corresponding revenue route is implemented and tested.
-- `public.send_creator_gift_secure` now reads `live_gifts` for the live gift path? No: the current secure function handles **video gifts** and now reads the `video_gifts` rule. It remains service-role-only; do not expose direct client execution.
-- The separate live gift UI is explicitly preview-only: cards are non-clickable and the send handler fails closed without wallet deduction or a fake chat receipt. The live-gift transaction route is not yet verified end-to-end.
-- Video gifting also remains disabled until the app route, authenticated wallet read, and server-authorized function are wired and tested end-to-end.
+- `public.send_creator_gift_secure` has been changed to read the `video_gifts` rule. Its caller wiring has not yet been verified, so do not assume that the app's video-gift UI is connected to it. It remains service-role-only; do not expose direct client execution.
+- The live gift UI is explicitly preview-only: cards are non-clickable and the send handler fails closed without wallet deduction or a fake chat receipt. The live-gift transaction route is not yet verified end-to-end.
+- Both live and video gifting must remain unavailable until their respective app routes, authenticated wallet reads, and server-authorized transaction calls are wired and tested end-to-end.
 
 ## Ads
 
