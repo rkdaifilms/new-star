@@ -13,14 +13,20 @@ This document records verified implementation state. It is not a claim that live
 - That function is restricted to `service_role`. Do not grant it to `anon` or `authenticated`.
 - There is no deployed payment-initiation/verification Edge Function yet. Do not enable a Pay Now flow until a provider adapter, server-side verification, refund handling, and sandbox regression tests are complete.
 
-## Gift commission
+## Commission rules (verified database state)
 
-- The active `private.commission_rules` row for `live_gifts` was set to 5000 basis points (50% platform / 50% creator).
-- `public.send_creator_gift_secure` reads this active `live_gifts` rule and records the sender deduction, creator net, platform fee, and platform ledger entry in one database transaction.
-- The current secure gift function is service-role-only. Do not expose direct client execution.
-- Video gift commission has not been separately verified as an independent route. If video gifts use this same secure function, they inherit the same 50/50 rule; otherwise, audit and route them through the same server-side accounting before enabling them.
-- The live gift catalogue is now explicitly preview-only: cards are non-clickable, the modal states gifting is unavailable, and the send handler fails closed without a wallet deduction or fake chat receipt.
-- It must remain preview-only until the authenticated wallet read path and server-authorized gift route are wired and tested end-to-end.
+- `private.commission_rules` has a unique `rule_code` and stores the platform share in basis points; 10,000 basis points means 100%.
+- `live_gifts`: 5,000 basis points, **active** (50% platform / 50% creator).
+- `video_gifts`: 5,000 basis points, **draft** (50% / 50% proposed; not enabled).
+- `gaming_battle`: 2,500 basis points, **draft** (25% proposed; no paid entry, staking, or coin-prize pool).
+- `affiliate`: 2,000 basis points, **draft** (20% proposed platform share of the eligible commission, not of the whole product sale).
+- `campaign`: 2,500 basis points, **draft** (25% proposed service fee; campaign spend, creator reward, and taxes must remain separately accounted).
+- `sponsorship`: 10,000 basis points, **draft** (100% platform share only for contracts with no creator share; never apply as a universal default).
+- `ads`: 5,500 basis points, **draft** (55% platform / 45% creator proposal; earnings require verified network reporting).
+- Draft values are setup records only. They must not be treated as active payable earnings or used to move money until an eligible adult-managed account owner approves the commercial terms and the corresponding revenue route is implemented and tested.
+- `public.send_creator_gift_secure` now reads `live_gifts` for the live gift path? No: the current secure function handles **video gifts** and now reads the `video_gifts` rule. It remains service-role-only; do not expose direct client execution.
+- The separate live gift UI is explicitly preview-only: cards are non-clickable and the send handler fails closed without wallet deduction or a fake chat receipt. The live-gift transaction route is not yet verified end-to-end.
+- Video gifting also remains disabled until the app route, authenticated wallet read, and server-authorized function are wired and tested end-to-end.
 
 ## Ads
 
