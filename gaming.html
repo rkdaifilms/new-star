@@ -94,7 +94,8 @@
                 <span style="font-size:14px; cursor:pointer; color:#ffcc00; background:#222; padding:3px 8px; border-radius:6px;" onclick="toggleControlModal()">⭐ Collapse</span>
             </div>
 
-            <div style="font-size:12px; color:#ffcc00; margin-bottom:12px;">🪙 Coins: <b id="userWalletCoins">—</b> | 🔥 Rank: <b style="color:#00b4d8;">#1</b></div>
+            <div style="font-size:12px; color:#ffcc00; margin-bottom:12px;">🪙 Coins: <b id="userWalletCoins">—</b> | 🔥 Rank: <b style="color:#00b4d8;">—</b></div>
+            <div id="gamingGuestSeatGrid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:10px 0 14px;"></div>
 
             <!-- Audio & Facecam Settings -->
             <div style="background:#111; padding:10px; border-radius:10px; margin-bottom:12px; text-align:left; font-size:12px;">
@@ -114,11 +115,25 @@
                 <button class="btn" style="background:#ff4444; color:#fff; padding:10px; font-size:12px;" onclick="openTreasureBoxModal()">📦 Treasure Box</button>
                 <button class="btn" style="background:#00b4d8; color:#000; padding:10px; font-size:12px;" onclick="openGamePkModal()">⚔️ PK Battle</button>
                 <button class="btn" style="background:#fe2c55;color:#fff;padding:10px;font-size:12px;" onclick="sendGamingLike()">❤️ Like</button>
+                <button id="gamingInviteButton" class="btn" style="background:#7b61ff;color:#fff;padding:10px;font-size:12px;" onclick="openGamingInviteModal()">👥 Invite Guest</button>
                 <button class="btn" style="background:#25f4ee; color:#000; padding:10px; font-size:12px;" onclick="openChatBoxModal()">💬 Live Chat</button>
                 <button class="btn" style="grid-column:1/-1; background:linear-gradient(135deg,#25f4ee,#00b4d8); color:#001014; padding:11px; font-size:13px;" onclick="shareGamingLive()">📤 Share Gaming LIVE</button>
             </div>
 
-            <button class="btn" style="background:#333; color:#fff; padding:10px; font-size:12px;" onclick="stopGameStreamSession()">⏹️ Stop & End Live Stream</button>
+            <button id="gamingHostStopButton" class="btn" style="background:#333; color:#fff; padding:10px; font-size:12px;" onclick="stopGameStreamSession()">⏹️ Stop & End Live Stream</button>
+            <button id="gamingGuestLeaveButton" class="btn" style="display:none;background:#444;color:#fff;padding:10px;font-size:12px;" onclick="leaveGamingGuestSeat()">Leave Guest Seat</button>
+        </div>
+    </div>
+
+    <div id="gamingInviteModal" class="custom-modal">
+        <div class="modal-box" style="max-width:380px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="color:#7b61ff;font-size:15px;">Invite a New Star creator</h4>
+                <span style="cursor:pointer;color:#aaa;" onclick="closeModal('gamingInviteModal')">✕</span>
+            </div>
+            <input id="gamingCreatorSearchInput" type="search" placeholder="Search username or creator name" style="margin-bottom:8px;">
+            <button class="btn" style="background:#7b61ff;color:#fff;padding:9px;" onclick="searchGamingCreators()">Search creators</button>
+            <div id="gamingCreatorSearchResults" style="max-height:260px;overflow:auto;margin-top:10px;font-size:12px;">Search for a real creator to invite them to your gaming LIVE.</div>
         </div>
     </div>
 
@@ -206,6 +221,20 @@
         let gamingMicStream = null;
         let gamingStartBusy = false;
         let gamingStopBusy = false;
+        let gamingIsGuest = false;
+        let gamingGuestSeatNumber = null;
+        let gamingGuestStream = null;
+        let gamingInviteTimer = null;
+        let gamingSeenInvites = new Set();
+        let gamingProcessingInvites = new Set();
+        let gamingSfuReceivePeer = null;
+        let gamingSfuReceiveSessionId = null;
+        let gamingSfuReceiveBusy = false;
+        let gamingSfuSubscribeTimer = null;
+        let gamingSfuSubscribeBusy = false;
+        let gamingSfuSubscribedKeys = new Set();
+        let gamingSfuMidToParticipant = new Map();
+        let gamingSfuRemoteStreams = new Map();
 
 
         // Cloudflare Calls publisher for the composed screen + facecam + audio stream.
@@ -243,6 +272,7 @@
           const mids = gamingSfuTrackMids.slice();
           gamingSfuPeer = null; gamingSfuSessionId = null; gamingSfuTrackMids = [];
           if (pc) pc.close();
+          await stopGamingSfuReceiveSession(roomId);
           if (roomId && sessionId && mids.length) {
             try { await gamingLiveApi('sfu-close', { room_id: roomId, tracks: mids.map(mid => ({ mid })), force: true }); }
             catch (error) { console.warn('Gaming Calls track cleanup:', error); }
@@ -407,6 +437,12 @@
                 gamingWhipUrl = new URL(location, prepared.whip_url).toString();
                 gamingRoomId = roomId;
                 isLiveActive = true;
+                gamingIsGuest = false;
+                gamingGuestSeatNumber = 1;
+                renderGamingGuestSeats(4);
+                const hostSeatVideo = document.getElementById('gamingSeatVideo_1');
+                if (hostSeatVideo) { hostSeatVideo.srcObject = canvasStream; hostSeatVideo.muted = true; }
+                startGamingGuestSubscriptionPolling();
                 startGamingChatPolling();
                 gamingMicEnabled = true;
                 isMicMuted = false;
@@ -446,6 +482,7 @@
                     catch (error) { console.warn('Gaming WHIP cleanup:', error); }
                 }
                 stopGamingChatPolling();
+                stopGamingGuestSubscriptionPolling();
                 if (gamingPeer) gamingPeer.close();
                 if (roomId) {
                     try { await stopGamingSfuPublisher(roomId); }
@@ -456,6 +493,7 @@
                 if (gamingAudioContext) await gamingAudioContext.close().catch(() => {});
                 gamingPeer = null; gamingWhipUrl = null; gamingRoomId = null;
                 gamingMicStream = null; screenStreamObj = null; facecamStreamObj = null;
+                gamingIsGuest = false; gamingGuestSeatNumber = null; gamingGuestStream = null;
                 gamingCanvasStream = null; gamingAudioContext = null; gamingScreenVideo = null; gamingFaceVideo = null; gamingCanvas = null;
                 const faceVideo = document.getElementById('facecamVideoElement');
                 if (faceVideo) faceVideo.srcObject = null;
@@ -464,6 +502,10 @@
                 document.getElementById('starBubbleIcon').style.display = 'none';
                 document.getElementById('activeGamingView').style.display = 'none';
                 document.getElementById('gamingSetupPanel').style.display = 'block';
+                document.getElementById('gamingHostStopButton').style.display = 'block';
+                document.getElementById('gamingGuestLeaveButton').style.display = 'none';
+                document.getElementById('gamingInviteButton').style.display = 'inline-flex';
+                renderGamingGuestSeats(4);
                 if (roomId) {
                     try { await gamingLiveApi('stop', { room_id: roomId }); }
                     catch (error) { alert('Screen capture stopped, but server room status could not be updated: ' + error.message); return; }
@@ -595,6 +637,230 @@
         }
 
         function claimTreasureReward() { alert('Gaming Treasure Box is not connected to a server-managed prize pool. No coins were added.'); }
+        function renderGamingGuestSeats(capacity = 4) {
+            const grid = document.getElementById('gamingGuestSeatGrid');
+            if (!grid) return;
+            grid.replaceChildren();
+            const count = Math.max(2, Math.min(4, Number(capacity) || 4));
+            for (let seat = 1; seat <= count; seat++) {
+                const tile = document.createElement('div');
+                tile.style.cssText = 'position:relative;min-height:104px;background:#101820;border:1px solid #33404a;border-radius:10px;overflow:hidden;';
+                const video = document.createElement('video');
+                video.id = 'gamingSeatVideo_' + seat;
+                video.autoplay = true; video.playsInline = true; video.muted = seat === gamingGuestSeatNumber || (seat === 1 && !gamingIsGuest);
+                video.style.cssText = 'width:100%;height:104px;object-fit:cover;display:none;background:#080808;';
+                const label = document.createElement('div');
+                label.id = 'gamingSeatLabel_' + seat;
+                label.textContent = seat === 1 ? (gamingIsGuest ? 'Host · Gaming LIVE' : 'You · Gaming LIVE') : 'Guest seat ' + seat;
+                label.style.cssText = 'position:absolute;left:6px;bottom:5px;padding:3px 6px;background:#000b;color:#fff;border-radius:5px;font-size:10px;';
+                tile.append(video,label);
+                grid.appendChild(tile);
+            }
+        }
+        async function waitGamingIceGathering(pc, timeoutMs = 7000) {
+            if (pc.iceGatheringState === 'complete') return;
+            await new Promise(resolve => {
+                let done = false;
+                const finish = () => { if (done) return; done = true; pc.removeEventListener('icegatheringstatechange', onChange); clearTimeout(timer); resolve(); };
+                const onChange = () => { if (pc.iceGatheringState === 'complete') finish(); };
+                const timer = setTimeout(finish, timeoutMs);
+                pc.addEventListener('icegatheringstatechange', onChange);
+            });
+        }
+        async function stopGamingSfuReceiveSession(roomId = gamingRoomId) {
+            const pc = gamingSfuReceivePeer;
+            const hadSession = !!gamingSfuReceiveSessionId;
+            gamingSfuReceivePeer = null; gamingSfuReceiveSessionId = null;
+            gamingSfuMidToParticipant.clear(); gamingSfuSubscribedKeys.clear();
+            gamingSfuRemoteStreams.forEach((stream, seat) => {
+                const video = document.getElementById('gamingSeatVideo_' + seat);
+                if (video && video.srcObject === stream) { video.pause(); video.srcObject = null; video.style.display = 'none'; }
+            });
+            gamingSfuRemoteStreams.clear();
+            if (pc) { try { pc.close(); } catch (_) {} }
+            if (roomId && hadSession) {
+                try { await gamingLiveApi('sfu-close-receiver', { room_id: roomId }); }
+                catch (error) { console.warn('Gaming receiving session cleanup:', error); }
+            }
+        }
+        async function refreshGamingGuestSubscriptions() {
+            if (!gamingRoomId || gamingSfuSubscribeBusy || gamingSfuReceiveBusy) return;
+            gamingSfuSubscribeBusy = true;
+            try {
+                const listed = await gamingLiveApi('sfu-list-publications', { room_id: gamingRoomId });
+                const { data: auth } = await window.supabaseClient.auth.getUser();
+                const ownId = auth?.user?.id;
+                const pubs = (listed.publications || []).filter(p => p.participant_id !== ownId && p.participant?.seat_number);
+                const fresh = pubs.filter(p => !gamingSfuSubscribedKeys.has(p.publisher_session_id + ':' + p.track_name));
+                if (!fresh.length) return;
+                if (!gamingSfuReceivePeer) {
+                    const session = await gamingLiveApi('sfu-create-receive-session', { room_id: gamingRoomId });
+                    gamingSfuReceiveSessionId = session.session_id;
+                    const pc = new RTCPeerConnection();
+                    gamingSfuReceivePeer = pc;
+                    pc.ontrack = event => {
+                        const info = gamingSfuMidToParticipant.get(event.transceiver?.mid);
+                        if (!info?.participant?.seat_number) return;
+                        const seat = Number(info.participant.seat_number);
+                        const video = document.getElementById('gamingSeatVideo_' + seat);
+                        const label = document.getElementById('gamingSeatLabel_' + seat);
+                        if (!video) return;
+                        let stream = gamingSfuRemoteStreams.get(seat);
+                        if (!stream) { stream = new MediaStream(); gamingSfuRemoteStreams.set(seat, stream); }
+                        if (!stream.getTracks().some(track => track.id === event.track.id)) stream.addTrack(event.track);
+                        video.srcObject = stream; video.muted = false; video.style.display = 'block'; video.play().catch(() => {});
+                        if (label) label.textContent = (info.participant.display_name || 'Guest') + ' · ' + info.track_name;
+                    };
+                }
+                gamingSfuReceiveBusy = true;
+                const result = await gamingLiveApi('sfu-subscribe', {
+                    room_id: gamingRoomId,
+                    tracks: fresh.map(pub => ({ session_id: pub.publisher_session_id, track_name: pub.track_name }))
+                });
+                if (result.session_description?.type !== 'offer' || !result.session_description?.sdp) throw new Error('Cloudflare did not return the gaming guest receive offer.');
+                (result.tracks || []).forEach((track,index) => {
+                    const pub = fresh.find(item => item.publisher_session_id === (track.sessionId || track.session_id) && item.track_name === (track.trackName || track.track_name)) || fresh[index];
+                    if (track.mid && pub) gamingSfuMidToParticipant.set(String(track.mid), { participant: pub.participant, track_name: pub.track_name });
+                });
+                await gamingSfuReceivePeer.setRemoteDescription(result.session_description);
+                const answer = await gamingSfuReceivePeer.createAnswer();
+                await gamingSfuReceivePeer.setLocalDescription(answer);
+                await waitGamingIceGathering(gamingSfuReceivePeer);
+                await gamingLiveApi('sfu-renegotiate', {
+                    room_id: gamingRoomId, session_type: 'receive',
+                    session_description: { type: gamingSfuReceivePeer.localDescription.type, sdp: gamingSfuReceivePeer.localDescription.sdp }
+                });
+                fresh.forEach(pub => gamingSfuSubscribedKeys.add(pub.publisher_session_id + ':' + pub.track_name));
+            } catch (error) {
+                console.warn('Gaming guest subscription:', error);
+                await stopGamingSfuReceiveSession(gamingRoomId);
+            } finally { gamingSfuReceiveBusy = false; gamingSfuSubscribeBusy = false; }
+        }
+        function startGamingGuestSubscriptionPolling() {
+            if (gamingSfuSubscribeTimer) clearInterval(gamingSfuSubscribeTimer);
+            gamingSfuSubscribeTimer = setInterval(refreshGamingGuestSubscriptions, 4000);
+            refreshGamingGuestSubscriptions();
+        }
+        function stopGamingGuestSubscriptionPolling() {
+            if (gamingSfuSubscribeTimer) clearInterval(gamingSfuSubscribeTimer);
+            gamingSfuSubscribeTimer = null;
+            stopGamingSfuReceiveSession(gamingRoomId);
+        }
+        async function connectAsGamingGuest(result) {
+            if (!result?.room_id || !result.seat_number) throw new Error('Gaming guest seat information is incomplete.');
+            if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) throw new Error('This browser cannot publish guest camera and microphone securely.');
+            let stream = null;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 960 }, height: { ideal: 540 } },
+                    audio: { echoCancellation: true, noiseSuppression: true }
+                });
+                gamingRoomId = result.room_id; gamingGuestSeatNumber = Number(result.seat_number);
+                gamingIsGuest = true; gamingGuestStream = stream; gamingMicStream = stream;
+                renderGamingGuestSeats(result.seat_capacity || 4);
+                const own = document.getElementById('gamingSeatVideo_' + gamingGuestSeatNumber);
+                const ownLabel = document.getElementById('gamingSeatLabel_' + gamingGuestSeatNumber);
+                if (own) { own.srcObject = stream; own.muted = true; own.style.display = 'block'; await own.play().catch(() => {}); }
+                if (ownLabel) ownLabel.textContent = 'You · Guest';
+                await startGamingSfuPublisher(gamingRoomId, stream);
+                isLiveActive = true;
+                document.getElementById('gamingSetupPanel').style.display = 'none';
+                document.getElementById('starBubbleIcon').style.display = 'flex';
+                document.getElementById('activeGameNameTag').textContent = 'GAMING LIVE · GUEST';
+                document.getElementById('micStateText').textContent = 'ON';
+                document.getElementById('camStateText').textContent = 'ON';
+                document.getElementById('activeGamingView').style.display = 'flex';
+                document.getElementById('gamingHostStopButton').style.display = 'none';
+                document.getElementById('gamingGuestLeaveButton').style.display = 'block';
+                document.getElementById('gamingInviteButton').style.display = 'none';
+                startGamingGuestSubscriptionPolling();
+                startGamingChatPolling();
+            } catch (error) {
+                if (gamingRoomId) {
+                    try { await stopGamingSfuPublisher(gamingRoomId); } catch (_) {}
+                    try { await gamingLiveApi('leave-room', { room_id: gamingRoomId }); } catch (_) {}
+                }
+                stream?.getTracks().forEach(track => track.stop());
+                gamingGuestStream = null; gamingMicStream = null; gamingRoomId = null;
+                throw error;
+            }
+        }
+        async function leaveGamingGuestSeat() {
+            const roomId = gamingRoomId;
+            stopGamingChatPolling(); stopGamingGuestSubscriptionPolling();
+            try { if (roomId) await stopGamingSfuPublisher(roomId); }
+            finally {
+                gamingGuestStream?.getTracks().forEach(track => track.stop());
+                gamingGuestStream = null; gamingMicStream = null; gamingRoomId = null;
+                isLiveActive = false; gamingIsGuest = false; gamingGuestSeatNumber = null;
+                if (roomId) {
+                    try { await gamingLiveApi('leave-room', { room_id: roomId }); }
+                    catch (error) { alert('Camera is off, but the guest seat could not be released: ' + error.message); }
+                }
+                document.getElementById('activeGamingView').style.display = 'none';
+                document.getElementById('starBubbleIcon').style.display = 'none';
+                document.getElementById('gamingSetupPanel').style.display = 'block';
+                document.getElementById('gamingHostStopButton').style.display = 'block';
+                document.getElementById('gamingGuestLeaveButton').style.display = 'none';
+                renderGamingGuestSeats(4);
+            }
+        }
+        function openGamingInviteModal() {
+            if (!gamingRoomId || gamingIsGuest) { alert('Only the gaming LIVE host can invite creators.'); return; }
+            document.getElementById('gamingCreatorSearchResults').textContent = 'Search for a real creator to invite them.';
+            document.getElementById('gamingInviteModal').style.display = 'flex';
+        }
+        async function searchGamingCreators() {
+            const term = document.getElementById('gamingCreatorSearchInput').value.trim();
+            const area = document.getElementById('gamingCreatorSearchResults');
+            if (term.length < 2) { area.textContent = 'Enter at least two characters.'; return; }
+            area.textContent = 'Searching New Star creators…';
+            try {
+                const result = await gamingLiveApi('lookup-users', { search: term });
+                area.replaceChildren();
+                if (!result.users?.length) { area.textContent = 'No matching creators found.'; return; }
+                result.users.forEach(user => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #333;';
+                    const name = document.createElement('span'); name.textContent = user.name || user.username || 'Creator';
+                    const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Invite'; button.style.cssText = 'width:auto;padding:6px 12px;background:#7b61ff;color:white;';
+                    button.addEventListener('click', () => sendGamingInvite(user.id, button));
+                    row.append(name,button); area.appendChild(row);
+                });
+            } catch (error) { area.textContent = error.message; }
+        }
+        async function sendGamingInvite(userId, button) {
+            if (!gamingRoomId || gamingIsGuest) return;
+            button.disabled = true; button.textContent = 'Sending…';
+            try {
+                await gamingLiveApi('invite-user', { room_id: gamingRoomId, invitee_id: userId });
+                button.textContent = 'Invited'; button.disabled = true;
+            } catch (error) { button.disabled = false; button.textContent = 'Invite'; alert(error.message); }
+        }
+        async function checkIncomingGamingInvites() {
+            if (window.__checkingGamingInvites) return;
+            window.__checkingGamingInvites = true;
+            try {
+                const data = await gamingLiveApi('list-invites');
+                for (const invite of data.invites || []) {
+                    if (gamingSeenInvites.has(invite.id) || gamingProcessingInvites.has(invite.id)) continue;
+                    gamingProcessingInvites.add(invite.id);
+                    try {
+                        const title = invite.live_rooms?.room_title || 'Gaming LIVE';
+                        const accept = confirm('Gaming LIVE invitation: ' + title + '\nAccept guest seat and turn on your camera/microphone?');
+                        const result = await gamingLiveApi('respond-invite', { invite_id: invite.id, response: accept ? 'accept' : 'decline' });
+                        gamingSeenInvites.add(invite.id);
+                        if (result.accepted) {
+                            try { await connectAsGamingGuest(result); }
+                            catch (error) { alert('Invitation accepted, but guest media could not connect: ' + error.message); }
+                        }
+                    } finally { gamingProcessingInvites.delete(invite.id); }
+                }
+            } catch (error) { if (!String(error.message || '').includes('sign in')) console.warn('Gaming invitations:', error); }
+            finally { window.__checkingGamingInvites = false; }
+        }
+        setInterval(checkIncomingGamingInvites, 12000);
+
         let gamingChatTimer = null;
         let gamingChatLastId = null;
         let gamingChatSending = false;
