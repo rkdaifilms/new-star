@@ -60,6 +60,18 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true }, 200, headers);
   }
 
+  // Enforce the 1,000-follower LIVE threshold on the server for prepare and confirm.
+  const { count: followerCount, error: followerCountError } = await admin
+    .from("followers").select("follower_id", { count: "exact", head: true })
+    .eq("following_id", creatorId).neq("follower_id", creatorId);
+  if (followerCountError) {
+    console.error("LIVE follower eligibility lookup failed:", followerCountError.message);
+    return json({ error: "Could not verify LIVE eligibility. Please retry." }, 503, headers);
+  }
+  if ((followerCount || 0) < 1000) {
+    return json({ error: "LIVE unlocks at 1,000 genuine followers.", follower_count: followerCount || 0 }, 403, headers);
+  }
+
   if (action === "confirm") {
     if (!body.room_id) return json({ error: "Room ID is required." }, 400, headers);
     const { data, error } = await admin.from("live_rooms").update({
