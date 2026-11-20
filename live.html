@@ -102,7 +102,6 @@
         <select id="setupRoomSize">
             <option value="1">👤 1 Seat (Solo Live)</option>
             <option value="4" selected>👥 4 Rooms Grid (Host + 3 Seats)</option>
-            <option value="10">👥 10 Rooms Grid (Party Room)</option>
         </select>
         
         <button class="btn" onclick="startLiveBroadcastSession()">🔴 Go LIVE Now</button>
@@ -362,8 +361,8 @@
 
         function renderLiveRooms(size) {
             let container = document.getElementById('dynamicRoomsContainer');
-            let sizeNum = parseInt(size);
-            let gridClass = sizeNum === 1 ? 'grid-1' : (sizeNum === 4 ? 'grid-4' : 'grid-10');
+            let sizeNum = Math.min(4, Math.max(1, parseInt(size, 10) || 4));
+            let gridClass = sizeNum === 1 ? 'grid-1' : 'grid-4';
             container.className = `live-rooms-grid ${gridClass}`;
             
             let html = '';
