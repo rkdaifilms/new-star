@@ -469,27 +469,70 @@
             }
         }
 
-        function sendLiveComment() {
-            const input = document.getElementById('liveCommentInput');
-            const message = input.value.trim();
-            if (!message) return;
+        let liveChatPollTimer = null;
+        let liveChatLastMessageId = null;
+        let liveChatSending = false;
+        let liveReactionSending = false;
+        async function refreshLiveChat() {
+          if (!liveRoomId) return;
+          try {
+            const data = await liveApi('live-chat-list', { room_id: liveRoomId });
             const area = document.getElementById('liveChatScrollArea');
-            const row = document.createElement('div');
-            const author = document.createElement('b');
-            author.style.color = '#fe2c55';
-            author.textContent = currentCreatorName + ': ';
-            row.append(author, document.createTextNode(message));
-            area.appendChild(row);
-            input.value = '';
+            if (!area) return;
+            const messages = data.messages || [];
+            const latest = messages[messages.length - 1]?.id || null;
+            if (latest === liveChatLastMessageId && area.dataset.loaded === '1') return;
+            area.replaceChildren();
+            messages.forEach(item => {
+              const row = document.createElement('div');
+              const author = document.createElement('b');
+              author.style.color = item.sender_id === window.supabaseClient?.auth?.getUser?.()?.id ? '#25f4ee' : '#fe2c55';
+              author.textContent = String(item.display_name || 'Creator').slice(0, 80) + ': ';
+              row.append(author, document.createTextNode(String(item.message || '').slice(0, 500)));
+              area.appendChild(row);
+            });
+            if (!messages.length) area.textContent = 'Be respectful in chat. Start the conversation.';
+            area.dataset.loaded = '1';
+            liveChatLastMessageId = latest;
             area.scrollTop = area.scrollHeight;
+          } catch (error) { console.warn('LIVE chat refresh:', error); }
         }
+        function startLiveChatPolling() {
+          if (liveChatPollTimer) clearInterval(liveChatPollTimer);
+          liveChatLastMessageId = null;
+          refreshLiveChat();
+          liveChatPollTimer = setInterval(refreshLiveChat, 3000);
+        }
+        function stopLiveChatPolling() {
+          if (liveChatPollTimer) clearInterval(liveChatPollTimer);
+          liveChatPollTimer = null;
+          liveChatLastMessageId = null;
+        }
+        async function sendLiveComment() {
+          const input = document.getElementById('liveCommentInput');
+          const message = input.value.trim();
+          if (!message || liveChatSending) return;
+          if (!liveRoomId) { alert('Join an active LIVE room before chatting.'); return; }
+          liveChatSending = true;
+          try {
+            await liveApi('live-chat-send', { room_id: liveRoomId, message });
+            input.value = '';
+            await refreshLiveChat();
+          } catch (error) { alert(error.message); }
+          finally { liveChatSending = false; }
+        }
+        function handleLiveChatKey(e) { if (e.key === 'Enter') sendLiveComment(); }
 
-        function handleLiveChatKey(e) { if (e.key === 'Enter') { sendLiveComment(); } }
-
-        function sendLiveLike() {
-            likePoints += 1;
-            document.getElementById('likePointsCount').innerText = likePoints;
-            if(isPkActive) { myPkPoints += 5; document.getElementById('myPkScore').innerText = myPkPoints; }
+        async function sendLiveLike() {
+          if (!liveRoomId || liveReactionSending) return;
+          liveReactionSending = true;
+          try {
+            const result = await liveApi('live-react', { room_id: liveRoomId, reaction: 'like' });
+            likePoints = Number(result.total || (likePoints + 1));
+            document.getElementById('likePointsCount').textContent = String(likePoints);
+          } catch (error) {
+            if (error.message && !error.message.includes('wait')) console.warn('LIVE reaction:', error);
+          } finally { liveReactionSending = false; }
         }
 
         function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
@@ -582,6 +625,7 @@
             const whipUrl = liveWhipSessionUrl;
             const whipPeer = liveWhipPeer;
             stopLiveGuestSubscriptionPolling();
+            stopLiveChatPolling();
             try {
               if (roomId) await stopLiveSfuPublisher(roomId);
             } catch (error) {
@@ -832,6 +876,7 @@
             const status = document.querySelector('#activeLiveView .pulsing-dot');
             if (status) status.title = 'Broadcast connected to Cloudflare Stream';
             startLiveGuestSubscriptionPolling();
+            startLiveChatPolling();
             if (typeof window.showGlobalFastToast === 'function') window.showGlobalFastToast('You are LIVE on New Star');
           } catch (error) {
             if (peer) peer.close();
