@@ -413,7 +413,10 @@
           const roomId = liveRoomId;
           stopLiveGuestSubscriptionPolling();
           stopLiveChatPolling();
-          try { if (roomId) await stopLiveSfuPublisher(roomId); }
+          try {
+            if (roomId) await stopLiveSfuPublisher(roomId);
+            else await stopLiveSfuReceiveSession(roomId);
+          }
           finally {
             if (liveStreamObj) liveStreamObj.getTracks().forEach(track => track.stop());
             liveStreamObj = null;
@@ -724,13 +727,57 @@
         let liveSfuPeer = null;
         let liveSfuSessionId = null;
         let liveSfuTrackMids = [];
+        let liveSfuReceivePeer = null;
+        let liveSfuReceiveSessionId = null;
+        let liveSfuReceiveBusy = false;
         let liveSfuSubscribeTimer = null;
         let liveSfuSubscribeBusy = false;
         let liveSfuSubscribedKeys = new Set();
         let liveSfuMidToParticipant = new Map();
+        let liveSfuRemoteStreams = new Map();
+
+        function waitForLiveIceGathering(pc, timeoutMs = 7000) {
+          if (pc.iceGatheringState === 'complete') return Promise.resolve();
+          return new Promise(resolve => {
+            let finished = false;
+            const finish = () => {
+              if (finished) return;
+              finished = true;
+              pc.removeEventListener('icegatheringstatechange', onChange);
+              clearTimeout(timer);
+              resolve();
+            };
+            const onChange = () => { if (pc.iceGatheringState === 'complete') finish(); };
+            const timer = setTimeout(finish, timeoutMs);
+            pc.addEventListener('icegatheringstatechange', onChange);
+          });
+        }
+
+        async function stopLiveSfuReceiveSession(roomId = liveRoomId) {
+          const pc = liveSfuReceivePeer;
+          const hadSession = !!liveSfuReceiveSessionId;
+          liveSfuReceivePeer = null;
+          liveSfuReceiveSessionId = null;
+          liveSfuMidToParticipant.clear();
+          liveSfuSubscribedKeys.clear();
+          liveSfuRemoteStreams.forEach((stream, seat) => {
+            const video = document.getElementById('roomVideo_' + seat);
+            if (video && video.srcObject === stream) {
+              video.pause();
+              video.srcObject = null;
+              video.style.display = 'none';
+            }
+          });
+          liveSfuRemoteStreams.clear();
+          if (pc) { try { pc.close(); } catch (_) {} }
+          if (roomId && hadSession) {
+            try { await liveApi('sfu-close-receiver', { room_id: roomId }); }
+            catch (error) { console.warn('Receiving SFU session cleanup:', error); }
+          }
+        }
 
         async function refreshLiveGuestSubscriptions() {
-          if (!liveRoomId || !liveSfuPeer || liveSfuPeer.signalingState !== 'stable' || liveSfuSubscribeBusy) return;
+          if (!liveRoomId || liveSfuSubscribeBusy || liveSfuReceiveBusy) return;
           liveSfuSubscribeBusy = true;
           try {
             const listed = await liveApi('sfu-list-publications', { room_id: liveRoomId });
@@ -741,28 +788,80 @@
             const fresh = pubs.filter(p => !liveSfuSubscribedKeys.has(p.publisher_session_id + ':' + p.track_name));
             if (!fresh.length) return;
 
-            const additions = [];
-            fresh.forEach(pub => {
-              const kind = pub.media_kind === 'audio' ? 'audio' : 'video';
-              const transceiver = liveSfuPeer.addTransceiver(kind, { direction: 'recvonly' });
-              additions.push({ pub, transceiver });
-            });
-            const offer = await liveSfuPeer.createOffer();
-            await liveSfuPeer.setLocalDescription(offer);
+            if (!liveSfuReceivePeer) {
+              const session = await liveApi('sfu-create-receive-session', { room_id: liveRoomId });
+              liveSfuReceiveSessionId = session.session_id;
+              const pc = new RTCPeerConnection();
+              liveSfuReceivePeer = pc;
+              pc.ontrack = event => {
+                const info = liveSfuMidToParticipant.get(event.transceiver?.mid);
+                if (!info || !info.participant?.seat_number) return;
+                const seat = info.participant.seat_number;
+                const video = document.getElementById('roomVideo_' + seat);
+                const overlay = document.getElementById('roomOverlay_' + seat);
+                const box = document.getElementById('roomBox_' + seat);
+                if (!video || !box) return;
+                let stream = liveSfuRemoteStreams.get(seat);
+                if (!stream) {
+                  stream = new MediaStream();
+                  liveSfuRemoteStreams.set(seat, stream);
+                }
+                if (!stream.getTracks().some(track => track.id === event.track.id)) stream.addTrack(event.track);
+                if (video.srcObject !== stream) video.srcObject = stream;
+                video.muted = false;
+                video.style.display = 'block';
+                video.play().catch(() => {});
+                if (overlay) {
+                  overlay.style.display = 'flex';
+                  overlay.textContent = (info.participant.display_name || 'Guest') + ' · ' + info.participant.role;
+                }
+                box.classList.add('active');
+              };
+              pc.onconnectionstatechange = () => {
+                if (['failed', 'closed'].includes(pc.connectionState)) {
+                  console.warn('LIVE receiving connection state:', pc.connectionState);
+                }
+              };
+            }
+
+            liveSfuReceiveBusy = true;
             const result = await liveApi('sfu-subscribe', {
               room_id: liveRoomId,
-              session_description: { type: liveSfuPeer.localDescription.type, sdp: liveSfuPeer.localDescription.sdp },
               tracks: fresh.map(pub => ({ session_id: pub.publisher_session_id, track_name: pub.track_name }))
             });
-            if (!result.session_description?.sdp) throw new Error('Cloudflare did not return the guest subscription answer.');
-            additions.forEach(({ pub, transceiver }) => {
-              liveSfuSubscribedKeys.add(pub.publisher_session_id + ':' + pub.track_name);
-              liveSfuMidToParticipant.set(transceiver.mid, pub.participant);
+            if (result.session_description?.type !== 'offer' || !result.session_description?.sdp) {
+              throw new Error('Cloudflare did not return a receiving offer.');
+            }
+            const returned = result.tracks || [];
+            returned.forEach((track, index) => {
+              const pub = fresh.find(item =>
+                item.publisher_session_id === (track.sessionId || track.session_id) &&
+                item.track_name === (track.trackName || track.track_name)
+              ) || fresh[index];
+              if (track.mid && pub) {
+                liveSfuMidToParticipant.set(String(track.mid), { participant: pub.participant, track_name: pub.track_name });
+              }
             });
-            await liveSfuPeer.setRemoteDescription(result.session_description);
+            await liveSfuReceivePeer.setRemoteDescription(result.session_description);
+            const answer = await liveSfuReceivePeer.createAnswer();
+            await liveSfuReceivePeer.setLocalDescription(answer);
+            await waitForLiveIceGathering(liveSfuReceivePeer);
+            await liveApi('sfu-renegotiate', {
+              room_id: liveRoomId,
+              session_type: 'receive',
+              session_description: {
+                type: liveSfuReceivePeer.localDescription.type,
+                sdp: liveSfuReceivePeer.localDescription.sdp
+              }
+            });
+            fresh.forEach(pub => liveSfuSubscribedKeys.add(pub.publisher_session_id + ':' + pub.track_name));
           } catch (error) {
             console.warn('Guest seat subscription:', error);
+            // A failed or uncertain negotiation cannot safely be replayed on the same SFU session.
+            const failedRoomId = liveRoomId;
+            await stopLiveSfuReceiveSession(failedRoomId);
           } finally {
+            liveSfuReceiveBusy = false;
             liveSfuSubscribeBusy = false;
           }
         }
@@ -785,24 +884,6 @@
           liveSfuSessionId = session.session_id;
           const pc = new RTCPeerConnection();
           liveSfuPeer = pc;
-          pc.ontrack = event => {
-            const participant = liveSfuMidToParticipant.get(event.transceiver?.mid);
-            if (!participant || !participant.seat_number) return;
-            const video = document.getElementById('roomVideo_' + participant.seat_number);
-            const overlay = document.getElementById('roomOverlay_' + participant.seat_number);
-            const box = document.getElementById('roomBox_' + participant.seat_number);
-            if (!video || !box) return;
-            const stream = event.streams?.[0] || new MediaStream([event.track]);
-            if (video.srcObject !== stream) video.srcObject = stream;
-            video.muted = false;
-            video.style.display = 'block';
-            video.play().catch(() => {});
-            if (overlay) {
-              overlay.style.display = 'flex';
-              overlay.textContent = (participant.display_name || 'Guest') + ' · ' + participant.role;
-            }
-            box.classList.add('active');
-          };
           const senders = [];
           mediaStream.getTracks().forEach(track => {
             const transceiver = pc.addTransceiver(track, { direction: 'sendonly' });
@@ -829,6 +910,7 @@
           const mids = liveSfuTrackMids.slice();
           liveSfuPeer = null; liveSfuSessionId = null; liveSfuTrackMids = [];
           if (pc) pc.close();
+          await stopLiveSfuReceiveSession(roomId);
           if (roomId && sessionId && mids.length) {
             try { await liveApi('sfu-close', { room_id: roomId, tracks: mids.map(mid => ({ mid })), force: true }); }
             catch (error) { console.warn('Calls track cleanup:', error); }
