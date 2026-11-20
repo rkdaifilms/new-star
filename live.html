@@ -101,7 +101,8 @@
         <label>Room Seats Capacity:</label>
         <select id="setupRoomSize">
             <option value="1">👤 1 Seat (Solo Live)</option>
-            <option value="4" selected>👥 4 Rooms Grid (Host + 3 Seats)</option>
+            <option value="4">👥 4 Seats (Host + 3 Guests)</option>
+            <option value="10" selected>🌐 10 Seats (Host + 9 Guests)</option>
         </select>
         
         <button class="btn" onclick="startLiveBroadcastSession()">🔴 Go LIVE Now</button>
@@ -127,7 +128,9 @@
         <!-- 🎙️ MIC CONTROL & SETTINGS BAR -->
         <div style="display:flex; justify-content:space-between; align-items:center; background:#1a1a1a; padding:5px 8px; border-radius:6px; margin-bottom:6px; font-size:10px;">
             <span>🎙️ Mic: <b id="micStatusText" style="color:#25f4ee;">ON</b></span>
-            <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="toggleLiveMicrophone()">🎙️ Mute</button>
+            <button style="background:#fe2c55; color:#fff; border:none; padding:3px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="toggleLiveMicrophone()">🎙️ Mic ON/OFF</button>
+            <span>📷 Cam: <b id="cameraStatusText" style="color:#25f4ee;">ON</b></span>
+            <button style="background:#25f4ee; color:#000; border:none; padding:3px 6px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="toggleLiveCamera()">📷 Cam ON/OFF</button>
             <button style="background:#ffcc00; color:#000; border:none; padding:3px 6px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer;" onclick="openModSettingsModal()">⚙️ Mod</button>
         </div>
 
@@ -361,8 +364,8 @@
 
         function renderLiveRooms(size) {
             let container = document.getElementById('dynamicRoomsContainer');
-            let sizeNum = Math.min(4, Math.max(1, parseInt(size, 10) || 4));
-            let gridClass = sizeNum === 1 ? 'grid-1' : 'grid-4';
+            let sizeNum = Math.min(10, Math.max(1, parseInt(size, 10) || 10));
+            let gridClass = sizeNum === 1 ? 'grid-1' : (sizeNum <= 4 ? 'grid-4' : 'grid-10');
             container.className = `live-rooms-grid ${gridClass}`;
             
             let html = '';
@@ -588,6 +591,17 @@
             isMuted = !isMuted;
             document.getElementById('micStatusText').innerText = isMuted ? 'MUTED' : 'ON';
             if(liveStreamObj) liveStreamObj.getAudioTracks().forEach(t => t.enabled = !isMuted);
+        }
+        let isLiveCameraDisabled = false;
+        function toggleLiveCamera() {
+            if (!liveStreamObj) {
+                alert('Camera stream is not connected.');
+                return;
+            }
+            isLiveCameraDisabled = !isLiveCameraDisabled;
+            liveStreamObj.getVideoTracks().forEach(track => { track.enabled = !isLiveCameraDisabled; });
+            const status = document.getElementById('cameraStatusText');
+            if (status) status.textContent = isLiveCameraDisabled ? 'OFF' : 'ON';
         }
         // Disable local-only rewards and false broadcast claims until real server infrastructure exists.
         function checkAndDeductCoins(){ alert('Gifts disabled: verified server transactions are not connected.'); return false; }
