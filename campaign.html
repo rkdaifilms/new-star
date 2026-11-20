@@ -19,7 +19,8 @@
 <body>
 <header class="top"><a href="monetization.html" aria-label="Back">←</a><h1>⭐ Campaigns & Brand Deals</h1></header>
 <main class="wrap">
-<section class="intro"><h2>Brand, Artist & Creator Campaigns</h2><p class="muted">सक्रिय और भुगतान-सत्यापित campaigns यहाँ दिखेंगे। आप अपना campaign पहले Draft के रूप में सेव कर सकते हैं। Draft प्रकाशित नहीं होगा, किसी से भुगतान नहीं लिया जाएगा और कोई कमाई सुनिश्चित नहीं है। प्रकाशन, creator applications और payout से पहले New Star की आयु/पहचान, नीति और payment verification आवश्यक है।</p></section>
+<section class="intro"><h2>Brand, Artist & Creator Campaigns</h2><p class="muted">1,000 genuine followers पूरे होने पर आप अपना Campaign Draft बना सकते हैं और दूसरे verified Campaigns में आवेदन भी कर सकते हैं। 1,000 से कम पर दोनों सुविधाएँ locked रहेंगी। Draft प्रकाशित नहीं होगा, किसी से भुगतान नहीं लिया जाएगा और कोई कमाई सुनिश्चित नहीं है। प्रकाशन और किसी भी commercial agreement से पहले policy, age/identity और provider checks लागू होंगे।</p>
+<p id="campaignAccessStatus" class="status" role="status" aria-live="polite">Checking creator eligibility…</p></section>
 <section class="panel">
 <h2>अपना Campaign Draft बनाएँ</h2>
 <p class="muted">अपना ब्रांड/कलाकार नाम, विवरण, destination link, बजट और target countries भरें। केवल HTTPS लिंक स्वीकार होंगे। यह अभी सिर्फ private draft सेव करेगा।</p>
@@ -46,7 +47,18 @@
 <script src="i18n.js"></script><script src="navbar.js"></script>
 <script>
 (()=>{"use strict";
-const db=window.supabaseClient||window.cloudClient;const $=id=>document.getElementById(id);let user=null;
+const db=window.supabaseClient||window.cloudClient;const $=id=>document.getElementById(id);let user=null,featureAccess=null;
+async function refreshCampaignAccess(){
+ const status=$("campaignAccessStatus"),save=$("saveDraft");
+ if(!user){featureAccess=null;if(status)status.textContent="Login करें। Campaign create और join करने के लिए 1,000 genuine followers जरूरी हैं।";if(save)save.disabled=true;return false;}
+ const {data,error}=await db.rpc("get_creator_feature_access");
+ if(error){featureAccess=null;if(status)status.textContent="Eligibility verify नहीं हो पाई। Campaign tools locked हैं; कृपया retry करें।";if(save)save.disabled=true;return false;}
+ featureAccess=data||{};
+ const allowed=!!featureAccess.campaign_create_access;
+ if(status)status.textContent=allowed?"Unlocked ✓ आप Campaign बना सकते हैं और दूसरे Campaigns में apply कर सकते हैं।":"🔒 Campaign create और join करने के लिए 1,000 genuine followers चाहिए। अभी: "+Number(featureAccess.follower_count||0).toLocaleString()+"/1,000";
+ if(save)save.disabled=!allowed;
+ return allowed;
+}
 const zero=new Set(["BIF","CLP","DJF","GNF","ISK","JPY","KMF","KRW","PYG","RWF","UGX","UYI","VND","VUV","XAF","XOF","XPF"]);
 const three=new Set(["BHD","IQD","JOD","KWD","LYD","OMR","TND"]);
 function decimals(c){return zero.has(c)?0:three.has(c)?3:2;}
@@ -70,6 +82,7 @@ function addCampaignCard(host,row,isDraft){
   form.append(label,proposal,submit,status);
   form.addEventListener("submit",async e=>{
    e.preventDefault();if(!user){status.textContent="Please login first.";return;}
+   if(!featureAccess?.campaign_join_access){status.textContent="🔒 Campaign में apply करने के लिए 1,000 genuine followers जरूरी हैं।";return;}
    submit.disabled=true;
    try{
     const {error}=await db.from("star_campaign_applications").insert({campaign_id:row.id,creator_id:user.id,proposal:proposal.value.trim(),status:"pending"});
@@ -99,8 +112,9 @@ async function loadMyApplications(){
 }
 async function loadCampaigns(){
  const active=$("activeCampaigns"),drafts=$("myDrafts");active.replaceChildren();drafts.replaceChildren();
+ const canJoin=!!featureAccess?.campaign_join_access;
  const {data:publicRows,error:publicError}=await db.from("star_campaigns").select("id,title,description,brand_name,destination_url,currency,target_countries,starts_at,ends_at").eq("status","active").eq("payment_status","paid").order("created_at",{ascending:false}).limit(50);
- if(publicError){active.textContent="Verified campaigns could not be loaded. Please try again.";console.error(publicError);}else if(!publicRows?.length){active.textContent="अभी कोई सक्रिय और भुगतान-सत्यापित campaign उपलब्ध नहीं है।";}else publicRows.forEach(r=>addCampaignCard(active,r,false));
+ if(publicError){active.textContent="Verified campaigns could not be loaded. Please try again.";console.error(publicError);}else if(!publicRows?.length){active.textContent="अभी कोई सक्रिय और भुगतान-सत्यापित campaign उपलब्ध नहीं है।";}else publicRows.forEach(r=>{addCampaignCard(active,r,false);if(!canJoin){const form=active.lastElementChild?.querySelector("form");const submit=form?.querySelector("button[type='submit']");if(submit)submit.disabled=true;const status=form?.querySelector(".status");if(status)status.textContent="🔒 Apply करने के लिए 1,000 genuine followers जरूरी हैं।";}});
  if(!user){drafts.textContent="अपने Draft देखने के लिए Login करें।";await loadMyApplications();return;}
  await loadMyApplications();
  const {data:own,error:ownError}=await db.from("star_campaigns").select("id,title,description,brand_name,destination_url,status,payment_status,created_at").eq("owner_id",user.id).order("created_at",{ascending:false}).limit(50);
@@ -119,11 +133,12 @@ $("campaignForm").addEventListener("submit",async e=>{
   if(!Number.isFinite(budget)||budget<=0||budget>1000000)throw new Error("Budget सही और 1,000,000 से कम होना चाहिए।");
   const budget_minor=Math.round(budget*(10**decimals(currency)));if(budget_minor<1)throw new Error("Budget बहुत कम है।");
   const payload={owner_id:user.id,campaign_kind:kind,title,description,brand_name,destination_url,budget_minor,currency,target_countries:countryList,status:"draft",payment_status:"unpaid",platform_fee_minor:0};
+  if(!featureAccess?.campaign_create_access)throw new Error("Campaign Draft बनाने के लिए 1,000 genuine followers जरूरी हैं।");
   const {error}=await db.from("star_campaigns").insert(payload);if(error)throw error;
   $("campaignForm").reset();$("currency").value="NPR";$("countries").value="NP";say("Draft सुरक्षित रूप से सेव हुआ। यह अभी सार्वजनिक नहीं है और कोई भुगतान नहीं हुआ।");await loadCampaigns();
  }catch(err){console.error(err);say(err.message||"Draft सेव नहीं हुआ।",true);}finally{btn.disabled=false;}
 });
-(async()=>{if(!db?.auth){say("Supabase connection उपलब्ध नहीं है।",true);$("activeCampaigns").textContent="Service unavailable.";return;}try{const {data,error}=await db.auth.getUser();if(error)throw error;user=data?.user||null;await loadCampaigns();}catch(e){console.error(e);$("activeCampaigns").textContent="Campaigns load नहीं हो पाए।";}})();
+(async()=>{if(!db?.auth){say("Supabase connection उपलब्ध नहीं है।",true);$("activeCampaigns").textContent="Service unavailable.";return;}try{const {data,error}=await db.auth.getUser();if(error)throw error;user=data?.user||null;await refreshCampaignAccess();await loadCampaigns();}catch(e){console.error(e);$("activeCampaigns").textContent="Campaigns load नहीं हो पाए।";}})();
 })();
 </script>
 <script src="preferences.js"></script>
