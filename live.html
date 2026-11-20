@@ -1004,6 +1004,14 @@
           let peer = null;
           let roomId = null;
           try {
+            const liveClient = window.supabaseClient || window.cloudClient;
+            if (!liveClient) throw new Error('Sign in and reconnect before starting LIVE.');
+            const { data: featureAccess, error: featureError } = await liveClient.rpc('get_creator_feature_access');
+            if (featureError) throw new Error('LIVE eligibility could not be verified. Please retry.');
+            if (!featureAccess?.live_access) {
+              const count = Number(featureAccess?.follower_count || 0);
+              throw new Error('LIVE unlocks at 1,000 genuine followers. Your current count: ' + count.toLocaleString() + '.');
+            }
             const name = document.getElementById('liveCreatorNameInput').value.trim();
             if (name) currentCreatorName = name;
             if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) {
