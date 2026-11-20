@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var web: WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var pendingUrl = ""
+    private var pendingMicEnabled = false
     private var pendingWebPermission: PermissionRequest? = null
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -56,6 +57,11 @@ class MainActivity : AppCompatActivity() {
         if (allGranted) request.grant(resources) else request.deny()
     }
 
+    private val gamingMicPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        pendingMicEnabled = granted
+        launchGamingScreenPermission()
+    }
+
     private val screenPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data != null && pendingUrl.isNotBlank()) {
             val i = Intent(this, GamingStreamService::class.java).apply {
@@ -63,10 +69,14 @@ class MainActivity : AppCompatActivity() {
                 putExtra(GamingStreamService.RESULT_CODE, result.resultCode)
                 putExtra(GamingStreamService.RESULT_DATA, result.data)
                 putExtra(GamingStreamService.WHIP_URL, pendingUrl)
+                putExtra(GamingStreamService.INCLUDE_MIC, pendingMicEnabled)
             }
             ContextCompat.startForegroundService(this, i)
-        } else emit("error", "Android screen-sharing permission was not granted.")
+        } else {
+            emit("error", "Android screen-sharing permission was not granted.")
+        }
         pendingUrl = ""
+        pendingMicEnabled = false
     }
 
     private val receiver = object : BroadcastReceiver() {
@@ -89,6 +99,11 @@ class MainActivity : AppCompatActivity() {
             registerReceiver(receiver, f)
         }
         if (savedInstanceState == null) web.loadUrl(HOME_URL) else web.restoreState(savedInstanceState)
+    }
+
+    private fun launchGamingScreenPermission() {
+        val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        screenPermission.launch(manager.createScreenCaptureIntent())
     }
 
     private fun createWebView(): WebView {
@@ -228,8 +243,14 @@ class MainActivity : AppCompatActivity() {
             }
             runOnUiThread {
                 pendingUrl = url
-                val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                screenPermission.launch(manager.createScreenCaptureIntent())
+                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    pendingMicEnabled = true
+                    launchGamingScreenPermission()
+                } else {
+                    // Screen sharing can still proceed if the creator declines microphone access.
+                    pendingMicEnabled = false
+                    gamingMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+                }
             }
         }
         @JavascriptInterface fun stopScreenStream() {
