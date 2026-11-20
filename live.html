@@ -148,7 +148,7 @@
                     <span style="font-size:9px; color:#25f4ee; font-weight:bold;">💬 Live Chat (Likes: <b id="likePointsCount" style="color:#ffcc00;">0</b>)</span>
                 </div>
                 <div id="liveChatScrollArea" style="max-height:40px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; margin-bottom:3px; font-size:10px; color:#aaa;">
-                    <div><b>Rohit Painter:</b> Mast live room hai bhai! 🔥</div>
+                    <div style="color:#888;">Be respectful in chat. Your comments will appear here.</div>
                 </div>
                 <div style="display:flex; gap:3px;">
                     <input type="text" id="liveCommentInput" placeholder="Type your comment/reply..." style="margin-top:0; padding:4px; font-size:10px; margin-bottom:0;" onkeypress="handleLiveChatKey(event)">
@@ -435,40 +435,57 @@
         }
 
         async function checkIncomingLiveInvites() {
+            if (window.__checkingLiveInvites) return;
+            window.__checkingLiveInvites = true;
             try {
               const data = await liveApi('list-invites');
-              (data.invites || []).forEach(invite => {
-                if (window.__seenLiveInvites?.has(invite.id)) return;
-                window.__seenLiveInvites = window.__seenLiveInvites || new Set();
-                window.__seenLiveInvites.add(invite.id);
-                const title = invite.live_rooms?.room_title || 'New LIVE';
-                const accept = confirm('LIVE invitation: ' + title + '\\nAccept guest seat?');
-                liveApi('respond-invite', { invite_id: invite.id, response: accept ? 'accept' : 'decline' })
-                  .then(result => {
-                    if (result.accepted) alert('Guest seat #' + result.seat_number + ' reserved. Open the LIVE room to connect your camera and microphone.');
-                  }).catch(error => alert(error.message));
-              });
+              window.__seenLiveInvites = window.__seenLiveInvites || new Set();
+              window.__processingLiveInvites = window.__processingLiveInvites || new Set();
+              for (const invite of (data.invites || [])) {
+                if (window.__seenLiveInvites.has(invite.id) || window.__processingLiveInvites.has(invite.id)) continue;
+                window.__processingLiveInvites.add(invite.id);
+                try {
+                  const title = invite.live_rooms?.room_title || 'New LIVE';
+                  const accept = confirm('LIVE invitation: ' + title + '\\nAccept guest seat?');
+                  const result = await liveApi('respond-invite', { invite_id: invite.id, response: accept ? 'accept' : 'decline' });
+                  window.__seenLiveInvites.add(invite.id);
+                  if (result.accepted) alert('Guest seat #' + result.seat_number + ' reserved. Camera/microphone publishing still needs to connect.');
+                } finally {
+                  window.__processingLiveInvites.delete(invite.id);
+                }
+              }
             } catch (error) { console.warn('Incoming LIVE invitations:', error); }
+            finally { window.__checkingLiveInvites = false; }
         }
         setInterval(checkIncomingLiveInvites, 12000);
         setTimeout(checkIncomingLiveInvites, 2500);
 
-        function nativeShareLiveRoom() {
-            if (navigator.share) {
-                navigator.share({ title: 'Star New Star LIVE', text: 'Join my live room right now! 🔥', url: window.location.href });
-            } else {
-                alert('📋 Link copied to clipboard!');
-                navigator.clipboard.writeText(window.location.href);
+        async function nativeShareLiveRoom() {
+            const shareData = { title: 'New Star LIVE', text: 'Join my LIVE room', url: window.location.href };
+            try {
+              if (navigator.share) await navigator.share(shareData);
+              else if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(window.location.href);
+                alert('LIVE link copied.');
+              } else {
+                alert('Sharing is not available in this browser. Copy the page link from the address bar.');
+              }
+            } catch (error) {
+              if (error?.name !== 'AbortError') alert('Could not share the LIVE link: ' + error.message);
             }
         }
 
         function sendLiveComment() {
-            let input = document.getElementById('liveCommentInput');
-            let text = input.value.trim();
-            if(!text) return;
-            
-            let area = document.getElementById('liveChatScrollArea');
-            area.innerHTML += `<div><b style="color:#fe2c55;">${currentCreatorName}:</b> ${text}</div>`;
+            const input = document.getElementById('liveCommentInput');
+            const message = input.value.trim();
+            if (!message) return;
+            const area = document.getElementById('liveChatScrollArea');
+            const row = document.createElement('div');
+            const author = document.createElement('b');
+            author.style.color = '#fe2c55';
+            author.textContent = currentCreatorName + ': ';
+            row.append(author, document.createTextNode(message));
+            area.appendChild(row);
             input.value = '';
             area.scrollTop = area.scrollHeight;
         }
@@ -527,19 +544,11 @@
 
         function startGlobalPkSearch() {
             closeModal('pkBattleModal');
-            startPkWithOpponent("Vikash Star (Global)");
+            alert('Real PK matchmaking is not connected yet. No opponent or battle has been created.');
         }
 
-        function startPkWithOpponent(opponentName) {
-            closeModal('pkBattleModal');
-            isPkActive = true; 
-            myPkPoints = 0;
-            document.getElementById('pkScoreboard').style.display = 'flex';
-            document.getElementById('rivalNameDisplay').innerText = opponentName;
-            document.getElementById('myPkScore').innerText = 0;
-            document.getElementById('rivalPkScore').innerText = 0;
-            let area = document.getElementById('liveChatScrollArea');
-            area.innerHTML += `<div style="color:#ffcc00;">⚔️ <b>PK Battle:</b> Connected against <b>${opponentName}</b>! 🔥</div>`;
+        function startPkWithOpponent() {
+            alert('A real opponent session is required before PK can start. No demo battle will be shown.');
         }
 
         function sendTiktokGift(name, icon, cost) {
@@ -552,53 +561,8 @@
         }
 
         function deployTreasureBox() {
-            let coinsVal = parseInt(document.getElementById('boxCoinsInput').value);
-            let peopleVal = parseInt(document.getElementById('tbPeopleInput').value);
-            let timerSeconds = parseInt(document.getElementById('tbTimerSelect').value);
-
-            if (isNaN(coinsVal) || coinsVal <= 0 || isNaN(peopleVal) || peopleVal <= 0) {
-                alert('⚠️ Please enter valid coins and people!');
-                return;
-            }
-
-            if (!checkAndDeductCoins(coinsVal)) return;
-
             closeModal('treasureModal');
-
-            activeTreasureData = {
-                active: true,
-                coins: coinsVal,
-                people: peopleVal,
-                timeLeft: timerSeconds
-            };
-
-            let banner = document.getElementById('activeTreasureBanner');
-            let timerSpan = document.getElementById('bannerTimer');
-            let actionText = document.getElementById('treasureActionText');
-
-            banner.style.display = 'flex';
-            banner.classList.add('gullak-spinning');
-            actionText.innerText = `Gullak`;
-
-            if(activeTreasureData.timerInterval) clearInterval(activeTreasureData.timerInterval);
-
-            activeTreasureData.timerInterval = setInterval(() => {
-                if (activeTreasureData.timeLeft > 0) {
-                    let mins = Math.floor(activeTreasureData.timeLeft / 60);
-                    let secs = activeTreasureData.timeLeft % 60;
-                    timerSpan.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-                    activeTreasureData.timeLeft--;
-                } else {
-                    banner.classList.remove('gullak-spinning');
-                    timerSpan.innerText = "OPEN 🎁";
-                    actionText.innerText = "CLAIM";
-                    actionText.style.background = "#ff4444";
-                    actionText.style.color = "#fff";
-                }
-            }, 1000);
-
-            let area = document.getElementById('liveChatScrollArea');
-            area.innerHTML += `<div style="color:#ffcc00;">🏺 <b>${currentCreatorName}:</b> Dropped Gullak of <b>${coinsVal.toLocaleString()} Coins</b> for ${peopleVal} winners! 🔥</div>`;
+            alert('Treasure/coin distribution is disabled until server-side eligibility, transparent allocation, and safety checks are implemented. No coins were deducted.');
         }
 
         function openTreasureStatusModal() {
