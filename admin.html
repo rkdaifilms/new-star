@@ -100,8 +100,8 @@ async function load(){
  ];
  $("commissionSchedule").innerHTML=commissionCategories.map(([code,label])=>{
   const rule=commissionRules[code]||commissionRules[code.replace(/s$/,"")]||null;
-  const configured=!!rule;
-  return '<tr><td>'+esc(label)+'</td><td>'+(configured?esc(rule.platform_percent)+'%':'—')+'</td><td>'+(configured?esc(rule.creator_percent)+'%':'—')+'</td><td>'+(configured?esc(rule.status||"unknown")+' · draft/config only':'Not configured · no rate assumed')+'</td></tr>';
+  const configured=!!rule && Number(rule.basis_points)>0;
+  return '<tr><td>'+esc(label)+'</td><td>'+(configured?esc(rule.platform_percent)+'%':'—')+'</td><td>'+(configured?esc(rule.creator_percent)+'%':'—')+'</td><td>'+(configured?esc(rule.status||"unknown")+' · draft/config only':'Rate not set · no percentage assumed')+'</td></tr>';
  }).join("");
  const financialCards=[];
  financialCards.push(["Verified paid orders",f.paid_orders_count??"Unavailable"]);
