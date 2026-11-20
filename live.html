@@ -165,7 +165,8 @@
             <div class="live-action-icon live-share-btn" onclick="nativeShareLiveRoom()" title="📤 Share">📤</div>
         </div>
 
-        <button class="btn" style="background: #333; color: #fff; margin-top:3px; padding:8px; font-size:12px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room</button>
+        <button id="endLiveRoomButton" class="btn" style="background: #333; color: #fff; margin-top:3px; padding:8px; font-size:12px;" onclick="stopLiveBroadcast()">⏹️ End LIVE Room</button>
+        <button id="leaveLiveSeatButton" class="btn" style="display:none;background:#444;color:#fff;margin-top:3px;padding:8px;font-size:12px;" onclick="leaveLiveGuestSeat()">Leave Guest Seat</button>
     </div>
 
     <!-- 👥 INVITE FRIENDS MODAL -->
@@ -394,6 +395,64 @@
             }
         }
 
+        async function connectAsLiveGuest(result) {
+          if (!result?.room_id || !result.seat_number) throw new Error('Guest seat information is incomplete.');
+          if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) throw new Error('This browser cannot publish camera and microphone securely.');
+          let guestStream = null;
+          try {
+            guestStream = await navigator.mediaDevices.getUserMedia({
+              video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 } },
+              audio: { echoCancellation: true, noiseSuppression: true }
+            });
+            liveRoomId = result.room_id;
+            liveStreamObj = guestStream;
+            renderLiveRooms(result.seat_capacity || 10);
+            const ownVideo = document.getElementById('roomVideo_' + result.seat_number);
+            const ownOverlay = document.getElementById('roomOverlay_' + result.seat_number);
+            if (ownVideo) { ownVideo.srcObject = guestStream; ownVideo.muted = true; ownVideo.style.display = 'block'; await ownVideo.play().catch(() => {}); }
+            if (ownOverlay) { ownOverlay.style.display = 'flex'; ownOverlay.textContent = 'You · Guest'; }
+            await startLiveSfuPublisher(liveRoomId, guestStream);
+            document.getElementById('liveSetupPanel').style.display = 'none';
+            document.getElementById('activeLiveView').style.display = 'block';
+            const endButton = document.getElementById('endLiveRoomButton');
+            if (endButton) endButton.style.display = 'none';
+            const leaveButton = document.getElementById('leaveLiveSeatButton');
+            if (leaveButton) leaveButton.style.display = 'block';
+            startLiveGuestSubscriptionPolling();
+            startLiveChatPolling();
+            alert('Your camera and microphone are connected to the guest seat.');
+          } catch (error) {
+            if (liveRoomId) {
+              try { await stopLiveSfuPublisher(liveRoomId); } catch (_) {}
+              try { await liveApi('leave-room', { room_id: liveRoomId }); } catch (_) {}
+            }
+            if (guestStream) guestStream.getTracks().forEach(track => track.stop());
+            liveStreamObj = null; liveRoomId = null;
+            throw error;
+          }
+        }
+        async function leaveLiveGuestSeat() {
+          const roomId = liveRoomId;
+          stopLiveGuestSubscriptionPolling();
+          stopLiveChatPolling();
+          try { if (roomId) await stopLiveSfuPublisher(roomId); }
+          finally {
+            if (liveStreamObj) liveStreamObj.getTracks().forEach(track => track.stop());
+            liveStreamObj = null;
+            if (roomId) {
+              try { await liveApi('leave-room', { room_id: roomId }); }
+              catch (error) { alert('Your camera is off, but the server could not release the seat: ' + error.message); }
+            }
+            liveRoomId = null;
+            document.getElementById('activeLiveView').style.display = 'none';
+            document.getElementById('liveSetupPanel').style.display = 'block';
+            const endButton = document.getElementById('endLiveRoomButton');
+            if (endButton) endButton.style.display = 'block';
+            const leaveButton = document.getElementById('leaveLiveSeatButton');
+            if (leaveButton) leaveButton.style.display = 'none';
+          }
+        }
+
         async function searchLiveFriends() {
             const term = document.getElementById('liveFriendSearch')?.value.trim() || '';
             const results = document.getElementById('liveFriendResults');
@@ -443,7 +502,7 @@
                   const accept = confirm('LIVE invitation: ' + title + '\\nAccept guest seat?');
                   const result = await liveApi('respond-invite', { invite_id: invite.id, response: accept ? 'accept' : 'decline' });
                   window.__seenLiveInvites.add(invite.id);
-                  if (result.accepted) alert('Guest seat #' + result.seat_number + ' reserved. Camera/microphone publishing still needs to connect.');
+                  if (result.accepted) try { await connectAsLiveGuest(result); } catch (connectError) { alert('Invitation accepted, but camera/microphone could not connect: ' + connectError.message); }
                 } finally {
                   window.__processingLiveInvites.delete(invite.id);
                 }
@@ -486,7 +545,7 @@
             messages.forEach(item => {
               const row = document.createElement('div');
               const author = document.createElement('b');
-              author.style.color = item.sender_id === window.supabaseClient?.auth?.getUser?.()?.id ? '#25f4ee' : '#fe2c55';
+              author.style.color = '#25f4ee';
               author.textContent = String(item.display_name || 'Creator').slice(0, 80) + ': ';
               row.append(author, document.createTextNode(String(item.message || '').slice(0, 500)));
               area.appendChild(row);
