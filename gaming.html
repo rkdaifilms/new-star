@@ -439,28 +439,37 @@
             if (gamingStopBusy) return;
             gamingStopBusy = true;
             const sessionUrl = gamingWhipUrl, roomId = gamingRoomId;
-            if (sessionUrl) { try { await fetch(sessionUrl, { method: 'DELETE' }); } catch (error) { console.warn('Gaming WHIP cleanup:', error); } }
-            if (gamingPeer) gamingPeer.close();
-            if (roomId) await stopGamingSfuPublisher(roomId);
-            if (gamingAnimationFrame) cancelAnimationFrame(gamingAnimationFrame);
-            [screenStreamObj, facecamStreamObj, gamingMicStream, gamingCanvasStream].forEach(stream => stream?.getTracks().forEach(track => track.stop()));
-            if (gamingAudioContext) await gamingAudioContext.close().catch(() => {});
-            gamingPeer = null; gamingWhipUrl = null; gamingRoomId = null;
-            gamingMicStream = null; screenStreamObj = null; facecamStreamObj = null;
-            gamingCanvasStream = null; gamingAudioContext = null; gamingScreenVideo = null; gamingFaceVideo = null; gamingCanvas = null;
-            const faceVideo = document.getElementById('facecamVideoElement');
-            if (faceVideo) faceVideo.srcObject = null;
-            isLiveActive = false; isCamActive = false; isMicMuted = false;
-            document.getElementById('floatingFacecamBox').style.display = 'none';
-            document.getElementById('starBubbleIcon').style.display = 'none';
-            document.getElementById('activeGamingView').style.display = 'none';
-            document.getElementById('gamingSetupPanel').style.display = 'block';
-            if (roomId) {
-                try { await gamingLiveApi('stop', { room_id: roomId }); }
-                catch (error) { alert('Screen capture stopped, but server room status could not be updated: ' + error.message); return; }
+            try {
+                if (sessionUrl) {
+                    try { await fetch(sessionUrl, { method: 'DELETE' }); }
+                    catch (error) { console.warn('Gaming WHIP cleanup:', error); }
+                }
+                if (gamingPeer) gamingPeer.close();
+                if (roomId) {
+                    try { await stopGamingSfuPublisher(roomId); }
+                    catch (error) { console.warn('Gaming SFU cleanup:', error); }
+                }
+                if (gamingAnimationFrame) cancelAnimationFrame(gamingAnimationFrame);
+                [screenStreamObj, facecamStreamObj, gamingMicStream, gamingCanvasStream].forEach(stream => stream?.getTracks().forEach(track => track.stop()));
+                if (gamingAudioContext) await gamingAudioContext.close().catch(() => {});
+                gamingPeer = null; gamingWhipUrl = null; gamingRoomId = null;
+                gamingMicStream = null; screenStreamObj = null; facecamStreamObj = null;
+                gamingCanvasStream = null; gamingAudioContext = null; gamingScreenVideo = null; gamingFaceVideo = null; gamingCanvas = null;
+                const faceVideo = document.getElementById('facecamVideoElement');
+                if (faceVideo) faceVideo.srcObject = null;
+                isLiveActive = false; isCamActive = false; isMicMuted = false;
+                document.getElementById('floatingFacecamBox').style.display = 'none';
+                document.getElementById('starBubbleIcon').style.display = 'none';
+                document.getElementById('activeGamingView').style.display = 'none';
+                document.getElementById('gamingSetupPanel').style.display = 'block';
+                if (roomId) {
+                    try { await gamingLiveApi('stop', { room_id: roomId }); }
+                    catch (error) { alert('Screen capture stopped, but server room status could not be updated: ' + error.message); return; }
+                }
+                alert('Gaming broadcast ended.');
+            } finally {
+                gamingStopBusy = false;
             }
-            alert('Gaming broadcast ended.');
-            gamingStopBusy = false;
         }
 
         async function toggleCameraPower() {
