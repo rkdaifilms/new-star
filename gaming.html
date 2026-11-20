@@ -781,6 +781,10 @@
                 document.getElementById('gamingGuestLeaveButton').style.display = 'block';
                 document.getElementById('gamingInviteButton').style.display = 'none';
                 document.getElementById('gamingModerationButton').style.display = 'none';
+                try {
+                    await gamingLiveApi('list-members', { room_id: gamingRoomId });
+                    document.getElementById('gamingModerationButton').style.display = 'inline-flex';
+                } catch (_) {}
                 startGamingGuestSubscriptionPolling();
                 startGamingChatPolling();
             } catch (error) {
@@ -814,7 +818,7 @@
             }
         }
         function openGamingModerationModal() {
-            if (!gamingRoomId || gamingIsGuest) { alert('Only the Gaming LIVE host can open room controls.'); return; }
+            if (!gamingRoomId) { alert('Join an active Gaming LIVE room first.'); return; }
             document.getElementById('gamingModerationModal').style.display = 'flex';
             refreshGamingModeratorMembers();
         }
@@ -833,7 +837,7 @@
                     const status = document.createElement('span');
                     status.textContent = 'Camera ' + (member.camera_allowed ? 'allowed' : 'blocked') + ' · Mic ' + (member.microphone_allowed ? 'allowed' : 'blocked') + ' · ' + (member.sfu_connected ? 'connected' : 'not connected');
                     row.append(title, status);
-                    if (member.role !== 'host') {
+                    if (member.role !== 'host' && (data.actor_role === 'host' || member.role !== 'moderator')) {
                         const actions = document.createElement('div');
                         actions.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;';
                         const actionButton = (label, action, extra = {}) => {
@@ -852,8 +856,10 @@
                         };
                         actionButton(member.camera_allowed ? 'Stop camera + block' : 'Allow camera', 'set-member-permissions', { camera_allowed: !member.camera_allowed });
                         actionButton(member.microphone_allowed ? 'Stop mic + block' : 'Allow mic', 'set-member-permissions', { microphone_allowed: !member.microphone_allowed });
-                        if (member.role !== 'moderator') actionButton('Make moderator', 'set-moderator', { moderator: true });
-                        else actionButton('Remove moderator', 'set-moderator', { moderator: false });
+                        if (data.actor_role === 'host') {
+                            if (member.role !== 'moderator') actionButton('Make moderator', 'set-moderator', { moderator: true });
+                            else actionButton('Remove moderator', 'set-moderator', { moderator: false });
+                        }
                         actionButton('Remove guest', 'remove-member');
                         row.appendChild(actions);
                     }
