@@ -703,9 +703,8 @@
             gamingSfuSubscribeBusy = true;
             try {
                 const listed = await gamingLiveApi('sfu-list-publications', { room_id: gamingRoomId });
-                const { data: auth } = await window.supabaseClient.auth.getUser();
-                const ownId = auth?.user?.id;
-                const pubs = (listed.publications || []).filter(p => p.participant_id !== ownId && p.participant?.seat_number);
+                // The backend excludes this participant's own publications.
+                const pubs = (listed.publications || []).filter(p => p.participant?.seat_number);
                 const fresh = pubs.filter(p => !gamingSfuSubscribedKeys.has(p.publisher_session_id + ':' + p.track_name));
                 if (!fresh.length) return;
                 if (!gamingSfuReceivePeer) {
