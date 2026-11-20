@@ -380,7 +380,7 @@
             document.getElementById('starBubbleIcon').style.display = 'flex';
             document.getElementById('activeGameNameTag').textContent = gameName.toUpperCase() + ' SCREEN';
             document.getElementById('camStateText').textContent = 'OFF';
-            document.getElementById('micStateText').textContent = 'Not enabled in native screen-only mode';
+            document.getElementById('micStateText').textContent = connected.message && connected.message.toLowerCase().includes('microphone') ? 'ON' : 'OFF';
             document.getElementById('activeGamingView').style.display = 'flex';
             startGamingChatPolling();
             if (captureStatus) {
