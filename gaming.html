@@ -207,6 +207,48 @@
         let gamingStartBusy = false;
         let gamingStopBusy = false;
 
+
+        // Cloudflare Calls publisher for the composed screen + facecam + audio stream.
+        let gamingSfuPeer = null;
+        let gamingSfuSessionId = null;
+        let gamingSfuTrackMids = [];
+        async function startGamingSfuPublisher(roomId, mediaStream) {
+          const session = await gamingLiveApi('sfu-create-session', { room_id: roomId });
+          gamingSfuSessionId = session.session_id;
+          const pc = new RTCPeerConnection();
+          gamingSfuPeer = pc;
+          const senders = [];
+          mediaStream.getTracks().forEach(track => {
+            const transceiver = pc.addTransceiver(track, { direction: 'sendonly' });
+            senders.push({ transceiver, trackName: track.kind === 'audio' ? 'game-audio' : 'screen' });
+          });
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          const tracks = senders.map(({ transceiver, trackName }) => ({
+            mid: transceiver.mid, track_name: trackName
+          }));
+          const published = await gamingLiveApi('sfu-publish', {
+            room_id: roomId,
+            session_description: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
+            tracks
+          });
+          if (!published.session_description?.sdp) throw new Error('Cloudflare Calls did not return the gaming publishing answer.');
+          await pc.setRemoteDescription(published.session_description);
+          gamingSfuTrackMids = tracks.map(track => track.mid);
+          return true;
+        }
+        async function stopGamingSfuPublisher(roomId) {
+          const pc = gamingSfuPeer;
+          const sessionId = gamingSfuSessionId;
+          const mids = gamingSfuTrackMids.slice();
+          gamingSfuPeer = null; gamingSfuSessionId = null; gamingSfuTrackMids = [];
+          if (pc) pc.close();
+          if (roomId && sessionId && mids.length) {
+            try { await gamingLiveApi('sfu-close', { room_id: roomId, tracks: mids.map(mid => ({ mid })), force: true }); }
+            catch (error) { console.warn('Gaming Calls track cleanup:', error); }
+          }
+        }
+
         async function gamingLiveApi(action, extra = {}) {
             const client = window.supabaseClient;
             if (!client) throw new Error('Supabase connection is not ready. Refresh and sign in again.');
@@ -340,6 +382,8 @@
                 if (button) button.textContent = 'Connecting to New Star LIVE…';
                 const prepared = await gamingLiveApi('prepare', { room_title: 'Gaming: ' + gameName, stream_mode: 'screen', room_type: 'gaming', seat_capacity: 4 });
                 roomId = prepared.room_id;
+                // Publish the composed gameplay stream to the interactive SFU as well as broadcast.
+                await startGamingSfuPublisher(roomId, canvasStream);
                 peer = new RTCPeerConnection();
                 canvasStream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
                 const offer = await peer.createOffer();
@@ -377,6 +421,7 @@
             } catch (error) {
                 if (gamingAnimationFrame) cancelAnimationFrame(gamingAnimationFrame);
                 if (peer) peer.close();
+                if (roomId) await stopGamingSfuPublisher(roomId);
                 if (captured) captured.getTracks().forEach(track => track.stop());
                 if (face) face.getTracks().forEach(track => track.stop());
                 if (mic) mic.getTracks().forEach(track => track.stop());
@@ -396,6 +441,7 @@
             const sessionUrl = gamingWhipUrl, roomId = gamingRoomId;
             if (sessionUrl) { try { await fetch(sessionUrl, { method: 'DELETE' }); } catch (error) { console.warn('Gaming WHIP cleanup:', error); } }
             if (gamingPeer) gamingPeer.close();
+            if (roomId) await stopGamingSfuPublisher(roomId);
             if (gamingAnimationFrame) cancelAnimationFrame(gamingAnimationFrame);
             [screenStreamObj, facecamStreamObj, gamingMicStream, gamingCanvasStream].forEach(stream => stream?.getTracks().forEach(track => track.stop()));
             if (gamingAudioContext) await gamingAudioContext.close().catch(() => {});
