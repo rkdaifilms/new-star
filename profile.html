@@ -44,7 +44,9 @@ header{height:58px;padding:9px 14px;background:#191920;display:flex;align-items:
 .profileName{font-size:26px;font-weight:700;margin:8px 0 3px}
 .handle{color:#aaa;font-size:14px}
 .bio{white-space:pre-wrap;color:#ddd;line-height:1.5;margin:12px auto;max-width:620px;padding:0 15px}
-.heroActions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;padding:0 12px}
+.heroActions{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;padding:0 12px}
+.profileMessageIcon{width:46px;height:46px;display:inline-grid;place-items:center;border:0;border-radius:50%;background:#fe2c55;color:#fff;font-size:23px;box-shadow:0 5px 16px #fe2c5540;cursor:pointer}
+.profileMessageIcon:focus-visible{outline:3px solid #fff;outline-offset:3px}
 .stats{display:flex;justify-content:center;gap:clamp(20px,7vw,65px);margin:17px 0 4px}
 .stat strong{display:block;font-size:20px}
 .stat span{font-size:12px;color:#aaa}
@@ -269,7 +271,7 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
 
   <div class="heroActions">
    <button id="editProfileButton" type="button" data-i18n="action.editProfile">Edit Profile</button>
-   <button id="messageCreatorsButton" type="button" style="background:#fe2c55;color:#fff;border:0;border-radius:22px;padding:11px 18px;font-weight:700" onclick="location.href='inbox.html?new=1'">✉ Creators से Chat करें</button>
+   <button id="messageCreatorsButton" class="profileMessageIcon" type="button" aria-label="नया संदेश लिखें" title="नया संदेश" onclick="location.href='inbox.html?new=1'">✉</button>
   </div>
 
   <div class="stats">
