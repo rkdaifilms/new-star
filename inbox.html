@@ -16,7 +16,7 @@
     
     <style>
         body.chat-open{overflow:hidden}
-        body.chat-open .top-bar,body.chat-open .header,body.chat-open #inboxStatus,body.chat-open #tabMessages{display:none!important}
+        body.chat-open .top-bar,body.chat-open .header,body.chat-open #inboxStatus,body.chat-open .inbox-tabs,body.chat-open .list-container{display:none!important}
         body.chat-open #chatBoxWindow{display:flex!important;position:fixed;inset:0 0 70px;width:100%;height:auto;min-height:0;margin:0;border:0;border-radius:0;z-index:30}
         body.chat-open .chat-box-header{padding-top:max(14px,env(safe-area-inset-top))}
         body.chat-open .chat-messages{overscroll-behavior:contain}
@@ -32,6 +32,10 @@
         .header h2 { font-size: 18px; color: #fe2c55; }
         #inboxStatus{padding:7px 15px;color:#aaa;font-size:12px;line-height:1.35;background:#080808;border-bottom:1px solid #1b1b1b;min-height:0} #inboxStatus:empty{display:none}
         
+        .inbox-tabs{display:flex;gap:20px;padding:12px 16px 8px;background:#111;border-bottom:1px solid #222;overflow-x:auto;white-space:nowrap}
+        .inbox-tab{flex:0 0 auto;color:#999;font-size:14px;font-weight:600;padding:6px 0 10px;cursor:pointer;border-bottom:2px solid transparent}
+        .inbox-tab.active{color:#fff;border-bottom-color:#fe2c55}
+        .inbox-tab small{color:#fe2c55}
         /* Conversation list */
         /* Chat & Follower List */
         .list-container { padding: 10px 15px; }
@@ -88,9 +92,18 @@
 
     <div id="inboxStatus" class="empty-state" role="status" aria-live="polite">Connecting to your account…</div>
 
+    <nav class="inbox-tabs" aria-label="Inbox sections">
+        <button type="button" class="inbox-tab active" data-tab="messages" onclick="switchInboxTab('messages',this)">Messages</button>
+        <button type="button" class="inbox-tab" data-tab="followers" onclick="switchInboxTab('followers',this)">Followers <small id="followersCount"></small></button>
+        <button type="button" class="inbox-tab" data-tab="following" onclick="switchInboxTab('following',this)">Following <small id="followingCount"></small></button>
+        <button type="button" class="inbox-tab" data-tab="requests" onclick="switchInboxTab('requests',this)">Follow Requests <small id="followRequestCount"></small></button>
+    </nav>
     <div class="list-container" id="tabMessages">
         <div class="empty-state" data-i18n="inbox.loading">Loading your conversations…</div>
     </div>
+    <div class="list-container" id="tabFollowers" style="display:none"></div>
+    <div class="list-container" id="tabFollowing" style="display:none"></div>
+    <div class="list-container" id="tabRequests" style="display:none"></div>
 
     <!-- REAL MESSENGER CHAT WINDOW (FIXED INPUT AREA) -->
     <div id="chatBoxWindow">
@@ -149,9 +162,12 @@ async function boot(){
  if(!me){setStatus("Login session नहीं मिली। Login पेज खोला जा रहा है…");location.href="auth.html?next="+encodeURIComponent(location.pathname+location.search);return;}
  setStatus("आपके Messages लोड हो रहे हैं…");
  await loadThreads();
+ await loadFollowerLists();
  db.channel("newstar-inbox-"+me.id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"recipient_id=eq."+me.id},async payload=>{
    if(activeConversation===payload.new.conversation_id) await loadConversation();
    await loadThreads();
+   await loadFollowRequests();
+   await renderRelationList("followers");
  }).subscribe();
  setStatus("Inbox तैयार है।");
  const target=new URLSearchParams(location.search).get("to");
