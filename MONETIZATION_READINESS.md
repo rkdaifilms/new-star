@@ -21,11 +21,11 @@ There are exactly **three** gift products in the app:
 2. **LIVE Gifts** — gifts during ordinary LIVE hosting or a LIVE battle. Hosting and battle share one system and one commission rule.
 3. **LIVE Gaming Gifts** — gifts during a creator's live gameplay screen stream.
 
-All three use the same intended split: **50% platform / 50% creator**. A LIVE battle is not a fourth gift product and must never use a separate battle commission.
+All three use the same configured split: **50% platform / 50% creator**. All three rules remain **draft** until the server routes are implemented and verified. A LIVE battle is not a fourth gift product and must never use a separate battle commission.
 
 Verified configuration:
 - `video_gifts`: 5,000 basis points (50%), **draft**.
-- `live_gifts`: 5,000 basis points (50%), **active configuration only**; this does not mean a working gift transaction route exists.
+- `live_gifts`: 5,000 basis points (50%), **draft**; no LIVE hosting/battle gift route is active.
 - `gaming_stream_gifts`: 5,000 basis points (50%), **draft**.
 - The legacy `gaming_battle` rule is **retired** so it cannot become a separate battle-gift commission.
 - `affiliate`: 2,000 basis points, draft.
