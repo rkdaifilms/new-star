@@ -79,6 +79,8 @@ async function checkProviderStatus(force=false){
 let aiHistoryEntry=false;const previousBodyOverflow=document.body.style.overflow;
 function openAiPanel(){if(panel.classList.contains("open"))return;panel.classList.add("open");document.body.style.overflow="hidden";if(!aiHistoryEntry){try{window.history.pushState({...(window.history.state||{}),nsAiOpen:true},"","#new-star-ai");aiHistoryEntry=true;}catch(_){}}checkProviderStatus();}
 function closeAiPanel(fromPop=false){if(!panel.classList.contains("open"))return;panel.classList.remove("open");document.body.style.overflow=previousBodyOverflow;if(recording&&recognition){voiceCaptureLocked=true;try{recognition.stop();}catch(_){}}if(aiHistoryEntry){aiHistoryEntry=false;if(!fromPop&&window.history.state?.nsAiOpen){try{window.history.back();}catch(_){}}}}
+window.NewStarHelpAI={open:openAiPanel,close:()=>closeAiPanel(false)};
+document.dispatchEvent(new CustomEvent("newstar:help-ai-ready"));
 launch.addEventListener("click",openAiPanel);panel.querySelector("#ns-ai-close").addEventListener("click",()=>closeAiPanel(false));
 window.addEventListener("popstate",()=>{if(panel.classList.contains("open"))closeAiPanel(true);});
 window.addEventListener("keydown",e=>{if(e.key==="Escape"&&panel.classList.contains("open"))closeAiPanel(false);});
