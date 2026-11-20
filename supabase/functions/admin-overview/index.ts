@@ -79,6 +79,15 @@ Deno.serve(async (req: Request) => {
     metrics.qualified_unique_view_records_24h = uniqueViews24h.error ? null : (uniqueViews24h.count ?? 0);
     metrics.long_watch_credit_rows_total = watchDailyTotal.error ? null : (watchDailyTotal.count ?? 0);
     metrics.long_watch_credit_rows_24h = watchDaily24h.error ? null : (watchDaily24h.count ?? 0);
+
+    const [riskSignalsTotal, riskSignalsNeedsReview, riskSignals24h] = await Promise.all([
+      admin.schema("private").from("video_watch_risk_signals").select("id", { count: "exact", head: true }),
+      admin.schema("private").from("video_watch_risk_signals").select("id", { count: "exact", head: true }).eq("review_status", "needs_review"),
+      admin.schema("private").from("video_watch_risk_signals").select("id", { count: "exact", head: true }).gte("last_seen_at", since24h)
+    ]);
+    metrics.watch_risk_signals_total = riskSignalsTotal.error ? null : (riskSignalsTotal.count ?? 0);
+    metrics.watch_risk_signals_needs_review = riskSignalsNeedsReview.error ? null : (riskSignalsNeedsReview.count ?? 0);
+    metrics.watch_risk_signals_24h = riskSignals24h.error ? null : (riskSignals24h.count ?? 0);
     const { data: withdrawals } = await admin.from("withdrawal_requests")
       .select("id,creator_id,amount,currency,country_code,payout_method,status,created_at")
       .order("created_at", { ascending: false }).limit(100);
