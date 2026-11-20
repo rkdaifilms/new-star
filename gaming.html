@@ -113,6 +113,7 @@
                 <button class="btn" style="background:#ffcc00; color:#000; padding:10px; font-size:12px;" onclick="openRealGiftModal()">🎁 Send Gifts</button>
                 <button class="btn" style="background:#ff4444; color:#fff; padding:10px; font-size:12px;" onclick="openTreasureBoxModal()">📦 Treasure Box</button>
                 <button class="btn" style="background:#00b4d8; color:#000; padding:10px; font-size:12px;" onclick="openGamePkModal()">⚔️ PK Battle</button>
+                <button class="btn" style="background:#fe2c55;color:#fff;padding:10px;font-size:12px;" onclick="sendGamingLike()">❤️ Like</button>
                 <button class="btn" style="background:#25f4ee; color:#000; padding:10px; font-size:12px;" onclick="openChatBoxModal()">💬 Live Chat</button>
                 <button class="btn" style="grid-column:1/-1; background:linear-gradient(135deg,#25f4ee,#00b4d8); color:#001014; padding:11px; font-size:13px;" onclick="shareGamingLive()">📤 Share Gaming LIVE</button>
             </div>
@@ -158,8 +159,7 @@
                 <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('chatBoxModal')">✕</span>
             </div>
             <div id="chatMessagesList" style="background:#111; height:120px; border-radius:8px; padding:8px; overflow-y:auto; font-size:11px; margin-bottom:10px; color:#ccc;">
-                <div><b>ProGamer99:</b> Amazing gameplay! 🔥</div>
-                <div><b>StarFan:</b> OP headshot bhai! 🎯</div>
+                <div style="color:#888;">No messages yet. Be respectful in chat.</div>
             </div>
             <div style="display:flex; gap:5px;">
                 <input type="text" id="chatInputMsg" placeholder="Say something..." style="margin-bottom:0; padding:8px; font-size:11px;">
@@ -407,6 +407,7 @@
                 gamingWhipUrl = new URL(location, prepared.whip_url).toString();
                 gamingRoomId = roomId;
                 isLiveActive = true;
+                startGamingChatPolling();
                 gamingMicEnabled = true;
                 isMicMuted = false;
                 document.getElementById('gamingSetupPanel').style.display = 'none';
@@ -444,6 +445,7 @@
                     try { await fetch(sessionUrl, { method: 'DELETE' }); }
                     catch (error) { console.warn('Gaming WHIP cleanup:', error); }
                 }
+                stopGamingChatPolling();
                 if (gamingPeer) gamingPeer.close();
                 if (roomId) {
                     try { await stopGamingSfuPublisher(roomId); }
@@ -558,7 +560,7 @@
         function openTreasureBoxModal() { document.getElementById('treasureBoxModal').style.display = 'flex'; }
         function openChatBoxModal() { document.getElementById('chatBoxModal').style.display = 'flex'; }
         function openGamePkModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
-        function sendRealGift() { alert('Gaming gifts are not yet connected to a server-side live gift transaction. No coins were deducted.'); }
+
         async function shareGamingLive() {
             if (!isLiveActive || !gamingRoomId) {
                 alert('Gaming LIVE अभी शुरू नहीं हुआ है। पहले Stream चालू करें।');
@@ -593,11 +595,66 @@
         }
 
         function claimTreasureReward() { alert('Gaming Treasure Box is not connected to a server-managed prize pool. No coins were added.'); }
-        function sendLiveChatMessage() {
+        let gamingChatTimer = null;
+        let gamingChatLastId = null;
+        let gamingChatSending = false;
+        let gamingReactionBusy = false;
+        function startGamingChatPolling() {
+            if (gamingChatTimer) clearInterval(gamingChatTimer);
+            gamingChatLastId = null;
+            refreshGamingChat();
+            gamingChatTimer = setInterval(refreshGamingChat, 3000);
+        }
+        function stopGamingChatPolling() {
+            if (gamingChatTimer) clearInterval(gamingChatTimer);
+            gamingChatTimer = null;
+            gamingChatLastId = null;
+        }
+        async function refreshGamingChat() {
+            if (!gamingRoomId) return;
+            try {
+                const result = await gamingLiveApi('live-chat-list', { room_id: gamingRoomId });
+                const area = document.getElementById('chatMessagesList');
+                if (!area) return;
+                const messages = result.messages || [];
+                const latest = messages[messages.length - 1]?.id || null;
+                if (latest === gamingChatLastId && area.dataset.loaded === '1') return;
+                area.replaceChildren();
+                messages.forEach(item => {
+                    const row = document.createElement('div');
+                    const author = document.createElement('b');
+                    author.textContent = String(item.display_name || 'Creator').slice(0, 80) + ': ';
+                    row.append(author, document.createTextNode(String(item.message || '').slice(0, 500)));
+                    area.appendChild(row);
+                });
+                if (!messages.length) area.textContent = 'No messages yet. Be respectful in chat.';
+                area.dataset.loaded = '1';
+                gamingChatLastId = latest;
+                area.scrollTop = area.scrollHeight;
+            } catch (error) { console.warn('Gaming chat refresh:', error); }
+        }
+        async function sendLiveChatMessage() {
             const input = document.getElementById('chatInputMsg');
             const msg = input.value.trim();
-            if (!msg) return;
-            alert('Live chat is not yet connected to the shared room message service. Message was not sent.');
+            if (!msg || gamingChatSending) return;
+            if (!gamingRoomId) { alert('Start your gaming LIVE before sending chat.'); return; }
+            gamingChatSending = true;
+            try {
+                await gamingLiveApi('live-chat-send', { room_id: gamingRoomId, message: msg });
+                input.value = '';
+                await refreshGamingChat();
+            } catch (error) { alert(error.message); }
+            finally { gamingChatSending = false; }
+        }
+        async function sendGamingLike() {
+            if (!gamingRoomId || gamingReactionBusy) return;
+            gamingReactionBusy = true;
+            try {
+                const result = await gamingLiveApi('live-react', { room_id: gamingRoomId, reaction: 'like' });
+                const button = document.querySelector('#activeGamingView button[onclick="sendGamingLike()"]');
+                if (button) button.textContent = '❤️ ' + Number(result.total || 1);
+            } catch (error) { if (!error.message?.includes('wait')) console.warn('Gaming reaction:', error); }
+            finally { gamingReactionBusy = false; }
         }
         function startPkBattle() { alert('Gaming PK matchmaking is not yet connected to real participants. No battle was created.'); }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
