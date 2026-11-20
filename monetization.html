@@ -138,15 +138,15 @@
     </div>
 
     <!-- 4. AFFILIATE MARKETING -->
-    <div class="hub-item" onclick="checkAffiliateAccess()">
+    <div class="hub-item" aria-disabled="true">
         <div class="hub-left">
             <span class="hub-icon">🔗</span>
             <div class="hub-text">
                 <h4>Affiliate Marketing Program</h4>
-                <p>Earn direct product sales commission</p>
+                <p>Affiliate rewards are not available yet</p>
             </div>
         </div>
-        <span class="hub-right" id="affLockStatus" style="color:#ffcc00;">Locked 🔒</span>
+        <span class="hub-right" id="affLockStatus" style="color:#ffcc00;">Coming soon</span>
     </div>
 
     <!-- 5. VIDEO BOOST / PROMOTION -->
@@ -162,15 +162,15 @@
     </div>
 
     <!-- 6. FAN CLUB SUBSCRIPTIONS -->
-    <div class="hub-item" onclick="openSubscriptionModal()">
+    <div class="hub-item" aria-disabled="true">
         <div class="hub-left">
             <span class="hub-icon">⭐</span>
             <div class="hub-text">
                 <h4>Creator Fan Support</h4>
-                <p>Fan support features unlock after verified billing integration</p>
+                <p>Fan support is not available yet</p>
             </div>
         </div>
-        <span class="hub-right" style="color:#ffcc00; font-weight:bold;">Coming after billing setup</span>
+        <span class="hub-right" style="color:#ffcc00; font-weight:bold;">Coming soon</span>
     </div>
 
     <!-- MODALS -->
@@ -369,14 +369,12 @@
             catch(e){el.select();document.execCommand("copy");}
         }
         async function checkCampaignAccess(){location.href="campaign.html";}
-        async function checkAffiliateAccess(){alert("Affiliate Marketing अभी setup में है। Verified referral tracking, commission ledger और payout approval जुड़ने तक यहाँ कोई कमाई या आवेदन सक्रिय नहीं है।");}
-        function openVideoBoostModal(){document.getElementById("videoBoostModal").style.display="flex";}
+        async function openVideoBoostModal(){document.getElementById("videoBoostModal").style.display="flex";}
         function boostPackage(){alert("Promotion checkout अभी बंद है। वास्तविक payment gateway और ad-delivery verification जुड़ने के बाद ही भुगतान लिया जाएगा।");}
         function openLiveGiftRulesModal(){document.getElementById("liveGiftRulesModal").style.display="flex";}
         function openReferralModal(){
             (async()=>{try{const {data}=await db.auth.getUser();if(data?.user){const url=new URL(location.href);url.pathname=url.pathname.replace(/[^/]*$/,"");url.search="";url.searchParams.set("ref",data.user.id);document.getElementById("referralLinkInput").value=url.toString();}}catch(e){}document.getElementById("referralModal").style.display="flex";})();
         }
-        function openSubscriptionModal(){alert("Fan Support billing अभी सक्रिय नहीं है। भुगतान व्यवस्था सत्यापित होने पर इसे चालू किया जाएगा।");}
         function closeModal(id){document.getElementById(id).style.display="none";}
     </script>
 <script src="preferences.js"></script>
