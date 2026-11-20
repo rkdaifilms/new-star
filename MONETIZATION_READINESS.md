@@ -28,6 +28,13 @@ This document records verified implementation state. It is not a claim that live
 - The live gift UI is explicitly preview-only: cards are non-clickable and the send handler fails closed without wallet deduction or a fake chat receipt. The live-gift transaction route is not yet verified end-to-end.
 - Both live and video gifting must remain unavailable until their respective app routes, authenticated wallet reads, and server-authorized transaction calls are wired and tested end-to-end.
 
+## Sponsorship and campaign accounting audit
+
+- The sponsorship commission rule is stored as 2,000 basis points (20% platform / 80% creator), **draft**.
+- A read-only database inventory found no sponsorship-specific earning ledger table or sponsorship commission function. The existing campaign tables record campaign/application/event data; they do not by themselves prove a creator payment or platform commission was calculated.
+- Therefore, the 20/80 value is configuration only. Do not display it as earned money, credit creator balances, or initiate a payout from a client-side calculation.
+- Before sponsorship accounting can be enabled, an eligible adult-managed business owner must approve the contract terms and an authorized server-side route must record the sponsor payment, agreed eligible cost deductions, platform fee, creator share, refunds/adjustments, and an auditable idempotency reference. This remains pending and must be tested without real funds first.
+
 ## Ads
 
 - AdMob is the native mobile ad integration; AdSense is the web ad integration. They are not interchangeable.
