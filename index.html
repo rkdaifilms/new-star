@@ -310,10 +310,9 @@ button{cursor:pointer}
 <section class="modal" id="giftModal">
  <div class="modal-head"><h3>🎁 <span data-i18n="action.sendGift">Send a Gift</span></h3><button class="close" data-close="giftModal">×</button></div>
  <div class="balance"><span>आपका Coin Balance</span><strong id="coinBalance">लोड हो रहा है...</strong></div>
- <a class="buy-link" href="wallet.html#buy-coins">＋ Wallet में Coins खरीदें</a>
  <div class="gift-grid" id="giftGrid"></div>
- <p class="gift-note">Gift भेजने पर Coins आपके Supabase Wallet से कटेंगे। सफल Transaction की पुष्टि सर्वर से होगी।</p>
- <div class="gift-footer"><button class="primary" id="sendGift" disabled>पहले Gift चुनें</button></div>
+ <p class="gift-note" role="status">Video Gifts · 50% Platform / 50% Creator. अभी यह catalogue preview है; सुरक्षित server gift route की जाँच पूरी होने तक coin purchase और gift sending बंद हैं।</p>
+ <div class="gift-footer"><button class="primary" id="sendGift" disabled aria-disabled="true">Gift sending अभी उपलब्ध नहीं है</button></div>
 </section>
 <div id="feedManageModal" aria-hidden="true"><div class="manage-box">
  <div style="display:flex;align-items:center;justify-content:space-between"><strong data-i18n="action.videoSettings">Video Settings</strong><button type="button" id="feedManageClose" class="close">×</button></div>
@@ -1128,34 +1127,22 @@ async function downloadCurrentVideo(){
  }finally{button.disabled=false;}
 }
 
-/* GIFT SYSTEM */
+/* GIFT SYSTEM — catalogue preview only until the secure server route is verified. */
 function renderGiftCatalog(){
- const grid=$("giftGrid");grid.innerHTML="";
+ const grid=$("giftGrid");grid.replaceChildren();
  GIFTS.forEach(gift=>{
-  const button=document.createElement("button");button.type="button";
-  button.className="gift";button.dataset.gift=gift.name;
+  const card=document.createElement("div");
+  card.className="gift";card.setAttribute("aria-disabled","true");
+  card.style.cssText="opacity:.68;cursor:not-allowed";
   const emoji=document.createElement("span");emoji.className="emoji";emoji.textContent=gift.emoji;
   const name=document.createElement("span");name.className="name";name.textContent=gift.name;
-  const price=document.createElement("span");price.className="price";price.textContent=gift.coins.toLocaleString()+" Coins";
-  button.append(emoji,name,price);
-  button.addEventListener("click",()=>{
-   selectedGift=gift;
-   document.querySelectorAll(".gift").forEach(el=>el.classList.toggle("selected",el.dataset.gift===gift.name));
-   $("sendGift").disabled=false;
-   $("sendGift").textContent=gift.emoji+" Send "+gift.name+" · "+gift.coins.toLocaleString()+" Coins";
-  });
-  grid.appendChild(button);
+  const price=document.createElement("span");price.className="price";price.textContent=gift.coins.toLocaleString()+" Coins · Preview";
+  card.append(emoji,name,price);grid.appendChild(card);
  });
 }
 async function loadWalletBalance(){
  if(!currentUser){$("coinBalance").textContent="Login जरूरी";return;}
- $("coinBalance").textContent="लोड हो रहा है...";
- try{
-  const {data,error}=await db.from("user_wallets").select("coin_balance").eq("user_id",currentUser.id).maybeSingle();
-  if(error)throw error;
-  walletBalance=Number(data?.coin_balance||0);
-  $("coinBalance").textContent=walletBalance.toLocaleString()+" 🪙";
- }catch(error){console.error("Wallet balance:",error);$("coinBalance").textContent="लोड नहीं हुआ";showToast("Wallet Balance नहीं मिला। Wallet table/RLS जाँचें।");}
+ $("coinBalance").textContent="Gift sending बंद है";
 }
 function newRequestId(){
  if(crypto.randomUUID)return crypto.randomUUID();
@@ -1165,39 +1152,16 @@ function newRequestId(){
 }
 async function openGift(){
  if(!currentVideo)return;
- if(!currentUser){showToast("Gift भेजने के लिए पहले Login करें।");location.href="auth.html?next=index.html";return;}
- selectedGift=null;$("sendGift").disabled=true;$("sendGift").textContent="पहले Gift चुनें";
- document.querySelectorAll(".gift").forEach(g=>g.classList.remove("selected"));
- openModal("giftModal");await loadWalletBalance();
+ if(!currentUser){showToast("पहले Login करें।");location.href="auth.html?next=index.html";return;}
+ selectedGift=null;
+ $("sendGift").disabled=true;
+ $("sendGift").textContent="Gift sending अभी उपलब्ध नहीं है";
+ openModal("giftModal");
+ await loadWalletBalance();
 }
 async function sendGift(){
- if(giftBusy||!currentVideo||!selectedGift)return;
- if(!currentUser){showToast("पहले Login करें।");location.href="auth.html?next=index.html";return;}
- if(walletBalance<selectedGift.coins){showToast("पर्याप्त Coins नहीं हैं। Wallet खोलें।");location.href="wallet.html#buy-coins";return;}
- giftBusy=true;const button=$("sendGift");button.disabled=true;button.textContent="Gift भेजा जा रहा है...";
- try{
-  const gift=selectedGift;const requestId=newRequestId();
-  const {data,error}=await db.functions.invoke("admin-overview",{body:{
-   action:"send_gift",videoId:String(currentVideo.id),giftName:gift.name,coins:gift.coins,requestId
-  }});
-  if(error)throw error;
-  const envelope=Array.isArray(data)?data[0]:data;const result=envelope?.result||envelope;
-  if(!envelope?.ok||!result||result.success!==true)throw new Error("Server ने Gift की पुष्टि नहीं की।");
-  if(typeof result.remaining_coins==="number"){
-   walletBalance=result.remaining_coins;$("coinBalance").textContent=walletBalance.toLocaleString()+" 🪙";
-  }else{await loadWalletBalance();}
-  selectedGift=null;closeModal("giftModal");showToast("🎉 "+gift.name+" Gift सफलतापूर्वक भेजा गया!");
- }catch(error){
-  console.error("Gift transaction error:",error);
-  showToast("Gift पूरा नहीं हुआ: "+(error.message||"कृपया दोबारा कोशिश करें।").slice(0,130));
-  await loadWalletBalance();
- }finally{
-  giftBusy=false;button.disabled=!selectedGift;
-  if(selectedGift)button.textContent=selectedGift.emoji+" Send "+selectedGift.name+" · "+selectedGift.coins.toLocaleString()+" Coins";
-  else button.textContent="पहले Gift चुनें";
- }
+ showToast("Video Gifts अभी preview में हैं। कोई Coin नहीं काटा गया और Gift नहीं भेजा गया।");
 }
-
 /* CATEGORY, SEARCH AND NAVIGATION */
 document.querySelectorAll(".category").forEach(button=>{
  button.addEventListener("click",async()=>{
