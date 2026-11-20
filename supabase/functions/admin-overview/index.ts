@@ -110,19 +110,20 @@ Deno.serve(async (req: Request) => {
       creator_gift_gross_coins: null, creator_gift_net_coins: null,
       platform_gift_fee_coins: null, developer_gift_commission_coins: null,
       gift_commission_basis_points: null, gift_commission_rate_percent: null,
+      gift_commission_rules: null,
       gift_commission_ledger_rows: null, gift_commission_ledger_matches: null,
       pending_withdrawals_by_currency: []
     };
     try {
-      const [paidOrders, giftRows, pendingRows, commissionRule] = await Promise.all([
+      const [paidOrders, giftRows, pendingRows, commissionRules] = await Promise.all([
         readAll("payment_orders", "amount_minor,currency", "status", "paid"),
         readAll("creator_gift_earnings", "coins,gross_coins,platform_fee_coins"),
         readAll("withdrawal_requests", "amount,currency,status", "status", "Pending"),
         admin.schema("private").from("commission_rules")
-          .select("basis_points").eq("rule_code", "live_gifts").eq("status", "active")
-          .order("updated_at", { ascending: false }).limit(1).maybeSingle()
+          .select("rule_code,basis_points,status")
+          .in("rule_code", ["video_gifts", "live_gifts", "gaming_stream_gifts"])
       ]);
-      if (commissionRule.error) throw commissionRule.error;
+      if (commissionRules.error) throw commissionRules.error;
       const platformRows: any[] = [];
       for (let offset = 0; offset < 50000; offset += 1000) {
         const { data, error } = await admin.schema("private").from("platform_coin_ledger")
@@ -144,7 +145,11 @@ Deno.serve(async (req: Request) => {
       }
       const developerCommissionCoins = platformRows.reduce((sum, row) => sum + Number(row.platform_fee_coins || 0), 0);
       const giftRowsFeeCoins = giftRows.reduce((sum, row) => sum + Number(row.platform_fee_coins || 0), 0);
-      const activeBasisPoints = commissionRule.data?.basis_points ?? null;
+      const giftRuleMap = Object.fromEntries((commissionRules.data ?? []).map((rule: any) => [
+        rule.rule_code, { basis_points: rule.basis_points, platform_percent: Number(rule.basis_points) / 100,
+          creator_percent: 100 - Number(rule.basis_points) / 100, status: rule.status }
+      ]));
+      const activeBasisPoints = null; // No gift route is enabled until all three systems are verified.
       financials = {
         paid_orders_count: paidOrders.length,
         paid_totals_by_currency: Array.from(byCurrency, ([currency, amount_minor]) => ({ currency, amount_minor })),
@@ -153,7 +158,8 @@ Deno.serve(async (req: Request) => {
         platform_gift_fee_coins: developerCommissionCoins,
         developer_gift_commission_coins: developerCommissionCoins,
         gift_commission_basis_points: activeBasisPoints,
-        gift_commission_rate_percent: activeBasisPoints === null ? null : activeBasisPoints / 100,
+        gift_commission_rate_percent: null,
+        gift_commission_rules: giftRuleMap,
         gift_commission_ledger_rows: platformRows.length,
         gift_commission_ledger_matches: developerCommissionCoins === giftRowsFeeCoins,
         pending_withdrawals_by_currency: Array.from(pendingByCurrency, ([currency, amount]) => ({ currency, amount }))
@@ -361,15 +367,10 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body.action === "send_gift") {
-    const { videoId, giftName, coins, requestId } = body;
-    if (typeof videoId !== "string" || typeof giftName !== "string" ||
-        !Number.isInteger(coins) || typeof requestId !== "string") return fail("Invalid gift request");
-    const { data, error } = await admin.rpc("send_creator_gift_secure", {
-      p_sender_id: user.id, p_video_id: videoId, p_gift_name: giftName,
-      p_coins: coins, p_request_id: requestId
-    });
-    if (error) return fail(error.message);
-    return new Response(JSON.stringify({ ok: true, result: data }), { headers: cors });
+    // Fail closed: this legacy action only supported video gifts and is not a
+    // verified unified route for Video, LIVE (hosting + battle), and LIVE Gaming.
+    // Never let an authenticated browser invoke a service-role wallet mutation here.
+    return fail("Gift sending is not enabled: secure routes for all three gift systems and provider readiness are still pending.", 503);
   }
 
   if (body.action === "request_withdrawal") {
