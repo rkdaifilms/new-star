@@ -580,8 +580,38 @@
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         
-        function stopLiveBroadcast() {
-            if(liveStreamObj) liveStreamObj.getTracks().forEach(t => t.stop());
+        async function stopLiveBroadcast() {
+            const roomId = liveRoomId;
+            const whipUrl = liveWhipSessionUrl;
+            const whipPeer = liveWhipPeer;
+            stopLiveGuestSubscriptionPolling();
+            try {
+              if (roomId) await stopLiveSfuPublisher(roomId);
+            } catch (error) {
+              console.warn('SFU shutdown:', error);
+            }
+            if (whipPeer) {
+              try { whipPeer.close(); } catch (_) {}
+            }
+            if (whipUrl) {
+              try {
+                await fetch(whipUrl, { method: 'DELETE' });
+              } catch (error) {
+                console.warn('Cloudflare Stream session cleanup:', error);
+              }
+            }
+            if (liveStreamObj) {
+              liveStreamObj.getTracks().forEach(track => track.stop());
+            }
+            liveStreamObj = null;
+            liveWhipPeer = null;
+            liveWhipSessionUrl = null;
+            liveRoomId = null;
+            if (roomId) {
+              try { await liveApi('stop', { room_id: roomId }); }
+              catch (error) { alert('Camera stopped, but the server could not close the LIVE room: ' + error.message); }
+            }
+            document.querySelectorAll('.live-room-box').forEach(box => box.classList.remove('active'));
             document.getElementById('activeLiveView').style.display = 'none';
             document.getElementById('liveSetupPanel').style.display = 'block';
         }
