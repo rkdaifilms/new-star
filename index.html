@@ -825,7 +825,7 @@ async function toggleCreatorFollow(){
   }
   await refreshCreatorFollowButton(item);
  }catch(error){
-  showToast("Follow अपडेट नहीं हुआ: "+(error.message||"Permission error"));
+  showToast(socialActionErrorMessage(error,"follow"));
   button.disabled=false;
  }
 }
@@ -879,6 +879,22 @@ function renderVideo(){
  loadCommentCount(currentVideo.id);
 }
 
+function socialActionErrorMessage(error,action){
+ const message=String(error?.message||error?.details||"");
+ const match=message.match(/SOCIAL_LIMIT:([a-z_]+):(\d+)/i);
+ if(match){
+  if(match[1]==="likes_burst")return "बहुत तेज़ी से Likes किए गए। थोड़ी देर बाद फिर कोशिश करें।";
+  if(match[1]==="likes_daily")return "आज की Like सीमा पूरी हो गई है। कल फिर कोशिश करें।";
+  if(match[1]==="follows_sent")return "आज आप 100 नए Creators को Follow कर सकते हैं। आपकी आज की सीमा पूरी हो गई है।";
+  if(match[1]==="follows_received")return "इस Creator के आज के नए Followers की सुरक्षा सीमा पूरी हो गई है। बाद में कोशिश करें।";
+ }
+ const restricted=message.match(/SOCIAL_RESTRICTION:like:([^\\s]+)/i);
+ if(restricted)return "असामान्य Like गतिविधि के कारण Like सुविधा कुछ समय के लिए रोकी गई है।";
+ if(action==="like")return "Like सेव नहीं हुआ। कृपया फिर कोशिश करें।";
+ if(action==="follow")return "Follow अपडेट नहीं हुआ: "+(message||"कृपया फिर कोशिश करें।");
+ return message||"यह कार्रवाई अभी पूरी नहीं हो सकी।";
+}
+
 async function loadCommentCount(videoId){
  try{
   const {count,error}=await db.from("video_comments").select("id",{count:"exact",head:true}).eq("video_id",String(videoId));
@@ -914,7 +930,7 @@ async function toggleLike(){
    $("likes").textContent=numberFormat(latestCount);
   }
   showToast(wasLiked?"Like हटाया गया":"❤️ Liked!");
- }catch(error){console.error("Like error:",error);showToast("Like सेव नहीं हुआ। Database/RLS जाँचें।");}
+ }catch(error){console.error("Like error:",error);showToast(socialActionErrorMessage(error,"like"));}
  finally{button.disabled=false;}
 }
 
