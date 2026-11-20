@@ -12,6 +12,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <style>
+        .gaming-capture-status{margin-top:12px;padding:12px 14px;border:1px solid #5a3d16;border-radius:12px;background:#21190e;color:#ffd58a;font-size:13px;line-height:1.5;white-space:pre-line}
+        .gaming-capture-status[hidden]{display:none}
+
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #0b0b0b; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 15px; padding-bottom: 80px; }
         
@@ -72,6 +75,7 @@
         <input type="text" id="gameNameInput" value="Free Fire Mobile">
         
         <button class="btn" onclick="startProGamingStream()">🚀 Launch Game Stream Live</button>
+        <div id="gamingCaptureStatus" class="gaming-capture-status" role="status" aria-live="polite" hidden></div>
     </div>
 
     <!-- FLOATING STAR LOGO (Tap to collapse/expand settings & all features) -->
@@ -328,9 +332,15 @@
             if (button) { button.disabled = true; button.textContent = 'Requesting screen permission…'; }
             let captured = null, peer = null, roomId = null, mic = null, face = null, canvasStream = null, audioContext = null;
             try {
+                const captureStatus = document.getElementById('gamingCaptureStatus');
                 if (!window.isSecureContext || !navigator.mediaDevices?.getDisplayMedia || !window.RTCPeerConnection) {
-                    throw new Error('इस browser में screen capture उपलब्ध नहीं है। Updated Chrome और HTTPS पर कोशिश करें। कुछ Android फोन/PWA दूसरे ऐप की स्क्रीन शेयर नहीं करते; वहाँ native Android MediaProjection app जरूरी होगा।');
+                    if (captureStatus) {
+                        captureStatus.hidden = false;
+                        captureStatus.textContent = 'इस Android browser/WebView में पूरे फोन की स्क्रीन capture सुविधा उपलब्ध नहीं है। इसलिए stream शुरू नहीं की गई और कोई नकली LIVE status नहीं दिखाया जाएगा.\n\nपूरे फोन या दूसरे game app को stream करने के लिए New Star का native Android app और MediaProjection screen-capture permission चाहिए। सिर्फ Chrome update या वेबसाइट बदलने से हर Android फोन में यह सुविधा नहीं आती।';
+                    }
+                    return;
                 }
+                if (captureStatus) { captureStatus.hidden = true; captureStatus.textContent = ''; }
 
                 // Screen capture MUST be requested immediately from the launch tap.
                 captured = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30, max: 30 } }, audio: true });
@@ -468,7 +478,8 @@
                 document.getElementById('activeGamingView').style.display = 'flex';
                 screenTrack.addEventListener('ended', () => stopGameStreamSession());
                 const audioNote = captured.getAudioTracks().length ? 'Screen/game audio track detected.' : 'Browser did not provide game/system audio; microphone can still be used.';
-                alert('Gaming LIVE connected. Your screen is being streamed.' + (face ? ' Facecam is included.' : ' Camera was not enabled.') + ' ' + audioNote);
+                const captureStatus = document.getElementById('gamingCaptureStatus');
+                if (captureStatus) { captureStatus.hidden = false; captureStatus.style.borderColor = '#176b43'; captureStatus.style.background = '#0d2118'; captureStatus.style.color = '#9ef0bd'; captureStatus.textContent = 'Gaming LIVE connected. ' + (face ? 'Facecam included. ' : 'Camera unavailable. ') + audioNote; }
             } catch (error) {
                 if (gamingAnimationFrame) cancelAnimationFrame(gamingAnimationFrame);
                 if (peer) peer.close();
@@ -479,7 +490,9 @@
                 if (canvasStream) canvasStream.getTracks().forEach(track => track.stop());
                 if (audioContext) await audioContext.close().catch(() => {});
                 if (roomId) { try { await gamingLiveApi('stop', { room_id: roomId }); } catch (_) {} }
-                alert(error?.message || 'Gaming LIVE could not start.');
+                const captureStatus = document.getElementById('gamingCaptureStatus');
+                if (captureStatus) { captureStatus.hidden = false; captureStatus.style.borderColor = '#5a3d16'; captureStatus.style.background = '#21190e'; captureStatus.style.color = '#ffd58a'; captureStatus.textContent = 'Gaming LIVE शुरू नहीं हुआ: ' + (error?.message || 'अज्ञात त्रुटि'); }
+                console.error('Gaming LIVE start failed:', error);
             } finally {
                 gamingStartBusy = false;
                 if (button) { button.disabled = false; button.textContent = oldLabel || '🚀 Launch Game Stream Live'; }
