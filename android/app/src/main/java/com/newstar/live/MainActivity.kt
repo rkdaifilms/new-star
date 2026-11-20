@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         container = FrameLayout(this)
-        progress = ProgressBar(this).apply { isIndeterminate = true }
+        progress = ProgressBar(this).apply { isIndeterminate = true; alpha = 0f }
         web = createWebView()
         container.addView(web, FrameLayout.LayoutParams(-1, -1))
         container.addView(progress, FrameLayout.LayoutParams(-2, -2, android.view.Gravity.CENTER))
@@ -86,7 +86,7 @@ class MainActivity : AppCompatActivity() {
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                    progress.setVisibility(if (newProgress >= 100) View.GONE else View.VISIBLE)
+                    progress.alpha = if (newProgress >= 100) 0f else 1f
                 }
 
                 override fun onShowFileChooser(
@@ -132,11 +132,11 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                    progress.setVisibility(View.VISIBLE)
+                    progress.alpha = 1f
                 }
 
                 override fun onPageCommitVisible(view: WebView?, url: String?) {
-                    progress.setVisibility(View.GONE)
+                    progress.alpha = 0f
                 }
 
                 override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -157,7 +157,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showLoadError(message: String) {
-        progress.setVisibility(View.GONE)
+        progress.alpha = 0f
         val safeMessage = message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         val html = """
             <html><meta name="viewport" content="width=device-width, initial-scale=1">
