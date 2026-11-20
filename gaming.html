@@ -435,8 +435,10 @@
                 if (button) button.textContent = 'Connecting to New Star LIVE…';
                 const prepared = await gamingLiveApi('prepare', { room_title: 'Gaming: ' + gameName, stream_mode: 'screen', room_type: 'gaming', seat_capacity: 4 });
                 roomId = prepared.room_id;
-                // Publish the composed gameplay stream to the interactive SFU as well as broadcast.
-                await startGamingSfuPublisher(roomId, canvasStream);
+
+                // Cloudflare Stream WHIP is the primary one-to-many broadcast path.
+                // The Calls SFU is only for interactive guest seats and must never
+                // prevent the creator's main broadcast from starting.
                 peer = new RTCPeerConnection();
                 canvasStream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
                 const offer = await peer.createOffer();
@@ -456,6 +458,20 @@
                 await peer.setRemoteDescription({ type: 'answer', sdp: answer });
                 await waitGamingPeerConnected(peer);
                 await gamingLiveApi('confirm', { room_id: roomId });
+
+                // Add multi-person guest-seat media independently. A Calls/SFU
+                // configuration problem must not tear down a healthy Stream WHIP
+                // broadcast or mark the creator offline.
+                try {
+                    await startGamingSfuPublisher(roomId, canvasStream);
+                } catch (sfuError) {
+                    console.warn('Gaming guest-seat SFU is unavailable; primary broadcast remains active:', sfuError);
+                    const status = document.getElementById('gamingCaptureStatus');
+                    if (status) {
+                        status.hidden = false;
+                        status.textContent = 'आपका मुख्य गेमिंग LIVE चालू है। फिलहाल guest seats का real-time connection उपलब्ध नहीं है; viewers की मुख्य stream इससे बंद नहीं होगी।';
+                    }
+                }
 
                 screenStreamObj = captured;
                 facecamStreamObj = face;
