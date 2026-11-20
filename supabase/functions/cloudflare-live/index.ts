@@ -42,13 +42,67 @@ Deno.serve(async (req: Request) => {
   const { data: auth, error: authError } = await userClient.auth.getUser();
   if (authError || !auth.user) return json({ error: "Valid login required." }, 401, headers);
 
-  let body: { action?: string; room_title?: string; room_id?: string };
+  let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
-  if (!["prepare", "confirm", "stop"].includes(String(action))) return json({ error: "Unsupported action." }, 400, headers);
+  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react"];
+  if (!supportedActions.includes(String(action))) return json({ error: "This LIVE interaction is not enabled on the server yet." }, 501, headers);
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
   const creatorId = auth.user.id;
+
+  async function getActiveRoom(roomId: string) {
+    if (!roomId) return { data: null, error: new Error("Room ID is required.") };
+    return await admin.from("live_rooms").select("id,creator_id,is_live,room_type,stream_mode")
+      .eq("id", roomId).eq("is_live", true).maybeSingle();
+  }
+
+  if (action === "live-chat-list") {
+    const { data: room, error: roomError } = await getActiveRoom(String(body.room_id || ""));
+    if (roomError || !room) return json({ error: "Active LIVE room not found." }, 404, headers);
+    const { data, error } = await admin.from("live_room_messages")
+      .select("id,sender_id,display_name,message,created_at")
+      .eq("room_id", room.id).is("deleted_at", null)
+      .order("created_at", { ascending: true }).limit(100);
+    if (error) return json({ error: "Could not load LIVE chat." }, 503, headers);
+    return json({ ok: true, messages: data || [] }, 200, headers);
+  }
+
+  if (action === "live-chat-send") {
+    const { data: room, error: roomError } = await getActiveRoom(String(body.room_id || ""));
+    if (roomError || !room) return json({ error: "Active LIVE room not found." }, 404, headers);
+    const message = typeof body.message === "string" ? body.message.trim() : "";
+    if (!message || message.length > 500) return json({ error: "Chat message must contain 1 to 500 characters." }, 400, headers);
+    const { data: lastMessage, error: cooldownError } = await admin.from("live_room_messages")
+      .select("created_at").eq("room_id", room.id).eq("sender_id", creatorId)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (cooldownError) return json({ error: "Could not verify chat rate limit." }, 503, headers);
+    if (lastMessage?.created_at && Date.now() - new Date(lastMessage.created_at).getTime() < 1200) {
+      return json({ error: "Please wait a moment before sending another message." }, 429, headers);
+    }
+    const { data: profile } = await admin.from("profiles").select("full_name,username")
+      .eq("user_id", creatorId).maybeSingle();
+    const displayName = String(profile?.full_name || profile?.username || "Creator").trim().slice(0, 80) || "Creator";
+    const { data, error } = await admin.from("live_room_messages")
+      .insert({ room_id: room.id, sender_id: creatorId, display_name: displayName, message })
+      .select("id,sender_id,display_name,message,created_at").single();
+    if (error || !data) return json({ error: "Could not send LIVE chat message." }, 503, headers);
+    return json({ ok: true, message: data }, 200, headers);
+  }
+
+  if (action === "live-react") {
+    const { data: room, error: roomError } = await getActiveRoom(String(body.room_id || ""));
+    if (roomError || !room) return json({ error: "Active LIVE room not found." }, 404, headers);
+    const reaction = ["like", "heart", "clap", "fire"].includes(String(body.reaction)) ? String(body.reaction) : "like";
+    const { error } = await admin.from("live_room_reactions").insert({
+      room_id: room.id, sender_id: creatorId, reaction
+    });
+    if (error) return json({ error: "Could not record LIVE reaction." }, 503, headers);
+    const { count, error: countError } = await admin.from("live_room_reactions")
+      .select("id", { count: "exact", head: true }).eq("room_id", room.id).eq("reaction", reaction);
+    if (countError) return json({ error: "Reaction was recorded, but its total could not be loaded." }, 503, headers);
+    return json({ ok: true, total: count || 0 }, 200, headers);
+  }
 
   if (action === "stop") {
     if (!body.room_id) return json({ error: "Room ID is required." }, 400, headers);
@@ -84,6 +138,10 @@ Deno.serve(async (req: Request) => {
 
   const title = typeof body.room_title === "string" ? body.room_title.trim().slice(0, 120) : "";
   if (!title) return json({ error: "Enter a live room title." }, 400, headers);
+  const roomType = body.room_type === "gaming" ? "gaming" : "live";
+  const streamMode = roomType === "gaming" ? "screen" : "camera";
+  const requestedSeats = Number(body.seat_capacity || 1);
+  const seatCapacity = [1, 4, 10].includes(requestedSeats) ? requestedSeats : 1;
 
   const { data: existing, error: readError } = await admin.from("live_rooms")
     .select("id,stream_room_name,is_live").eq("creator_id", creatorId).maybeSingle();
@@ -147,7 +205,9 @@ Deno.serve(async (req: Request) => {
     recording_status: "not_supported",
     started_at: null,
     ended_at: null,
-    stream_mode: "camera",
+    stream_mode: streamMode,
+    room_type: roomType,
+    seat_capacity: seatCapacity,
     moderation_status: "active",
   };
   const { data: room, error: saveError } = await admin.from("live_rooms")
