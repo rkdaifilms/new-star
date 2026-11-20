@@ -9,6 +9,8 @@ import android.media.projection.MediaProjection
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import android.content.pm.ServiceInfo
 import org.webrtc.*
 import java.net.HttpURLConnection
 import java.net.URL
@@ -32,7 +34,7 @@ class GamingStreamService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == STOP) { stopStreaming(); return START_NOT_STICKY }
         if (intent?.action == START) {
-            startForeground(NOTIFICATION_ID, buildNotification())
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
             Thread {
                 try { startStreaming(intent) }
                 catch (e: Exception) { emit("error", e.message ?: "Native stream failed"); stopStreaming() }
@@ -60,7 +62,7 @@ class GamingStreamService : Service() {
         capturer = ScreenCapturerAndroid(permissionData, object : MediaProjection.Callback() {
             override fun onStop() { emit("error", "Android screen sharing was stopped."); stopStreaming() }
         })
-        capturer!!.initialize(texture, applicationContext, source!!.capturerObserver)
+        capturer!!.initialize(texture!!, applicationContext, source!!.capturerObserver)
         capturer!!.startCapture(1280, 720, 30)
         track = factory!!.createVideoTrack("newstar-screen", source)
 
