@@ -764,15 +764,6 @@
             const status = document.getElementById('cameraStatusText');
             if (status) status.textContent = isLiveCameraDisabled ? 'OFF' : 'ON';
         }
-        // Disable local-only rewards and false broadcast claims until real server infrastructure exists.
-        function checkAndDeductCoins(){ alert('Gifts disabled: verified server transactions are not connected.'); return false; }
-        function sendTiktokGift(){ alert('Gift sending is disabled. No coins were deducted.'); }
-        function deployTreasureBox(){ alert('Treasure Box disabled until a server-managed prize pool exists.'); }
-        function executeClaimTreasure(){ alert('No reward was added; claims are not server-verified.'); }
-        function assignFriendToSeat(){ alert('Guest seats require a real WebRTC connection and are unavailable.'); }
-        function startGlobalPkSearch(){ alert('PK matchmaking is not connected to real participants.'); }
-        function startPkWithOpponent(){ alert('PK Battle is unavailable until real matchmaking exists.'); }
-
         // Interactive Cloudflare Calls publisher for the host's camera/microphone.
         let liveSfuPeer = null;
         let liveSfuSessionId = null;
@@ -1061,27 +1052,6 @@
           }
         }
 
-        async function stopLiveBroadcast() {
-          stopLiveGuestSubscriptionPolling();
-          const peer = liveWhipPeer;
-          const sessionUrl = liveWhipSessionUrl;
-          const roomId = liveRoomId;
-          if (sessionUrl) {
-            try { await fetch(sessionUrl, { method: 'DELETE' }); } catch (error) { console.warn('WHIP session cleanup:', error); }
-          }
-          if (peer) peer.close();
-          if (liveStreamObj) liveStreamObj.getTracks().forEach(track => track.stop());
-          liveWhipPeer = null;
-          liveWhipSessionUrl = null;
-          liveRoomId = null;
-          liveStreamObj = null;
-          if (roomId) {
-            try { await liveApi('stop', { room_id: roomId }); }
-            catch (error) { console.warn('Live room cleanup:', error); alert('The camera is off, but the server could not update the room status: ' + error.message); }
-          }
-          document.getElementById('activeLiveView').style.display = 'none';
-          document.getElementById('liveSetupPanel').style.display = 'block';
-        }
     </script>
 <script src="preferences.js"></script>
 
