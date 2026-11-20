@@ -471,7 +471,7 @@
         }
 
         async function checkIncomingLiveInvites() {
-            if (window.__checkingLiveInvites) return;
+            if (liveRoomId || window.__checkingLiveInvites) return;
             window.__checkingLiveInvites = true;
             try {
               const data = await liveApi('list-invites');
