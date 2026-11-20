@@ -37,15 +37,8 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .editor-meta{font-size:12px;color:#aeb4bf;text-align:center;padding:7px 4px}
 #editorVideo{width:100%;height:100%;object-fit:contain;transform-origin:center}
 #previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;max-width:90%;overflow-wrap:anywhere;z-index:5;pointer-events:none}
-.editor-menu{position:absolute;top:10px;right:10px;z-index:20}
-.editor-menu button{background:#222;color:white;border:1px solid #555;border-radius:8px;padding:9px}
-.dropdown{display:none;position:absolute;right:0;top:42px;width:230px;max-height:65vh;overflow:auto;background:#18181c;border:1px solid #444;border-radius:10px}
-.dropdown.open{display:block}
-.dropdown button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #333;border-radius:0;background:none;padding:12px;color:white}
-.preview.editing-compact{max-height:min(32vh,280px)!important}
-.preview-save{display:none;position:absolute;left:5%;bottom:12px;width:90%;z-index:25;margin:0;box-shadow:0 3px 16px #000b}
-.preview.editing-compact .preview-save{display:block}
-#editorActions .primary{display:none}
+#editorActions .primary{display:block;margin:0}
+
 .savebar{position:absolute;bottom:12px;left:5%;width:90%;z-index:10}
 .panel{border-radius:10px}
 .panel-head{display:flex;justify-content:space-between;align-items:center}
@@ -102,25 +95,11 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
  <div class="preview">
   <video id="editorVideo" playsinline controls></video>
   <div id="previewText"></div>
-  <button class="primary preview-save" id="saveEditsButton">💾 Save & Continue</button>
-  <div class="editor-menu">
-   <button id="menuButton" aria-expanded="false">✏️ Edit</button>
-   <div class="dropdown" id="editorMenu">
-    <button data-panel="trimPanel">✂️ Trim Video</button>
-    <button id="splitButton">⚡ Split Preview</button>
-    <button data-panel="cropPanel">📐 Crop & Rotate</button>
-    <button data-panel="filterPanel">🎨 Filters</button>
-    <button data-panel="speedPanel">⏩ Speed</button>
-    <button data-panel="textPanel">✍️ Text & Subtitle</button>
-    <button data-panel="audioPanel">🔊 Audio & Music</button>
-    <button data-panel="copyrightPanel">🛡 Copyright Information</button>
-    <button data-panel="infoPanel">📊 Video Information</button>
-    <button id="resetButton">↩ Reset Preview Edits</button>
-   </div>
-  </div>
+
  </div>
  <div id="editorActions">
   <div class="editor-meta" id="editorMeta">Video select करें — पूरा frame preview में दिखेगा</div>
+  <button class="primary" id="saveEditsButton">Continue to Upload</button>
  </div>
 
  <section id="trimPanel" class="panel hidden">
@@ -334,7 +313,6 @@ function closePanels() {
  document.querySelectorAll(".panel").forEach(p => p.classList.add("hidden"));
 }
 function openPanel(id) {
- $("editorMenu").classList.remove("open");
  closePanels();
  $(id).classList.remove("hidden");
  setTimeout(() => $(id).scrollIntoView({behavior:"smooth",block:"nearest"}),80);
@@ -562,25 +540,9 @@ async function loadVideo(file) {
  toast("वीडियो Editor में खुल गया।");
 }
 
-/* Editor Menu */
-$("menuButton").onclick = e => {
- e.stopPropagation();
- const preview=document.querySelector(".preview");
- const editing=preview.classList.toggle("editing-compact");
- $("menuButton").textContent=editing?"↗ Preview":"✏️ Edit";
- $("menuButton").setAttribute("aria-expanded",editing?"true":"false");
- $("editorMenu").classList.toggle("open",editing);
- if(!editing) closePanels();
- applyOutputFrame();
-};
 $("saveEditsButton").onclick = async () => {
  try {
   await requireUser();
-  const preview=document.querySelector(".preview");
-  preview.classList.remove("editing-compact");
-  $("menuButton").textContent="✏️ Edit";
-  $("menuButton").setAttribute("aria-expanded","false");
-  $("editorMenu").classList.remove("open");
   closePanels();
   applyOutputFrame();
   openPanel("publishPanel");
@@ -588,8 +550,6 @@ $("saveEditsButton").onclick = async () => {
   if (error.message !== "पहले Login करें।") toast(error.message);
  }
 };
-document.addEventListener("click",() => $("editorMenu").classList.remove("open"));
-$("editorMenu").onclick = e => e.stopPropagation();
 document.querySelectorAll("[data-panel]").forEach(button => {
  button.onclick = () => openPanel(button.dataset.panel);
 });
@@ -623,8 +583,7 @@ function applyOutputFrame() {
  preview.style.setProperty("--preview-ratio",String(ratio));
  preview.style.aspectRatio=String(ratio);
  const availableWidth=preview.parentElement?.clientWidth||preview.clientWidth||640;
- const compact=preview.classList.contains("editing-compact");
- const maxPreviewHeight=Math.min(window.innerHeight*(compact?0.32:0.90),compact?280:760);
+ const maxPreviewHeight=Math.min(window.innerHeight*0.90,760);
  preview.style.width=Math.max(120,Math.min(availableWidth,maxPreviewHeight*ratio))+"px";
  video.style.objectFit=$("frameFit").value;
  const quality=$("qualityPreference").value;
