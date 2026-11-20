@@ -246,9 +246,6 @@
          <a href="live.html" data-i18n="page.live">🔴 Live</a>
         <a href="gaming.html" data-i18n="page.gaming">🎮 Gaming</a>
         <div class="menu-divider"></div>
-        <button type="button" id="newstar-edit-profile">
-          ✏️ <span data-i18n="action.edit">Edit Profile</span>
-        </button>
         <button type="button" id="newstar-logout">
           🚪 <span data-i18n="action.logout">Log Out</span>
         </button>
@@ -260,20 +257,6 @@
     });
 
     document.body.appendChild(overlay);
-
-    $("newstar-edit-profile").addEventListener("click", () => {
-      closeMenu();
-
-      if (
-        currentPage === "profile.html" &&
-        window.NewStarProfile &&
-        typeof window.NewStarProfile.openEdit === "function"
-      ) {
-        window.NewStarProfile.openEdit();
-      } else {
-        location.href = "profile.html";
-      }
-    });
 
     $("newstar-logout").addEventListener("click", async () => {
       if (!db?.auth) {
