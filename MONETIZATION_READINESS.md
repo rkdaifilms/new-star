@@ -19,7 +19,8 @@ This document records verified implementation state. It is not a claim that live
 - `public.send_creator_gift_secure` reads this active `live_gifts` rule and records the sender deduction, creator net, platform fee, and platform ledger entry in one database transaction.
 - The current secure gift function is service-role-only. Do not expose direct client execution.
 - Video gift commission has not been separately verified as an independent route. If video gifts use this same secure function, they inherit the same 50/50 rule; otherwise, audit and route them through the same server-side accounting before enabling them.
-- The live page currently contains an explicit disabled gift handler. It must not be represented as working until the server-authorized gift path and wallet read path are wired and tested.
+- The live gift catalogue is now explicitly preview-only: cards are non-clickable, the modal states gifting is unavailable, and the send handler fails closed without a wallet deduction or fake chat receipt.
+- It must remain preview-only until the authenticated wallet read path and server-authorized gift route are wired and tested end-to-end.
 
 ## Ads
 
