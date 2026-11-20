@@ -1,23 +1,22 @@
 {
+  "id": "/",
   "name": "New Star App",
   "short_name": "New Star",
+  "description": "New Star creator and community platform",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#000000",
   "theme_color": "#fe2c55",
+  "categories": ["social", "video"],
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1828/1828884.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/1828/1828884.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/new-star-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }
