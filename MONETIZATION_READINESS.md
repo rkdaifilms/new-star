@@ -28,6 +28,14 @@ This document records verified implementation state. It is not a claim that live
 - The live gift UI is explicitly preview-only: cards are non-clickable and the send handler fails closed without wallet deduction or a fake chat receipt. The live-gift transaction route is not yet verified end-to-end.
 - Both live and video gifting must remain unavailable until their respective app routes, authenticated wallet reads, and server-authorized transaction calls are wired and tested end-to-end.
 
+## Gift wallet-ledger consistency fix
+
+- Updated `public.send_creator_gift_secure` so a successful gift also writes the sender debit to `public.wallet_ledger` as `gift_spend`, using the request UUID as a stable idempotency reference.
+- The wallet deduction, spend-ledger row, gift transaction, creator earning row, and platform coin ledger are in the same database transaction. A ledger conflict aborts and rolls back the whole gift transaction.
+- Verified the function remains `SECURITY DEFINER`, checks the `video_gifts` rule, and is executable only by `postgres` and `service_role`; `anon` and `authenticated` have no execute grant.
+- The `video_gifts` commission rule remains `draft`, and the database currently has zero wallet-ledger, gift-transaction, and creator-gift-earning rows. Therefore this does **not** activate gifts or create any balances.
+- The app/server caller is still not verified. Do not expose this service-role-only function to a browser or pass a client-supplied sender ID without server-side authentication binding.
+
 ## Sponsorship and campaign accounting audit
 
 - The sponsorship commission rule is stored as 2,000 basis points (20% platform / 80% creator), **draft**.
