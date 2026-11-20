@@ -205,6 +205,7 @@
         let gamingRoomId = null;
         let gamingMicStream = null;
         let gamingStartBusy = false;
+        let gamingStopBusy = false;
 
         async function gamingLiveApi(action, extra = {}) {
             const client = window.supabaseClient;
@@ -390,6 +391,8 @@
         }
 
         async function stopGameStreamSession() {
+            if (gamingStopBusy) return;
+            gamingStopBusy = true;
             const sessionUrl = gamingWhipUrl, roomId = gamingRoomId;
             if (sessionUrl) { try { await fetch(sessionUrl, { method: 'DELETE' }); } catch (error) { console.warn('Gaming WHIP cleanup:', error); } }
             if (gamingPeer) gamingPeer.close();
@@ -411,6 +414,7 @@
                 catch (error) { alert('Screen capture stopped, but server room status could not be updated: ' + error.message); return; }
             }
             alert('Gaming broadcast ended.');
+            gamingStopBusy = false;
         }
 
         async function toggleCameraPower() {
