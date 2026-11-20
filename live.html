@@ -175,12 +175,10 @@
                 <h4 style="color: #25f4ee; font-size: 15px;">👥 Invite Friend to Seat</h4>
                 <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('inviteFriendsModal')">✕</span>
             </div>
-            <div style="max-height:180px; overflow-y:auto;">
-                <div class="invite-user-row">
-                    <div><b>Anjali Dance Hub</b><br><span style="font-size:9px; color:#25f4ee;">🟢 Online Follower</span></div>
-                    <button class="btn" style="width:auto; padding:4px 8px; font-size:10px; background:#25f4ee; color:#000;" onclick="assignFriendToSeat('Anjali Dance Hub')">Invite</button>
-                </div>
-            </div>
+            <input id="liveFriendSearch" type="search" placeholder="Search username or creator name" style="width:100%;margin:8px 0;padding:10px;background:#111;color:#fff;border:1px solid #444;border-radius:8px;">
+            <button class="btn" style="padding:7px;font-size:11px;" onclick="searchLiveFriends()">Search creators</button>
+            <div id="liveFriendResults" style="max-height:180px;overflow-y:auto;margin-top:8px;"></div>
+            <div id="liveInviteFeedback" role="status" style="font-size:11px;color:#25f4ee;margin-top:6px;"></div>
         </div>
     </div>
 
@@ -403,25 +401,58 @@
             }
         }
 
-        function assignFriendToSeat(friendName) {
-            closeModal('inviteFriendsModal');
-            let overlay = document.getElementById(`roomOverlay_${selectedSeatForInvite}`);
-            let box = document.getElementById(`roomBox_${selectedSeatForInvite}`);
-            let videoEl = document.getElementById(`roomVideo_${selectedSeatForInvite}`);
-            
-            overlay.style.display = 'flex';
-            overlay.innerHTML = `<span style="font-size:13px; color:#25f4ee; font-weight:bold;">🎙️ ${friendName}</span><span style="font-size:9px; color:#ffcc00;">Connected</span>`;
-            box.classList.add('active');
-            
-            if(liveStreamObj) {
-                videoEl.srcObject = liveStreamObj;
-                videoEl.style.display = 'block';
-            }
-
-            let area = document.getElementById('liveChatScrollArea');
-            area.innerHTML += `<div style="color:#25f4ee;"><b>System:</b> ${friendName} joined room seat #${selectedSeatForInvite}! 🎙️</div>`;
-            area.scrollTop = area.scrollHeight;
+        async function searchLiveFriends() {
+            const term = document.getElementById('liveFriendSearch')?.value.trim() || '';
+            const results = document.getElementById('liveFriendResults');
+            if (term.length < 2) { results.textContent = 'Enter at least 2 characters.'; return; }
+            results.textContent = 'Searching…';
+            try {
+              const data = await liveApi('lookup-users', { search: term });
+              results.innerHTML = '';
+              if (!data.users?.length) { results.textContent = 'No matching creator profiles found.'; return; }
+              data.users.forEach(user => {
+                const row = document.createElement('div'); row.className = 'invite-user-row';
+                const label = document.createElement('span'); label.textContent = user.name + (user.username ? ' · @' + user.username : '');
+                const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = 'Invite';
+                btn.style.cssText = 'width:auto;padding:4px 8px;font-size:10px;background:#25f4ee;color:#000;';
+                btn.onclick = async () => {
+                  btn.disabled = true; btn.textContent = 'Sending…';
+                  try {
+                    await liveApi('invite-user', { room_id: liveRoomId, invitee_id: user.id });
+                    document.getElementById('liveInviteFeedback').textContent = 'Invitation sent to ' + user.name + '.';
+                    btn.textContent = 'Sent';
+                  } catch (error) {
+                    btn.disabled = false; btn.textContent = 'Invite';
+                    document.getElementById('liveInviteFeedback').textContent = error.message;
+                  }
+                };
+                row.append(label, btn); results.appendChild(row);
+              });
+            } catch (error) { results.textContent = error.message; }
         }
+
+        async function assignFriendToSeat() {
+            document.getElementById('liveInviteFeedback').textContent = 'Use Search creators to invite a real New Star account.';
+        }
+
+        async function checkIncomingLiveInvites() {
+            try {
+              const data = await liveApi('list-invites');
+              (data.invites || []).forEach(invite => {
+                if (window.__seenLiveInvites?.has(invite.id)) return;
+                window.__seenLiveInvites = window.__seenLiveInvites || new Set();
+                window.__seenLiveInvites.add(invite.id);
+                const title = invite.live_rooms?.room_title || 'New LIVE';
+                const accept = confirm('LIVE invitation: ' + title + '\\nAccept guest seat?');
+                liveApi('respond-invite', { invite_id: invite.id, response: accept ? 'accept' : 'decline' })
+                  .then(result => {
+                    if (result.accepted) alert('Guest seat #' + result.seat_number + ' reserved. Open the LIVE room to connect your camera and microphone.');
+                  }).catch(error => alert(error.message));
+              });
+            } catch (error) { console.warn('Incoming LIVE invitations:', error); }
+        }
+        setInterval(checkIncomingLiveInvites, 12000);
+        setTimeout(checkIncomingLiveInvites, 2500);
 
         function nativeShareLiveRoom() {
             if (navigator.share) {
