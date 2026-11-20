@@ -1,15 +1,18 @@
 package com.newstar.live
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.projection.MediaProjection
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import android.content.pm.ServiceInfo
 import org.webrtc.*
 import java.net.HttpURLConnection
@@ -25,6 +28,9 @@ class GamingStreamService : Service() {
     private var peer: PeerConnection? = null
     private var source: VideoSource? = null
     private var track: VideoTrack? = null
+    private var audioSource: AudioSource? = null
+    private var audioTrack: org.webrtc.AudioTrack? = null
+    private var includeMic = false
     private var texture: SurfaceTextureHelper? = null
     private var whipResource: String? = null
     private val stopped = AtomicBoolean(false)
@@ -34,7 +40,11 @@ class GamingStreamService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == STOP) { stopStreaming(); return START_NOT_STICKY }
         if (intent?.action == START) {
-            ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+            includeMic = intent.getBooleanExtra(INCLUDE_MIC, false) &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+            val foregroundTypes = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
+                if (includeMic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), foregroundTypes)
             Thread {
                 try { startStreaming(intent) }
                 catch (e: Exception) { emit("error", e.message ?: "Native stream failed"); stopStreaming() }
@@ -65,6 +75,11 @@ class GamingStreamService : Service() {
         capturer!!.initialize(texture!!, applicationContext, source!!.capturerObserver)
         capturer!!.startCapture(1280, 720, 30)
         track = factory!!.createVideoTrack("newstar-screen", source)
+        if (includeMic) {
+            audioSource = factory!!.createAudioSource(MediaConstraints())
+            audioTrack = factory!!.createAudioTrack("newstar-microphone", audioSource!!)
+            audioTrack!!.setEnabled(true)
+        }
 
         val connected = CountDownLatch(1)
         val observer = object : PeerConnection.Observer {
@@ -86,6 +101,7 @@ class GamingStreamService : Service() {
         peer = factory!!.createPeerConnection(PeerConnection.RTCConfiguration(emptyList()), observer)
             ?: error("Could not create WebRTC connection.")
         peer!!.addTrack(track, listOf("newstar-screen"))
+        audioTrack?.let { peer!!.addTrack(it, listOf("newstar-screen")) }
 
         val offer = createOffer(peer!!)
         setDescription(peer!!, offer, true)
@@ -111,7 +127,12 @@ class GamingStreamService : Service() {
         setDescription(peer!!, SessionDescription(SessionDescription.Type.ANSWER, answer), false)
         emit("connecting", "Cloudflare accepted the screen stream; checking media connection.")
         if (!connected.await(20, TimeUnit.SECONDS)) error("Cloudflare accepted WHIP, but the WebRTC media connection did not become active.")
-        emit("connected", "Gaming screen is connected to Cloudflare.", whipResource ?: "")
+        emit(
+            "connected",
+            if (includeMic) "Gaming screen and microphone are connected to Cloudflare."
+            else "Gaming screen connected to Cloudflare. Microphone is off.",
+            whipResource ?: ""
+        )
     }
 
     private fun createOffer(pc: PeerConnection): SessionDescription {
@@ -160,6 +181,8 @@ class GamingStreamService : Service() {
         runCatching { capturer?.stopCapture() }
         runCatching { peer?.close() }
         runCatching { track?.dispose() }
+        runCatching { audioTrack?.dispose() }
+        runCatching { audioSource?.dispose() }
         runCatching { capturer?.dispose() }
         runCatching { source?.dispose() }
         runCatching { texture?.dispose() }
@@ -193,6 +216,7 @@ class GamingStreamService : Service() {
         const val RESULT_CODE = "result_code"
         const val RESULT_DATA = "result_data"
         const val WHIP_URL = "whip_url"
+        const val INCLUDE_MIC = "include_mic"
         private const val CHANNEL = "newstar_gaming_live"
         private const val NOTIFICATION_ID = 7041
     }
