@@ -441,14 +441,20 @@
                 canvasStream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
                 const offer = await peer.createOffer();
                 await peer.setLocalDescription(offer);
+                // Cloudflare WHIP receives a complete SDP offer with gathered ICE candidates.
+                await waitGamingIceGathering(peer);
+                if (peer.signalingState !== 'have-local-offer' || !peer.localDescription?.sdp) {
+                    throw new Error('Gaming broadcast offer was not ready after ICE gathering.');
+                }
                 const response = await fetch(prepared.whip_url, {
-                    method: 'POST', headers: { 'Content-Type': 'application/sdp' }, body: offer.sdp
+                    method: 'POST', headers: { 'Content-Type': 'application/sdp' }, body: peer.localDescription.sdp
                 });
                 if (!response.ok) throw new Error('Cloudflare screen broadcast handshake failed (' + response.status + ').');
                 const answer = await response.text();
                 const location = response.headers.get('Location');
                 if (!answer || !location) throw new Error('Cloudflare returned an incomplete gaming stream session.');
                 await peer.setRemoteDescription({ type: 'answer', sdp: answer });
+                await waitGamingPeerConnected(peer);
                 await gamingLiveApi('confirm', { room_id: roomId });
 
                 screenStreamObj = captured;
@@ -685,14 +691,51 @@
                 grid.appendChild(tile);
             }
         }
-        async function waitGamingIceGathering(pc, timeoutMs = 7000) {
+        async function waitGamingIceGathering(pc, timeoutMs = 12000) {
             if (pc.iceGatheringState === 'complete') return;
-            await new Promise(resolve => {
+            await new Promise((resolve, reject) => {
                 let done = false;
-                const finish = () => { if (done) return; done = true; pc.removeEventListener('icegatheringstatechange', onChange); clearTimeout(timer); resolve(); };
-                const onChange = () => { if (pc.iceGatheringState === 'complete') finish(); };
-                const timer = setTimeout(finish, timeoutMs);
+                const cleanup = () => {
+                    pc.removeEventListener('icegatheringstatechange', onChange);
+                    clearTimeout(timer);
+                };
+                const finish = (error) => {
+                    if (done) return;
+                    done = true;
+                    cleanup();
+                    error ? reject(error) : resolve();
+                };
+                const onChange = () => {
+                    if (pc.iceGatheringState === 'complete') finish();
+                };
+                const timer = setTimeout(() => finish(new Error('Network ICE candidates did not finish gathering. Check the connection and retry.')), timeoutMs);
                 pc.addEventListener('icegatheringstatechange', onChange);
+                if (pc.iceGatheringState === 'complete') finish();
+            });
+        }
+        async function waitGamingPeerConnected(pc, timeoutMs = 20000) {
+            if (pc.connectionState === 'connected' || ['connected', 'completed'].includes(pc.iceConnectionState)) return;
+            await new Promise((resolve, reject) => {
+                let done = false;
+                const cleanup = () => {
+                    pc.removeEventListener('connectionstatechange', check);
+                    pc.removeEventListener('iceconnectionstatechange', check);
+                    clearTimeout(timer);
+                };
+                const finish = (error) => {
+                    if (done) return;
+                    done = true;
+                    cleanup();
+                    error ? reject(error) : resolve();
+                };
+                const check = () => {
+                    if (pc.connectionState === 'connected' || ['connected', 'completed'].includes(pc.iceConnectionState)) finish();
+                    else if (pc.connectionState === 'failed' || pc.iceConnectionState === 'failed') finish(new Error('Cloudflare gaming broadcast connection failed. Please retry on a stable network.'));
+                };
+                const timer = setTimeout(() => finish(new Error('Gaming broadcast did not connect within 20 seconds. No LIVE status was activated.')), timeoutMs);
+                pc.addEventListener('connectionstatechange', check);
+                pc.addEventListener('iceconnectionstatechange', check);
+                check();
             });
         }
         async function stopGamingSfuReceiveSession(roomId = gamingRoomId) {
