@@ -15,9 +15,8 @@
     <meta name="apple-mobile-web-app-title" content="New Star">
     
     <style>
-        .header #newMessageButton{width:42px;height:42px;padding:0!important;display:grid;place-items:center;font-size:23px;line-height:1;border-radius:50%!important}
         body.chat-open{overflow:hidden}
-        body.chat-open .top-bar,body.chat-open .header,body.chat-open .my-inbox-profile,body.chat-open #inboxStatus,body.chat-open .inbox-tabs,body.chat-open #tabMessages,body.chat-open #tabFollowers,body.chat-open #tabFollowing,body.chat-open #tabRequests,body.chat-open #tabDiscover{display:none!important}
+        body.chat-open .top-bar,body.chat-open .header,body.chat-open #inboxStatus,body.chat-open #tabMessages{display:none!important}
         body.chat-open #chatBoxWindow{display:flex!important;position:fixed;inset:0 0 70px;width:100%;height:auto;min-height:0;margin:0;border:0;border-radius:0;z-index:30}
         body.chat-open .chat-box-header{padding-top:max(14px,env(safe-area-inset-top))}
         body.chat-open .chat-messages{overscroll-behavior:contain}
@@ -33,17 +32,7 @@
         .header h2 { font-size: 18px; color: #fe2c55; }
         #inboxStatus{padding:7px 15px;color:#aaa;font-size:12px;line-height:1.35;background:#080808;border-bottom:1px solid #1b1b1b;min-height:0} #inboxStatus:empty{display:none}
         
-        /* User's Own Profile Banner */
-        .my-inbox-profile { display: flex; align-items: center; gap: 12px; padding: 12px 15px; background: #121212; border-bottom: 1px solid #222; cursor: pointer; }
-        .my-inbox-profile img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #fe2c55; }
-        .my-inbox-profile div h4 { font-size: 14px; }
-        .my-inbox-profile div p { font-size: 12px; color: #aaa; }
-
-        /* Inbox Tabs */
-        .inbox-tabs { display:flex; justify-content:flex-start; align-items:stretch; gap:22px; padding:12px 16px 10px; background:#111; border-bottom:1px solid #222; overflow-x:auto; overflow-y:hidden; white-space:nowrap; scrollbar-width:thin; -webkit-overflow-scrolling:touch; }
-        .inbox-tab { flex:0 0 auto; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; font-size:14px; line-height:1.35; font-weight:600; color:#888; cursor:pointer; padding:5px 0 9px; min-height:38px; }
-        .inbox-tab.active { color: #fff; border-bottom: 2px solid #fe2c55; }
-
+        /* Conversation list */
         /* Chat & Follower List */
         .list-container { padding: 10px 15px; }
         .list-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 10px; border-bottom: 1px solid #1a1a1a; cursor: pointer; border-radius: 8px; transition: 0.2s; }
@@ -95,47 +84,13 @@
 
     <div class="header">
         <h2 data-i18n="nav.inbox">Inbox</h2>
-        <button type="button" id="newMessageButton" class="action-tag-btn" style="background:#fe2c55;color:#fff;border:0;border-radius:20px;padding:9px 14px;font-weight:700" onclick="startNewMessage()" aria-label="नया संदेश" title="नया संदेश">✉</button>
-    </div>
 
-    <!-- Authenticated user's profile banner; populated from Supabase -->
-    <div class="my-inbox-profile" onclick="window.location.href='profile.html'">
-        <img id="inboxUserPic" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100%25' height='100%25' fill='%23333'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' fill='white' font-size='38'%3E★%3C/text%3E%3C/svg%3E" alt="Profile">
-        <div>
-            <h4 id="inboxUserName" data-i18n="nav.profile">Profile</h4>
-            <p data-i18n="inbox.openProfile">Open your profile</p>
-        </div>
     </div>
 
     <div id="inboxStatus" class="empty-state" role="status" aria-live="polite">Connecting to your account…</div>
 
-    <div class="inbox-tabs">
-        <div class="inbox-tab active" onclick="switchTab('messages', this)" data-i18n="nav.inbox">Inbox</div>
-        <div class="inbox-tab" onclick="switchTab('followers', this)" data-i18n="inbox.followers">Followers</div>
-        <div class="inbox-tab" onclick="switchTab('following', this)" data-i18n="feed.following">Following</div>
-        <div class="inbox-tab" onclick="switchTab('requests', this)"><span data-i18n="inbox.requests">Follow Requests</span> <span id="followRequestCount"></span></div>
-        <div class="inbox-tab" onclick="switchTab('discover', this)" data-i18n="inbox.discover">Discover Creators</div>
-    </div>
-
     <div class="list-container" id="tabMessages">
         <div class="empty-state" data-i18n="inbox.loading">Loading your conversations…</div>
-    </div>
-    <div class="list-container" id="tabFollowers" style="display:none;">
-        <div class="empty-state" data-i18n="inbox.noFollowers">Follower activity will appear here.</div>
-    </div>
-
-    <div class="list-container" id="tabFollowing" style="display:none;">
-        <div class="empty-state" data-i18n="inbox.noFollowing">Creators you follow will appear here.</div>
-    </div>
-    <div class="list-container" id="tabRequests" style="display:none;">
-        <div class="empty-state" data-i18n="inbox.noRequests">Follow requests will appear here.</div>
-    </div>
-    <div class="list-container" id="tabDiscover" style="display:none;">
-        <div style="display:flex;gap:8px;margin-bottom:14px">
-            <input data-i18n-placeholder="action.search" id="creatorSearchInput" type="search" maxlength="50" placeholder="Username या Creator का नाम खोजें" style="flex:1;min-width:0;padding:12px;border-radius:10px;border:1px solid #444;background:#171722;color:#fff">
-            <button id="creatorSearchButton" type="button" class="action-tag-btn" data-i18n="action.search">Search</button>
-        </div>
-        <div id="creatorSearchResults" class="empty-state" data-i18n="inbox.searchHint">Enter a creator name or username to search.</div>
     </div>
 
     <!-- REAL MESSENGER CHAT WINDOW (FIXED INPUT AREA) -->
@@ -161,17 +116,6 @@
             
             <!-- Send Button -->
             <button class="send-btn" onclick="sendMessage()" data-i18n="action.send">Send</button>
-        </div>
-    </div>
-
-    <!-- Profile Pop-up Modal -->
-    <div id="profilePopup" onclick="closeProfilePopup()">
-        <div class="profile-popup-card" onclick="event.stopPropagation()">
-            <span class="close-popup" onclick="closeProfilePopup()">✕</span>
-            <img id="popupAvatar" src="" alt="Profile">
-            <h3 id="popupName">Name</h3>
-            <p id="popupBio">Bio details</p>
-            <button class="action-tag-btn" style="width:100%; margin-top:10px;" id="popupMsgBtn" onclick="openChatFromPopup()" data-i18n="action.send">Send</button>
         </div>
     </div>
 
@@ -202,187 +146,32 @@ async function boot(){
  setStatus("आपका Login session जाँचा जा रहा है…");
  const {data,error}=await db.auth.getUser();
  if(error)throw new Error("Login session जाँच विफल: "+error.message);
- const user=data?.user;
- if(!user){setStatus("Login session नहीं मिली। Login पेज खोला जा रहा है…");location.href="auth.html?next=inbox.html";return;}
- me=user;
- setStatus("आपकी Profile लोड हो रही है…");
- const {data:mine,error:profileError}=await db.from("profiles").select("username,full_name,avatar_url").eq("user_id",me.id).maybeSingle();
- if(profileError)console.warn("Inbox profile:",profileError.message);
- $("inboxUserName").textContent=nameOf(mine);$("inboxUserPic").src=avatarOf(mine);
- setStatus("Messages और Follow Requests लोड हो रहे हैं…");
- const results=await Promise.allSettled([loadThreads(),loadFollowRequests(),loadFollowerLists()]);
- const failed=results.filter(x=>x.status==="rejected");
- if(failed.length)console.error("Inbox sections failed:",failed.map(x=>x.reason?.message||x.reason));
+ me=data?.user;
+ if(!me){setStatus("Login session नहीं मिली। Login पेज खोला जा रहा है…");location.href="auth.html?next="+encodeURIComponent(location.pathname+location.search);return;}
+ setStatus("आपके Messages लोड हो रहे हैं…");
+ await loadThreads();
  db.channel("newstar-inbox-"+me.id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"recipient_id=eq."+me.id},async payload=>{
    if(activeConversation===payload.new.conversation_id) await loadConversation();
    await loadThreads();
  }).subscribe();
- setStatus(failed.length?"Inbox खुला है, लेकिन कुछ sections लोड नहीं हुए।":"Inbox तैयार है।");
- if(new URLSearchParams(location.search).get("new")==="1")window.startNewMessage();
-}
-async function loadFollowerLists(){
- if(!me)return;
- await Promise.all([renderRelationList("followers"),renderRelationList("following")]);
-}
-async function renderRelationList(kind){
- const host=$("tab"+kind[0].toUpperCase()+kind.slice(1));
- if(!host||!me)return;
- host.innerHTML='<p class="muted">लिस्ट लोड हो रही है...</p>';
- let query=db.from("followers").select("follower_id,following_id,created_at");
- query=kind==="followers"?query.eq("following_id",me.id):query.eq("follower_id",me.id);
- const {data:rows,error}=await query.order("created_at",{ascending:false}).limit(200);
- if(error){host.textContent="लिस्ट लोड नहीं हुई: "+error.message;return;}
- if(!rows?.length){host.innerHTML=kind==="followers"?'<p class="muted">अभी कोई Follower नहीं है।</p>':'<p class="muted">आप अभी किसी Creator को Follow नहीं करते।</p>';return;}
- const ids=rows.map(r=>kind==="followers"?r.follower_id:r.following_id);
- const {data:profiles,error:profileError}=await db.from("creator_public_profiles")
-  .select("user_id,username,full_name,avatar_url,bio,is_private").in("user_id",ids);
- if(profileError){host.textContent="Creator जानकारी नहीं मिली: "+profileError.message;return;}
- const map=new Map((profiles||[]).map(p=>[String(p.user_id),p]));
- host.replaceChildren();
- for(const relation of rows){
-  const peer=String(kind==="followers"?relation.follower_id:relation.following_id);
-  const p=map.get(peer)||{};
-  const row=document.createElement("div");row.className="list-item";
-  const left=document.createElement("span");left.className="user-left";
-  const img=document.createElement("img");img.className="list-avatar";img.src=avatarOf(p);img.alt="";
-  const info=document.createElement("span");info.className="list-info";
-  const title=document.createElement("h4");title.textContent=nameOf(p);
-  const note=document.createElement("p");note.textContent=p.is_private?"🔒 Private account":"@"+(p.username||"creator");
-  info.append(title,note);left.append(img,info);row.append(left);
-  if(kind==="following"){
-   const unfollow=document.createElement("button");unfollow.className="action-tag-btn following";unfollow.textContent="Following";
-   unfollow.onclick=async()=>{
-    unfollow.disabled=true;
-    const {error}=await db.from("followers").delete().eq("follower_id",me.id).eq("following_id",peer);
-    if(error){setStatus("Unfollow नहीं हुआ: "+error.message);unfollow.disabled=false;return;}
-    await renderRelationList("following");setStatus("Creator को Unfollow कर दिया गया।");
-   };
-   row.append(unfollow);
-  }
-  host.append(row);
+ setStatus("Inbox तैयार है।");
+ const target=new URLSearchParams(location.search).get("to");
+ if(target){
+  if(String(target)===String(me.id)){setStatus("आप खुद को Message नहीं भेज सकते।");return;}
+  const {data:peer,error:peerError}=await db.from("creator_public_profiles")
+   .select("user_id,username,full_name,avatar_url,bio,is_private")
+   .eq("user_id",target).maybeSingle();
+  if(peerError||!peer){setStatus("यह Creator उपलब्ध नहीं है।");return;}
+  if(peer.is_private){setStatus("यह Creator Profile private है।");return;}
+  await openChat(peer.user_id,peer);
  }
-}
-let creatorSearchTimer=null,creatorSearchRun=0;
-async function searchCreators(){
- const input=$("creatorSearchInput"),host=$("creatorSearchResults");
- if(!me||!input||!host)return;
- const term=input.value.trim().replace(/[\\u0000-\\u001f]/g," ").replace(/\\s+/g," ").slice(0,80);
- const run=++creatorSearchRun;
- if(term.length<2){host.textContent="कम से कम 2 अक्षर लिखें।";return;}
- host.textContent="दुनिया भर के Creators खोजे जा रहे हैं…";
- const fields="user_id,username,full_name,avatar_url,bio,is_private";
- let profiles=[],error=null;
- const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(term);
- if(uuid){
-  const result=await db.from("creator_public_profiles").select(fields).eq("user_id",term).neq("user_id",me.id).limit(1);
-  profiles=result.data||[];error=result.error;
- }else{
-  const safe=term.replace(/[,%()]/g," ").trim();
-  if(safe.length<2){host.textContent="नाम या Username ठीक से लिखें।";return;}
-  const pattern="%"+safe+"%";
-  const result=await db.from("creator_public_profiles").select(fields)
-   .or("username.ilike."+pattern+",full_name.ilike."+pattern)
-   .neq("user_id",me.id).order("username",{ascending:true}).limit(30);
-  profiles=result.data||[];error=result.error;
- }
- if(run!==creatorSearchRun)return;
- if(error){host.textContent="Creator Search नहीं हो सकी। कृपया दोबारा कोशिश करें।";return;}
- if(!profiles.length){host.textContent="इस नाम, Username या ID से कोई उपलब्ध Creator नहीं मिला।";return;}
- host.replaceChildren();
- for(const p of profiles){
-  const row=document.createElement("div");row.className="list-item";
-  const left=document.createElement("span");left.className="user-left";
-  const img=document.createElement("img");img.className="list-avatar";img.src=avatarOf(p);img.alt="";
-  const info=document.createElement("span");info.className="list-info";
-  const title=document.createElement("h4");title.textContent=nameOf(p);
-  const note=document.createElement("p");note.textContent=(p.username?"@"+p.username:"Creator")+" · "+(p.is_private?"🔒 Private":"Public");
-  info.append(title,note);left.append(img,info);
-  const actions=document.createElement("span");actions.style.cssText="display:flex;gap:6px;flex-wrap:wrap";
-  const message=document.createElement("button");message.className="action-tag-btn";message.textContent="Message";message.style.cssText="background:#fe2c55;color:white;border:0";
-  message.onclick=()=>openChat(p.user_id,p);
-  const profile=document.createElement("button");profile.className="action-tag-btn following";profile.textContent="Profile";
-  profile.onclick=()=>location.href="creator.html?user="+encodeURIComponent(p.user_id);
-  actions.append(message,profile);
-  const follow=document.createElement("button");follow.className="action-tag-btn";follow.textContent="Follow";follow.disabled=true;
-  try{
-   const {data:relation,error:relationError}=await db.from("followers").select("id").eq("follower_id",me.id).eq("following_id",p.user_id).maybeSingle();
-   if(relationError)throw relationError;
-   if(relation){follow.textContent="Following";follow.classList.add("following");follow.disabled=false;follow.onclick=async()=>{const {error}=await db.from("followers").delete().eq("id",relation.id).eq("follower_id",me.id);if(error){setStatus("Unfollow नहीं हुआ।");return;}searchCreators();};}
-   else if(p.is_private){
-    const {data:request,error:requestError}=await db.from("follow_requests").select("id").eq("requester_id",me.id).eq("target_user_id",p.user_id).eq("status","pending").maybeSingle();
-    if(requestError)throw requestError;
-    follow.textContent=request?"Requested":"Request Follow";follow.disabled=!!request;
-    if(!request)follow.onclick=async()=>{follow.disabled=true;const {error}=await db.from("follow_requests").insert({requester_id:me.id,target_user_id:p.user_id,status:"pending"});if(error){setStatus("Follow request नहीं भेजी गई।");follow.disabled=false;return;}follow.textContent="Requested";};
-   }else{follow.disabled=false;follow.onclick=async()=>{follow.disabled=true;const {error}=await db.from("followers").insert({follower_id:me.id,following_id:p.user_id});if(error){setStatus("Follow नहीं हुआ।");follow.disabled=false;return;}follow.textContent="Following";};}
-  }catch(e){follow.textContent="Follow unavailable";follow.title=e.message;}
-  actions.append(follow);row.append(left,actions);host.append(row);
- }
-}
-function scheduleCreatorSearch(){
- clearTimeout(creatorSearchTimer);
- creatorSearchTimer=setTimeout(()=>searchCreators(),280);
-}
-$("creatorSearchButton").addEventListener("click",searchCreators);
-$("creatorSearchInput").addEventListener("input",scheduleCreatorSearch);
-$("creatorSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();clearTimeout(creatorSearchTimer);searchCreators();}});
-
-async function loadFollowRequests(){
- const host=$("tabRequests");
- if(!me||!host)return;
- host.innerHTML='<p class="muted">Follow requests लोड हो रहे हैं...</p>';
- const {data:requests,error}=await db.from("follow_requests")
-  .select("id,requester_id,created_at,status")
-  .eq("target_user_id",me.id).eq("status","pending")
-  .order("created_at",{ascending:false}).limit(100);
- if(error){
-  host.textContent="Follow requests लोड नहीं हुए: "+error.message;
-  $("followRequestCount").textContent="";
-  return;
- }
- $("followRequestCount").textContent=requests?.length?"("+requests.length+")":"";
- if(!requests?.length){
-  host.innerHTML='<p class="muted">अभी कोई नया Follow Request नहीं है।</p>';
-  return;
- }
- const ids=[...new Set(requests.map(x=>String(x.requester_id)))];
- const {data:profiles}=await db.from("creator_public_profiles")
-  .select("user_id,username,full_name,avatar_url,bio").in("user_id",ids);
- const map=new Map((profiles||[]).map(p=>[String(p.user_id),p]));
- host.replaceChildren();
- for(const request of requests){
-  const profile=map.get(String(request.requester_id))||{};
-  const row=document.createElement("div");row.className="list-item";
-  const left=document.createElement("span");left.className="user-left";
-  const img=document.createElement("img");img.className="list-avatar";img.src=avatarOf(profile);img.alt="";
-  const info=document.createElement("span");info.className="list-info";
-  const title=document.createElement("h4");title.textContent=nameOf(profile);
-  const note=document.createElement("p");note.textContent="आपको Follow करना चाहते हैं";
-  info.append(title,note);left.append(img,info);
-  const actions=document.createElement("span");actions.style.cssText="display:flex;gap:6px;flex-shrink:0";
-  const accept=document.createElement("button");accept.className="action-tag-btn";accept.setAttribute("data-i18n","action.accept");accept.textContent="Accept";
-  const reject=document.createElement("button");reject.className="action-tag-btn following";reject.setAttribute("data-i18n","action.decline");reject.textContent="Decline";
-  window.NewStarI18n?.apply(accept);window.NewStarI18n?.apply(reject);
-  accept.onclick=()=>respondFollowRequest(request.id,"accepted",accept,reject);
-  reject.onclick=()=>respondFollowRequest(request.id,"rejected",accept,reject);
-  actions.append(accept,reject);row.append(left,actions);host.append(row);
- }
-}
-async function respondFollowRequest(id,status,accept,reject){
- accept.disabled=true;reject.disabled=true;
- const {error}=await db.from("follow_requests").update({status}).eq("id",id).eq("target_user_id",me.id).eq("status","pending");
- if(error){
-  setStatus("Follow request update नहीं हुआ: "+error.message);
-  accept.disabled=false;reject.disabled=false;return;
- }
- setStatus(status==="accepted"?"Follow request स्वीकार कर लिया गया।":"Follow request अस्वीकार कर दिया गया।");
- await loadFollowRequests();
 }
 async function loadThreads(){
  const {data,error}=await db.from("messages").select("id,conversation_id,sender_id,recipient_id,body,media_url,created_at,read_at").or("sender_id.eq."+me.id+",recipient_id.eq."+me.id).order("created_at",{ascending:false}).limit(250);
  const host=$("tabMessages");if(error){host.textContent="Messages load नहीं हुए: "+error.message;return;}
  const map=new Map();
  for(const m of data||[]){const peer=m.sender_id===me.id?m.recipient_id:m.sender_id;if(!map.has(peer))map.set(peer,m);}
- if(!map.size){host.innerHTML='<div class="empty-state"><p>अभी कोई बातचीत नहीं है।</p><button type="button" class="action-tag-btn" onclick="startNewMessage()">✎ New Message</button><p class="muted">किसी Creator को खोजें और सीधे Chat शुरू करें।</p></div>';return;}
+ if(!map.size){host.innerHTML='<div class="empty-state"><p>अभी कोई बातचीत नहीं है।</p><p class="muted">किसी Creator की Profile पर Message दबाएँ। बातचीत यहाँ दिखाई देगी।</p></div>';return;}
  const ids=[...map.keys()];
  const {data:profiles}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").in("user_id",ids);
  const pmap=new Map((profiles||[]).map(p=>[p.user_id,p]));
@@ -408,10 +197,6 @@ async function openChat(peer,p){
  $("chatBoxWindow").style.display="flex";await loadConversation();
  $("messageInput").focus();
 }
-window.startNewMessage=function(){
- switchTab("discover",document.querySelectorAll(".inbox-tab")[4]);
- $("creatorSearchInput").focus();
-};
 window.openDirectMessage=async function(peer,name,avatar,bio){
  const p={full_name:name,username:name,avatar_url:avatar,bio};
  await openChat(peer,p);
@@ -468,14 +253,7 @@ window.startVoiceRecording=function(){
  try{inboxRecognition.start();}catch(e){inboxVoiceStatus.textContent="Microphone could not start. Try again in a moment.";}
 };
 window.sendMediaFile=function(e){setStatus("Media upload is not connected yet. Please send text until secure Storage upload is added.");e.target.value="";};
-window.showProfile=function(name,avatar,bio,peer){window.__newStarPopupPeer=peer||null;$("popupName").textContent=name;$("popupAvatar").src=avatar||fallback;$("popupBio").textContent=bio||"";$("profilePopup").style.display="flex";};
-window.closeProfilePopup=function(){$("profilePopup").style.display="none";};
-window.openChatFromPopup=async function(){const peer=window.__newStarPopupPeer;closeProfilePopup();if(!peer){setStatus("इस Creator की ID नहीं मिली। Creator Search से Message शुरू करें।");return;}const {data:p}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").eq("user_id",peer).maybeSingle();await openChat(peer,p||{});};
-window.showProfileFromChat=function(){};
-window.openChat=async function(name,avatar){const {data}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").eq("username",name).maybeSingle();if(data)openChat(data.user_id,data);};
-window.toggleFollow=function(){setStatus("Follow action is not enabled until follow/unfollow server policy is connected.");};
-$("creatorSearchButton").addEventListener("click",searchCreators);
-$("creatorSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchCreators();}});
+window.showProfileFromChat=function(){if(activePeer)location.href="creator.html?user="+encodeURIComponent(activePeer);};
 function startInboxBoot(){
  boot().catch(e=>{
   console.error("Inbox boot:",e);
