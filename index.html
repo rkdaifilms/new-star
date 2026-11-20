@@ -644,16 +644,6 @@ async function loadLiveRooms(){
   if(error)throw error;
   if(version!==liveRoomsLoadVersion)return;
   const rooms=data||[];
-  const sharedLiveId=new URLSearchParams(location.search).get("live");
-  if(sharedLiveId){
-   const sharedRoom=rooms.find(room=>String(room.id)===String(sharedLiveId));
-   if(sharedRoom){
-    connectLiveViewer(sharedRoom);
-   }else{
-    $("liveViewerWrap").hidden=false;
-    $("liveViewerStatus").textContent="यह LIVE लिंक अब उपलब्ध नहीं है या Stream समाप्त हो चुकी है।";
-   }
-  }
   if(!rooms.length){
    list.innerHTML='<div class="live-feed-empty">अभी कोई Creator LIVE नहीं है। Creator के LIVE होने पर stream यहाँ दिखाई देगी।</div>';
    return;
@@ -674,6 +664,16 @@ async function loadLiveRooms(){
    return !keyword||String(room.room_title||"").toLowerCase().includes(keyword)||creatorText.includes(keyword);
   });
   if(version!==liveRoomsLoadVersion)return;
+  const sharedLiveId=new URLSearchParams(location.search).get("live");
+  if(sharedLiveId){
+   const sharedRoom=visibleRooms.find(room=>String(room.id)===String(sharedLiveId));
+   if(sharedRoom){
+    connectLiveViewer(sharedRoom);
+   }else{
+    $("liveViewerWrap").hidden=false;
+    $("liveViewerStatus").textContent="यह LIVE लिंक उपलब्ध नहीं है, समाप्त हो चुकी है या Creator का Private LIVE है।";
+   }
+  }
   if(!visibleRooms.length){
    list.innerHTML='<div class="live-feed-empty">अभी कोई सार्वजनिक या आपके लिए उपलब्ध LIVE room नहीं है।</div>';
    return;
