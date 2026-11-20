@@ -600,7 +600,7 @@
               const status = document.createElement('span');
               status.textContent = 'Camera ' + (member.camera_allowed ? 'allowed' : 'blocked') + ' · Mic ' + (member.microphone_allowed ? 'allowed' : 'blocked') + ' · ' + (member.sfu_connected ? 'connected' : 'not connected');
               row.append(title,status);
-              if(member.role !== 'host') {
+              if(member.role !== 'host' && (data.actor_role === 'host' || member.role !== 'moderator')) {
                 const actions = document.createElement('div');
                 actions.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;';
                 const makeAction = (label, action, extra={}) => {
@@ -610,8 +610,10 @@
                 };
                 makeAction(member.camera_allowed?'Stop camera + block':'Allow camera publish','set-member-permissions',{camera_allowed:!member.camera_allowed});
                 makeAction(member.microphone_allowed?'Stop mic + block':'Allow mic publish','set-member-permissions',{microphone_allowed:!member.microphone_allowed});
-                if(member.role !== 'moderator') makeAction('Make moderator','set-moderator',{moderator:true});
-                else makeAction('Remove moderator','set-moderator',{moderator:false});
+                if(data.actor_role === 'host') {
+                  if(member.role !== 'moderator') makeAction('Make moderator','set-moderator',{moderator:true});
+                  else makeAction('Remove moderator','set-moderator',{moderator:false});
+                }
                 makeAction('Remove guest','remove-member');
                 row.appendChild(actions);
               }
