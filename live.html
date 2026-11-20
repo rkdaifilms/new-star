@@ -242,6 +242,7 @@
             <div style="display:flex; justify-content:flex-end; align-items:center; margin-bottom:4px;">
                 <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('realGiftModal')">✕</span>
             </div>
+            <p id="liveGiftAvailabilityNotice" role="status" style="font-size:12px;line-height:1.5;color:#ffe9ad;background:#282214;border-left:3px solid #e6b84d;border-radius:6px;padding:10px;margin:0 0 8px;">Gift catalogue preview only. Live gifting is temporarily unavailable until the authenticated server wallet and secure gift transaction route are connected. No coins will be deducted.</p>
             <div class="gift-grid-popup" id="megaGiftGridContainer"></div>
         </div>
     </div>
@@ -318,10 +319,11 @@
             container.innerHTML = '';
             tiktokGiftsList.forEach(g => {
                 container.innerHTML += `
-                    <div class="gift-item-card" onclick="sendTiktokGift('${g.name}', '${g.icon}', ${g.cost})">
+                    <div class="gift-item-card" role="img" aria-disabled="true" title="Preview only — live gifting is unavailable" style="cursor:not-allowed;opacity:.62;filter:grayscale(.25)">
                         <div style="font-size:22px;">${g.icon}</div>
                         <div style="font-size:10px; font-weight:bold; margin-top:2px;">${g.name}</div>
                         <div style="font-size:9px; color:#ffcc00;">🪙 ${g.cost}</div>
+                        <div style="font-size:8px;color:#ffb7c5;margin-top:3px;">Preview only</div>
                     </div>
                 `;
             });
@@ -678,17 +680,11 @@
         }
         function startPkWithOpponent() { startGlobalPkSearch(); }
 
-        function sendTiktokGift(name, icon, cost) {
-            if (!checkAndDeductCoins(cost)) return;
-            const area = document.getElementById('liveChatScrollArea');
-            const row = document.createElement('div');
-            row.style.color = '#ffcc00';
-            const author = document.createElement('b');
-            author.textContent = currentCreatorName + ': ';
-            row.append(author, document.createTextNode('Sent ' + icon + ' ' + name + ' (-' + cost + ' Coins) 🎁'));
-            area.appendChild(row);
-            area.scrollTop = area.scrollHeight;
-            closeModal('realGiftModal');
+        function sendTiktokGift() {
+            // Deliberately fail closed: preview cards never trigger a client-side gift,
+            // wallet deduction, or fake chat receipt. A verified server transaction is required.
+            alert('Live gifting is unavailable. No coins were deducted and no gift was sent.');
+            return false;
         }
 
         function deployTreasureBox() {
