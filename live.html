@@ -230,7 +230,9 @@
                 <h4 style="color:#ffcc00; font-size:15px;">⚔️ Live PK Battle Matchmaking</h4>
                 <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('pkBattleModal')">✕</span>
             </div>
-            <p style="font-size:12px;color:#ccc;line-height:1.5;">PK matchmaking will only start after a real creator joins the matchmaking queue. No sample opponent or simulated battle is shown.</p>
+            <p id="livePkStatusText" style="font-size:12px;color:#ccc;line-height:1.5;">Join the real creator queue for a friendly LIVE battle. No coins, paid entry, or prizes are involved.</p>
+            <button id="livePkStartButton" class="btn" style="background:#ffcc00;color:#111;font-weight:bold;padding:10px;" onclick="startGlobalPkSearch()">🌐 Find real opponent</button>
+            <button id="livePkStopButton" class="btn" style="display:none;background:#444;color:#fff;padding:9px;margin-top:8px;" onclick="cancelLivePk()">Cancel search / End battle</button>
         </div>
     </div>
 
@@ -619,14 +621,60 @@
           } catch(error) { panel.textContent=error.message; }
         }
 
-        function startGlobalPkSearch() {
-            closeModal('pkBattleModal');
-            alert('Real PK matchmaking is not connected yet. No opponent or battle has been created.');
+        let livePkPollTimer = null;
+        let livePkMatchId = null;
+        async function startGlobalPkSearch() {
+            if (!liveRoomId) { alert('Start your own LIVE room before searching for a PK opponent.'); return; }
+            const status = document.getElementById('livePkStatusText');
+            const start = document.getElementById('livePkStartButton');
+            if (start) { start.disabled = true; start.textContent = 'Joining queue…'; }
+            try {
+                const result = await liveApi('pk-join-queue', { room_id: liveRoomId });
+                if (status) status.textContent = result.status === 'matched' ? 'Opponent found. Connecting battle status…' : 'You are in the real matchmaking queue. Waiting for another LIVE creator…';
+                document.getElementById('livePkStopButton').style.display = 'block';
+                if (livePkPollTimer) clearInterval(livePkPollTimer);
+                livePkPollTimer = setInterval(refreshLivePkStatus, 3500);
+                await refreshLivePkStatus();
+            } catch (error) {
+                if (status) status.textContent = error.message;
+            } finally {
+                if (start) { start.disabled = false; start.textContent = '🌐 Find real opponent'; }
+            }
         }
-
-        function startPkWithOpponent() {
-            alert('A real opponent session is required before PK can start. No demo battle will be shown.');
+        async function refreshLivePkStatus() {
+            if (!liveRoomId) return;
+            try {
+                const result = await liveApi('pk-status', { room_id: liveRoomId });
+                const status = document.getElementById('livePkStatusText');
+                const stop = document.getElementById('livePkStopButton');
+                const start = document.getElementById('livePkStartButton');
+                if (result.status === 'matched') {
+                    livePkMatchId = result.match_id;
+                    if (status) status.textContent = '⚔️ ' + result.opponent_name + ' · Your likes: ' + result.own_score + ' · Opponent likes: ' + result.opponent_score;
+                    if (stop) { stop.style.display = 'block'; stop.textContent = 'End friendly battle'; }
+                    if (start) start.style.display = 'none';
+                } else if (result.status === 'waiting') {
+                    if (status) status.textContent = 'Searching… waiting for another real LIVE creator to join.';
+                    if (stop) { stop.style.display = 'block'; stop.textContent = 'Cancel search'; }
+                } else {
+                    livePkMatchId = null;
+                    if (status) status.textContent = 'No active PK search or battle.';
+                    if (stop) stop.style.display = 'none';
+                    if (start) { start.style.display = 'block'; start.textContent = '🌐 Find real opponent'; }
+                    if (livePkPollTimer) clearInterval(livePkPollTimer);
+                    livePkPollTimer = null;
+                }
+            } catch (error) { console.warn('LIVE PK status:', error); }
         }
+        async function cancelLivePk() {
+            try {
+                if (livePkMatchId) await liveApi('pk-finish', { match_id: livePkMatchId });
+                else await liveApi('pk-leave-queue');
+                livePkMatchId = null;
+                await refreshLivePkStatus();
+            } catch (error) { alert(error.message); }
+        }
+        function startPkWithOpponent() { startGlobalPkSearch(); }
 
         function sendTiktokGift(name, icon, cost) {
             if (!checkAndDeductCoins(cost)) return;
