@@ -69,7 +69,7 @@
     <!-- GAMING SETUP PANEL -->
     <div class="studio-card" id="gamingSetupPanel">
         <div class="section-title">Pro Gaming Screen Stream</div>
-        <div class="section-desc">Share your phone screen, stream gameplay, and optionally include your front camera and microphone. Android/browser screen-sharing support is required.</div>
+        <div class="section-desc">New Star Android app: share your phone screen after Android permission. Current native mode streams screen video only; game audio, microphone mixing, face-camera overlay and guest seats are not enabled yet. Browser mode may not support full-device capture.</div>
         
         <label>Game Name (e.g., Free Fire, BGMI, PUBG):</label>
         <input type="text" id="gameNameInput" value="Free Fire Mobile">
@@ -374,7 +374,7 @@
             isLiveActive = true;
             gamingIsGuest = false;
             gamingGuestSeatNumber = 1;
-            renderGamingGuestSeats(4);
+            renderGamingGuestSeats(1);
             document.getElementById('gamingModerationButton').style.display = 'inline-flex';
             document.getElementById('gamingSetupPanel').style.display = 'none';
             document.getElementById('starBubbleIcon').style.display = 'flex';
@@ -382,7 +382,6 @@
             document.getElementById('camStateText').textContent = 'OFF';
             document.getElementById('micStateText').textContent = 'Not enabled in native screen-only mode';
             document.getElementById('activeGamingView').style.display = 'flex';
-            startGamingGuestSubscriptionPolling();
             startGamingChatPolling();
             if (captureStatus) {
                 captureStatus.hidden = false;
