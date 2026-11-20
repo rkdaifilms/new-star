@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
             @Suppress("DEPRECATION")
             registerReceiver(receiver, f)
         }
-        web.loadUrl("https://new-star-delta.vercel.app/gaming.html")
+        web.loadUrl("https://new-star-delta.vercel.app/")
     }
     private fun emit(status: String, message: String, resource: String = "") {
         val d = JSONObject().put("status", status).put("message", message).put("resourceUrl", resource)
