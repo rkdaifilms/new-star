@@ -36,12 +36,24 @@ class MainActivity : AppCompatActivity() {
         fileCallback = null
     }
 
-    private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    private val webMediaPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
         val request = pendingWebPermission
         pendingWebPermission = null
-        if (granted && request != null && request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {
-            request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))
-        } else request?.deny()
+        if (request == null) return@registerForActivityResult
+        val resources = request.resources
+        val supported = resources.isNotEmpty() && resources.all {
+            it == PermissionRequest.RESOURCE_AUDIO_CAPTURE || it == PermissionRequest.RESOURCE_VIDEO_CAPTURE
+        }
+        val allGranted = supported && resources.all { resource ->
+            val permission = when (resource) {
+                PermissionRequest.RESOURCE_AUDIO_CAPTURE -> Manifest.permission.RECORD_AUDIO
+                PermissionRequest.RESOURCE_VIDEO_CAPTURE -> Manifest.permission.CAMERA
+                else -> return@all false
+            }
+            grants[permission] == true ||
+                ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+        }
+        if (allGranted) request.grant(resources) else request.deny()
     }
 
     private val screenPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -95,17 +107,26 @@ class MainActivity : AppCompatActivity() {
                 override fun onPermissionRequest(request: PermissionRequest) {
                     runOnUiThread {
                         val trustedOrigin = request.origin.scheme == "https" && request.origin.host == APP_HOST
-                        val audioOnly = request.resources.isNotEmpty() && request.resources.all { it == PermissionRequest.RESOURCE_AUDIO_CAPTURE }
-                        if (!trustedOrigin || !audioOnly) {
+                        val supportedResources = request.resources.isNotEmpty() && request.resources.all {
+                            it == PermissionRequest.RESOURCE_AUDIO_CAPTURE || it == PermissionRequest.RESOURCE_VIDEO_CAPTURE
+                        }
+                        if (!trustedOrigin || !supportedResources) {
                             request.deny()
                             return@runOnUiThread
                         }
-                        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                            request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))
+                        val requiredPermissions = buildList {
+                            if (request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) add(Manifest.permission.RECORD_AUDIO)
+                            if (request.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) add(Manifest.permission.CAMERA)
+                        }
+                        val missingPermissions = requiredPermissions.filter {
+                            ContextCompat.checkSelfPermission(this@MainActivity, it) != PackageManager.PERMISSION_GRANTED
+                        }
+                        if (missingPermissions.isEmpty()) {
+                            request.grant(request.resources)
                         } else {
                             pendingWebPermission?.deny()
                             pendingWebPermission = request
-                            audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+                            webMediaPermissions.launch(missingPermissions.toTypedArray())
                         }
                     }
                 }
