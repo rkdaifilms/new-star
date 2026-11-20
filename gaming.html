@@ -156,10 +156,11 @@
                 <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('realGiftModal')">✕</span>
             </div>
             <div class="gift-grid-popup">
-                <div class="gift-item-card" onclick="sendRealGift('Rose 🌹', 1)"><div style="font-size:22px;">🌹</div><div style="font-size:10px;">Rose (1)</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Coffee ☕', 5)"><div style="font-size:22px;">☕</div><div style="font-size:10px;">Coffee (5)</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Car 🏎️', 100)"><div style="font-size:22px;">🏎️</div><div style="font-size:10px;">Car (100)</div></div>
-                <div class="gift-item-card" onclick="sendRealGift('Dragon 🐉', 10000)"><div style="font-size:22px;">🐉</div><div style="font-size:10px;">Dragon (10k)</div></div>
+                <div class="gift-item-card" role="img" aria-disabled="true" style="cursor:not-allowed;opacity:.65"><div style="font-size:22px;">🌹</div><div style="font-size:10px;">Rose · Preview</div></div>
+                <div class="gift-item-card" role="img" aria-disabled="true" style="cursor:not-allowed;opacity:.65"><div style="font-size:22px;">☕</div><div style="font-size:10px;">Coffee · Preview</div></div>
+                <div class="gift-item-card" role="img" aria-disabled="true" style="cursor:not-allowed;opacity:.65"><div style="font-size:22px;">🏎️</div><div style="font-size:10px;">Car · Preview</div></div>
+                <div class="gift-item-card" role="img" aria-disabled="true" style="cursor:not-allowed;opacity:.65"><div style="font-size:22px;">🐉</div><div style="font-size:10px;">Dragon · Preview</div></div>
+                <p role="status" style="grid-column:1/-1;color:#ffd58a;font-size:12px;line-height:1.5">Gaming LIVE Gifts: 50% platform / 50% creator. Gift sending stays unavailable until the secure server transaction is connected and tested.</p>
             </div>
         </div>
     </div>
@@ -172,8 +173,8 @@
                 <span style="font-size:16px; cursor:pointer; color:#aaa;" onclick="closeModal('treasureBoxModal')">✕</span>
             </div>
             <div style="font-size:35px; margin:15px 0;">🎁</div>
-            <p style="font-size:12px; color:#ccc; margin-bottom:15px;">Claim free coins & rewards from the treasure box!</p>
-            <button class="btn" style="background:#ff4444; color:#fff;" onclick="claimTreasureReward()">✨ Claim Reward (+50 Coins)</button>
+            <p style="font-size:12px; color:#ccc; margin-bottom:15px;">Treasure Box rewards are not connected to a verified server ledger yet.</p>
+            <button class="btn" style="background:#444; color:#bbb; cursor:not-allowed;" disabled aria-disabled="true">Reward claims unavailable</button>
         </div>
     </div>
 
