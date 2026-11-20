@@ -40,22 +40,22 @@ small.hint{color:var(--muted)}
 </head>
 <body>
 <div id="creator-ai-app">
-<header class="top"><a class="back" href="index.html" aria-label="Back">‹</a><div class="brand"><strong>✦ New Star Creator Studio</strong><small>Creative assistant · Chat · Voice · Images</small></div><span id="gateway-status" class="status">Connecting…</span></header>
+<header class="top"><a class="back" href="index.html" aria-label="Back" data-i18n-aria-label="ai.back">‹</a><div class="brand"><strong data-i18n="ai.title">✦ New Star Creator Studio</strong><small data-i18n="ai.subtitle">Creative assistant · Chat · Voice · Images</small></div><span id="gateway-status" class="status">Connecting…</span></header>
 <main>
-<section class="welcome"><h1>Your ideas, in your language.</h1><p>Ask questions, write stories and scripts, create video titles, descriptions and hashtags, plan content, or generate an original image. The AI follows the language you type or speak.</p></section>
-<div class="tools" aria-label="Creator tools">
-<button type="button" data-starter="Give me 10 original video ideas for my channel.">💡 Video ideas</button>
-<button type="button" data-starter="Write an engaging video title, description and relevant hashtags for this topic: ">📝 Title & description</button>
-<button type="button" data-starter="Write an engaging original story about: ">📖 Story writer</button>
-<button type="button" id="image-mode">🎨 Generate image</button>
+<section class="welcome"><h1 data-i18n="ai.welcomeTitle">Your ideas, in your language.</h1><p data-i18n="ai.welcomeText">Ask questions, write stories and scripts, create video titles, descriptions and hashtags, plan content, or generate an original image. The AI follows the language you type or speak.</p></section>
+<div class="tools" aria-label="Creator tools" data-i18n-aria-label="ai.tools">
+<button type="button" data-starter="Give me 10 original video ideas for my channel.">💡 <span data-i18n="ai.videoIdeas">Video ideas</span></button>
+<button type="button" data-starter="Write an engaging video title, description and relevant hashtags for this topic: ">📝 <span data-i18n="ai.titleDescription">Title & description</span></button>
+<button type="button" data-starter="Write an engaging original story about: ">📖 <span data-i18n="ai.storyWriter">Story writer</span></span></button>
+<button type="button" id="image-mode">🎨 <span data-i18n="ai.generateImage">Generate image</span></button>
 </div>
-<div id="chat-log" aria-live="polite"><div class="msg assistant">Hello! Tell me what you want to create. I’ll reply in the language you use.</div></div>
+<div id="chat-log" aria-live="polite"><div class="msg assistant" data-i18n="ai.hello">Hello! Tell me what you want to create. I’ll reply in the language you use.</div></div>
 <div id="image-result" hidden></div>
 <section id="composer">
-<div id="prompt-wrap"><textarea id="prompt" maxlength="8000" placeholder="अपना संदेश लिखें या माइक दबाकर बोलें…"></textarea><button type="button" id="voice" aria-label="माइक से बोलें" title="माइक से बोलें / Speak" class="prompt-mic">🎙️</button></div>
-<div class="composer-row"><button type="button" id="send">Send</button><button type="button" id="stop-voice" class="secondary" hidden>■ रिकॉर्डिंग रोकें / Stop</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> Speak answers</label></div>
-<div id="voice-status" role="status" aria-live="polite">माइक दबाकर बोलें। रिकॉर्डिंग रोकने पर आपकी आवाज़ टेक्स्ट में बदलेगी; फिर Send दबाएँ।</div>
-<div id="notice">Sign in required. Do not enter passwords, OTPs, API keys or private financial details.</div>
+<div id="prompt-wrap"><textarea id="prompt" maxlength="8000" data-i18n-placeholder="ai.prompt" placeholder="Write a message or tap the mic to speak…"></textarea><button type="button" id="voice" aria-label="Speak with microphone" title="Speak with microphone" data-i18n-aria-label="ai.mic" class="prompt-mic">🎙️</button></div>
+<div class="composer-row"><button type="button" id="send" data-i18n="ai.send">Send</button><button type="button" id="stop-voice" class="secondary" hidden data-i18n="ai.stopRecording">■ Stop recording</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> <span data-i18n="ai.speakAnswers">Speak answers aloud</span></label></div>
+<div id="voice-status" role="status" aria-live="polite" data-i18n="ai.voiceHint">Tap the mic to speak. When recording stops, your voice is converted to text.</div>
+<div id="notice" data-i18n="ai.signinNotice">Sign in required. Do not enter passwords, OTPs, API keys or private financial details.</div>
 </section>
 </main>
 </div>
