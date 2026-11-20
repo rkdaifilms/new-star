@@ -34,7 +34,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <body>
 <header class="header"><a class="back" href="profile.html" aria-label="Back to profile">‹</a><h1 data-i18n="settings.title">⚙️ Main Settings</h1></header>
 <main class="container">
-<section class="intro"><h2>New Star — Main Settings</h2><p>अकाउंट, प्रोफाइल, नोटिफिकेशन, भाषा और सुरक्षा की सेटिंग एक ही जगह से मैनेज करें। नीचे हर सेक्शन क्रम से दिया गया है।</p></section>
+<section class="intro"><h2>New Star — Main Settings</h2><p>अकाउंट, नोटिफिकेशन, भाषा, सुरक्षा और ऐप की बाकी सेटिंग यहाँ से मैनेज करें। नीचे हर सेक्शन क्रम से दिया गया है।</p></section>
 <div id="status" class="status" role="status" aria-live="polite"></div>
 
 <section class="section" id="notifications">
@@ -66,14 +66,8 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <div class="row"><h3>Change Password</h3><p>कम-से-कम 8 अक्षर का नया पासवर्ड रखें।</p><input type="password" id="newPassword" autocomplete="new-password" minlength="8" placeholder="नया पासवर्ड"><input type="password" id="confirmPassword" autocomplete="new-password" placeholder="नया पासवर्ड दोबारा लिखें"><button id="changePasswordBtn">Update Password</button></div>
 </div></section>
 
-<section class="section" id="profile">
-<h2 class="section-title">03 · Profile & Edit Profile</h2>
-<div class="panel">
-<div class="row"><h3>Profile details</h3><p>नाम, Username, Bio, फोटो, Cover Photo और Social links बदलने के लिए Profile के मौजूदा Edit Profile विकल्प का उपयोग करें। एक ही Profile Editor रखा गया है ताकि अलग-अलग जगह दो सेटिंग्स आपस में न टकराएँ।</p><a class="action" href="profile.html">👤 Open Profile & Edit Profile</a></div>
-</div></section>
-
 <section class="section" id="privacy">
-<h2 class="section-title" data-i18n="settings.privacy">04 · Privacy & Security</h2>
+<h2 class="section-title" data-i18n="settings.privacy">03 · Privacy & Security</h2>
 <div class="panel">
 <div class="row"><h3>Private Account</h3><p>Private account चालू होने पर आपके वीडियो देखने के लिए Follow approval आवश्यक होगा।</p><div class="inline"><input id="privateAccount" type="checkbox"><label for="privateAccount">🔒 मेरा अकाउंट Private रखें</label></div><button id="savePrivacyBtn">Save Privacy</button></div>
 <div class="row"><h3>Logout this device</h3><p>इस डिवाइस के New Star session से Logout करें।</p><button class="danger" id="logoutBtn">Log Out</button></div>
@@ -83,7 +77,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </div></section>
 
 <section class="section" id="appearance">
-<h2 class="section-title">05 · Language & Appearance</h2>
+<h2 class="section-title">04 · Language & Appearance</h2>
 <div class="panel">
 <div class="row"><h3 data-i18n="settings.language">App Language</h3><p>आपकी पसंद इस डिवाइस पर सेव होगी। नीचे ऐप के लिए भाषा चुनेँ। जिन स्क्रीन पर अनुवाद अभी उपलब्ध नहीं है, वहाँ मूल टेक्स्ट दिख सकता है।</p>
 <select id="appLanguage" aria-label="App language">
@@ -95,7 +89,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </div></section>
 
 <section class="section" id="accessibility">
-<h2 class="section-title">06 · Accessibility & Display</h2>
+<h2 class="section-title">05 · Accessibility & Display</h2>
 <div class="panel">
 <div class="row"><h3>Text Size</h3><p>यह विकल्प पूरे ऐप के पेजों पर टेक्स्ट का आकार बदलता है।</p>
 <select id="textScale" aria-label="Text size"><option value="0.9">Small</option><option value="1">Default</option><option value="1.1">Large</option><option value="1.2">Extra large</option><option value="1.25">Largest</option></select></div>
@@ -105,7 +99,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </div></section>
 
 <section class="section" id="monetization">
-<h2 class="section-title">07 · Creator & Monetization</h2>
+<h2 class="section-title">06 · Creator & Monetization</h2>
 <div class="panel">
 <div class="row"><h3>Creator Monetization Hub</h3><p>Creator eligibility, monetization review, referral links, campaign access, affiliate features, live gifts, video promotion and fan support का मुख्य स्थान Monetization Hub है। एक ही canonical hub रखा गया है; duplicate monetization controls Main Settings में नहीं बनाए गए हैं।</p><a class="action" href="monetization.html">💼 Open Creator & Monetization Hub</a></div>
 <div class="row"><h3>Wallet & Earnings</h3><p>Coin balance, purchase history, gifts, creator earnings और payout history देखने के लिए Wallet खोलें। Payment और payout सुविधाएँ केवल verified provider integration सक्रिय होने पर काम करेंगी।</p><a class="action secondary" href="wallet.html">🪙 Open Wallet</a></div>
@@ -113,7 +107,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </div></section>
 
 <section class="section" id="adsense-readiness">
-<h2 class="section-title">08 · Google AdSense Approval & Ads Policy</h2>
+<h2 class="section-title">07 · Google AdSense Approval & Ads Policy</h2>
 <div class="panel">
 <div class="row"><h3>🌐 Website Ads — Google AdSense</h3><p>यह हिस्सा वेबसाइट के लिए है। Google approval अपने-आप नहीं मिलता; Google पूरी live site, content quality, navigation और policy compliance की समीक्षा करता है। Site review पास होने तक ads बंद रहेंगे।</p><p><strong>वयस्क Account Owner:</strong> AdSense publisher account और payment profile का संचालन 18+ parent/guardian या अधिकृत वयस्क ही करे। यदि publisher 18 से कम है, Google के अनुसार parent/guardian अपने Google Account से आवेदन कर सकता है और भुगतान उसी वयस्क को होता है।</p><a class="action secondary" href="https://support.google.com/adsense/answer/9724" target="_blank" rel="noopener">Google की Eligibility शर्तें</a> <a class="action secondary" href="https://support.google.com/adsense/answer/7584263" target="_blank" rel="noopener">Site Review प्रक्रिया</a></div>
 <div class="row"><h3>Approval से पहले जरूरी Site Checklist</h3>
@@ -140,7 +134,7 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </div></section>
 
 <section class="section" id="help">
-<h2 class="section-title">09 · Help & About</h2>
+<h2 class="section-title">08 · Help & About</h2>
 <div class="panel">
 <div class="row"><h3>Help & Support — New Star AI</h3><p>Account, settings, upload और technical help के लिए New Star Help Center AI खोलें।</p><button type="button" id="openHelpCenterFromSupport">✦ Open Help Center AI</button></div><div class="row"><h3>Messages & Inbox</h3><p>Creators के साथ Direct Messages, Followers और Follow Requests देखने के लिए Inbox खोलें।</p><a class="action secondary" href="inbox.html">✉️ Open Messages Inbox</a></div>
 <div class="row"><h3>About New Star</h3><p>New Star Creator Hub · आपकी प्रोफाइल, वीडियो और Creator सुविधाएँ।</p><p>Settings build: 2.1 · Language, Theme और Accessibility preferences डिवाइस पर लागू होती हैं और signed-in account के साथ sync की जाती हैं। सभी पेजों का पूर्ण अनुवाद अभी उपलब्ध नहीं है।</p></div>
