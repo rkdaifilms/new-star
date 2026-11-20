@@ -121,7 +121,7 @@ Deno.serve(async (req: Request) => {
         readAll("withdrawal_requests", "amount,currency,status", "status", "Pending"),
         admin.schema("private").from("commission_rules")
           .select("rule_code,basis_points,status")
-          .in("rule_code", ["video_gifts", "live_gifts", "gaming_stream_gifts"])
+          .order("rule_code", { ascending: true })
       ]);
       if (commissionRules.error) throw commissionRules.error;
       const platformRows: any[] = [];
