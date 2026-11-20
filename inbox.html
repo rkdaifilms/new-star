@@ -93,7 +93,7 @@
         <img id="inboxUserPic" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100%25' height='100%25' fill='%23333'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' fill='white' font-size='38'%3E★%3C/text%3E%3C/svg%3E" alt="Profile">
         <div>
             <h4 id="inboxUserName" data-i18n="nav.profile">Profile</h4>
-            <p>Open your profile</p>
+            <p data-i18n="inbox.openProfile">Open your profile</p>
         </div>
     </div>
 
@@ -101,32 +101,32 @@
 
     <div class="inbox-tabs">
         <div class="inbox-tab active" onclick="switchTab('messages', this)" data-i18n="nav.inbox">Inbox</div>
-        <div class="inbox-tab" onclick="switchTab('followers', this)">Followers</div>
+        <div class="inbox-tab" onclick="switchTab('followers', this)" data-i18n="inbox.followers">Followers</div>
         <div class="inbox-tab" onclick="switchTab('following', this)" data-i18n="feed.following">Following</div>
-        <div class="inbox-tab" onclick="switchTab('requests', this)">Follow Requests <span id="followRequestCount"></span></div>
-        <div class="inbox-tab" onclick="switchTab('discover', this)">Discover Creators</div>
+        <div class="inbox-tab" onclick="switchTab('requests', this)"><span data-i18n="inbox.requests">Follow Requests</span> <span id="followRequestCount"></span></div>
+        <div class="inbox-tab" onclick="switchTab('discover', this)" data-i18n="inbox.discover">Discover Creators</div>
     </div>
 
     <div class="list-container" id="tabMessages">
-        <div class="empty-state">Loading your real conversations…</div>
+        <div class="empty-state" data-i18n="inbox.loading">Loading your conversations…</div>
     </div>
 
     <div class="list-container" id="tabFollowers" style="display:none;">
-        <div class="empty-state">Verified follower activity will appear here.</div>
+        <div class="empty-state" data-i18n="inbox.noFollowers">Follower activity will appear here.</div>
     </div>
 
     <div class="list-container" id="tabFollowing" style="display:none;">
-        <div class="empty-state">Creators you follow will appear here.</div>
+        <div class="empty-state" data-i18n="inbox.noFollowing">Creators you follow will appear here.</div>
     </div>
     <div class="list-container" id="tabRequests" style="display:none;">
-        <div class="empty-state">Follow requests will appear here.</div>
+        <div class="empty-state" data-i18n="inbox.noRequests">Follow requests will appear here.</div>
     </div>
     <div class="list-container" id="tabDiscover" style="display:none;">
         <div style="display:flex;gap:8px;margin-bottom:14px">
             <input data-i18n-placeholder="action.search" id="creatorSearchInput" type="search" maxlength="50" placeholder="Username या Creator का नाम खोजें" style="flex:1;min-width:0;padding:12px;border-radius:10px;border:1px solid #444;background:#171722;color:#fff">
             <button id="creatorSearchButton" type="button" class="action-tag-btn" data-i18n="action.search">Search</button>
         </div>
-        <div id="creatorSearchResults" class="empty-state">Creator खोजने के लिए नाम या username लिखें।</div>
+        <div id="creatorSearchResults" class="empty-state" data-i18n="inbox.searchHint">Enter a creator name or username to search.</div>
     </div>
 
     <!-- REAL MESSENGER CHAT WINDOW (FIXED INPUT AREA) -->
@@ -145,10 +145,10 @@
             <input type="file" id="mediaFile" accept="image/*,video/*" style="display:none;" onchange="sendMediaFile(event)">
             
             <!-- Voice Recording Mic Button -->
-            <div class="chat-icon-btn" onclick="startVoiceRecording()" id="micBtn" title="Voice to Text">🎙️</div>
+            <button type="button" class="chat-icon-btn" onclick="startVoiceRecording()" id="micBtn" title="Speak your message" aria-label="Start voice input" aria-pressed="false">🎙️</button><span id="voiceInputStatus" class="muted" role="status" aria-live="polite"></span>
             
             <!-- Text Input Box -->
-            <input type="text" id="messageInput" placeholder="Type a message or voice note..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="messageInput" data-i18n-placeholder="inbox.messagePlaceholder" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
             
             <!-- Send Button -->
             <button class="send-btn" onclick="sendMessage()" data-i18n="action.send">Send</button>
@@ -390,16 +390,45 @@ async function loadConversation(){
  await db.from("messages").update({read_at:new Date().toISOString()}).eq("conversation_id",activeConversation).eq("recipient_id",me.id).is("read_at",null);
 }
 window.sendMessage=async function(){
- const input=$("messageInput"),body=input.value.trim();if(!body||!activePeer)return;
+ const input=$("messageInput"),body=input.value.trim();if(inboxRecording)inboxRecognition?.stop();if(!body||!activePeer)return;
  const btn=document.querySelector(".send-btn");if(btn)btn.disabled=true;
  const {error}=await db.from("messages").insert({conversation_id:activeConversation,sender_id:me.id,recipient_id:activePeer,body});
- if(error){setStatus("Message नहीं भेजा गया: "+error.message);}else{input.value="";await loadConversation();await loadThreads();}
+ if(error){setStatus("Message नहीं भेजा गया: "+error.message);}else{input.value="";input.dataset.voiceBase="";inboxVoiceStatus.textContent="";await loadConversation();await loadThreads();}
  if(btn)btn.disabled=false;
 };
 window.closeChat=function(){$("chatBoxWindow").style.display="none";activePeer=null;activeConversation=null;};
 window.handleKeyPress=e=>{if(e.key==="Enter"){e.preventDefault();window.sendMessage();}};
 window.switchTab=function(tab,el){document.querySelectorAll(".inbox-tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");["messages","followers","following","requests","discover"].forEach(t=>{$("tab"+t[0].toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";});if(tab==="requests")loadFollowRequests();if(tab==="discover")$("creatorSearchInput").focus();};
-window.startVoiceRecording=function(){setStatus("Voice message recording is not connected yet. No fake recording will be sent.");};
+let inboxRecognition=null,inboxRecording=false;
+const inboxMic=$("micBtn"),inboxVoiceStatus=$("voiceInputStatus");
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+function inboxSpeechLanguage(){
+ const code=(document.documentElement.lang||"hi").toLowerCase();
+ const map={hi:"hi-IN",ne:"ne-NP",en:"en-US",bn:"bn-BD",ur:"ur-PK",ar:"ar-SA",es:"es-ES",fr:"fr-FR",de:"de-DE",pt:"pt-PT",it:"it-IT",ja:"ja-JP",ko:"ko-KR",zh:"zh-CN",ru:"ru-RU",tr:"tr-TR"};
+ return map[code]||code;
+}
+if(SpeechRecognition){
+ inboxRecognition=new SpeechRecognition();
+ inboxRecognition.continuous=true;inboxRecognition.interimResults=true;
+ inboxRecognition.lang=inboxSpeechLanguage();
+ inboxRecognition.onstart=()=>{inboxRecording=true;inboxMic.textContent="■";inboxMic.setAttribute("aria-pressed","true");inboxMic.setAttribute("aria-label","Stop voice input");inboxVoiceStatus.textContent="Listening… tap the microphone again to stop.";};
+ inboxRecognition.onresult=e=>{
+  let finalText="",interim="";
+  for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=t;else interim+=t;}
+  const input=$("messageInput"),base=input.dataset.voiceBase||"";
+  input.value=(base+(base&&finalText?" ":"")+finalText+(interim?" "+interim:"")).slice(0,2000);
+ };
+ inboxRecognition.onerror=e=>{inboxVoiceStatus.textContent=e.error==="not-allowed"?"Microphone permission denied. Allow microphone access in browser settings.":"Voice input error: "+e.error;};
+ inboxRecognition.onend=()=>{inboxRecording=false;inboxMic.textContent="🎙️";inboxMic.setAttribute("aria-pressed","false");inboxMic.setAttribute("aria-label","Start voice input");const input=$("messageInput");input.dataset.voiceBase=input.value.trim();if(input.value.trim())inboxVoiceStatus.textContent="Speech converted to text. Review it, then tap Send.";};
+}else{inboxMic.disabled=true;inboxVoiceStatus.textContent="Voice typing is not supported in this browser. Try Chrome.";}
+window.startVoiceRecording=function(){
+ if(!inboxRecognition){inboxVoiceStatus.textContent="Voice typing is not supported in this browser.";return;}
+ if(inboxRecording){inboxRecognition.stop();return;}
+ if(!window.isSecureContext){inboxVoiceStatus.textContent="Microphone needs a secure HTTPS page.";return;}
+ inboxRecognition.lang=inboxSpeechLanguage();
+ $("messageInput").dataset.voiceBase=$("messageInput").value.trim();
+ try{inboxRecognition.start();}catch(e){inboxVoiceStatus.textContent="Microphone could not start. Try again in a moment.";}
+};
 window.sendMediaFile=function(e){setStatus("Media upload is not connected yet. Please send text until secure Storage upload is added.");e.target.value="";};
 window.showProfile=function(name,avatar,bio){$("popupName").textContent=name;$("popupAvatar").src=avatar||fallback;$("popupBio").textContent=bio||"";$("profilePopup").style.display="flex";};
 window.closeProfilePopup=function(){$("profilePopup").style.display="none";};
