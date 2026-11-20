@@ -296,15 +296,16 @@
                         const dw = sw * scale, dh = sh * scale;
                         ctx.drawImage(screenVideo, (1280 - dw) / 2, (720 - dh) / 2, dw, dh);
                     }
-                    if (isCamActive && faceVideo && faceVideo.readyState >= 2) {
+                    const activeFaceVideo = gamingFaceVideo;
+                    if (isCamActive && activeFaceVideo && activeFaceVideo.readyState >= 2) {
                         const w = 220, h = 165, x = 1280 - w - 28, y = 28, r = 22;
                         ctx.save();
                         ctx.beginPath();
                         if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
                         ctx.clip();
-                        const fw = faceVideo.videoWidth || 640, fh = faceVideo.videoHeight || 480;
+                        const fw = activeFaceVideo.videoWidth || 640, fh = activeFaceVideo.videoHeight || 480;
                         const fs = Math.max(w / fw, h / fh), fdw = fw * fs, fdh = fh * fs;
-                        ctx.drawImage(faceVideo, x + (w - fdw) / 2, y + (h - fdh) / 2, fdw, fdh);
+                        ctx.drawImage(activeFaceVideo, x + (w - fdw) / 2, y + (h - fdh) / 2, fdw, fdh);
                         ctx.restore();
                         ctx.strokeStyle = '#25f4ee'; ctx.lineWidth = 5;
                         ctx.beginPath();
