@@ -116,6 +116,7 @@
                 <button class="btn" style="background:#00b4d8; color:#000; padding:10px; font-size:12px;" onclick="openGamePkModal()">⚔️ PK Battle</button>
                 <button class="btn" style="background:#fe2c55;color:#fff;padding:10px;font-size:12px;" onclick="sendGamingLike()">❤️ Like</button>
                 <button id="gamingInviteButton" class="btn" style="background:#7b61ff;color:#fff;padding:10px;font-size:12px;" onclick="openGamingInviteModal()">👥 Invite Guest</button>
+                <button id="gamingModerationButton" class="btn" style="background:#34495e;color:#fff;padding:10px;font-size:12px;" onclick="openGamingModerationModal()">🛡️ Room Controls</button>
                 <button class="btn" style="background:#25f4ee; color:#000; padding:10px; font-size:12px;" onclick="openChatBoxModal()">💬 Live Chat</button>
                 <button class="btn" style="grid-column:1/-1; background:linear-gradient(135deg,#25f4ee,#00b4d8); color:#001014; padding:11px; font-size:13px;" onclick="shareGamingLive()">📤 Share Gaming LIVE</button>
             </div>
@@ -137,6 +138,12 @@
         </div>
     </div>
 
+    <div id="gamingModerationModal" class="custom-modal"><div class="modal-box" style="max-width:420px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h4 style="color:#25f4ee;font-size:15px;">🛡️ Gaming LIVE moderation</h4><span style="cursor:pointer;color:#aaa;" onclick="closeModal('gamingModerationModal')">✕</span></div>
+      <div id="gamingModeratorMembers" style="max-height:360px;overflow:auto;font-size:12px;">Load room participants to manage their media and seats.</div>
+      <button class="btn" style="background:#25f4ee;color:#111;padding:8px;margin-top:8px;" onclick="refreshGamingModeratorMembers()">Refresh participants</button>
+      <button class="btn" style="background:#333;color:#fff;padding:8px;margin-top:8px;" onclick="closeModal('gamingModerationModal')">Close</button>
+    </div></div>
     <!-- GIFTS MODAL -->
     <div id="realGiftModal" class="custom-modal">
         <div class="modal-box" style="max-width:360px;">
@@ -439,6 +446,7 @@
                 gamingIsGuest = false;
                 gamingGuestSeatNumber = 1;
                 renderGamingGuestSeats(4);
+                document.getElementById('gamingModerationButton').style.display = 'inline-flex';
                 const hostSeatVideo = document.getElementById('gamingSeatVideo_1');
                 if (hostSeatVideo) { hostSeatVideo.srcObject = canvasStream; hostSeatVideo.muted = true; }
                 startGamingGuestSubscriptionPolling();
@@ -504,6 +512,7 @@
                 document.getElementById('gamingHostStopButton').style.display = 'block';
                 document.getElementById('gamingGuestLeaveButton').style.display = 'none';
                 document.getElementById('gamingInviteButton').style.display = 'inline-flex';
+                document.getElementById('gamingModerationButton').style.display = 'inline-flex';
                 renderGamingGuestSeats(4);
                 if (roomId) {
                     try { await gamingLiveApi('stop', { room_id: roomId }); }
@@ -771,6 +780,7 @@
                 document.getElementById('gamingHostStopButton').style.display = 'none';
                 document.getElementById('gamingGuestLeaveButton').style.display = 'block';
                 document.getElementById('gamingInviteButton').style.display = 'none';
+                document.getElementById('gamingModerationButton').style.display = 'none';
                 startGamingGuestSubscriptionPolling();
                 startGamingChatPolling();
             } catch (error) {
@@ -803,6 +813,56 @@
                 renderGamingGuestSeats(4);
             }
         }
+        function openGamingModerationModal() {
+            if (!gamingRoomId || gamingIsGuest) { alert('Only the Gaming LIVE host can open room controls.'); return; }
+            document.getElementById('gamingModerationModal').style.display = 'flex';
+            refreshGamingModeratorMembers();
+        }
+        async function refreshGamingModeratorMembers() {
+            const panel = document.getElementById('gamingModeratorMembers');
+            if (!panel || !gamingRoomId) { if (panel) panel.textContent = 'Start a Gaming LIVE room to manage participants.'; return; }
+            panel.textContent = 'Loading participants…';
+            try {
+                const data = await gamingLiveApi('list-members', { room_id: gamingRoomId });
+                panel.replaceChildren();
+                (data.members || []).forEach(member => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'padding:9px 4px;border-bottom:1px solid #333;display:flex;flex-direction:column;gap:5px;';
+                    const title = document.createElement('b');
+                    title.textContent = (member.display_name || 'Guest') + ' · ' + member.role + (member.seat_number ? ' · Seat ' + member.seat_number : '');
+                    const status = document.createElement('span');
+                    status.textContent = 'Camera ' + (member.camera_allowed ? 'allowed' : 'blocked') + ' · Mic ' + (member.microphone_allowed ? 'allowed' : 'blocked') + ' · ' + (member.sfu_connected ? 'connected' : 'not connected');
+                    row.append(title, status);
+                    if (member.role !== 'host') {
+                        const actions = document.createElement('div');
+                        actions.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;';
+                        const actionButton = (label, action, extra = {}) => {
+                            const btn = document.createElement('button'); btn.className = 'btn';
+                            btn.style.cssText = 'width:auto;padding:5px 7px;font-size:10px;margin:0;';
+                            btn.textContent = label;
+                            btn.onclick = async () => {
+                                if (action === 'remove-member' && !confirm('Remove this guest from Gaming LIVE? Their active media will be stopped.')) return;
+                                btn.disabled = true;
+                                try {
+                                    await gamingLiveApi(action, { room_id: gamingRoomId, target_user_id: member.user_id, ...extra });
+                                    await refreshGamingModeratorMembers();
+                                } catch (error) { alert(error.message); btn.disabled = false; }
+                            };
+                            actions.appendChild(btn);
+                        };
+                        actionButton(member.camera_allowed ? 'Stop camera + block' : 'Allow camera', 'set-member-permissions', { camera_allowed: !member.camera_allowed });
+                        actionButton(member.microphone_allowed ? 'Stop mic + block' : 'Allow mic', 'set-member-permissions', { microphone_allowed: !member.microphone_allowed });
+                        if (member.role !== 'moderator') actionButton('Make moderator', 'set-moderator', { moderator: true });
+                        else actionButton('Remove moderator', 'set-moderator', { moderator: false });
+                        actionButton('Remove guest', 'remove-member');
+                        row.appendChild(actions);
+                    }
+                    panel.appendChild(row);
+                });
+                if (!data.members?.length) panel.textContent = 'No admitted participants yet.';
+            } catch (error) { panel.textContent = error.message; }
+        }
+
         function openGamingInviteModal() {
             if (!gamingRoomId || gamingIsGuest) { alert('Only the gaming LIVE host can invite creators.'); return; }
             document.getElementById('gamingCreatorSearchResults').textContent = 'Search for a real creator to invite them.';
