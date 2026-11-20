@@ -884,12 +884,15 @@ function socialActionErrorMessage(error,action){
  const match=message.match(/SOCIAL_LIMIT:([a-z_]+):(\d+)/i);
  if(match){
   if(match[1]==="likes_burst")return "बहुत तेज़ी से Likes किए गए। थोड़ी देर बाद फिर कोशिश करें।";
-  if(match[1]==="likes_daily")return "आज की Like सीमा पूरी हो गई है। कल फिर कोशिश करें।";
-  if(match[1]==="follows_sent")return "आज आप 100 नए Creators को Follow कर सकते हैं। आपकी आज की सीमा पूरी हो गई है।";
-  if(match[1]==="follows_received")return "इस Creator के आज के नए Followers की सुरक्षा सीमा पूरी हो गई है। बाद में कोशिश करें।";
+  if(match[1]==="likes_daily")return "आज की 1,000 Like सीमा पूरी हुई है। Like सुविधा 2 घंटे बाद फिर खुलेगी।";
+  if(match[1]==="follows_sent")return "आज की 500 Following सीमा पूरी हुई है। Follow सुविधा 24 घंटे बाद फिर खुलेगी।";
+  if(match[1]==="follows_received")return "इस Creator को आज 1,000 नए Followers मिल चुके हैं। Follow सुविधा 12 घंटे बाद फिर खुलेगी।";
  }
- const restricted=message.match(/SOCIAL_RESTRICTION:like:([^\\s]+)/i);
- if(restricted)return "असामान्य Like गतिविधि के कारण Like सुविधा कुछ समय के लिए रोकी गई है।";
+ const restricted=message.match(/SOCIAL_RESTRICTION:(like|follow_sent|follow_received):([^\\s]+)/i);
+ if(restricted){
+  const wait=restricted[1]==="like"?"2 घंटे":restricted[1]==="follow_received"?"12 घंटे":"24 घंटे";
+  return "सुरक्षा सीमा के कारण यह सुविधा अस्थायी रूप से बंद है। "+wait+" बाद फिर कोशिश करें।";
+ }
  if(action==="like")return "Like सेव नहीं हुआ। कृपया फिर कोशिश करें।";
  if(action==="follow")return "Follow अपडेट नहीं हुआ: "+(message||"कृपया फिर कोशिश करें।");
  return message||"यह कार्रवाई अभी पूरी नहीं हो सकी।";
