@@ -1,10 +1,12 @@
 package com.newstar.live
 
-import android.Manifest\nimport android.app.Activity
+import android.Manifest
+import android.app.Activity
 import android.content.*
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
-import android.os.Build\nimport android.content.pm.PackageManager
+import android.os.Build
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.webkit.*
@@ -18,7 +20,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var container: FrameLayout
     private lateinit var web: WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
-    private var pendingUrl = ""\n    private var pendingWebPermission: PermissionRequest? = null
+    private var pendingUrl = ""
+    private var pendingWebPermission: PermissionRequest? = null
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val selected = if (result.resultCode == Activity.RESULT_OK) {
@@ -33,7 +36,15 @@ class MainActivity : AppCompatActivity() {
         fileCallback = null
     }
 
-    private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->\n        val request = pendingWebPermission\n        pendingWebPermission = null\n        if (granted && request != null && request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {\n            request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))\n        } else request?.deny()\n    }\n\n    private val screenPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+    private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val request = pendingWebPermission
+        pendingWebPermission = null
+        if (granted && request != null && request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {
+            request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))
+        } else request?.deny()
+    }
+
+    private val screenPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data != null && pendingUrl.isNotBlank()) {
             val i = Intent(this, GamingStreamService::class.java).apply {
                 action = GamingStreamService.START
@@ -81,6 +92,28 @@ class MainActivity : AppCompatActivity() {
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
             webChromeClient = object : WebChromeClient() {
+                override fun onPermissionRequest(request: PermissionRequest) {
+                    runOnUiThread {
+                        val trustedOrigin = request.origin.scheme == "https" && request.origin.host == APP_HOST
+                        val audioOnly = request.resources.isNotEmpty() && request.resources.all { it == PermissionRequest.RESOURCE_AUDIO_CAPTURE }
+                        if (!trustedOrigin || !audioOnly) {
+                            request.deny()
+                            return@runOnUiThread
+                        }
+                        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                            request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))
+                        } else {
+                            pendingWebPermission?.deny()
+                            pendingWebPermission = request
+                            audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    }
+                }
+
+                override fun onPermissionRequestCanceled(request: PermissionRequest) {
+                    if (pendingWebPermission == request) pendingWebPermission = null
+                }
+
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 }
 
