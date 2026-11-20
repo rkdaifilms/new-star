@@ -46,3 +46,11 @@ This document records verified implementation state. It is not a claim that live
 - [ ] Production monitoring and financial reconciliation are enabled.
 
 Until the relevant checks pass, show a clear setup-pending state. Never display a fake successful payment, coin credit, ad impression, earning, or payout.
+
+## Native Android ads audit
+
+- The Android wrapper's `android/app/build.gradle.kts` currently includes AndroidX and WebRTC dependencies only; the Google Mobile Ads SDK is not present.
+- `android/app/src/main/AndroidManifest.xml` has no Google Mobile Ads application ID metadata.
+- The current web monetization page contains status information for AdSense and AdMob, but this is not an ad SDK integration and does not generate impressions or earnings.
+- Do not insert a guessed App ID or test/production ad unit. Native AdMob integration remains pending until the eligible publisher account's approved App ID and ad-unit IDs are supplied through a secure project configuration path and test ads are verified.
+- The web wrapper must not attempt to use AdSense tags as a substitute for native AdMob inventory.
