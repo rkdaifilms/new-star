@@ -19,14 +19,14 @@
 <div style="overflow:auto"><table><thead><tr><th>Viewer</th><th>Creator</th><th>Video</th><th>Repeated signals</th><th>Risk score</th><th>Last observed</th></tr></thead>
 <tbody id="watchRiskQueue"><tr><td colspan="6">Loading watch-risk signals…</td></tr></tbody></table></div>
 <p id="watchRiskQueueStatus" class="muted" aria-live="polite"></p></section>
-<section class="card"><h2>Creator & Monetization Control</h2><p class="muted">यह Developer Dashboard और Creator Dashboard का shared navigation है। यहाँ से creator wallet, earnings और monetization hub खोलें।</p><div class="row"><a href="wallet.html">Open Creator Wallet & Earnings →</a><a href="monetization.html">Open Monetization Hub →</a></div><div class="row"><span>Coins purchase</span><strong>Payment gateway verification pending</strong></div><div class="row"><span>Creator cash payouts</span><strong>Disabled until provider settlement is verified</strong></div><div class="row"><span>Gift earnings</span><strong>Verified coin ledger available</strong></div><div class="row"><span>Campaign / Affiliate / Ads creator shares</span><strong>Separate verified earning ledgers not connected</strong></div></section>
+<section class="card"><h2>Creator & Monetization Control</h2><p class="muted">यह Developer Dashboard और Creator Dashboard का shared navigation है। यहाँ से creator wallet, earnings और monetization hub खोलें।</p><div class="row"><a href="wallet.html">Open Creator Wallet & Earnings →</a><a href="monetization.html">Open Monetization Hub →</a></div><div class="row"><span>Coins purchase</span><strong>Payment gateway verification pending</strong></div><div class="row"><span>Creator cash payouts</span><strong>Disabled until provider settlement is verified</strong></div><div class="row"><span>Gift earnings</span><strong>Verified coin ledger available</strong></div><div class="row"><span>Commission categories</span><strong>7 approved categories · separate creator share</strong></div></section>
 <section class="card"><h2>Creator Monetization Applications</h2><p class="muted">Owner-only manual quality review. Threshold completion only permits review; approval is not automatic. Rejections and suspensions require a reason. All decisions are audited.</p><div style="overflow:auto"><table><thead><tr><th>Creator</th><th>Eligibility route</th><th>Threshold snapshot</th><th>Applied</th><th>Current status</th><th>Review action</th></tr></thead><tbody id="creatorApplications"><tr><td colspan="6">Loading applications…</td></tr></tbody></table></div><p id="creatorApplicationsStatus" class="muted" aria-live="polite"></p></section>
 <section class="card"><h2>Platform Financial Overview</h2><div id="financials" class="grid"><p class="muted">Loading owner-only financial totals…</p></div><p class="muted">Only verified paid orders are included. Amounts are grouped by currency; gift totals are in Coins.</p></section>
 
 <section class="card"><h2>Platform Commission System</h2>
-<p class="muted">Owner-only commission schedule loaded from the private Supabase commission_rules table. Rates below are saved configuration drafts, not proof of earnings or active payout routing. Creator share is kept separate from the platform share.</p>
+<p class="muted">Only these seven commission categories are shown: Video Gifts, LIVE Gifts, LIVE Gaming Gifts, Sponsorship, Upgrades, Campaign and Platform Sales. Rates are shown only when saved in the private Supabase commission_rules table; missing rates remain Not configured. Creator share is kept separate.</p>
 <div style="overflow:auto"><table><thead><tr><th>Revenue source</th><th>Platform share</th><th>Creator share</th><th>Configuration</th></tr></thead><tbody id="commissionSchedule"><tr><td colspan="4">Loading saved commission rules…</td></tr></tbody></table></div>
-<p class="muted">Commission ledger settlement is not activated for ads, sponsorship, affiliate or campaigns. Gift ledger reconciliation is shown separately above. No payout or bank transfer is triggered from this page.</p>
+<p class="muted">Ads and Affiliate are excluded from this commission system. Upgrades and Platform Sales remain unconfigured until their rates are formally saved. No payout or bank transfer is triggered from this page.</p>
 </section>
 <section class="card"><h2>Monetization & Provider Setup</h2>
 <p class="muted">Owner-only setup. AdMob identifiers are not secret. Bank account numbers, passwords, OTPs and Payoneer credentials must only be entered on the provider's official secure site; this dashboard does not collect or store them.</p>
@@ -89,9 +89,20 @@ async function load(){
  $("watchRiskQueueStatus").textContent=riskRows.length+" repeated playback pattern(s) need owner review. This is not an automatic fake-view verdict.";
  const f=data.financials||{};
  const commissionRules=f.gift_commission_rules||{};
- const commissionLabels={video_gifts:"Video gifts",live_gifts:"LIVE gifts",gaming_stream_gifts:"LIVE Gaming gifts",ads:"Ads revenue",sponsorship:"Sponsorship",affiliate:"Affiliate commission",campaign:"Campaign budget"};
- const commissionRows=Object.entries(commissionRules);
- $("commissionSchedule").innerHTML=commissionRows.length?commissionRows.map(([code,rule])=>'<tr><td>'+esc(commissionLabels[code]||code.replaceAll("_"," "))+'</td><td>'+esc(rule.platform_percent)+'%</td><td>'+esc(rule.creator_percent)+'%</td><td>'+esc(rule.status||"unknown")+' · draft/config only</td></tr>').join(""):'<tr><td colspan="4">Commission rules unavailable. No rates are assumed.</td></tr>';
+ const commissionCategories=[
+  ["video_gifts","Video Gifts"],
+  ["live_gifts","LIVE Gifts"],
+  ["gaming_stream_gifts","LIVE Gaming Gifts"],
+  ["sponsorship","Sponsorship"],
+  ["upgrades","Upgrades"],
+  ["campaign","Campaign"],
+  ["platform_sales","Platform Sales Commission"]
+ ];
+ $("commissionSchedule").innerHTML=commissionCategories.map(([code,label])=>{
+  const rule=commissionRules[code]||commissionRules[code.replace(/s$/,"")]||null;
+  const configured=!!rule;
+  return '<tr><td>'+esc(label)+'</td><td>'+(configured?esc(rule.platform_percent)+'%':'—')+'</td><td>'+(configured?esc(rule.creator_percent)+'%':'—')+'</td><td>'+(configured?esc(rule.status||"unknown")+' · draft/config only':'Not configured · no rate assumed')+'</td></tr>';
+ }).join("");
  const financialCards=[];
  financialCards.push(["Verified paid orders",f.paid_orders_count??"Unavailable"]);
  (f.paid_totals_by_currency||[]).forEach(x=>financialCards.push(["Paid receipts · "+x.currency,formatMinor(x.amount_minor,x.currency)+" "+x.currency]));
@@ -101,7 +112,6 @@ async function load(){
  financialCards.push(["Live gift commission rate",f.gift_commission_rate_percent===null||f.gift_commission_rate_percent===undefined?"Not configured":f.gift_commission_rate_percent+"%"]);
  financialCards.push(["Gift ledger reconciliation",f.gift_commission_ledger_matches===true?"Matched":f.gift_commission_ledger_matches===false?"Mismatch · investigate":"Unavailable"]);
  financialCards.push(["Commission ledger rows",f.gift_commission_ledger_rows??"Unavailable"]);
- financialCards.push(["Campaign / affiliate / creator ad-share ledger","Not connected · no payout totals reported"]);
  const rules=data.creator_monetization_rules||{};
  financialCards.push(["Creator eligibility · followers",rules.follower_threshold??"Unavailable"]);
  financialCards.push(["Long video watch time",String(rules.long_watch_hours_threshold??"—")+" hours / "+String(rules.long_watch_window_days??"—")+" days"]);
