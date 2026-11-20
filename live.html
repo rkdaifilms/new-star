@@ -564,49 +564,15 @@
         }
 
         function openTreasureStatusModal() {
-            let modal = document.getElementById('treasureStatusModal');
-            let infoDiv = document.getElementById('treasureDetailInfo');
-            let claimBtn = document.getElementById('modalClaimBtn');
-
-            if (!activeTreasureData.active) {
-                infoDiv.innerHTML = `⚠️ No active Gullak right now!<br>Tap the Treasure button (🎁) to drop a new Gullak for your viewers.`;
-                claimBtn.style.display = 'none';
-            } else if (activeTreasureData.timeLeft > 0) {
-                let mins = Math.floor(activeTreasureData.timeLeft / 60);
-                let secs = activeTreasureData.timeLeft % 60;
-                infoDiv.innerHTML = `
-                    🎁 <b>Gullak Treasure Box Active</b><br><br>
-                    🪙 Total Coins: <b>${activeTreasureData.coins.toLocaleString()} Coins</b><br>
-                    👥 Total Winners: <b>${activeTreasureData.people} People</b><br>
-                    ⏳ Time Remaining: <b style="color:#ffcc00;">${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}</b><br><br>
-                    <i>Please wait until the countdown ends to claim!</i>
-                `;
-                claimBtn.style.display = 'none';
-            } else {
-                let sharePerPerson = Math.floor(activeTreasureData.coins / activeTreasureData.people);
-                infoDiv.innerHTML = `
-                    🎉 <b>Gullak Timer Ended! Ready to Open!</b><br><br>
-                    🪙 Total Prize: <b>${activeTreasureData.coins.toLocaleString()} Coins</b><br>
-                    👥 Winners: <b>${activeTreasureData.people} People</b><br>
-                    ✨ Your Share: <b style="color:#25f4ee; font-size:14px;">+${sharePerPerson} Coins</b><br><br>
-                    <i>Click claim below to add coins directly to your wallet!</i>
-                `;
-                claimBtn.style.display = 'block';
-            }
-            modal.style.display = 'flex';
+            const infoDiv = document.getElementById('treasureDetailInfo');
+            const claimBtn = document.getElementById('modalClaimBtn');
+            infoDiv.textContent = 'Coin distribution is disabled until a secure server-side wallet and transparent eligibility rules are implemented. No coins or prizes can be claimed here.';
+            claimBtn.style.display = 'none';
+            document.getElementById('treasureStatusModal').style.display = 'flex';
         }
 
         function executeClaimTreasure() {
-            let sharePerPerson = Math.floor(activeTreasureData.coins / activeTreasureData.people);
-            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500') + sharePerPerson;
-            localStorage.setItem('userWalletCoins', currentCoins);
-            document.getElementById('userWalletCoins').innerText = currentCoins.toLocaleString();
-
-            document.getElementById('activeTreasureBanner').style.display = 'none';
-            activeTreasureData.active = false;
-            closeModal('treasureStatusModal');
-
-            alert(`🎉 Success! +${sharePerPerson} Coins added to your main wallet balance! 🪙`);
+            alert('Coin claims are disabled. No wallet balance was changed.');
         }
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
