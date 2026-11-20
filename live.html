@@ -616,11 +616,85 @@
         let liveSfuPeer = null;
         let liveSfuSessionId = null;
         let liveSfuTrackMids = [];
+        let liveSfuSubscribeTimer = null;
+        let liveSfuSubscribeBusy = false;
+        let liveSfuSubscribedKeys = new Set();
+        let liveSfuMidToParticipant = new Map();
+
+        async function refreshLiveGuestSubscriptions() {
+          if (!liveRoomId || !liveSfuPeer || liveSfuPeer.signalingState !== 'stable' || liveSfuSubscribeBusy) return;
+          liveSfuSubscribeBusy = true;
+          try {
+            const listed = await liveApi('sfu-list-publications', { room_id: liveRoomId });
+            const client = window.supabaseClient;
+            const { data: auth } = await client.auth.getUser();
+            const ownId = auth?.user?.id;
+            const pubs = (listed.publications || []).filter(p => p.participant_id !== ownId && p.participant?.seat_number);
+            const fresh = pubs.filter(p => !liveSfuSubscribedKeys.has(p.publisher_session_id + ':' + p.track_name));
+            if (!fresh.length) return;
+
+            const additions = [];
+            fresh.forEach(pub => {
+              const kind = pub.media_kind === 'audio' ? 'audio' : 'video';
+              const transceiver = liveSfuPeer.addTransceiver(kind, { direction: 'recvonly' });
+              additions.push({ pub, transceiver });
+            });
+            const offer = await liveSfuPeer.createOffer();
+            await liveSfuPeer.setLocalDescription(offer);
+            const result = await liveApi('sfu-subscribe', {
+              room_id: liveRoomId,
+              session_description: { type: liveSfuPeer.localDescription.type, sdp: liveSfuPeer.localDescription.sdp },
+              tracks: fresh.map(pub => ({ session_id: pub.publisher_session_id, track_name: pub.track_name }))
+            });
+            if (!result.session_description?.sdp) throw new Error('Cloudflare did not return the guest subscription answer.');
+            additions.forEach(({ pub, transceiver }) => {
+              liveSfuSubscribedKeys.add(pub.publisher_session_id + ':' + pub.track_name);
+              liveSfuMidToParticipant.set(transceiver.mid, pub.participant);
+            });
+            await liveSfuPeer.setRemoteDescription(result.session_description);
+          } catch (error) {
+            console.warn('Guest seat subscription:', error);
+          } finally {
+            liveSfuSubscribeBusy = false;
+          }
+        }
+
+        function startLiveGuestSubscriptionPolling() {
+          if (liveSfuSubscribeTimer) clearInterval(liveSfuSubscribeTimer);
+          liveSfuSubscribeTimer = setInterval(refreshLiveGuestSubscriptions, 4000);
+          refreshLiveGuestSubscriptions();
+        }
+
+        function stopLiveGuestSubscriptionPolling() {
+          if (liveSfuSubscribeTimer) clearInterval(liveSfuSubscribeTimer);
+          liveSfuSubscribeTimer = null;
+          liveSfuSubscribedKeys.clear();
+          liveSfuMidToParticipant.clear();
+        }
+
         async function startLiveSfuPublisher(roomId, mediaStream) {
           const session = await liveApi('sfu-create-session', { room_id: roomId });
           liveSfuSessionId = session.session_id;
           const pc = new RTCPeerConnection();
           liveSfuPeer = pc;
+          pc.ontrack = event => {
+            const participant = liveSfuMidToParticipant.get(event.transceiver?.mid);
+            if (!participant || !participant.seat_number) return;
+            const video = document.getElementById('roomVideo_' + participant.seat_number);
+            const overlay = document.getElementById('roomOverlay_' + participant.seat_number);
+            const box = document.getElementById('roomBox_' + participant.seat_number);
+            if (!video || !box) return;
+            const stream = event.streams?.[0] || new MediaStream([event.track]);
+            if (video.srcObject !== stream) video.srcObject = stream;
+            video.muted = false;
+            video.style.display = 'block';
+            video.play().catch(() => {});
+            if (overlay) {
+              overlay.style.display = 'flex';
+              overlay.textContent = (participant.display_name || 'Guest') + ' · ' + participant.role;
+            }
+            box.classList.add('active');
+          };
           const senders = [];
           mediaStream.getTracks().forEach(track => {
             const transceiver = pc.addTransceiver(track, { direction: 'sendonly' });
@@ -730,6 +804,7 @@
             document.getElementById('activeLiveView').style.display = 'block';
             const status = document.querySelector('#activeLiveView .pulsing-dot');
             if (status) status.title = 'Broadcast connected to Cloudflare Stream';
+            startLiveGuestSubscriptionPolling();
             if (typeof window.showGlobalFastToast === 'function') window.showGlobalFastToast('You are LIVE on New Star');
           } catch (error) {
             if (peer) peer.close();
@@ -746,6 +821,7 @@
         }
 
         async function stopLiveBroadcast() {
+          stopLiveGuestSubscriptionPolling();
           const peer = liveWhipPeer;
           const sessionUrl = liveWhipSessionUrl;
           const roomId = liveRoomId;
