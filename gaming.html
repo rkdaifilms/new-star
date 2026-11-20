@@ -334,7 +334,9 @@
                 room_type: 'gaming',
                 seat_capacity: 4
             });
-            const connected = await new Promise((resolve, reject) => {
+            let connected;
+            try {
+                connected = await new Promise((resolve, reject) => {
                 let settled = false;
                 const finish = (fn, value) => {
                     if (settled) return;
@@ -350,13 +352,19 @@
                 };
                 const timeout = setTimeout(() => finish(reject, new Error('Android screen stream timed out.')), 40000);
                 window.addEventListener('newstar-native-stream-status', onStatus);
-                try { window.NewStarNative.startScreenStream(prepared.whip_url); }
-                catch (error) { finish(reject, error); }
-            });
+                    try { window.NewStarNative.startScreenStream(prepared.whip_url); }
+                    catch (error) { finish(reject, error); }
+                });
+            } catch (error) {
+                try { window.NewStarNative.stopScreenStream(); } catch (_) {}
+                try { await gamingLiveApi('stop', { room_id: prepared.room_id }); } catch (_) {}
+                throw error;
+            }
             try {
                 await gamingLiveApi('confirm', { room_id: prepared.room_id });
             } catch (error) {
                 window.NewStarNative.stopScreenStream();
+                try { await gamingLiveApi('stop', { room_id: prepared.room_id }); } catch (_) {}
                 throw error;
             }
             gamingRoomId = prepared.room_id;
@@ -425,7 +433,6 @@
                     console.warn('Optional microphone unavailable:', micError);
                 }
 
-                const gameName = (document.getElementById('gameNameInput').value || 'Mobile Game').trim().slice(0, 80);
                 const screenVideo = document.createElement('video');
                 screenVideo.muted = true; screenVideo.playsInline = true; screenVideo.srcObject = captured;
                 await screenVideo.play().catch(() => {});
