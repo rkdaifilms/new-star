@@ -15,6 +15,7 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import android.content.pm.ServiceInfo
 import org.webrtc.*
+import org.webrtc.audio.JavaAudioDeviceModule
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.CountDownLatch
@@ -32,6 +33,7 @@ class GamingStreamService : Service() {
     private var audioTrack: org.webrtc.AudioTrack? = null
     private var includeMic = false
     private var texture: SurfaceTextureHelper? = null
+    private var audioDeviceModule: JavaAudioDeviceModule? = null
     private var whipResource: String? = null
     private val stopped = AtomicBoolean(false)
 
@@ -62,10 +64,14 @@ class GamingStreamService : Service() {
 
         PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(applicationContext).createInitializationOptions())
         egl = EglBase.create()
-        factory = PeerConnectionFactory.builder()
+        val factoryBuilder = PeerConnectionFactory.builder()
             .setVideoEncoderFactory(DefaultVideoEncoderFactory(egl!!.eglBaseContext, true, true))
             .setVideoDecoderFactory(DefaultVideoDecoderFactory(egl!!.eglBaseContext))
-            .createPeerConnectionFactory()
+        if (includeMic) {
+            audioDeviceModule = JavaAudioDeviceModule.builder(applicationContext).createAudioDeviceModule()
+            factoryBuilder.setAudioDeviceModule(audioDeviceModule!!)
+        }
+        factory = factoryBuilder.createPeerConnectionFactory()
 
         texture = SurfaceTextureHelper.create("NewStarScreenCapture", egl!!.eglBaseContext)
         source = factory!!.createVideoSource(false)
@@ -187,6 +193,7 @@ class GamingStreamService : Service() {
         runCatching { source?.dispose() }
         runCatching { texture?.dispose() }
         runCatching { factory?.dispose() }
+        runCatching { audioDeviceModule?.release() }
         runCatching { egl?.release() }
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
