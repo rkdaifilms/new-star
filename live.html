@@ -920,6 +920,22 @@
           liveSfuMidToParticipant.clear();
         }
 
+        async function waitLiveIceGathering(pc, timeoutMs = 7000) {
+          if (pc.iceGatheringState === 'complete') return;
+          await new Promise(resolve => {
+            let done = false;
+            const finish = () => {
+              if (done) return;
+              done = true;
+              pc.removeEventListener('icegatheringstatechange', onChange);
+              clearTimeout(timer);
+              resolve();
+            };
+            const onChange = () => { if (pc.iceGatheringState === 'complete') finish(); };
+            const timer = setTimeout(finish, timeoutMs);
+            pc.addEventListener('icegatheringstatechange', onChange);
+          });
+        }
         async function startLiveSfuPublisher(roomId, mediaStream) {
           const session = await liveApi('sfu-create-session', { room_id: roomId });
           liveSfuSessionId = session.session_id;
@@ -932,9 +948,16 @@
           });
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
+          await waitLiveIceGathering(pc);
+          if (pc.signalingState !== 'have-local-offer' || !pc.localDescription?.sdp) {
+            throw new Error('LIVE publishing offer was not ready after ICE gathering.');
+          }
           const tracks = senders.map(({ transceiver, trackName }) => ({
             mid: transceiver.mid, track_name: trackName
           }));
+          if (tracks.some(track => !track.mid)) {
+            throw new Error('LIVE could not map a media track to its WebRTC MID.');
+          }
           const published = await liveApi('sfu-publish', {
             room_id: roomId,
             session_description: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
