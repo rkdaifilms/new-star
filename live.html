@@ -326,16 +326,10 @@
         }
 
         function checkAndDeductCoins(requiredCoins) {
-            let currentCoins = parseInt(localStorage.getItem('userWalletCoins') || '500');
-            if (currentCoins < requiredCoins) {
-                alert(`⚠️ Insufficient Balance! You need ${requiredCoins.toLocaleString()} coins.`);
-                window.location.href = 'wallet.html';
-                return false;
-            }
-            currentCoins -= requiredCoins;
-            localStorage.setItem('userWalletCoins', currentCoins);
-            document.getElementById('userWalletCoins').innerText = currentCoins.toLocaleString();
-            return true;
+            const balanceLabel = document.getElementById('userWalletCoins');
+            if (balanceLabel) balanceLabel.textContent = '—';
+            alert('Gifts are temporarily disabled. The server-connected wallet balance is not available, and no coins were deducted.');
+            return false;
         }
 
         function startLiveBroadcastSession() {
