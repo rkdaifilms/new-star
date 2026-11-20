@@ -24,6 +24,16 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 .inline{display:flex;align-items:center;gap:10px}.inline input[type=checkbox]{width:20px;height:20px;margin:0;accent-color:var(--accent)}.inline label{font-size:14px;line-height:1.4}
 .count{font-weight:700;color:var(--accent)}.note{font-size:12px;color:var(--muted);line-height:1.55;margin:14px 4px}
 @media(max-width:520px){.container{padding:10px}.grid{grid-template-columns:1fr}.grid .full{grid-column:auto}.quick{gap:7px}.quick a{padding:11px 9px}}
+/* Compact icon-first settings; all controls and actions remain available. */
+.intro,.note{display:none!important}
+.row{padding:12px 14px}
+.row h3{display:flex;align-items:center;gap:8px;font-size:14px;margin:0;min-height:24px}
+.row>p:not(#accountEmail):not(#preferenceSyncStatus):not(#adsenseReadinessStatus){display:none!important}
+.row>ul{display:none!important}
+.section{margin:12px 0}
+.section-title{font-size:12px;margin:0 4px 7px}
+.quick a{display:flex;align-items:center;gap:8px}
+button,.action{margin-top:8px}
 </style>
 
 <link rel="manifest" href="/manifest.json">
@@ -38,46 +48,46 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <div id="status" class="status" role="status" aria-live="polite"></div>
 
 <section class="section" id="notifications">
-<h2 class="section-title" data-i18n="settings.notifications">01 · Notifications</h2>
+<h2 class="section-title" data-i18n="settings.notifications">🔔 01 · Notifications</h2>
 <div class="panel">
-<div class="row"><h3>आपकी Activity Notifications</h3><p>Follow, Follow Request, Like, Comment और Direct Message की गतिविधियाँ यहाँ दिखेंगी। Unread: <span class="count" id="unreadCount">लोड हो रहा है…</span></p><button type="button" class="secondary" id="markAllReadBtn">सभी को Read करें</button><div id="notificationList" aria-live="polite" style="margin-top:12px">Notifications लोड हो रही हैं…</div><a class="action" href="inbox.html">✉️ Open Inbox & Messages</a></div>
-<div class="row"><h3>Notification Preferences</h3><p>आप चुन सकते हैं कि किन गतिविधियों की in-app notification मिले। बदलाव आपके account preferences में sync होंगे।</p>
+<div class="row"><h3>🔔 आपकी Activity Notifications</h3><p>Follow, Follow Request, Like, Comment और Direct Message की गतिविधियाँ यहाँ दिखेंगी। Unread: <span class="count" id="unreadCount">लोड हो रहा है…</span></p><button type="button" class="secondary" id="markAllReadBtn">सभी को Read करें</button><div id="notificationList" aria-live="polite" style="margin-top:12px">Notifications लोड हो रही हैं…</div><a class="action" href="inbox.html">✉️ Open Inbox & Messages</a></div>
+<div class="row"><h3>🎛️ Notification Preferences</h3><p>आप चुन सकते हैं कि किन गतिविधियों की in-app notification मिले। बदलाव आपके account preferences में sync होंगे।</p>
 <div class="inline"><input type="checkbox" id="notifyFollow" checked><label for="notifyFollow">New followers और follow requests</label></div>
 <div class="inline"><input type="checkbox" id="notifyLike" checked><label for="notifyLike">Video likes</label></div>
 <div class="inline"><input type="checkbox" id="notifyComment" checked><label for="notifyComment">Video comments</label></div>
 <div class="inline"><input type="checkbox" id="notifyMessage" checked><label for="notifyMessage">Direct messages</label></div>
 <button type="button" id="saveNotificationPrefsBtn">Save Notification Preferences</button></div>
-<div class="row"><h3>Browser Push Notifications</h3><p>अभी यह सिस्टम Inbox के अंदर in-app notifications देता है। Browser push के लिए अलग subscription, VAPID keys और server delivery की जरूरत है; इसलिए push चालू होने का गलत दावा नहीं किया जा रहा।</p></div>
+<div class="row"><h3>📲 Browser Push Notifications</h3><p>अभी यह सिस्टम Inbox के अंदर in-app notifications देता है। Browser push के लिए अलग subscription, VAPID keys और server delivery की जरूरत है; इसलिए push चालू होने का गलत दावा नहीं किया जा रहा।</p></div>
 </div></section>
 
 <section class="section" id="ai-location">
-<h2 class="section-title">New Star AI & Location Services</h2>
+<h2 class="section-title">📍 AI & Location</h2>
 <div class="panel">
-<div class="row"><h3>✦ New Star AI — Help Center</h3><p>यह New Star का एकमात्र app-wide support assistant है। Profile, Inbox, Settings, Upload, Monetization, Reports, Safety और technical issues पर मार्गदर्शन देगा। यह बिना अनुमति आपके खाते में बदलाव या moderation action नहीं कर सकता।</p><button type="button" id="openAiAssistantBtn">Open New Star AI Help Center</button></div><div class="row"><h3>✨ New Star Creator Studio AI</h3><p>यह दूसरा और अलग AI workspace है—scripts, stories, captions, creator ideas, coding और image generation के लिए। इसे Help Center के साथ मिलाया नहीं गया है।</p><a class="action secondary" href="creator-ai.html">Open Creator Studio AI</a></div>
-<div class="row"><h3>New Star AI — Provider Status</h3><p>OpenAI, Gemini और OpenRouter की secret keys केवल Supabase Edge Function Secrets में project owner द्वारा configure की जानी चाहिए। इस Settings page में API-key fields नहीं हैं। Gateway deployed है, लेकिन provider secrets की मौजूदगी और live failover अभी verify नहीं हुई है।</p><p id="aiGatewayStatus" role="status">New Star AI Gateway: connected status will be checked · Provider live response: not yet verified</p><button type="button" class="secondary" id="checkAiGatewayBtn">Check AI Provider Status</button></div>
-<div class="row"><h3>Mapbox Location & Maps</h3><p>Repository में अभी Mapbox SDK/token integration नहीं मिला। Mapbox को map/location वाली screens में जोड़ना होगा, Settings में नहीं। इसके लिए Mapbox public token और approved domain restrictions चाहिए; token मिलने तक map feature को connected नहीं दिखाया जाएगा। Browser की location permission user के control में रहेगी।</p><p id="mapboxStatus">Mapbox: Not configured</p></div>
+<div class="row"><h3>✨ New Star Creator Studio AI</h3><p>यह दूसरा और अलग AI workspace है—scripts, stories, captions, creator ideas, coding और image generation के लिए। इसे Help Center के साथ मिलाया नहीं गया है।</p><a class="action secondary" href="creator-ai.html">Open Creator Studio AI</a></div>
+
+<div class="row"><h3>🗺️ Mapbox Location & Maps</h3><p>Repository में अभी Mapbox SDK/token integration नहीं मिला। Mapbox को map/location वाली screens में जोड़ना होगा, Settings में नहीं। इसके लिए Mapbox public token और approved domain restrictions चाहिए; token मिलने तक map feature को connected नहीं दिखाया जाएगा। Browser की location permission user के control में रहेगी।</p><p id="mapboxStatus">Mapbox: Not configured</p></div>
 </div></section>
 
 <section class="section" id="account">
-<h2 class="section-title" data-i18n="settings.account">02 · Account</h2>
+<h2 class="section-title" data-i18n="settings.account">👤 02 · Account</h2>
 <div class="panel">
-<div class="row"><h3>Signed-in Email</h3><p class="account-email" id="accountEmail">Account लोड हो रहा है…</p></div>
-<div class="row"><h3>Change Email</h3><p>नया ईमेल डालें। Supabase verification माँग सकता है। नया ईमेल confirm होने तक पुराना ईमेल काम कर सकता है।</p><input type="email" id="newEmail" autocomplete="email" placeholder="नया ईमेल पता"><button id="changeEmailBtn">Update Email</button></div>
-<div class="row"><h3>Change Password</h3><p>कम-से-कम 8 अक्षर का नया पासवर्ड रखें।</p><input type="password" id="newPassword" autocomplete="new-password" minlength="8" placeholder="नया पासवर्ड"><input type="password" id="confirmPassword" autocomplete="new-password" placeholder="नया पासवर्ड दोबारा लिखें"><button id="changePasswordBtn">Update Password</button></div>
+<div class="row"><h3>📧 Signed-in Email</h3><p class="account-email" id="accountEmail">Account लोड हो रहा है…</p></div>
+<div class="row"><h3>✉️ Change Email</h3><p>नया ईमेल डालें। Supabase verification माँग सकता है। नया ईमेल confirm होने तक पुराना ईमेल काम कर सकता है।</p><input type="email" id="newEmail" autocomplete="email" placeholder="नया ईमेल पता"><button id="changeEmailBtn">Update Email</button></div>
+<div class="row"><h3>🔑 Change Password</h3><p>कम-से-कम 8 अक्षर का नया पासवर्ड रखें।</p><input type="password" id="newPassword" autocomplete="new-password" minlength="8" placeholder="नया पासवर्ड"><input type="password" id="confirmPassword" autocomplete="new-password" placeholder="नया पासवर्ड दोबारा लिखें"><button id="changePasswordBtn">Update Password</button></div>
 </div></section>
 
 <section class="section" id="privacy">
-<h2 class="section-title" data-i18n="settings.privacy">03 · Privacy & Security</h2>
+<h2 class="section-title" data-i18n="settings.privacy">🔒 03 · Privacy & Security</h2>
 <div class="panel">
-<div class="row"><h3>Private Account</h3><p>Private account चालू होने पर आपके वीडियो देखने के लिए Follow approval आवश्यक होगा।</p><div class="inline"><input id="privateAccount" type="checkbox"><label for="privateAccount">🔒 मेरा अकाउंट Private रखें</label></div><button id="savePrivacyBtn">Save Privacy</button></div>
-<div class="row"><h3>Logout this device</h3><p>इस डिवाइस के New Star session से Logout करें।</p><button class="danger" id="logoutBtn">Log Out</button></div>
-<div class="row"><h3>Logout all sessions</h3><p>यह Supabase के दूसरे refresh sessions को revoke करने का अनुरोध करेगा। पहले से जारी access token expiry तक कुछ समय चल सकता है।</p><button class="danger" id="logoutAllBtn">Log Out From All Devices</button></div>
-<div class="row"><h3>Blocked Accounts</h3><p>आपने जिन accounts को Block किया है, उन्हें यहाँ देख सकते हैं और जरूरत पड़ने पर Unblock कर सकते हैं।</p><div id="blockedAccountsList" aria-live="polite">Blocked accounts लोड हो रहे हैं…</div></div>
-<div class="row"><h3>Safety reminder</h3><p>अपना Password, OTP, recovery link या private credentials किसी के साथ साझा न करें। केवल भरोसेमंद डिवाइस पर Login करें।</p></div>
+<div class="row"><h3>🔒 Private Account</h3><p>Private account चालू होने पर आपके वीडियो देखने के लिए Follow approval आवश्यक होगा।</p><div class="inline"><input id="privateAccount" type="checkbox"><label for="privateAccount">🔒 मेरा अकाउंट Private रखें</label></div><button id="savePrivacyBtn">Save Privacy</button></div>
+<div class="row"><h3>🚪 Logout this device</h3><p>इस डिवाइस के New Star session से Logout करें।</p><button class="danger" id="logoutBtn">Log Out</button></div>
+<div class="row"><h3>📱 Logout all sessions</h3><p>यह Supabase के दूसरे refresh sessions को revoke करने का अनुरोध करेगा। पहले से जारी access token expiry तक कुछ समय चल सकता है।</p><button class="danger" id="logoutAllBtn">Log Out From All Devices</button></div>
+<div class="row"><h3>🚫 Blocked Accounts</h3><p>आपने जिन accounts को Block किया है, उन्हें यहाँ देख सकते हैं और जरूरत पड़ने पर Unblock कर सकते हैं।</p><div id="blockedAccountsList" aria-live="polite">Blocked accounts लोड हो रहे हैं…</div></div>
+<div class="row"><h3>🛡️ Safety reminder</h3><p>अपना Password, OTP, recovery link या private credentials किसी के साथ साझा न करें। केवल भरोसेमंद डिवाइस पर Login करें।</p></div>
 </div></section>
 
 <section class="section" id="appearance">
-<h2 class="section-title">04 · Language & Appearance</h2>
+<h2 class="section-title">🎨 04 · Language & Appearance</h2>
 <div class="panel">
 <div class="row"><h3 data-i18n="settings.language">App Language</h3><p>आपकी पसंद इस डिवाइस पर सेव होगी। नीचे ऐप के लिए भाषा चुनेँ। जिन स्क्रीन पर अनुवाद अभी उपलब्ध नहीं है, वहाँ मूल टेक्स्ट दिख सकता है।</p>
 <select id="appLanguage" aria-label="App language">
@@ -89,25 +99,25 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 </div></section>
 
 <section class="section" id="accessibility">
-<h2 class="section-title">05 · Accessibility & Display</h2>
+<h2 class="section-title">♿ 05 · Accessibility & Display</h2>
 <div class="panel">
-<div class="row"><h3>Text Size</h3><p>यह विकल्प पूरे ऐप के पेजों पर टेक्स्ट का आकार बदलता है।</p>
+<div class="row"><h3>🔠 Text Size</h3><p>यह विकल्प पूरे ऐप के पेजों पर टेक्स्ट का आकार बदलता है।</p>
 <select id="textScale" aria-label="Text size"><option value="0.9">Small</option><option value="1">Default</option><option value="1.1">Large</option><option value="1.2">Extra large</option><option value="1.25">Largest</option></select></div>
-<div class="row"><h3>Reduce Motion</h3><p>Animation और transition कम करके पढ़ने और नेविगेशन को सरल बनाता है।</p><div class="inline"><input id="reducedMotion" type="checkbox"><label for="reducedMotion">Reduce animations across the app</label></div></div>
-<div class="row"><h3>High Contrast</h3><p>सीमाओं और कंट्रोल को अधिक स्पष्ट दिखाने में मदद करता है।</p><div class="inline"><input id="highContrast" type="checkbox"><label for="highContrast">Enable high contrast</label></div></div>
-<div class="row"><h3>Account Preference Sync</h3><p>Language, theme और accessibility पसंद को आपके signed-in account के साथ sync करें।</p><p id="preferenceSyncStatus" aria-live="polite">Sync status जाँचा नहीं गया।</p><button type="button" id="syncPreferencesBtn" class="secondary">Sync Preferences Now</button></div>
+<div class="row"><h3>🎞️ Reduce Motion</h3><p>Animation और transition कम करके पढ़ने और नेविगेशन को सरल बनाता है।</p><div class="inline"><input id="reducedMotion" type="checkbox"><label for="reducedMotion">Reduce animations across the app</label></div></div>
+<div class="row"><h3>◐ High Contrast</h3><p>सीमाओं और कंट्रोल को अधिक स्पष्ट दिखाने में मदद करता है।</p><div class="inline"><input id="highContrast" type="checkbox"><label for="highContrast">Enable high contrast</label></div></div>
+<div class="row"><h3>☁️ Account Preference Sync</h3><p>Language, theme और accessibility पसंद को आपके signed-in account के साथ sync करें।</p><p id="preferenceSyncStatus" aria-live="polite">Sync status जाँचा नहीं गया।</p><button type="button" id="syncPreferencesBtn" class="secondary">Sync Preferences Now</button></div>
 </div></section>
 
 <section class="section" id="monetization">
-<h2 class="section-title">06 · Creator & Monetization</h2>
+<h2 class="section-title">💼 06 · Creator & Monetization</h2>
 <div class="panel">
-<div class="row"><h3>Creator Monetization Hub</h3><p>Creator eligibility, monetization review, referral links, campaign access, affiliate features, live gifts, video promotion and fan support का मुख्य स्थान Monetization Hub है। एक ही canonical hub रखा गया है; duplicate monetization controls Main Settings में नहीं बनाए गए हैं।</p><a class="action" href="monetization.html">💼 Open Creator & Monetization Hub</a></div>
-<div class="row"><h3>Wallet & Earnings</h3><p>Coin balance, purchase history, gifts, creator earnings और payout history देखने के लिए Wallet खोलें। Payment और payout सुविधाएँ केवल verified provider integration सक्रिय होने पर काम करेंगी।</p><a class="action secondary" href="wallet.html">🪙 Open Wallet</a></div>
-<div class="row"><h3>Provider & Payment Status</h3><p>Payment gateway, AdMob/AdSense और creator payout की configuration अलग-अलग provider approval तथा server-side integration पर निर्भर है। Main Settings में कोई duplicate API-key या bank-detail form नहीं रखा गया है।</p><a class="action secondary" href="admin.html">🔒 Admin Provider Setup</a></div>
+<div class="row"><h3>💼 Creator Monetization Hub</h3><p>Creator eligibility, monetization review, referral links, campaign access, affiliate features, live gifts, video promotion and fan support का मुख्य स्थान Monetization Hub है। एक ही canonical hub रखा गया है; duplicate monetization controls Main Settings में नहीं बनाए गए हैं।</p><a class="action" href="monetization.html">💼 Open Creator & Monetization Hub</a></div>
+<div class="row"><h3>🪙 Wallet & Earnings</h3><p>Coin balance, purchase history, gifts, creator earnings और payout history देखने के लिए Wallet खोलें। Payment और payout सुविधाएँ केवल verified provider integration सक्रिय होने पर काम करेंगी।</p><a class="action secondary" href="wallet.html">🪙 Open Wallet</a></div>
+<div class="row"><h3>🔐 Provider & Payment Status</h3><p>Payment gateway, AdMob/AdSense और creator payout की configuration अलग-अलग provider approval तथा server-side integration पर निर्भर है। Main Settings में कोई duplicate API-key या bank-detail form नहीं रखा गया है।</p><a class="action secondary" href="admin.html">🔒 Admin Provider Setup</a></div>
 </div></section>
 
 <section class="section" id="adsense-readiness">
-<h2 class="section-title">07 · Google AdSense Approval & Ads Policy</h2>
+<h2 class="section-title">📢 07 · Ads & Policies</h2>
 <div class="panel">
 <div class="row"><h3>🌐 Website Ads — Google AdSense</h3><p>यह हिस्सा वेबसाइट के लिए है। Google approval अपने-आप नहीं मिलता; Google पूरी live site, content quality, navigation और policy compliance की समीक्षा करता है। Site review पास होने तक ads बंद रहेंगे।</p><p><strong>वयस्क Account Owner:</strong> AdSense publisher account और payment profile का संचालन 18+ parent/guardian या अधिकृत वयस्क ही करे। यदि publisher 18 से कम है, Google के अनुसार parent/guardian अपने Google Account से आवेदन कर सकता है और भुगतान उसी वयस्क को होता है।</p><a class="action secondary" href="https://support.google.com/adsense/answer/9724" target="_blank" rel="noopener">Google की Eligibility शर्तें</a> <a class="action secondary" href="https://support.google.com/adsense/answer/7584263" target="_blank" rel="noopener">Site Review प्रक्रिया</a></div>
 <div class="row"><h3>Approval से पहले जरूरी Site Checklist</h3>
@@ -130,14 +140,14 @@ button.secondary,.action.secondary{background:#34343e;color:white}button.danger{
 <li>Ad को साफ “Advertisement” या “Sponsored” label दें और content से अलग रखें।</li>
 </ul><a class="action secondary" href="https://support.google.com/publisherpolicies/answer/48182" target="_blank" rel="noopener">Google Publisher Policies</a> <a class="action secondary" href="https://support.google.com/adsense/answer/16737" target="_blank" rel="noopener">Invalid Traffic नियम</a></div>
 <div class="row"><h3>📱 Android App Ads — Google AdMob</h3><p>Android app में Google Mobile Ads SDK और AdMob App ID/Ad Unit IDs की अलग integration व review चाहिए। Website AdSense code को mobile app में सीधे लगाने के बजाय app ads के लिए AdMob integration रखें। अभी कोई live AdMob ad या earning verified नहीं है।</p><a class="action secondary" href="https://support.google.com/admob/answer/6128543" target="_blank" rel="noopener">AdMob Policies</a></div>
-<div class="row"><h3>New Star Ads Status</h3><p id="adsenseReadinessStatus" role="status">Checklist केवल तैयारी track करती है; Google approval status का सीधा API सत्यापन इस पेज में उपलब्ध नहीं है।</p><p><strong>Current status:</strong> Not submitted / Approval not verified. Publisher ID, AdSense code, AdMob App ID और Ad Unit IDs यहाँ जानबूझकर blank हैं जब तक वयस्क Account Owner आधिकारिक Google console से पुष्टि न करे।</p><a class="action secondary" href="privacy-policy.html">Privacy Policy</a> <a class="action secondary" href="terms.html">Terms</a> <a class="action secondary" href="about.html">About</a> <a class="action secondary" href="contact.html">Contact & Support</a></div>
+<div class="row"><h3>📊 New Star Ads Status</h3><p id="adsenseReadinessStatus" role="status">Checklist केवल तैयारी track करती है; Google approval status का सीधा API सत्यापन इस पेज में उपलब्ध नहीं है।</p><p><strong>Current status:</strong> Not submitted / Approval not verified. Publisher ID, AdSense code, AdMob App ID और Ad Unit IDs यहाँ जानबूझकर blank हैं जब तक वयस्क Account Owner आधिकारिक Google console से पुष्टि न करे।</p><a class="action secondary" href="privacy-policy.html">Privacy Policy</a> <a class="action secondary" href="terms.html">Terms</a> <a class="action secondary" href="about.html">About</a> <a class="action secondary" href="contact.html">Contact & Support</a></div>
 </div></section>
 
 <section class="section" id="help">
-<h2 class="section-title">08 · Help & About</h2>
+<h2 class="section-title">🆘 08 · Help & About</h2>
 <div class="panel">
-<div class="row"><h3>Help & Support — New Star AI</h3><p>Account, settings, upload और technical help के लिए New Star Help Center AI खोलें।</p><button type="button" id="openHelpCenterFromSupport">✦ Open Help Center AI</button></div><div class="row"><h3>Messages & Inbox</h3><p>Creators के साथ Direct Messages, Followers और Follow Requests देखने के लिए Inbox खोलें।</p><a class="action secondary" href="inbox.html">✉️ Open Messages Inbox</a></div>
-<div class="row"><h3>About New Star</h3><p>New Star Creator Hub · आपकी प्रोफाइल, वीडियो और Creator सुविधाएँ।</p><p>Settings build: 2.1 · Language, Theme और Accessibility preferences डिवाइस पर लागू होती हैं और signed-in account के साथ sync की जाती हैं। सभी पेजों का पूर्ण अनुवाद अभी उपलब्ध नहीं है।</p></div>
+<div class="row"><h3>🤖 Help & Support</h3><p>Support Chat खोलकर New Star AI से सहायता लें।</p><button type="button" id="openHelpCenterFromSupport">🤖 Open Support Chat</button></div><div class="row"><h3>💬 Messages & Inbox</h3><p>Creators के साथ Direct Messages, Followers और Follow Requests देखने के लिए Inbox खोलें।</p><a class="action secondary" href="inbox.html">✉️ Open Messages Inbox</a></div>
+<div class="row"><h3>ℹ️ About New Star</h3><p>New Star Creator Hub · आपकी प्रोफाइल, वीडियो और Creator सुविधाएँ।</p><p>Settings build: 2.1 · Language, Theme और Accessibility preferences डिवाइस पर लागू होती हैं और signed-in account के साथ sync की जाती हैं। सभी पेजों का पूर्ण अनुवाद अभी उपलब्ध नहीं है।</p></div>
 </div></section>
 <p class="note">ध्यान दें: Browser Push Notifications, सभी स्क्रीन का पूर्ण अनुवाद और हर डिवाइस पर sync होने वाली preference storage अभी अलग implementation माँगते हैं। यहाँ केवल वही सुविधाएँ सक्रिय रखी गई हैं जिनका वास्तविक कार्य इस पेज से जोड़ा गया है।</p>
 </main>
@@ -231,16 +241,16 @@ async function logout(scope,buttonId){
  const btn=$(buttonId);btn.disabled=true;try{const {error}=await db.auth.signOut({scope});if(error)throw error;location.replace("auth.html");}catch(e){message(e.message||"Logout नहीं हुआ।","error");btn.disabled=false;}
 }
 $("appLanguage").addEventListener("change",()=>{applyAppearanceLive();message("चुनी हुई भाषा सेव हो गई। जिन ऐप हिस्सों का अनुवाद उपलब्ध है, वे तुरंत बदलेंगे।");});$("appTheme").addEventListener("change",()=>{applyAppearanceLive();message("चुना हुआ Theme तुरंत लागू हो गया।");});
-$("textScale").addEventListener("change",saveAccessibility);$("reducedMotion").addEventListener("change",saveAccessibility);$("highContrast").addEventListener("change",saveAccessibility);$("syncPreferencesBtn").addEventListener("click",syncPreferencesNow);$("savePrivacyBtn").addEventListener("click",savePrivacy);async function checkAiGateway(){const out=$("aiGatewayStatus"),btn=$("checkAiGatewayBtn");btn.disabled=true;out.textContent="AI providers जाँचे जा रहे हैं…";try{if(!db?.auth)throw new Error("Supabase connection उपलब्ध नहीं है।");const {data:sessionData}=await db.auth.getSession();if(!sessionData?.session)throw new Error("पहले account में Login करें।");const {data,error}=await db.functions.invoke("ai-gateway",{body:{action:"status"}});if(error)throw error;if(!data?.ok||!data?.providers)throw new Error(data?.error||"Gateway status नहीं मिला।");const p=data.providers;const state=k=>p[k]?"Configured":"Missing";out.textContent="OpenAI: "+state("openai")+" · Gemini: "+state("gemini")+" · OpenRouter: "+state("openrouter")+". Configured का अर्थ key मौजूद है; live API validity अलग से जाँचना बाकी है।";}catch(e){out.textContent="AI status check failed: "+(e?.message||"Unknown error");}finally{btn.disabled=false;}}window.checkAiGatewayStatus=checkAiGateway;
-$("checkAiGatewayBtn").addEventListener("click",checkAiGateway);function openHelpCenterAI(){
- if(window.NewStarHelpAI?.open){window.NewStarHelpAI.open();return;}
- let script=document.querySelector('script[data-newstar-help-ai="true"]');
- if(!script){script=document.createElement("script");script.src="ai-chat.js";script.dataset.newstarHelpAi="true";document.head.appendChild(script);}
- const open=()=>{if(window.NewStarHelpAI?.open)window.NewStarHelpAI.open();else message("Help Center AI लोड नहीं हुआ। पेज Reload करके फिर कोशिश करें।","error");};
- script.addEventListener("load",open,{once:true});
- script.addEventListener("error",()=>message("Help Center AI script लोड नहीं हुई। Internet connection जाँचें।","error"),{once:true});
-}
-$("openAiAssistantBtn").addEventListener("click",openHelpCenterAI);
+$("textScale").addEventListener("change",saveAccessibility);$("reducedMotion").addEventListener("change",saveAccessibility);$("highContrast").addEventListener("change",saveAccessibility);$("syncPreferencesBtn").addEventListener("click",syncPreferencesNow);$("savePrivacyBtn").addEventListener("click",savePrivacy);
+function openHelpCenterAI(){
+  if(window.NewStarHelpAI?.open){window.NewStarHelpAI.open();return;}
+  let script=document.querySelector('script[data-newstar-help-ai="true"]');
+  if(script){if(script.dataset.loaded==="true"){window.NewStarHelpAI?.open?.();return;}script.addEventListener("load",()=>window.NewStarHelpAI?.open?.(),{once:true});return;}
+  script=document.createElement("script");script.src="ai-chat.js";script.dataset.newstarHelpAi="true";
+  script.addEventListener("load",()=>{script.dataset.loaded="true";if(window.NewStarHelpAI?.open)window.NewStarHelpAI.open();else message("Support AI अभी उपलब्ध नहीं है।","error");},{once:true});
+  script.addEventListener("error",()=>message("Support AI लोड नहीं हुई। Internet connection जाँचें।","error"),{once:true});
+  document.head.appendChild(script);
+ }
 $("openHelpCenterFromSupport").addEventListener("click",openHelpCenterAI);$("saveNotificationPrefsBtn").addEventListener("click",saveNotificationPrefs);$("markAllReadBtn").addEventListener("click",markAllNotificationsRead);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
 window.addEventListener("newstar:preferences-loaded",loadAppearance);loadAppearance();loadSettings();
 })();
