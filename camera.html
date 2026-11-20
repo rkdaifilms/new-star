@@ -540,7 +540,6 @@ document.querySelectorAll("[data-zoom]").forEach(button => {
  button.onclick = () => { zoom = Number(button.dataset.zoom); applyTransform(); };
 });
 $("rotateButton").onclick = () => { rotation = (rotation + 90) % 360; applyTransform(); };
-["aspectRatioSetting","frameFit","qualityPreference"].forEach(id=>$(id).addEventListener("change",applyOutputFrame));
 window.addEventListener("resize",applyOutputFrame);
 function applyTransform() {
  video.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
@@ -592,7 +591,6 @@ video.ontimeupdate = () => {
   trimEnd = null;
  }
 };
-$("splitButton").onclick = () => toast("Split Preview Point: " + video.currentTime.toFixed(2) + " सेकंड।");
 
 /* Text */
 $("textInput").oninput = updateText;
@@ -678,20 +676,6 @@ $("inspectButton").onclick = inspectVideo;
 $("copyrightButton").onclick = () => {
  $("copyrightStatus").textContent = "इस पेज में बाहरी Copyright Content ID Database कनेक्ट नहीं है। Copyright Clearance की पुष्टि नहीं की जा सकती।";
  toast("सामान्य Video Information जाँची गई।");
-};
-
-/* Reset Preview */
-$("resetButton").onclick = () => {
- zoom = 1; rotation = 0;
- video.style.transform = "";
- video.style.filter = "none";
- video.playbackRate = 1;
- $("textInput").value = "";
- $("previewText").textContent = "";
- $("trimStart").value = 0;
- $("trimEnd").value = video.duration || 0;
- trimEnd = null;
- toast("Preview Edits Reset हो गए।");
 };
 
 /* Publish Panel */
@@ -828,7 +812,7 @@ async function publishVideo() {
 
   const originalName = selectedVideoFile.name || "video.webm";
   const displayName = originalName.slice(0,180);
-  status.textContent = "Cloudflare Stream के लिए सुरक्षित resumable upload तैयार हो रहा है...";
+  status.textContent = "वीडियो अपलोड तैयार हो रहा है...";
   if(!window.tus || !window.tus.Upload)throw new Error("Resumable upload library लोड नहीं हुई। Internet जाँचकर पेज reload करें।");
   const {data:sessionData,error:sessionError}=await db.auth.getSession();
   if(sessionError)throw sessionError;
@@ -856,7 +840,7 @@ async function publishVideo() {
     onProgress(bytesUploaded,bytesTotal){
      const percent=bytesTotal?Math.floor(bytesUploaded/bytesTotal*100):0;
      const progressEl=$("uploadProgress");if(progressEl)progressEl.value=percent;
-     status.textContent="Cloudflare Upload "+percent+"% · "+(bytesUploaded/1048576).toFixed(1)+" / "+(bytesTotal/1048576).toFixed(1)+" MB";
+     status.textContent="वीडियो अपलोड हो रहा है: "+percent+"%";
     },
     onSuccess(){resolve();}
    });
@@ -867,7 +851,7 @@ async function publishVideo() {
   });
   if(!cloudflareVideoId)throw new Error("Cloudflare upload पूरा हुआ, लेकिन Stream Video ID नहीं मिली। Support के लिए upload session ID सुरक्षित रखें।");
   const videoUrl="cloudflare://"+cloudflareVideoId;
-  status.textContent="Cloudflare वीडियो को प्रोसेस कर रहा है; पोस्ट को Processing स्थिति में सेव किया जा रहा है...";
+  status.textContent="वीडियो सुरक्षित किया जा रहा है...";
   const payload={
    media_kind:mediaKind,aspect_ratio_setting:aspectRatioSetting,frame_fit:frameFit,quality_preference:qualityPreference,
    source_quality:(mediaInfo.width+"x"+mediaInfo.height),
@@ -887,8 +871,8 @@ async function publishVideo() {
   if(!inserted?.id)throw new Error("Database से Video ID नहीं मिली। Cloudflare Stream ID: "+cloudflareVideoId);
   databaseSaved=true;
   progress.value=100;
-  status.textContent="वीडियो Cloudflare पर अपलोड हो गया है और प्रोसेसिंग में है। तैयार होते ही Publish होगा।";
-  toast("🌟 वीडियो अपलोड हुआ; HD processing जारी है।");
+  status.textContent="वीडियो अपलोड हो गया है। तैयार होते ही आपकी प्रोफ़ाइल पर दिखाई देगा।";
+  toast("🌟 वीडियो अपलोड हो गया है।");
   setTimeout(()=>location.href="profile.html",1200);
  } catch(error) {
   console.error("Publish Error:",error);
