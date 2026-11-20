@@ -241,7 +241,7 @@
         let gamingSfuPeer = null;
         let gamingSfuSessionId = null;
         let gamingSfuTrackMids = [];
-        async function startGamingSfuPublisher(roomId, mediaStream) {
+        async function startGamingSfuPublisher(roomId, mediaStream, isGuestPublisher = false) {
           const session = await gamingLiveApi('sfu-create-session', { room_id: roomId });
           gamingSfuSessionId = session.session_id;
           const pc = new RTCPeerConnection();
@@ -249,7 +249,9 @@
           const senders = [];
           mediaStream.getTracks().forEach(track => {
             const transceiver = pc.addTransceiver(track, { direction: 'sendonly' });
-            senders.push({ transceiver, trackName: track.kind === 'audio' ? 'game-audio' : 'screen' });
+            senders.push({ transceiver, trackName: track.kind === 'audio'
+              ? (isGuestPublisher ? 'microphone' : 'game-audio')
+              : (isGuestPublisher ? 'camera' : 'screen') });
           });
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
@@ -744,7 +746,6 @@
         function stopGamingGuestSubscriptionPolling() {
             if (gamingSfuSubscribeTimer) clearInterval(gamingSfuSubscribeTimer);
             gamingSfuSubscribeTimer = null;
-            stopGamingSfuReceiveSession(gamingRoomId);
         }
         async function connectAsGamingGuest(result) {
             if (!result?.room_id || !result.seat_number) throw new Error('Gaming guest seat information is incomplete.');
@@ -762,7 +763,7 @@
                 const ownLabel = document.getElementById('gamingSeatLabel_' + gamingGuestSeatNumber);
                 if (own) { own.srcObject = stream; own.muted = true; own.style.display = 'block'; await own.play().catch(() => {}); }
                 if (ownLabel) ownLabel.textContent = 'You · Guest';
-                await startGamingSfuPublisher(gamingRoomId, stream);
+                await startGamingSfuPublisher(gamingRoomId, stream, true);
                 isLiveActive = true;
                 document.getElementById('gamingSetupPanel').style.display = 'none';
                 document.getElementById('starBubbleIcon').style.display = 'flex';
