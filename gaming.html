@@ -324,6 +324,66 @@
         let gamingFaceVideo = null;
         let gamingMicEnabled = true;
 
+        let gamingNativeActive = false;
+
+        async function startNativeProGamingStream(gameName) {
+            const captureStatus = document.getElementById('gamingCaptureStatus');
+            const prepared = await gamingLiveApi('prepare', {
+                room_title: 'Gaming: ' + gameName,
+                stream_mode: 'screen',
+                room_type: 'gaming',
+                seat_capacity: 4
+            });
+            const connected = await new Promise((resolve, reject) => {
+                let settled = false;
+                const finish = (fn, value) => {
+                    if (settled) return;
+                    settled = true;
+                    window.removeEventListener('newstar-native-stream-status', onStatus);
+                    clearTimeout(timeout);
+                    fn(value);
+                };
+                const onStatus = event => {
+                    const detail = event.detail || {};
+                    if (detail.status === 'connected') finish(resolve, detail);
+                    else if (detail.status === 'error') finish(reject, new Error(detail.message || 'Native screen stream failed.'));
+                };
+                const timeout = setTimeout(() => finish(reject, new Error('Android screen stream timed out.')), 40000);
+                window.addEventListener('newstar-native-stream-status', onStatus);
+                try { window.NewStarNative.startScreenStream(prepared.whip_url); }
+                catch (error) { finish(reject, error); }
+            });
+            try {
+                await gamingLiveApi('confirm', { room_id: prepared.room_id });
+            } catch (error) {
+                window.NewStarNative.stopScreenStream();
+                throw error;
+            }
+            gamingRoomId = prepared.room_id;
+            gamingNativeActive = true;
+            gamingWhipUrl = null; // Native service owns and deletes the WHIP resource on stop.
+            isLiveActive = true;
+            gamingIsGuest = false;
+            gamingGuestSeatNumber = 1;
+            renderGamingGuestSeats(4);
+            document.getElementById('gamingModerationButton').style.display = 'inline-flex';
+            document.getElementById('gamingSetupPanel').style.display = 'none';
+            document.getElementById('starBubbleIcon').style.display = 'flex';
+            document.getElementById('activeGameNameTag').textContent = gameName.toUpperCase() + ' SCREEN';
+            document.getElementById('camStateText').textContent = 'OFF';
+            document.getElementById('micStateText').textContent = 'Not enabled in native screen-only mode';
+            document.getElementById('activeGamingView').style.display = 'flex';
+            startGamingGuestSubscriptionPolling();
+            startGamingChatPolling();
+            if (captureStatus) {
+                captureStatus.hidden = false;
+                captureStatus.style.borderColor = '#176b43';
+                captureStatus.style.background = '#0d2118';
+                captureStatus.style.color = '#9ef0bd';
+                captureStatus.textContent = connected.message || 'Android screen stream connected to Cloudflare.';
+            }
+        }
+
         async function startProGamingStream() {
             if (gamingStartBusy || isLiveActive) return;
             gamingStartBusy = true;
@@ -333,6 +393,12 @@
             let captured = null, peer = null, roomId = null, mic = null, face = null, canvasStream = null, audioContext = null;
             try {
                 const captureStatus = document.getElementById('gamingCaptureStatus');
+                const gameName = (document.getElementById('gameNameInput').value || 'Mobile Game').trim().slice(0, 80);
+                if (window.NewStarNative && typeof window.NewStarNative.startScreenStream === 'function') {
+                    if (captureStatus) { captureStatus.hidden = false; captureStatus.textContent = 'Android system screen-sharing permission requested…'; }
+                    await startNativeProGamingStream(gameName);
+                    return;
+                }
                 if (!window.isSecureContext || !navigator.mediaDevices?.getDisplayMedia || !window.RTCPeerConnection) {
                     if (captureStatus) {
                         captureStatus.hidden = false;
@@ -526,7 +592,11 @@
             gamingStopBusy = true;
             const sessionUrl = gamingWhipUrl, roomId = gamingRoomId;
             try {
-                if (sessionUrl) {
+                if (gamingNativeActive && window.NewStarNative) {
+                    try { window.NewStarNative.stopScreenStream(); }
+                    catch (error) { console.warn('Native gaming stream cleanup:', error); }
+                    gamingNativeActive = false;
+                } else if (sessionUrl) {
                     try { await fetch(sessionUrl, { method: 'DELETE' }); }
                     catch (error) { console.warn('Gaming WHIP cleanup:', error); }
                 }
