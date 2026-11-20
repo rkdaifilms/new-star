@@ -181,6 +181,60 @@ async function boot(){
   await openChat(peer.user_id,peer);
  }
 }
+window.switchInboxTab=function(tab,button){
+ for(const name of ["messages","followers","following","requests"]){const host=$("tab"+name[0].toUpperCase()+name.slice(1));if(host)host.style.display=name===tab?"block":"none";}
+ document.querySelectorAll(".inbox-tab").forEach(x=>x.classList.toggle("active",x===button));
+ if(tab==="followers"||tab==="following")renderRelationList(tab);
+ if(tab==="requests")loadFollowRequests();
+};
+async function loadFollowerLists(){await Promise.all([renderRelationList("followers"),renderRelationList("following"),loadFollowRequests()]);}
+async function renderRelationList(kind){
+ if(!me)return;const host=$("tab"+kind[0].toUpperCase()+kind.slice(1));host.innerHTML='<p class="muted">Loading…</p>';
+ let q=db.from("followers").select("follower_id,following_id,created_at");
+ q=kind==="followers"?q.eq("following_id",me.id):q.eq("follower_id",me.id);
+ const {data:rows,error}=await q.order("created_at",{ascending:false}).limit(200);
+ if(error){host.textContent="लिस्ट लोड नहीं हुई।";return;}
+ $(kind==="followers"?"followersCount":"followingCount").textContent=rows?.length?"("+rows.length+")":"";
+ if(!rows?.length){host.textContent=kind==="followers"?"अभी कोई Follower नहीं है।":"आप अभी किसी Creator को Follow नहीं करते।";return;}
+ const ids=rows.map(r=>kind==="followers"?r.follower_id:r.following_id);
+ const {data:profiles,error:pe}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio,is_private").in("user_id",ids);
+ if(pe){host.textContent="Creator profiles लोड नहीं हुए।";return;}
+ const pm=new Map((profiles||[]).map(p=>[String(p.user_id),p]));host.replaceChildren();
+ for(const rel of rows){
+  const peer=String(kind==="followers"?rel.follower_id:rel.following_id),p=pm.get(peer)||{},row=document.createElement("div");row.className="list-item";
+  const left=document.createElement("span");left.className="user-left";const img=document.createElement("img");img.className="list-avatar";img.src=avatarOf(p);img.alt="";
+  const info=document.createElement("span");info.className="list-info";const title=document.createElement("h4");title.textContent=nameOf(p);const note=document.createElement("p");note.textContent=p.username?"@"+p.username:"Creator";
+  info.append(title,note);left.append(img,info);row.append(left);
+  if(kind==="following"){const b=document.createElement("button");b.className="action-tag-btn following";b.textContent="Following";b.onclick=async()=>{b.disabled=true;const {error}=await db.from("followers").delete().eq("follower_id",me.id).eq("following_id",peer);if(error){setStatus("Unfollow नहीं हुआ।");b.disabled=false;return;}await renderRelationList("following");};row.append(b);}
+  else row.onclick=()=>location.href="creator.html?user="+encodeURIComponent(peer);
+  host.append(row);
+ }
+}
+async function loadFollowRequests(){
+ if(!me)return;const host=$("tabRequests");host.innerHTML='<p class="muted">Follow requests लोड हो रहे हैं…</p>';
+ const {data:requests,error}=await db.from("follow_requests").select("id,requester_id,created_at,status").eq("target_user_id",me.id).eq("status","pending").order("created_at",{ascending:false}).limit(100);
+ if(error){host.textContent="Follow requests लोड नहीं हुए।";$("followRequestCount").textContent="";return;}
+ $("followRequestCount").textContent=requests?.length?"("+requests.length+")":"";
+ if(!requests?.length){host.textContent="अभी कोई Follow Request नहीं है।";return;}
+ const ids=[...new Set(requests.map(x=>x.requester_id))];const {data:profiles}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").in("user_id",ids);
+ const pm=new Map((profiles||[]).map(p=>[String(p.user_id),p]));host.replaceChildren();
+ for(const req of requests){
+  const p=pm.get(String(req.requester_id))||{},row=document.createElement("div");row.className="list-item";const left=document.createElement("span");left.className="user-left";
+  const img=document.createElement("img");img.className="list-avatar";img.src=avatarOf(p);img.alt="";const info=document.createElement("span");info.className="list-info";
+  const title=document.createElement("h4");title.textContent=nameOf(p);const note=document.createElement("p");note.textContent="आपको Follow करना चाहते हैं";info.append(title,note);left.append(img,info);
+  const actions=document.createElement("span");actions.style.cssText="display:flex;gap:6px";const accept=document.createElement("button");accept.className="action-tag-btn";accept.textContent="Accept";
+  const reject=document.createElement("button");reject.className="action-tag-btn following";reject.textContent="Decline";
+  accept.onclick=()=>respondFollowRequest(req,"accepted",accept,reject);reject.onclick=()=>respondFollowRequest(req,"rejected",accept,reject);actions.append(accept,reject);row.append(left,actions);host.append(row);
+ }
+}
+async function respondFollowRequest(req,status,accept,reject){
+ accept.disabled=true;reject.disabled=true;
+ const {error}=await db.from("follow_requests").update({status}).eq("id",req.id).eq("target_user_id",me.id).eq("status","pending");
+ if(error){setStatus("Follow request update नहीं हुआ।");accept.disabled=false;reject.disabled=false;return;}
+ if(status==="accepted"){const {error:ie}=await db.from("followers").insert({follower_id:req.requester_id,following_id:me.id});if(ie&&!/duplicate|unique/i.test(ie.message||""))setStatus("Request स्वीकार हुई; follower list refresh करें।");}
+ setStatus(status==="accepted"?"Follow request स्वीकार कर लिया गया।":"Follow request अस्वीकार कर दिया गया।");
+ await Promise.all([loadFollowRequests(),renderRelationList("followers")]);
+}
 async function loadThreads(){
  const {data,error}=await db.from("messages").select("id,conversation_id,sender_id,recipient_id,body,media_url,created_at,read_at").or("sender_id.eq."+me.id+",recipient_id.eq."+me.id).order("created_at",{ascending:false}).limit(250);
  const host=$("tabMessages");if(error){host.textContent="Messages load नहीं हुए: "+error.message;return;}
