@@ -1,30 +1,26 @@
-# New Star Android Gaming Capture
+# New Star Android App
 
-This is the native Android companion for the Gaming LIVE page.
+The Android wrapper opens the complete New Star web app at the production root URL. The native screen-capture bridge is restricted to the New Star HTTPS origin and is used by Gaming LIVE when running inside this Android app.
 
-## What it currently does
-- Opens the existing New Star Gaming LIVE page inside a controlled WebView.
-- Exposes a native bridge only to the New Star production origin.
-- Requests Android's system MediaProjection consent for each screen-share session.
-- Runs capture in a foreground service with the Android 14+ mediaProjection service type.
-- Publishes the captured screen video to the authenticated room's Cloudflare Stream WHIP URL.
-- Waits for ICE gathering and a real WebRTC connected state before the website confirms the room as LIVE.
-- Deletes the WHIP resource and stops capture when the creator ends the stream.
+## Debug build
+The debug workflow creates a test APK. A successful build does not certify the APK as Play Store-ready or prove device streaming works.
 
-## Build
-Open the `android/` directory in Android Studio with JDK 17 and Android SDK 35, or run:
+## Signed release build
+Google Play publishing uses a signed Android App Bundle (AAB). The repository deliberately does not contain a private signing key.
 
-```sh
-gradle -p android :app:assembleDebug
-```
+1. Create and securely back up an Android upload keystore on a trusted computer. Never commit it to GitHub or send it in chat.
+2. In GitHub repository Settings -> Secrets and variables -> Actions, add:
+   - `ANDROID_KEYSTORE_BASE64`: base64-encoded keystore file
+   - `ANDROID_KEYSTORE_PASSWORD`
+   - `ANDROID_KEY_ALIAS`
+   - `ANDROID_KEY_PASSWORD`
+3. Run the **Android Release (AAB + APK)** workflow manually from Actions.
+4. Download the `new-star-android-release` artifact. Use the AAB for Play Console internal testing/release and the APK for controlled device testing.
 
-GitHub Actions also runs the Android debug build when files under `android/` change and uploads the APK as an Actions artifact if the build passes.
+The upload key must be backed up securely. Losing it can complicate future app updates. Do not share passwords or keystore files in chat.
 
-## Important current limits
-- The initial native publisher sends screen video only. Game/system audio, microphone mixing, face-camera overlay, and the interactive Calls guest-seat publisher are not yet part of this native path.
-- Android can deny capture of protected/secure app surfaces. Some apps also opt out of playback audio capture.
-- The APK must be built, installed, signed as appropriate, and tested on a real Android device before native Gaming LIVE can be called operational.
-- The normal website in Chrome does not receive the native bridge; use the Android companion app for this capture path.
-- The WHIP URL is fetched for the authenticated creator at runtime and is not stored in the repository.
-
-Do not mark a room LIVE until the native service reports a connected WebRTC media session.
+## Current limitations / release gates
+- Gaming LIVE native publishing currently sends screen video only; game/system audio, microphone mixing, face-camera overlay and Calls guest-seat publishing are not implemented in this native path.
+- Real device testing is required for login, navigation, screen capture, network behavior, and streaming before public release.
+- Google Play publication also requires store listing assets, privacy policy, Data safety declarations, content rating, target API compliance, and Play Console review.
+- The debug APK is not the final Play Store release.
