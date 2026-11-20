@@ -306,7 +306,7 @@ async function searchCreators(){
     await searchCreators();
    }catch(error){setStatus("Follow अपडेट नहीं हुआ: "+error.message);action.disabled=false;}
   };
-  const messageBtn=document.createElement("button");messageBtn.className="action-tag-btn";messageBtn.textContent="Message";messageBtn.style.cssText="margin-left:7px;background:#fe2c55;color:#fff;border:0;white-space:nowrap";messageBtn.onclick=()=>openChat(p.user_id,p);row.append(left,action,messageBtn);host.append(row);
+  const messageBtn=document.createElement("button");messageBtn.className="action-tag-btn";messageBtn.textContent="Message";messageBtn.style.cssText="margin-left:7px;background:#fe2c55;color:#fff;border:0;white-space:nowrap";messageBtn.onclick=()=>openChat(p.user_id,p);const viewBtn=document.createElement("button");viewBtn.className="action-tag-btn following";viewBtn.textContent="Profile";viewBtn.style.cssText="margin-left:6px;white-space:nowrap";viewBtn.onclick=()=>{location.href="creator.html?user="+encodeURIComponent(p.user_id);};row.append(left,action,messageBtn,viewBtn);host.append(row);
  }
 }
 async function loadFollowRequests(){
