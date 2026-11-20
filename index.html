@@ -1343,5 +1343,16 @@ startNewStar();
 <script src="preferences.js"></script>
 
 
+
+<script>
+// Installable New Star PWA: Android, iOS Safari and desktop browsers.
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js", { scope: "/" })
+      .then(registration => registration.update())
+      .catch(error => console.error("New Star offline/app-shell setup failed:", error));
+  }, { once: true });
+}
+</script>
 </body>
 </html>
