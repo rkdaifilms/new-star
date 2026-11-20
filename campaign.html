@@ -38,7 +38,8 @@
 <p id="formStatus" class="status" role="status" aria-live="polite"></p>
 </form>
 </section>
-<section><h2>Active verified campaigns</h2><p class="muted">Only campaigns marked active and paid by the server are listed here.</p><div id="activeCampaigns" class="empty">Loading verified campaigns…</div></section>
+<section><h2>Active verified campaigns</h2><p class="muted">केवल server-verified और paid campaigns यहाँ दिखेंगे। Apply करना केवल रुचि/प्रस्ताव भेजता है; इससे काम, भुगतान या कमाई की गारंटी नहीं होती।</p><div id="activeCampaigns" class="empty">Loading verified campaigns…</div></section>
+<section><h2>Your applications</h2><div id="myApplications" class="empty">Login to see your applications.</div></section>
 <section><h2>Your campaign drafts</h2><div id="myDrafts" class="empty">Login to see your drafts.</div></section>
 </main>
 <nav class="bottom"><a href="index.html">🏠<br>Home</a><a href="inbox.html">💬<br>Inbox</a><a href="camera.html">＋<br>Create</a><a href="wallet.html">💰<br>Wallet</a><a href="profile.html">👤<br>Profile</a></nav>
@@ -52,12 +53,56 @@ function decimals(c){return zero.has(c)?0:three.has(c)?3:2;}
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function say(s,bad=false){$("formStatus").textContent=s;$("formStatus").style.color=bad?"#ff9e9e":"#9fe6bd";}
 function safeUrl(raw){if(!raw)return null;const u=new URL(raw);if(u.protocol!=="https:")throw new Error("केवल सुरक्षित HTTPS लिंक डालें।");return u.href;}
-function addCampaignCard(host,row,isDraft){const card=document.createElement("article");card.className="campaign";const title=document.createElement("h3");title.textContent=row.title||"Campaign";const brand=document.createElement("p");brand.className="muted";brand.textContent=row.brand_name||"Brand / Artist";const desc=document.createElement("p");desc.className="muted";desc.textContent=row.description||"No description provided.";const tag=document.createElement("span");tag.className="tag";tag.textContent=isDraft?"Draft · Unpaid · Not public":"Verified active · Paid";card.append(title,brand,desc,tag);if(row.destination_url){const actions=document.createElement("div");actions.className="actions";const a=document.createElement("a");a.className="link secondary";a.href=row.destination_url;a.target="_blank";a.rel="noopener noreferrer nofollow sponsored";a.textContent="Open campaign link";actions.append(a);card.append(actions);}host.append(card);}
+function addCampaignCard(host,row,isDraft){
+ const card=document.createElement("article");card.className="campaign";
+ const title=document.createElement("h3");title.textContent=row.title||"Campaign";
+ const brand=document.createElement("p");brand.className="muted";brand.textContent=row.brand_name||"Brand / Artist";
+ const desc=document.createElement("p");desc.className="muted";desc.textContent=row.description||"No description provided.";
+ const tag=document.createElement("span");tag.className="tag";tag.textContent=isDraft?"Draft · Unpaid · Not public":"Verified active · Paid";
+ card.append(title,brand,desc,tag);
+ if(row.destination_url){const actions=document.createElement("div");actions.className="actions";const link=document.createElement("a");link.className="link secondary";link.href=row.destination_url;link.target="_blank";link.rel="noopener noreferrer nofollow sponsored";link.textContent="Open campaign link";actions.append(link);card.append(actions);}
+ if(!isDraft&&user){
+  const form=document.createElement("form");form.style.marginTop="12px";
+  const label=document.createElement("label");label.textContent="Your proposal (no payment details)";label.style.display="block";label.style.marginBottom="6px";
+  const proposal=document.createElement("textarea");proposal.maxLength=2000;proposal.required=true;proposal.placeholder="Briefly describe why you are interested and what content you can create.";
+  const submit=document.createElement("button");submit.type="submit";submit.textContent="Send application";
+  const status=document.createElement("p");status.className="status";status.setAttribute("role","status");
+  form.append(label,proposal,submit,status);
+  form.addEventListener("submit",async e=>{
+   e.preventDefault();if(!user){status.textContent="Please login first.";return;}
+   submit.disabled=true;
+   try{
+    const {error}=await db.from("star_campaign_applications").insert({campaign_id:row.id,creator_id:user.id,proposal:proposal.value.trim(),status:"pending"});
+    if(error)throw error;
+    status.textContent="Application submitted for review. No payment or earnings have been created.";
+    proposal.disabled=true;submit.disabled=true;await loadMyApplications();
+   }catch(err){console.error(err);status.textContent=err.code==="23505"?"You have already applied to this campaign.":(err.message||"Application could not be submitted.");submit.disabled=false;}
+  });
+  card.append(form);
+ }
+ host.append(card);
+}
+async function loadMyApplications(){
+ const host=$("myApplications");host.replaceChildren();
+ if(!user){host.textContent="Login to view your applications.";return;}
+ const {data,error}=await db.from("star_campaign_applications").select("id,campaign_id,proposal,status,created_at,star_campaigns(title,brand_name)").eq("creator_id",user.id).order("created_at",{ascending:false}).limit(50);
+ if(error){host.textContent="Applications could not be loaded.";console.error(error);return;}
+ if(!data?.length){host.textContent="अभी आपने किसी campaign में apply नहीं किया है।";return;}
+ data.forEach(row=>{
+  const card=document.createElement("article");card.className="campaign";
+  const title=document.createElement("h3");title.textContent=row.star_campaigns?.title||"Campaign";
+  const brand=document.createElement("p");brand.className="muted";brand.textContent=row.star_campaigns?.brand_name||"Brand / Artist";
+  const status=document.createElement("span");status.className="tag";status.textContent="Application: "+(row.status||"pending");
+  const proposal=document.createElement("p");proposal.className="muted";proposal.textContent=row.proposal||"";
+  card.append(title,brand,status,proposal);host.append(card);
+ });
+}
 async function loadCampaigns(){
  const active=$("activeCampaigns"),drafts=$("myDrafts");active.replaceChildren();drafts.replaceChildren();
  const {data:publicRows,error:publicError}=await db.from("star_campaigns").select("id,title,description,brand_name,destination_url,currency,target_countries,starts_at,ends_at").eq("status","active").eq("payment_status","paid").order("created_at",{ascending:false}).limit(50);
  if(publicError){active.textContent="Verified campaigns could not be loaded. Please try again.";console.error(publicError);}else if(!publicRows?.length){active.textContent="अभी कोई सक्रिय और भुगतान-सत्यापित campaign उपलब्ध नहीं है।";}else publicRows.forEach(r=>addCampaignCard(active,r,false));
- if(!user){drafts.textContent="अपने Draft देखने के लिए Login करें।";return;}
+ if(!user){drafts.textContent="अपने Draft देखने के लिए Login करें।";await loadMyApplications();return;}
+ await loadMyApplications();
  const {data:own,error:ownError}=await db.from("star_campaigns").select("id,title,description,brand_name,destination_url,status,payment_status,created_at").eq("owner_id",user.id).order("created_at",{ascending:false}).limit(50);
  if(ownError){drafts.textContent="Your drafts could not be loaded.";console.error(ownError);}else if(!own?.length){drafts.textContent="आपने अभी कोई campaign draft नहीं बनाया है।";}else own.forEach(r=>addCampaignCard(drafts,r,true));
 }
