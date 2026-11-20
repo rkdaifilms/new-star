@@ -12,6 +12,7 @@
 - `index.html` now queries public active `live_rooms` rows and connects viewers to `stream_playback_url` using browser-native WHEP. It shows a LIVE list, room title, creator name when profile access permits, and a Watch/Stop viewing flow. The viewer sends receive-only audio/video transceivers and deletes the WHEP session when stopped or leaving the Live tab.
 - Cloudflare Stream WebRTC currently supports WHIP/WHEP live delivery but not recording or HLS/DASH playback for WHIP inputs. New Star therefore marks `recording_status=not_supported`; do not promise replay/archive until a separate recording pipeline is implemented.
 - End-to-end playback has not yet been exercised because the database currently has zero active LIVE rooms. Validate by starting a real broadcast from a separate signed-in creator account and watching it from a second browser/device.
+- Private watch-quality review: `private.video_watch_risk_signals` stores repeated heartbeat-gap/position-jump signals by viewer/video/day. It stores no GPS coordinates or raw IP address, is inaccessible to anon/authenticated roles, and is visible to the verified owner only through `admin-overview`. Repeated signals are review leads, not proof of fake traffic; no automatic account punishment or monetization exclusion is applied.
 - Existing Supabase Storage videos remain supported during migration.
 - Do not put Cloudflare API tokens or signing keys in browser code, GitHub, or chat.
 
