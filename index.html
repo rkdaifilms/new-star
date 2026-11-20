@@ -1153,6 +1153,11 @@ function newRequestId(){
 async function openGift(){
  if(!currentVideo)return;
  if(!currentUser){showToast("पहले Login करें।");location.href="auth.html?next=index.html";return;}
+ try{
+  const {data:access,error}=await db.rpc("get_creator_feature_access");
+  if(error)throw error;
+  if(!access?.video_gifts_access){showToast("Video Gifts, approved Long Video या Short Video Monetization के बाद ही खुलेंगे।");return;}
+ }catch(error){console.error("Video Gift access:",error);showToast("Video Gift eligibility अभी verify नहीं हो पाई।");return;}
  selectedGift=null;
  $("sendGift").disabled=true;
  $("sendGift").textContent="Gift sending अभी उपलब्ध नहीं है";
