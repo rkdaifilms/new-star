@@ -36,6 +36,13 @@ This document records verified implementation state. It is not a claim that live
 - The `video_gifts` commission rule remains `draft`, and the database currently has zero wallet-ledger, gift-transaction, and creator-gift-earning rows. Therefore this does **not** activate gifts or create any balances.
 - The app/server caller is still not verified. Do not expose this service-role-only function to a browser or pass a client-supplied sender ID without server-side authentication binding.
 
+## Post-change security scan
+
+- Supabase security advisors were rerun after the gift-ledger change. The new service-role-only gift function did not appear as a public or authenticated executable SECURITY DEFINER finding.
+- Existing advisor warnings remain for the video feed and creator/watch-session SECURITY DEFINER RPCs. Their function bodies were reviewed for authenticated-user checks where relevant; the public video-feed RPC is intentionally public-facing but should receive a separate focused authorization/privacy review before unrelated ACL changes.
+- The advisor also reports leaked-password protection is disabled. This is an Auth project setting and remains a separate administrator configuration item.
+- These findings are recorded rather than silently changing video-feed, watch-time, or authentication behavior during the wallet repair.
+
 ## Sponsorship and campaign accounting audit
 
 - The sponsorship commission rule is stored as 2,000 basis points (20% platform / 80% creator), **draft**.
