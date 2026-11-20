@@ -100,9 +100,7 @@
         
         <label>Room Seats Capacity:</label>
         <select id="setupRoomSize">
-            <option value="1">👤 1 Seat (Solo Live)</option>
-            <option value="4">👥 4 Seats (Host + 3 Guests)</option>
-            <option value="10" selected>🌐 10 Seats (Host + 9 Guests)</option>
+            <option value="1" selected>👤 1 Seat (Solo LIVE)</option>
         </select>
         
         <button class="btn" onclick="startLiveBroadcastSession()">🔴 Go LIVE Now</button>
@@ -712,11 +710,7 @@
             const whipPeer = liveWhipPeer;
             stopLiveGuestSubscriptionPolling();
             stopLiveChatPolling();
-            try {
-              if (roomId) await stopLiveSfuPublisher(roomId);
-            } catch (error) {
-              console.warn('SFU shutdown:', error);
-            }
+            // This host broadcast uses Cloudflare Stream WHIP; no Calls/SFU session is created.
             if (whipPeer) {
               try { whipPeer.close(); } catch (_) {}
             }
@@ -1025,8 +1019,8 @@
               video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } },
               audio: { echoCancellation: true, noiseSuppression: true }
             });
-            // Publish a second, interactive media connection for admitted guest seats.
-            await startLiveSfuPublisher(roomId, stream);
+            // Publish the host stream directly through the authenticated Cloudflare Stream WHIP input.
+            // Guest-seat SFU publishing remains disabled until its server API is deployed.
             peer = new RTCPeerConnection();
             stream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
             const offer = await peer.createOffer();
@@ -1060,12 +1054,10 @@
             document.getElementById('activeLiveView').style.display = 'block';
             const status = document.querySelector('#activeLiveView .pulsing-dot');
             if (status) status.title = 'Broadcast connected to Cloudflare Stream';
-            startLiveGuestSubscriptionPolling();
             startLiveChatPolling();
             if (typeof window.showGlobalFastToast === 'function') window.showGlobalFastToast('You are LIVE on New Star');
           } catch (error) {
             if (peer) peer.close();
-            if (roomId) await stopLiveSfuPublisher(roomId);
             if (stream) stream.getTracks().forEach(track => track.stop());
             if (roomId) {
               try { await liveApi('stop', { room_id: roomId }); } catch (_) {}
