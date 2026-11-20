@@ -1,10 +1,10 @@
 package com.newstar.live
 
-import android.app.Activity
+import android.Manifest\nimport android.app.Activity
 import android.content.*
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
-import android.os.Build
+import android.os.Build\nimport android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.webkit.*
@@ -18,7 +18,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var container: FrameLayout
     private lateinit var web: WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
-    private var pendingUrl = ""
+    private var pendingUrl = ""\n    private var pendingWebPermission: PermissionRequest? = null
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val selected = if (result.resultCode == Activity.RESULT_OK) {
@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
         fileCallback = null
     }
 
-    private val screenPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+    private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->\n        val request = pendingWebPermission\n        pendingWebPermission = null\n        if (granted && request != null && request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {\n            request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))\n        } else request?.deny()\n    }\n\n    private val screenPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data != null && pendingUrl.isNotBlank()) {
             val i = Intent(this, GamingStreamService::class.java).apply {
                 action = GamingStreamService.START
