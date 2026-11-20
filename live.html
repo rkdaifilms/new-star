@@ -247,11 +247,10 @@
     <!-- MOD SETTINGS MODAL -->
     <div id="modSettingsModal" class="custom-modal">
         <div class="modal-box">
-            <h4 style="color:#ffcc00; font-size:14px; margin-bottom:8px;">⚙️ Moderator & Room Settings</h4>
-            <label style="color:#25f4ee;">Assign Moderator:</label>
-            <input type="text" id="modUserInput" placeholder="Username...">
-            <button class="btn" style="background:#25f4ee; color:#000; padding:8px; margin-top:0;" onclick="alert('Moderator assigned successfully!'); closeModal('modSettingsModal');">Make Mod</button>
-            <button class="btn" style="background:#fe2c55; color:#fff; padding:8px; margin-top:8px;" onclick="closeModal('modSettingsModal')">Close</button>
+            <h4 style="color:#ffcc00;font-size:14px;margin-bottom:8px;">⚙️ LIVE room moderation</h4>
+            <div id="liveModeratorMembers" style="max-height:320px;overflow-y:auto;font-size:12px;">Loading participants…</div>
+            <button class="btn" style="background:#25f4ee;color:#000;padding:8px;margin-top:8px;" onclick="refreshLiveModeratorMembers()">Refresh participants</button>
+            <button class="btn" style="background:#333;color:#fff;padding:8px;margin-top:8px;" onclick="closeModal('modSettingsModal')">Close</button>
         </div>
     </div>
 
@@ -485,7 +484,46 @@
         function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
         function openTreasureModal() { document.getElementById('treasureModal').style.display = 'flex'; }
         function openPkBattleModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
-        function openModSettingsModal() { document.getElementById('modSettingsModal').style.display = 'flex'; }
+        function openModSettingsModal() {
+          document.getElementById('modSettingsModal').style.display = 'flex';
+          refreshLiveModeratorMembers();
+        }
+
+        async function refreshLiveModeratorMembers() {
+          const panel = document.getElementById('liveModeratorMembers');
+          if (!panel || !liveRoomId) { if(panel) panel.textContent = 'Start a LIVE room to manage participants.'; return; }
+          panel.textContent = 'Loading participants…';
+          try {
+            const data = await liveApi('list-members', { room_id: liveRoomId });
+            panel.replaceChildren();
+            (data.members || []).forEach(member => {
+              const row = document.createElement('div');
+              row.style.cssText = 'padding:9px 4px;border-bottom:1px solid #333;display:flex;flex-direction:column;gap:5px;';
+              const title = document.createElement('b');
+              title.textContent = (member.display_name || 'Guest') + ' · ' + member.role + (member.seat_number ? ' · Seat ' + member.seat_number : '');
+              const status = document.createElement('span');
+              status.textContent = 'Camera ' + (member.camera_allowed ? 'allowed' : 'blocked') + ' · Mic ' + (member.microphone_allowed ? 'allowed' : 'blocked') + ' · ' + (member.sfu_connected ? 'connected' : 'not connected');
+              row.append(title,status);
+              if(member.role !== 'host') {
+                const actions = document.createElement('div');
+                actions.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;';
+                const makeAction = (label, action, extra={}) => {
+                  const btn = document.createElement('button'); btn.className='btn'; btn.style.cssText='width:auto;padding:5px 7px;font-size:10px;margin:0;'; btn.textContent=label;
+                  btn.onclick=async()=>{btn.disabled=true;try{await liveApi(action,{room_id:liveRoomId,target_user_id:member.user_id,...extra});await refreshLiveModeratorMembers();}catch(e){alert(e.message);btn.disabled=false;}};
+                  actions.appendChild(btn);
+                };
+                makeAction(member.camera_allowed?'Block camera':'Allow camera','set-member-permissions',{camera_allowed:!member.camera_allowed});
+                makeAction(member.microphone_allowed?'Mute/Block mic':'Allow mic','set-member-permissions',{microphone_allowed:!member.microphone_allowed});
+                if(member.role !== 'moderator') makeAction('Make moderator','set-moderator',{moderator:true});
+                else makeAction('Remove moderator','set-moderator',{moderator:false});
+                makeAction('Remove guest','remove-member');
+                row.appendChild(actions);
+              }
+              panel.appendChild(row);
+            });
+            if(!data.members?.length) panel.textContent='No admitted participants yet.';
+          } catch(error) { panel.textContent=error.message; }
+        }
 
         function startGlobalPkSearch() {
             closeModal('pkBattleModal');
