@@ -53,8 +53,8 @@ small.hint{color:var(--muted)}
 <div id="image-result" hidden></div>
 <section id="composer">
 <textarea id="prompt" maxlength="8000" placeholder="Ask anything, describe your video idea, or tell me what to write…"></textarea>
-<div class="composer-row"><button type="button" id="send">Send</button><button type="button" id="voice" class="secondary">🎙️ Speak</button><button type="button" id="stop-voice" class="secondary" hidden>Stop recording</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> Speak answers</label></div>
-<div id="voice-status" role="status" aria-live="polite">Voice input uses the secure AI gateway. Microphone permission is requested only when you tap Speak.</div>
+<div class="composer-row"><button type="button" id="send">Send</button><button type="button" id="voice" class="secondary" aria-label="Record your spoken message">🎙️ बोलें / Speak</button><button type="button" id="stop-voice" class="secondary" hidden>■ रिकॉर्डिंग रोकें / Stop</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> Speak answers</label></div>
+<div id="voice-status" role="status" aria-live="polite">माइक दबाकर अपनी भाषा में बोलें। रोकने पर AI आपकी आवाज़ को टेक्स्ट में बदलेगा; जाँचकर Send दबाएँ।</div>
 <div id="notice">Sign in required. Do not enter passwords, OTPs, API keys or private financial details.</div>
 </section>
 </main>
