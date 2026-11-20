@@ -611,6 +611,48 @@
         function assignFriendToSeat(){ alert('Guest seats require a real WebRTC connection and are unavailable.'); }
         function startGlobalPkSearch(){ alert('PK matchmaking is not connected to real participants.'); }
         function startPkWithOpponent(){ alert('PK Battle is unavailable until real matchmaking exists.'); }
+
+        // Interactive Cloudflare Calls publisher for the host's camera/microphone.
+        let liveSfuPeer = null;
+        let liveSfuSessionId = null;
+        let liveSfuTrackMids = [];
+        async function startLiveSfuPublisher(roomId, mediaStream) {
+          const session = await liveApi('sfu-create-session', { room_id: roomId });
+          liveSfuSessionId = session.session_id;
+          const pc = new RTCPeerConnection();
+          liveSfuPeer = pc;
+          const senders = [];
+          mediaStream.getTracks().forEach(track => {
+            const transceiver = pc.addTransceiver(track, { direction: 'sendonly' });
+            senders.push({ transceiver, trackName: track.kind === 'audio' ? 'microphone' : 'camera' });
+          });
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          const tracks = senders.map(({ transceiver, trackName }) => ({
+            mid: transceiver.mid, track_name: trackName
+          }));
+          const published = await liveApi('sfu-publish', {
+            room_id: roomId,
+            session_description: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
+            tracks
+          });
+          if (!published.session_description?.sdp) throw new Error('Cloudflare Calls did not return the publishing answer.');
+          await pc.setRemoteDescription(published.session_description);
+          liveSfuTrackMids = tracks.map(track => track.mid);
+          return true;
+        }
+        async function stopLiveSfuPublisher(roomId) {
+          const pc = liveSfuPeer;
+          const sessionId = liveSfuSessionId;
+          const mids = liveSfuTrackMids.slice();
+          liveSfuPeer = null; liveSfuSessionId = null; liveSfuTrackMids = [];
+          if (pc) pc.close();
+          if (roomId && sessionId && mids.length) {
+            try { await liveApi('sfu-close', { room_id: roomId, tracks: mids.map(mid => ({ mid })), force: true }); }
+            catch (error) { console.warn('Calls track cleanup:', error); }
+          }
+        }
+
         async function liveApi(action, extra = {}) {
           const client = window.supabaseClient;
           if (!client) throw new Error('Supabase connection is not ready. Refresh and sign in again.');
@@ -653,6 +695,8 @@
               video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } },
               audio: { echoCancellation: true, noiseSuppression: true }
             });
+            // Publish a second, interactive media connection for admitted guest seats.
+            await startLiveSfuPublisher(roomId, stream);
             peer = new RTCPeerConnection();
             stream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
             const offer = await peer.createOffer();
@@ -689,6 +733,7 @@
             if (typeof window.showGlobalFastToast === 'function') window.showGlobalFastToast('You are LIVE on New Star');
           } catch (error) {
             if (peer) peer.close();
+            if (roomId) await stopLiveSfuPublisher(roomId);
             if (stream) stream.getTracks().forEach(track => track.stop());
             if (roomId) {
               try { await liveApi('stop', { room_id: roomId }); } catch (_) {}
