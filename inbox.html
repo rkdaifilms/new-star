@@ -49,7 +49,7 @@
         .action-tag-btn.following { background: #222; border: 1px solid #444; color: #ccc; }
 
         /* REAL MESSENGER CHAT WINDOW - FIXED DISPLAY & POSITIONING */
-        #chatBoxWindow { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 999; flex-direction: column; }
+        #chatBoxWindow { display: none; position: relative; top: auto; left: auto; width: 100%; height: min(68vh,650px); min-height: 390px; margin: 12px 0; background: #000; border: 1px solid #393943; border-radius: 14px; overflow: hidden; z-index: 1; flex-direction: column; }
         .chat-box-header { display: flex; align-items: center; gap: 15px; padding: 15px; background: #111; border-bottom: 1px solid #222; flex-shrink: 0; }
         .chat-box-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; cursor: pointer; }
         .chat-box-header h3 { font-size: 16px; cursor: pointer; }
@@ -221,6 +221,7 @@ async function boot(){
    await loadThreads();
  }).subscribe();
  setStatus(failed.length?"Inbox खुला है, लेकिन कुछ sections लोड नहीं हुए।":"Inbox तैयार है।");
+ if(new URLSearchParams(location.search).get("new")==="1")window.startNewMessage();
 }
 async function loadFollowerLists(){
  if(!me)return;
@@ -402,7 +403,7 @@ async function openChat(peer,p){
  $("messageInput").focus();
 }
 window.startNewMessage=function(){
- switchTab("discover",document.querySelector(".inbox-tab[onclick*="discover"]"));
+ switchTab("discover",document.querySelectorAll(".inbox-tab")[4]);
  $("creatorSearchInput").focus();
 };
 function syncQuickComposer(){
