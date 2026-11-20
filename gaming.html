@@ -836,7 +836,7 @@
             } catch (error) { button.disabled = false; button.textContent = 'Invite'; alert(error.message); }
         }
         async function checkIncomingGamingInvites() {
-            if (window.__checkingGamingInvites) return;
+            if (gamingRoomId || window.__checkingGamingInvites) return;
             window.__checkingGamingInvites = true;
             try {
                 const data = await gamingLiveApi('list-invites');
