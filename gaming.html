@@ -336,7 +336,7 @@
                 }
 
                 if (button) button.textContent = 'Connecting to New Star LIVE…';
-                const prepared = await gamingLiveApi('prepare', { room_title: 'Gaming: ' + gameName, stream_mode: 'screen' });
+                const prepared = await gamingLiveApi('prepare', { room_title: 'Gaming: ' + gameName, stream_mode: 'screen', room_type: 'gaming', seat_capacity: 4 });
                 roomId = prepared.room_id;
                 peer = new RTCPeerConnection();
                 canvasStream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
