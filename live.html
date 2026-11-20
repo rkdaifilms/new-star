@@ -822,10 +822,8 @@
           liveSfuSubscribeBusy = true;
           try {
             const listed = await liveApi('sfu-list-publications', { room_id: liveRoomId });
-            const client = window.supabaseClient;
-            const { data: auth } = await client.auth.getUser();
-            const ownId = auth?.user?.id;
-            const pubs = (listed.publications || []).filter(p => p.participant_id !== ownId && p.participant?.seat_number);
+            // The backend excludes this participant's own publications.
+            const pubs = (listed.publications || []).filter(p => p.participant?.seat_number);
             const fresh = pubs.filter(p => !liveSfuSubscribedKeys.has(p.publisher_session_id + ':' + p.track_name));
             if (!fresh.length) return;
 
