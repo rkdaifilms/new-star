@@ -14,6 +14,11 @@
 <div id="status">Checking authenticated admin permission…</div>
 <div id="metrics" class="grid"></div>
 <p class="muted" style="margin-top:-4px">Watch quality diagnostics: session totals and rejected sessions are operational signals, not proof of fake traffic. Unique-view records and eligible long-video watch-credit rows are counted separately. Review unusual patterns before taking action; do not automatically punish creators or viewers from a single signal.</p>
+<section class="card"><h2>Watch Traffic Review Queue</h2>
+<p class="muted">Repeated playback anomalies are held for owner review. A flag is a signal for investigation, not proof that an account bought views. No automatic account punishment or monetization ban is applied.</p>
+<div style="overflow:auto"><table><thead><tr><th>Viewer</th><th>Creator</th><th>Video</th><th>Repeated signals</th><th>Risk score</th><th>Last observed</th></tr></thead>
+<tbody id="watchRiskQueue"><tr><td colspan="6">Loading watch-risk signals…</td></tr></tbody></table></div>
+<p id="watchRiskQueueStatus" class="muted" aria-live="polite"></p></section>
 <section class="card"><h2>Creator & Monetization Control</h2><p class="muted">यह Developer Dashboard और Creator Dashboard का shared navigation है। यहाँ से creator wallet, earnings और monetization hub खोलें।</p><div class="row"><a href="wallet.html">Open Creator Wallet & Earnings →</a><a href="monetization.html">Open Monetization Hub →</a></div><div class="row"><span>Coins purchase</span><strong>Payment gateway verification pending</strong></div><div class="row"><span>Creator cash payouts</span><strong>Disabled until provider settlement is verified</strong></div><div class="row"><span>Gift earnings</span><strong>Verified coin ledger available</strong></div><div class="row"><span>Campaign / Affiliate / Ads creator shares</span><strong>Separate verified earning ledgers not connected</strong></div></section>
 <section class="card"><h2>Creator Monetization Applications</h2><p class="muted">Owner-only manual quality review. Threshold completion only permits review; approval is not automatic. Rejections and suspensions require a reason. All decisions are audited.</p><div style="overflow:auto"><table><thead><tr><th>Creator</th><th>Eligibility route</th><th>Threshold snapshot</th><th>Applied</th><th>Current status</th><th>Review action</th></tr></thead><tbody id="creatorApplications"><tr><td colspan="6">Loading applications…</td></tr></tbody></table></div><p id="creatorApplicationsStatus" class="muted" aria-live="polite"></p></section>
 <section class="card"><h2>Platform Financial Overview</h2><div id="financials" class="grid"><p class="muted">Loading owner-only financial totals…</p></div><p class="muted">Only verified paid orders are included. Amounts are grouped by currency; gift totals are in Coins.</p></section>
@@ -74,6 +79,9 @@ async function load(){
  if(ownerClaimed)$("status").textContent="Developer Owner access activated · Loading secure dashboard…";
  $("status").textContent="Signed in as verified admin role: "+data.role+" · Updated "+new Date(data.generated_at).toLocaleString();
  for(const [key,value] of Object.entries(data.metrics||{})){const el=document.createElement("div");el.className="card";el.innerHTML='<div class="muted">'+esc(key.replaceAll("_"," "))+'</div><div class="metric">'+(value===null?"Unavailable":esc(value))+'</div>'; $("metrics").appendChild(el);}
+ const riskRows=data.watch_risk_review_queue||[];
+ $("watchRiskQueue").innerHTML=riskRows.length?riskRows.map(r=>'<tr><td>'+esc(String(r.viewer_id||"").slice(0,8))+'…</td><td>'+esc(String(r.creator_id||"").slice(0,8))+'…</td><td>'+esc(String(r.video_id||"").slice(0,8))+'…</td><td>'+esc(r.occurrence_count)+'</td><td>'+esc(r.risk_score)+'</td><td>'+esc(new Date(r.last_seen_at).toLocaleString())+'</td></tr>').join(""):'<tr><td colspan="6">No watch-risk signals currently require review.</td></tr>';
+ $("watchRiskQueueStatus").textContent=riskRows.length+" repeated playback pattern(s) need owner review. This is not an automatic fake-view verdict.";
  const f=data.financials||{};const financialCards=[];
  financialCards.push(["Verified paid orders",f.paid_orders_count??"Unavailable"]);
  (f.paid_totals_by_currency||[]).forEach(x=>financialCards.push(["Paid receipts · "+x.currency,formatMinor(x.amount_minor,x.currency)+" "+x.currency]));
