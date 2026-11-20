@@ -48,44 +48,62 @@ function providerHttpError(status: number, data: any) {
 }
 
 async function generateGeminiImage(key: string, prompt: string) {
-  // Prefer the current stable Nano Banana 2 model. Keep the supported 2.5 model
-  // as a compatibility fallback for keys that do not yet have 3.1 access.
-  const models = ["gemini-3.1-flash-image", "gemini-2.5-flash-image"];
-  let lastFailure = "GEMINI_IMAGE_UNAVAILABLE";
-  for (const model of models) {
-    const response = await fetchWithTimeout(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: "Generate one image based on this description. Return an image, not only text: " + prompt }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
-        })
-      },
-      60000
-    );
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      lastFailure = model + ":" + providerHttpError(response.status, data);
-      if (response.status === 404 && model !== models[models.length - 1]) continue;
-      throw new Error(lastFailure);
+  // Gemini 3.1 Flash Image uses the Interactions API. Gemini 2.5 remains
+  // available as a compatibility fallback through generateContent.
+  const response = await fetchWithTimeout(
+    "https://generativelanguage.googleapis.com/v1beta/interactions",
+    {
+      method: "POST",
+      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gemini-3.1-flash-image",
+        input: prompt
+      })
+    },
+    60000
+  );
+  const data = await response.json().catch(() => ({}));
+  if (response.ok) {
+    const outputImage = data?.output_image;
+    const imageStep = data?.steps?.filter((step: any) => step?.type === "model_output")
+      .flatMap((step: any) => step?.content || [])
+      .find((part: any) => part?.type === "image" && typeof part?.data === "string" && part.data.length > 0);
+    const image = outputImage?.data || imageStep?.data;
+    if (typeof image === "string" && image.length > 0) {
+      return { image, mimeType: outputImage?.mime_type || imageStep?.mime_type || "image/png" };
     }
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    const imagePart = parts.find((part: any) =>
-      (typeof part?.inlineData?.data === "string" && part.inlineData.data.length > 0) ||
-      (typeof part?.inline_data?.data === "string" && part.inline_data.data.length > 0)
-    );
-    const image = imagePart?.inlineData?.data || imagePart?.inline_data?.data;
-    if (!image) {
-      const finishReason = data?.candidates?.[0]?.finishReason || "UNKNOWN";
-      throw new Error(model + ":GEMINI_RETURNED_NO_IMAGE:" + finishReason);
-    }
-    return { image, mimeType: imagePart?.inlineData?.mimeType || imagePart?.inline_data?.mime_type || "image/png" };
+    throw new Error("GEMINI_3_1_RETURNED_NO_IMAGE:" + String(data?.status || "UNKNOWN"));
   }
-  throw new Error(lastFailure);
-}
 
+  // Only fall back for model/endpoint availability errors. Authentication,
+  // quota and billing failures must remain visible instead of being masked.
+  if (response.status !== 404 && response.status !== 400) {
+    throw new Error("gemini-3.1-flash-image:" + providerHttpError(response.status, data));
+  }
+
+  const fallback = await fetchWithTimeout(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent",
+    {
+      method: "POST",
+      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: "Generate one image based on this description. Return an image, not only text: " + prompt }] }],
+        generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+      })
+    },
+    60000
+  );
+  const fallbackData = await fallback.json().catch(() => ({}));
+  if (!fallback.ok) throw new Error("gemini-2.5-flash-image:" + providerHttpError(fallback.status, fallbackData));
+  const parts = fallbackData?.candidates?.[0]?.content?.parts || [];
+  const imagePart = parts.find((part: any) =>
+    (typeof part?.inlineData?.data === "string" && part.inlineData.data.length > 0) ||
+    (typeof part?.inline_data?.data === "string" && part.inline_data.data.length > 0)
+  );
+  const image = imagePart?.inlineData?.data || imagePart?.inline_data?.data;
+  if (!image) throw new Error("gemini-2.5-flash-image:GEMINI_RETURNED_NO_IMAGE:" + String(fallbackData?.candidates?.[0]?.finishReason || "UNKNOWN"));
+  return { image, mimeType: imagePart?.inlineData?.mimeType || imagePart?.inline_data?.mime_type || "image/png" };
+}
 async function generateOpenAIImage(key: string, prompt: string) {
   const response = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
     method: "POST",
