@@ -23,6 +23,7 @@
         
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #222; background: #111; position: sticky; top: 0; z-index: 10; }
         .header h2 { font-size: 18px; color: #fe2c55; }
+        #inboxStatus{padding:7px 15px;color:#aaa;font-size:12px;line-height:1.35;background:#080808;border-bottom:1px solid #1b1b1b;min-height:0} #inboxStatus:empty{display:none}
         
         /* User's Own Profile Banner */
         .my-inbox-profile { display: flex; align-items: center; gap: 12px; padding: 12px 15px; background: #121212; border-bottom: 1px solid #222; cursor: pointer; }
@@ -31,8 +32,8 @@
         .my-inbox-profile div p { font-size: 12px; color: #aaa; }
 
         /* Inbox Tabs */
-        .inbox-tabs { display: flex; justify-content: space-around; padding: 12px; background: #111; border-bottom: 1px solid #222; }
-        .inbox-tab { font-size: 14px; font-weight: 600; color: #777; cursor: pointer; padding-bottom: 4px; }
+        .inbox-tabs { display:flex; justify-content:flex-start; align-items:stretch; gap:22px; padding:12px 16px 10px; background:#111; border-bottom:1px solid #222; overflow-x:auto; overflow-y:hidden; white-space:nowrap; scrollbar-width:thin; -webkit-overflow-scrolling:touch; }
+        .inbox-tab { flex:0 0 auto; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; font-size:14px; line-height:1.35; font-weight:600; color:#888; cursor:pointer; padding:5px 0 9px; min-height:38px; }
         .inbox-tab.active { color: #fff; border-bottom: 2px solid #fe2c55; }
 
         /* Chat & Follower List */
@@ -179,7 +180,7 @@ const fallback="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.
 function esc(s){return String(s??"").replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]));}
 function nameOf(p){return p?.full_name||p?.username||"New Star User";}
 function avatarOf(p){return p?.avatar_url||fallback;}
-function setStatus(s){const el=$("inboxStatus");if(el)el.textContent=s;}
+function setStatus(s){const el=$("inboxStatus");if(!el)return;el.textContent=s;el.style.display="block";clearTimeout(window.__newStarInboxStatusTimer);if(/तैयार है|ready/i.test(s)){window.__newStarInboxStatusTimer=setTimeout(()=>{el.textContent="";el.style.display="none";},1800);}}
 function setFollowButtonState(button,state){
  const keys={following:"action.following",requested:"action.requested","request-follow":"action.requestFollow",follow:"action.follow",unavailable:null};
  button.dataset.followState=state;
