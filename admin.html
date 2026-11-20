@@ -23,6 +23,11 @@
 <section class="card"><h2>Creator Monetization Applications</h2><p class="muted">Owner-only manual quality review. Threshold completion only permits review; approval is not automatic. Rejections and suspensions require a reason. All decisions are audited.</p><div style="overflow:auto"><table><thead><tr><th>Creator</th><th>Eligibility route</th><th>Threshold snapshot</th><th>Applied</th><th>Current status</th><th>Review action</th></tr></thead><tbody id="creatorApplications"><tr><td colspan="6">Loading applications…</td></tr></tbody></table></div><p id="creatorApplicationsStatus" class="muted" aria-live="polite"></p></section>
 <section class="card"><h2>Platform Financial Overview</h2><div id="financials" class="grid"><p class="muted">Loading owner-only financial totals…</p></div><p class="muted">Only verified paid orders are included. Amounts are grouped by currency; gift totals are in Coins.</p></section>
 
+<section class="card"><h2>Platform Commission System</h2>
+<p class="muted">Owner-only commission schedule loaded from the private Supabase commission_rules table. Rates below are saved configuration drafts, not proof of earnings or active payout routing. Creator share is kept separate from the platform share.</p>
+<div style="overflow:auto"><table><thead><tr><th>Revenue source</th><th>Platform share</th><th>Creator share</th><th>Configuration</th></tr></thead><tbody id="commissionSchedule"><tr><td colspan="4">Loading saved commission rules…</td></tr></tbody></table></div>
+<p class="muted">Commission ledger settlement is not activated for ads, sponsorship, affiliate or campaigns. Gift ledger reconciliation is shown separately above. No payout or bank transfer is triggered from this page.</p>
+</section>
 <section class="card"><h2>Monetization & Provider Setup</h2>
 <p class="muted">Owner-only setup. AdMob identifiers are not secret. Bank account numbers, passwords, OTPs and Payoneer credentials must only be entered on the provider's official secure site; this dashboard does not collect or store them.</p>
 <div class="grid">
@@ -82,7 +87,12 @@ async function load(){
  const riskRows=data.watch_risk_review_queue||[];
  $("watchRiskQueue").innerHTML=riskRows.length?riskRows.map(r=>'<tr><td>'+esc(String(r.viewer_id||"").slice(0,8))+'…</td><td>'+esc(String(r.creator_id||"").slice(0,8))+'…</td><td>'+esc(String(r.video_id||"").slice(0,8))+'…</td><td>'+esc(r.occurrence_count)+'</td><td>'+esc(r.risk_score)+'</td><td>'+esc(new Date(r.last_seen_at).toLocaleString())+'</td></tr>').join(""):'<tr><td colspan="6">No watch-risk signals currently require review.</td></tr>';
  $("watchRiskQueueStatus").textContent=riskRows.length+" repeated playback pattern(s) need owner review. This is not an automatic fake-view verdict.";
- const f=data.financials||{};const financialCards=[];
+ const f=data.financials||{};
+ const commissionRules=f.gift_commission_rules||{};
+ const commissionLabels={video_gifts:"Video gifts",live_gifts:"LIVE gifts",gaming_stream_gifts:"LIVE Gaming gifts",ads:"Ads revenue",sponsorship:"Sponsorship",affiliate:"Affiliate commission",campaign:"Campaign budget"};
+ const commissionRows=Object.entries(commissionRules);
+ $("commissionSchedule").innerHTML=commissionRows.length?commissionRows.map(([code,rule])=>'<tr><td>'+esc(commissionLabels[code]||code.replaceAll("_"," "))+'</td><td>'+esc(rule.platform_percent)+'%</td><td>'+esc(rule.creator_percent)+'%</td><td>'+esc(rule.status||"unknown")+' · draft/config only</td></tr>').join(""):'<tr><td colspan="4">Commission rules unavailable. No rates are assumed.</td></tr>';
+ const financialCards=[];
  financialCards.push(["Verified paid orders",f.paid_orders_count??"Unavailable"]);
  (f.paid_totals_by_currency||[]).forEach(x=>financialCards.push(["Paid receipts · "+x.currency,formatMinor(x.amount_minor,x.currency)+" "+x.currency]));
  financialCards.push(["Creator gifts · gross",f.creator_gift_gross_coins??"Unavailable"]);
