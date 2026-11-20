@@ -199,199 +199,189 @@
             initDraggableFacecam();
         };
 
-        function startProGamingStream() {
-            let gameName = document.getElementById('gameNameInput').value || 'Free Fire Mobile';
-            document.getElementById('activeGameNameTag').innerText = gameName.toUpperCase();
+        let gamingPeer = null;
+        let gamingWhipUrl = null;
+        let gamingRoomId = null;
+        let gamingMicStream = null;
+        let gamingStartBusy = false;
 
-            if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-                navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" }, audio: true })
-                    .then(stream => {
-                        screenStreamObj = stream;
-                        stream.getVideoTracks()[0].onended = function() { stopGameStreamSession(); };
-                        activateLiveBackground(gameName);
-                    })
-                    .catch(err => {
-                        activateLiveBackground(gameName);
-                    });
-            } else {
-                activateLiveBackground(gameName);
-            }
-        }
-
-        function activateLiveBackground(gameName) {
-            document.getElementById('gamingSetupPanel').style.display = 'none';
-            document.getElementById('starBubbleIcon').style.display = 'flex';
-            
-            isLiveActive = true;
-            startFrontFacecam();
-
-            alert('✅ Live Stream Started! You can now go to your phone menu, open ' + gameName + ' and play. Tap the star logo anytime to open/collapse settings & gifts!');
-        }
-
-        function startFrontFacecam() {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true })
-                .then(stream => {
-                    facecamStreamObj = stream;
-                    document.getElementById('facecamVideoElement').srcObject = stream;
-                    document.getElementById('floatingFacecamBox').style.display = 'block';
-                    isCamActive = true;
-                })
-                .catch(err => {
-                    document.getElementById('floatingFacecamBox').style.display = 'none';
-                });
-        }
-
-        function toggleCameraPower() {
-            let facebox = document.getElementById('floatingFacecamBox');
-            let statusText = document.getElementById('camStateText');
-            isCamActive = !isCamActive;
-            if(isCamActive) {
-                facebox.style.display = 'block';
-                statusText.innerText = 'ACTIVE';
-                statusText.style.color = '#00b4d8';
-                if(facecamStreamObj) facecamStreamObj.getTracks().forEach(t => t.enabled = true);
-            } else {
-                facebox.style.display = 'none';
-                statusText.innerText = 'OFF (Logo Only)';
-                statusText.style.color = '#fe2c55';
-                if(facecamStreamObj) facecamStreamObj.getTracks().forEach(t => t.enabled = false);
-            }
-        }
-
-        function closeFacecamPermanent() {
-            document.getElementById('floatingFacecamBox').style.display = 'none';
-            isCamActive = false;
-            document.getElementById('camStateText').innerText = 'CLOSED';
-        }
-
-        function toggleMyMicrophone() {
-            isMicMuted = !isMicMuted;
-            document.getElementById('micStateText').innerText = isMicMuted ? 'MUTED' : 'ON';
-            if(facecamStreamObj && facecamStreamObj.getAudioTracks().length > 0) {
-                facecamStreamObj.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
-            }
-        }
-
-        function toggleControlModal() {
-            let modal = document.getElementById('activeGamingView');
-            modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
-        }
-
-        function initDraggableBubble() {
-            let bubble = document.getElementById('starBubbleIcon');
-            let isDragging = false, startX, startY, initX, initY;
-            bubble.addEventListener('pointerdown', function(e) {
-                isDragging = true; startX = e.clientX; startY = e.clientY;
-                let rect = bubble.getBoundingClientRect();
-                initX = rect.left; initY = rect.top;
-                bubble.setPointerCapture(e.pointerId);
+        async function gamingLiveApi(action, extra = {}) {
+            const client = window.supabaseClient;
+            if (!client) throw new Error('Supabase connection is not ready. Refresh and sign in again.');
+            const { data, error } = await client.auth.getSession();
+            const token = data?.session?.access_token;
+            if (error || !token) throw new Error('Please sign in before starting a gaming LIVE.');
+            const response = await fetch('https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-live', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': window.SUPABASE_ANON_KEY || '',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ action, ...extra })
             });
-            bubble.addEventListener('pointermove', function(e) {
-                if(!isDragging) return;
-                bubble.style.left = (initX + (e.clientX - startX)) + 'px';
-                bubble.style.top = (initY + (e.clientY - startY)) + 'px';
-                bubble.style.right = 'auto';
-            });
-            bubble.addEventListener('pointerup', function(e) {
-                if(Math.abs(e.clientX - startX) < 5 && Math.abs(e.clientY - startY) < 5) {
-                    toggleControlModal();
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || !payload.ok) throw new Error(payload.error || 'Gaming LIVE service failed (' + response.status + ').');
+            return payload;
+        }
+
+        async function startProGamingStream() {
+            if (gamingStartBusy || isLiveActive) return;
+            gamingStartBusy = true;
+            const button = document.querySelector('#gamingSetupPanel .btn');
+            const oldLabel = button?.textContent || '';
+            if (button) { button.disabled = true; button.textContent = 'Requesting screen permission…'; }
+            let captured = null, peer = null, roomId = null, mic = null;
+            try {
+                if (!window.isSecureContext || !navigator.mediaDevices?.getDisplayMedia || !window.RTCPeerConnection) {
+                    throw new Error('इस Android/browser में screen sharing उपलब्ध नहीं है। Updated Chrome में HTTPS पर खोलें। अगर Android फिर भी screen share न दे, तो native Android MediaProjection app की जरूरत होगी।');
                 }
-                isDragging = false;
-            });
-        }
 
-        function initDraggableFacecam() {
-            let box = document.getElementById('floatingFacecamBox');
-            let isDragging = false, startX, startY, initX, initY;
-            box.addEventListener('pointerdown', function(e) {
-                if(e.target.tagName === 'BUTTON') return;
-                isDragging = true; startX = e.clientX; startY = e.clientY;
-                let rect = box.getBoundingClientRect();
-                initX = rect.left; initY = rect.top;
-                box.setPointerCapture(e.pointerId);
-            });
-            box.addEventListener('pointermove', function(e) {
-                if(!isDragging) return;
-                box.style.left = (initX + (e.clientX - startX)) + 'px';
-                box.style.top = (initY + (e.clientY - startY)) + 'px';
-                box.style.right = 'auto';
-            });
-            box.addEventListener('pointerup', function() { isDragging = false; });
-        }
+                // Must run immediately from the user's tap before any network await.
+                captured = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                if (!captured.getVideoTracks().length) throw new Error('Screen capture did not provide a video track.');
 
-        function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
-        function openTreasureBoxModal() { document.getElementById('treasureBoxModal').style.display = 'flex'; }
-        function openChatBoxModal() { document.getElementById('chatBoxModal').style.display = 'flex'; }
-        function openGamePkModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
+                if (button) button.textContent = 'Connecting to New Star LIVE…';
+                const gameName = (document.getElementById('gameNameInput').value || 'Mobile Game').trim().slice(0, 80);
+                const prepared = await gamingLiveApi('prepare', {
+                    room_title: 'Gaming: ' + gameName,
+                    stream_mode: 'screen'
+                });
+                roomId = prepared.room_id;
 
-        function sendRealGift(name, cost) {
-            let wallet = document.getElementById('userWalletCoins');
-            let coins = parseInt(wallet.innerText);
-            if(coins >= cost) {
-                wallet.innerText = coins - cost;
-                alert('🎉 Sent ' + name + ' successfully!');
-                closeModal('realGiftModal');
-            } else { alert('❌ Not enough coins in wallet!'); }
-        }
+                try {
+                    mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false });
+                } catch (micError) {
+                    console.warn('Gaming microphone unavailable; continuing with captured screen audio if provided.', micError);
+                }
 
-        function claimTreasureReward() {
-            let wallet = document.getElementById('userWalletCoins');
-            let coins = parseInt(wallet.innerText) + 50;
-            wallet.innerText = coins;
-            alert('✨ Claimed 50 Free Coins from Treasure Box!');
-            closeModal('treasureBoxModal');
-        }
+                peer = new RTCPeerConnection();
+                captured.getVideoTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
+                captured.getAudioTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
+                (mic?.getAudioTracks() || []).forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
 
-        function sendLiveChatMessage() {
-            let input = document.getElementById('chatInputMsg');
-            let msg = input.value.trim();
-            if(msg !== '') {
-                let list = document.getElementById('chatMessagesList');
-                list.innerHTML += '<div><b>You:</b> ' + msg + '</div>';
-                input.value = '';
-                list.scrollTop = list.scrollHeight;
+                const offer = await peer.createOffer();
+                await peer.setLocalDescription(offer);
+                const response = await fetch(prepared.whip_url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/sdp' },
+                    body: offer.sdp
+                });
+                if (!response.ok) throw new Error('Cloudflare screen broadcast handshake failed (' + response.status + ').');
+                const answer = await response.text();
+                const location = response.headers.get('Location');
+                if (!answer || !location) throw new Error('Cloudflare returned an incomplete gaming stream session.');
+                await peer.setRemoteDescription({ type: 'answer', sdp: answer });
+                await gamingLiveApi('confirm', { room_id: roomId });
+
+                screenStreamObj = captured;
+                gamingMicStream = mic;
+                gamingPeer = peer;
+                gamingWhipUrl = new URL(location, prepared.whip_url).toString();
+                gamingRoomId = roomId;
+                isLiveActive = true;
+                document.getElementById('gamingSetupPanel').style.display = 'none';
+                document.getElementById('starBubbleIcon').style.display = 'flex';
+                document.getElementById('activeGameNameTag').textContent = gameName.toUpperCase() + ' SCREEN';
+                document.getElementById('camStateText').textContent = 'PREVIEW ONLY';
+                document.getElementById('floatingFacecamBox').style.display = 'none';
+                captured.getVideoTracks()[0].addEventListener('ended', () => stopGameStreamSession());
+                alert('Gaming broadcast is connected to New Star. Screen video is being sent. System/game audio depends on browser and Android support; microphone is added when permission is granted.');
+            } catch (error) {
+                if (peer) peer.close();
+                if (captured) captured.getTracks().forEach(track => track.stop());
+                if (mic) mic.getTracks().forEach(track => track.stop());
+                if (roomId) {
+                    try { await gamingLiveApi('stop', { room_id: roomId }); } catch (_) {}
+                }
+                alert(error?.message || 'Gaming LIVE could not start.');
+            } finally {
+                gamingStartBusy = false;
+                if (button) { button.disabled = false; button.textContent = oldLabel || '🚀 Launch Game Stream Live'; }
             }
         }
-        
-        function startPkBattle() {
-            alert('⚔️ PK Battle launched successfully!');
-            closeModal('pkBattleModal');
-        }
 
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        
-
-        // Safety overrides: never claim a broadcast, gift, reward, or PK is live/paid
-        // until real server-side streaming and transaction systems are connected.
-        function startProGamingStream() {
-            alert('Screen capture is not a live broadcast. New Star gaming broadcast is unavailable until server streaming is connected. No stream was started.');
-        }
-        function sendRealGift() {
-            alert('Gifts are temporarily unavailable. No coins were deducted.');
-        }
-        function claimTreasureReward() {
-            alert('Rewards are unavailable until verified server-side prize claims are connected. No coins were added.');
-        }
-        function startPkBattle() {
-            alert('PK Battle is unavailable until real matchmaking and remote participants are connected.');
-        }
-
-        function stopGameStreamSession() {
-            if(screenStreamObj) screenStreamObj.getTracks().forEach(t => t.stop());
-            if(facecamStreamObj) facecamStreamObj.getTracks().forEach(t => t.stop());
+        async function stopGameStreamSession() {
+            const sessionUrl = gamingWhipUrl;
+            const roomId = gamingRoomId;
+            if (sessionUrl) {
+                try { await fetch(sessionUrl, { method: 'DELETE' }); }
+                catch (error) { console.warn('Gaming WHIP cleanup:', error); }
+            }
+            if (gamingPeer) gamingPeer.close();
+            if (screenStreamObj) screenStreamObj.getTracks().forEach(track => track.stop());
+            if (gamingMicStream) gamingMicStream.getTracks().forEach(track => track.stop());
+            if (facecamStreamObj) facecamStreamObj.getTracks().forEach(track => track.stop());
+            gamingPeer = null; gamingWhipUrl = null; gamingRoomId = null;
+            gamingMicStream = null; screenStreamObj = null; facecamStreamObj = null;
+            isLiveActive = false;
             document.getElementById('floatingFacecamBox').style.display = 'none';
             document.getElementById('starBubbleIcon').style.display = 'none';
             document.getElementById('activeGamingView').style.display = 'none';
             document.getElementById('gamingSetupPanel').style.display = 'block';
-            isLiveActive = false;
-            alert('⏹️ Live stream ended successfully.');
+            if (roomId) {
+                try { await gamingLiveApi('stop', { room_id: roomId }); }
+                catch (error) { alert('Screen capture stopped, but server room status could not be updated: ' + error.message); return; }
+            }
+            alert('Gaming broadcast ended.');
         }
-        // Do not simulate coin rewards, gifts or a live broadcast.
-        function sendRealGift(){ alert('Gift sending disabled: verified server-side coin transactions are not connected.'); }
-        function claimTreasureReward(){ alert('No free coins were added. Rewards require server verification.'); }
-        function startGamingLive(){ alert('Screen capture may preview locally, but no viewer broadcast is connected. Live has NOT started.'); }
-        function startScreenShare(){ alert('Screen sharing is not being broadcast. A real WebRTC media server is required.'); }
-        function startPkBattle(){ alert('PK Battle is unavailable until real multiplayer matchmaking is connected.'); }
+
+        function startFrontFacecam() {
+            alert('Facecam preview is not currently composited into the gaming broadcast.');
+        }
+        function toggleCameraPower() {
+            isCamActive = !isCamActive;
+            document.getElementById('camStateText').textContent = isCamActive ? 'PREVIEW ONLY' : 'OFF';
+            document.getElementById('floatingFacecamBox').style.display = 'none';
+        }
+        function closeFacecamPermanent() {
+            document.getElementById('floatingFacecamBox').style.display = 'none';
+            isCamActive = false;
+            document.getElementById('camStateText').textContent = 'OFF';
+        }
+        function toggleMyMicrophone() {
+            isMicMuted = !isMicMuted;
+            document.getElementById('micStateText').textContent = isMicMuted ? 'MUTED' : 'ON';
+            if (gamingMicStream) gamingMicStream.getAudioTracks().forEach(track => track.enabled = !isMicMuted);
+        }
+        function toggleControlModal() {
+            const modal = document.getElementById('activeGamingView');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+        function initDraggableBubble() {
+            const bubble = document.getElementById('starBubbleIcon');
+            let dragging = false, sx = 0, sy = 0, ix = 0, iy = 0;
+            bubble.addEventListener('pointerdown', e => {
+                dragging = true; sx = e.clientX; sy = e.clientY;
+                const rect = bubble.getBoundingClientRect(); ix = rect.left; iy = rect.top;
+                bubble.setPointerCapture(e.pointerId);
+            });
+            bubble.addEventListener('pointermove', e => {
+                if (!dragging) return;
+                bubble.style.left = (ix + e.clientX - sx) + 'px';
+                bubble.style.top = (iy + e.clientY - sy) + 'px';
+                bubble.style.right = 'auto';
+            });
+            bubble.addEventListener('pointerup', e => {
+                if (Math.abs(e.clientX - sx) < 5 && Math.abs(e.clientY - sy) < 5) toggleControlModal();
+                dragging = false;
+            });
+        }
+        function initDraggableFacecam() {}
+        function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
+        function openTreasureBoxModal() { document.getElementById('treasureBoxModal').style.display = 'flex'; }
+        function openChatBoxModal() { document.getElementById('chatBoxModal').style.display = 'flex'; }
+        function openGamePkModal() { document.getElementById('pkBattleModal').style.display = 'flex'; }
+        function sendRealGift() { alert('Gaming gifts are not yet connected to a server-side live gift transaction. No coins were deducted.'); }
+        function claimTreasureReward() { alert('Gaming Treasure Box is not connected to a server-managed prize pool. No coins were added.'); }
+        function sendLiveChatMessage() {
+            const input = document.getElementById('chatInputMsg');
+            const msg = input.value.trim();
+            if (!msg) return;
+            alert('Live chat is not yet connected to the shared room message service. Message was not sent.');
+        }
+        function startPkBattle() { alert('Gaming PK matchmaking is not yet connected to real participants. No battle was created.'); }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     </script>
 <script src="preferences.js"></script>
 
