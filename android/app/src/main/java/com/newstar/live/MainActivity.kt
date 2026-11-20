@@ -47,7 +47,12 @@ class MainActivity : AppCompatActivity() {
         }
         web.addJavascriptInterface(Bridge(), "NewStarNative")
         val f = IntentFilter(GamingStreamService.STATUS)
-        if (Build.VERSION.SDK_INT >= 33) registerReceiver(receiver, f, Context.RECEIVER_NOT_EXPORTED) else @Suppress("DEPRECATION") registerReceiver(receiver, f)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(receiver, f, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(receiver, f)
+        }
         web.loadUrl("https://new-star-delta.vercel.app/gaming.html")
     }
     private fun emit(status: String, message: String, resource: String = "") {
