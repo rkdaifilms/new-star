@@ -66,7 +66,7 @@
     <!-- GAMING SETUP PANEL -->
     <div class="studio-card" id="gamingSetupPanel">
         <div class="section-title">Pro Gaming Screen Stream</div>
-        <div class="section-desc">Launch full screen live stream, go to your phone menu, open Free Fire & stream seamlessly!</div>
+        <div class="section-desc">Share your phone screen, stream gameplay, and optionally include your front camera and microphone. Android/browser screen-sharing support is required.</div>
         
         <label>Game Name (e.g., Free Fire, BGMI, PUBG):</label>
         <input type="text" id="gameNameInput" value="Free Fire Mobile">
@@ -225,47 +225,124 @@
             return payload;
         }
 
+        let gamingCanvas = null;
+        let gamingCanvasStream = null;
+        let gamingAudioContext = null;
+        let gamingAnimationFrame = null;
+        let gamingScreenVideo = null;
+        let gamingFaceVideo = null;
+        let gamingMicEnabled = true;
+
         async function startProGamingStream() {
             if (gamingStartBusy || isLiveActive) return;
             gamingStartBusy = true;
             const button = document.querySelector('#gamingSetupPanel .btn');
             const oldLabel = button?.textContent || '';
             if (button) { button.disabled = true; button.textContent = 'Requesting screen permission…'; }
-            let captured = null, peer = null, roomId = null, mic = null;
+            let captured = null, peer = null, roomId = null, mic = null, face = null, canvasStream = null, audioContext = null;
             try {
                 if (!window.isSecureContext || !navigator.mediaDevices?.getDisplayMedia || !window.RTCPeerConnection) {
-                    throw new Error('इस Android/browser में screen sharing उपलब्ध नहीं है। Updated Chrome में HTTPS पर खोलें। अगर Android फिर भी screen share न दे, तो native Android MediaProjection app की जरूरत होगी।');
+                    throw new Error('इस browser में screen capture उपलब्ध नहीं है। Updated Chrome और HTTPS पर कोशिश करें। कुछ Android फोन/PWA दूसरे ऐप की स्क्रीन शेयर नहीं करते; वहाँ native Android MediaProjection app जरूरी होगा।');
                 }
 
-                // Must run immediately from the user's tap before any network await.
-                captured = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-                if (!captured.getVideoTracks().length) throw new Error('Screen capture did not provide a video track.');
+                // Screen capture MUST be requested immediately from the launch tap.
+                captured = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30, max: 30 } }, audio: true });
+                const screenTrack = captured.getVideoTracks()[0];
+                if (!screenTrack) throw new Error('Phone screen capture का video track नहीं मिला।');
+
+                if (button) button.textContent = 'Connecting camera and microphone…';
+                try {
+                    face = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+                } catch (cameraError) {
+                    console.warn('Optional face camera unavailable:', cameraError);
+                }
+                try {
+                    mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+                } catch (micError) {
+                    console.warn('Optional microphone unavailable:', micError);
+                }
+
+                const gameName = (document.getElementById('gameNameInput').value || 'Mobile Game').trim().slice(0, 80);
+                const screenVideo = document.createElement('video');
+                screenVideo.muted = true; screenVideo.playsInline = true; screenVideo.srcObject = captured;
+                await screenVideo.play().catch(() => {});
+                gamingScreenVideo = screenVideo;
+
+                let faceVideo = null;
+                if (face) {
+                    faceVideo = document.getElementById('facecamVideoElement');
+                    faceVideo.srcObject = face; faceVideo.muted = true; faceVideo.playsInline = true;
+                    await faceVideo.play().catch(() => {});
+                    gamingFaceVideo = faceVideo;
+                    isCamActive = true;
+                    document.getElementById('floatingFacecamBox').style.display = 'block';
+                } else {
+                    isCamActive = false;
+                    document.getElementById('floatingFacecamBox').style.display = 'none';
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 1280; canvas.height = 720;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('Gaming video compositor could not start.');
+                gamingCanvas = canvas;
+
+                const drawFrame = () => {
+                    if (!isLiveActive && !gamingStartBusy) return;
+                    const sw = screenVideo.videoWidth || 1280, sh = screenVideo.videoHeight || 720;
+                    ctx.fillStyle = '#080808'; ctx.fillRect(0, 0, 1280, 720);
+                    if (screenVideo.readyState >= 2) {
+                        const scale = Math.max(1280 / sw, 720 / sh);
+                        const dw = sw * scale, dh = sh * scale;
+                        ctx.drawImage(screenVideo, (1280 - dw) / 2, (720 - dh) / 2, dw, dh);
+                    }
+                    if (isCamActive && faceVideo && faceVideo.readyState >= 2) {
+                        const w = 220, h = 165, x = 1280 - w - 28, y = 28, r = 22;
+                        ctx.save();
+                        ctx.beginPath();
+                        if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+                        ctx.clip();
+                        const fw = faceVideo.videoWidth || 640, fh = faceVideo.videoHeight || 480;
+                        const fs = Math.max(w / fw, h / fh), fdw = fw * fs, fdh = fh * fs;
+                        ctx.drawImage(faceVideo, x + (w - fdw) / 2, y + (h - fdh) / 2, fdw, fdh);
+                        ctx.restore();
+                        ctx.strokeStyle = '#25f4ee'; ctx.lineWidth = 5;
+                        ctx.beginPath();
+                        if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+                        ctx.stroke();
+                    }
+                    gamingAnimationFrame = requestAnimationFrame(drawFrame);
+                };
+                drawFrame();
+                canvasStream = canvas.captureStream(30);
+                if (!canvasStream.getVideoTracks().length) throw new Error('Could not create the combined gaming video stream.');
+
+                // Mix game/system audio (if Android/browser supplies it) with the creator microphone.
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx && (captured.getAudioTracks().length || mic?.getAudioTracks().length)) {
+                    audioContext = new AudioCtx();
+                    const destination = audioContext.createMediaStreamDestination();
+                    if (captured.getAudioTracks().length) {
+                        const screenAudio = new MediaStream(captured.getAudioTracks());
+                        audioContext.createMediaStreamSource(screenAudio).connect(destination);
+                    }
+                    if (mic?.getAudioTracks().length) {
+                        const micAudio = new MediaStream(mic.getAudioTracks());
+                        audioContext.createMediaStreamSource(micAudio).connect(destination);
+                    }
+                    await audioContext.resume().catch(() => {});
+                    destination.stream.getAudioTracks().forEach(track => canvasStream.addTrack(track));
+                }
 
                 if (button) button.textContent = 'Connecting to New Star LIVE…';
-                const gameName = (document.getElementById('gameNameInput').value || 'Mobile Game').trim().slice(0, 80);
-                const prepared = await gamingLiveApi('prepare', {
-                    room_title: 'Gaming: ' + gameName,
-                    stream_mode: 'screen'
-                });
+                const prepared = await gamingLiveApi('prepare', { room_title: 'Gaming: ' + gameName, stream_mode: 'screen' });
                 roomId = prepared.room_id;
-
-                try {
-                    mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false });
-                } catch (micError) {
-                    console.warn('Gaming microphone unavailable; continuing with captured screen audio if provided.', micError);
-                }
-
                 peer = new RTCPeerConnection();
-                captured.getVideoTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
-                captured.getAudioTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
-                (mic?.getAudioTracks() || []).forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
-
+                canvasStream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
                 const offer = await peer.createOffer();
                 await peer.setLocalDescription(offer);
                 const response = await fetch(prepared.whip_url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/sdp' },
-                    body: offer.sdp
+                    method: 'POST', headers: { 'Content-Type': 'application/sdp' }, body: offer.sdp
                 });
                 if (!response.ok) throw new Error('Cloudflare screen broadcast handshake failed (' + response.status + ').');
                 const answer = await response.text();
@@ -275,25 +352,34 @@
                 await gamingLiveApi('confirm', { room_id: roomId });
 
                 screenStreamObj = captured;
+                facecamStreamObj = face;
                 gamingMicStream = mic;
+                gamingCanvasStream = canvasStream;
+                gamingAudioContext = audioContext;
                 gamingPeer = peer;
                 gamingWhipUrl = new URL(location, prepared.whip_url).toString();
                 gamingRoomId = roomId;
                 isLiveActive = true;
+                gamingMicEnabled = true;
+                isMicMuted = false;
                 document.getElementById('gamingSetupPanel').style.display = 'none';
                 document.getElementById('starBubbleIcon').style.display = 'flex';
                 document.getElementById('activeGameNameTag').textContent = gameName.toUpperCase() + ' SCREEN';
-                document.getElementById('camStateText').textContent = 'PREVIEW ONLY';
-                document.getElementById('floatingFacecamBox').style.display = 'none';
-                captured.getVideoTracks()[0].addEventListener('ended', () => stopGameStreamSession());
-                alert('Gaming broadcast is connected to New Star. Screen video is being sent. System/game audio depends on browser and Android support; microphone is added when permission is granted.');
+                document.getElementById('camStateText').textContent = face ? 'ON — IN LIVE' : 'OFF';
+                document.getElementById('micStateText').textContent = mic ? 'ON' : 'MIC UNAVAILABLE';
+                document.getElementById('activeGamingView').style.display = 'flex';
+                screenTrack.addEventListener('ended', () => stopGameStreamSession());
+                const audioNote = captured.getAudioTracks().length ? 'Screen/game audio track detected.' : 'Browser did not provide game/system audio; microphone can still be used.';
+                alert('Gaming LIVE connected. Your screen is being streamed.' + (face ? ' Facecam is included.' : ' Camera was not enabled.') + ' ' + audioNote);
             } catch (error) {
+                if (gamingAnimationFrame) cancelAnimationFrame(gamingAnimationFrame);
                 if (peer) peer.close();
                 if (captured) captured.getTracks().forEach(track => track.stop());
+                if (face) face.getTracks().forEach(track => track.stop());
                 if (mic) mic.getTracks().forEach(track => track.stop());
-                if (roomId) {
-                    try { await gamingLiveApi('stop', { room_id: roomId }); } catch (_) {}
-                }
+                if (canvasStream) canvasStream.getTracks().forEach(track => track.stop());
+                if (audioContext) await audioContext.close().catch(() => {});
+                if (roomId) { try { await gamingLiveApi('stop', { room_id: roomId }); } catch (_) {} }
                 alert(error?.message || 'Gaming LIVE could not start.');
             } finally {
                 gamingStartBusy = false;
@@ -302,19 +388,18 @@
         }
 
         async function stopGameStreamSession() {
-            const sessionUrl = gamingWhipUrl;
-            const roomId = gamingRoomId;
-            if (sessionUrl) {
-                try { await fetch(sessionUrl, { method: 'DELETE' }); }
-                catch (error) { console.warn('Gaming WHIP cleanup:', error); }
-            }
+            const sessionUrl = gamingWhipUrl, roomId = gamingRoomId;
+            if (sessionUrl) { try { await fetch(sessionUrl, { method: 'DELETE' }); } catch (error) { console.warn('Gaming WHIP cleanup:', error); } }
             if (gamingPeer) gamingPeer.close();
-            if (screenStreamObj) screenStreamObj.getTracks().forEach(track => track.stop());
-            if (gamingMicStream) gamingMicStream.getTracks().forEach(track => track.stop());
-            if (facecamStreamObj) facecamStreamObj.getTracks().forEach(track => track.stop());
+            if (gamingAnimationFrame) cancelAnimationFrame(gamingAnimationFrame);
+            [screenStreamObj, facecamStreamObj, gamingMicStream, gamingCanvasStream].forEach(stream => stream?.getTracks().forEach(track => track.stop()));
+            if (gamingAudioContext) await gamingAudioContext.close().catch(() => {});
             gamingPeer = null; gamingWhipUrl = null; gamingRoomId = null;
             gamingMicStream = null; screenStreamObj = null; facecamStreamObj = null;
-            isLiveActive = false;
+            gamingCanvasStream = null; gamingAudioContext = null; gamingScreenVideo = null; gamingFaceVideo = null; gamingCanvas = null;
+            const faceVideo = document.getElementById('facecamVideoElement');
+            if (faceVideo) faceVideo.srcObject = null;
+            isLiveActive = false; isCamActive = false; isMicMuted = false;
             document.getElementById('floatingFacecamBox').style.display = 'none';
             document.getElementById('starBubbleIcon').style.display = 'none';
             document.getElementById('activeGamingView').style.display = 'none';
@@ -326,23 +411,64 @@
             alert('Gaming broadcast ended.');
         }
 
-        function startFrontFacecam() {
-            alert('Facecam preview is not currently composited into the gaming broadcast.');
-        }
-        function toggleCameraPower() {
+        async function toggleCameraPower() {
+            if (!isLiveActive) return;
+            if (!facecamStreamObj && !isCamActive) {
+                try {
+                    facecamStreamObj = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+                    const video = document.getElementById('facecamVideoElement');
+                    video.srcObject = facecamStreamObj; await video.play();
+                    gamingFaceVideo = video;
+                } catch (error) {
+                    alert('Camera permission was not granted: ' + (error.message || error));
+                    return;
+                }
+            }
             isCamActive = !isCamActive;
-            document.getElementById('camStateText').textContent = isCamActive ? 'PREVIEW ONLY' : 'OFF';
-            document.getElementById('floatingFacecamBox').style.display = 'none';
+            document.getElementById('camStateText').textContent = isCamActive ? 'ON — IN LIVE' : 'OFF';
+            document.getElementById('floatingFacecamBox').style.display = isCamActive ? 'block' : 'none';
+            if (!isCamActive && facecamStreamObj) {
+                facecamStreamObj.getTracks().forEach(track => track.stop());
+                facecamStreamObj = null;
+                const video = document.getElementById('facecamVideoElement');
+                if (video) video.srcObject = null;
+                gamingFaceVideo = null;
+            }
         }
-        function closeFacecamPermanent() {
+
+        async function closeFacecamPermanent() {
+            if (facecamStreamObj) facecamStreamObj.getTracks().forEach(track => track.stop());
+            facecamStreamObj = null; gamingFaceVideo = null; isCamActive = false;
+            const video = document.getElementById('facecamVideoElement');
+            if (video) video.srcObject = null;
             document.getElementById('floatingFacecamBox').style.display = 'none';
-            isCamActive = false;
             document.getElementById('camStateText').textContent = 'OFF';
+        }
+
+        function startFrontFacecam() { return toggleCameraPower(); }
+        function initDraggableFacecam() {
+            const box = document.getElementById('floatingFacecamBox');
+            if (!box) return;
+            let dragging = false, sx = 0, sy = 0, left = 0, top = 0;
+            box.addEventListener('pointerdown', e => {
+                if (e.target.closest('button')) return;
+                dragging = true; sx = e.clientX; sy = e.clientY;
+                const rect = box.getBoundingClientRect(); left = rect.left; top = rect.top;
+                box.setPointerCapture(e.pointerId);
+            });
+            box.addEventListener('pointermove', e => {
+                if (!dragging) return;
+                box.style.left = (left + e.clientX - sx) + 'px';
+                box.style.top = (top + e.clientY - sy) + 'px';
+                box.style.bottom = 'auto';
+            });
+            box.addEventListener('pointerup', () => { dragging = false; });
         }
         function toggleMyMicrophone() {
             isMicMuted = !isMicMuted;
-            document.getElementById('micStateText').textContent = isMicMuted ? 'MUTED' : 'ON';
-            if (gamingMicStream) gamingMicStream.getAudioTracks().forEach(track => track.enabled = !isMicMuted);
+            gamingMicEnabled = !isMicMuted;
+            if (gamingMicStream) gamingMicStream.getAudioTracks().forEach(track => track.enabled = gamingMicEnabled);
+            document.getElementById('micStateText').textContent = isMicMuted ? 'MUTED' : (gamingMicStream ? 'ON' : 'MIC UNAVAILABLE');
         }
         function toggleControlModal() {
             const modal = document.getElementById('activeGamingView');
@@ -367,7 +493,6 @@
                 dragging = false;
             });
         }
-        function initDraggableFacecam() {}
         function openRealGiftModal() { document.getElementById('realGiftModal').style.display = 'flex'; }
         function openTreasureBoxModal() { document.getElementById('treasureBoxModal').style.display = 'flex'; }
         function openChatBoxModal() { document.getElementById('chatBoxModal').style.display = 'flex'; }
