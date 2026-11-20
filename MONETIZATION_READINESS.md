@@ -21,7 +21,7 @@ This document records verified implementation state. It is not a claim that live
 - `gaming_battle`: 2,500 basis points, **draft** (25% proposed; no paid entry, staking, or coin-prize pool).
 - `affiliate`: 2,000 basis points, **draft** (20% proposed platform share of the eligible commission, not of the whole product sale).
 - `campaign`: 2,500 basis points, **draft** (25% proposed service fee; campaign spend, creator reward, and taxes must remain separately accounted).
-- `sponsorship`: 10,000 basis points, **draft** (100% platform share only for contracts with no creator share; never apply as a universal default).
+- `sponsorship`: 2,000 basis points, **draft** (20% platform / 80% creator for creator-sponsored campaigns; calculate the split on the agreed distributable sponsorship amount after explicitly agreed taxes, refunds, and pass-through campaign costs. A platform-only sponsorship must use a separate written contract and separate rule, not this creator-campaign default).
 - `ads`: 5,500 basis points, **draft** (55% platform / 45% creator proposal; earnings require verified network reporting).
 - Draft values are setup records only. They must not be treated as active payable earnings or used to move money until an eligible adult-managed account owner approves the commercial terms and the corresponding revenue route is implemented and tested.
 - `public.send_creator_gift_secure` has been changed to read the `video_gifts` rule. Its caller wiring has not yet been verified, so do not assume that the app's video-gift UI is connected to it. It remains service-role-only; do not expose direct client execution.
@@ -46,7 +46,7 @@ This document records verified implementation state. It is not a claim that live
 - [ ] Payment initiation and provider lookup/callback verification are implemented server-side.
 - [ ] Sandbox tests cover success, cancellation, timeout, duplicate callback, refund, and amount/currency mismatch.
 - [ ] Coin packages have owner-approved prices, currency, region, and bonus policy.
-- [ ] Gift path uses the secure server function and proves 50/50 accounting for both live and video gifts.
+- [ ] Gift paths use the secure server function and prove the configured commission accounting for live and video gifts.
 - [ ] AdMob Android SDK and AdSense web tags are integrated separately and approved.
 - [ ] Payout onboarding and settlement are independently reviewed and tested.
 - [ ] Production monitoring and financial reconciliation are enabled.
