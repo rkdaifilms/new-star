@@ -22,7 +22,7 @@ main{width:min(900px,100%);margin:0 auto;padding:14px;flex:1;display:flex;flex-d
 .user{align-self:flex-end;background:#8f1e3b}.assistant{align-self:flex-start;background:#24242e;border:1px solid #383844}
 .msg-actions{display:flex;gap:8px;margin-top:8px}.msg-actions button{border:1px solid #555;border-radius:8px;background:#30303a;color:#fff;padding:6px 9px}
 #composer{position:sticky;bottom:0;background:#101014;padding:10px 0 calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
-#prompt{width:100%;min-height:76px;resize:vertical;background:#1b1b23;border:1px solid #454552;border-radius:12px;padding:12px;color:white;font:inherit}
+#prompt-wrap{position:relative;width:100%}#prompt{width:100%;min-height:82px;resize:vertical;background:#1b1b23;border:1px solid #454552;border-radius:12px;padding:12px 58px 12px 12px;color:white;font:inherit} .prompt-mic{position:absolute;right:10px;bottom:10px;width:42px;height:42px;border-radius:50%;border:1px solid #686878;background:#fe2c55;color:#fff;font-size:21px;display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 2px 10px #0008}.prompt-mic:disabled{opacity:.55}
 .composer-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.composer-row button{border:0;border-radius:10px;padding:11px 14px;background:var(--accent);color:white;font-weight:700}.composer-row button.secondary{background:#272731;border:1px solid #494956}.composer-row button:disabled{opacity:.55}
 #voice-status,#notice{color:var(--muted);font-size:12px;margin:7px 2px}
 #image-result img{width:100%;max-width:640px;border-radius:14px;border:1px solid var(--line)}
@@ -52,8 +52,8 @@ small.hint{color:var(--muted)}
 <div id="chat-log" aria-live="polite"><div class="msg assistant">Hello! Tell me what you want to create. I’ll reply in the language you use.</div></div>
 <div id="image-result" hidden></div>
 <section id="composer">
-<textarea id="prompt" maxlength="8000" placeholder="Ask anything, describe your video idea, or tell me what to write…"></textarea>
-<div class="composer-row"><button type="button" id="send">Send</button><button type="button" id="voice" class="secondary" aria-label="Record your spoken message">🎙️ बोलें / Speak</button><button type="button" id="stop-voice" class="secondary" hidden>■ रिकॉर्डिंग रोकें / Stop</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> Speak answers</label></div>
+<div id="prompt-wrap"><textarea id="prompt" maxlength="8000" placeholder="अपना संदेश लिखें या माइक दबाकर बोलें…"></textarea><button type="button" id="voice" aria-label="माइक से बोलें" title="माइक से बोलें / Speak" class="prompt-mic">🎙️</button></div>
+<div class="composer-row"><button type="button" id="send">Send</button><button type="button" id="stop-voice" class="secondary" hidden>■ रिकॉर्डिंग रोकें / Stop</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> Speak answers</label></div>
 <div id="voice-status" role="status" aria-live="polite">माइक दबाकर अपनी भाषा में बोलें। रोकने पर AI आपकी आवाज़ को टेक्स्ट में बदलेगा; जाँचकर Send दबाएँ।</div>
 <div id="notice">Sign in required. Do not enter passwords, OTPs, API keys or private financial details.</div>
 </section>
