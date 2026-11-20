@@ -86,7 +86,7 @@ class MainActivity : AppCompatActivity() {
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                    progress.visibility = if (newProgress >= 100) View.GONE else View.VISIBLE
+                    progress.setVisibility(if (newProgress >= 100) View.GONE else View.VISIBLE)
                 }
 
                 override fun onShowFileChooser(
@@ -132,11 +132,11 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                    progress.visibility = View.VISIBLE
+                    progress.setVisibility(View.VISIBLE)
                 }
 
                 override fun onPageCommitVisible(view: WebView?, url: String?) {
-                    progress.visibility = View.GONE
+                    progress.setVisibility(View.GONE)
                 }
 
                 override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -157,7 +157,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showLoadError(message: String) {
-        progress.visibility = View.GONE
+        progress.setVisibility(View.GONE)
         val safeMessage = message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         val html = """
             <html><meta name="viewport" content="width=device-width, initial-scale=1">
