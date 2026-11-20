@@ -478,8 +478,8 @@
                 document.getElementById('activeGamingView').style.display = 'flex';
                 screenTrack.addEventListener('ended', () => stopGameStreamSession());
                 const audioNote = captured.getAudioTracks().length ? 'Screen/game audio track detected.' : 'Browser did not provide game/system audio; microphone can still be used.';
-                const captureStatus = document.getElementById('gamingCaptureStatus');
-                if (captureStatus) { captureStatus.hidden = false; captureStatus.style.borderColor = '#176b43'; captureStatus.style.background = '#0d2118'; captureStatus.style.color = '#9ef0bd'; captureStatus.textContent = 'Gaming LIVE connected. ' + (face ? 'Facecam included. ' : 'Camera unavailable. ') + audioNote; }
+                const successStatus = document.getElementById('gamingCaptureStatus');
+                if (successStatus) { successStatus.hidden = false; successStatus.style.borderColor = '#176b43'; successStatus.style.background = '#0d2118'; successStatus.style.color = '#9ef0bd'; successStatus.textContent = 'Gaming LIVE connected. ' + (face ? 'Facecam included. ' : 'Camera unavailable. ') + audioNote; }
             } catch (error) {
                 if (gamingAnimationFrame) cancelAnimationFrame(gamingAnimationFrame);
                 if (peer) peer.close();
