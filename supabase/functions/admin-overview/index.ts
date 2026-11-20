@@ -177,8 +177,14 @@ Deno.serve(async (req: Request) => {
     const { data: payoutRoutes } = await admin.schema("private").from("country_payout_routes")
       .select("country_code,currency,enabled,availability_status,last_verified_at").order("country_code");
     const { data: countryRows } = await admin.from("country_catalog").select("iso2,country_name");
+    const { data: riskReviewQueue, error: riskQueueError } = await admin.schema("private")
+      .from("video_watch_risk_signals")
+      .select("id,viewer_id,creator_id,video_id,occurrence_count,risk_score,first_seen_at,last_seen_at,review_status")
+      .eq("review_status", "needs_review").order("last_seen_at", { ascending: false }).limit(100);
+    if (riskQueueError) console.error("Watch risk queue unavailable:", riskQueueError.message);
     return new Response(JSON.stringify({
       ok: true, role: adminRole.role, metrics, financials,
+      watch_risk_review_queue: riskQueueError ? [] : (riskReviewQueue ?? []),
       creator_monetization_rules: {
         follower_threshold: 5000,
         long_watch_hours_threshold: 1000,
