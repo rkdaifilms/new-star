@@ -17,12 +17,8 @@ create or replace function public.get_creator_feature_access()
 returns jsonb language plpgsql stable security definer set search_path to ''
 as $function$
 declare
-  v_creator uuid := auth.uid();
-  v_progress jsonb;
-  v_followers bigint := 0;
-  v_approved boolean := false;
-  v_long boolean := false;
-  v_short boolean := false;
+  v_creator uuid := auth.uid(); v_progress jsonb; v_followers bigint := 0;
+  v_approved boolean := false; v_long boolean := false; v_short boolean := false;
   v_video_eligible boolean := false;
 begin
   if v_creator is null then raise exception 'Login required'; end if;
@@ -61,23 +57,23 @@ revoke all on function public.get_creator_feature_access() from public,anon;
 grant execute on function public.get_creator_feature_access() to authenticated;
 
 drop policy if exists "Owners can create draft Star campaigns" on public.star_campaigns;
+drop policy if exists "Owners with 1000 followers can create draft Star campaigns" on public.star_campaigns;
 create policy "Owners with 1000 followers can create draft Star campaigns"
 on public.star_campaigns for insert to authenticated
-with check ((select auth.uid())=owner_id and status='draft'
-  and payment_status='unpaid' and platform_fee_minor=0
-  and (select public.creator_has_1000_followers()));
+with check ((select auth.uid())=owner_id and status='draft' and payment_status='unpaid'
+  and platform_fee_minor=0 and (select public.creator_has_1000_followers()));
 
 drop policy if exists "Creators can apply to paid active campaigns" on public.star_campaign_applications;
+drop policy if exists "Creators with 1000 followers can apply to paid active campaigns" on public.star_campaign_applications;
 create policy "Creators with 1000 followers can apply to paid active campaigns"
 on public.star_campaign_applications for insert to authenticated
 with check ((select auth.uid())=creator_id and status='pending'
   and (select public.creator_has_1000_followers())
   and exists(select 1 from public.star_campaigns c
-    where c.id=star_campaign_applications.campaign_id
-      and c.status='active' and c.payment_status='paid'));
+    where c.id=star_campaign_applications.campaign_id and c.status='active' and c.payment_status='paid'));
 
 drop policy if exists "live_rooms_insert_own" on public.live_rooms;
+drop policy if exists "live_rooms_insert_own_after_1000_followers" on public.live_rooms;
 create policy "live_rooms_insert_own_after_1000_followers"
 on public.live_rooms for insert to authenticated
-with check (creator_id=(select auth.uid())::text
-  and (select public.creator_has_1000_followers()));
+with check (creator_id=(select auth.uid())::text and (select public.creator_has_1000_followers()));
