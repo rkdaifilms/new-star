@@ -267,6 +267,15 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
    <option value="kids">Made for Kids</option>
    <option value="adult">18+ Restricted Content</option>
   </select>
+  <label>🌍 Video Location (दुनिया के किसी भी देश/शहर की जगह खोजें)</label>
+  <input class="input" id="videoLocationSearch" type="search" maxlength="160" autocomplete="off" placeholder="City, region, country या address खोजें">
+  <div id="videoLocationResults" class="status" role="listbox" aria-label="Location search results"></div>
+  <div class="status" id="videoLocationSelected">कोई लोकेशन नहीं चुनी गई। लोकेशन जोड़ना वैकल्पिक है।</div>
+  <label>Location Visibility</label>
+  <select class="select" id="videoLocationVisibility">
+   <option value="public">🌍 Public location</option>
+   <option value="hidden">🔒 Hide exact location from viewers</option>
+  </select>
   <div class="status" id="publishStatus">वीडियो Publish करने के लिए Login आवश्यक है।</div>
   <progress id="uploadProgress" class="progress hidden" max="100"></progress>
   <button class="primary" id="publishButton">🚀 Publish Video</button>
@@ -303,6 +312,10 @@ let rotation = 0;
 let trimEnd = null;
 let publishing = false;
 let sourceMetadata = null;
+let selectedMapboxLocation = null;
+let locationSearchTimer = null;
+let locationSearchSequence = 0;
+
 const CURRENT_VIDEO_BUCKET_LIMIT = 5 * 1024 * 1024 * 1024; // Cloudflare Stream target limit: 5 GiB; provider secrets/quota required
 
 function toast(message) {
@@ -761,6 +774,77 @@ $("resetButton").onclick = () => {
 /* Publish Panel */
 /* Publish panel is opened by Save & Continue after editing. */
 
+/* Global Mapbox location search — credentials remain server-side */
+const locationInput = $("videoLocationSearch");
+const locationResults = $("videoLocationResults");
+const locationSelected = $("videoLocationSelected");
+function clearLocationResults(message = "") {
+ locationResults.replaceChildren();
+ locationResults.textContent = message;
+}
+async function searchVideoLocation(query) {
+ const sequence = ++locationSearchSequence;
+ if (!query || query.trim().length < 2) {
+  clearLocationResults("कम से कम 2 अक्षर लिखें।");
+  return;
+ }
+ clearLocationResults("दुनिया भर में जगह खोजी जा रही है...");
+ try {
+  const {data,error} = await db.functions.invoke("mapbox-geocode", {body:{query:query.trim()}});
+  if (sequence !== locationSearchSequence) return;
+  if (error) throw error;
+  const features = Array.isArray(data?.features) ? data.features : [];
+  clearLocationResults();
+  if (!features.length) {
+   clearLocationResults("कोई जगह नहीं मिली। नाम बदलकर खोजें।");
+   return;
+  }
+  for (const feature of features) {
+   const button = document.createElement("button");
+   button.type = "button";
+   button.className = "secondary";
+   button.style.cssText = "display:block;width:100%;text-align:left;margin:5px 0;padding:11px;border:1px solid #444;border-radius:8px;background:#24242b;color:#fff";
+   button.textContent = feature.name;
+   button.setAttribute("role","option");
+   button.addEventListener("click", () => {
+    const center = feature.center;
+    if (!Array.isArray(center) || center.length !== 2 || !center.every(Number.isFinite)) return;
+    selectedMapboxLocation = {
+     id: String(feature.id || ""),
+     name: String(feature.name || "").slice(0,240),
+     longitude: Number(center[0]),
+     latitude: Number(center[1])
+    };
+    locationInput.value = selectedMapboxLocation.name;
+    locationSelected.textContent = "✓ चुनी गई लोकेशन: " + selectedMapboxLocation.name;
+    clearLocationResults();
+   });
+   locationResults.appendChild(button);
+  }
+ } catch(error) {
+  if (sequence !== locationSearchSequence) return;
+  console.error("Mapbox location search:", error);
+  clearLocationResults("लोकेशन सर्च उपलब्ध नहीं है। Mapbox secret की Supabase Edge Function setting जाँचें।");
+ }
+}
+locationInput.addEventListener("input", () => {
+ selectedMapboxLocation = null;
+ locationSelected.textContent = "जगह के नतीजे आने पर सही लोकेशन चुनें।";
+ clearTimeout(locationSearchTimer);
+ const query = locationInput.value.trim();
+ if (query.length < 2) {
+  clearLocationResults("कम से कम 2 अक्षर लिखें।");
+  return;
+ }
+ locationSearchTimer = setTimeout(() => searchVideoLocation(query), 350);
+});
+locationInput.addEventListener("keydown", event => {
+ if (event.key === "Escape") {
+  locationSearchSequence++;
+  clearLocationResults();
+ }
+});
+
 /* Supabase Publish */
 async function publishVideo() {
  if (publishing) return;
@@ -869,7 +953,12 @@ async function publishVideo() {
    provider_status:"processing",caption,category,username:String(username),
    likes_count:0,views_count:0,affiliate_link:affiliate||null,audience_type:audience,
    duration_seconds:Math.ceil(mediaInfo.duration),width:mediaInfo.width,height:mediaInfo.height,
-   video_type:videoType,processing_status:"processing",visibility
+   video_type:videoType,processing_status:"processing",visibility,
+   location_name:selectedMapboxLocation?.name || null,
+   location_latitude:selectedMapboxLocation?.latitude ?? null,
+   location_longitude:selectedMapboxLocation?.longitude ?? null,
+   mapbox_place_id:selectedMapboxLocation?.id || null,
+   location_visibility:$("videoLocationVisibility")?.value === "hidden" ? "hidden" : "public"
   };
   const {data:inserted,error:insertError}=await db.from("videos").insert(payload).select("id").single();
   if(insertError)throw new Error("Cloudflare upload सफल है (Stream ID: "+cloudflareVideoId+"), लेकिन Database Insert असफल: "+insertError.message+". वीडियो Cloudflare में सुरक्षित है; इसे हटाएँ नहीं।");
