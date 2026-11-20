@@ -7,7 +7,7 @@
 
   const db = window.supabaseClient || window.cloudClient;
   const currentPage =
-    location.pathname.split("/").pop() || "index.html";
+    (location.pathname.replace(/\/+$/, "").split("/").pop() || "index.html").toLowerCase();
 
   const authPages = ["auth.html", "login.html", "signup.html"];
 
@@ -326,7 +326,7 @@
   function createTopMenuButton() {
     // Profile has its own menu; Index keeps the video controls untouched
     // and does not show the global three-dot menu button.
-    if (currentPage === "profile.html" || currentPage === "index.html" || currentPage === "settings.html" || currentPage === "monetization.html") return;
+    if (["profile.html", "index.html", "settings.html", "monetization.html"].includes(currentPage)) return;
 
     if ($("newstar-menu-button")) return;
 
