@@ -644,6 +644,16 @@ async function loadLiveRooms(){
   if(error)throw error;
   if(version!==liveRoomsLoadVersion)return;
   const rooms=data||[];
+  const sharedLiveId=new URLSearchParams(location.search).get("live");
+  if(sharedLiveId){
+   const sharedRoom=rooms.find(room=>String(room.id)===String(sharedLiveId));
+   if(sharedRoom){
+    connectLiveViewer(sharedRoom);
+   }else{
+    $("liveViewerWrap").hidden=false;
+    $("liveViewerStatus").textContent="यह LIVE लिंक अब उपलब्ध नहीं है या Stream समाप्त हो चुकी है।";
+   }
+  }
   if(!rooms.length){
    list.innerHTML='<div class="live-feed-empty">अभी कोई Creator LIVE नहीं है। Creator के LIVE होने पर stream यहाँ दिखाई देगी।</div>';
    return;
@@ -1330,6 +1340,15 @@ async function startNewStar(){
  if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला। supabase-config.js जाँचें।");return;}
  currentUser=await getUser();
  renderGiftCatalog();
+ const sharedLiveId=new URLSearchParams(location.search).get("live");
+ if(sharedLiveId){
+  currentCategory="Live";
+  document.querySelectorAll(".category").forEach(button=>{
+   button.classList.toggle("active",button.dataset.cat==="Live");
+  });
+  await loadLiveRooms();
+  return;
+ }
  await loadFeed();
 }
 startNewStar();
