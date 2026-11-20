@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.view.View
 import android.webkit.*
 import android.widget.FrameLayout
-import android.widget.ProgressBar
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -18,7 +17,6 @@ import org.json.JSONObject
 class MainActivity : AppCompatActivity() {
     private lateinit var container: FrameLayout
     private lateinit var web: WebView
-    private lateinit var progress: ProgressBar
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var pendingUrl = ""
 
@@ -57,10 +55,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         container = FrameLayout(this)
-        progress = ProgressBar(this).apply { isIndeterminate = true; alpha = 0f }
         web = createWebView()
         container.addView(web, FrameLayout.LayoutParams(-1, -1))
-        container.addView(progress, FrameLayout.LayoutParams(-2, -2, android.view.Gravity.CENTER))
         setContentView(container)
 
         val f = IntentFilter(GamingStreamService.STATUS)
@@ -86,7 +82,6 @@ class MainActivity : AppCompatActivity() {
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                    progress.setAlpha(if (newProgress >= 100) 0f else 1f)
                 }
 
                 override fun onShowFileChooser(
@@ -132,11 +127,9 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                    progress.setAlpha(1f)
                 }
 
                 override fun onPageCommitVisible(view: WebView?, url: String?) {
-                    progress.setAlpha(0f)
                 }
 
                 override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -157,7 +150,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showLoadError(message: String) {
-        progress.setAlpha(0f)
         val safeMessage = message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         val html = """
             <html><meta name="viewport" content="width=device-width, initial-scale=1">
