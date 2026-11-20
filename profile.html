@@ -265,6 +265,7 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
   <div class="profileName" id="viewName">Creator</div>
   <div class="handle" id="viewUsername">@creator</div>
   <div class="bio" id="viewBio">अपना Creator Bio सेट करें।</div>
+  <div id="creatorLocationDisplay" class="muted" style="margin:8px auto 12px;text-align:center;max-width:620px" hidden></div>
 
   <div class="heroActions">
    <button id="editProfileButton" type="button" data-i18n="action.editProfile">Edit Profile</button>
@@ -361,6 +362,17 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
    <div class="full"><label for="editEmail" data-i18n="profile.loginEmail">Login Email</label><input id="editEmail" type="email" readonly><p class="muted" data-i18n="profile.emailChangeHint">ईमेल बदलने के लिए Account Settings खोलें।</p></div>
    <div><label for="editPhone" data-i18n="profile.phone">मोबाइल नंबर</label><input id="editPhone" type="tel" data-i18n-placeholder="profile.phonePlaceholder" placeholder="+977..."></div>
    <div><label for="editAddress" data-i18n="profile.address">Address</label><input id="editAddress" data-i18n-placeholder="profile.addressPlaceholder" placeholder="शहर / पता"></div>
+   <div class="full">
+    <label for="creatorLocationSearch">🌍 Creator Location — दुनिया का देश/शहर चुनें</label>
+    <input id="creatorLocationSearch" type="search" maxlength="160" autocomplete="off" placeholder="City, region या country खोजें">
+    <div id="creatorLocationResults" class="status" role="listbox" aria-label="Creator location results"></div>
+    <p id="creatorLocationSelected" class="muted">लोकेशन चुनना वैकल्पिक है। केवल शहर/इलाका चुनें, घर का पता नहीं।</p>
+    <label for="creatorLocationVisibility">Creator Location Visibility</label>
+    <select id="creatorLocationVisibility" style="width:100%;padding:12px;margin:6px 0 12px;background:#111118;border:1px solid #41414d;border-radius:10px;color:#fff">
+     <option value="hidden">🔒 Hidden — किसी को नहीं दिखेगी</option>
+     <option value="public">🌍 Public — प्रोफाइल पर शहर/इलाका दिखेगा</option>
+    </select>
+   </div>
    <div class="full"><label style="display:flex;align-items:center;gap:10px;padding:12px;background:#151520;border:1px solid #454552;border-radius:10px"><input id="accountPrivateToggle" type="checkbox" style="width:20px;height:20px;margin:0;accent-color:#fe2c55"> <span data-i18n="profile.privateAccount">🔒 Private Account</span></label><p class="muted full" data-i18n="profile.privateDescription">Public account में आपके Public वीडियो सभी देख सकते हैं। Private account में केवल आप और approved followers देख पाएँगे।</p></div>
    <div class="full"><label for="editBio" data-i18n="profile.bio">Bio</label><textarea id="editBio" rows="3" maxlength="300" data-i18n-placeholder="profile.bioPlaceholder" placeholder="अपने बारे में लिखें..."></textarea></div>
    <div><label for="editWebsite" data-i18n="profile.website">Website</label><input id="editWebsite" type="url" placeholder="https://..."></div>
@@ -404,6 +416,10 @@ const fallbackAvatar="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 
 let user=null,profileRow=null,busy=false,pendingEmail="";
 let pendingAvatarFile=null,pendingAvatarPreviewUrl=null,pendingCoverFile=null,pendingCoverPreviewUrl=null;
+let selectedCreatorLocation=null;
+let creatorLocationTimer=null;
+let creatorLocationSequence=0;
+
 
 let coverTransform={scale:1,x:0,y:0};
 let coverPointers=new Map();
@@ -476,7 +492,7 @@ function toggleMenu(){
 async function loadProfileRow(){
  profileRow=null;
  const {data,error}=await db.from("profiles")
-  .select("user_id,username,avatar_url,bio,is_private")
+  .select("user_id,username,avatar_url,bio,is_private,creator_location_name,creator_location_latitude,creator_location_longitude,creator_mapbox_place_id,creator_location_visibility")
   .eq("user_id",user.id)
   .maybeSingle();
 
@@ -497,6 +513,15 @@ function renderProfile(){
  $("viewName").textContent=name;
  $("viewUsername").textContent=username?"@"+username:"@creator";
  $("viewBio").textContent=r.bio||m.bio||"";
+ const locationEl=$("creatorLocationDisplay");
+ const canShowLocation=!r.is_private&&r.creator_location_visibility==="public"&&r.creator_location_name;
+ if(canShowLocation){
+  locationEl.textContent="📍 "+r.creator_location_name;
+  locationEl.hidden=false;
+ }else{
+  locationEl.textContent="";
+  locationEl.hidden=true;
+ }
 
  setProfileAvatar(r.avatar_url||m.avatar_url||user.user_metadata?.picture);
  coverTransform=cleanCoverTransform(m.cover_transform);
@@ -602,6 +627,53 @@ async function loadStatsAndVideos(){
  }
 }
 
+/* Global Mapbox creator-place picker. Public display is city/area level only. */
+function clearCreatorLocationResults(message=""){
+ const box=$("creatorLocationResults");
+ box.replaceChildren();
+ box.textContent=message;
+}
+async function searchCreatorLocation(query){
+ const sequence=++creatorLocationSequence;
+ clearCreatorLocationResults("दुनिया भर में शहर/इलाका खोज रहे हैं...");
+ try{
+  const {data,error}=await db.functions.invoke("mapbox-geocode",{body:{query,scope:"creator"}});
+  if(sequence!==creatorLocationSequence)return;
+  if(error)throw error;
+  const features=Array.isArray(data?.features)?data.features:[];
+  clearCreatorLocationResults();
+  if(!features.length){clearCreatorLocationResults("कोई शहर/इलाका नहीं मिला।");return;}
+  for(const feature of features){
+   const button=document.createElement("button");
+   button.type="button";
+   button.className="secondary";
+   button.style.cssText="display:block;width:100%;text-align:left;margin:5px 0;padding:11px;background:#30303a;color:#fff";
+   button.textContent=feature.name;
+   button.setAttribute("role","option");
+   button.addEventListener("click",()=>{
+    if(!Array.isArray(feature.center)||feature.center.length!==2||!feature.center.every(Number.isFinite))return;
+    selectedCreatorLocation={id:String(feature.id||""),name:String(feature.name||"").slice(0,240),longitude:Number(feature.center[0]),latitude:Number(feature.center[1])};
+    $("creatorLocationSearch").value=selectedCreatorLocation.name;
+    $("creatorLocationSelected").textContent="✓ चुनी गई जगह: "+selectedCreatorLocation.name;
+    clearCreatorLocationResults();
+   });
+   $("creatorLocationResults").appendChild(button);
+  }
+ }catch(error){
+  if(sequence!==creatorLocationSequence)return;
+  console.error("Creator location search:",error);
+  clearCreatorLocationResults("Location search नहीं चला। Supabase में MAPBOX_ACCESS_TOKEN secret जाँचें।");
+ }
+}
+$("creatorLocationSearch").addEventListener("input",()=>{
+ selectedCreatorLocation=null;
+ $("creatorLocationSelected").textContent="नतीजों में से सही शहर/इलाका चुनें।";
+ clearTimeout(creatorLocationTimer);
+ const query=$("creatorLocationSearch").value.trim();
+ if(query.length<2){clearCreatorLocationResults("कम से कम 2 अक्षर लिखें।");return;}
+ creatorLocationTimer=setTimeout(()=>searchCreatorLocation(query),350);
+});
+
 function openEdit(){
  if(!user)return;
 
@@ -612,6 +684,13 @@ function openEdit(){
  $("editEmail").value=user.email||"";
  $("editBio").value=r.bio||m.bio||"";
  $("accountPrivateToggle").checked=!!r.is_private;
+ $("creatorLocationSearch").value=r.creator_location_name||"";
+ $("creatorLocationVisibility").value=r.creator_location_visibility||"hidden";
+ selectedCreatorLocation = r.creator_location_name && Number.isFinite(Number(r.creator_location_latitude)) && Number.isFinite(Number(r.creator_location_longitude))
+  ? {id:r.creator_mapbox_place_id||"",name:r.creator_location_name,latitude:Number(r.creator_location_latitude),longitude:Number(r.creator_location_longitude)}
+  : null;
+ $("creatorLocationSelected").textContent=selectedCreatorLocation?"✓ Saved location: "+selectedCreatorLocation.name:"लोकेशन चुनना वैकल्पिक है। केवल शहर/इलाका चुनें, घर का पता नहीं।";
+ clearCreatorLocationResults();
 
  extraKeys.forEach(k=>{
   $("edit"+k[0].toUpperCase()+k.slice(1)).value=m[k]||"";
@@ -903,7 +982,12 @@ async function saveProfile(){
    user_id:user.id,
    username,
    bio:updated.bio,
-   is_private:!!$("accountPrivateToggle").checked
+   is_private:!!$("accountPrivateToggle").checked,
+   creator_location_name:selectedCreatorLocation?.name||null,
+   creator_location_latitude:selectedCreatorLocation?.latitude??null,
+   creator_location_longitude:selectedCreatorLocation?.longitude??null,
+   creator_mapbox_place_id:selectedCreatorLocation?.id||null,
+   creator_location_visibility:$("creatorLocationVisibility").value==="public"?"public":"hidden"
   };
 
   if(newAvatarUrl)values.avatar_url=newAvatarUrl;
