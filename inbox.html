@@ -87,6 +87,7 @@
 
     <div class="header">
         <h2 data-i18n="nav.inbox">Inbox</h2>
+        <button type="button" id="newMessageButton" class="action-tag-btn" style="background:#fe2c55;color:#fff;border:0;border-radius:20px;padding:9px 14px;font-weight:700" onclick="startNewMessage()">✎ New Message</button>
     </div>
 
     <!-- Authenticated user's profile banner; populated from Supabase -->
@@ -305,7 +306,7 @@ async function searchCreators(){
     await searchCreators();
    }catch(error){setStatus("Follow अपडेट नहीं हुआ: "+error.message);action.disabled=false;}
   };
-  row.append(left,action);host.append(row);
+  const messageBtn=document.createElement("button");messageBtn.className="action-tag-btn";messageBtn.textContent="Message";messageBtn.style.cssText="margin-left:7px;background:#fe2c55;color:#fff;border:0;white-space:nowrap";messageBtn.onclick=()=>openChat(p.user_id,p);row.append(left,action,messageBtn);host.append(row);
  }
 }
 async function loadFollowRequests(){
@@ -364,7 +365,7 @@ async function loadThreads(){
  const host=$("tabMessages");if(error){host.textContent="Messages load नहीं हुए: "+error.message;return;}
  const map=new Map();
  for(const m of data||[]){const peer=m.sender_id===me.id?m.recipient_id:m.sender_id;if(!map.has(peer))map.set(peer,m);}
- if(!map.size){host.innerHTML='<p class="muted">अभी कोई मैसेज नहीं है। किसी Creator की Profile से Chat शुरू कर सकते हैं।</p>';return;}
+ if(!map.size){host.innerHTML='<div class="empty-state"><p>अभी कोई बातचीत नहीं है।</p><button type="button" class="action-tag-btn" onclick="startNewMessage()">✎ New Message</button><p class="muted">किसी Creator को खोजें और सीधे Chat शुरू करें।</p></div>';return;}
  const ids=[...map.keys()];
  const {data:profiles}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").in("user_id",ids);
  const pmap=new Map((profiles||[]).map(p=>[p.user_id,p]));
@@ -373,12 +374,30 @@ async function loadThreads(){
  item.innerHTML='<span class="user-left"><img class="list-avatar" src="'+esc(avatarOf(p))+'"><span class="list-info"><h4>'+esc(nameOf(p))+'</h4><p>'+esc(m.body||"Media message")+'</p></span></span><small class="muted">'+esc(new Date(m.created_at).toLocaleDateString())+'</small>';
  item.onclick=()=>openChat(peer,p);host.appendChild(item);}
 }
-async function openChat(peer,p){
- activePeer=peer;$("activeChatName").textContent=nameOf(p);$("activeChatAvatar").src=avatarOf(p);
- const {data:existing}=await db.from("messages").select("conversation_id,created_at").or("and(sender_id.eq."+me.id+",recipient_id.eq."+peer+"),and(sender_id.eq."+peer+",recipient_id.eq."+me.id+")").order("created_at",{ascending:false}).limit(1);
- activeConversation=existing?.[0]?.conversation_id||crypto.randomUUID();
- $("chatBoxWindow").style.display="flex";await loadConversation();
+async function stableConversationId(a,b){
+ const pair=[String(a),String(b)].sort().join(":");
+ const bytes=new TextEncoder().encode("new-star-dm:"+pair);
+ const digest=await crypto.subtle.digest("SHA-256",bytes);
+ const hex=[...new Uint8Array(digest)].slice(0,16).map(x=>x.toString(16).padStart(2,"0")).join("");
+ return hex.slice(0,8)+"-"+hex.slice(8,12)+"-5"+hex.slice(13,16)+"-a"+hex.slice(17,20)+"-"+hex.slice(20,32);
 }
+async function openChat(peer,p){
+ if(!me||!peer||String(peer)===String(me.id)){setStatus("आप खुद को Message नहीं भेज सकते।");return;}
+ activePeer=String(peer);$("activeChatName").textContent=nameOf(p);$("activeChatAvatar").src=avatarOf(p);
+ const {data:existing,error:lookupError}=await db.from("messages").select("conversation_id,created_at").or("and(sender_id.eq."+me.id+",recipient_id.eq."+peer+"),and(sender_id.eq."+peer+",recipient_id.eq."+me.id+")").order("created_at",{ascending:false}).limit(1);
+ if(lookupError){setStatus("Conversation जाँच नहीं हुई: "+lookupError.message);return;}
+ activeConversation=existing?.[0]?.conversation_id||await stableConversationId(me.id,peer);
+ $("chatBoxWindow").style.display="flex";await loadConversation();
+ $("messageInput").focus();
+}
+window.startNewMessage=function(){
+ switchTab("discover",document.querySelector(".inbox-tab[onclick*=\"discover\"]"));
+ $("creatorSearchInput").focus();
+};
+window.openDirectMessage=async function(peer,name,avatar,bio){
+ const p={full_name:name,username:name,avatar_url:avatar,bio};
+ await openChat(peer,p);
+};
 async function loadConversation(){
  const {data,error}=await db.from("messages").select("id,sender_id,body,media_url,created_at").eq("conversation_id",activeConversation).order("created_at",{ascending:true}).limit(300);
  const area=$("chatMessagesArea");if(error){area.textContent="Chat load error: "+error.message;return;}
@@ -431,9 +450,9 @@ window.startVoiceRecording=function(){
  try{inboxRecognition.start();}catch(e){inboxVoiceStatus.textContent="Microphone could not start. Try again in a moment.";}
 };
 window.sendMediaFile=function(e){setStatus("Media upload is not connected yet. Please send text until secure Storage upload is added.");e.target.value="";};
-window.showProfile=function(name,avatar,bio){$("popupName").textContent=name;$("popupAvatar").src=avatar||fallback;$("popupBio").textContent=bio||"";$("profilePopup").style.display="flex";};
+window.showProfile=function(name,avatar,bio,peer){window.__newStarPopupPeer=peer||null;$("popupName").textContent=name;$("popupAvatar").src=avatar||fallback;$("popupBio").textContent=bio||"";$("profilePopup").style.display="flex";};
 window.closeProfilePopup=function(){$("profilePopup").style.display="none";};
-window.openChatFromPopup=function(){closeProfilePopup();};
+window.openChatFromPopup=async function(){const peer=window.__newStarPopupPeer;closeProfilePopup();if(!peer){setStatus("इस Creator की ID नहीं मिली। Creator Search से Message शुरू करें।");return;}const {data:p}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").eq("user_id",peer).maybeSingle();await openChat(peer,p||{});};
 window.showProfileFromChat=function(){};
 window.openChat=async function(name,avatar){const {data}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio").eq("username",name).maybeSingle();if(data)openChat(data.user_id,data);};
 window.toggleFollow=function(){setStatus("Follow action is not enabled until follow/unfollow server policy is connected.");};
