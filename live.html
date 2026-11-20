@@ -333,27 +333,6 @@
             return false;
         }
 
-        function startLiveBroadcastSession() {
-            let nameInput = document.getElementById('liveCreatorNameInput').value.trim();
-            if(nameInput) { currentCreatorName = nameInput; }
-
-            document.getElementById('liveSetupPanel').style.display = 'none';
-            document.getElementById('activeLiveView').style.display = 'block';
-            let size = document.getElementById('setupRoomSize').value;
-            renderLiveRooms(size);
-
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                .then(stream => {
-                    liveStreamObj = stream;
-                    let hostVideo = document.getElementById('roomVideo_1');
-                    if(hostVideo) {
-                        hostVideo.srcObject = stream;
-                        hostVideo.style.display = 'block';
-                    }
-                })
-                .catch(err => alert('Camera & Microphone access required.'));
-        }
-
         function renderLiveRooms(size) {
             let container = document.getElementById('dynamicRoomsContainer');
             let sizeNum = Math.min(10, Math.max(1, parseInt(size, 10) || 10));
