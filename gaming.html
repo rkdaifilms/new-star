@@ -328,6 +328,20 @@
         let gamingNativeActive = false;
         let gamingSfuAvailable = false;
 
+        // Native Android microphone state is confirmed by the foreground streaming service.
+        window.addEventListener('newstar-native-stream-status', event => {
+            const detail = event.detail || {};
+            const status = document.getElementById('micStateText');
+            const button = document.getElementById('gamingMicToggleButton');
+            if (detail.status === 'mic' && gamingNativeActive) {
+                if (status) status.textContent = /muted/i.test(detail.message || '') ? 'MUTED' : 'ON';
+                if (button) button.disabled = false;
+            } else if (detail.status === 'error' && /microphone/i.test(detail.message || '') && gamingNativeActive) {
+                if (status) status.textContent = 'MIC UNAVAILABLE';
+                if (button) button.disabled = true;
+            }
+        });
+
         async function startNativeProGamingStream(gameName) {
             const captureStatus = document.getElementById('gamingCaptureStatus');
             const prepared = await gamingLiveApi('prepare', {
@@ -730,10 +744,12 @@
             if (gamingNativeActive && window.NewStarNative?.setMicrophoneEnabled) {
                 if (status.textContent !== 'ON' && status.textContent !== 'MUTED') return;
                 const enabled = status.textContent !== 'ON';
+                const button = document.getElementById('gamingMicToggleButton');
+                if (button) button.disabled = true;
+                status.textContent = 'UPDATING…';
                 window.NewStarNative.setMicrophoneEnabled(enabled);
                 isMicMuted = !enabled;
                 gamingMicEnabled = enabled;
-                status.textContent = enabled ? 'ON' : 'MUTED';
                 return;
             }
             isMicMuted = !isMicMuted;
