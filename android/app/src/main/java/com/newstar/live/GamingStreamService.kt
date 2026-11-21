@@ -22,6 +22,7 @@ import java.net.URL
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 class GamingStreamService : Service() {
     private var capturer: ScreenCapturerAndroid? = null
@@ -75,6 +76,7 @@ class GamingStreamService : Service() {
     }
 
     private fun startStreaming(intent: Intent) {
+        check(!stopped.get()) { "Gaming LIVE was stopped before startup." }
         val resultCode = intent.getIntExtra(RESULT_CODE, 0)
         @Suppress("DEPRECATION")
         val permissionData = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(RESULT_DATA, Intent::class.java) else intent.getParcelableExtra(RESULT_DATA)
@@ -91,6 +93,7 @@ class GamingStreamService : Service() {
             factoryBuilder.setAudioDeviceModule(audioDeviceModule!!)
         }
         factory = factoryBuilder.createPeerConnectionFactory()
+        check(!stopped.get()) { "Gaming LIVE was stopped during startup." }
 
         texture = SurfaceTextureHelper.create("NewStarScreenCapture", egl!!.eglBaseContext)
         source = factory!!.createVideoSource(false)
@@ -99,6 +102,7 @@ class GamingStreamService : Service() {
         })
         capturer!!.initialize(texture!!, applicationContext, source!!.capturerObserver)
         capturer!!.startCapture(1280, 720, 30)
+        check(!stopped.get()) { "Gaming LIVE was stopped during screen capture startup." }
         track = factory!!.createVideoTrack("newstar-screen", source)
         if (includeMic) {
             audioSource = factory!!.createAudioSource(MediaConstraints())
@@ -107,11 +111,16 @@ class GamingStreamService : Service() {
         }
 
         val connected = CountDownLatch(1)
+        val iceFailure = AtomicReference<String?>(null)
         val observer = object : PeerConnection.Observer {
             override fun onSignalingChange(state: PeerConnection.SignalingState?) {}
             override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {
                 if (state == PeerConnection.IceConnectionState.CONNECTED || state == PeerConnection.IceConnectionState.COMPLETED) connected.countDown()
-                if (state == PeerConnection.IceConnectionState.FAILED) emit("error", "WebRTC network connection failed.")
+                if (state == PeerConnection.IceConnectionState.FAILED) {
+                    iceFailure.compareAndSet(null, "WebRTC network connection failed. Check the network or TURN connectivity.")
+                    connected.countDown()
+                    emit("error", iceFailure.get() ?: "WebRTC network connection failed.")
+                }
             }
             override fun onIceConnectionReceivingChange(receiving: Boolean) {}
             override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {}
@@ -126,6 +135,7 @@ class GamingStreamService : Service() {
         val iceServers = listOf(PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer())
         peer = factory!!.createPeerConnection(PeerConnection.RTCConfiguration(iceServers), observer)
             ?: error("Could not create WebRTC connection.")
+        check(!stopped.get()) { "Gaming LIVE was stopped before connecting." }
         peer!!.addTrack(track, listOf("newstar-screen"))
         audioTrack?.let { peer!!.addTrack(it, listOf("newstar-screen")) }
 
@@ -133,26 +143,35 @@ class GamingStreamService : Service() {
         setDescription(peer!!, offer, true)
         awaitIceGathering(peer!!)
         val localSdp = peer!!.localDescription?.description ?: error("WebRTC offer is empty.")
+        check(!stopped.get()) { "Gaming LIVE was stopped before WHIP negotiation." }
         val connection = URL(whipUrl).openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
-        connection.doOutput = true
-        connection.connectTimeout = 15000
-        connection.readTimeout = 20000
-        connection.setRequestProperty("Content-Type", "application/sdp")
-        connection.setRequestProperty("Accept", "application/sdp")
-        connection.outputStream.use { it.write(localSdp.toByteArray(Charsets.UTF_8)) }
-        val status = connection.responseCode
-        if (status !in 200..299) {
-            val detail = runCatching { connection.errorStream?.bufferedReader()?.readText() }.getOrNull().orEmpty()
-            error("Cloudflare WHIP rejected the stream (" + status + "): " + detail.take(160))
+        val answer: String
+        try {
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.connectTimeout = 15000
+            connection.readTimeout = 20000
+            connection.setRequestProperty("Content-Type", "application/sdp")
+            connection.setRequestProperty("Accept", "application/sdp")
+            connection.outputStream.use { it.write(localSdp.toByteArray(Charsets.UTF_8)) }
+            val status = connection.responseCode
+            if (status !in 200..299) {
+                val detail = runCatching { connection.errorStream?.bufferedReader()?.readText() }.getOrNull().orEmpty()
+                error("Cloudflare WHIP rejected the stream (" + status + "): " + detail.take(160))
+            }
+            answer = connection.inputStream.bufferedReader().use { it.readText() }
+            whipResource = connection.getHeaderField("Location")?.let { URL(URL(whipUrl), it).toString() }
+        } finally {
+            connection.disconnect()
         }
-        val answer = connection.inputStream.bufferedReader().use { it.readText() }
-        whipResource = connection.getHeaderField("Location")?.let { URL(URL(whipUrl), it).toString() }
-        connection.disconnect()
+        check(!stopped.get()) { "Gaming LIVE was stopped during WHIP negotiation." }
         require(answer.isNotBlank()) { "Cloudflare returned an empty SDP answer." }
         setDescription(peer!!, SessionDescription(SessionDescription.Type.ANSWER, answer), false)
+        check(!stopped.get()) { "Gaming LIVE was stopped while applying the WHIP answer." }
         emit("connecting", "Cloudflare accepted the screen stream; checking media connection.")
         if (!connected.await(20, TimeUnit.SECONDS)) error("Cloudflare accepted WHIP, but the WebRTC media connection did not become active.")
+        check(iceFailure.get() == null) { iceFailure.get() ?: "WebRTC network connection failed." }
+        check(!stopped.get()) { "Gaming LIVE was stopped before the media connection completed." }
         emit(
             "connected",
             if (includeMic) "Gaming screen and microphone are connected to Cloudflare."
