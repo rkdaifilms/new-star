@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101014">
+  <title>New Star Device Check</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;padding:20px;background:#101014;color:#f7f7fb;font:15px system-ui,Arial,sans-serif}
+    main{max-width:680px;margin:0 auto}h1{font-size:26px;margin:8px 0}p{color:#c2c2ce;line-height:1.55}
+    .panel{background:#1b1b23;border:1px solid #383844;border-radius:16px;padding:18px;margin:16px 0}
+    .check{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #343440}
+    .check:last-child{border:0}.name{font-weight:600}.detail{color:#aaaab8;font-size:13px;margin-top:3px}
+    .state{white-space:nowrap;font-size:12px;font-weight:700;padding:5px 9px;border-radius:20px;background:#33333d;height:max-content}
+    .ok{color:#9ce7b2;background:#173b28}.warn{color:#ffd78a;background:#473719}.bad{color:#ffb0b0;background:#4b2222}
+    button,a.button{display:block;width:100%;padding:13px 16px;margin:10px 0;border:0;border-radius:11px;background:#fe2c55;color:#fff;text-align:center;text-decoration:none;font-size:15px;font-weight:700}
+    a.secondary,button.secondary{background:#343440}details{color:#ddd}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111119;padding:12px;border-radius:10px;color:#bfc0cc;font-size:12px}
+    .muted{font-size:12px;color:#9b9baa}
+  </style>
+</head>
+<body>
+<main>
+  <h1>New Star Device Check</h1>
+  <p>यह जाँच आपके फोन और WebView/ब्राउज़र की बुनियादी क्षमता देखती है। यह कैमरा या माइक्रोफोन चालू नहीं करती और कोई अनुमति अपने-आप नहीं माँगती।</p>
+  <section class="panel" aria-live="polite">
+    <div id="checks"><p>जाँच शुरू हो रही है…</p></div>
+  </section>
+  <button id="rerun">फिर से जाँचें</button>
+  <button class="secondary" id="copy">जाँच रिपोर्ट कॉपी करें</button>
+  <a class="button secondary" href="/">New Star खोलें</a>
+  <details class="panel"><summary>तकनीकी रिपोर्ट</summary><pre id="report">अभी रिपोर्ट तैयार नहीं है।</pre></details>
+  <p class="muted">यह रिपोर्ट केवल डिवाइस और ब्राउज़र क्षमता बताती है। असली LIVE/streaming टेस्ट के लिए इंटरनेट, सर्वर, Cloudflare और वास्तविक डिवाइस पर टेस्ट जरूरी है। अपना पासवर्ड, OTP या private key किसी के साथ साझा न करें।</p>
+</main>
+<script>
+(function(){
+  const checksEl=document.getElementById("checks"), reportEl=document.getElementById("report");
+  let latestReport="";
+  function add(items,name,state,detail){
+    items.push({name,state,detail});
+  }
+  async function run(){
+    checksEl.innerHTML="<p>डिवाइस की जाँच हो रही है…</p>";
+    const items=[];
+    add(items,"इंटरनेट संकेत",navigator.onLine?"ok":"warn",navigator.onLine?"डिवाइस ऑनलाइन दिख रहा है":"ब्राउज़र ऑफलाइन बता रहा है; Wi-Fi या मोबाइल डेटा जाँचें");
+    add(items,"HTTPS सुरक्षा",location.protocol==="https:"?"ok":"warn",location.protocol==="https:"?"Secure HTTPS कनेक्शन":"यह पेज HTTPS पर नहीं खुला");
+    add(items,"WebRTC",("RTCPeerConnection" in window)?"ok":"bad",("RTCPeerConnection" in window)?"वीडियो/ऑडियो कनेक्शन API उपलब्ध":"इस ब्राउज़र में WebRTC API उपलब्ध नहीं");
+    add(items,"कैमरा/माइक API",!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)?"ok":"warn",navigator.mediaDevices&&navigator.mediaDevices.getUserMedia?"अनुमति मिलने पर कैमरा/माइक API उपलब्ध":"कैमरा/माइक API उपलब्ध नहीं; Android WebView अपडेट जाँचें");
+    add(items,"स्थानीय स्टोरेज",function(){try{const k="ns_diag_"+Date.now();localStorage.setItem(k,"1");localStorage.removeItem(k);return true}catch(_){return false}}()?"ok":"warn","ऐप की स्थानीय सेटिंग रखने की क्षमता");
+    add(items,"Service Worker",("serviceWorker" in navigator)?"ok":"warn",("serviceWorker" in navigator)?"Service Worker API उपलब्ध":"इस ब्राउज़र में Service Worker उपलब्ध नहीं");
+    let server="जाँच नहीं हो सकी";
+    try{
+      const response=await fetch(location.origin+"/?device_check="+Date.now(),{method:"HEAD",cache:"no-store",credentials:"same-origin"});
+      server="HTTP "+response.status+" "+(response.ok?"सर्वर जवाब दे रहा है":"सर्वर ने त्रुटि स्थिति लौटाई");
+      add(items,"New Star वेबसाइट",response.ok?"ok":"warn",server);
+    }catch(e){add(items,"New Star वेबसाइट","warn","वेबसाइट तक अनुरोध नहीं पहुँचा; नेटवर्क या सर्वर जाँचें");server=String(e&&e.message||e)}
+    let permissionInfo="Permission status API उपलब्ध नहीं";
+    if(navigator.permissions&&navigator.permissions.query){
+      const values=[];
+      for(const name of ["camera","microphone"]){
+        try{const p=await navigator.permissions.query({name});values.push(name+": "+p.state)}catch(_){values.push(name+": unsupported")}
+      }
+      permissionInfo=values.join("; ");
+    }
+    add(items,"कैमरा/माइक अनुमति स्थिति","ok",permissionInfo+" (यह जाँच अनुमति नहीं बदलती)");
+    const ua=navigator.userAgent||"Unavailable";
+    const deviceInfo="Platform: "+(navigator.platform||"Unavailable")+"\nUser agent: "+ua+"\nLanguage: "+(navigator.language||"Unavailable")+"\nScreen: "+screen.width+"x"+screen.height+"\nOnline: "+navigator.onLine+"\nOrigin: "+location.origin+"\nServer: "+server+"\nPermission status: "+permissionInfo;
+    latestReport=items.map(x=>x.name+": "+x.state.toUpperCase()+" — "+x.detail).join("\n")+"\n\n"+deviceInfo;
+    checksEl.innerHTML="";
+    items.forEach(x=>{
+      const row=document.createElement("div");row.className="check";
+      const left=document.createElement("div");
+      const name=document.createElement("div");name.className="name";name.textContent=x.name;
+      const detail=document.createElement("div");detail.className="detail";detail.textContent=x.detail;
+      left.append(name,detail);
+      const state=document.createElement("span");state.className="state "+(x.state==="ok"?"ok":x.state==="bad"?"bad":"warn");state.textContent=x.state==="ok"?"ठीक":x.state==="bad"?"समस्या":"जाँचें";
+      row.append(left,state);checksEl.append(row);
+    });
+    reportEl.textContent=latestReport;
+  }
+  document.getElementById("rerun").addEventListener("click",run);
+  document.getElementById("copy").addEventListener("click",async function(){
+    if(!latestReport)return;
+    try{await navigator.clipboard.writeText(latestReport);this.textContent="रिपोर्ट कॉपी हो गई";}
+    catch(_){reportEl.textContent=latestReport+"\n\nकॉपी नहीं हो सकी। टेक्स्ट को दबाकर चुनें और कॉपी करें।";document.querySelector("details").open=true}
+  });
+  run();
+})();
+</script>
+</body>
+</html>
