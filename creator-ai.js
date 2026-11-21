@@ -11,21 +11,28 @@ const langMap={"ह":"hi","अ":"hi","क":"hi","ख":"hi","ग":"hi","घ":"hi"
 function detectLanguage(text){
  const value=String(text||"").trim(), lower=value.toLowerCase(), app=selectedAppLanguage();
  if(!value)return app;
+ // Identify writing systems before Latin-language keyword checks.
  if(/[\u3040-\u30ff]/u.test(value))return "ja";
  if(/[\uac00-\ud7af]/u.test(value))return "ko";
  if(/[\u4e00-\u9fff]/u.test(value))return "zh";
  if(/[\u0e00-\u0e7f]/u.test(value))return "th";
  if(/[\u0980-\u09ff]/u.test(value))return "bn";
+ if(/[\u0a80-\u0aff]/u.test(value))return "gu";
+ if(/[\u0a00-\u0a7f]/u.test(value))return "pa";
+ if(/[\u0c80-\u0cff]/u.test(value))return "kn";
+ if(/[\u0d00-\u0d7f]/u.test(value))return "ml";
+ if(/[\u0b80-\u0bff]/u.test(value))return "ta";
+ if(/[\u0c00-\u0c7f]/u.test(value))return "te";
  if(/[\u0370-\u03ff]/u.test(value))return "el";
- if(/[\u0400-\u04ff]/u.test(value))return /[іїєґ]/iu.test(value)?"uk":"ru";
+ if(/[\u0400-\u04ff]/u.test(value))return /[іїєґў]/iu.test(value)?"uk":"ru";
  if(/[\u0600-\u06ff]/u.test(value)){
   if(/[ٹڈڑںھہے]/u.test(value))return "ur";
-  if(/[ژک]/u.test(value))return "fa";
+  if(/[پچژگ]/u.test(value))return "fa";
   return "ar";
  }
  if(/[\u0900-\u097f]/u.test(value)){
-  if(/(तपाईं|तपाईँ|छु|छैन|गर्नु|हुनुहुन्छ|नेपाल|धन्यवाद|मलाई)/u.test(value))return "ne";
-  if(/(हैं|हूँ|होगा|करें|कृपया|मुझे|आपका)/u.test(value))return "hi";
+  if(/(तपाईं|तपाईँ|छु|छैन|गर्नु|हुनुहुन्छ|नेपाल|धन्यवाद|मलाई|मेरो|तपाईँको)/u.test(value))return "ne";
+  if(/(हैं|हूँ|होगा|करें|कृपया|मुझे|आपका|क्यों|कैसे|नहीं)/u.test(value))return "hi";
   return app==="ne"?"ne":"hi";
  }
  if(/[a-zA-Z]/u.test(value)){
