@@ -41,6 +41,11 @@ class GamingStreamService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == STOP) { stopStreaming(); return START_NOT_STICKY }
+        if (intent?.action == SET_MIC) {
+            val enabled = intent.getBooleanExtra(MIC_ENABLED, false)
+            audioTrack?.setEnabled(enabled)
+            return START_STICKY
+        }
         if (intent?.action == START) {
             includeMic = intent.getBooleanExtra(INCLUDE_MIC, false) &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
@@ -220,6 +225,8 @@ class GamingStreamService : Service() {
     companion object {
         const val START = "com.newstar.live.START"
         const val STOP = "com.newstar.live.STOP"
+        const val SET_MIC = "com.newstar.live.SET_MIC"
+        const val MIC_ENABLED = "mic_enabled"
         const val STATUS = "com.newstar.live.STATUS"
         const val RESULT_CODE = "result_code"
         const val RESULT_DATA = "result_data"
