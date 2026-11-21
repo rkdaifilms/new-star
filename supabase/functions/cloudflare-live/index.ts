@@ -174,6 +174,7 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({
           enabled: true,
           defaultCreator: creatorId,
+          recording: { mode: "off" },
           meta: { app: "New Star", creatorId, roomTitle: title },
         }),
       });
@@ -187,6 +188,37 @@ Deno.serve(async (req: Request) => {
       return json({ error: response.status === 403 ? "Cloudflare denied live-input creation. Check that the token has Stream Write permission and Live is enabled on the account." : "Cloudflare could not create a live input.", providerStatus: response.status }, 502, headers);
     }
     input = payload.result;
+  }
+
+  // Enforce no automatic VOD/recording for both newly created and reused live inputs.
+  if (input?.recording?.mode !== "off") {
+    let recordingUpdate: Response;
+    try {
+      recordingUpdate = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${encodeURIComponent(input.uid)}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ recording: { mode: "off" } }),
+        },
+      );
+    } catch (e) {
+      console.error("Could not disable Cloudflare LIVE recording:", e);
+      return json({ error: "Could not verify that LIVE recording is disabled. LIVE was not started." }, 502, headers);
+    }
+    const recordingPayload = await recordingUpdate.json().catch(() => null);
+    if (!recordingUpdate.ok || !recordingPayload?.success) {
+      console.error("Cloudflare LIVE recording disable failed:", recordingUpdate.status, recordingPayload?.errors || recordingPayload);
+      return json({ error: "Cloudflare could not disable automatic LIVE recording. LIVE was not started." }, 502, headers);
+    }
+    input = recordingPayload.result || input;
+  }
+
+  if (input?.recording?.mode !== "off") {
+    return json({ error: "LIVE recording is not confirmed off. LIVE was not started." }, 503, headers);
   }
 
   const whipUrl = input?.webRTC?.url;
