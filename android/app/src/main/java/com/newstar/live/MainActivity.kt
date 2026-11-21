@@ -14,6 +14,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import android.graphics.Color
 import android.webkit.*
 import android.widget.Toast
 import android.widget.FrameLayout
@@ -108,7 +109,7 @@ class MainActivity : AppCompatActivity() {
         // targetSdk 35 enforces edge-to-edge on Android 15+. Keep WebView content
         // clear of system bars/cutouts while preserving IME insets for the keyboard.
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        container = FrameLayout(this)
+        container = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
         ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
             val safe = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
