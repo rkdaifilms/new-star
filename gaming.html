@@ -811,7 +811,7 @@
             const grid = document.getElementById('gamingGuestSeatGrid');
             if (!grid) return;
             grid.replaceChildren();
-            const count = Math.max(2, Math.min(4, Number(capacity) || 4));
+            const count = Math.max(1, Math.min(4, Number(capacity) || 4));
             for (let seat = 1; seat <= count; seat++) {
                 const tile = document.createElement('div');
                 tile.style.cssText = 'position:relative;min-height:104px;background:#101820;border:1px solid #33404a;border-radius:10px;overflow:hidden;';
