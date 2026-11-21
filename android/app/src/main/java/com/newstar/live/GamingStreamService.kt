@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.media.projection.MediaProjection
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -37,6 +38,7 @@ class GamingStreamService : Service() {
     private var whipResource: String? = null
     private val stopped = AtomicBoolean(false)
     private val startRequested = AtomicBoolean(false)
+    private var streamWakeLock: PowerManager.WakeLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -63,6 +65,7 @@ class GamingStreamService : Service() {
             val foregroundTypes = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
                 if (includeMic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
             ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), foregroundTypes)
+            acquireStreamWakeLock()
             Thread {
                 try { startStreaming(intent) }
                 catch (e: Exception) { emit("error", e.message ?: "Native stream failed"); stopStreaming() }
@@ -192,6 +195,20 @@ class GamingStreamService : Service() {
         check(pc.iceGatheringState() == PeerConnection.IceGatheringState.COMPLETE) { "ICE gathering timed out." }
     }
 
+    private fun acquireStreamWakeLock() {
+        if (streamWakeLock?.isHeld == true) return
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        streamWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NewStar:GamingLive").apply {
+            setReferenceCounted(false)
+            acquire()
+        }
+    }
+
+    private fun releaseStreamWakeLock() {
+        runCatching { streamWakeLock?.takeIf { it.isHeld }?.release() }
+        streamWakeLock = null
+    }
+
     private fun stopStreaming() {
         if (!stopped.compareAndSet(false, true)) return
         runCatching {
@@ -212,6 +229,7 @@ class GamingStreamService : Service() {
         runCatching { factory?.dispose() }
         runCatching { audioDeviceModule?.release() }
         runCatching { egl?.release() }
+        releaseStreamWakeLock()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
