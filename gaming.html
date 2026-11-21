@@ -364,6 +364,7 @@
                 const onStatus = event => {
                     const detail = event.detail || {};
                     if (detail.status === 'connected') finish(resolve, detail);
+                    else if (detail.status === 'warning' && captureStatus) captureStatus.textContent = detail.message || 'Check Android notification settings.';
                     else if (detail.status === 'error') finish(reject, new Error(detail.message || 'Native screen stream failed.'));
                 };
                 const timeout = setTimeout(() => finish(reject, new Error('Android screen stream timed out.')), 40000);
