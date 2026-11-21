@@ -5,6 +5,8 @@ import android.app.Activity
 import android.content.*
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -202,29 +204,69 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                    if (request.isForMainFrame) showLoadError(error.description?.toString() ?: "Network error")
+                    if (request.isForMainFrame) showLoadError(error.errorCode, error.description?.toString() ?: "Network error")
                 }
 
                 override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
-                    if (request.isForMainFrame && response.statusCode >= 500) showLoadError("Server error: ${response.statusCode}")
+                    if (request.isForMainFrame && response.statusCode >= 500) showLoadError(response.statusCode, "HTTP ${response.statusCode}")
                 }
 
                 override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: android.net.http.SslError) {
                     handler.cancel()
-                    showLoadError("Secure connection failed. Please check your internet connection and device date/time.")
+                    showLoadError(error.primaryError, "TLS/SSL certificate validation failed")
                 }
             }
             addJavascriptInterface(Bridge(), "NewStarNative")
         }
     }
 
-    private fun showLoadError(message: String) {
-        val safeMessage = message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    private fun showLoadError(errorCode: Int, detail: String) {
+        fun escapeHtml(value: String): String = value
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;")
+
+        val connectivity = runCatching {
+            val manager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = manager.activeNetwork
+            val capabilities = network?.let { manager.getNetworkCapabilities(it) }
+            when {
+                capabilities == null -> "No active network detected"
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) -> "Internet connection available"
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) -> "Network connected; internet not verified"
+                else -> "Connected network has no internet capability"
+            }
+        }.getOrDefault("Network status unavailable")
+        val webViewVersion = runCatching { WebView.getCurrentWebViewPackage()?.versionName ?: "Unavailable" }
+            .getOrDefault("Unavailable")
+        val diagnostics = """
+            Android: ${escapeHtml(Build.VERSION.RELEASE)} (API ${Build.VERSION.SDK_INT})
+            WebView: ${escapeHtml(webViewVersion)}
+            Network: ${escapeHtml(connectivity)}
+            Error code: ${escapeHtml(errorCode.toString())}
+            Technical detail: ${escapeHtml(detail.take(240))}
+            App URL: ${escapeHtml(HOME_URL)}
+        """.trimIndent()
         val html = """
-            <html><meta name="viewport" content="width=device-width, initial-scale=1">
-            <body style="margin:0;background:#101018;color:white;font:16px sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center">
-            <main style="padding:28px"><h2>New Star couldn't load</h2><p>$safeMessage</p>
-            <button onclick="location.href='$HOME_URL'" style="padding:14px 22px;border:0;border-radius:10px;background:#7c3aed;color:white;font-size:16px">Try again</button>
+            <!doctype html>
+            <html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+            <meta name="color-scheme" content="dark">
+            <style>
+              *{box-sizing:border-box}body{margin:0;background:#101018;color:#fff;font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;padding:20px}
+              main{width:min(100%,480px);padding:26px;border:1px solid #343444;border-radius:20px;background:#1b1b27}
+              h2{margin:0 0 10px;font-size:24px}p{color:#c9c9d5;line-height:1.55}
+              button{width:100%;padding:14px;border:0;border-radius:12px;background:#fe2c55;color:#fff;font-size:16px;font-weight:700;margin:8px 0;cursor:pointer}
+              button.secondary{background:#343444}details{margin-top:14px;color:#ddd}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:#bdbdcc;background:#11111a;padding:12px;border-radius:10px}
+              .hint{font-size:13px;color:#9f9faf}
+            </style></head><body><main>
+              <h2>New Star अभी नहीं खुल पाया</h2>
+              <p>कनेक्शन या सर्वर में अस्थायी समस्या हो सकती है। इंटरनेट जाँचें और फिर कोशिश करें। आपकी ऐप सुरक्षा सेटिंग्स बदलने की जरूरत नहीं है।</p>
+              <button onclick="location.href='$HOME_URL'">फिर से कोशिश करें</button>
+              <button class="secondary" onclick="location.reload()">इस पेज को रीफ़्रेश करें</button>
+              <details><summary>तकनीकी जाँच (Diagnostics)</summary><pre>$diagnostics</pre></details>
+              <p class="hint">अगर समस्या बनी रहे, Diagnostics में दिख रही जानकारी सहायता टीम को दें। पासवर्ड या OTP साझा न करें।</p>
             </main></body></html>
         """.trimIndent()
         web.loadDataWithBaseURL(HOME_URL, html, "text/html", "UTF-8", null)
