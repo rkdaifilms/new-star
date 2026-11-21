@@ -512,7 +512,7 @@
                 // Cloudflare Stream WHIP is the primary one-to-many broadcast path.
                 // The Calls SFU is only for interactive guest seats and must never
                 // prevent the creator's main broadcast from starting.
-                peer = new RTCPeerConnection();
+                peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }] });
                 canvasStream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
                 const offer = await peer.createOffer();
                 await peer.setLocalDescription(offer);
