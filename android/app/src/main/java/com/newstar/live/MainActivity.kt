@@ -76,6 +76,11 @@ class MainActivity : AppCompatActivity() {
         else Toast.makeText(this, "Downloads में सेव करने की अनुमति नहीं मिली।", Toast.LENGTH_LONG).show()
     }
 
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (!granted) emit("warning", "Android notification permission was not granted. Gaming LIVE may not appear in the notification shade.")
+        continueStartScreenStream()
+    }
+
     private val gamingMicPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         pendingMicEnabled = granted
         launchGamingScreenPermission()
@@ -138,6 +143,18 @@ class MainActivity : AppCompatActivity() {
             registerReceiver(receiver, f)
         }
         if (savedInstanceState == null) web.loadUrl(HOME_URL) else web.restoreState(savedInstanceState)
+    }
+
+    private fun continueStartScreenStream() {
+        if (pendingUrl.isBlank()) return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            pendingMicEnabled = true
+            launchGamingScreenPermission()
+        } else {
+            // Screen sharing can still proceed if the creator declines microphone access.
+            pendingMicEnabled = false
+            gamingMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
     private fun launchGamingScreenPermission() {
@@ -405,13 +422,11 @@ class MainActivity : AppCompatActivity() {
             }
             runOnUiThread {
                 pendingUrl = url
-                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                    pendingMicEnabled = true
-                    launchGamingScreenPermission()
+                if (Build.VERSION.SDK_INT >= 33 &&
+                    ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                 } else {
-                    // Screen sharing can still proceed if the creator declines microphone access.
-                    pendingMicEnabled = false
-                    gamingMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    continueStartScreenStream()
                 }
             }
         }
