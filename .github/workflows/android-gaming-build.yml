@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - gaming-connectivity-fix
+      - new-star-repair-pass-1
   pull_request:
     branches:
       - main
