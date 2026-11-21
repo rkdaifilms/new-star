@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private var pendingUrl = ""
     private var pendingMicEnabled = false
     private var pendingWebPermission: PermissionRequest? = null
+    private var pendingDownload: DownloadManager.Request? = null
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val selected = if (result.resultCode == Activity.RESULT_OK) {
@@ -61,6 +62,13 @@ class MainActivity : AppCompatActivity() {
                 ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
         }
         if (allGranted) request.grant(resources) else request.deny()
+    }
+
+    private val legacyStoragePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val request = pendingDownload
+        pendingDownload = null
+        if (granted && request != null) enqueueDownloadRequest(request)
+        else Toast.makeText(this, "Downloads में सेव करने की अनुमति नहीं मिली।", Toast.LENGTH_LONG).show()
     }
 
     private val gamingMicPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -251,6 +259,20 @@ class MainActivity : AppCompatActivity() {
                 }
                 setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
             }
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                pendingDownload = request
+                legacyStoragePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            } else {
+                enqueueDownloadRequest(request)
+            }
+        } catch (_: Exception) {
+            Toast.makeText(this, "डाउनलोड शुरू नहीं हो सका। लिंक या इंटरनेट जाँचें।", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun enqueueDownloadRequest(request: DownloadManager.Request) {
+        try {
             val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
             manager.enqueue(request)
             Toast.makeText(this, "डाउनलोड शुरू हुआ। Notification में प्रगति देखें।", Toast.LENGTH_LONG).show()
