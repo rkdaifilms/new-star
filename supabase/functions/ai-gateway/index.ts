@@ -48,9 +48,9 @@ function providerHttpError(status: number, data: any) {
 }
 
 async function generateGeminiImage(key: string, prompt: string) {
-  // Gemini 3.1 Flash Image (Nano Banana 2) uses generateContent with
-  // responseModalities. Keep Gemini 2.5 Flash Image as compatibility fallback.
-  const models = ["gemini-3.1-flash-image", "gemini-2.5-flash-image"];
+  // Nano Banana 2.1 is the current Gemini Developer API image model.
+  // Gemini 3 Pro Image is the compatibility fallback if the primary model is unavailable.
+  const models = ["gemini-nano-banana-2.1", "gemini-3-pro-image"];
   let lastFailure = "GEMINI_IMAGE_UNAVAILABLE";
   for (const model of models) {
     const response = await fetchWithTimeout(
@@ -141,23 +141,33 @@ async function callOpenAI(key: string, messages: ChatMessage[], systemPrompt: st
 async function callGemini(key: string, messages: ChatMessage[], systemPrompt: string) {
   const contents = normalizeGeminiContents(messages);
   if (!contents.length || contents[contents.length - 1].role !== "user") throw new Error("INVALID_GEMINI_TURN_SEQUENCE");
-  const response = await fetchWithTimeout(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-    {
-      method: "POST",
-      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { temperature: 0.4, maxOutputTokens: 900 }
-      })
+  // Gemini 2.5 Flash access is restricted for new projects; prefer current stable models.
+  const models = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+  let lastFailure = "GEMINI_UNAVAILABLE";
+  for (const model of models) {
+    const response = await fetchWithTimeout(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: "POST",
+        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: { temperature: 0.4, maxOutputTokens: 900 }
+        })
+      }
+    );
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      lastFailure = model + ":" + providerHttpError(response.status, data);
+      if (response.status === 404 && model !== models[models.length - 1]) continue;
+      throw new Error(lastFailure);
     }
-  );
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(providerHttpError(response.status, data));
-  const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
-  if (typeof text !== "string" || !text.trim()) throw new Error("EMPTY_RESPONSE");
-  return text;
+    const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
+    if (typeof text !== "string" || !text.trim()) throw new Error("EMPTY_RESPONSE");
+    return text;
+  }
+  throw new Error(lastFailure);
 }
 
 async function callOpenRouter(key: string, messages: ChatMessage[], systemPrompt: string) {
