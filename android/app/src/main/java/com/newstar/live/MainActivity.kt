@@ -253,6 +253,15 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        @JavascriptInterface fun setMicrophoneEnabled(enabled: Boolean) {
+            val intent = Intent(this@MainActivity, GamingStreamService::class.java).apply {
+                action = GamingStreamService.SET_MIC
+                putExtra(GamingStreamService.MIC_ENABLED, enabled)
+            }
+            runCatching { startService(intent) }.onFailure {
+                emit("error", "Could not change the Gaming LIVE microphone state.")
+            }
+        }
         @JavascriptInterface fun stopScreenStream() {
             runOnUiThread { stopService(Intent(this@MainActivity, GamingStreamService::class.java)) }
         }

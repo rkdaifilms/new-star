@@ -69,7 +69,7 @@
     <!-- GAMING SETUP PANEL -->
     <div class="studio-card" id="gamingSetupPanel">
         <div class="section-title">Pro Gaming Screen Stream</div>
-        <div class="section-desc">New Star Android app: share your phone screen after Android permission. Current native mode streams screen video only; game audio, microphone mixing, face-camera overlay and guest seats are not enabled yet. Browser mode may not support full-device capture.</div>
+        <div class="section-desc">Android app: share your phone screen after Android permission. Native mode can send screen video and your microphone when you grant microphone permission. Internal game audio, native face-camera overlay, guest seats, PK Battle and room moderation are not available in native mode yet. Browser mode may not support full-device capture.</div>
         
         <label>Game Name (e.g., Free Fire, BGMI, PUBG):</label>
         <input type="text" id="gameNameInput" value="Free Fire Mobile">
@@ -105,11 +105,11 @@
             <div style="background:#111; padding:10px; border-radius:10px; margin-bottom:12px; text-align:left; font-size:12px;">
                 <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
                     <span>🎙️ My Voice (Mic): <b id="micStateText" style="color:#00b4d8;">ON</b></span>
-                    <button style="background:#333; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;" onclick="toggleMyMicrophone()">Mute/Unmute</button>
+                    <button style="background:#333; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;" id="gamingMicToggleButton" onclick="toggleMyMicrophone()">Mute/Unmute</button>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span>📹 Face Camera: <b id="camStateText" style="color:#00b4d8;">ACTIVE</b></span>
-                    <button style="background:#fe2c55; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" onclick="toggleCameraPower()">Toggle Cam</button>
+                    <button style="background:#fe2c55; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" id="gamingCameraToggleButton" onclick="toggleCameraPower()">Toggle Cam</button>
                 </div>
             </div>
 
@@ -326,6 +326,7 @@
         let gamingMicEnabled = true;
 
         let gamingNativeActive = false;
+        let gamingSfuAvailable = false;
 
         async function startNativeProGamingStream(gameName) {
             const captureStatus = document.getElementById('gamingCaptureStatus');
@@ -370,17 +371,32 @@
             }
             gamingRoomId = prepared.room_id;
             gamingNativeActive = true;
+            gamingSfuAvailable = false;
             gamingWhipUrl = null; // Native service owns and deletes the WHIP resource on stop.
             isLiveActive = true;
             gamingIsGuest = false;
             gamingGuestSeatNumber = 1;
             renderGamingGuestSeats(1);
-            document.getElementById('gamingModerationButton').style.display = 'inline-flex';
+            document.getElementById('gamingModerationButton').style.display = 'none';
+            document.getElementById('gamingInviteButton').style.display = 'none';
+            const nativePkButton = document.querySelector('button[onclick="openGamePkModal()"]');
+            if (nativePkButton) nativePkButton.style.display = 'none';
+            const nativeMicButton = document.getElementById('gamingMicToggleButton');
+            const nativeMicAvailable = connected.message && connected.message.toLowerCase().includes('microphone are connected');
+            if (nativeMicButton) {
+                nativeMicButton.disabled = !nativeMicAvailable;
+                nativeMicButton.title = nativeMicAvailable ? 'Mute or unmute the Android microphone' : 'Microphone permission was not granted';
+            }
+            const nativeCameraButton = document.getElementById('gamingCameraToggleButton');
+            if (nativeCameraButton) {
+                nativeCameraButton.disabled = true;
+                nativeCameraButton.title = 'Native face-camera overlay is not available yet';
+            }
             document.getElementById('gamingSetupPanel').style.display = 'none';
             document.getElementById('starBubbleIcon').style.display = 'flex';
             document.getElementById('activeGameNameTag').textContent = gameName.toUpperCase() + ' SCREEN';
-            document.getElementById('camStateText').textContent = 'OFF';
-            document.getElementById('micStateText').textContent = connected.message && connected.message.toLowerCase().includes('microphone') ? 'ON' : 'OFF';
+            document.getElementById('camStateText').textContent = 'NOT AVAILABLE';
+            document.getElementById('micStateText').textContent = connected.message && connected.message.toLowerCase().includes('microphone are connected') ? 'ON' : 'OFF';
             document.getElementById('activeGamingView').style.display = 'flex';
             startGamingChatPolling();
             if (captureStatus) {
@@ -512,7 +528,7 @@
                 // Cloudflare Stream WHIP is the primary one-to-many broadcast path.
                 // The Calls SFU is only for interactive guest seats and must never
                 // prevent the creator's main broadcast from starting.
-                peer = new RTCPeerConnection();
+                peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }] });
                 canvasStream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
                 const offer = await peer.createOffer();
                 await peer.setLocalDescription(offer);
@@ -535,9 +551,12 @@
                 // Add multi-person guest-seat media independently. A Calls/SFU
                 // configuration problem must not tear down a healthy Stream WHIP
                 // broadcast or mark the creator offline.
+                gamingSfuAvailable = false;
                 try {
                     await startGamingSfuPublisher(roomId, canvasStream);
+                    gamingSfuAvailable = true;
                 } catch (sfuError) {
+                    gamingSfuAvailable = false;
                     console.warn('Gaming guest-seat SFU is unavailable; primary broadcast remains active:', sfuError);
                     const status = document.getElementById('gamingCaptureStatus');
                     if (status) {
@@ -557,11 +576,14 @@
                 isLiveActive = true;
                 gamingIsGuest = false;
                 gamingGuestSeatNumber = 1;
-                renderGamingGuestSeats(4);
-                document.getElementById('gamingModerationButton').style.display = 'inline-flex';
+                renderGamingGuestSeats(gamingSfuAvailable ? 4 : 1);
+                document.getElementById('gamingModerationButton').style.display = gamingSfuAvailable ? 'inline-flex' : 'none';
+                document.getElementById('gamingInviteButton').style.display = gamingSfuAvailable ? 'inline-flex' : 'none';
+                const browserPkButton = document.querySelector('button[onclick="openGamePkModal()"]');
+                if (browserPkButton) browserPkButton.style.display = gamingSfuAvailable ? 'inline-flex' : 'none';
                 const hostSeatVideo = document.getElementById('gamingSeatVideo_1');
                 if (hostSeatVideo) { hostSeatVideo.srcObject = canvasStream; hostSeatVideo.muted = true; }
-                startGamingGuestSubscriptionPolling();
+                if (gamingSfuAvailable) startGamingGuestSubscriptionPolling();
                 startGamingChatPolling();
                 gamingMicEnabled = true;
                 isMicMuted = false;
@@ -620,6 +642,7 @@
                 gamingPeer = null; gamingWhipUrl = null; gamingRoomId = null;
                 gamingMicStream = null; screenStreamObj = null; facecamStreamObj = null;
                 gamingIsGuest = false; gamingGuestSeatNumber = null; gamingGuestStream = null;
+                gamingSfuAvailable = false;
                 gamingCanvasStream = null; gamingAudioContext = null; gamingScreenVideo = null; gamingFaceVideo = null; gamingCanvas = null;
                 const faceVideo = document.getElementById('facecamVideoElement');
                 if (faceVideo) faceVideo.srcObject = null;
@@ -632,6 +655,12 @@
                 document.getElementById('gamingGuestLeaveButton').style.display = 'none';
                 document.getElementById('gamingInviteButton').style.display = 'inline-flex';
                 document.getElementById('gamingModerationButton').style.display = 'inline-flex';
+                const pkButton = document.querySelector('button[onclick="openGamePkModal()"]');
+                if (pkButton) pkButton.style.display = 'inline-flex';
+                const micButton = document.getElementById('gamingMicToggleButton');
+                if (micButton) { micButton.disabled = false; micButton.title = ''; }
+                const cameraButton = document.getElementById('gamingCameraToggleButton');
+                if (cameraButton) { cameraButton.disabled = false; cameraButton.title = ''; }
                 renderGamingGuestSeats(4);
                 if (roomId) {
                     try { await gamingLiveApi('stop', { room_id: roomId }); }
@@ -697,10 +726,24 @@
             box.addEventListener('pointerup', () => { dragging = false; });
         }
         function toggleMyMicrophone() {
+            const status = document.getElementById('micStateText');
+            if (gamingNativeActive && window.NewStarNative?.setMicrophoneEnabled) {
+                if (status.textContent !== 'ON' && status.textContent !== 'MUTED') return;
+                const enabled = status.textContent !== 'ON';
+                window.NewStarNative.setMicrophoneEnabled(enabled);
+                isMicMuted = !enabled;
+                gamingMicEnabled = enabled;
+                status.textContent = enabled ? 'ON' : 'MUTED';
+                return;
+            }
             isMicMuted = !isMicMuted;
             gamingMicEnabled = !isMicMuted;
-            if (gamingMicStream) gamingMicStream.getAudioTracks().forEach(track => track.enabled = gamingMicEnabled);
-            document.getElementById('micStateText').textContent = isMicMuted ? 'MUTED' : (gamingMicStream ? 'ON' : 'MIC UNAVAILABLE');
+            if (gamingMicStream) {
+                gamingMicStream.getAudioTracks().forEach(track => track.enabled = gamingMicEnabled);
+                status.textContent = isMicMuted ? 'MUTED' : 'ON';
+            } else {
+                status.textContent = 'MIC UNAVAILABLE';
+            }
         }
         function toggleControlModal() {
             const modal = document.getElementById('activeGamingView');
@@ -768,7 +811,7 @@
             const grid = document.getElementById('gamingGuestSeatGrid');
             if (!grid) return;
             grid.replaceChildren();
-            const count = Math.max(2, Math.min(4, Number(capacity) || 4));
+            const count = Math.max(1, Math.min(4, Number(capacity) || 4));
             for (let seat = 1; seat <= count; seat++) {
                 const tile = document.createElement('div');
                 tile.style.cssText = 'position:relative;min-height:104px;background:#101820;border:1px solid #33404a;border-radius:10px;overflow:hidden;';
