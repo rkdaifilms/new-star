@@ -36,6 +36,7 @@ class GamingStreamService : Service() {
     private var audioDeviceModule: JavaAudioDeviceModule? = null
     private var whipResource: String? = null
     private val stopped = AtomicBoolean(false)
+    private val startRequested = AtomicBoolean(false)
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -43,10 +44,20 @@ class GamingStreamService : Service() {
         if (intent?.action == STOP) { stopStreaming(); return START_NOT_STICKY }
         if (intent?.action == SET_MIC) {
             val enabled = intent.getBooleanExtra(MIC_ENABLED, false)
-            audioTrack?.setEnabled(enabled)
-            return START_STICKY
+            val activeTrack = audioTrack
+            if (activeTrack == null) {
+                emit("error", "Gaming LIVE microphone is not active.")
+                return START_NOT_STICKY
+            }
+            activeTrack.setEnabled(enabled)
+            emit("mic", if (enabled) "Microphone is on." else "Microphone is muted.")
+            return START_NOT_STICKY
         }
         if (intent?.action == START) {
+            if (!startRequested.compareAndSet(false, true)) {
+                emit("error", "Gaming LIVE is already starting or active.")
+                return START_NOT_STICKY
+            }
             includeMic = intent.getBooleanExtra(INCLUDE_MIC, false) &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
             val foregroundTypes = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
