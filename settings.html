@@ -60,6 +60,30 @@ button,.action{margin-top:8px}
 <div class="row"><h3>📲 Browser Push Notifications</h3><p>अभी यह सिस्टम Inbox के अंदर in-app notifications देता है। Browser push के लिए अलग subscription, VAPID keys और server delivery की जरूरत है; इसलिए push चालू होने का गलत दावा नहीं किया जा रहा।</p></div>
 </div></section>
 
+<section class="section" id="android-controls">
+<h2 class="section-title">📱 Android Phone Controls</h2>
+<div class="panel">
+<div class="row">
+<h3>🔐 App Permissions, Battery & Background</h3>
+<p>Android की App info स्क्रीन से Camera, Microphone, Photos/Files permissions और Battery usage/background विकल्प देख सकते हैं। केवल वही permission Allow करें जिसकी सुविधा आप इस्तेमाल कर रहे हैं। Battery restriction बदलना जरूरी नहीं है; फोन के अपने सुरक्षा विकल्प बने रहें।</p>
+<button type="button" class="secondary" id="openAndroidAppSettingsBtn">Open Android App Settings</button>
+</div>
+<div class="row">
+<h3>🔔 Android App Notifications</h3>
+<p>फोन की system notification permission और New Star की in-app notification preferences अलग चीजें हैं। यहाँ से Android notification settings खोलें। App में server push notifications अभी configured नहीं हैं।</p>
+<button type="button" class="secondary" id="openAndroidNotificationSettingsBtn">Open Android Notification Settings</button>
+</div>
+<div class="row">
+<h3>🎙️ Camera & Microphone</h3>
+<p>Camera और microphone की अनुमति Android तभी माँगेगा जब संबंधित feature शुरू करेंगे। Gaming LIVE में screen sharing के लिए हर बार Android की अलग confirmation जरूरी है।</p>
+</div>
+<div class="row">
+<h3>⬇️ Downloads & Storage</h3>
+<p>Android WebView में अभी native Download Manager और resumable large-file download integration verify नहीं हुई है। इसलिए यहाँ कोई नकली download switch नहीं दिया गया है।</p>
+</div>
+<p class="note">ये Android system controls केवल installed New Star Android app में खुलेंगे। Browser में इन बटनों से फोन की system Settings नहीं खुल सकतीं।</p>
+</div></section>
+
 <section class="section" id="ai-location">
 <h2 class="section-title">📍 AI & Location</h2>
 <div class="panel">
@@ -160,6 +184,14 @@ const db=window.supabaseClient||window.cloudClient;const $=id=>document.getEleme
 let user=null,profile=null;
 
 function message(s,type="success"){const el=$("status");el.textContent=s;el.className="status show "+type;el.scrollIntoView({behavior:"smooth",block:"nearest"});}
+function openAndroidSystemSettings(section){
+ if(!window.NewStarNative?.openAndroidSettings){
+  message("यह सुविधा केवल New Star Android app में उपलब्ध है। Browser में फोन की Settings को ऐप से नहीं खोला जा सकता।","error");
+  return;
+ }
+ try{window.NewStarNative.openAndroidSettings(section);}
+ catch(e){message("Android Settings नहीं खुल सकीं। फोन की Settings से New Star App info खोलें।","error");}
+}
 function prefs(){try{return JSON.parse(localStorage.getItem("newstar_preferences")||"{}");}catch(_){return {};}}
 function loadAppearance(){const p=prefs();$("appLanguage").value=p.language||"hi";$("appTheme").value=p.theme||"dark";loadAccessibility();}
 function accessibilityPrefs(){const a=prefs().accessibility||{};return {textScale:String(a.textScale||1),reducedMotion:a.reducedMotion===true,highContrast:a.highContrast===true};}
@@ -267,6 +299,8 @@ function openHelpCenterAI(){
   },{once:true});
   document.head.appendChild(script);
  }
+$("openAndroidAppSettingsBtn").addEventListener("click",()=>openAndroidSystemSettings("app"));
+$("openAndroidNotificationSettingsBtn").addEventListener("click",()=>openAndroidSystemSettings("notifications"));
 $("openHelpCenterFromSupport").addEventListener("click",openHelpCenterAI);$("saveNotificationPrefsBtn").addEventListener("click",saveNotificationPrefs);$("markAllReadBtn").addEventListener("click",markAllNotificationsRead);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
 window.addEventListener("newstar:preferences-loaded",loadAppearance);loadAppearance();loadSettings();
 })();
