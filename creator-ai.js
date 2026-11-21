@@ -19,13 +19,13 @@ function detectLanguage(text){
  if(/[\u0370-\u03ff]/u.test(value))return "el";
  if(/[\u0400-\u04ff]/u.test(value))return /[іїєґ]/iu.test(value)?"uk":"ru";
  if(/[\u0600-\u06ff]/u.test(value)){
-  if(/[پچژگکی]/u.test(value))return "fa";
   if(/[ٹڈڑںھہے]/u.test(value))return "ur";
+  if(/[ژک]/u.test(value))return "fa";
   return "ar";
  }
  if(/[\u0900-\u097f]/u.test(value)){
-  if(/\b(तपाईं|तपाईँ|छु|छैन|गर्नु|हुनुहुन्छ|नेपाल|धन्यवाद|मलाई)\b/u.test(value))return "ne";
-  if(/\b(हैं|हूँ|होगा|करें|कृपया|मुझे|आपका|धन्यवाद)\b/u.test(value))return "hi";
+  if(/(तपाईं|तपाईँ|छु|छैन|गर्नु|हुनुहुन्छ|नेपाल|धन्यवाद|मलाई)/u.test(value))return "ne";
+  if(/(हैं|हूँ|होगा|करें|कृपया|मुझे|आपका)/u.test(value))return "hi";
   return app==="ne"?"ne":"hi";
  }
  if(/[a-zA-Z]/u.test(value)){
