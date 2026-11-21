@@ -43,10 +43,19 @@
     const items=[];
     add(items,"इंटरनेट संकेत",navigator.onLine?"ok":"warn",navigator.onLine?"डिवाइस ऑनलाइन दिख रहा है":"ब्राउज़र ऑफलाइन बता रहा है; Wi-Fi या मोबाइल डेटा जाँचें");
     add(items,"HTTPS सुरक्षा",location.protocol==="https:"?"ok":"warn",location.protocol==="https:"?"Secure HTTPS कनेक्शन":"यह पेज HTTPS पर नहीं खुला");
-    add(items,"WebRTC",("RTCPeerConnection" in window)?"ok":"bad",("RTCPeerConnection" in window)?"वीडियो/ऑडियो कनेक्शन API उपलब्ध":"इस ब्राउज़र में WebRTC API उपलब्ध नहीं");
-    add(items,"कैमरा/माइक API",!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)?"ok":"warn",navigator.mediaDevices&&navigator.mediaDevices.getUserMedia?"अनुमति मिलने पर कैमरा/माइक API उपलब्ध":"कैमरा/माइक API उपलब्ध नहीं; Android WebView अपडेट जाँचें");
-    add(items,"स्थानीय स्टोरेज",function(){try{const k="ns_diag_"+Date.now();localStorage.setItem(k,"1");localStorage.removeItem(k);return true}catch(_){return false}}()?"ok":"warn","ऐप की स्थानीय सेटिंग रखने की क्षमता");
-    add(items,"Service Worker",("serviceWorker" in navigator)?"ok":"warn",("serviceWorker" in navigator)?"Service Worker API उपलब्ध":"इस ब्राउज़र में Service Worker उपलब्ध नहीं");
+    const hasRtc=typeof window.RTCPeerConnection==="function";
+    add(items,"WebRTC API",hasRtc?"ok":"bad",hasRtc?"वीडियो/ऑडियो कनेक्शन API उपलब्ध; इससे TURN या LIVE कनेक्शन सफल होना प्रमाणित नहीं होता":"इस ब्राउज़र में RTCPeerConnection उपलब्ध नहीं");
+    const hasMedia=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+    add(items,"कैमरा/माइक API",hasMedia?"ok":"warn",hasMedia?"अनुमति मिलने पर कैमरा/माइक API उपलब्ध":"कैमरा/माइक API उपलब्ध नहीं; HTTPS और Android WebView अपडेट जाँचें");
+    const hasRecorder=typeof window.MediaRecorder==="function";
+    add(items,"MediaRecorder",hasRecorder?"ok":"warn",hasRecorder?"ब्राउज़र में ऑडियो/वीडियो रिकॉर्डिंग API उपलब्ध":"इस ब्राउज़र में MediaRecorder उपलब्ध नहीं");
+    const hasScreenCapture=!!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia);
+    add(items,"Screen capture API",hasScreenCapture?"ok":"warn",hasScreenCapture?"वेब स्क्रीन-कैप्चर API उपलब्ध; Android की अलग system अनुमति फिर भी जरूरी है":"वेब स्क्रीन-कैप्चर API उपलब्ध नहीं; native Android gaming capture अलग से जाँचना होगा");
+    let storageOk=false;
+    try{const k="ns_diag_"+Date.now();localStorage.setItem(k,"1");localStorage.removeItem(k);storageOk=true}catch(_){}
+    add(items,"स्थानीय स्टोरेज",storageOk?"ok":"warn",storageOk?"ऐप की स्थानीय सेटिंग रखने की क्षमता उपलब्ध":"ब्राउज़र ने localStorage रोक रखा है; साइट डेटा/प्राइवेसी सेटिंग जाँचें");
+    const hasSw="serviceWorker" in navigator;
+    add(items,"Service Worker API",hasSw?"ok":"warn",hasSw?"Service Worker API उपलब्ध; इससे worker registration सफल होना प्रमाणित नहीं होता":"इस ब्राउज़र में Service Worker API उपलब्ध नहीं");
     let server="जाँच नहीं हो सकी";
     try{
       const response=await fetch(location.origin+"/?device_check="+Date.now(),{method:"HEAD",cache:"no-store",credentials:"same-origin"});
@@ -54,14 +63,17 @@
       add(items,"New Star वेबसाइट",response.ok?"ok":"warn",server);
     }catch(e){add(items,"New Star वेबसाइट","warn","वेबसाइट तक अनुरोध नहीं पहुँचा; नेटवर्क या सर्वर जाँचें");server=String(e&&e.message||e)}
     let permissionInfo="Permission status API उपलब्ध नहीं";
+    let permissionState="warn";
     if(navigator.permissions&&navigator.permissions.query){
       const values=[];
       for(const name of ["camera","microphone"]){
         try{const p=await navigator.permissions.query({name});values.push(name+": "+p.state)}catch(_){values.push(name+": unsupported")}
       }
       permissionInfo=values.join("; ");
+      permissionState=values.some(x=>x.endsWith(": denied"))?"bad":values.length&&values.every(x=>x.endsWith(": granted"))?"ok":"warn";
     }
-    add(items,"कैमरा/माइक अनुमति स्थिति","ok",permissionInfo+" (यह जाँच अनुमति नहीं बदलती)");
+    const permissionDetail=permissionState==="ok"?"कैमरा और माइक्रोफोन अनुमति granted है":permissionState==="bad"?"कम-से-कम एक अनुमति denied है; Android App Settings में अनुमति जाँचें":"अनुमति अभी granted नहीं है या ब्राउज़र status API उपलब्ध नहीं है; यह जाँच अनुमति नहीं माँगती";
+    add(items,"कैमरा/माइक अनुमति स्थिति",permissionState,permissionDetail+" ("+permissionInfo+")");
     const ua=navigator.userAgent||"Unavailable";
     const deviceInfo="Platform: "+(navigator.platform||"Unavailable")+"\nUser agent: "+ua+"\nLanguage: "+(navigator.language||"Unavailable")+"\nScreen: "+screen.width+"x"+screen.height+"\nOnline: "+navigator.onLine+"\nOrigin: "+location.origin+"\nServer: "+server+"\nPermission status: "+permissionInfo;
     latestReport=items.map(x=>x.name+": "+x.state.toUpperCase()+" — "+x.detail).join("\n")+"\n\n"+deviceInfo;
