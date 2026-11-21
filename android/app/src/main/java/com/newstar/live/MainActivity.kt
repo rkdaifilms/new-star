@@ -283,7 +283,6 @@ class MainActivity : AppCompatActivity() {
             val intent = when (section) {
                 "notifications" -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                     putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                    putExtra(Settings.EXTRA_APP_UID, applicationInfo.uid)
                 }
                 "app" -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.parse("package:$packageName")
