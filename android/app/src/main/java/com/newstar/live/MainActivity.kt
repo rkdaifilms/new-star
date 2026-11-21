@@ -2,17 +2,20 @@ package com.newstar.live
 
 import android.Manifest
 import android.app.Activity
+import android.app.DownloadManager
 import android.content.*
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.Environment
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.webkit.*
+import android.widget.Toast
 import android.widget.FrameLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -121,6 +124,9 @@ class MainActivity : AppCompatActivity() {
             settings.safeBrowsingEnabled = true
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
+            setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
+                enqueueDownload(url, userAgent, contentDisposition, mimeType)
+            }
             webChromeClient = object : WebChromeClient() {
                 override fun onPermissionRequest(request: PermissionRequest) {
                     runOnUiThread {
@@ -218,6 +224,38 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             addJavascriptInterface(Bridge(), "NewStarNative")
+        }
+    }
+
+    private fun enqueueDownload(url: String, userAgent: String?, contentDisposition: String?, mimeType: String?) {
+        val uri = runCatching { Uri.parse(url) }.getOrNull()
+        if (uri?.scheme != "https" || uri.host.isNullOrBlank()) {
+            Toast.makeText(this, "सुरक्षा कारण से यह डाउनलोड लिंक स्वीकार नहीं किया गया।", Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            val filename = URLUtil.guessFileName(url, contentDisposition, mimeType)
+                .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+                .take(150)
+                .ifBlank { "new-star-download" }
+            val request = DownloadManager.Request(uri).apply {
+                setTitle(filename)
+                setDescription("New Star से डाउनलोड हो रहा है")
+                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                setAllowedOverMetered(true)
+                setAllowedOverRoaming(false)
+                if (!mimeType.isNullOrBlank()) setMimeType(mimeType)
+                if (!userAgent.isNullOrBlank()) addRequestHeader("User-Agent", userAgent)
+                CookieManager.getInstance().getCookie(url)?.takeIf { it.isNotBlank() }?.let {
+                    addRequestHeader("Cookie", it)
+                }
+                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
+            }
+            val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+            manager.enqueue(request)
+            Toast.makeText(this, "डाउनलोड शुरू हुआ। Notification में प्रगति देखें।", Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {
+            Toast.makeText(this, "डाउनलोड शुरू नहीं हो सका। लिंक या इंटरनेट जाँचें।", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -357,6 +395,8 @@ class MainActivity : AppCompatActivity() {
         fileCallback?.onReceiveValue(null)
         fileCallback = null
         runCatching { unregisterReceiver(receiver) }
+        pendingWebPermission?.let { runCatching { it.deny() } }
+        pendingWebPermission = null
         if (::web.isInitialized) {
             web.removeJavascriptInterface("NewStarNative")
             web.stopLoading()
