@@ -2,18 +2,29 @@ package com.newstar.live
 
 import android.Manifest
 import android.app.Activity
+import android.app.DownloadManager
 import android.content.*
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.Environment
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
+import android.graphics.Color
 import android.webkit.*
+import android.widget.Toast
 import android.widget.FrameLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
@@ -23,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     private var pendingUrl = ""
     private var pendingMicEnabled = false
     private var pendingWebPermission: PermissionRequest? = null
+    private var pendingDownload: DownloadManager.Request? = null
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val selected = if (result.resultCode == Activity.RESULT_OK) {
@@ -57,6 +69,18 @@ class MainActivity : AppCompatActivity() {
         if (allGranted) request.grant(resources) else request.deny()
     }
 
+    private val legacyStoragePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val request = pendingDownload
+        pendingDownload = null
+        if (granted && request != null) enqueueDownloadRequest(request)
+        else Toast.makeText(this, "Downloads में सेव करने की अनुमति नहीं मिली।", Toast.LENGTH_LONG).show()
+    }
+
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (!granted) emit("warning", "Android notification permission was not granted. Gaming LIVE may not appear in the notification shade.")
+        continueStartScreenStream()
+    }
+
     private val gamingMicPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         pendingMicEnabled = granted
         launchGamingScreenPermission()
@@ -87,10 +111,30 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        container = FrameLayout(this)
+        // targetSdk 35 enforces edge-to-edge on Android 15+. Keep WebView content
+        // clear of system bars/cutouts while preserving IME insets for the keyboard.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        container = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
+        ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
+            val safe = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
+            WindowInsetsCompat.Builder(insets)
+                .setInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
+                    Insets.NONE
+                )
+                .build()
+        }
         web = createWebView()
         container.addView(web, FrameLayout.LayoutParams(-1, -1))
         setContentView(container)
+        ViewCompat.requestApplyInsets(container)
+        WindowCompat.getInsetsController(window, container).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
 
         val f = IntentFilter(GamingStreamService.STATUS)
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(receiver, f, Context.RECEIVER_NOT_EXPORTED)
@@ -99,6 +143,18 @@ class MainActivity : AppCompatActivity() {
             registerReceiver(receiver, f)
         }
         if (savedInstanceState == null) web.loadUrl(HOME_URL) else web.restoreState(savedInstanceState)
+    }
+
+    private fun continueStartScreenStream() {
+        if (pendingUrl.isBlank()) return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            pendingMicEnabled = true
+            launchGamingScreenPermission()
+        } else {
+            // Screen sharing can still proceed if the creator declines microphone access.
+            pendingMicEnabled = false
+            gamingMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
     private fun launchGamingScreenPermission() {
@@ -118,6 +174,9 @@ class MainActivity : AppCompatActivity() {
             settings.safeBrowsingEnabled = true
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
+            setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
+                enqueueDownload(url, userAgent, contentDisposition, mimeType)
+            }
             webChromeClient = object : WebChromeClient() {
                 override fun onPermissionRequest(request: PermissionRequest) {
                     runOnUiThread {
@@ -202,29 +261,115 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                    if (request.isForMainFrame) showLoadError(error.description?.toString() ?: "Network error")
+                    if (request.isForMainFrame) showLoadError(error.errorCode, error.description?.toString() ?: "Network error")
                 }
 
                 override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
-                    if (request.isForMainFrame && response.statusCode >= 500) showLoadError("Server error: ${response.statusCode}")
+                    if (request.isForMainFrame && response.statusCode >= 500) showLoadError(response.statusCode, "HTTP ${response.statusCode}")
                 }
 
                 override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: android.net.http.SslError) {
                     handler.cancel()
-                    showLoadError("Secure connection failed. Please check your internet connection and device date/time.")
+                    showLoadError(error.primaryError, "TLS/SSL certificate validation failed")
                 }
             }
             addJavascriptInterface(Bridge(), "NewStarNative")
         }
     }
 
-    private fun showLoadError(message: String) {
-        val safeMessage = message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    private fun enqueueDownload(url: String, userAgent: String?, contentDisposition: String?, mimeType: String?) {
+        val uri = runCatching { Uri.parse(url) }.getOrNull()
+        if (uri?.scheme != "https" || uri.host.isNullOrBlank()) {
+            Toast.makeText(this, "सुरक्षा कारण से यह डाउनलोड लिंक स्वीकार नहीं किया गया।", Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            val filename = URLUtil.guessFileName(url, contentDisposition, mimeType)
+                .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+                .take(150)
+                .ifBlank { "new-star-download" }
+            val request = DownloadManager.Request(uri).apply {
+                setTitle(filename)
+                setDescription("New Star से डाउनलोड हो रहा है")
+                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                setAllowedOverMetered(true)
+                setAllowedOverRoaming(false)
+                if (!mimeType.isNullOrBlank()) setMimeType(mimeType)
+                if (!userAgent.isNullOrBlank()) addRequestHeader("User-Agent", userAgent)
+                CookieManager.getInstance().getCookie(url)?.takeIf { it.isNotBlank() }?.let {
+                    addRequestHeader("Cookie", it)
+                }
+                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
+            }
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                pendingDownload = request
+                legacyStoragePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            } else {
+                enqueueDownloadRequest(request)
+            }
+        } catch (_: Exception) {
+            Toast.makeText(this, "डाउनलोड शुरू नहीं हो सका। लिंक या इंटरनेट जाँचें।", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun enqueueDownloadRequest(request: DownloadManager.Request) {
+        try {
+            val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+            manager.enqueue(request)
+            Toast.makeText(this, "डाउनलोड शुरू हुआ। Notification में प्रगति देखें।", Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {
+            Toast.makeText(this, "डाउनलोड शुरू नहीं हो सका। लिंक या इंटरनेट जाँचें।", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun showLoadError(errorCode: Int, detail: String) {
+        fun escapeHtml(value: String): String = value
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;")
+
+        val connectivity = runCatching {
+            val manager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = manager.activeNetwork
+            val capabilities = network?.let { manager.getNetworkCapabilities(it) }
+            when {
+                capabilities == null -> "No active network detected"
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) -> "Internet connection available"
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) -> "Network connected; internet not verified"
+                else -> "Connected network has no internet capability"
+            }
+        }.getOrDefault("Network status unavailable")
+        val webViewVersion = runCatching { WebView.getCurrentWebViewPackage()?.versionName ?: "Unavailable" }
+            .getOrDefault("Unavailable")
+        val diagnostics = """
+            Android: ${escapeHtml(Build.VERSION.RELEASE)} (API ${Build.VERSION.SDK_INT})
+            WebView: ${escapeHtml(webViewVersion)}
+            Network: ${escapeHtml(connectivity)}
+            Error code: ${escapeHtml(errorCode.toString())}
+            Technical detail: ${escapeHtml(detail.take(240))}
+            App URL: ${escapeHtml(HOME_URL)}
+        """.trimIndent()
         val html = """
-            <html><meta name="viewport" content="width=device-width, initial-scale=1">
-            <body style="margin:0;background:#101018;color:white;font:16px sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center">
-            <main style="padding:28px"><h2>New Star couldn't load</h2><p>$safeMessage</p>
-            <button onclick="location.href='$HOME_URL'" style="padding:14px 22px;border:0;border-radius:10px;background:#7c3aed;color:white;font-size:16px">Try again</button>
+            <!doctype html>
+            <html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+            <meta name="color-scheme" content="dark">
+            <style>
+              *{box-sizing:border-box}body{margin:0;background:#101018;color:#fff;font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;padding:20px}
+              main{width:min(100%,480px);padding:26px;border:1px solid #343444;border-radius:20px;background:#1b1b27}
+              h2{margin:0 0 10px;font-size:24px}p{color:#c9c9d5;line-height:1.55}
+              button{width:100%;padding:14px;border:0;border-radius:12px;background:#fe2c55;color:#fff;font-size:16px;font-weight:700;margin:8px 0;cursor:pointer}
+              button.secondary{background:#343444}details{margin-top:14px;color:#ddd}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:#bdbdcc;background:#11111a;padding:12px;border-radius:10px}
+              .hint{font-size:13px;color:#9f9faf}
+            </style></head><body><main>
+              <h2>New Star अभी नहीं खुल पाया</h2>
+              <p>कनेक्शन या सर्वर में अस्थायी समस्या हो सकती है। इंटरनेट जाँचें और फिर कोशिश करें। आपकी ऐप सुरक्षा सेटिंग्स बदलने की जरूरत नहीं है।</p>
+              <button onclick="location.href='$HOME_URL'">फिर से कोशिश करें</button>
+              <button class="secondary" onclick="location.reload()">इस पेज को रीफ़्रेश करें</button>
+              <details><summary>तकनीकी जाँच (Diagnostics)</summary><pre>$diagnostics</pre></details>
+              <p class="hint">अगर समस्या बनी रहे, Diagnostics में दिख रही जानकारी सहायता टीम को दें। पासवर्ड या OTP साझा न करें।</p>
             </main></body></html>
         """.trimIndent()
         web.loadDataWithBaseURL(HOME_URL, html, "text/html", "UTF-8", null)
@@ -236,6 +381,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     inner class Bridge {
+        @JavascriptInterface fun openAndroidSettings(section: String) {
+            val intent = when (section) {
+                "notifications" -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                }
+                "app" -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                else -> null
+            } ?: run {
+                emit("error", "यह Android settings विकल्प उपलब्ध नहीं है।")
+                return
+            }
+            runOnUiThread {
+                try {
+                    startActivity(intent)
+                    emit("settings-opened", "Android की संबंधित Settings खुल गई हैं।")
+                } catch (_: Exception) {
+                    if (section == "notifications") {
+                        try {
+                            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.parse("package:$packageName")
+                            })
+                            emit("settings-opened", "App info खुल गया है। Notifications वहाँ से खोलें।")
+                        } catch (_: Exception) {
+                            emit("error", "Android App Settings नहीं खुल सकीं।")
+                        }
+                    } else {
+                        emit("error", "Android App Settings नहीं खुल सकीं।")
+                    }
+                }
+            }
+        }
+
         @JavascriptInterface fun startScreenStream(url: String) {
             val u = runCatching { Uri.parse(url) }.getOrNull()
             if (u?.scheme != "https" || u.host.isNullOrBlank() || !(u.host == "cloudflarestream.com" || u.host!!.endsWith(".cloudflarestream.com"))) {
@@ -243,14 +422,21 @@ class MainActivity : AppCompatActivity() {
             }
             runOnUiThread {
                 pendingUrl = url
-                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                    pendingMicEnabled = true
-                    launchGamingScreenPermission()
+                if (Build.VERSION.SDK_INT >= 33 &&
+                    ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                 } else {
-                    // Screen sharing can still proceed if the creator declines microphone access.
-                    pendingMicEnabled = false
-                    gamingMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    continueStartScreenStream()
                 }
+            }
+        }
+        @JavascriptInterface fun setMicrophoneEnabled(enabled: Boolean) {
+            val intent = Intent(this@MainActivity, GamingStreamService::class.java).apply {
+                action = GamingStreamService.SET_MIC
+                putExtra(GamingStreamService.MIC_ENABLED, enabled)
+            }
+            runCatching { startService(intent) }.onFailure {
+                emit("error", "Could not change the Gaming LIVE microphone state.")
             }
         }
         @JavascriptInterface fun stopScreenStream() {
@@ -271,6 +457,8 @@ class MainActivity : AppCompatActivity() {
         fileCallback?.onReceiveValue(null)
         fileCallback = null
         runCatching { unregisterReceiver(receiver) }
+        pendingWebPermission?.let { runCatching { it.deny() } }
+        pendingWebPermission = null
         if (::web.isInitialized) {
             web.removeJavascriptInterface("NewStarNative")
             web.stopLoading()

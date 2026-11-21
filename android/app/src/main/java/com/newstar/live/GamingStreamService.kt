@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.media.projection.MediaProjection
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -21,6 +22,7 @@ import java.net.URL
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 class GamingStreamService : Service() {
     private var capturer: ScreenCapturerAndroid? = null
@@ -36,17 +38,35 @@ class GamingStreamService : Service() {
     private var audioDeviceModule: JavaAudioDeviceModule? = null
     private var whipResource: String? = null
     private val stopped = AtomicBoolean(false)
+    private val startRequested = AtomicBoolean(false)
+    private var streamWakeLock: PowerManager.WakeLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == STOP) { stopStreaming(); return START_NOT_STICKY }
+        if (intent?.action == SET_MIC) {
+            val enabled = intent.getBooleanExtra(MIC_ENABLED, false)
+            val activeTrack = audioTrack
+            if (activeTrack == null) {
+                emit("error", "Gaming LIVE microphone is not active.")
+                return START_NOT_STICKY
+            }
+            activeTrack.setEnabled(enabled)
+            emit("mic", if (enabled) "Microphone is on." else "Microphone is muted.")
+            return START_NOT_STICKY
+        }
         if (intent?.action == START) {
+            if (!startRequested.compareAndSet(false, true)) {
+                emit("error", "Gaming LIVE is already starting or active.")
+                return START_NOT_STICKY
+            }
             includeMic = intent.getBooleanExtra(INCLUDE_MIC, false) &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
             val foregroundTypes = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
                 if (includeMic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
             ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), foregroundTypes)
+            acquireStreamWakeLock()
             Thread {
                 try { startStreaming(intent) }
                 catch (e: Exception) { emit("error", e.message ?: "Native stream failed"); stopStreaming() }
@@ -56,6 +76,7 @@ class GamingStreamService : Service() {
     }
 
     private fun startStreaming(intent: Intent) {
+        check(!stopped.get()) { "Gaming LIVE was stopped before startup." }
         val resultCode = intent.getIntExtra(RESULT_CODE, 0)
         @Suppress("DEPRECATION")
         val permissionData = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(RESULT_DATA, Intent::class.java) else intent.getParcelableExtra(RESULT_DATA)
@@ -72,6 +93,7 @@ class GamingStreamService : Service() {
             factoryBuilder.setAudioDeviceModule(audioDeviceModule!!)
         }
         factory = factoryBuilder.createPeerConnectionFactory()
+        check(!stopped.get()) { "Gaming LIVE was stopped during startup." }
 
         texture = SurfaceTextureHelper.create("NewStarScreenCapture", egl!!.eglBaseContext)
         source = factory!!.createVideoSource(false)
@@ -80,6 +102,7 @@ class GamingStreamService : Service() {
         })
         capturer!!.initialize(texture!!, applicationContext, source!!.capturerObserver)
         capturer!!.startCapture(1280, 720, 30)
+        check(!stopped.get()) { "Gaming LIVE was stopped during screen capture startup." }
         track = factory!!.createVideoTrack("newstar-screen", source)
         if (includeMic) {
             audioSource = factory!!.createAudioSource(MediaConstraints())
@@ -88,11 +111,16 @@ class GamingStreamService : Service() {
         }
 
         val connected = CountDownLatch(1)
+        val iceFailure = AtomicReference<String?>(null)
         val observer = object : PeerConnection.Observer {
             override fun onSignalingChange(state: PeerConnection.SignalingState?) {}
             override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {
                 if (state == PeerConnection.IceConnectionState.CONNECTED || state == PeerConnection.IceConnectionState.COMPLETED) connected.countDown()
-                if (state == PeerConnection.IceConnectionState.FAILED) emit("error", "WebRTC network connection failed.")
+                if (state == PeerConnection.IceConnectionState.FAILED) {
+                    iceFailure.compareAndSet(null, "WebRTC network connection failed. Check the network or TURN connectivity.")
+                    connected.countDown()
+                    emit("error", iceFailure.get() ?: "WebRTC network connection failed.")
+                }
             }
             override fun onIceConnectionReceivingChange(receiving: Boolean) {}
             override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {}
@@ -104,8 +132,10 @@ class GamingStreamService : Service() {
             override fun onRenegotiationNeeded() {}
             override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) {}
         }
-        peer = factory!!.createPeerConnection(PeerConnection.RTCConfiguration(emptyList()), observer)
+        val iceServers = listOf(PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer())
+        peer = factory!!.createPeerConnection(PeerConnection.RTCConfiguration(iceServers), observer)
             ?: error("Could not create WebRTC connection.")
+        check(!stopped.get()) { "Gaming LIVE was stopped before connecting." }
         peer!!.addTrack(track, listOf("newstar-screen"))
         audioTrack?.let { peer!!.addTrack(it, listOf("newstar-screen")) }
 
@@ -113,26 +143,35 @@ class GamingStreamService : Service() {
         setDescription(peer!!, offer, true)
         awaitIceGathering(peer!!)
         val localSdp = peer!!.localDescription?.description ?: error("WebRTC offer is empty.")
+        check(!stopped.get()) { "Gaming LIVE was stopped before WHIP negotiation." }
         val connection = URL(whipUrl).openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
-        connection.doOutput = true
-        connection.connectTimeout = 15000
-        connection.readTimeout = 20000
-        connection.setRequestProperty("Content-Type", "application/sdp")
-        connection.setRequestProperty("Accept", "application/sdp")
-        connection.outputStream.use { it.write(localSdp.toByteArray(Charsets.UTF_8)) }
-        val status = connection.responseCode
-        if (status !in 200..299) {
-            val detail = runCatching { connection.errorStream?.bufferedReader()?.readText() }.getOrNull().orEmpty()
-            error("Cloudflare WHIP rejected the stream (" + status + "): " + detail.take(160))
+        val answer: String
+        try {
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.connectTimeout = 15000
+            connection.readTimeout = 20000
+            connection.setRequestProperty("Content-Type", "application/sdp")
+            connection.setRequestProperty("Accept", "application/sdp")
+            connection.outputStream.use { it.write(localSdp.toByteArray(Charsets.UTF_8)) }
+            val status = connection.responseCode
+            if (status !in 200..299) {
+                val detail = runCatching { connection.errorStream?.bufferedReader()?.readText() }.getOrNull().orEmpty()
+                error("Cloudflare WHIP rejected the stream (" + status + "): " + detail.take(160))
+            }
+            answer = connection.inputStream.bufferedReader().use { it.readText() }
+            whipResource = connection.getHeaderField("Location")?.let { URL(URL(whipUrl), it).toString() }
+        } finally {
+            connection.disconnect()
         }
-        val answer = connection.inputStream.bufferedReader().use { it.readText() }
-        whipResource = connection.getHeaderField("Location")?.let { URL(URL(whipUrl), it).toString() }
-        connection.disconnect()
+        check(!stopped.get()) { "Gaming LIVE was stopped during WHIP negotiation." }
         require(answer.isNotBlank()) { "Cloudflare returned an empty SDP answer." }
         setDescription(peer!!, SessionDescription(SessionDescription.Type.ANSWER, answer), false)
+        check(!stopped.get()) { "Gaming LIVE was stopped while applying the WHIP answer." }
         emit("connecting", "Cloudflare accepted the screen stream; checking media connection.")
         if (!connected.await(20, TimeUnit.SECONDS)) error("Cloudflare accepted WHIP, but the WebRTC media connection did not become active.")
+        check(iceFailure.get() == null) { iceFailure.get() ?: "WebRTC network connection failed." }
+        check(!stopped.get()) { "Gaming LIVE was stopped before the media connection completed." }
         emit(
             "connected",
             if (includeMic) "Gaming screen and microphone are connected to Cloudflare."
@@ -175,6 +214,20 @@ class GamingStreamService : Service() {
         check(pc.iceGatheringState() == PeerConnection.IceGatheringState.COMPLETE) { "ICE gathering timed out." }
     }
 
+    private fun acquireStreamWakeLock() {
+        if (streamWakeLock?.isHeld == true) return
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        streamWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NewStar:GamingLive").apply {
+            setReferenceCounted(false)
+            acquire()
+        }
+    }
+
+    private fun releaseStreamWakeLock() {
+        runCatching { streamWakeLock?.takeIf { it.isHeld }?.release() }
+        streamWakeLock = null
+    }
+
     private fun stopStreaming() {
         if (!stopped.compareAndSet(false, true)) return
         runCatching {
@@ -195,6 +248,7 @@ class GamingStreamService : Service() {
         runCatching { factory?.dispose() }
         runCatching { audioDeviceModule?.release() }
         runCatching { egl?.release() }
+        releaseStreamWakeLock()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -219,6 +273,8 @@ class GamingStreamService : Service() {
     companion object {
         const val START = "com.newstar.live.START"
         const val STOP = "com.newstar.live.STOP"
+        const val SET_MIC = "com.newstar.live.SET_MIC"
+        const val MIC_ENABLED = "mic_enabled"
         const val STATUS = "com.newstar.live.STATUS"
         const val RESULT_CODE = "result_code"
         const val RESULT_DATA = "result_data"
