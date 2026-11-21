@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Gaming Stream - Star New Star</title>
+    <title>New Star Gaming LIVE</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
     
@@ -62,19 +62,19 @@
 <body>
     <div class="top-bar">
         <a href="index.html" class="top-close">←</a>
-        <h3 style="font-size:16px; color:#00b4d8;">🎮 Pro Gaming Stream</h3>
+        <h3 style="font-size:16px; color:#00b4d8;">🎮 New Star Gaming LIVE</h3>
         <div></div>
     </div>
 
     <!-- GAMING SETUP PANEL -->
     <div class="studio-card" id="gamingSetupPanel">
-        <div class="section-title">Pro Gaming Screen Stream</div>
+        <div class="section-title">New Star Gaming LIVE</div>
         <div class="section-desc">Android app: share your phone screen after Android permission. Native mode can send screen video and your microphone when you grant microphone permission. Internal game audio, native face-camera overlay, guest seats, PK Battle and room moderation are not available in native mode yet. Browser mode may not support full-device capture.</div>
         
         <label>Game Name (e.g., Free Fire, BGMI, PUBG):</label>
         <input type="text" id="gameNameInput" value="Free Fire Mobile">
         
-        <button class="btn" onclick="startProGamingStream()">🚀 Launch Game Stream Live</button>
+        <button class="btn" onclick="startProGamingStream()">🔴 Go LIVE</button>
         <div id="gamingCaptureStatus" class="gaming-capture-status" role="status" aria-live="polite" hidden></div>
     </div>
 
@@ -125,7 +125,7 @@
                 <button class="btn" style="grid-column:1/-1; background:linear-gradient(135deg,#25f4ee,#00b4d8); color:#001014; padding:11px; font-size:13px;" onclick="shareGamingLive()">📤 Share Gaming LIVE</button>
             </div>
 
-            <button id="gamingHostStopButton" class="btn" style="background:#333; color:#fff; padding:10px; font-size:12px;" onclick="stopGameStreamSession()">⏹️ Stop & End Live Stream</button>
+            <button id="gamingHostStopButton" class="btn" style="background:#333; color:#fff; padding:10px; font-size:12px;" onclick="stopGameStreamSession()">⏹️ End LIVE</button>
             <button id="gamingGuestLeaveButton" class="btn" style="display:none;background:#444;color:#fff;padding:10px;font-size:12px;" onclick="leaveGamingGuestSeat()">Leave Guest Seat</button>
         </div>
     </div>
