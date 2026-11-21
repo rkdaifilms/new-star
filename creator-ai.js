@@ -8,7 +8,42 @@ const uiText=(key,fallback)=>window.NewStarTranslations?.[selectedAppLanguage()]
 const log=$("chat-log"),prompt=$("prompt"),send=$("send"),voice=$("voice"),stopVoice=$("stop-voice"),status=$("gateway-status"),voiceStatus=$("voice-status"),notice=$("notice"),imageResult=$("image-result");
 let history=[],busy=false,recorder=null,stream=null,chunks=[],recording=false,pendingSendAfterTranscription=false,lastLanguage="en",imageMode=false;
 const langMap={"ह":"hi","अ":"hi","क":"hi","ख":"hi","ग":"hi","घ":"hi","च":"hi","ज":"hi","ट":"hi","ड":"hi","त":"hi","द":"hi","न":"hi","प":"hi","ब":"hi","म":"hi","य":"hi","र":"hi","ल":"hi","व":"hi","श":"hi","स":"hi","क्ष":"hi","ज्ञ":"hi","ँ":"hi","ं":"hi","ः":"hi","ि":"hi","ा":"hi","े":"hi","ो":"hi","्":"hi","़":"hi","়":"bn","অ":"bn","আ":"bn","ই":"bn","উ":"bn","এ":"bn","ও":"bn","ক":"bn","খ":"bn","গ":"bn","চ":"bn","জ":"bn","ট":"bn","ড":"bn","ত":"bn","দ":"bn","ন":"bn","প":"bn","ব":"bn","ম":"bn","য":"bn","র":"bn","ল":"bn","শ":"bn","স":"bn","ং":"bn","ঃ":"bn","ા":"gu","ક":"gu","મ":"gu","ત":"gu","પ":"gu","ર":"gu","ન":"gu","અ":"gu","આ":"gu","ಕ":"kn","ತ":"kn","ನ":"kn","ಮ":"kn","ಪ":"kn","ಅ":"kn","ആ":"ml","ക":"ml","മ":"ml","ന":"ml","പ":"ml","த":"ta","ம":"ta","ந":"ta","ப":"ta","அ":"ta","త":"te","మ":"te","న":"te","క":"te","అ":"te","ಅ":"kn","ಅ":"kn","ಕ":"kn","ಮ":"kn","ತ":"kn","ಪ":"kn","ಯ":"kn","ಖ":"kn","ก":"th","ข":"th","ค":"th","ง":"th","จ":"th","ส":"th","ร":"th","ม":"th","ย":"th","ว":"th","ه":"ar","ا":"ar","ل":"ar","م":"ar","ن":"ar","ي":"ar","ع":"ar","ك":"ar","و":"ar","پ":"fa","چ":"fa","ژ":"fa","گ":"fa","ی":"fa","ا":"fa","ب":"fa","ت":"fa","ث":"fa","ج":"fa","ح":"fa","خ":"fa","د":"fa","ر":"fa","ز":"fa","س":"fa","ش":"fa","ص":"fa","ض":"fa","ط":"fa","ظ":"fa","ع":"fa","غ":"fa","ف":"fa","ق":"fa","ک":"fa","ل":"fa","م":"fa","ن":"fa","و":"fa","ھ":"ur","ے":"ur","ٹ":"ur","ڈ":"ur","ڑ":"ur","ں":"ur","گ":"ur","چ":"ur","پ":"ur","ک":"ur","ا":"ur","ب":"ur","ت":"ur","ث":"ur","ج":"ur","ح":"ur","خ":"ur","د":"ur","ر":"ur","ز":"ur","س":"ur","ش":"ur","ص":"ur","ض":"ur","ط":"ur","ظ":"ur","ع":"ur","غ":"ur","ف":"ur","ق":"ur","ل":"ur","م":"ur","ن":"ur","و":"ur","ي":"ur","ی":"ur","ئ":"ur","ء":"ur","ؤ":"ur","إ":"ar","أ":"ar","ة":"ar","ى":"ar","я":"ru","ы":"ru","э":"ru","ё":"ru","ж":"ru","щ":"ru","ф":"ru","ц":"ru","й":"ru","ш":"ru","ю":"ru","д":"ru","г":"ru","п":"ru","л":"ru","о":"ru","р":"ru","а":"ru","в":"ru","к":"ru","м":"ru","с":"ru","т":"ru","н":"ru","е":"ru","и":"ru","у":"ru","б":"ru","з":"ru","х":"ru","ч":"ru","ъ":"ru","ь":"ru","ў":"uk","і":"uk","є":"uk","ґ":"uk","ї":"uk","あ":"ja","い":"ja","う":"ja","え":"ja","お":"ja","か":"ja","き":"ja","く":"ja","け":"ja","こ":"ja","さ":"ja","し":"ja","す":"ja","せ":"ja","そ":"ja","た":"ja","ち":"ja","つ":"ja","て":"ja","と":"ja","な":"ja","に":"ja","ぬ":"ja","ね":"ja","の":"ja","は":"ja","ひ":"ja","ふ":"ja","へ":"ja","ほ":"ja","ア":"ja","イ":"ja","ウ":"ja","エ":"ja","オ":"ja","カ":"ja","キ":"ja","ク":"ja","ケ":"ja","コ":"ja","サ":"ja","シ":"ja","ス":"ja","セ":"ja","ソ":"ja","タ":"ja","チ":"ja","ツ":"ja","テ":"ja","ト":"ja","ニ":"ja","ヌ":"ja","ネ":"ja","ノ":"ja","ハ":"ja","ヒ":"ja","フ":"ja","ヘ":"ja","ホ":"ja","ン":"ja","가":"ko","나":"ko","다":"ko","라":"ko","마":"ko","바":"ko","사":"ko","아":"ko","자":"ko","차":"ko","카":"ko","타":"ko","파":"ko","하":"ko","는":"ko","을":"ko","에":"ko","의":"ko","한":"ko","글":"ko","어":"ko"};
-function detectLanguage(text){const counts={};for(const ch of text){const l=langMap[ch];if(l)counts[l]=(counts[l]||0)+1;}const best=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];if(best&&best[1]>=2)return best[0];if(/[\u4e00-\u9fff]/.test(text))return "zh";if(/[a-zA-Z]/.test(text)){const lower=text.toLowerCase();if(/\b(hola|gracias|porque|quiero|cómo|qué)\b/.test(lower))return "es";if(/\b(bonjour|merci|pourquoi|comment|avec)\b/.test(lower))return "fr";if(/\b(hallo|danke|warum|bitte|und)\b/.test(lower))return "de";if(/\b(olá|obrigado|porque|você|como)\b/.test(lower))return "pt";if(/\b(ciao|grazie|perché|come)\b/.test(lower))return "it";if(/\b(merhaba|teşekkür|nasıl|neden)\b/.test(lower))return "tr";if(/\b(halo|terima kasih|bagaimana|saya)\b/.test(lower))return "id";if(/\b(xin chào|cảm ơn|không|tôi)\b/.test(lower))return "vi";return "en";}return lastLanguage||document.documentElement.lang||"en";}
+function detectLanguage(text){
+ const value=String(text||"").trim(), lower=value.toLowerCase(), app=selectedAppLanguage();
+ if(!value)return app;
+ if(/[\u3040-\u30ff]/u.test(value))return "ja";
+ if(/[\uac00-\ud7af]/u.test(value))return "ko";
+ if(/[\u4e00-\u9fff]/u.test(value))return "zh";
+ if(/[\u0e00-\u0e7f]/u.test(value))return "th";
+ if(/[\u0980-\u09ff]/u.test(value))return "bn";
+ if(/[\u0370-\u03ff]/u.test(value))return "el";
+ if(/[\u0400-\u04ff]/u.test(value))return /[іїєґ]/iu.test(value)?"uk":"ru";
+ if(/[\u0600-\u06ff]/u.test(value)){
+  if(/[پچژگکی]/u.test(value))return "fa";
+  if(/[ٹڈڑںھہے]/u.test(value))return "ur";
+  return "ar";
+ }
+ if(/[\u0900-\u097f]/u.test(value)){
+  if(/\b(तपाईं|तपाईँ|छु|छैन|गर्नु|हुनुहुन्छ|नेपाल|धन्यवाद|मलाई)\b/u.test(value))return "ne";
+  if(/\b(हैं|हूँ|होगा|करें|कृपया|मुझे|आपका|धन्यवाद)\b/u.test(value))return "hi";
+  return app==="ne"?"ne":"hi";
+ }
+ if(/[a-zA-Z]/u.test(value)){
+  if(/\b(hola|gracias|porque|quiero|cómo|qué|buenos|buenas|estoy|usted)\b/u.test(lower))return "es";
+  if(/\b(bonjour|merci|pourquoi|comment|avec|vous|je suis|salut)\b/u.test(lower))return "fr";
+  if(/\b(hallo|danke|warum|bitte|und|ich|nicht|guten)\b/u.test(lower))return "de";
+  if(/\b(olá|obrigado|obrigada|você|vocês|não|estou|como)\b/u.test(lower))return "pt";
+  if(/\b(ciao|grazie|perché|come|sono|buongiorno)\b/u.test(lower))return "it";
+  if(/\b(merhaba|teşekkür|nasıl|neden|lütfen|ben|sen)\b/u.test(lower))return "tr";
+  if(/\b(halo|terima kasih|bagaimana|saya|kamu|tidak|selamat)\b/u.test(lower))return "id";
+  if(/\b(xin chào|cảm ơn|không|tôi|bạn|được|đang)\b/u.test(lower))return "vi";
+  if(/\b(asante|habari|tafadhali|ndiyo|hapana|karibu|nina)\b/u.test(lower))return "sw";
+  if(/\b(alsjeblieft|dank je|bedankt|waarom|hoe|niet|ik ben)\b/u.test(lower))return "nl";
+  if(/\b(dziękuję|proszę|dlaczego|jak|jestem|nie|cześć)\b/u.test(lower))return "pl";
+  return "en";
+ }
+ return app;
+}
 function addMessage(text,role){const wrap=document.createElement("div");wrap.className="msg "+(role==="user"?"user":"assistant");const body=document.createElement("div");body.textContent=text;wrap.append(body);if(role==="assistant"){const actions=document.createElement("div");actions.className="msg-actions";const speakBtn=document.createElement("button");speakBtn.type="button";speakBtn.textContent="🔊 Read aloud";speakBtn.addEventListener("click",()=>speak(text,lastLanguage));const copy=document.createElement("button");copy.type="button";copy.textContent="Copy";copy.addEventListener("click",()=>navigator.clipboard?.writeText(text).then(()=>notice.textContent="Copied.").catch(()=>notice.textContent="Copy unavailable."));actions.append(speakBtn,copy);wrap.append(actions);}log.append(wrap);wrap.scrollIntoView({block:"end",behavior:"smooth"});return body;}
 let activeAudio=null;
 async function speak(text,language){
