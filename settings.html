@@ -245,10 +245,26 @@ $("textScale").addEventListener("change",saveAccessibility);$("reducedMotion").a
 function openHelpCenterAI(){
   if(window.NewStarHelpAI?.open){window.NewStarHelpAI.open();return;}
   let script=document.querySelector('script[data-newstar-help-ai="true"]');
-  if(script){if(script.dataset.loaded==="true"){window.NewStarHelpAI?.open?.();return;}script.addEventListener("load",()=>window.NewStarHelpAI?.open?.(),{once:true});return;}
-  script=document.createElement("script");script.src="ai-chat.js";script.dataset.newstarHelpAi="true";
-  script.addEventListener("load",()=>{script.dataset.loaded="true";if(window.NewStarHelpAI?.open)window.NewStarHelpAI.open();else message("Support AI अभी उपलब्ध नहीं है।","error");},{once:true});
-  script.addEventListener("error",()=>message("Support AI लोड नहीं हुई। Internet connection जाँचें।","error"),{once:true});
+  if(script?.dataset.loading==="true"){script.dataset.openWhenReady="true";return;}
+  if(script?.dataset.loaded==="true"){
+    if(window.NewStarHelpAI?.open){window.NewStarHelpAI.open();return;}
+    script.remove();
+  }else if(script){script.remove();}
+  script=document.createElement("script");
+  script.src="ai-chat.js";
+  script.dataset.newstarHelpAi="true";
+  script.dataset.loading="true";
+  script.dataset.openWhenReady="true";
+  script.addEventListener("load",()=>{
+    script.dataset.loading="false";
+    script.dataset.loaded="true";
+    if(window.NewStarHelpAI?.open)window.NewStarHelpAI.open();
+    else{script.remove();message("Support AI अभी उपलब्ध नहीं है।","error");}
+  },{once:true});
+  script.addEventListener("error",()=>{
+    script.remove();
+    message("Support AI लोड नहीं हुई। Internet connection जाँचें और फिर कोशिश करें।","error");
+  },{once:true});
   document.head.appendChild(script);
  }
 $("openHelpCenterFromSupport").addEventListener("click",openHelpCenterAI);$("saveNotificationPrefsBtn").addEventListener("click",saveNotificationPrefs);$("markAllReadBtn").addEventListener("click",markAllNotificationsRead);$("changeEmailBtn").addEventListener("click",changeEmail);$("changePasswordBtn").addEventListener("click",changePassword);$("logoutBtn").addEventListener("click",()=>logout("local","logoutBtn"));$("logoutAllBtn").addEventListener("click",()=>logout("global","logoutAllBtn"));
