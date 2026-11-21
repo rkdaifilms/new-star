@@ -326,6 +326,7 @@
         let gamingMicEnabled = true;
 
         let gamingNativeActive = false;
+        let gamingSfuAvailable = false;
 
         async function startNativeProGamingStream(gameName) {
             const captureStatus = document.getElementById('gamingCaptureStatus');
@@ -370,6 +371,7 @@
             }
             gamingRoomId = prepared.room_id;
             gamingNativeActive = true;
+            gamingSfuAvailable = false;
             gamingWhipUrl = null; // Native service owns and deletes the WHIP resource on stop.
             isLiveActive = true;
             gamingIsGuest = false;
@@ -380,7 +382,7 @@
             const nativePkButton = document.querySelector('button[onclick="openGamePkModal()"]');
             if (nativePkButton) nativePkButton.style.display = 'none';
             const nativeMicButton = document.getElementById('gamingMicToggleButton');
-            const nativeMicAvailable = connected.message && connected.message.toLowerCase().includes('microphone');
+            const nativeMicAvailable = connected.message && connected.message.toLowerCase().includes('microphone are connected');
             if (nativeMicButton) {
                 nativeMicButton.disabled = !nativeMicAvailable;
                 nativeMicButton.title = nativeMicAvailable ? 'Mute or unmute the Android microphone' : 'Microphone permission was not granted';
@@ -394,7 +396,7 @@
             document.getElementById('starBubbleIcon').style.display = 'flex';
             document.getElementById('activeGameNameTag').textContent = gameName.toUpperCase() + ' SCREEN';
             document.getElementById('camStateText').textContent = 'NOT AVAILABLE';
-            document.getElementById('micStateText').textContent = connected.message && connected.message.toLowerCase().includes('microphone') ? 'ON' : 'OFF';
+            document.getElementById('micStateText').textContent = connected.message && connected.message.toLowerCase().includes('microphone are connected') ? 'ON' : 'OFF';
             document.getElementById('activeGamingView').style.display = 'flex';
             startGamingChatPolling();
             if (captureStatus) {
@@ -549,9 +551,12 @@
                 // Add multi-person guest-seat media independently. A Calls/SFU
                 // configuration problem must not tear down a healthy Stream WHIP
                 // broadcast or mark the creator offline.
+                gamingSfuAvailable = false;
                 try {
                     await startGamingSfuPublisher(roomId, canvasStream);
+                    gamingSfuAvailable = true;
                 } catch (sfuError) {
+                    gamingSfuAvailable = false;
                     console.warn('Gaming guest-seat SFU is unavailable; primary broadcast remains active:', sfuError);
                     const status = document.getElementById('gamingCaptureStatus');
                     if (status) {
@@ -571,11 +576,14 @@
                 isLiveActive = true;
                 gamingIsGuest = false;
                 gamingGuestSeatNumber = 1;
-                renderGamingGuestSeats(4);
-                document.getElementById('gamingModerationButton').style.display = 'inline-flex';
+                renderGamingGuestSeats(gamingSfuAvailable ? 4 : 1);
+                document.getElementById('gamingModerationButton').style.display = gamingSfuAvailable ? 'inline-flex' : 'none';
+                document.getElementById('gamingInviteButton').style.display = gamingSfuAvailable ? 'inline-flex' : 'none';
+                const browserPkButton = document.querySelector('button[onclick="openGamePkModal()"]');
+                if (browserPkButton) browserPkButton.style.display = gamingSfuAvailable ? 'inline-flex' : 'none';
                 const hostSeatVideo = document.getElementById('gamingSeatVideo_1');
                 if (hostSeatVideo) { hostSeatVideo.srcObject = canvasStream; hostSeatVideo.muted = true; }
-                startGamingGuestSubscriptionPolling();
+                if (gamingSfuAvailable) startGamingGuestSubscriptionPolling();
                 startGamingChatPolling();
                 gamingMicEnabled = true;
                 isMicMuted = false;
@@ -634,6 +642,7 @@
                 gamingPeer = null; gamingWhipUrl = null; gamingRoomId = null;
                 gamingMicStream = null; screenStreamObj = null; facecamStreamObj = null;
                 gamingIsGuest = false; gamingGuestSeatNumber = null; gamingGuestStream = null;
+                gamingSfuAvailable = false;
                 gamingCanvasStream = null; gamingAudioContext = null; gamingScreenVideo = null; gamingFaceVideo = null; gamingCanvas = null;
                 const faceVideo = document.getElementById('facecamVideoElement');
                 if (faceVideo) faceVideo.srcObject = null;
