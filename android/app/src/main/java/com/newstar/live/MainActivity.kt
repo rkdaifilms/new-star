@@ -10,6 +10,7 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.webkit.*
 import android.widget.FrameLayout
@@ -278,6 +279,41 @@ class MainActivity : AppCompatActivity() {
     }
 
     inner class Bridge {
+        @JavascriptInterface fun openAndroidSettings(section: String) {
+            val intent = when (section) {
+                "notifications" -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                    putExtra(Settings.EXTRA_APP_UID, applicationInfo.uid)
+                }
+                "app" -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                else -> null
+            } ?: run {
+                emit("error", "यह Android settings विकल्प उपलब्ध नहीं है।")
+                return
+            }
+            runOnUiThread {
+                try {
+                    startActivity(intent)
+                    emit("settings-opened", "Android की संबंधित Settings खुल गई हैं।")
+                } catch (_: Exception) {
+                    if (section == "notifications") {
+                        try {
+                            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.parse("package:$packageName")
+                            })
+                            emit("settings-opened", "App info खुल गया है। Notifications वहाँ से खोलें।")
+                        } catch (_: Exception) {
+                            emit("error", "Android App Settings नहीं खुल सकीं।")
+                        }
+                    } else {
+                        emit("error", "Android App Settings नहीं खुल सकीं।")
+                    }
+                }
+            }
+        }
+
         @JavascriptInterface fun startScreenStream(url: String) {
             val u = runCatching { Uri.parse(url) }.getOrNull()
             if (u?.scheme != "https" || u.host.isNullOrBlank() || !(u.host == "cloudflarestream.com" || u.host!!.endsWith(".cloudflarestream.com"))) {
