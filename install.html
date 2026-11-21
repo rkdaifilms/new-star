@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101014">
+  <title>Install New Star for Android</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#101014;color:#fff;font:16px system-ui,Arial,sans-serif;display:grid;place-items:center;padding:22px}
+    main{width:min(100%,480px);background:#1b1b23;border:1px solid #393945;border-radius:20px;padding:25px;box-shadow:0 18px 55px #0008}
+    h1{margin:0 0 8px;font-size:28px}p{color:#c7c7d2;line-height:1.55}.button{display:block;text-align:center;text-decoration:none;background:#fe2c55;color:#fff;font-weight:700;padding:15px 18px;border-radius:13px;margin:18px 0 10px}
+    .secondary{background:#30303b}.note{font-size:13px;color:#a9a9b6}.steps{padding-left:20px;color:#ddd;line-height:1.65}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>New Star Android</h1>
+    <p>Download the Android installer from the official New Star GitHub release.</p>
+    <a class="button" href="https://github.com/rkdaifilms/new-star/releases/latest">Download latest APK</a>
+    <a class="button secondary" href="https://github.com/rkdaifilms/new-star/actions/workflows/android-gaming-build.yml">Open Android test builds</a>
+    <ol class="steps">
+      <li>Download the APK file to your Android phone.</li>
+      <li>Open it from your Downloads folder.</li>
+      <li>Review Android's installer and permission prompts, then choose Install if you trust this build.</li>
+      <li>Open New Star and grant camera or microphone permissions only when you use those features.</li>
+    </ol>
+    <p class="note">Android always controls installation. It may ask you to confirm installing an app from the browser or file manager. Do not turn off Play Protect or bypass security warnings. A successful build is not a guarantee that every device or streaming feature has been tested.</p>
+    <p class="note">For a stable public release, the repository maintainer must configure the private Android signing-key secrets before publishing a signed release.</p>
+  </main>
+</body>
+</html>
