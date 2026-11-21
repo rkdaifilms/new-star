@@ -1,5 +1,7 @@
 # New Star Android App
 
+Open the installation page at `/install.html` after deployment, or use the [latest GitHub Release](https://github.com/rkdaifilms/new-star/releases/latest).
+
 ## Download and install the Android app
 
 Open the [latest New Star Android release](https://github.com/rkdaifilms/new-star/releases/latest) on an Android phone, download **NewStar.apk**, then tap the downloaded file and confirm Android's installer prompt.
