@@ -39,11 +39,10 @@ button{cursor:pointer}
 #creatorIdentityBar button{pointer-events:auto!important;touch-action:manipulation!important;position:relative;z-index:2147482502!important;}
 #followCreatorBtn{pointer-events:auto!important;position:relative;z-index:8;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #followCreatorBtn.following{background:#24242b!important;border:1px solid #fe2c55!important;color:#fff!important}
-#creatorProfileButton:before{content:"👤";position:absolute;inset:0;display:grid;place-items:center;font-size:19px;z-index:0}
-#creatorProfileButton[data-fallback]:not([data-fallback=""]):before{content:attr(data-fallback);font-size:15px;font-weight:800}
-#feedCreatorAvatar[style*="display: none"]{display:none!important}
-#feedCreatorAvatar{position:relative;z-index:1}
-#creatorProfileButton img:not([src]),#creatorProfileButton img[src=""]{opacity:0}
+#creatorProfileButton{flex:0 0 44px;width:44px!important;height:44px!important;min-width:44px;min-height:44px;display:inline-flex!important;align-items:center;justify-content:center;position:relative;overflow:hidden;border:2px solid #fff!important;border-radius:50%;background:#262630!important;box-shadow:0 2px 10px #000b;cursor:pointer;pointer-events:auto!important;touch-action:manipulation!important}
+#feedCreatorFallback{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:21px;font-weight:800;line-height:1;z-index:1}
+#feedCreatorAvatar{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:2;background:#333}
+#feedCreatorAvatar[hidden]{display:none!important}
 #followCreatorBtn{min-width:82px;white-space:nowrap}
 #followCreatorBtn:disabled{opacity:.78}
 .video-info #username{display:inline-flex;align-items:center;min-height:38px;margin:0;padding:4px 0;font-size:15px;font-weight:700;line-height:1.25;text-decoration:underline;text-decoration-color:#ffffff66;text-underline-offset:3px;text-shadow:0 1px 5px #000;cursor:pointer;pointer-events:auto;position:relative;z-index:100003;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -315,7 +314,7 @@ button{cursor:pointer}
  </div>
  <section class="video-info">
   <div id="creatorIdentityBar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-   <button type="button" id="creatorProfileButton" aria-label="Open creator profile" style="display:none;width:34px;height:34px;padding:0;border:1px solid #ffffff99;border-radius:50%;overflow:hidden;background:#333;pointer-events:auto;position:relative;z-index:10"><img id="feedCreatorAvatar" alt="" style="width:100%;height:100%;object-fit:cover"></button>
+   <button type="button" id="creatorProfileButton" aria-label="Open creator profile" title="Open creator profile" style="display:none"><span id="feedCreatorFallback" aria-hidden="true">👤</span><img id="feedCreatorAvatar" alt="" hidden></button>
    <button type="button" id="username" aria-label="Open creator profile" style="border:0;background:transparent;color:#fff;text-align:left"></button>
    <button id="followCreatorBtn" type="button" style="display:none;background:#fe2c55;color:#fff;border:0;border-radius:18px;padding:6px 14px;font-weight:700">Follow</button>
   </div>
@@ -1093,7 +1092,7 @@ function renderVideo(){
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
  const creatorAvatarButton=$("creatorProfileButton");
- const creatorAvatar=$("feedCreatorAvatar");
+ const creatorAvatar=$("feedCreatorAvatar"),creatorAvatarFallback=$("feedCreatorFallback");
  const creatorAction=$("creatorActionBtn"),creatorActionAvatar=$("creatorActionAvatar"),creatorActionFallback=$("creatorActionFallback");
  // Keep the creator entry outside the feed clipping/stacking context on mobile WebViews.
  if(creatorAction.parentElement!==document.body)document.body.appendChild(creatorAction);
@@ -1110,21 +1109,21 @@ function renderVideo(){
  creatorActionAvatar.onload=()=>{creatorActionAvatar.hidden=false;creatorActionFallback.style.display="none";};
  creatorActionAvatar.onerror=()=>{creatorActionAvatar.hidden=true;creatorActionAvatar.removeAttribute("src");creatorActionFallback.style.display="grid";};
  creatorAvatarButton.style.display=creatorId?"inline-flex":"none";
- creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();
  creatorAvatarButton.setAttribute("aria-label","Open "+(name.startsWith("@")?name:"@"+name)+" creator profile");
- creatorAvatar.src="";
- creatorAvatar.style.display="block";
+ creatorAvatarFallback.textContent=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();
+ creatorAvatarFallback.style.display="grid";
+ creatorAvatar.hidden=true;creatorAvatar.removeAttribute("src");
  creatorAvatar.alt=(name||"Creator")+" profile";
- creatorAvatar.onerror=()=>{creatorAvatar.style.display="none";creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();};
- creatorAvatar.onload=()=>{creatorAvatar.style.display="block";creatorAvatarButton.dataset.fallback="";};
+ creatorAvatar.onerror=()=>{creatorAvatar.hidden=true;creatorAvatar.removeAttribute("src");creatorAvatarFallback.style.display="grid";};
+ creatorAvatar.onload=()=>{creatorAvatar.hidden=false;creatorAvatarFallback.style.display="none";};
  if(creatorId){
   const videoId=String(currentVideo.id);
   Promise.resolve().then(async()=>{
    const card=await getCreatorPublicCard(creatorId);
    if(String(currentVideo?.id)!==videoId||String(currentVideo?.user_id)!==creatorId)return;
    if(card?.avatar_url){creatorAvatar.src=card.avatar_url;creatorActionAvatar.src=card.avatar_url;creatorActionAvatar.hidden=false;creatorActionFallback.style.display="none";}
-   else{creatorAvatar.removeAttribute("src");creatorAvatar.style.display="none";creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();creatorActionAvatar.hidden=true;creatorActionFallback.style.display="grid";}
-  }).catch(error=>{console.warn("Creator avatar unavailable:",error.message);creatorAvatar.style.display="none";creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();creatorActionAvatar.hidden=true;creatorActionFallback.style.display="grid";});
+   else{creatorAvatar.removeAttribute("src");creatorAvatar.hidden=true;creatorAvatarFallback.style.display="grid";creatorActionAvatar.hidden=true;creatorActionFallback.style.display="grid";}
+  }).catch(error=>{console.warn("Creator avatar unavailable:",error.message);creatorAvatar.hidden=true;creatorAvatarFallback.style.display="grid";creatorActionAvatar.hidden=true;creatorActionFallback.style.display="grid";});
  }
  refreshCreatorFollowButton(currentVideo);
  $("caption").textContent=currentVideo.caption||"";
