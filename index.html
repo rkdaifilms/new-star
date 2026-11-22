@@ -1629,51 +1629,70 @@ function addSearchSection(panel,label){
 }
 async function searchCreatorProfiles(query){
  const panel=$("creatorSearchResults"),sequence=++creatorSearchSequence;
- if(!query||query.length<2){hideCreatorSearchResults();return;}
- const [creatorResult,videoResult]=await Promise.all([
-  db.rpc("search_newstar_creators",{p_search:query,p_limit:8}),
-  db.rpc("get_recommended_video_feed_v2",{p_limit:12,p_offset:0,p_video_type:null,p_category:null,p_search:query})
- ]);
- if(sequence!==creatorSearchSequence)return;
+ const raw=String(query||"").trim();
+ const term=raw.replace(/^@+/,"").trim();
+ if(term.length<2){hideCreatorSearchResults();return;}
  panel.replaceChildren();
- let count=0;
- if(!creatorResult.error&&(creatorResult.data||[]).length){
-  addSearchSection(panel,"Creators");
-  (creatorResult.data||[]).forEach(creator=>{
-   const button=document.createElement("button");button.type="button";button.className="creator-search-item";button.setAttribute("role","option");
-   if(creator.avatar_url){const img=document.createElement("img");img.src=creator.avatar_url;img.alt="";img.onerror=()=>{const fallback=document.createElement("span");fallback.className="creator-search-fallback";fallback.textContent=(creator.username||"C").charAt(0).toUpperCase();img.replaceWith(fallback);};button.append(img);}
-   else{const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent=(creator.username||"C").charAt(0).toUpperCase();button.append(avatar);}
-   const copy=document.createElement("span");copy.className="creator-search-copy";
-   const name=document.createElement("strong");name.textContent=(creator.full_name||"")+" @"+String(creator.username||"creator").replace(/^@/,"");
-   const sub=document.createElement("small");sub.textContent=[creator.bio,creator.location_name].filter(Boolean).join(" · ")||"Creator profile · View all public videos";
-   copy.append(name,sub);button.append(copy);
-   button.addEventListener("click",()=>{hideCreatorSearchResults();$("search").value="";openCreatorProfile({user_id:creator.user_id,username:creator.username});});
-   panel.append(button);count++;
-  });
- }
- if(!videoResult.error&&(videoResult.data||[]).length){
-  addSearchSection(panel,"Videos");
-  (videoResult.data||[]).forEach(video=>{
-   const button=document.createElement("button");button.type="button";button.className="creator-search-item";
-   const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent="▶";button.append(avatar);
-   const copy=document.createElement("span");copy.className="creator-search-copy";
-   const name=document.createElement("strong");name.textContent=video.caption||"New Star Video";
-   const sub=document.createElement("small");sub.textContent="@"+String(video.username||"creator").replace(/^@/,"")+" · "+numberFormat(video.views_count||0)+" views";
-   copy.append(name,sub);button.append(copy);
-   button.addEventListener("click",async()=>{
-    hideCreatorSearchResults();$("search").value=query;currentCategory="For You";
-    document.querySelectorAll(".category").forEach(x=>x.classList.toggle("active",x.dataset.cat==="For You"));
-    await loadFeed();
-    const index=filtered.findIndex(x=>String(x.id)===String(video.id));
-    if(index>=0){currentIndex=index;renderVideo();}
-    else await openFeedVideoFromProfile(video);
+ panel.hidden=false;
+ const loading=document.createElement("div");
+ loading.textContent="Creators और videos खोज रहे हैं…";
+ loading.style.cssText="padding:12px;color:#aaa;font-size:12px";
+ panel.append(loading);
+ try{
+  const [creatorResult,videoResult]=await Promise.all([
+   db.rpc("search_newstar_creators",{p_search:term,p_limit:12}),
+   db.rpc("get_recommended_video_feed_v2",{p_limit:20,p_offset:0,p_video_type:null,p_category:null,p_search:term})
+  ]);
+  if(sequence!==creatorSearchSequence)return;
+  panel.replaceChildren();
+  let count=0;
+  if(!creatorResult.error&&(creatorResult.data||[]).length){
+   addSearchSection(panel,"Creators");
+   (creatorResult.data||[]).forEach(creator=>{
+    const button=document.createElement("button");button.type="button";button.className="creator-search-item";button.setAttribute("role","option");
+    if(creator.avatar_url){const img=document.createElement("img");img.src=creator.avatar_url;img.alt="";img.onerror=()=>{const fallback=document.createElement("span");fallback.className="creator-search-fallback";fallback.textContent=(creator.username||"C").charAt(0).toUpperCase();img.replaceWith(fallback);};button.append(img);}
+    else{const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent=(creator.username||"C").charAt(0).toUpperCase();button.append(avatar);}
+    const copy=document.createElement("span");copy.className="creator-search-copy";
+    const name=document.createElement("strong");name.textContent=(creator.full_name?creator.full_name+" · ":"")+"@"+String(creator.username||"creator").replace(/^@/,"");
+    const sub=document.createElement("small");sub.textContent=[creator.bio,creator.location_name].filter(Boolean).join(" · ")||"पूरा Creator Profile खोलें";
+    copy.append(name,sub);button.append(copy);
+    button.addEventListener("click",()=>{hideCreatorSearchResults();openCreatorProfile({user_id:creator.user_id,username:creator.username});});
+    panel.append(button);count++;
    });
-   panel.append(button);count++;
-  });
- }
- if(count)panel.hidden=false;
- else{
-  const empty=document.createElement("div");empty.textContent="कोई Creator या Video नहीं मिला।";empty.style.cssText="padding:12px;color:#aaa;font-size:12px";panel.append(empty);panel.hidden=false;
+  }
+  if(!videoResult.error&&(videoResult.data||[]).length){
+   addSearchSection(panel,"Videos · Song / Audio mentions");
+   (videoResult.data||[]).forEach(video=>{
+    const button=document.createElement("button");button.type="button";button.className="creator-search-item";
+    const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent="▶";button.append(avatar);
+    const copy=document.createElement("span");copy.className="creator-search-copy";
+    const name=document.createElement("strong");name.textContent=video.caption||"New Star Video";
+    const sub=document.createElement("small");sub.textContent="@"+String(video.username||"creator").replace(/^@/,"")+" · "+numberFormat(video.views_count||0)+" views";
+    copy.append(name,sub);button.append(copy);
+    button.addEventListener("click",async()=>{
+     hideCreatorSearchResults();$("search").value=raw;currentCategory="For You";
+     document.querySelectorAll(".category").forEach(x=>x.classList.toggle("active",x.dataset.cat==="For You"));
+     await loadFeed();
+     const index=filtered.findIndex(x=>String(x.id)===String(video.id));
+     if(index>=0){currentIndex=index;renderVideo();}
+     else await openFeedVideoFromProfile(video);
+    });
+    panel.append(button);count++;
+   });
+  }
+  if(count===0){
+   const empty=document.createElement("div");
+   const creatorError=creatorResult.error?.message||"",videoError=videoResult.error?.message||"";
+   empty.textContent=(creatorError||videoError)?"सर्च सेवा अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर कोशिश करें।":"कोई सार्वजनिक Creator या matching Video नहीं मिला।";
+   empty.style.cssText="padding:12px;color:#aaa;font-size:12px";panel.append(empty);
+  }
+ }catch(error){
+  if(sequence!==creatorSearchSequence)return;
+  panel.replaceChildren();
+  const message=document.createElement("div");
+  message.textContent="सर्च पूरा नहीं हो पाया। नेटवर्क कनेक्शन जाँचकर फिर कोशिश करें।";
+  message.style.cssText="padding:12px;color:#aaa;font-size:12px";panel.append(message);
+  console.error("Creator/video search:",error);
  }
 }
 $("search").addEventListener("input",()=>{
