@@ -28,6 +28,15 @@ button{cursor:pointer}
 .creator-search-item img,.creator-search-fallback{width:40px;height:40px;flex:0 0 40px;border-radius:50%;object-fit:cover;background:#393943;display:grid;place-items:center;font-weight:700}
 .creator-search-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
 .creator-search-copy small{color:#aaa}
+.creator-search-video{padding:8px 7px;border-bottom:1px solid #ffffff18}
+.creator-search-video:last-child{border-bottom:0}
+.creator-search-video-open{width:100%;display:flex;align-items:center;gap:10px;padding:3px;border:0;background:transparent;color:#fff;text-align:left}
+.creator-search-video-thumb{width:76px;height:54px;flex:0 0 76px;display:grid;place-items:center;overflow:hidden;border-radius:7px;background:#30303a;color:#fff;font-size:22px}
+.creator-search-video-thumb img{width:100%;height:100%;object-fit:cover}
+.creator-search-video-creator{display:flex;align-items:center;gap:8px;width:100%;margin-top:7px;padding:3px 5px;border:0;background:transparent;color:#fff;text-align:left}
+.creator-search-video-creator img,.creator-search-video-creator .creator-search-fallback{width:25px;height:25px;flex:0 0 25px;border-radius:50%;object-fit:cover}
+.creator-search-video-creator .creator-search-copy strong{font-size:11px}
+.creator-search-video-creator .creator-search-copy small{font-size:10px}
 .categories{display:flex;gap:8px;overflow-x:auto;margin-top:10px;padding-bottom:5px;scrollbar-width:none}
 .categories::-webkit-scrollbar{display:none}
 .category{white-space:nowrap;border:0;border-radius:20px;background:#303030;color:#fff;padding:8px 13px;font-size:12px}
@@ -1773,15 +1782,32 @@ async function searchCreatorProfiles(query){
    });
   }
   if(!videoResult.error&&(videoResult.data||[]).length){
-   addSearchSection(panel,"Videos · Song / Audio mentions");
-   (videoResult.data||[]).forEach(video=>{
-    const button=document.createElement("button");button.type="button";button.className="creator-search-item";
-    const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent="▶";button.append(avatar);
-    const copy=document.createElement("span");copy.className="creator-search-copy";
-    const name=document.createElement("strong");name.textContent=video.caption||"New Star Video";
-    const sub=document.createElement("small");sub.textContent="@"+String(video.username||"creator").replace(/^@/,"")+" · "+numberFormat(video.views_count||0)+" views";
-    copy.append(name,sub);button.append(copy);
-    button.addEventListener("click",async()=>{
+   addSearchSection(panel,"Videos");
+   const videos=videoResult.data||[];
+   const creatorIds=[...new Set(videos.map(video=>String(video.user_id||"")).filter(Boolean))];
+   const creatorMap=new Map((creatorResult.data||[]).map(creator=>[String(creator.user_id),creator]));
+   const missingIds=creatorIds.filter(id=>!creatorMap.has(id));
+   if(missingIds.length){
+    const [publicCards,baseProfiles]=await Promise.all([
+     db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio,is_private").in("user_id",missingIds).eq("is_private",false),
+     db.from("profiles").select("user_id,username,full_name,avatar_url,bio,is_private").in("user_id",missingIds).eq("is_private",false)
+    ]);
+    (publicCards.data||[]).forEach(profile=>creatorMap.set(String(profile.user_id),profile));
+    (baseProfiles.data||[]).forEach(profile=>{if(!creatorMap.has(String(profile.user_id)))creatorMap.set(String(profile.user_id),profile);});
+   }
+   videos.forEach(video=>{
+    const creator=creatorMap.get(String(video.user_id))||{};
+    const item=document.createElement("div");item.className="creator-search-video";
+    const openVideo=document.createElement("button");openVideo.type="button";openVideo.className="creator-search-video-open";
+    const thumb=document.createElement("span");thumb.className="creator-search-video-thumb";
+    if(video.thumbnail_url){const img=document.createElement("img");img.src=video.thumbnail_url;img.alt="";img.loading="lazy";img.onerror=()=>{img.remove();thumb.textContent="▶";};thumb.append(img);}
+    else thumb.textContent="▶";
+    const videoCopy=document.createElement("span");videoCopy.className="creator-search-copy";
+    const title=document.createElement("strong");title.textContent=video.caption||"New Star Video";
+    const videoType=String(video.video_type||"").toLowerCase()==="short"||Number(video.duration_seconds)>0&&Number(video.duration_seconds)<=60?"Short Video":"Long Video";
+    const kind=document.createElement("small");kind.textContent=videoType;
+    videoCopy.append(title,kind);openVideo.append(thumb,videoCopy);
+    openVideo.addEventListener("click",async()=>{
      hideCreatorSearchResults();$("search").value=raw;currentCategory="For You";
      document.querySelectorAll(".category").forEach(x=>x.classList.toggle("active",x.dataset.cat==="For You"));
      await loadFeed();
@@ -1789,7 +1815,15 @@ async function searchCreatorProfiles(query){
      if(index>=0){currentIndex=index;renderVideo();}
      else await openFeedVideoFromProfile(video);
     });
-    panel.append(button);count++;
+    const creatorButton=document.createElement("button");creatorButton.type="button";creatorButton.className="creator-search-video-creator";
+    if(creator.avatar_url){const avatar=document.createElement("img");avatar.src=creator.avatar_url;avatar.alt="";avatar.loading="lazy";avatar.onerror=()=>{const fallback=document.createElement("span");fallback.className="creator-search-fallback";fallback.textContent=(creator.username||video.username||"C").charAt(0).toUpperCase();avatar.replaceWith(fallback);};creatorButton.append(avatar);}
+    else{const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent=(creator.username||video.username||"C").charAt(0).toUpperCase();creatorButton.append(avatar);}
+    const creatorCopy=document.createElement("span");creatorCopy.className="creator-search-copy";
+    const creatorName=document.createElement("strong");creatorName.textContent=(creator.full_name?creator.full_name+" · ":"")+"@"+String(creator.username||video.username||"creator").replace(/^@/,"");
+    const creatorSub=document.createElement("small");creatorSub.textContent="Creator Profile खोलें";
+    creatorCopy.append(creatorName,creatorSub);creatorButton.append(creatorCopy);
+    creatorButton.addEventListener("click",()=>{hideCreatorSearchResults();openCreatorProfile({user_id:video.user_id,username:creator.username||video.username});});
+    item.append(openVideo,creatorButton);panel.append(item);count++;
    });
   }
   if(count===0){
