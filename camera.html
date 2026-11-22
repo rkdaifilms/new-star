@@ -116,8 +116,9 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
     <button type="button" data-panel="speedPanel">⏩ Speed Control</button>
     <button type="button" data-panel="textPanel">✍️ Text & Subtitles</button>
     <button type="button" data-panel="audioPanel">🎵 Music & Voice-over Mixer</button>
-    <button type="button" data-panel="copyrightPanel">🛡 Copyright Check</button>
+    <button type="button" data-panel="copyrightPanel">🛡 Audio Copyright Scan</button>
     <button type="button" data-panel="infoPanel">📊 Video Information</button>
+    <button type="button" data-panel="exportPanel">🎞 Export Edited Video</button>
     <button type="button" id="resetButton">↩ Reset Preview Edits</button>
    </div>
   </div>
@@ -203,8 +204,18 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 
  <section id="copyrightPanel" class="panel hidden">
   <div class="panel-head"><h3>🛡 Copyright Information</h3><button class="close">✕</button></div>
-  <div class="status" id="copyrightStatus">बाहरी Copyright Content ID सेवा कनेक्ट नहीं है।</div>
-  <button class="primary" id="copyrightButton">Check Video Information</button>
+  <div class="status" id="copyrightStatus">Audio fingerprint scan के लिए ACRCloud credentials server-side configure होने चाहिए। यह जाँच matching audio को पहचान सकती है; पूरे video के visual copyright की गारंटी नहीं देती।</div>
+  <button class="primary" id="copyrightButton">🔎 Scan Audio Fingerprint</button>
+  <p>जाँच के लिए चुने गए वीडियो से छोटा audio sample बनाया जाएगा। परिणाम match / no match / unavailable के रूप में दिखेगा। कोई परिणाम “copyright-free” की कानूनी गारंटी नहीं है।</p>
+ </section>
+
+ <section id="exportPanel" class="panel hidden">
+  <div class="panel-head"><h3>🎞 Export Edited Video</h3><button class="close">✕</button></div>
+  <p>यह Export वीडियो पर Trim, Crop/Rotate, Filter, Speed, Text और Audio Mix लागू करके नई वीडियो फ़ाइल बनाएगा। Export के दौरान पेज खुला रखें।</p>
+  <div class="status" id="exportStatus">Export अभी शुरू नहीं हुआ।</div>
+  <progress id="exportProgress" class="progress hidden" max="100" value="0"></progress>
+  <button class="primary" id="exportButton">🎬 Render & Save Edited Video</button>
+  <a id="exportDownload" class="secondary hidden" style="display:block;text-align:center;text-decoration:none;padding:12px;border-radius:8px;margin-top:8px" download="new-star-edited.webm">⬇ Download Edited Video</a>
  </section>
 
  <section id="infoPanel" class="panel hidden">
@@ -293,6 +304,13 @@ let sourceMetadata = null;
 let selectedMapboxLocation = null;
 let locationSearchTimer = null;
 let locationSearchSequence = 0;
+let pendingEditorChanges = false;
+let editorAudioContext = null;
+let videoAudioSource = null, videoGainNode = null;
+let musicAudioSource = null, musicGainNode = null;
+let voiceAudioSource = null, voiceGainNode = null;
+let exportInProgress = false;
+let splitMarkers = [];
 
 const CURRENT_VIDEO_BUCKET_LIMIT = 5 * 1024 * 1024 * 1024; // Cloudflare Stream target limit: 5 GiB; provider secrets/quota required
 
@@ -561,6 +579,12 @@ async function continueToUpload() {
   $("menuButton").setAttribute("aria-expanded","false");
   $("editorMenu").classList.remove("open");
   closePanels();
+  if (pendingEditorChanges) {
+   openPanel("exportPanel");
+   $("exportStatus").textContent="Upload से पहले आपके edits render करना जरूरी है।";
+   toast("पहले Edited Video Export करें।");
+   return;
+  }
   applyOutputFrame();
   openPanel("publishPanel");
  } catch(error) {
@@ -587,7 +611,8 @@ $("rotateButton").onclick = () => { rotation = (rotation + 90) % 360; applyTrans
 window.addEventListener("resize",applyOutputFrame);
 function applyTransform() {
  video.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
- toast("Preview Crop/Rotate लागू हुआ।");
+ pendingEditorChanges=true;
+ toast("Preview Crop/Rotate लागू हुआ। Export में लागू होगा।");
 }
 function applyOutputFrame() {
  const preview=document.querySelector(".preview");
@@ -605,7 +630,8 @@ function applyOutputFrame() {
 document.querySelectorAll("[data-filter]").forEach(button => {
  button.onclick = () => {
   video.style.filter = button.dataset.filter;
-  toast("Preview Filter लागू हुआ।");
+  pendingEditorChanges=true;
+  toast("Preview Filter लागू हुआ। Export करने पर वीडियो में लागू होगा।");
  };
 });
 
@@ -613,7 +639,8 @@ document.querySelectorAll("[data-filter]").forEach(button => {
 document.querySelectorAll("[data-speed]").forEach(button => {
  button.onclick = () => {
   video.playbackRate = Number(button.dataset.speed);
-  toast("Playback Speed " + button.dataset.speed + "x");
+  pendingEditorChanges=true;
+  toast("Playback Speed " + button.dataset.speed + "x · Export में लागू होगा");
  };
 });
 
@@ -625,9 +652,12 @@ $("applyTrim").onclick = () => {
   toast("Trim Range सही नहीं है।"); return;
  }
  trimEnd = end;
+ $("trimStart").value=start;
+ $("trimEnd").value=end;
+ pendingEditorChanges=true;
  video.currentTime = start;
  video.play();
- toast("Trim Preview शुरू।");
+ toast("Trim Preview शुरू। Export में यही हिस्सा सेव होगा।");
 };
 video.ontimeupdate = () => {
  if (trimEnd !== null && video.currentTime >= trimEnd) {
@@ -635,10 +665,18 @@ video.ontimeupdate = () => {
   trimEnd = null;
  }
 };
-$("splitButton").onclick = () => toast("Split point preview: " + video.currentTime.toFixed(2) + " sec. Export cutting is not enabled yet.");
+$("splitButton").onclick = () => {
+ const point=Number(video.currentTime.toFixed(2));
+ if(point<=0 || point>=video.duration){toast("Split के लिए वीडियो के बीच में Pause करें।");return;}
+ if(!splitMarkers.includes(point)){splitMarkers.push(point);splitMarkers.sort((a,b)=>a-b);}
+ pendingEditorChanges=true;
+ toast("Split marker जोड़ा: "+point+" sec. यह marker timeline reference है; multi-clip export अभी उपलब्ध नहीं है।");
+};
 $("resetButton").onclick = () => {
  zoom=1; rotation=0; video.style.transform=""; video.style.filter="none"; video.playbackRate=1;
  $("textInput").value=""; updateText(); $("trimStart").value=0; $("trimEnd").value=video.duration||0; trimEnd=null;
+ splitMarkers=[]; pendingEditorChanges=false;
+ $("videoVolume").value=100; $("musicVolume").value=40; $("voiceVolume").value=100; updateVolumes();
  toast("Preview settings reset.");
 };
 
@@ -650,6 +688,7 @@ function updateText() {
  $("previewText").textContent = $("textInput").value;
  $("previewText").style.fontSize = $("textSize").value + "px";
  $("previewText").style.color = $("textColor").value;
+ if (selectedVideoFile) pendingEditorChanges=true;
 }
 $("clearText").onclick = () => { $("textInput").value = ""; updateText(); };
 
@@ -668,9 +707,11 @@ $("musicInput").onchange = e => {
 
 /* Volume */
 function updateVolumes() {
- video.volume = Number($("videoVolume").value) / 100;
- $("musicAudio").volume = Number($("musicVolume").value) / 100;
- $("voiceAudio").volume = Number($("voiceVolume").value) / 100;
+ const values={video:Number($("videoVolume").value)/100,music:Number($("musicVolume").value)/100,voice:Number($("voiceVolume").value)/100};
+ if(videoGainNode) videoGainNode.gain.value=values.video; else video.volume=values.video;
+ if(musicGainNode) musicGainNode.gain.value=values.music; else $("musicAudio").volume=values.music;
+ if(voiceGainNode) voiceGainNode.gain.value=values.voice; else $("voiceAudio").volume=values.voice;
+ if(selectedVideoFile) pendingEditorChanges=true;
 }
 ["videoVolume","musicVolume","voiceVolume"].forEach(id => $(id).oninput = updateVolumes);
 
@@ -703,6 +744,144 @@ $("voiceStop").onclick = () => {
  else toast("Voice Recording चालू नहीं है।");
 };
 
+function ensureEditorAudioGraph() {
+ const AudioCtx=window.AudioContext||window.webkitAudioContext;
+ if(!AudioCtx) throw new Error("इस Browser में Audio Mixer समर्थित नहीं है।");
+ if(!editorAudioContext) editorAudioContext=new AudioCtx();
+ if(!videoAudioSource) {
+  videoAudioSource=editorAudioContext.createMediaElementSource(video);
+  videoGainNode=editorAudioContext.createGain();
+  videoAudioSource.connect(videoGainNode).connect(editorAudioContext.destination);
+ }
+ if(!musicAudioSource) {
+  musicAudioSource=editorAudioContext.createMediaElementSource($("musicAudio"));
+  musicGainNode=editorAudioContext.createGain();
+  musicAudioSource.connect(musicGainNode).connect(editorAudioContext.destination);
+ }
+ if(!voiceAudioSource) {
+  voiceAudioSource=editorAudioContext.createMediaElementSource($("voiceAudio"));
+  voiceGainNode=editorAudioContext.createGain();
+  voiceAudioSource.connect(voiceGainNode).connect(editorAudioContext.destination);
+ }
+ updateVolumes();
+ return editorAudioContext;
+}
+function drawExportFrame(ctx,canvas) {
+ const w=canvas.width,h=canvas.height;
+ ctx.clearRect(0,0,w,h);
+ ctx.save();
+ ctx.filter=video.style.filter||"none";
+ ctx.translate(w/2,h/2);
+ ctx.rotate(rotation*Math.PI/180);
+ const scale=Math.min(w/video.videoWidth,h/video.videoHeight)*zoom;
+ const drawW=video.videoWidth*scale,drawH=video.videoHeight*scale;
+ ctx.drawImage(video,-drawW/2,-drawH/2,drawW,drawH);
+ ctx.restore();
+ const text=$("textInput").value.trim();
+ if(text) {
+  const size=Math.max(18,Number($("textSize").value)*canvas.width/Math.max(1,video.videoWidth));
+  ctx.save();ctx.font="bold "+size+"px Arial";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.lineWidth=Math.max(2,size*.12);ctx.strokeStyle="#000";ctx.fillStyle=$("textColor").value;
+  const words=text.split(/\s+/);let lines=[],line="";
+  for(const word of words){const test=line?line+" "+word:word;if(ctx.measureText(test).width>w*.86&&line){lines.push(line);line=word;}else line=test;}
+  if(line)lines.push(line);
+  const lineH=size*1.25,startY=h/2-(lines.length-1)*lineH/2;
+  lines.forEach((v,i)=>{ctx.strokeText(v,w/2,startY+i*lineH,w*.9);ctx.fillText(v,w/2,startY+i*lineH,w*.9);});
+  ctx.restore();
+ }
+}
+async function exportEditedVideo() {
+ if(exportInProgress) return;
+ if(!selectedVideoFile||!video.videoWidth) throw new Error("पहले वीडियो चुनें।");
+ if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream) throw new Error("इस Android Browser में video export समर्थित नहीं है। Chrome/WebView update की जरूरत हो सकती है।");
+ const start=Math.max(0,Number($("trimStart").value)||0);
+ const end=Math.min(video.duration,Number($("trimEnd").value)||video.duration);
+ if(start>=end||end>video.duration) throw new Error("Trim start/end सही नहीं हैं।");
+ exportInProgress=true;
+ const button=$("exportButton"),status=$("exportStatus"),progress=$("exportProgress");
+ button.disabled=true;progress.classList.remove("hidden");progress.value=0;
+ let recorder=null,canvasStream=null,raf=0;
+ try {
+  const ctxAudio=ensureEditorAudioGraph();
+  await ctxAudio.resume();
+  const canvas=document.createElement("canvas");
+  const maxSide=1280;
+  const rotated=rotation%180!==0;
+  const sourceW=rotated?video.videoHeight:video.videoWidth;
+  const sourceH=rotated?video.videoWidth:video.videoHeight;
+  const factor=Math.min(1,maxSide/Math.max(sourceW,sourceH));
+  canvas.width=Math.max(2,Math.round(sourceW*factor/2)*2);
+  canvas.height=Math.max(2,Math.round(sourceH*factor/2)*2);
+  const ctx=canvas.getContext("2d",{alpha:false});
+  canvasStream=canvas.captureStream(30);
+  const mixDestination=ctxAudio.createMediaStreamDestination();
+  videoGainNode.connect(mixDestination);
+  musicGainNode.connect(mixDestination);
+  voiceGainNode.connect(mixDestination);
+  mixDestination.stream.getAudioTracks().forEach(track=>canvasStream.addTrack(track));
+  const mime=["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(t=>MediaRecorder.isTypeSupported(t));
+  if(!mime) throw new Error("इस Browser में supported WebM encoder नहीं मिला।");
+  const chunks=[];
+  recorder=new MediaRecorder(canvasStream,{mimeType:mime,videoBitsPerSecond:4500000,audioBitsPerSecond:160000});
+  const stopped=new Promise((resolve,reject)=>{
+   recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+   recorder.onerror=()=>reject(new Error("Video render में MediaRecorder error आया।"));
+   recorder.onstop=resolve;
+  });
+  video.pause();video.currentTime=start;
+  await new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>reject(new Error("वीडियो seek timeout")),10000);
+   video.addEventListener("seeked",()=>{clearTimeout(timer);resolve();},{once:true});
+  });
+  if($("musicAudio").src){$("musicAudio").currentTime=0;await $("musicAudio").play().catch(()=>{});}
+  if($("voiceAudio").src){$("voiceAudio").currentTime=0;await $("voiceAudio").play().catch(()=>{});}
+  const speed=Math.max(.25,Math.min(4,Number(video.playbackRate)||1));
+  video.muted=false;
+  recorder.start(1000);
+  let lastProgress=0;
+  const draw=()=>{
+   drawExportFrame(ctx,canvas);
+   const elapsed=Math.max(0,video.currentTime-start);
+   const pct=Math.min(99,Math.floor(elapsed/Math.max(.01,end-start)*100));
+   if(pct!==lastProgress){progress.value=pct;status.textContent="वीडियो render हो रहा है: "+pct+"%";lastProgress=pct;}
+   if(video.currentTime>=end||video.ended){
+    video.pause();if(recorder.state==="recording")recorder.stop();return;
+   }
+   raf=requestAnimationFrame(draw);
+  };
+  video.playbackRate=speed;
+  await video.play();
+  draw();
+  await stopped;
+  cancelAnimationFrame(raf);
+  $("musicAudio").pause();$("voiceAudio").pause();
+  if(!chunks.length) throw new Error("Export file खाली बनी।");
+  const blob=new Blob(chunks,{type:recorder.mimeType||mime});
+  if(blob.size<1000) throw new Error("Export बहुत छोटी/खाली है।");
+  if(videoObjectUrl)URL.revokeObjectURL(videoObjectUrl);
+  selectedVideoFile=new File([blob],(selectedVideoFile.name||"video").replace(/\.[^.]+$/,"")+"-edited.webm",{type:blob.type});
+  videoObjectUrl=URL.createObjectURL(blob);
+  video.src=videoObjectUrl;video.load();
+  await new Promise(resolve=>video.addEventListener("loadedmetadata",resolve,{once:true}));
+  sourceMetadata={duration:video.duration,width:video.videoWidth,height:video.videoHeight};
+  $("trimStart").value=0;$("trimEnd").value=video.duration.toFixed(2);trimEnd=null;
+  zoom=1;rotation=0;video.style.transform="";video.style.filter="none";
+  $("textInput").value="";updateText();
+  video.playbackRate=1;pendingEditorChanges=false;
+  applyOutputFrame();inspectVideo();
+  const url=URL.createObjectURL(blob);
+  $("exportDownload").href=url;$("exportDownload").classList.remove("hidden");
+  $("exportStatus").textContent="Export सफल: "+(blob.size/1048576).toFixed(1)+" MB · "+formatClock(video.duration)+" · अब Continue to Upload दबाएँ।";
+  progress.value=100;toast("Edited Video Export सफल हुआ।");
+ } finally {
+  cancelAnimationFrame(raf);
+  if(recorder?.state==="recording")recorder.stop();
+  canvasStream?.getTracks().forEach(t=>t.stop());
+  button.disabled=false;exportInProgress=false;
+ }
+}
+$("exportButton").onclick=()=>exportEditedVideo().catch(error=>{$("exportStatus").textContent="Export पूरा नहीं हुआ: "+error.message;toast(error.message);});
+
 /* Video Information */
 function inspectVideo() {
  if (!selectedVideoFile) return;
@@ -723,9 +902,67 @@ function inspectVideo() {
   " MB<br>Format: " + (file.type || "Unknown") + "<br>Name: " + safeName;
 }
 $("inspectButton").onclick = inspectVideo;
-$("copyrightButton").onclick = () => {
- $("copyrightStatus").textContent = "इस पेज में बाहरी Copyright Content ID Database कनेक्ट नहीं है। Copyright Clearance की पुष्टि नहीं की जा सकती।";
- toast("सामान्य Video Information जाँची गई।");
+async function makeCopyrightSample() {
+ if(!video.captureStream) throw new Error("इस Browser में Video Audio Capture उपलब्ध नहीं है।");
+ const captured=video.captureStream();
+ const audioTrack=captured.getAudioTracks()[0];
+ if(!audioTrack) {captured.getTracks().forEach(t=>t.stop());throw new Error("इस वीडियो में पहचानने योग्य audio track नहीं मिला।");}
+ const sampleStream=new MediaStream([audioTrack]);
+ const mime=["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus"].find(t=>MediaRecorder.isTypeSupported(t));
+ if(!mime){captured.getTracks().forEach(t=>t.stop());throw new Error("इस Browser में audio sample recording समर्थित नहीं है।");}
+ const previousTime=video.currentTime, wasPaused=video.paused, previousRate=video.playbackRate;
+ const chunks=[];
+ try {
+  const recorder=new MediaRecorder(sampleStream,{mimeType:mime});
+  const stopped=new Promise((resolve,reject)=>{
+   recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+   recorder.onerror=()=>reject(new Error("Audio sample record नहीं हो सका।"));
+   recorder.onstop=resolve;
+  });
+  const start=Math.min(Math.max(0,video.duration*0.25),Math.max(0,video.duration-10));
+  video.pause(); video.currentTime=start;
+  await new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>reject(new Error("Sample seek timeout")),8000);
+   video.addEventListener("seeked",()=>{clearTimeout(timer);resolve();},{once:true});
+  });
+  recorder.start();
+  await video.play();
+  await new Promise(resolve=>setTimeout(resolve,9000));
+  video.pause(); recorder.stop(); await stopped;
+  return new Blob(chunks,{type:mime});
+ } finally {
+  video.pause(); video.playbackRate=previousRate;
+  try{video.currentTime=previousTime;}catch{}
+  if(!wasPaused) video.play().catch(()=>{});
+  captured.getTracks().forEach(t=>t.stop());
+ }
+}
+async function blobToBase64(blob) {
+ const bytes=new Uint8Array(await blob.arrayBuffer());
+ let binary="";
+ for(let i=0;i<bytes.length;i+=0x8000) binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+ return btoa(binary);
+}
+$("copyrightButton").onclick = async () => {
+ const status=$("copyrightStatus");
+ const button=$("copyrightButton");
+ if(!selectedVideoFile){status.textContent="पहले वीडियो चुनें।";return;}
+ button.disabled=true;button.textContent="Scanning…";status.textContent="वीडियो से छोटा audio sample बनाया जा रहा है…";
+ try {
+  const sample=await makeCopyrightSample();
+  if(sample.size>4*1024*1024) throw new Error("Audio sample सेवा की file-size सीमा से बड़ा है।");
+  status.textContent="Audio fingerprint database में match खोजा जा रहा है…";
+  const {data,error}=await db.functions.invoke("copyright-scan",{body:{sample_base64:await blobToBase64(sample),sample_mime:sample.type}});
+  if(error) throw error;
+  if(data?.configured===false) {status.textContent="Scan सेवा अभी configure नहीं है। Project owner को ACR_CLOUD_HOST, ACR_CLOUD_ACCESS_KEY और ACR_CLOUD_ACCESS_SECRET Supabase Edge Function secrets में जोड़ने होंगे। कोई copyright verdict नहीं दिया गया।";return;}
+  if(data?.matched) {
+   const tracks=Array.isArray(data.matches)?data.matches:[];
+   status.textContent="Audio database match मिला: "+tracks.slice(0,3).map(x=>[x.title,x.artist].filter(Boolean).join(" — ")).join("; ")+". यह संभावित audio match है, कानूनी निर्णय नहीं।";
+  } else if(data?.recognized===false) status.textContent="इस sample के लिए database में कोई audio match नहीं मिला। इसका अर्थ copyright-free होना नहीं है।";
+  else status.textContent="Scan का परिणाम स्पष्ट नहीं है: "+JSON.stringify(data).slice(0,900);
+ } catch(error) {
+  status.textContent="Scan पूरा नहीं हुआ: "+error.message;
+ } finally {button.disabled=false;button.textContent="🔎 Scan Audio Fingerprint";}
 };
 
 /* Publish Panel */
