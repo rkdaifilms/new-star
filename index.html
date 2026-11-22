@@ -44,8 +44,7 @@ button{cursor:pointer}
 #creatorProfileButton img:not([src]),#creatorProfileButton img[src=""]{opacity:0}
 #followCreatorBtn{min-width:82px;white-space:nowrap}
 #followCreatorBtn:disabled{opacity:.78}
-.video-info h3{font-size:15px;margin-bottom:7px}
-#username{cursor:pointer;text-decoration:underline;text-decoration-color:#ffffff66;text-underline-offset:3px;pointer-events:auto;position:relative;z-index:9}
+.video-info #username{display:inline-flex;align-items:center;min-height:38px;margin:0;padding:4px 0;font-size:15px;font-weight:700;line-height:1.25;text-decoration:underline;text-decoration-color:#ffffff66;text-underline-offset:3px;text-shadow:0 1px 5px #000;cursor:pointer;pointer-events:auto;position:relative;z-index:100003;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 /* Creator identity controls must remain tappable above the video surface on touch devices. */
 .video-info{z-index:100001!important;isolation:isolate;}
 #creatorProfileButton,#username,#followCreatorBtn{pointer-events:auto!important;position:relative;z-index:100003!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent;}
@@ -311,7 +310,7 @@ button{cursor:pointer}
  <section class="video-info">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
    <button type="button" id="creatorProfileButton" aria-label="Open creator profile" style="display:none;width:34px;height:34px;padding:0;border:1px solid #ffffff99;border-radius:50%;overflow:hidden;background:#333;pointer-events:auto;position:relative;z-index:10"><img id="feedCreatorAvatar" alt="" style="width:100%;height:100%;object-fit:cover"></button>
-   <h3 id="username"></h3>
+   <button type="button" id="username" aria-label="Open creator profile" style="border:0;background:transparent;color:#fff;text-align:left"></button>
    <button id="followCreatorBtn" type="button" style="display:none;background:#fe2c55;color:#fff;border:0;border-radius:18px;padding:6px 14px;font-weight:700">Follow</button>
   </div>
   <p id="caption"></p>
@@ -465,7 +464,7 @@ function showEmpty(message){
  document.querySelector(".actions").style.display="none";
  $("video").pause();$("video").removeAttribute("src");$("video").load();
  $("emptyMessage").textContent=message;$("empty").style.display="flex";
- $("counter").textContent="";$("username").textContent="";$("caption").textContent="";
+ $("counter").textContent="";$("username").textContent="";$("creatorProfileButton").style.display="none";$("followCreatorBtn").style.display="none";$("caption").textContent="";
  $("meta").textContent="";$("likes").textContent="0";$("commentCount").textContent="0";
  $("affiliate").style.display="none";$("likeBtn").classList.remove("liked");currentVideo=null;
 }
@@ -1578,7 +1577,7 @@ function handleFeedSwipe(startX,startY,endX,endY){
  }
 }
 $("feed").addEventListener("pointerdown",event=>{
- if(event.target.closest("button,a,input"))return;
+ if(event.target.closest("button,a,input,.video-info"))return;
  feedPointerStart={id:event.pointerId,x:event.clientX,y:event.clientY};
  try{$("feed").setPointerCapture(event.pointerId);}catch(e){}
 });
