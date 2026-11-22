@@ -360,8 +360,10 @@ body.creator-profile-video-mode #creatorIdentityBar{display:none!important}
 .search-row button{font-size:16px!important;padding:3px!important;line-height:18px!important}
 .home-quick-links{margin-top:2px!important;gap:5px!important}
 .home-quick-links a{padding:3px 7px!important;font-size:10px!important;line-height:14px!important}
-.categories{margin-top:3px!important;padding-bottom:2px!important;gap:6px!important}
-.category{padding:5px 10px!important;font-size:11px!important;line-height:16px!important}
+.categories{margin-top:-4px!important;padding-bottom:2px!important;gap:6px!important;scroll-padding-inline:10px}
+.category{flex:0 0 auto!important;padding:5px 10px!important;font-size:11px!important;line-height:16px!important}
+/* Keep Long Videos clearly visible beside Shorts on the home feed. */
+#categories .category[data-cat="Long Videos"]{display:inline-flex!important;align-items:center;gap:4px;white-space:nowrap!important;font-weight:700!important}
 #counter{display:none!important}
 
 /* Search and microphone: remove only their individual background tiles. Keep layout and behavior unchanged. */
@@ -449,7 +451,7 @@ html body #app header.top-area .search-row #voice::after{background:transparent!
   <button class="category active" data-cat="For You">🔥 <span data-i18n="feed.forYou">For You</span></button>
   <button class="category" data-cat="Following">👥 <span data-i18n="feed.following">Following</span></button>
   <button class="category" data-cat="Shorts">⚡ <span data-i18n="feed.shorts">Shorts</span></button>
-  <button class="category" data-cat="Long Videos">▶ <span data-i18n="feed.longVideos">Long Videos</span></button>
+  <button class="category" data-cat="Long Videos" aria-label="Long Videos">▶ <span>Long Videos</span></button>
   <button class="category" data-cat="Reels" data-i18n="feed.reels">🎬 <span data-i18n="feed.reels">Reels</span></button>
   <button class="category" data-cat="Discover">🌍 <span data-i18n="feed.discover">Discover</span></button>
   <button class="category" data-cat="Trending">🔥 Trending</button>
