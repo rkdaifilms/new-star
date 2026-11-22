@@ -62,6 +62,19 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .progress{width:100%;accent-color:#25f4ee}
 #cameraVideo{width:100%;max-height:55vh;background:#000}
 #cameraTimer{margin-top:8px;color:#25f4ee;font-weight:bold;text-align:center}
+/* Stable preview controls and on-demand editor drawer */
+.editor-workspace>.preview{position:relative;flex:0 0 auto;overflow:hidden;overscroll-behavior:contain;scroll-margin:0}
+#editorScreen:not(.editor-expanded) .editor-tools-rail{display:none}
+#editorScreen.editor-expanded .editor-workspace>.preview{height:54vh;min-height:320px}
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:42vh;min-height:260px}
+#editorExpandButton{position:absolute;z-index:20;top:10px;right:10px;width:42px;height:42px;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:rgba(12,12,16,.78);color:#fff;font-size:30px;line-height:1;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+#editorActions{position:absolute;z-index:15;left:10px;right:10px;bottom:10px;width:auto;max-width:none;margin:0;padding-top:24px;background:linear-gradient(transparent,rgba(0,0,0,.78));}
+#editorActions .primary{width:100%;min-height:48px;margin:0;box-shadow:0 2px 14px rgba(0,0,0,.35)}
+.editor-meta,#editorMeta{display:none!important}
+#editorScreen .editor-tools-rail{touch-action:pan-x;overscroll-behavior-x:contain}
+#editorScreen .panel{scroll-margin-top:10px}
+@media(max-width:390px){#editorScreen.editor-expanded .editor-workspace>.preview{height:50vh;min-height:290px}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:38vh;min-height:230px}#editorExpandButton{width:40px;height:40px}}
+@media(min-width:700px){#editorScreen.editor-expanded .editor-workspace>.preview{height:60vh;max-height:650px}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:48vh;min-height:340px}}
 #editorScreen.editor-publishing .preview,#editorScreen.editor-publishing #editorActions{display:none!important}
 #ns-ai-launch,#ns-ai-panel{display:none!important}
 </style>
@@ -109,6 +122,10 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
   <div class="preview">
    <video id="editorVideo" playsinline controls></video>
    <div id="previewText"></div>
+   <button type="button" id="editorExpandButton" aria-expanded="false" aria-label="Open video editor tools">⋯</button>
+   <div id="editorActions">
+    <button class="primary" id="saveEditsButton">Continue to Upload</button>
+   </div>
   </div>
   <aside class="editor-tools-rail" aria-label="Video editing tools">
    <button type="button" data-panel="trimPanel" title="Trim" aria-label="Trim">✂️<span>Trim</span></button>
@@ -265,9 +282,6 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
   <progress id="uploadProgress" class="progress hidden" max="100"></progress>
   <button class="primary" id="publishButton">🚀 Publish Video</button>
  </section>
- <div id="editorActions">
-  <button class="primary" id="saveEditsButton">Continue to Upload</button>
- </div>
 </section>
 </main>
 <div id="toast"></div>
@@ -333,10 +347,9 @@ function closePanels() {
 function openPanel(id) {
  closePanels();
  if(id==="publishPanel") $("editorScreen").classList.add("editor-publishing");
- else $("editorScreen").classList.add("has-open-panel");
+ else $("editorScreen").classList.add("has-open-panel","editor-expanded");
  $(id).classList.remove("hidden");
  applyOutputFrame();
- if(id!=="publishPanel") setTimeout(() => $(id).scrollIntoView({behavior:"smooth",block:"nearest"}),100);
 }
 function formatClock(seconds) {
  const total = Math.max(0,Math.floor(seconds));
@@ -576,6 +589,21 @@ async function continueToUpload() {
  }
 }
 $("saveEditsButton").onclick = continueToUpload;
+$("editorExpandButton").onclick = () => {
+ const editor=$("editorScreen");
+ const expanded=editor.classList.toggle("editor-expanded");
+ $("editorExpandButton").setAttribute("aria-expanded",String(expanded));
+ $("editorExpandButton").textContent=expanded?"×":"⋯";
+ $("editorExpandButton").setAttribute("aria-label",expanded?"Close video editor tools":"Open video editor tools");
+ if(expanded) {
+  closePanels();
+  editor.classList.add("editor-expanded");
+  setTimeout(()=>$("editor-tools-rail")?.scrollIntoView({behavior:"smooth",block:"nearest"}),80);
+ } else {
+  closePanels();
+  editor.classList.remove("editor-expanded");
+ }
+};
 document.querySelectorAll("[data-panel]").forEach(button => {
  button.onclick = () => openPanel(button.dataset.panel);
 });
