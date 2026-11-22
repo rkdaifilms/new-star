@@ -124,34 +124,22 @@ body.video-fullscreen-mode #editorScreen #editorExpandButton,\nbody.video-fullsc
 body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center;justify-content:center}
 
 
-/* Creator Studio touch-first preview and editor drawer */
-#editorScreen .editor-workspace>.preview{
-  margin-top:14px!important;
-  height:80vh!important;
-  min-height:460px!important;
-  max-height:none!important;
-}
-#editorScreen #editorExpandButton{
-  display:flex!important;
-  visibility:visible!important;
-  opacity:1!important;
-  top:12px!important;
-  right:12px!important;
-  z-index:50!important;
-  width:50px!important;
-  height:50px!important;
-  border-radius:14px!important;
-  font-size:32px!important;
-}
+/* Creator Studio top menu and on-demand editing tools */
+#editorScreen .editor-workspace{position:relative}
+#editorScreen .editor-topbar{order:0;display:flex;align-items:center;justify-content:space-between;width:100%;min-height:58px;padding:4px 6px;background:#111116;border:1px solid #303039;border-radius:12px}
+#editorScreen .editor-topbar-title{font-size:14px;font-weight:700;color:#f4f4f5}
+#editorScreen #editorExpandButton{display:flex!important;position:static!important;visibility:visible!important;opacity:1!important;z-index:50;width:48px!important;height:48px!important;min-width:48px;border-radius:12px!important;font-size:30px!important;background:#24242c!important;border:1px solid #777!important;box-shadow:none!important;align-items:center;justify-content:center}
 #editorScreen:not(.editor-expanded) .editor-tools-rail{display:none!important}
-#editorScreen.editor-expanded .editor-tools-rail{display:flex!important}
-#editorScreen.editor-expanded .editor-workspace>.preview{margin-top:14px!important;height:78vh!important;min-height:440px!important}
+#editorScreen.editor-expanded .editor-tools-rail{display:flex!important;order:1}
+#editorScreen .editor-workspace>.preview{order:2;margin-top:0!important;height:76vh!important;min-height:420px!important;max-height:none!important}
+#editorScreen.editor-expanded .editor-workspace>.preview{margin-top:0!important;height:68vh!important;min-height:360px!important}
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:52vh!important;min-height:280px!important}
 #editorScreen .editor-workspace>.preview #editorVideo{object-position:center center}
 @media(max-width:600px){
- #editorScreen .editor-workspace>.preview{height:80vh!important;min-height:460px!important}
- #editorScreen.editor-expanded .editor-workspace>.preview{height:78vh!important;min-height:440px!important}
+ #editorScreen .editor-workspace>.preview{height:74vh!important;min-height:400px!important}
+ #editorScreen.editor-expanded .editor-workspace>.preview{height:62vh!important;min-height:340px!important}
+ #editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:48vh!important;min-height:260px!important}
 }
-
 </style>
 
 <link rel="manifest" href="/manifest.json">
@@ -194,11 +182,15 @@ body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center
 
 <section id="editorScreen" class="hidden">
  <div class="editor-workspace">
-  <div class="preview">
+  <div class="editor-topbar">
+    <span class="editor-topbar-title">Creator Studio Editor</span>
+    <button type="button" id="editorExpandButton" aria-expanded="false" aria-label="Open video editor tools" title="Open editing tools">⋯</button>
+   </div>
+   <div class="preview">
    <video id="editorVideo" playsinline controls></video>
    <div id="previewText"></div>
    <button type="button" id="editorFullscreenButton" aria-label="Play video fullscreen" title="Fullscreen">⛶</button>
-   <button type="button" id="editorExpandButton" aria-expanded="false" aria-label="Open video editor tools">⋯</button>
+   
    <div id="editorActions">
     <button class="primary" id="saveEditsButton">Save & Continue to Publish</button>
    </div>
@@ -1306,7 +1298,11 @@ async function publishVideo() {
  button.textContent = "Publishing...";
  progress.classList.remove("hidden");
  progress.removeAttribute("value");
- setUploadStage(1,"वीडियो और अपलोड जानकारी तैयार हो रही है…");
+ if(meterPercent)meterPercent.textContent="0% अपलोड";
+ meterBytes.textContent="0 MB / "+formatUploadBytes(selectedVideoFile?.size||0);
+ if(meterFill)meterFill.style.width="0%";
+ document.querySelectorAll(".upload-step").forEach(el=>el.classList.remove("done","active"));
+ setUploadStage(1,"1/5 · वीडियो और अपलोड जानकारी तैयार हो रही है…");
  let uploadedPath = null;
  let databaseSaved = false;
  try {
@@ -1371,9 +1367,12 @@ async function publishVideo() {
   let cloudflareVideoId=pendingUpload?.id||null;
   const tusEndpoint="https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy";
   if(pendingUpload?.completed){
-   setUploadStage(3,"पहले पूरा हुआ Cloudflare अपलोड मिला; डेटाबेस में सेव किया जा रहा है…");
+    if(meterPercent)meterPercent.textContent="100% अपलोड";
+    if(meterFill)meterFill.style.width="100%";
+    if(meterBytes)meterBytes.textContent=formatUploadBytes(selectedVideoFile.size)+" / "+formatUploadBytes(selectedVideoFile.size);
+    setUploadStage(3,"3/5 · पहले पूरा हुआ Cloudflare अपलोड मिला; डेटाबेस में सेव किया जा रहा है…");
   }else{
-  setUploadStage(2,"Cloudflare से सुरक्षित कनेक्शन बनाया जा रहा है…");
+  setUploadStage(2,"2/5 · Cloudflare से सुरक्षित कनेक्शन बनाया जा रहा है…");
   await new Promise((resolve,reject)=>{
    // Adapt chunk size to the browser network estimate. This is a hint (download
    // estimates do not guarantee upload speed), so retain a safe 50 MiB default.
@@ -1385,7 +1384,8 @@ async function publishVideo() {
    const slowNetwork=!!network?.saveData||["slow-2g","2g","3g"].includes(effectiveType);
    const strongNetwork=!slowNetwork&&downlinkMbps>=10;
    const veryStrongNetwork=!slowNetwork&&downlinkMbps>=25;
-   const uploadChunkSize=slowNetwork?10*1024*1024:(veryStrongNetwork?200*1024*1024:(strongNetwork?100*1024*1024:50*1024*1024));
+   // Moderate chunk sizes avoid long stalls and expensive retries on Android mobile links.
+   const uploadChunkSize=slowNetwork?8*1024*1024:(veryStrongNetwork?64*1024*1024:(strongNetwork?32*1024*1024:16*1024*1024));
    const uploadStartedAt=performance.now();
    let lastSpeedSampleAt=uploadStartedAt;
    let lastSpeedSampleBytes=0;
@@ -1410,7 +1410,7 @@ async function publishVideo() {
     },
     onError(error){reject(error);},
     onProgress(bytesUploaded,bytesTotal){
-     setUploadStage(3,"वीडियो डेटा Cloudflare पर भेजा जा रहा है…");
+     setUploadStage(3,"3/5 · वीडियो डेटा Cloudflare पर भेजा जा रहा है…");
      const now=performance.now();
      const elapsedSeconds=Math.max(0.001,(now-uploadStartedAt)/1000);
      const sampleSeconds=(now-lastSpeedSampleAt)/1000;
@@ -1445,7 +1445,7 @@ async function publishVideo() {
   }
   if(!cloudflareVideoId)throw new Error("Cloudflare upload पूरा हुआ, लेकिन Stream Video ID नहीं मिली। Upload को फिर से Resume करें।");
   const videoUrl="cloudflare://"+cloudflareVideoId;
-  setUploadStage(4,"अपलोड पूरा हुआ; वीडियो डेटाबेस में सेव हो रहा है…");
+  setUploadStage(4,"4/5 · अपलोड पूरा हुआ; वीडियो डेटाबेस में सेव हो रहा है…");
   status.textContent="वीडियो सुरक्षित किया जा रहा है...";
   const payload={
    media_kind:mediaKind,aspect_ratio_setting:aspectRatioSetting,frame_fit:frameFit,quality_preference:qualityPreference,
@@ -1470,7 +1470,7 @@ async function publishVideo() {
   if(meterPercent)meterPercent.textContent="100% पूरा";
   if(meterFill)meterFill.style.width="100%";
   if(meterBytes)meterBytes.textContent=formatUploadBytes(selectedVideoFile.size)+" / "+formatUploadBytes(selectedVideoFile.size);
-  setUploadStage(5,"✓ वीडियो सफलतापूर्वक अपलोड और सेव हो गया।");
+  setUploadStage(5,"5/5 · ✓ वीडियो सफलतापूर्वक अपलोड और सेव हो गया।");
   status.textContent="वीडियो अपलोड हो गया है। तैयार होते ही आपकी प्रोफ़ाइल पर दिखाई देगा।";
   toast("🌟 वीडियो अपलोड हो गया है।");
   setTimeout(()=>location.href="profile.html",1200);
