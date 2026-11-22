@@ -30,6 +30,11 @@ button{cursor:pointer}
 .video-info{position:absolute;z-index:5;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:none}
 #followCreatorBtn{pointer-events:auto!important;position:relative;z-index:8;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #followCreatorBtn.following{background:#24242b!important;border:1px solid #fe2c55!important;color:#fff!important}
+#creatorProfileButton:before{content:"👤";position:absolute;inset:0;display:grid;place-items:center;font-size:19px;z-index:0}
+#feedCreatorAvatar{position:relative;z-index:1}
+#creatorProfileButton img:not([src]),#creatorProfileButton img[src=""]{opacity:0}
+#followCreatorBtn{min-width:82px;white-space:nowrap}
+#followCreatorBtn:disabled{opacity:.78}
 .video-info h3{font-size:15px;margin-bottom:7px}
 #username{cursor:pointer;text-decoration:underline;text-decoration-color:#ffffff66;text-underline-offset:3px;pointer-events:auto;position:relative;z-index:9}
 #creatorProfileSheet{position:fixed;inset:0;z-index:100100;background:#080808f2;color:#fff;display:none;overflow:auto;padding:22px 16px 36px}
@@ -872,9 +877,9 @@ async function openCreatorProfile(){
 }
 function closeCreatorProfile(){creatorProfileRequest++;$("creatorProfileSheet").classList.remove("open");$("creatorProfileSheet").setAttribute("aria-hidden","true");document.body.style.overflow="";}
 async function toggleCreatorFollow(){
- const item=currentVideo,button=$("followCreatorBtn");
+ const item=currentVideo,button=$("followCreatorBtn"),videoId=String(item?.id||""),creatorId=String(item?.user_id||"");
  if(!currentUser){showToast("Follow करने के लिए Login करें।");return;}
- if(!item?.user_id||String(item.user_id)===String(currentUser.id))return;
+ if(!creatorId||creatorId===String(currentUser.id)||button.disabled)return;
  button.disabled=true;
  try{
   const {data:card,error:profileError}=await db.from("creator_public_profiles")
@@ -903,9 +908,11 @@ async function toggleCreatorFollow(){
    if(error)throw error;
    showToast("Creator Follow हो गया!");
   }
-  await refreshCreatorFollowButton(item);
+  if(String(currentVideo?.id)===videoId&&String(currentVideo?.user_id)===creatorId){
+   await refreshCreatorFollowButton(item);
+  }
  }catch(error){
-  showToast(socialActionErrorMessage(error,"follow"));
+  if(String(currentVideo?.id)===videoId)showToast(socialActionErrorMessage(error,"follow"));
   button.disabled=false;
  }
 }
@@ -944,8 +951,9 @@ function renderVideo(){
  creatorAvatarButton.style.display=currentVideo.user_id?"inline-flex":"none";
  $("feedCreatorAvatar").src="";
  if(currentVideo.user_id){
-  db.from("creator_public_profiles").select("avatar_url").eq("user_id",String(currentVideo.user_id)).maybeSingle()
-   .then(({data,error})=>{if(!error&&String(currentVideo?.user_id)===String(currentVideo.user_id)&&data?.avatar_url)$("feedCreatorAvatar").src=data.avatar_url;})
+  const creatorId=String(currentVideo.user_id),videoId=String(currentVideo.id);
+  db.from("creator_public_profiles").select("avatar_url").eq("user_id",creatorId).maybeSingle()
+   .then(({data,error})=>{if(!error&&String(currentVideo?.id)===videoId&&String(currentVideo?.user_id)===creatorId)$("feedCreatorAvatar").src=data?.avatar_url||"";})
    .catch(()=>{});
  }
  refreshCreatorFollowButton(currentVideo);
