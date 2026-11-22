@@ -361,6 +361,12 @@ function closePanels() {
  applyOutputFrame();
 }
 function openPanel(id) {
+ const target=$(id);
+ if(!target || !target.classList.contains("panel")) {
+  toast("यह सेक्शन कैमरा पेज में नहीं मिला। पेज को अपडेट करके दोबारा खोलें।");
+  console.error("Camera panel missing:",id);
+  return false;
+ }
  closePanels();
  if(id==="publishPanel") $("editorScreen").classList.add("editor-publishing");
  else {
@@ -369,8 +375,10 @@ function openPanel(id) {
   $("editorExpandButton").textContent="×";
   $("editorExpandButton").setAttribute("aria-label","Close video editor tools");
  }
- $(id).classList.remove("hidden");
+ target.classList.remove("hidden");
  applyOutputFrame();
+ requestAnimationFrame(()=>target.scrollIntoView({behavior:"smooth",block:"start"}));
+ return true;
 }
 function formatClock(seconds) {
  const total = Math.max(0,Math.floor(seconds));
@@ -603,14 +611,15 @@ async function loadVideo(file) {
  video.style.filter = "none";
  video.style.objectFit="contain";
  applyOutputFrame();
- $("editorMeta").textContent="";
+ const editorMeta=$("editorMeta");
+ if(editorMeta) editorMeta.textContent="";
  video.playbackRate = 1;
  inspectVideo();
  video.play().catch(() => {});
  toast("वीडियो Editor में खुल गया।");
 }
 
-/* Editor tools stay visible in the side rail; no overlay menu. */
+/* Editor tools open on demand; publishing hides the editing workspace. */
 async function continueToUpload() {
  try {
   await requireUser();
