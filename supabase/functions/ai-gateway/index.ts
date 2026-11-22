@@ -4,7 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
   "https://new-star-delta.vercel.app",
-  "https://new-star-rkdaifilms-8858.vercel.app"
+  "https://new-star-rkdaifilms-8858.vercel.app",
+  "https://new-star.rkdaifilms.workers.dev"
 ]);
 
 function corsHeaders(origin: string) {
@@ -25,6 +26,8 @@ function json(data: unknown, status: number, headers: Record<string, string>) {
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 const NEW_STAR_AI_SYSTEM_PROMPT = "You are New Star Creator Studio, the full-service creative, learning, research, and technical assistant for creators. Help with whatever safe creator-related task the user asks: story ideas and full original stories, scripts, scene-by-scene storyboards, image concepts and generated images when the image tool is invoked, thumbnails, titles, descriptions, captions, hashtags, voiceover text, editing instructions, video concepts, channel strategy, content calendars, livestream planning, audience engagement, and creator education. Also help write, explain, debug, and improve code, including HTML, CSS, JavaScript, React, SQL, API integrations, and app/website features; provide complete code when asked and clearly state required files, setup, and limitations. Answer broader questions when useful. If the user asks to search or research current information, use a real connected search/retrieval capability if one is available in this product flow; never pretend to have browsed or claim live results when no search tool was used. Clearly distinguish researched facts, general knowledge, and suggestions. For image requests, use the available image-generation action and explain if it fails; do not claim an image was generated unless the action returned one. Reply in the user's latest language and script, switching immediately when they switch. Never invent trends, stats, monetization, copyright permissions, or actions completed in the app. Do not claim to upload, publish, edit files, change settings, access private data, or deploy code unless a verified tool actually did it. Respect copyright and offer original alternatives. Never ask for passwords, OTPs, API keys, bank/card details, or secrets. For payments, payouts, identity checks, and account ownership, direct users to official support and an eligible adult account owner. Be capable, creative, accurate, practical, and concise.";
+
+const AI_LANGUAGE_NAMES: Record<string,string> = {hi:"Hindi",ne:"Nepali",en:"English",zh:"Simplified Chinese",es:"Spanish",fr:"French",ar:"Arabic",ja:"Japanese",de:"German",ru:"Russian",pt:"Portuguese",it:"Italian",ko:"Korean",tr:"Turkish",bn:"Bengali",ur:"Urdu",id:"Indonesian",vi:"Vietnamese",th:"Thai",fa:"Persian",sw:"Swahili",nl:"Dutch",pl:"Polish",uk:"Ukrainian",el:"Greek"};
 
 const NEW_STAR_HELP_SYSTEM_PROMPT = "You are New Star Help Center AI, the app's limited Creator Support, Safety, Reports, and Moderation assistant. You are NOT a general-purpose creative studio and must not replace New Star Creator Studio. Your scope is only New Star account and app support, creator protection, community rules, reports, warnings, moderation notices, safety notifications, upload/playback problems, profiles, settings, privacy, and help using creator features. Act like a careful support and safety desk: explain how to submit a report, collect and organize information supplied by the user, identify which app rule may be relevant when the rules are provided, explain report steps and warning notices, and guide creators on how to protect their accounts and use the appeal/support process. Help review reported behavior neutrally; do not assume the reporter is always right, do not declare guilt from an allegation, and do not invent evidence, report status, warnings, or notification records. You may prepare a warning recommendation or draft for an authorized human moderator, but you must never independently issue a warning, suspend/ban a user, remove content, change account access, or send a notification unless a verified moderation tool and authorized workflow explicitly permit that action. Explain that protection cannot guarantee nobody will ever violate rules; use reporting, evidence review, moderation, and appeals to respond fairly. If a user asks for scripts, stories, images, thumbnails, titles, hashtags, coding, broad research, or other creative production, politely direct them to New Star Creator Studio. Keep responses focused, clear, brief, and step-by-step. Reply in the user's latest language and script. Never claim to see private account data or perform actions without verified app data/tool results. Never ask for passwords, OTPs, API keys, bank/card details, or secrets. Distinguish available, planned, configured, deployed, and tested features. Be safe, neutral, fair, and respectful.";
 
@@ -47,10 +50,25 @@ function providerHttpError(status: number, data: any) {
   return `HTTP_${status}`;
 }
 
-async function generateGeminiImage(key: string, prompt: string) {
-  // Nano Banana 2.1 is the current Gemini Developer API image model.
-  // Gemini 3 Pro Image is the compatibility fallback if the primary model is unavailable.
-  const models = ["gemini-nano-banana-2.1", "gemini-3-pro-image"];
+function requestedImageAspectRatio(prompt: string, requested: unknown) {
+  const allowed = ["1:1", "3:4", "4:3", "9:16", "16:9"];
+  if (typeof requested === "string" && allowed.includes(requested)) return requested;
+  const match = prompt.match(/(\d{2,5})\s*[x×]\s*(\d{2,5})/i) || prompt.match(/(\d{1,2})\s*:\s*(\d{1,2})/);
+  if (!match) return "1:1";
+  const width = Number(match[1]), height = Number(match[2]);
+  if (!width || !height) return "1:1";
+  const ratio = width / height;
+  return allowed.reduce((best, item) => {
+    const [w, h] = item.split(":").map(Number);
+    const [bestW, bestH] = best.split(":").map(Number);
+    return Math.abs(Math.log(ratio / (w / h))) < Math.abs(Math.log(ratio / (bestW / bestH))) ? item : best;
+  }, "1:1");
+}
+
+async function generateGeminiImage(key: string, prompt: string, aspectRatio: string) {
+  // Gemini 3.1 Flash Image (Nano Banana 2) uses generateContent with
+  // responseModalities. Keep Gemini 2.5 Flash Image as compatibility fallback.
+  const models = ["gemini-3.1-flash-image", "gemini-2.5-flash-image"];
   let lastFailure = "GEMINI_IMAGE_UNAVAILABLE";
   for (const model of models) {
     const response = await fetchWithTimeout(
@@ -60,7 +78,7 @@ async function generateGeminiImage(key: string, prompt: string) {
         headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: "Generate one image based on this description. Return an image, not only text: " + prompt }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+          generationConfig: { responseModalities: ["TEXT", "IMAGE"], imageConfig: { aspectRatio } }
         })
       },
       60000
@@ -85,11 +103,11 @@ async function generateGeminiImage(key: string, prompt: string) {
   }
   throw new Error(lastFailure);
 }
-async function generateOpenAIImage(key: string, prompt: string) {
+async function generateOpenAIImage(key: string, prompt: string, aspectRatio: string) {
   const response = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "gpt-image-1", prompt, size: "1024x1024", n: 1 })
+    body: JSON.stringify({ model: "gpt-image-1", prompt, size: aspectRatio === "16:9" || aspectRatio === "4:3" ? "1536x1024" : aspectRatio === "9:16" || aspectRatio === "3:4" ? "1024x1536" : "1024x1024", n: 1 })
   }, 60000);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
@@ -141,33 +159,23 @@ async function callOpenAI(key: string, messages: ChatMessage[], systemPrompt: st
 async function callGemini(key: string, messages: ChatMessage[], systemPrompt: string) {
   const contents = normalizeGeminiContents(messages);
   if (!contents.length || contents[contents.length - 1].role !== "user") throw new Error("INVALID_GEMINI_TURN_SEQUENCE");
-  // Gemini 2.5 Flash access is restricted for new projects; prefer current stable models.
-  const models = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
-  let lastFailure = "GEMINI_UNAVAILABLE";
-  for (const model of models) {
-    const response = await fetchWithTimeout(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { temperature: 0.4, maxOutputTokens: 900 }
-        })
-      }
-    );
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      lastFailure = model + ":" + providerHttpError(response.status, data);
-      if (response.status === 404 && model !== models[models.length - 1]) continue;
-      throw new Error(lastFailure);
+  const response = await fetchWithTimeout(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+    {
+      method: "POST",
+      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents,
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: { temperature: 0.4, maxOutputTokens: 900 }
+      })
     }
-    const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
-    if (typeof text !== "string" || !text.trim()) throw new Error("EMPTY_RESPONSE");
-    return text;
-  }
-  throw new Error(lastFailure);
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
+  const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
+  if (typeof text !== "string" || !text.trim()) throw new Error("EMPTY_RESPONSE");
+  return text;
 }
 
 async function callOpenRouter(key: string, messages: ChatMessage[], systemPrompt: string) {
@@ -305,7 +313,7 @@ Deno.serve(async (req: Request) => {
     const voiceAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: allowedVoice, error: voiceLimitError } = await voiceAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
     if (voiceLimitError || allowedVoice !== true) return json({ ok: false, error: voiceLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, voiceLimitError ? 503 : 429, headers);
-    const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
+    const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
       method: "POST",
       headers: { "x-goog-api-key": geminiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -330,6 +338,9 @@ Deno.serve(async (req: Request) => {
 
   if (body?.action === "image") {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+    const aspectRatio = requestedImageAspectRatio(prompt, body.aspectRatio);
+    const imageLanguage = AI_LANGUAGE_NAMES[String(body.language || "")] || "";
+    const localizedImagePrompt = imageLanguage ? prompt + "\nIf any visible text is included in the image, write it only in " + imageLanguage + "." : prompt;
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter an image description of up to 1,800 characters." }, 400, headers);
     const geminiKey = firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
     const openaiKey = firstSecret("OPENAI_API_KEY", "OPENAI_KEY");
@@ -341,8 +352,8 @@ Deno.serve(async (req: Request) => {
     const failures: string[] = [];
     if (geminiKey) {
       try {
-        const result = await generateGeminiImage(geminiKey, prompt);
-        return json({ ok: true, ...result, provider: "gemini" }, 200, headers);
+        const result = await generateGeminiImage(geminiKey, localizedImagePrompt, aspectRatio);
+        return json({ ok: true, ...result, aspectRatio, provider: "gemini" }, 200, headers);
       } catch (error) {
         failures.push("gemini:" + (error instanceof Error ? error.message : "UNKNOWN"));
         console.error("AI image provider failed:", "gemini", error instanceof Error ? error.message : "unknown");
@@ -350,8 +361,8 @@ Deno.serve(async (req: Request) => {
     }
     if (openaiKey) {
       try {
-        const result = await generateOpenAIImage(openaiKey, prompt);
-        return json({ ok: true, ...result, provider: "openai" }, 200, headers);
+        const result = await generateOpenAIImage(openaiKey, localizedImagePrompt, aspectRatio);
+        return json({ ok: true, ...result, aspectRatio, provider: "openai" }, 200, headers);
       } catch (error) {
         failures.push("openai:" + (error instanceof Error ? error.message : "UNKNOWN"));
         console.error("AI image provider failed:", "openai", error instanceof Error ? error.message : "unknown");
@@ -422,7 +433,19 @@ Deno.serve(async (req: Request) => {
     }, 503, headers);
   }
 
-  const systemPrompt = body.mode === "help" ? NEW_STAR_HELP_SYSTEM_PROMPT : NEW_STAR_AI_SYSTEM_PROMPT;
+  const baseSystemPrompt = body.mode === "help" ? NEW_STAR_HELP_SYSTEM_PROMPT : NEW_STAR_AI_SYSTEM_PROMPT;
+  let selectedLanguageCode = typeof body.language === "string" ? body.language : "";
+  if (!AI_LANGUAGE_NAMES[selectedLanguageCode]) {
+    try {
+      const { data: savedPreference } = await userClient.from("user_preferences").select("preferences").eq("user_id", userData.user.id).maybeSingle();
+      const savedLanguage = savedPreference?.preferences?.language;
+      if (typeof savedLanguage === "string" && AI_LANGUAGE_NAMES[savedLanguage]) selectedLanguageCode = savedLanguage;
+    } catch { /* Use the language detected from the user's message when no saved preference is available. */ }
+  }
+  const selectedLanguage = AI_LANGUAGE_NAMES[selectedLanguageCode] || "";
+  const systemPrompt = selectedLanguage
+    ? baseSystemPrompt + "\n\nLANGUAGE SETTING: The app user has selected " + selectedLanguage + ". Write every user-facing response entirely in " + selectedLanguage + " using its native script. Do not answer in Hindi or English unless that is the selected language. Keep names, code, URLs, and technical identifiers unchanged where necessary. If the user explicitly asks for translation into another language, follow that request for that answer only."
+    : baseSystemPrompt;
 
   const failedProviders: string[] = [];
   for (const provider of providers) {
