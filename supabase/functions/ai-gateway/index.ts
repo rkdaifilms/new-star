@@ -65,7 +65,7 @@ function requestedImageAspectRatio(prompt: string, requested: unknown) {
   }, "1:1");
 }
 
-async function generateGeminiImage(key: string, prompt: string, aspectRatio: string) {
+async function generateGeminiImage(key: string, prompt: string, aspectRatio: string, imageSize: string) {
   // Gemini 3.1 Flash Image (Nano Banana 2) uses generateContent with
   // responseModalities. Keep Gemini 2.5 Flash Image as compatibility fallback.
   const models = ["gemini-3.1-flash-image", "gemini-2.5-flash-image"];
@@ -78,7 +78,7 @@ async function generateGeminiImage(key: string, prompt: string, aspectRatio: str
         headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: "Generate one image based on this description. Return an image, not only text: " + prompt }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"], imageConfig: { aspectRatio } }
+          generationConfig: { responseModalities: ["TEXT", "IMAGE"], imageConfig: { aspectRatio, imageSize } }
         })
       },
       60000
@@ -339,6 +339,7 @@ Deno.serve(async (req: Request) => {
   if (body?.action === "image") {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = requestedImageAspectRatio(prompt, body.aspectRatio);
+    const imageSize = ["1K", "2K", "4K"].includes(String(body.imageSize || "")) ? String(body.imageSize) : "1K";
     const imageLanguage = AI_LANGUAGE_NAMES[String(body.language || "")] || "";
     const localizedImagePrompt = imageLanguage ? prompt + "\nIf any visible text is included in the image, write it only in " + imageLanguage + "." : prompt;
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter an image description of up to 1,800 characters." }, 400, headers);
@@ -352,7 +353,7 @@ Deno.serve(async (req: Request) => {
     const failures: string[] = [];
     if (geminiKey) {
       try {
-        const result = await generateGeminiImage(geminiKey, localizedImagePrompt, aspectRatio);
+        const result = await generateGeminiImage(geminiKey, localizedImagePrompt, aspectRatio, imageSize);
         return json({ ok: true, ...result, aspectRatio, provider: "gemini" }, 200, headers);
       } catch (error) {
         failures.push("gemini:" + (error instanceof Error ? error.message : "UNKNOWN"));
