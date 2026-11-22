@@ -117,7 +117,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Video duration must be between 1 second and 3 hours." }, 400, cors);
   }
 
-  const expiry = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const expiry = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
   metadata.delete("maxDurationSeconds");
   // Cloudflare Stream expects the lower-case TUS metadata key.
   metadata.set("maxdurationseconds", btoa(String(durationSeconds)));
