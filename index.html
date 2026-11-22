@@ -73,6 +73,11 @@ body.creator-profile-video-mode #creatorIdentityBar{display:none!important}
 #creatorProfileSheet .creator-avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;background:#333;display:block;margin-bottom:12px}
 #creatorProfileSheet .creator-stats{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;color:#ddd;font-size:12px} #creatorProfileFollowing{font-size:11px}
 #creatorProfileSheet .creator-videos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:14px}
+#creatorProfileSheet .creator-video-tabs{display:flex;gap:7px;overflow-x:auto;margin:14px 0 4px;padding:3px 0;scrollbar-width:none}
+#creatorProfileSheet .creator-video-tabs[hidden]{display:none!important}
+#creatorProfileSheet .creator-video-tabs button{flex:1 0 auto;min-height:36px;padding:8px 12px;border:1px solid #454550;border-radius:18px;background:#25252c;color:#eee;font-size:12px;font-weight:700;white-space:nowrap}
+#creatorProfileSheet .creator-video-tabs button.active{background:#fe2c55;border-color:#fe2c55;color:#fff}
+#creatorProfileSheet .creator-video-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}
 #creatorProfileSheet .creator-videos video{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;border-radius:8px}
 #creatorProfileSheet .creator-status{color:#bbb;font-size:13px;margin-top:10px}
 #creatorProfileSheet .creator-profile-retry{margin-top:10px;padding:9px 15px;border:1px solid #fe2c55;border-radius:18px;background:#222;color:#fff;font-weight:700}
