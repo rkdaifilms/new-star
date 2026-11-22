@@ -1209,7 +1209,7 @@ async function openCreatorProfile(creatorOverride=null){
  const item=creatorOverride||currentVideo;
  if(!item?.user_id){showToast("इस वीडियो के Creator की जानकारी उपलब्ध नहीं है।");return;}
  activeCreatorProfileItem=item;
- const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),grid=$("creatorProfileVideos"),shortGrid=$("creatorProfileShortVideos"),longGrid=$("creatorProfileLongVideos"),retry=$("creatorProfileRetry");
+ const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),shortGrid=$("creatorProfileShortVideos"),longGrid=$("creatorProfileLongVideos"),retry=$("creatorProfileRetry");
  if(sheet.parentElement!==document.body)document.body.appendChild(sheet);
  if(!sheet.classList.contains("open")){history.pushState({newStarCreatorProfile:true},"",location.href);creatorProfileHistoryEntry=true;}
  sheet.classList.add("open");sheet.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
@@ -1219,7 +1219,7 @@ async function openCreatorProfile(creatorOverride=null){
  $("creatorProfileLocation").textContent="";$("creatorProfileLocation").hidden=true;
  $("creatorProfileAvatar").style.visibility="visible";$("creatorProfileAvatar").src="";
  $("creatorProfileFollowers").textContent="Followers: —";$("creatorProfileFollowing").textContent="Following: —";$("creatorProfilePosts").textContent="Videos: —";
- grid.replaceChildren();shortGrid.replaceChildren();longGrid.replaceChildren();$("creatorProfileShortHeading").hidden=true;$("creatorProfileLongHeading").hidden=true;status.textContent="प्रोफ़ाइल लोड हो रही है…";
+ shortGrid.replaceChildren();longGrid.replaceChildren();$("creatorProfileShortHeading").hidden=true;$("creatorProfileLongHeading").hidden=true;status.textContent="प्रोफ़ाइल लोड हो रही है…";
  const follow=$("creatorProfileFollow");follow.style.display="inline-flex";follow.disabled=true;follow.dataset.creatorId=String(item.user_id);follow.textContent="Loading…";
  try{
   const profile=await getCreatorPublicCard(item.user_id);
