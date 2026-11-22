@@ -566,22 +566,28 @@ async function loadFeed(){
   let rpcData=null,rpcError=null;
   try{
    const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
-   const result=await db.rpc("get_recommended_video_feed",{p_limit:50,p_offset:0,p_video_type:null,p_category:category});
+   const search=$("search").value.trim()||null;
+   const videoType=["Shorts","Reels"].includes(currentCategory)?"short":currentCategory==="Long Videos"?"long":null;
+   const result=await db.rpc("get_recommended_video_feed_v2",{
+    p_limit:50,p_offset:0,p_video_type:videoType,p_category:category,p_search:search
+   });
    rpcData=result.data;rpcError=result.error;
   }catch(error){rpcError=error;}
-  // An RPC can succeed but return an empty list. In that case, query the
-  // public videos table directly instead of leaving the feed blank.
   const rpcVideos=Array.isArray(rpcData)?rpcData.filter(v=>v&&v.id&&typeof v.video_url==="string"&&v.video_url.trim()):[];
-  if(!rpcError&&rpcVideos.length){
+  if(!rpcError){
+   // A successful empty result is meaningful: do not bypass distribution gates
+   // by falling back to an unranked direct query.
    videos=rpcVideos.map(v=>({...v,video_url:v.video_url.trim(),likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
   }else{
-   if(rpcError)console.warn("Recommended feed RPC failed; using direct query:",rpcError.message||rpcError);
-   else console.info("Recommended feed RPC returned no playable video rows; using direct query.");
+   console.warn("New recommendation RPC unavailable; using compatibility feed:",rpcError.message||rpcError);
    const direct=await loadDirectPublicFeed();
    videos=direct.filter(v=>v&&v.id&&typeof v.video_url==="string"&&v.video_url.trim())
     .map(v=>({...v,video_url:v.video_url.trim(),likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
   }
-  if(!videos.length)throw new Error("कोई playable public video नहीं मिला। वीडियो का Storage URL और publish status जाँचें।");
+  if(!videos.length){
+   await applyFilters();
+   return;
+  }
   videos=await resolveFeedVideoUrls(videos);
   await hydrateFeedVideoMetadata();
   await loadLikes();
@@ -813,6 +819,15 @@ function recordEngagement(videoId,eventType){
   if(error)console.debug("Engagement not recorded:",error.message);
  });
 }
+function recordFeedImpression(videoId,isShort){
+ if(!currentUser||!videoId||!db)return;
+ if(["Following","Friends","Live"].includes(currentCategory))return;
+ const surface=$("search").value.trim()?"search":(isShort?"short_feed":"long_feed");
+ db.rpc("record_video_feed_impression",{p_video_id:videoId,p_surface:surface}).then(({data,error})=>{
+  if(error)console.debug("Feed impression not recorded:",error.message);
+  else if(data?.stage_status==="paused")console.info("Short distribution paused:",videoId,data);
+ }).catch(error=>console.debug("Feed impression unavailable:",error?.message||error));
+}
 
 let followButtonVideoId=null;
 async function getCreatorPublicCard(creatorId){
@@ -982,6 +997,7 @@ function renderVideo(){
  const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
  const currentDuration=Number(currentVideo.duration_seconds)||0;
   const currentIsShort=currentVideo.video_type==="short"?true:currentVideo.video_type==="long"?false:(currentDuration>0?currentDuration<=60:Number(currentVideo.height)>Number(currentVideo.width));
+  recordFeedImpression(currentVideo.id,currentIsShort);
   player.style.objectFit=currentVideo.frame_fit==="cover"?"cover":"contain";
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
@@ -1303,18 +1319,19 @@ async function sendGift(){
 document.querySelectorAll(".category").forEach(button=>{
  button.addEventListener("click",async()=>{
   document.querySelectorAll(".category").forEach(b=>b.classList.remove("active"));
-  button.classList.add("active");currentCategory=button.dataset.cat;await applyFilters();
+  button.classList.add("active");currentCategory=button.dataset.cat;
+  if(currentCategory==="Live")await loadLiveRooms();else await loadFeed();
  });
 });
 let searchTimer;
 $("search").addEventListener("input",()=>{
- clearTimeout(searchTimer);searchTimer=setTimeout(()=>applyFilters(),250);
+ clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadFeed(),350);
 });
 $("voice").addEventListener("click",()=>{
  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SpeechRecognition){showToast("इस Browser में Voice Search उपलब्ध नहीं है।");return;}
  const recognition=new SpeechRecognition();recognition.lang="hi-IN";recognition.interimResults=false;
- recognition.onresult=event=>{$("search").value=event.results[0][0].transcript;applyFilters();};
+ recognition.onresult=event=>{$("search").value=event.results[0][0].transcript;loadFeed();};
  recognition.onerror=()=>showToast("Voice Search काम नहीं कर पाया।");
  recognition.start();
 });
