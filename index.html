@@ -1245,7 +1245,7 @@ async function openCreatorProfile(creatorOverride=null){
   const [followers,following,posts]=await Promise.all([
    db.from("followers").select("id",{count:"exact",head:true}).eq("following_id",String(item.user_id)),
    db.from("followers").select("id",{count:"exact",head:true}).eq("follower_id",String(item.user_id)),
-   db.from("videos").select("id,video_url,video_provider,provider_video_id,caption,created_at,username,user_id,category,likes_count,views_count,audience_type,duration_seconds,width,height,thumbnail_url,video_type,frame_fit,affiliate_link,tags,visibility,processing_status",{count:"exact"}).eq("user_id",String(item.user_id)).or("visibility.eq.public,visibility.is.null").or("processing_status.eq.published,processing_status.is.null").order("created_at",{ascending:false}).limit(50)
+   db.from("videos").select("id,video_url,video_provider,provider_video_id,caption,created_at,username,user_id,category,likes_count,views_count,audience_type,duration_seconds,width,height,thumbnail_url,video_type,frame_fit,affiliate_link,tags,visibility,processing_status",{count:"exact"}).eq("user_id",String(item.user_id)).or("visibility.eq.public,visibility.is.null").or("processing_status.eq.published,processing_status.is.null").order("created_at",{ascending:false}).limit(1000)
   ]);
   if(token!==creatorProfileRequest)return;
   $("creatorProfileFollowers").textContent="Followers: "+(followers.error?"—":Number(followers.count||0));
@@ -1262,13 +1262,18 @@ async function openCreatorProfile(creatorOverride=null){
   rows.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   creatorProfileVideoRows=rows.slice();
   if(!rows.length){status.textContent=profile.is_private?"यह Private Creator है।":"इस Creator ने अभी कोई सार्वजनिक वीडियो अपलोड नहीं किया है।";return;}
-  const shortRows=rows.filter(row=>{
-   const type=String(row.video_type||"").toLowerCase();
+  // Use the same classification rules as profile.html so Search-opened
+  // creator profiles show the exact same All / Shorts / Long categories.
+  function creatorProfileVideoType(row){
+   const stored=String(row.video_type||"").toLowerCase();
+   if(stored==="short"||stored==="long")return stored;
    const duration=Number(row.duration_seconds)||0;
-   return type==="short"||(!["long","long_video"].includes(type)&&duration>0&&duration<=60);
-  });
-  const shortIds=new Set(shortRows.map(row=>String(row.id)));
-  const longRows=rows.filter(row=>!shortIds.has(String(row.id)));
+   if(duration>0)return duration<=60?"short":"long";
+   const width=Number(row.width)||0,height=Number(row.height)||0;
+   return height>width?"short":"long";
+  }
+  const shortRows=rows.filter(row=>creatorProfileVideoType(row)==="short");
+  const longRows=rows.filter(row=>creatorProfileVideoType(row)==="long");
   function appendProfileTiles(target,list){
    list.forEach(row=>{
     const tile=document.createElement("button");tile.type="button";tile.className="creator-video-tile";
