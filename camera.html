@@ -37,17 +37,15 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .editor-meta{font-size:12px;color:#aeb4bf;text-align:center;padding:7px 4px}
 #editorVideo{width:100%;height:100%;object-fit:contain;transform-origin:center}
 #previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;max-width:90%;overflow-wrap:anywhere;z-index:5;pointer-events:none}
-.editor-tools-bar{position:relative;display:flex;justify-content:flex-end;align-items:center;margin:0 0 8px;min-height:44px;z-index:40}
-.editor-menu{position:relative;display:flex;justify-content:flex-end;z-index:40}
-.editor-menu>button{display:flex;align-items:center;justify-content:center;background:#25252c;color:#fff;border:1px solid #5a5a65;border-radius:50%;width:44px;height:44px;min-width:44px;padding:0;font-size:27px;line-height:1;box-shadow:0 2px 8px #0008}
-.editor-dropdown{display:none;position:absolute;right:0;top:50px;width:min(320px,calc(100vw - 48px));max-height:min(62vh,520px);overflow-y:auto;overscroll-behavior:contain;background:#18181c;border:1px solid #555;border-radius:14px;box-shadow:0 12px 32px #000d;z-index:100;padding:6px}
-.editor-dropdown.open{display:block}
-.editor-dropdown button{display:flex;align-items:center;min-height:48px;width:100%;text-align:left;border:0;border-bottom:1px solid #333;border-radius:8px;background:transparent;padding:12px 14px;color:white;font-size:15px;line-height:1.35}
-.editor-dropdown button:last-child{border-bottom:0}
-.editor-dropdown button:active{background:#303039}
-.preview-save{display:none!important}
-@media(max-width:380px){.editor-dropdown{width:min(300px,calc(100vw - 36px));max-height:58vh}.editor-dropdown button{font-size:14px;min-height:46px}}
-#editorActions .primary{display:block;margin:0}
+.editor-workspace{display:grid;grid-template-columns:minmax(0,1fr) 116px;gap:10px;align-items:stretch;width:100%;max-width:820px;margin:0 auto 12px}
+.editor-tools-rail{display:flex;flex-direction:column;gap:5px;min-width:0;max-height:min(70vh,760px);overflow-y:auto;overscroll-behavior:contain;padding:6px;background:#15151a;border:1px solid #303039;border-radius:12px}
+.editor-tools-rail button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:0 0 auto;min-height:52px;width:100%;padding:6px 3px;border:1px solid #35353e;border-radius:8px;background:#222229;color:#f4f4f5;font-size:11px;line-height:1.2;text-align:center;white-space:normal;overflow-wrap:anywhere}
+.editor-tools-rail button:active,.editor-tools-rail button:focus-visible{background:#3a2630;border-color:#fe2c55;outline:none}
+.editor-workspace .preview{width:100%;max-width:none;min-width:0;max-height:min(70vh,760px);margin:0;aspect-ratio:var(--preview-ratio,.5625);align-self:start}
+#editorActions{display:grid;grid-template-columns:1fr;gap:8px;margin:0 auto 14px;width:100%;max-width:820px}
+#editorActions .primary{display:block;width:100%;min-height:50px;margin:0}
+@media(max-width:390px){.editor-workspace{grid-template-columns:minmax(0,1fr) 104px;gap:7px}.editor-tools-rail{padding:4px;gap:4px}.editor-tools-rail button{min-height:48px;font-size:10.5px}.editor-workspace .preview{max-height:68vh}}
+@media(min-width:700px){.editor-workspace{grid-template-columns:minmax(0,1fr) 150px;gap:14px}.editor-tools-rail button{font-size:13px;min-height:56px}}
 
 .savebar{position:absolute;bottom:12px;left:5%;width:90%;z-index:10}
 .panel{border-radius:10px}
@@ -104,27 +102,24 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 </section>
 
 <section id="editorScreen" class="hidden">
- <div class="editor-tools-bar">
-  <div class="editor-menu">
-   <button type="button" id="menuButton" aria-label="Video Editor Tools" title="Video Editor Tools" aria-expanded="false">⋮</button>
-   <div class="editor-dropdown" id="editorMenu">
-    <button type="button" data-panel="trimPanel">✂️ Trim Video</button>
-    <button type="button" id="splitButton">⚡ Split Preview Point</button>
-    <button type="button" data-panel="cropPanel">📐 Crop & Rotate</button>
-    <button type="button" data-panel="filterPanel">🎨 Filters & Effects</button>
-    <button type="button" data-panel="speedPanel">⏩ Speed Control</button>
-    <button type="button" data-panel="textPanel">✍️ Text & Subtitles</button>
-    <button type="button" data-panel="audioPanel">🎵 Music & Voice-over Mixer</button>
-    <button type="button" data-panel="copyrightPanel">🛡 Audio Copyright Scan</button>
-    <button type="button" data-panel="infoPanel">📊 Video Information</button>
-    <button type="button" data-panel="exportPanel">🎞 Export Edited Video</button>
-    <button type="button" id="resetButton">↩ Reset Preview Edits</button>
-   </div>
+ <div class="editor-workspace">
+  <div class="preview">
+   <video id="editorVideo" playsinline controls></video>
+   <div id="previewText"></div>
   </div>
- </div>
- <div class="preview">
-  <video id="editorVideo" playsinline controls></video>
-  <div id="previewText"></div>
+  <aside class="editor-tools-rail" aria-label="Video editing tools">
+   <button type="button" data-panel="trimPanel">✂️<span>Trim</span></button>
+   <button type="button" id="splitButton">⚡<span>Split</span></button>
+   <button type="button" data-panel="cropPanel">📐<span>Crop / Rotate</span></button>
+   <button type="button" data-panel="filterPanel">🎨<span>Filters</span></button>
+   <button type="button" data-panel="speedPanel">⏩<span>Speed</span></button>
+   <button type="button" data-panel="textPanel">✍️<span>Text / Subs</span></button>
+   <button type="button" data-panel="audioPanel">🎵<span>Music / Voice</span></button>
+   <button type="button" data-panel="copyrightPanel">🛡️<span>Copyright Scan</span></button>
+   <button type="button" data-panel="infoPanel">📊<span>Video Info</span></button>
+   <button type="button" data-panel="exportPanel">🎞<span>Export</span></button>
+   <button type="button" id="resetButton">↩️<span>Reset</span></button>
+  </aside>
  </div>
  <div id="editorActions">
   <div class="editor-meta" id="editorMeta">Video select करें — पूरा frame preview में दिखेगा</div>
@@ -335,9 +330,6 @@ function closePanels() {
 }
 function openPanel(id) {
  closePanels();
- $("menuButton").textContent="⋮";
- $("menuButton").setAttribute("aria-expanded","false");
- $("editorMenu").classList.remove("open");
  if(id==="publishPanel") $("editorScreen").classList.add("editor-publishing");
  $(id).classList.remove("hidden");
  setTimeout(() => $(id).scrollIntoView({behavior:"smooth",block:"nearest"}),80);
@@ -562,25 +554,10 @@ async function loadVideo(file) {
  toast("वीडियो Editor में खुल गया।");
 }
 
-$("menuButton").onclick = event => {
- event.stopPropagation();
- const opening=!$("editorMenu").classList.contains("open");
- $("editorMenu").classList.toggle("open",opening);
- $("menuButton").textContent=opening?"×":"⋮";
- $("menuButton").setAttribute("aria-expanded",String(opening));
-};
-$("editorMenu").onclick = event => event.stopPropagation();
-document.addEventListener("click",()=>{
- $("editorMenu").classList.remove("open");
- $("menuButton").textContent="⋮";
- $("menuButton").setAttribute("aria-expanded","false");
-});
+/* Editor tools stay visible in the side rail; no overlay menu. */
 async function continueToUpload() {
  try {
   await requireUser();
-  $("menuButton").textContent="⋮";
-  $("menuButton").setAttribute("aria-expanded","false");
-  $("editorMenu").classList.remove("open");
   closePanels();
   if (pendingEditorChanges) {
    openPanel("exportPanel");
