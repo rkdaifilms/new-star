@@ -34,7 +34,7 @@ button{cursor:pointer}
 .category.active{background:#fe2c55;font-weight:bold}
 #feed{height:100%;width:100%;position:relative;background:#080808;overflow:hidden;touch-action:none}
 #video{height:100%;width:100%;object-fit:contain;background:#000;touch-action:none}
-.video-info{position:absolute;z-index:5;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:none}
+.video-info{position:absolute;z-index:100001;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:auto;isolation:isolate}
 #followCreatorBtn{pointer-events:auto!important;position:relative;z-index:8;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #followCreatorBtn.following{background:#24242b!important;border:1px solid #fe2c55!important;color:#fff!important}
 #creatorProfileButton:before{content:"👤";position:absolute;inset:0;display:grid;place-items:center;font-size:19px;z-index:0}
@@ -48,7 +48,7 @@ button{cursor:pointer}
 /* Creator identity controls must remain tappable above the video surface on touch devices. */
 .video-info{z-index:100001!important;isolation:isolate;}
 #creatorProfileButton,#username,#followCreatorBtn{pointer-events:auto!important;position:relative;z-index:100003!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent;}
-#creatorProfileButton{display:inline-flex;flex:0 0 38px;width:38px!important;height:38px!important;min-width:38px;min-height:38px;align-items:center;justify-content:center;cursor:pointer;}
+#creatorProfileButton{flex:0 0 38px;width:38px!important;height:38px!important;min-width:38px;min-height:38px;align-items:center;justify-content:center;cursor:pointer;}
 #username{display:inline-flex;align-items:center;min-height:38px;margin:0;padding:4px 0;color:#fff;font:700 15px/1.25 inherit;text-shadow:0 1px 5px #000;cursor:pointer;}
 #followCreatorBtn{min-height:36px;cursor:pointer;}
 #creatorProfileSheet{position:fixed;inset:0;z-index:100100;background:#080808f2;color:#fff;display:none;overflow:auto;padding:22px 16px 36px}
@@ -900,7 +900,7 @@ async function refreshCreatorFollowButton(item){
  button.disabled=false;
  paintFollowButton(button,"follow");
  if(!currentUser)return;
- button.disabled=true;
+ button.disabled=false;
  try{
   const [{data:row,error:followError},card]=await Promise.all([
    db.from("followers").select("id").eq("follower_id",String(currentUser.id))
@@ -1165,6 +1165,7 @@ function renderVideo(){
  const creatorAvatar=$("feedCreatorAvatar");
  const creatorId=String(currentVideo.user_id||"");
  creatorAvatarButton.style.display=creatorId?"inline-flex":"none";
+ creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();
  creatorAvatarButton.setAttribute("aria-label","Open "+(name.startsWith("@")?name:"@"+name)+" creator profile");
  creatorAvatar.src="";
  creatorAvatar.style.display="block";
@@ -1588,7 +1589,7 @@ $("feed").addEventListener("pointerup",event=>{
 });
 // Android/iOS fallback: native touch events cover WebViews that miss pointerup on video.
 $("feed").addEventListener("touchstart",event=>{
- if(event.target.closest("button,a,input"))return;
+ if(event.target.closest("button,a,input,.video-info"))return;
  const t=event.changedTouches[0];if(t)touchFeedStart={x:t.clientX,y:t.clientY};
 },{passive:true});
 $("feed").addEventListener("touchend",event=>{
