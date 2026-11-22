@@ -1760,32 +1760,15 @@ async function searchCreatorProfiles(query){
  loading.style.cssText="padding:12px;color:#aaa;font-size:12px";
  panel.append(loading);
  try{
-  const [creatorResult,videoResult]=await Promise.all([
-   db.rpc("search_newstar_creators",{p_search:term,p_limit:12}),
-   db.rpc("get_recommended_video_feed_v2",{p_limit:20,p_offset:0,p_video_type:null,p_category:null,p_search:term})
-  ]);
+  const videoResult=await db.rpc("search_newstar_videos",{p_search:term,p_limit:30});
   if(sequence!==creatorSearchSequence)return;
   panel.replaceChildren();
   let count=0;
-  if(!creatorResult.error&&(creatorResult.data||[]).length){
-   addSearchSection(panel,"Creators");
-   (creatorResult.data||[]).forEach(creator=>{
-    const button=document.createElement("button");button.type="button";button.className="creator-search-item";button.setAttribute("role","option");
-    if(creator.avatar_url){const img=document.createElement("img");img.src=creator.avatar_url;img.alt="";img.onerror=()=>{const fallback=document.createElement("span");fallback.className="creator-search-fallback";fallback.textContent=(creator.username||"C").charAt(0).toUpperCase();img.replaceWith(fallback);};button.append(img);}
-    else{const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent=(creator.username||"C").charAt(0).toUpperCase();button.append(avatar);}
-    const copy=document.createElement("span");copy.className="creator-search-copy";
-    const name=document.createElement("strong");name.textContent=(creator.full_name?creator.full_name+" · ":"")+"@"+String(creator.username||"creator").replace(/^@/,"");
-    const sub=document.createElement("small");sub.textContent=[creator.bio,creator.location_name].filter(Boolean).join(" · ")||"पूरा Creator Profile खोलें";
-    copy.append(name,sub);button.append(copy);
-    button.addEventListener("click",()=>{hideCreatorSearchResults();openCreatorProfile({user_id:creator.user_id,username:creator.username});});
-    panel.append(button);count++;
-   });
-  }
   if(!videoResult.error&&(videoResult.data||[]).length){
    addSearchSection(panel,"Videos");
    const videos=videoResult.data||[];
    const creatorIds=[...new Set(videos.map(video=>String(video.user_id||"")).filter(Boolean))];
-   const creatorMap=new Map((creatorResult.data||[]).map(creator=>[String(creator.user_id),creator]));
+   const creatorMap=new Map();
    const missingIds=creatorIds.filter(id=>!creatorMap.has(id));
    if(missingIds.length){
     const [publicCards,baseProfiles]=await Promise.all([
@@ -1828,8 +1811,8 @@ async function searchCreatorProfiles(query){
   }
   if(count===0){
    const empty=document.createElement("div");
-   const creatorError=creatorResult.error?.message||"",videoError=videoResult.error?.message||"";
-   empty.textContent=(creatorError||videoError)?"सर्च सेवा अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर कोशिश करें।":"कोई सार्वजनिक Creator या matching Video नहीं मिला।";
+   const videoError=videoResult.error?.message||"";
+   empty.textContent=videoError?"सर्च सेवा अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर कोशिश करें।":"कोई सार्वजनिक Creator या matching Video नहीं मिला।";
    empty.style.cssText="padding:12px;color:#aaa;font-size:12px";panel.append(empty);
   }
  }catch(error){
