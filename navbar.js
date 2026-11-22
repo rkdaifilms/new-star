@@ -402,7 +402,8 @@
       applyPreferences();
       removeDuplicateNavigation();
       addStyles();
-      createMenu();
+      // The main app menu belongs only to the Profile page's own ⋮ control.
+      // Never inject a duplicate/global menu button on Home, Create, Camera, or editor pages.
 
       // Display the dashboard link only after the server verifies this session's owner role.
       if (user) {
@@ -427,7 +428,7 @@
       }
 
       // Profile page keeps its original profile menu.
-      createTopMenuButton();
+      // No global three-dot button outside Profile. Camera editor owns its own Edit Video menu.
 
       createBottomNavigation();
 
