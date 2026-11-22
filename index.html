@@ -66,6 +66,8 @@ button{cursor:pointer}
 #creatorProfileSheet .creator-videos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:14px}
 #creatorProfileSheet .creator-videos video{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;border-radius:8px}
 #creatorProfileSheet .creator-status{color:#bbb;font-size:13px;margin-top:10px}
+#creatorProfileSheet .creator-profile-retry{margin-top:10px;padding:9px 15px;border:1px solid #fe2c55;border-radius:18px;background:#222;color:#fff;font-weight:700}
+#creatorProfileSheet .creator-profile-retry[hidden]{display:none!important}
 #creatorProfileSheet .creator-profile-follow{display:inline-flex;align-items:center;justify-content:center;min-width:110px;margin:8px 0 4px;padding:9px 18px;border:0;border-radius:20px;background:#fe2c55;color:#fff;font-weight:700}
 #creatorProfileSheet .creator-profile-follow.following{background:#292930;border:1px solid #fe2c55}
 #creatorProfileSheet .creator-videos button{position:relative;display:block;width:100%;padding:0;border:0;background:#111;color:#fff;text-align:left;border-radius:8px;overflow:hidden}
@@ -312,6 +314,7 @@ button{cursor:pointer}
    <p id="creatorProfileLocation" class="creator-status" hidden></p>
    <div class="creator-stats"><span id="creatorProfileFollowers">Followers: —</span><span id="creatorProfileFollowing">Following: —</span><span id="creatorProfilePosts">Videos: —</span></div>
    <div class="creator-status" id="creatorProfileStatus">Loading creator…</div>
+   <button type="button" id="creatorProfileRetry" class="creator-profile-retry" hidden>Retry profile loading</button>
    <div class="creator-videos" id="creatorProfileVideos"></div>
   </div>
  </div>
@@ -970,13 +973,15 @@ async function toggleProfileFollow(){
  }finally{button.disabled=false;}
 }
 
+let activeCreatorProfileItem=null;
 async function openFeedVideoFromProfile(row){
  if(!row?.id)return;
  closeCreatorProfile();
- let ready=videos.find(x=>String(x.id)===String(row.id));
- if(!ready?.video_url){
+ let ready=videos.find(x=>String(x.id)===String(row.id))||row;
+ // Public Supabase Storage URLs are already playable; only Cloudflare assets need a playback token.
+ if(!ready?.video_url||ready.video_provider==="cloudflare"){
   const resolved=await resolveFeedVideoUrls([row]);
-  ready=resolved[0];
+  ready=resolved[0]||ready;
  }
  if(!ready?.video_url){showToast("यह वीडियो अभी चल नहीं पा रहा है।");return;}
  videos=[ready,...videos.filter(x=>String(x.id)!==String(ready.id))];
@@ -988,48 +993,58 @@ async function openFeedVideoFromProfile(row){
  renderVideo();
 }
 async function openCreatorProfile(creatorOverride=null){
- const item=creatorOverride||currentVideo;if(!item?.user_id){showToast("इस वीडियो के Creator की जानकारी उपलब्ध नहीं है।");return;}
- const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),grid=$("creatorProfileVideos");
- // Move the sheet out of the clipped video-feed stacking context.
+ const item=creatorOverride||currentVideo;
+ if(!item?.user_id){showToast("इस वीडियो के Creator की जानकारी उपलब्ध नहीं है।");return;}
+ activeCreatorProfileItem=item;
+ const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),grid=$("creatorProfileVideos"),retry=$("creatorProfileRetry");
  if(sheet.parentElement!==document.body)document.body.appendChild(sheet);
  if(!sheet.classList.contains("open")){history.pushState({newStarCreatorProfile:true},"",location.href);creatorProfileHistoryEntry=true;}
  sheet.classList.add("open");sheet.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
+ retry.hidden=true;
  $("creatorProfileName").textContent="@"+String(item.username||"creator").replace(/^@/,"");
  $("creatorProfileBio").textContent="";$("creatorProfileAbout").textContent="";$("creatorProfileAbout").hidden=true;
  $("creatorProfileLocation").textContent="";$("creatorProfileLocation").hidden=true;
- $("creatorProfileAvatar").src="";grid.replaceChildren();status.textContent="प्रोफ़ाइल लोड हो रही है…";
+ $("creatorProfileAvatar").style.visibility="visible";$("creatorProfileAvatar").src="";
+ $("creatorProfileFollowers").textContent="Followers: —";$("creatorProfileFollowing").textContent="Following: —";$("creatorProfilePosts").textContent="Videos: —";
+ grid.replaceChildren();status.textContent="प्रोफ़ाइल लोड हो रही है…";
  const follow=$("creatorProfileFollow");follow.style.display="inline-flex";follow.disabled=true;follow.dataset.creatorId=String(item.user_id);follow.textContent="Loading…";
  try{
   const profile=await getCreatorPublicCard(item.user_id);
-  if(!profile)throw Error("Creator की सार्वजनिक प्रोफ़ाइल उपलब्ध नहीं है।");
+  if(!profile)throw Error("इस Creator की सार्वजनिक प्रोफ़ाइल उपलब्ध नहीं है।");
   if(token!==creatorProfileRequest)return;
   $("creatorProfileName").textContent=(profile.full_name?profile.full_name+" · ":"")+"@"+String(profile.username||item.username||"creator").replace(/^@/,"");
   $("creatorProfileBio").textContent=profile.bio||"";
   const aboutText=String(profile.about||"").trim();
   if(aboutText){$("creatorProfileAbout").textContent="About: "+aboutText;$("creatorProfileAbout").hidden=false;}
   if(profile.location_name){$("creatorProfileLocation").textContent="📍 "+profile.location_name;$("creatorProfileLocation").hidden=false;}
-  $("creatorProfileAvatar").style.visibility="visible";
-  $("creatorProfileAvatar").src=profile.avatar_url||"";
-  $("creatorProfileAvatar").onerror=()=>{$("creatorProfileAvatar").style.visibility="hidden";};
-  $("creatorProfileAvatar").onload=()=>{$("creatorProfileAvatar").style.visibility="visible";};
-  await refreshProfileFollowButton(item.user_id,!!profile.is_private);
+  if(profile.avatar_url){
+   $("creatorProfileAvatar").src=profile.avatar_url;
+   $("creatorProfileAvatar").onerror=()=>{$("creatorProfileAvatar").style.visibility="hidden";};
+   $("creatorProfileAvatar").onload=()=>{$("creatorProfileAvatar").style.visibility="visible";};
+  }else{$("creatorProfileAvatar").style.visibility="hidden";}
+  // Follow status is independent: it must never prevent the public videos from loading.
+  refreshProfileFollowButton(item.user_id,!!profile.is_private).catch(error=>console.warn("Profile follow state:",error));
   const [followers,following,posts]=await Promise.all([
    db.from("followers").select("id",{count:"exact",head:true}).eq("following_id",String(item.user_id)),
    db.from("followers").select("id",{count:"exact",head:true}).eq("follower_id",String(item.user_id)),
-   db.from("videos").select("id,video_url,caption,created_at,username,user_id,category,likes_count,views_count,audience_type,duration_seconds,width,height,thumbnail_url,video_type,frame_fit,affiliate_link,tags",{count:"exact"}).eq("user_id",String(item.user_id)).or("visibility.eq.public,visibility.is.null").or("processing_status.eq.published,processing_status.is.null").order("created_at",{ascending:false}).limit(50)
+   db.from("videos").select("id,video_url,video_provider,provider_video_id,caption,created_at,username,user_id,category,likes_count,views_count,audience_type,duration_seconds,width,height,thumbnail_url,video_type,frame_fit,affiliate_link,tags,visibility,processing_status",{count:"exact"}).eq("user_id",String(item.user_id)).or("visibility.eq.public,visibility.is.null").or("processing_status.eq.published,processing_status.is.null").order("created_at",{ascending:false}).limit(50)
   ]);
   if(token!==creatorProfileRequest)return;
   $("creatorProfileFollowers").textContent="Followers: "+(followers.error?"—":Number(followers.count||0));
   $("creatorProfileFollowing").textContent="Following: "+(following.error?"—":Number(following.count||0));
   $("creatorProfilePosts").textContent="Videos: "+(posts.error?"—":Number(posts.count||0));
   if(posts.error)throw posts.error;
-  const rows=await resolveFeedVideoUrls(posts.data||[]);
+  let rows=(posts.data||[]).filter(row=>row.video_provider!=="cloudflare"&&row.video_url);
+  const cloudRows=(posts.data||[]).filter(row=>row.video_provider==="cloudflare"||!row.video_url);
+  if(cloudRows.length){
+   const resolved=await resolveFeedVideoUrls(cloudRows);
+   rows=rows.concat(resolved);
+  }
   if(token!==creatorProfileRequest)return;
+  rows.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   if(!rows.length){status.textContent=profile.is_private?"यह Private Creator है।":"इस Creator ने अभी कोई सार्वजनिक वीडियो अपलोड नहीं किया है।";return;}
   rows.forEach(row=>{
    const tile=document.createElement("button");tile.type="button";tile.className="creator-video-tile";
-   // Do not load HLS playback URLs directly in grid thumbnails: Android Chrome
-   // cannot reliably play raw HLS in a small inline video element.
    const thumb=document.createElement("div");thumb.className="creator-video-thumb";
    if(row.thumbnail_url){
     const img=document.createElement("img");img.src=row.thumbnail_url;img.alt="";img.loading="lazy";
@@ -1041,7 +1056,13 @@ async function openCreatorProfile(creatorOverride=null){
    tile.append(thumb,title,views);tile.addEventListener("click",()=>openFeedVideoFromProfile(row));grid.append(tile);
   });
   status.textContent="Public videos · किसी वीडियो को खोलकर Like, Comment और Share कर सकते हो।";
- }catch(error){if(token===creatorProfileRequest)status.textContent="प्रोफ़ाइल नहीं खुली: "+(error?.message||"कृपया फिर कोशिश करें।");}
+ }catch(error){
+  console.error("Creator profile load:",error);
+  if(token===creatorProfileRequest){
+   status.textContent="प्रोफ़ाइल लोड नहीं हुई: "+(error?.message||"नेटवर्क या अनुमति की समस्या।");
+   retry.hidden=false;
+  }
+ }
 }
 function closeCreatorProfile(fromPopState=false){
  if(creatorProfileHistoryEntry&&!fromPopState){creatorProfileHistoryEntry=false;history.back();return;}
@@ -1626,6 +1647,7 @@ $("creatorActionBtn").addEventListener("click",event=>{event.preventDefault();ev
 $("username").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
 $("creatorProfileButton").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
 $("creatorProfileClose").addEventListener("click",closeCreatorProfile);
+$("creatorProfileRetry").addEventListener("click",()=>{if(activeCreatorProfileItem)openCreatorProfile(activeCreatorProfileItem);});
 $("creatorProfileFollow").addEventListener("click",toggleProfileFollow);
 $("creatorProfileSheet").addEventListener("click",event=>{if(event.target===$("creatorProfileSheet"))closeCreatorProfile();});
 $("likeBtn").addEventListener("click",toggleLike);
