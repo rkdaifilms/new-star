@@ -53,7 +53,7 @@ small.hint{color:var(--muted)}
 <div id="image-result" hidden></div>
 <section id="composer">
 <div id="prompt-wrap"><textarea id="prompt" maxlength="8000" data-i18n-placeholder="ai.prompt" placeholder="Write a message or tap the mic to speak…"></textarea><button type="button" id="voice" aria-label="Speak with microphone" title="Speak with microphone" data-i18n-aria-label="ai.mic" class="prompt-mic">🎙️</button></div>
-<div class="composer-row"><button type="button" id="send" data-i18n="ai.send">Send</button><button type="button" id="stop-voice" class="secondary" hidden data-i18n="ai.stopRecording">■ Stop recording</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> <span data-i18n="ai.speakAnswers">Speak answers aloud</span></label></div>
+<div class="composer-row"><label class="toggle">Image size <select id="image-aspect-ratio" class="secondary"><option value="1:1">Auto / Square (1:1)</option><option value="16:9">Landscape (16:9)</option><option value="9:16">Portrait (9:16)</option><option value="4:3">Landscape (4:3)</option><option value="3:4">Portrait (3:4)</option></select></label><button type="button" id="send" data-i18n="ai.send">Send</button><button type="button" id="stop-voice" class="secondary" hidden data-i18n="ai.stopRecording">■ Stop recording</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> <span data-i18n="ai.speakAnswers">Speak answers aloud</span></label></div>
 <div id="voice-status" role="status" aria-live="polite" data-i18n="ai.voiceHint">Tap the mic to speak. When recording stops, your voice is converted to text.</div>
 <div id="notice" data-i18n="ai.signinNotice">Sign in required. Do not enter passwords, OTPs, API keys or private financial details.</div>
 </section>
