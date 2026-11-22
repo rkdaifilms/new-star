@@ -997,7 +997,9 @@ function drawExportFrame(ctx,canvas) {
  ctx.filter=video.style.filter||"none";
  ctx.translate(w/2,h/2);
  ctx.rotate(rotation*Math.PI/180);
- const scale=Math.min(w/video.videoWidth,h/video.videoHeight)*zoom;
+ const sourceW=rotation%180!==0?video.videoHeight:video.videoWidth;
+ const sourceH=rotation%180!==0?video.videoWidth:video.videoHeight;
+ const scale=Math.max(w/sourceW,h/sourceH)*zoom;
  const drawW=video.videoWidth*scale,drawH=video.videoHeight*scale;
  ctx.drawImage(video,-drawW/2,-drawH/2,drawW,drawH);
  ctx.restore();
