@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = new Set([
+  "https://new-star.rkdaifilms.workers.dev",
   "https://new-star-rkdaifilms-8858.vercel.app",
   "https://new-star-delta.vercel.app",
   "https://new-star-nepal.netlify.app",
@@ -45,12 +46,35 @@ Deno.serve(async (req: Request) => {
   if (!origin || !ALLOWED_ORIGINS.has(origin)) return json({ error: "Origin not allowed" }, 403, cors);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  // New Supabase projects expose publishable keys as a JSON map. Keep support
+  // for the legacy anon key so existing projects continue to work.
+  let supabasePublishableKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+  if (!supabasePublishableKey) {
+    try {
+      const publishableKeys = JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") || "{}");
+      supabasePublishableKey = publishableKeys.default ||
+        Object.values(publishableKeys).find((value) => typeof value === "string" && value.length > 0) || "";
+    } catch {
+      supabasePublishableKey = "";
+    }
+  }
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-  const streamToken = Deno.env.get("CLOUDFLARE_STREAM_TOKEN");
+  // Accept the common API-token name as an alias; never expose the token to the browser.
+  const streamToken = Deno.env.get("CLOUDFLARE_STREAM_TOKEN") ||
+    Deno.env.get("CLOUDFLARE_API_TOKEN") ||
+    Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN");
 
-  if (!supabaseUrl || !supabaseAnonKey || !accountId || !streamToken) {
-    return json({ error: "Video upload service is not configured yet." }, 503, cors);
+  const missingConfig: string[] = [];
+  if (!supabaseUrl) missingConfig.push("SUPABASE_URL");
+  if (!supabasePublishableKey) missingConfig.push("SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_KEYS");
+  if (!accountId) missingConfig.push("CLOUDFLARE_ACCOUNT_ID");
+  if (!streamToken) missingConfig.push("CLOUDFLARE_STREAM_TOKEN (or CLOUDFLARE_API_TOKEN)");
+  if (missingConfig.length) {
+    console.error("Video upload configuration missing:", missingConfig.join(", "));
+    return json({
+      error: "Video upload service configuration is incomplete.",
+      missing: missingConfig,
+    }, 503, cors);
   }
 
   const authorization = req.headers.get("authorization");
@@ -58,7 +82,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Login required." }, 401, cors);
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createClient(supabaseUrl, supabasePublishableKey, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -83,13 +107,16 @@ Deno.serve(async (req: Request) => {
     if (key) metadata.set(key, value);
   }
 
-  const durationEncoded = metadata.get("maxDurationSeconds");
+  const durationEncoded = metadata.get("maxDurationSeconds") || metadata.get("maxdurationseconds");
   const durationSeconds = durationEncoded ? Number(decodeMetadataValue(durationEncoded)) : NaN;
   if (!Number.isInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > MAX_DURATION_SECONDS) {
     return json({ error: "Video duration must be between 1 second and 3 hours." }, 400, cors);
   }
 
   const expiry = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  metadata.delete("maxDurationSeconds");
+  // Cloudflare Stream expects the lower-case TUS metadata key.
+  metadata.set("maxdurationseconds", btoa(String(durationSeconds)));
   metadata.set("expiry", btoa(expiry));
   metadata.set("requiresignedurls", "");
   const safeMetadata = [...metadata.entries()]
