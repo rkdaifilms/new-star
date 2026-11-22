@@ -907,7 +907,7 @@ async function refreshCreatorFollowButton(item){
  try{
   const state=await readCreatorFollowState(creatorId);
   if(followButtonVideoId!==videoId||String(currentVideo?.id||"")!==videoId)return;
-  if(state==="self"){button.style.display="none";return;}
+  if(state==="self"){button.style.display="inline-flex";button.disabled=true;button.textContent="आपका वीडियो";button.dataset.followState="self";button.classList.remove("following");return;}
   if(state==="login"){paintFollowButton(button,"follow");return;}
   if(!["following","requested","request","follow"].includes(state))throw Error("Creator follow state: "+state);
   paintFollowButton(button,state);
@@ -915,7 +915,7 @@ async function refreshCreatorFollowButton(item){
   console.error("Creator follow state failed:",error);
   paintFollowButton(button,"follow");
   showToast("Follow स्थिति नहीं पढ़ी जा सकी: "+(error.message||"फिर कोशिश करें।"));
- }finally{if(followButtonVideoId===videoId)button.disabled=false;}
+ }finally{if(followButtonVideoId===videoId&&button.dataset.followState!=="self")button.disabled=false;}
 }
 
 let creatorProfileRequest=0;
