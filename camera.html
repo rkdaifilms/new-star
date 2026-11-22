@@ -37,14 +37,16 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .editor-meta{font-size:12px;color:#aeb4bf;text-align:center;padding:7px 4px}
 #editorVideo{width:100%;height:100%;object-fit:contain;transform-origin:center}
 #previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;max-width:90%;overflow-wrap:anywhere;z-index:5;pointer-events:none}
-.editor-menu{position:absolute;top:10px;right:10px;z-index:20}
-.editor-menu>button{background:#222;color:white;border:1px solid #555;border-radius:50%;width:42px;height:42px;padding:0;font-size:27px;line-height:1}
-.editor-dropdown{display:none;position:absolute;right:0;top:44px;width:min(245px,78vw);max-height:65vh;overflow:auto;background:#18181c;border:1px solid #444;border-radius:10px;box-shadow:0 8px 28px #000b}
+.editor-tools-bar{position:relative;display:flex;justify-content:flex-end;align-items:center;margin:0 0 8px;min-height:44px;z-index:40}
+.editor-menu{position:relative;display:flex;justify-content:flex-end;z-index:40}
+.editor-menu>button{display:flex;align-items:center;justify-content:center;background:#25252c;color:#fff;border:1px solid #5a5a65;border-radius:50%;width:44px;height:44px;min-width:44px;padding:0;font-size:27px;line-height:1;box-shadow:0 2px 8px #0008}
+.editor-dropdown{display:none;position:absolute;right:0;top:50px;width:min(320px,calc(100vw - 48px));max-height:min(62vh,520px);overflow-y:auto;overscroll-behavior:contain;background:#18181c;border:1px solid #555;border-radius:14px;box-shadow:0 12px 32px #000d;z-index:100;padding:6px}
 .editor-dropdown.open{display:block}
-.editor-dropdown button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #333;border-radius:0;background:transparent;padding:12px;color:white}
-.preview.editing-compact{max-height:min(32vh,280px)!important}
-.preview-save{display:none;position:absolute;left:5%;bottom:12px;width:90%;z-index:25;margin:0;box-shadow:0 3px 16px #000b}
-.preview.editing-compact .preview-save{display:block}
+.editor-dropdown button{display:flex;align-items:center;min-height:48px;width:100%;text-align:left;border:0;border-bottom:1px solid #333;border-radius:8px;background:transparent;padding:12px 14px;color:white;font-size:15px;line-height:1.35}
+.editor-dropdown button:last-child{border-bottom:0}
+.editor-dropdown button:active{background:#303039}
+.preview-save{display:none!important}
+@media(max-width:380px){.editor-dropdown{width:min(300px,calc(100vw - 36px));max-height:58vh}.editor-dropdown button{font-size:14px;min-height:46px}}
 #editorActions .primary{display:block;margin:0}
 
 .savebar{position:absolute;bottom:12px;left:5%;width:90%;z-index:10}
@@ -102,10 +104,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 </section>
 
 <section id="editorScreen" class="hidden">
- <div class="preview">
-  <video id="editorVideo" playsinline controls></video>
-  <div id="previewText"></div>
-  <button class="primary preview-save" id="previewSaveEditsButton">💾 Save & Continue</button>
+ <div class="editor-tools-bar">
   <div class="editor-menu">
    <button type="button" id="menuButton" aria-label="Video Editor Tools" title="Video Editor Tools" aria-expanded="false">⋮</button>
    <div class="editor-dropdown" id="editorMenu">
@@ -122,6 +121,10 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
     <button type="button" id="resetButton">↩ Reset Preview Edits</button>
    </div>
   </div>
+ </div>
+ <div class="preview">
+  <video id="editorVideo" playsinline controls></video>
+  <div id="previewText"></div>
  </div>
  <div id="editorActions">
   <div class="editor-meta" id="editorMeta">Video select करें — पूरा frame preview में दिखेगा</div>
@@ -562,20 +565,21 @@ async function loadVideo(file) {
 
 $("menuButton").onclick = event => {
  event.stopPropagation();
- const editing=document.querySelector(".preview").classList.toggle("editing-compact");
- $("menuButton").textContent=editing?"×":"⋮";
- $("menuButton").setAttribute("aria-expanded",String(editing));
- $("editorMenu").classList.toggle("open",editing);
- if(!editing) closePanels();
- applyOutputFrame();
+ const opening=!$("editorMenu").classList.contains("open");
+ $("editorMenu").classList.toggle("open",opening);
+ $("menuButton").textContent=opening?"×":"⋮";
+ $("menuButton").setAttribute("aria-expanded",String(opening));
 };
 $("editorMenu").onclick = event => event.stopPropagation();
-document.addEventListener("click",()=> $("editorMenu").classList.remove("open"));
+document.addEventListener("click",()=>{
+ $("editorMenu").classList.remove("open");
+ $("menuButton").textContent="⋮";
+ $("menuButton").setAttribute("aria-expanded","false");
+});
 async function continueToUpload() {
  try {
   await requireUser();
-  document.querySelector(".preview").classList.remove("editing-compact");
-  $("menuButton").textContent="✏️ Edit Video";
+  $("menuButton").textContent="⋮";
   $("menuButton").setAttribute("aria-expanded","false");
   $("editorMenu").classList.remove("open");
   closePanels();
