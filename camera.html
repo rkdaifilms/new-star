@@ -80,6 +80,27 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 @media(min-width:700px){#editorScreen.editor-expanded .editor-workspace>.preview{height:60vh;max-height:650px}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:48vh;min-height:340px}}
 #editorScreen.editor-publishing .preview,#editorScreen.editor-publishing #editorActions,#editorScreen.editor-publishing .editor-tools-rail{display:none!important}
 #ns-ai-launch,#ns-ai-panel{display:none!important}
+
+/* Mobile editor layout repair: keep the source video large and put tools above it. */
+#editorScreen .editor-workspace{width:100%;max-width:none;gap:10px}
+#editorScreen .editor-tools-rail{order:0;display:none;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start}
+#editorScreen.editor-expanded .editor-tools-rail{display:flex}
+#editorScreen .editor-workspace>.preview{order:1;width:100%;height:76vh;min-height:420px;max-height:none;max-width:none;margin:0 auto;flex:0 0 auto}
+#editorScreen.editor-expanded .editor-workspace>.preview,
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:76vh;min-height:420px;max-height:none}
+#editorScreen .preview #editorVideo{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain}
+#editorExpandButton{display:flex;position:absolute;top:10px;right:10px;z-index:30;width:46px;height:46px;font-size:30px;background:rgba(8,8,12,.88);border:2px solid rgba(255,255,255,.65);box-shadow:0 2px 12px rgba(0,0,0,.55)}
+#editorActions{position:absolute;left:10px;right:10px;bottom:10px;z-index:25;width:auto;max-width:none;margin:0;padding:28px 0 0;background:linear-gradient(transparent,rgba(0,0,0,.86))}
+#editorActions .primary{width:100%;min-height:52px;border-radius:12px}
+#editorScreen .panel{width:100%;max-width:none;margin:12px auto}
+@media(max-width:600px){
+ #editorScreen .editor-workspace>.preview,
+ #editorScreen.editor-expanded .editor-workspace>.preview,
+ #editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:76vh;min-height:420px}
+ #editorScreen .editor-tools-rail{padding:8px 5px}
+ #editorExpandButton{top:8px;right:8px;width:46px;height:46px}
+}
+
 </style>
 
 <link rel="manifest" href="/manifest.json">
@@ -646,13 +667,17 @@ $("editorExpandButton").onclick = () => {
   $("editorExpandButton").setAttribute("aria-expanded","true");
   $("editorExpandButton").textContent="×";
   $("editorExpandButton").setAttribute("aria-label","Close video editor settings");
+  requestAnimationFrame(()=>window.scrollTo({top:0,behavior:"smooth"}));
  }
 };
 document.querySelectorAll("[data-panel]").forEach(button => {
  button.onclick = () => openPanel(button.dataset.panel);
 });
 document.querySelectorAll(".close").forEach(button => button.onclick = closePanels);
-$("backToPreviewButton").onclick = closePanels;
+$("backToPreviewButton").onclick = () => {
+ closePanels();
+ requestAnimationFrame(()=>window.scrollTo({top:0,behavior:"smooth"}));
+};
 document.addEventListener("pointerdown",e=>{
  const openPanel=document.querySelector(".panel:not(.hidden)");
  if(openPanel && !openPanel.contains(e.target)) closePanels();
