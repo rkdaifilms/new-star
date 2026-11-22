@@ -18,6 +18,20 @@ function cors(origin: string | null) {
     "Cache-Control": "no-store",
   };
 }
+async function cloudflareFetch(url: string, init: RequestInit, candidates: Array<{ name: string; value: string }>): Promise<Response> {
+  let last: Response | null = null;
+  for (const candidate of candidates) {
+    const headers = new Headers(init.headers || {});
+    headers.set("Authorization", `Bearer ${candidate.value}`);
+    const response = await fetch(url, { ...init, headers });
+    if (response.ok) return response;
+    last = response;
+    if (response.status !== 401 && response.status !== 403) return response;
+    console.warn("Cloudflare rejected configured token alias:", candidate.name, response.status);
+  }
+  return last || new Response("Cloudflare token unavailable", { status: 401 });
+}
+
 function json(body: unknown, status: number, headers: Record<string,string>) {
   return new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
 }
@@ -33,9 +47,13 @@ Deno.serve(async (req: Request) => {
   const anon = Deno.env.get("SUPABASE_ANON_KEY");
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-  const token = Deno.env.get("CLOUDFLARE_STREAM_TOKEN") || Deno.env.get("CLOUDFLARE_API_TOKEN") || Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN");
+  const tokenCandidates = [
+    { name: "CLOUDFLARE_STREAM_TOKEN", value: Deno.env.get("CLOUDFLARE_STREAM_TOKEN") },
+    { name: "CLOUDFLARE_API_TOKEN", value: Deno.env.get("CLOUDFLARE_API_TOKEN") },
+    { name: "CLOUDFLARE_STREAM_API_TOKEN", value: Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN") },
+  ].filter((item): item is { name: string; value: string } => Boolean(item.value));
   if (!url || !anon || !service) return json({ error: "Server configuration incomplete." }, 503, headers);
-  if (!accountId || !token) return json({ error: "Cloudflare Stream is not configured. Ask the project owner to check the server-side Cloudflare secrets." }, 503, headers);
+  if (!accountId || tokenCandidates.length === 0) return json({ error: "Cloudflare Stream is not configured. Ask the project owner to check the server-side Cloudflare secrets." }, 503, headers);
 
   const authorization = req.headers.get("authorization") || "";
   if (!authorization.startsWith("Bearer ")) return json({ error: "Login required." }, 401, headers);
@@ -152,9 +170,7 @@ Deno.serve(async (req: Request) => {
   let input: any = null;
   if (existing?.stream_room_name) {
     try {
-      const get = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${encodeURIComponent(existing.stream_room_name)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const get = await cloudflareFetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${encodeURIComponent(existing.stream_room_name)}`, {}, tokenCandidates);
       if (get.ok) {
         const payload = await get.json();
         if (payload?.success && payload?.result?.enabled !== false) input = payload.result;
@@ -165,19 +181,15 @@ Deno.serve(async (req: Request) => {
   if (!input) {
     let response: Response;
     try {
-      response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs`, {
+      response = await cloudflareFetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          
           "Content-Type": "application/json",
           "Idempotency-Key": crypto.randomUUID(),
         },
-        body: JSON.stringify({
-          enabled: true,
-          defaultCreator: creatorId,
-          meta: { app: "New Star", creatorId, roomTitle: title },
-        }),
-      });
+        body: JSON.stringify({ enabled: true, defaultCreator: creatorId, meta: { app: "New Star", creatorId, roomTitle: title } }),
+      }, tokenCandidates);
     } catch (e) {
       console.error("Cloudflare live input request failed:", e);
       return json({ error: "Could not reach Cloudflare Stream." }, 502, headers);
