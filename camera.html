@@ -37,7 +37,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .editor-meta{font-size:12px;color:#aeb4bf;text-align:center;padding:7px 4px}
 #previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;max-width:90%;overflow-wrap:anywhere;z-index:5;pointer-events:none}
 .editor-workspace{display:flex;flex-direction:column;gap:10px;width:100%;max-width:820px;margin:0 auto 10px}
-.editor-workspace>.preview{width:100%;max-width:none;min-width:0;height:72vh;min-height:400px;max-height:820px;margin:0 auto;aspect-ratio:auto;align-self:stretch;transition:height .18s ease}
+.editor-workspace>.preview{width:100%;max-width:none;min-width:0;height:54vh;min-height:280px;max-height:600px;margin:0 auto;aspect-ratio:auto;align-self:stretch;transition:height .18s ease}
 .editor-tools-rail{display:flex;flex-direction:row;flex-wrap:nowrap;gap:8px;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;overscroll-behavior-y:none;scrollbar-width:none;padding:7px 5px;background:#111116;border:1px solid #303039;border-radius:10px}
 .editor-tools-rail::-webkit-scrollbar{display:none}
 .editor-tools-rail button{display:flex;align-items:center;justify-content:center;flex:0 0 48px;width:48px;height:48px;min-height:48px;padding:0;border:1px solid #35353e;border-radius:12px;background:#222229;color:#f4f4f5;font-size:23px;line-height:1}
@@ -48,8 +48,8 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 #editorScreen .panel{width:100%;max-width:820px;margin:10px auto 12px;scroll-margin-top:8px}
 #editorActions{display:grid;grid-template-columns:1fr;gap:8px;margin:12px auto 14px;width:100%;max-width:820px}
 #editorActions .primary{display:block;width:100%;min-height:50px;margin:0;position:static;inset:auto;transform:none}
-@media(max-width:390px){.editor-workspace>.preview{height:68vh;min-height:380px}.editor-tools-rail{gap:7px;padding:6px 4px}.editor-tools-rail button{flex-basis:44px;width:44px;height:44px;min-height:44px;font-size:21px}#editorScreen.has-open-panel .editor-workspace>.preview{height:44vh;min-height:270px}}
-@media(min-width:700px){.editor-workspace{max-width:820px}.editor-workspace>.preview{height:76vh;max-height:820px}.editor-tools-rail{justify-content:center}.editor-tools-rail button{flex-basis:52px;width:52px;height:52px;min-height:52px}#editorScreen.has-open-panel .editor-workspace>.preview{height:56vh;min-height:380px}}
+@media(max-width:390px){.editor-workspace>.preview{height:48vh;min-height:260px;max-height:500px}.editor-tools-rail{gap:7px;padding:6px 4px}.editor-tools-rail button{flex-basis:44px;width:44px;height:44px;min-height:44px;font-size:21px}#editorScreen.has-open-panel .editor-workspace>.preview{height:36vh;min-height:220px}}
+@media(min-width:700px){.editor-workspace{max-width:820px}.editor-workspace>.preview{height:60vh;max-height:650px}.editor-tools-rail{justify-content:center}.editor-tools-rail button{flex-basis:52px;width:52px;height:52px;min-height:52px}#editorScreen.has-open-panel .editor-workspace>.preview{height:44vh;min-height:300px}}
 
 .panel{border-radius:10px}
 .panel-head{display:flex;justify-content:space-between;align-items:center}
@@ -66,8 +66,8 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 /* Stable preview controls and on-demand editor drawer */
 .editor-workspace>.preview{position:relative;flex:0 0 auto;overflow:hidden;overscroll-behavior:contain;scroll-margin:0}
 #editorScreen:not(.editor-expanded) .editor-tools-rail{display:none}
-#editorScreen.editor-expanded .editor-workspace>.preview{height:54vh;min-height:320px}
-#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:42vh;min-height:260px}
+#editorScreen.editor-expanded .editor-workspace>.preview{height:44vh;min-height:250px}
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:38vh;min-height:220px}
 #editorExpandButton{position:absolute;z-index:20;top:10px;right:10px;width:42px;height:42px;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:rgba(12,12,16,.78);color:#fff;font-size:30px;line-height:1;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
 #editorActions{position:absolute;z-index:15;left:10px;right:10px;bottom:10px;width:auto;max-width:none;margin:0;padding-top:24px;background:linear-gradient(transparent,rgba(0,0,0,.78));}
 #editorActions .primary{width:100%;min-height:48px;margin:0;box-shadow:0 2px 14px rgba(0,0,0,.35)}
@@ -78,7 +78,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 #editorScreen .panel{scroll-margin-top:10px}
 @media(max-width:390px){#editorScreen.editor-expanded .editor-workspace>.preview{height:50vh;min-height:290px}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:38vh;min-height:230px}#editorExpandButton{width:40px;height:40px}}
 @media(min-width:700px){#editorScreen.editor-expanded .editor-workspace>.preview{height:60vh;max-height:650px}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:48vh;min-height:340px}}
-#editorScreen.editor-publishing .preview,#editorScreen.editor-publishing #editorActions{display:none!important}
+#editorScreen.editor-publishing .preview,#editorScreen.editor-publishing #editorActions,#editorScreen.editor-publishing .editor-tools-rail{display:none!important}
 #ns-ai-launch,#ns-ai-panel{display:none!important}
 </style>
 
@@ -350,7 +350,14 @@ function screen(id) {
 }
 function closePanels() {
  document.querySelectorAll(".panel").forEach(p => p.classList.add("hidden"));
- $("editorScreen").classList.remove("editor-publishing","has-open-panel");
+ const editor=$("editorScreen");
+ editor.classList.remove("editor-publishing","has-open-panel","editor-expanded");
+ const toggle=$("editorExpandButton");
+ if(toggle){
+  toggle.setAttribute("aria-expanded","false");
+  toggle.textContent="⋯";
+  toggle.setAttribute("aria-label","Open video editor settings");
+ }
  applyOutputFrame();
 }
 function openPanel(id) {
@@ -623,16 +630,13 @@ async function continueToUpload() {
 $("saveEditsButton").onclick = continueToUpload;
 $("editorExpandButton").onclick = () => {
  const editor=$("editorScreen");
- const expanded=editor.classList.toggle("editor-expanded");
- $("editorExpandButton").setAttribute("aria-expanded",String(expanded));
- $("editorExpandButton").textContent=expanded?"×":"⋯";
- $("editorExpandButton").setAttribute("aria-label",expanded?"Close video editor tools":"Open video editor tools");
- if(expanded) {
-  closePanels();
+ const expanded=!editor.classList.contains("editor-expanded");
+ closePanels();
+ if(expanded){
   editor.classList.add("editor-expanded");
- } else {
-  closePanels();
-  editor.classList.remove("editor-expanded");
+  $("editorExpandButton").setAttribute("aria-expanded","true");
+  $("editorExpandButton").textContent="×";
+  $("editorExpandButton").setAttribute("aria-label","Close video editor settings");
  }
 };
 document.querySelectorAll("[data-panel]").forEach(button => {
