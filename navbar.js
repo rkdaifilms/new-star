@@ -21,7 +21,8 @@
     "upload.html",
     "settings.html",
     "admin.html",
-    "creator-ai.html"
+    "creator-ai.html",
+    "creator-studio.html"
   ];
 
   const $ = id => document.getElementById(id);
@@ -235,7 +236,7 @@
 
     overlay.innerHTML = `
       <div id="newstar-menu-panel">
-        <a href="camera.html" data-i18n="page.camera">🎬 Video Editor, Upload & Copyright Tools</a>
+        <a href="creator-studio.html">✨ New Star Creator Studio</a>
         <div class="menu-divider"></div>
         <button type="button" id="newstar-logout">
           🚪 <span data-i18n="action.logout">Log Out</span>
