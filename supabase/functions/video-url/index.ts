@@ -6,6 +6,20 @@ function corsHeaders(req: Request) {
   const origin=req.headers.get("Origin")||"";
   return {"Access-Control-Allow-Origin":ALLOWED_ORIGINS.has(origin)?origin:"https://new-star-nepal.netlify.app","Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info","Access-Control-Allow-Methods":"POST, OPTIONS","Content-Type":"application/json","Cache-Control":"no-store","Vary":"Origin"};
 }
+async function cloudflareFetch(url: string, init: RequestInit, candidates: Array<{ name: string; value: string }>): Promise<Response> {
+  let last: Response | null = null;
+  for (const candidate of candidates) {
+    const headers = new Headers(init.headers || {});
+    headers.set("Authorization", `Bearer ${candidate.value}`);
+    const response = await fetch(url, { ...init, headers });
+    if (response.ok) return response;
+    last = response;
+    if (response.status !== 401 && response.status !== 403) return response;
+    console.warn("Cloudflare rejected configured token alias:", candidate.name, response.status);
+  }
+  return last || new Response("Cloudflare token unavailable", { status: 401 });
+}
+
 function objectPath(value: unknown): string|null {
   if(typeof value!=="string"||value.length>4096)return null;
   if(value.startsWith("storage://videos/")){const p=value.slice(17);return p&&!p.startsWith("/")&&!p.split("/").includes("..")?p:null;}
@@ -43,12 +57,10 @@ Deno.serve(async(req:Request)=>{
   if(!isOwner&&(!published||!accountAllows))continue;
   if(row.video_provider==="cloudflare"&&typeof row.provider_video_id==="string"&&row.provider_video_id){
    const accountId=Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-   const streamToken=Deno.env.get("CLOUDFLARE_STREAM_TOKEN")||Deno.env.get("CLOUDFLARE_API_TOKEN")||Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN");
-   if(!accountId||!streamToken)continue;
+   const streamTokenCandidates=[{name:"CLOUDFLARE_STREAM_TOKEN",value:Deno.env.get("CLOUDFLARE_STREAM_TOKEN")},{name:"CLOUDFLARE_API_TOKEN",value:Deno.env.get("CLOUDFLARE_API_TOKEN")},{name:"CLOUDFLARE_STREAM_API_TOKEN",value:Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN")}].filter((x):x is {name:string;value:string}=>Boolean(x.value));
+   if(!accountId||streamTokenCandidates.length===0)continue;
    try{
-    const streamResponse=await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/${encodeURIComponent(row.provider_video_id)}`,{
-     headers:{"Authorization":`Bearer ${streamToken}`}
-    });
+    const streamResponse=await cloudflareFetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/${encodeURIComponent(row.provider_video_id)}`,{},streamTokenCandidates);
     if(!streamResponse.ok){console.error("Cloudflare stream status failed:",streamResponse.status);continue;}
     const streamPayload=await streamResponse.json();
     const streamStatus=streamPayload?.result?.status||{};
@@ -57,10 +69,7 @@ Deno.serve(async(req:Request)=>{
       const {error:updateError}=await admin.from("videos").update({processing_status:"published",provider_status:"ready"}).eq("id",row.id);
       if(updateError)console.error("Could not publish ready Cloudflare video:",updateError.message);
      }
-     const tokenResponse=await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/${encodeURIComponent(row.provider_video_id)}/token`,{
-      method:"POST",headers:{"Authorization":`Bearer ${streamToken}`,"Content-Type":"application/json"},
-      body:JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})
-     });
+     const tokenResponse=await cloudflareFetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/${encodeURIComponent(row.provider_video_id)}/token`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})},streamTokenCandidates);
      if(!tokenResponse.ok){console.error("Cloudflare playback token failed:",tokenResponse.status);continue;}
      const tokenPayload=await tokenResponse.json();
      const playbackToken=tokenPayload?.result?.token;
