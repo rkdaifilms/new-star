@@ -331,9 +331,11 @@ Deno.serve(async (req: Request) => {
 
   if (body?.action === "transcribe") {
     const audio = body.audio;
-    const mimeType = typeof body.mimeType === "string" ? body.mimeType : "audio/webm";
+    const rawMimeType = typeof body.mimeType === "string" ? body.mimeType : "audio/webm";
+    const mimeType = rawMimeType.split(";")[0].trim().toLowerCase();
+    const supportedAudioTypes = new Set(["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav", "audio/mp3", "audio/m4a"]);
     if (typeof audio !== "string" || audio.length < 100 || audio.length > 11000000 ||
-        !/^audio\/(webm|ogg|mp4|mpeg|wav|mp3|m4a)/i.test(mimeType)) {
+        !supportedAudioTypes.has(mimeType)) {
       return json({ ok: false, error: "Voice recording is missing, too large, or uses an unsupported format." }, 400, headers);
     }
     const geminiKey = firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
@@ -344,6 +346,18 @@ Deno.serve(async (req: Request) => {
     if (voiceLimitError || allowedVoice !== true) return json({ ok: false, error: voiceLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, voiceLimitError ? 503 : 429, headers);
 
     let geminiFailure = "";
+    let openaiFailure = "";
+    // Android Chrome commonly records WebM/Opus. Send that format to
+    // OpenAI first because it accepts WebM directly; Gemini remains fallback.
+    if (openaiKey && mimeType === "audio/webm") {
+      try {
+        const transcript = await transcribeWithOpenAI(openaiKey, audio, mimeType);
+        return json({ ok: true, transcript, language: "und", provider: "openai" }, 200, headers);
+      } catch (error) {
+        openaiFailure = error instanceof Error ? error.message : "OPENAI_TRANSCRIPTION_FAILED";
+        console.error("AI voice transcription provider failed:", "openai", openaiFailure);
+      }
+    }
     if (geminiKey) {
       try {
         const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
@@ -368,17 +382,17 @@ Deno.serve(async (req: Request) => {
         console.error("AI voice transcription provider failed:", "gemini", geminiFailure);
       }
     }
-    if (openaiKey) {
+    if (openaiKey && !openaiFailure) {
       try {
         const transcript = await transcribeWithOpenAI(openaiKey, audio, mimeType);
         return json({ ok: true, transcript, language: "und", provider: "openai" }, 200, headers);
       } catch (error) {
-        const openaiFailure = error instanceof Error ? error.message : "OPENAI_TRANSCRIPTION_FAILED";
+        openaiFailure = error instanceof Error ? error.message : "OPENAI_TRANSCRIPTION_FAILED";
         console.error("AI voice transcription provider failed:", "openai", openaiFailure);
-        return json({ ok: false, error: "Voice transcription providers are unavailable. " + (geminiFailure || openaiFailure) }, 502, headers);
       }
     }
-    return json({ ok: false, error: "Gemini voice transcription failed: " + geminiFailure }, 502, headers);
+    const failures = [geminiFailure && "Gemini: " + geminiFailure, openaiFailure && "OpenAI: " + openaiFailure].filter(Boolean);
+    return json({ ok: false, error: "Voice transcription providers are unavailable. " + (failures.join("; ") || "No compatible voice provider is configured.") }, 502, headers);
   }
 
   if (body?.action === "image") {
