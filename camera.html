@@ -1216,8 +1216,21 @@ async function publishVideo() {
   if(sessionError)throw sessionError;
   const accessToken=sessionData?.session?.access_token;
   if(!accessToken)throw new Error("Login session समाप्त हो गई। दोबारा Login करें।");
-  let cloudflareVideoId=null;
+  // Persist Stream's media ID beside tus-js-client's resume record. A resumed
+  // TUS session may not repeat the original POST response header containing this ID.
+  const uploadIdentity=[user.id,selectedVideoFile.name||"video",selectedVideoFile.size,selectedVideoFile.lastModified||0].join("|");
+  const pendingUploadKey="newstar:cloudflare-upload:"+encodeURIComponent(uploadIdentity).slice(0,320);
+  let pendingUpload=null;
+  try{
+   const saved=JSON.parse(localStorage.getItem(pendingUploadKey)||"null");
+   if(saved&&saved.userId===user.id&&saved.size===selectedVideoFile.size&&saved.lastModified===(selectedVideoFile.lastModified||0)&&saved.id&&Number(saved.expiresAt)>Date.now())pendingUpload=saved;
+   else if(saved)localStorage.removeItem(pendingUploadKey);
+  }catch(_){try{localStorage.removeItem(pendingUploadKey);}catch(__){}}
+  let cloudflareVideoId=pendingUpload?.id||null;
   const tusEndpoint="https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy";
+  if(pendingUpload?.completed){
+   setUploadStage(3,"पहले पूरा हुआ Cloudflare अपलोड मिला; डेटाबेस में सेव किया जा रहा है…");
+  }else{
   setUploadStage(2,"Cloudflare से सुरक्षित कनेक्शन बनाया जा रहा है…");
   await new Promise((resolve,reject)=>{
    // Adapt chunk size to the browser network estimate. This is a hint (download
@@ -1248,7 +1261,10 @@ async function publishVideo() {
     },
     onAfterResponse(_request,response){
      const receivedId=response.getHeader("stream-media-id");
-     if(receivedId)cloudflareVideoId=receivedId;
+     if(receivedId){
+      cloudflareVideoId=receivedId;
+      try{localStorage.setItem(pendingUploadKey,JSON.stringify({id:receivedId,userId:user.id,size:selectedVideoFile.size,lastModified:selectedVideoFile.lastModified||0,completed:false,expiresAt:Date.now()+12*60*60*1000}));}catch(_){}
+     }
     },
     onError(error){reject(error);},
     onProgress(bytesUploaded,bytesTotal){
@@ -1272,14 +1288,20 @@ async function publishVideo() {
      const etaText=remainingSeconds>0?" · लगभग "+formatClock(remainingSeconds)+" बाकी":"";
      status.textContent="वीडियो अपलोड हो रहा है: "+percent+"% · "+speedText+etaText;
     },
-    onSuccess(){resolve();}
+    onSuccess(){
+     if(cloudflareVideoId){
+      try{localStorage.setItem(pendingUploadKey,JSON.stringify({id:cloudflareVideoId,userId:user.id,size:selectedVideoFile.size,lastModified:selectedVideoFile.lastModified||0,completed:true,expiresAt:Date.now()+7*24*60*60*1000}));}catch(_){}
+     }
+     resolve();
+    }
    });
    tusUpload.findPreviousUploads().then(previous=>{
     if(previous.length)tusUpload.resumeFromPreviousUpload(previous[0]);
     tusUpload.start();
    }).catch(reject);
   });
-  if(!cloudflareVideoId)throw new Error("Cloudflare upload पूरा हुआ, लेकिन Stream Video ID नहीं मिली। Support के लिए upload session ID सुरक्षित रखें।");
+  }
+  if(!cloudflareVideoId)throw new Error("Cloudflare upload पूरा हुआ, लेकिन Stream Video ID नहीं मिली। Upload को फिर से Resume करें।");
   const videoUrl="cloudflare://"+cloudflareVideoId;
   setUploadStage(4,"अपलोड पूरा हुआ; वीडियो डेटाबेस में सेव हो रहा है…");
   status.textContent="वीडियो सुरक्षित किया जा रहा है...";
@@ -1301,6 +1323,7 @@ async function publishVideo() {
   if(insertError)throw new Error("Cloudflare upload सफल है (Stream ID: "+cloudflareVideoId+"), लेकिन Database Insert असफल: "+insertError.message+". वीडियो Cloudflare में सुरक्षित है; इसे हटाएँ नहीं।");
   if(!inserted?.id)throw new Error("Database से Video ID नहीं मिली। Cloudflare Stream ID: "+cloudflareVideoId);
   databaseSaved=true;
+  try{localStorage.removeItem(pendingUploadKey);}catch(_){}
   progress.value=100;
   if(meterPercent)meterPercent.textContent="100% पूरा";
   if(meterFill)meterFill.style.width="100%";
