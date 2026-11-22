@@ -250,6 +250,23 @@ body.creator-profile-video-mode #creatorIdentityBar{display:none!important}
 
 
 
+
+/* Explicitly clear every category chip background, including the selected tab. */
+#categories .category,
+#categories .category.active,
+#categories .category:focus,
+#categories .category:active{
+ background:none!important;
+ background-color:transparent!important;
+ border:0!important;
+ outline:0!important;
+ box-shadow:none!important;
+ -webkit-appearance:none!important;
+ appearance:none!important;
+}
+#categories{background:transparent!important;box-shadow:none!important}
+#categories .category.active{color:#fff!important;font-weight:800!important;text-decoration:underline!important;text-underline-offset:5px}
+
 /* Transparent feed controls: keep all icons and labels, remove colored tiles. */
 .top-area{background:transparent!important}
 .top-area .category,.top-area .category.active{
