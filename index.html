@@ -248,6 +248,56 @@ body.creator-profile-video-mode #creatorIdentityBar{display:none!important}
 .live-feed-empty{padding:22px 14px;text-align:center;color:#aaa;background:#151515;border:1px dashed #444;border-radius:12px;font-size:13px}
 @media(min-width:650px){.live-room-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+
+/* Minimal transparent action rail so controls do not cover the video. */
+#feed .actions{
+ right:5px!important;
+ bottom:calc(72px + env(safe-area-inset-bottom))!important;
+ gap:5px!important;
+ align-items:center!important;
+}
+#feed .actions .action{
+ min-width:34px!important;
+ width:36px!important;
+ padding:0!important;
+ font-size:8px!important;
+ line-height:1.05!important;
+ color:#fff!important;
+ text-shadow:0 1px 3px #000!important;
+}
+#feed .actions .action-icon{
+ width:29px!important;
+ height:29px!important;
+ min-width:29px!important;
+ min-height:29px!important;
+ margin:0 auto 1px!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ font-size:17px!important;
+ line-height:1!important;
+}
+#feed .actions .action span{
+ font-size:8px!important;
+ line-height:1.05!important;
+}
+#feed .actions .video-settings-wrap{
+ min-height:27px!important;
+ margin:0 0 1px!important;
+}
+#feed .actions #videoSettingsBtn{
+ width:27px!important;
+ height:27px!important;
+ min-width:27px!important;
+ min-height:27px!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+}
+#feed .actions #videoSettingsBtn svg{width:17px!important;height:17px!important}
+
 /* Compact feed header: keep search and category controls clear of the video. */
 .top-area{padding:4px 10px 2px!important;background:linear-gradient(#000d,#0008,transparent)!important}
 .search-row{min-height:34px!important;padding:0 9px!important;gap:6px!important}
