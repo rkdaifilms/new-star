@@ -71,6 +71,8 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 #editorActions{position:absolute;z-index:15;left:10px;right:10px;bottom:10px;width:auto;max-width:none;margin:0;padding-top:24px;background:linear-gradient(transparent,rgba(0,0,0,.78));}
 #editorActions .primary{width:100%;min-height:48px;margin:0;box-shadow:0 2px 14px rgba(0,0,0,.35)}
 .editor-meta,#editorMeta,#videoInfo{display:none!important}
+#editorScreen .editor-meta,#editorScreen #editorMeta,#editorScreen #videoInfo,#editorScreen #infoPanel,#editorScreen [data-video-meta],#editorScreen .video-metadata{display:none!important;visibility:hidden!important;max-height:0!important;overflow:hidden!important}
+#editorScreen .editor-tools-rail [data-panel="infoPanel"]{display:none!important}
 #editorScreen .editor-tools-rail{touch-action:pan-x;overscroll-behavior-x:contain}
 #editorScreen .panel{scroll-margin-top:10px}
 @media(max-width:390px){#editorScreen.editor-expanded .editor-workspace>.preview{height:50vh;min-height:290px}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:38vh;min-height:230px}#editorExpandButton{width:40px;height:40px}}
