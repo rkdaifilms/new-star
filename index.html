@@ -815,35 +815,63 @@ function recordEngagement(videoId,eventType){
 }
 
 let followButtonVideoId=null;
+async function getCreatorPublicCard(creatorId){
+ const publicResult=await db.from("creator_public_profiles")
+  .select("user_id,username,full_name,avatar_url,bio,is_private")
+  .eq("user_id",String(creatorId)).maybeSingle();
+ if(publicResult.error)throw publicResult.error;
+ if(publicResult.data)return publicResult.data;
+ const fallback=await db.from("profiles")
+  .select("user_id,username,full_name,avatar_url,bio,is_private")
+  .eq("user_id",String(creatorId)).maybeSingle();
+ if(fallback.error)throw fallback.error;
+ return fallback.data||null;
+}
+function paintFollowButton(button,state){
+ const labels={
+  following:feedText("action.following","Following"),
+  requested:feedText("action.requested","Requested"),
+  follow:feedText("action.follow","Follow"),
+  request:feedText("action.requestFollow","Request Follow")
+ };
+ button.textContent=labels[state]||labels.follow;
+ button.classList.toggle("following",state==="following"||state==="requested");
+ button.dataset.followState=state;
+}
 async function refreshCreatorFollowButton(item){
  const button=$("followCreatorBtn");
  if(!button)return;
  followButtonVideoId=String(item?.id||"");
- if(!currentUser||!item?.user_id||String(item.user_id)===String(currentUser.id)){
+ const creatorId=String(item?.user_id||"");
+ if(!currentUser||!creatorId||creatorId===String(currentUser.id)){
   button.style.display="none";return;
  }
- button.style.display="inline-block";button.disabled=true;button.textContent="…";button.classList.remove("following");
+ button.style.display="inline-flex";
+ button.disabled=true;
+ paintFollowButton(button,"follow");
  try{
-  const {data:card,error:profileError}=await db.from("creator_public_profiles")
-   .select("user_id,is_private").eq("user_id",String(item.user_id)).maybeSingle();
-  if(profileError)throw profileError;
-  const {data:row,error}=await db.from("followers").select("id")
-   .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
-  if(error)throw error;
+  const [{data:row,error:followError},card]=await Promise.all([
+   db.from("followers").select("id").eq("follower_id",String(currentUser.id))
+    .eq("following_id",creatorId).limit(1).maybeSingle(),
+   getCreatorPublicCard(creatorId)
+  ]);
+  if(followError)throw followError;
   if(followButtonVideoId!==String(item.id))return;
-  if(row){button.textContent=feedText("action.following","Following");button.classList.add("following");}
-  else if(card?.is_private){
-   const {data:request,error:requestError}=await db.from("follow_requests").select("id")
-    .eq("requester_id",currentUser.id).eq("target_user_id",String(item.user_id)).eq("status","pending").maybeSingle();
-   if(requestError)throw requestError;
-   button.textContent=request?feedText("action.requested","Requested"):feedText("action.requestFollow","Request Follow");button.classList.toggle("following",!!request);
-  }else{button.textContent=feedText("action.follow","Follow");button.classList.remove("following");}
+  if(row){paintFollowButton(button,"following");return;}
+  if(card?.is_private){
+   const {data:request,error}=await db.from("follow_requests").select("id")
+    .eq("requester_id",String(currentUser.id)).eq("target_user_id",creatorId)
+    .eq("status","pending").limit(1).maybeSingle();
+   if(error)throw error;
+   paintFollowButton(button,request?"requested":"request");
+  }else paintFollowButton(button,"follow");
  }catch(error){
-  console.warn("Follow state:",error.message);
-  button.textContent=feedText("action.follow","Follow");
-  button.classList.remove("following");
-  showToast("Follow की स्थिति लोड नहीं हुई: "+(error.message||"कृपया फिर कोशिश करें।"));
- }finally{button.disabled=false;}
+  console.error("Creator follow state failed:",error);
+  paintFollowButton(button,"follow");
+  showToast("Follow स्थिति नहीं पढ़ी जा सकी: "+(error.message||"फिर कोशिश करें।"));
+ }finally{
+  if(followButtonVideoId===String(item.id))button.disabled=false;
+ }
 }
 let creatorProfileRequest=0;
 async function openCreatorProfile(){
@@ -882,45 +910,56 @@ async function openCreatorProfile(){
 }
 function closeCreatorProfile(){creatorProfileRequest++;$("creatorProfileSheet").classList.remove("open");$("creatorProfileSheet").setAttribute("aria-hidden","true");document.body.style.overflow="";}
 async function toggleCreatorFollow(){
- const item=currentVideo,button=$("followCreatorBtn"),videoId=String(item?.id||""),creatorId=String(item?.user_id||"");
+ const item=currentVideo,button=$("followCreatorBtn");
+ const videoId=String(item?.id||""),creatorId=String(item?.user_id||"");
  if(!currentUser){showToast("Follow करने के लिए Login करें।");return;}
  if(!creatorId||creatorId===String(currentUser.id)||button.disabled)return;
  button.disabled=true;
  try{
-  const {data:card,error:profileError}=await db.from("creator_public_profiles")
-   .select("user_id,is_private").eq("user_id",String(item.user_id)).maybeSingle();
-  if(profileError)throw profileError;
-  const {data:row,error:readError}=await db.from("followers").select("id")
-   .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
+  const {data:existing,error:readError}=await db.from("followers")
+   .select("id").eq("follower_id",String(currentUser.id))
+   .eq("following_id",creatorId).limit(1).maybeSingle();
   if(readError)throw readError;
-  if(row){
-   const {error}=await db.from("followers").delete().eq("id",row.id).eq("follower_id",currentUser.id);
+  if(existing){
+   const {error}=await db.from("followers").delete().eq("id",existing.id)
+    .eq("follower_id",String(currentUser.id));
    if(error)throw error;
-   showToast("अब आप इस Creator को Follow नहीं करते।");
-  }else if(card?.is_private){
-   const {data:request,error:requestError}=await db.from("follow_requests").select("id")
-    .eq("requester_id",currentUser.id).eq("target_user_id",String(item.user_id)).eq("status","pending").maybeSingle();
-   if(requestError)throw requestError;
-   if(request){showToast("आपकी Follow Request पहले से Pending है।");}
-   else{
-    const {error}=await db.from("follow_requests").insert({requester_id:currentUser.id,target_user_id:String(item.user_id),status:"pending"});
-    if(error)throw error;
-    showToast("Private Creator को Follow Request भेज दी गई।");
-   }
+   showToast("Unfollow कर दिया गया।");
   }else{
-   const {error}=await db.from("followers").insert({follower_id:currentUser.id,following_id:String(item.user_id)});
-   if(error)throw error;
-   showToast("Creator Follow हो गया!");
+   const card=await getCreatorPublicCard(creatorId);
+   if(card?.is_private){
+    const {data:request,error:requestError}=await db.from("follow_requests").select("id")
+     .eq("requester_id",String(currentUser.id)).eq("target_user_id",creatorId)
+     .eq("status","pending").limit(1).maybeSingle();
+    if(requestError)throw requestError;
+    if(!request){
+     const {error}=await db.from("follow_requests").insert({
+      requester_id:String(currentUser.id),target_user_id:creatorId,status:"pending"
+     });
+     if(error)throw error;
+    }
+    showToast("Follow Request भेज दी गई।");
+   }else{
+    const {error}=await db.from("followers").insert({
+     follower_id:String(currentUser.id),following_id:creatorId
+    });
+    if(error){
+     const {data:confirmed,error:confirmError}=await db.from("followers").select("id")
+      .eq("follower_id",String(currentUser.id)).eq("following_id",creatorId).limit(1).maybeSingle();
+     if(confirmError||!confirmed)throw error;
+    }
+    showToast("Creator Follow हो गया!");
+   }
   }
   if(String(currentVideo?.id)===videoId&&String(currentVideo?.user_id)===creatorId){
    await refreshCreatorFollowButton(item);
   }
  }catch(error){
-  if(String(currentVideo?.id)===videoId)showToast(socialActionErrorMessage(error,"follow"));
+  console.error("Creator follow action failed:",error);
+  if(String(currentVideo?.id)===videoId)showToast(socialActionErrorMessage(error,"follow")+" ("+(error.message||"")+")");
   button.disabled=false;
  }
 }
-
 function renderVideo(){
  if(!filtered.length)return;
  document.querySelector(".actions").style.display="flex";
@@ -952,15 +991,20 @@ function renderVideo(){
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
  const creatorAvatarButton=$("creatorProfileButton");
- creatorAvatarButton.style.display=currentVideo.user_id?"inline-flex":"none";
- $("feedCreatorAvatar").src="";
- if(currentVideo.user_id){
-  const creatorId=String(currentVideo.user_id),videoId=String(currentVideo.id);
+ const creatorAvatar=$("feedCreatorAvatar");
+ const creatorId=String(currentVideo.user_id||"");
+ creatorAvatarButton.style.display=creatorId?"inline-flex":"none";
+ creatorAvatarButton.setAttribute("aria-label","Open "+(name.startsWith("@")?name:"@"+name)+" creator profile");
+ creatorAvatar.src="";
+ creatorAvatar.alt=(name||"Creator")+" profile";
+ if(creatorId){
+  const videoId=String(currentVideo.id);
   Promise.resolve().then(async()=>{
-   let result=await db.from("creator_public_profiles").select("avatar_url").eq("user_id",creatorId).maybeSingle();
-   if(!result.data&&!result.error)result=await db.from("profiles").select("avatar_url").eq("user_id",creatorId).maybeSingle();
-   if(String(currentVideo?.id)===videoId&&String(currentVideo?.user_id)===creatorId&&result.data?.avatar_url)$("feedCreatorAvatar").src=result.data.avatar_url;
-  }).catch(()=>{});
+   const card=await getCreatorPublicCard(creatorId);
+   if(String(currentVideo?.id)!==videoId||String(currentVideo?.user_id)!==creatorId)return;
+   if(card?.avatar_url)creatorAvatar.src=card.avatar_url;
+   else creatorAvatar.removeAttribute("src");
+  }).catch(error=>console.warn("Creator avatar unavailable:",error.message));
  }
  refreshCreatorFollowButton(currentVideo);
  $("caption").textContent=currentVideo.caption||"";
