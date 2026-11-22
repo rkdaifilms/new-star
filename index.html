@@ -563,27 +563,22 @@ async function loadFeed(){
  $("loading").style.display="flex";$("empty").style.display="none";
  if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला।");return;}
  try{
-  let rpcData=null,rpcError=null;
-  try{
-   const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
-   const search=$("search").value.trim()||null;
-   const videoType=["Shorts","Reels"].includes(currentCategory)?"short":currentCategory==="Long Videos"?"long":null;
-   const result=await db.rpc("get_recommended_video_feed_v2",{
-    p_limit:50,p_offset:0,p_video_type:videoType,p_category:category,p_search:search
-   });
-   rpcData=result.data;rpcError=result.error;
-  }catch(error){rpcError=error;}
-  const rpcVideos=Array.isArray(rpcData)?rpcData.filter(v=>v&&v.id&&typeof v.video_url==="string"&&v.video_url.trim()):[];
-  if(!rpcError){
-   // A successful empty result is meaningful: do not bypass distribution gates
-   // by falling back to an unranked direct query.
-   videos=rpcVideos.map(v=>({...v,video_url:v.video_url.trim(),likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
-  }else{
-   console.warn("New recommendation RPC unavailable; using compatibility feed:",rpcError.message||rpcError);
-   const direct=await loadDirectPublicFeed();
-   videos=direct.filter(v=>v&&v.id&&typeof v.video_url==="string"&&v.video_url.trim())
-    .map(v=>({...v,video_url:v.video_url.trim(),likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+  // Revisit overdue Shorts cohorts when a signed-in viewer opens or refreshes a feed.
+  // The RPC only evaluates cohorts whose 24-hour review window has elapsed.
+  if(currentUser){
+   const review=await db.rpc("refresh_video_distribution_reviews");
+   if(review.error)console.warn("Distribution review refresh deferred:",review.error.message);
   }
+  const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
+  const search=$("search").value.trim()||null;
+  const videoType=["Shorts","Reels"].includes(currentCategory)?"short":currentCategory==="Long Videos"?"long":null;
+  const {data:rpcData,error:rpcError}=await db.rpc("get_recommended_video_feed_v2",{
+   p_limit:50,p_offset:0,p_video_type:videoType,p_category:category,p_search:search
+  });
+  if(rpcError)throw new Error("Recommendation service unavailable: "+rpcError.message);
+  const rpcVideos=Array.isArray(rpcData)?rpcData.filter(v=>v&&v.id&&typeof v.video_url==="string"&&v.video_url.trim()):[];
+  // Never bypass stage gates or privacy filters with a direct-table fallback.
+  videos=rpcVideos.map(v=>({...v,video_url:v.video_url.trim(),likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
   if(!videos.length){
    await applyFilters();
    return;
