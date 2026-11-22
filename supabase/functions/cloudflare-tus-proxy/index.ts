@@ -59,16 +59,19 @@ Deno.serve(async (req: Request) => {
     }
   }
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-  // Accept the common API-token name as an alias; never expose the token to the browser.
-  const streamToken = Deno.env.get("CLOUDFLARE_STREAM_TOKEN") ||
-    Deno.env.get("CLOUDFLARE_API_TOKEN") ||
-    Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN");
+  // Try every configured token alias in priority order. A stale primary secret
+  // must not prevent a valid fallback alias from being used.
+  const streamTokenCandidates = [
+    { name: "CLOUDFLARE_STREAM_TOKEN", value: Deno.env.get("CLOUDFLARE_STREAM_TOKEN") },
+    { name: "CLOUDFLARE_API_TOKEN", value: Deno.env.get("CLOUDFLARE_API_TOKEN") },
+    { name: "CLOUDFLARE_STREAM_API_TOKEN", value: Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN") },
+  ].filter((item): item is { name: string; value: string } => Boolean(item.value));
 
   const missingConfig: string[] = [];
   if (!supabaseUrl) missingConfig.push("SUPABASE_URL");
   if (!supabasePublishableKey) missingConfig.push("SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_KEYS");
   if (!accountId) missingConfig.push("CLOUDFLARE_ACCOUNT_ID");
-  if (!streamToken) missingConfig.push("CLOUDFLARE_STREAM_TOKEN (or CLOUDFLARE_API_TOKEN)");
+  if (streamTokenCandidates.length === 0) missingConfig.push("CLOUDFLARE_STREAM_TOKEN (or CLOUDFLARE_API_TOKEN)");
   if (missingConfig.length) {
     console.error("Video upload configuration missing:", missingConfig.join(", "));
     return json({
@@ -124,26 +127,39 @@ Deno.serve(async (req: Request) => {
     .join(",");
 
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream?direct_user=true`;
-  let upstream: Response;
-  try {
-    upstream = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${streamToken}`,
-        "Tus-Resumable": "1.0.0",
-        "Upload-Length": String(uploadLength),
-        "Upload-Metadata": safeMetadata,
-        "Upload-Creator": authData.user.id.slice(0, 64),
-      },
-    });
-  } catch {
-    return json({ error: "Cloudflare could not be reached. Please retry." }, 502, cors);
+  let upstream: Response | null = null;
+  let lastProviderStatus = 0;
+  for (const candidate of streamTokenCandidates) {
+    try {
+      const attempt = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${candidate.value}`,
+          "Tus-Resumable": "1.0.0",
+          "Upload-Length": String(uploadLength),
+          "Upload-Metadata": safeMetadata,
+          "Upload-Creator": authData.user.id.slice(0, 64),
+        },
+      });
+      upstream = attempt;
+      if (attempt.ok) {
+        console.info("Cloudflare TUS initialized using configured token alias:", candidate.name);
+        break;
+      }
+      lastProviderStatus = attempt.status;
+      // Retry another configured alias only for authentication/authorization failures.
+      if (attempt.status !== 401 && attempt.status !== 403) break;
+      const detail = await attempt.text();
+      console.warn("Cloudflare rejected configured token alias:", candidate.name, attempt.status, detail.slice(0, 300));
+      upstream = null;
+    } catch {
+      return json({ error: "Cloudflare could not be reached. Please retry." }, 502, cors);
+    }
   }
 
-  if (!upstream.ok) {
-    const detail = await upstream.text();
-    console.error("Cloudflare TUS initialization failed:", upstream.status, detail.slice(0, 1000));
-    return json({ error: "Cloudflare could not create the upload session.", providerStatus: upstream.status }, 502, cors);
+  if (!upstream) {
+    console.error("Cloudflare TUS initialization failed for all configured token aliases. Last provider status:", lastProviderStatus);
+    return json({ error: "Cloudflare rejected all configured API tokens. Check the token permissions and account ID.", providerStatus: lastProviderStatus || 401 }, 502, cors);
   }
 
   const location = upstream.headers.get("Location");
