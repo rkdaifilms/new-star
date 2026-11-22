@@ -349,6 +349,39 @@ body.creator-profile-video-mode #creatorIdentityBar{display:none!important}
 .categories{margin-top:3px!important;padding-bottom:2px!important;gap:6px!important}
 .category{padding:5px 10px!important;font-size:11px!important;line-height:16px!important}
 #counter{display:none!important}
+
+/* Search and microphone: remove only their individual background tiles. Keep layout and behavior unchanged. */
+.top-area .search-row,
+.top-area .search-row:focus-within{
+  background:transparent!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.top-area .search-row>span,
+.top-area .search-row>input#search,
+.top-area .search-row>input#search:focus,
+.top-area .search-row>input#search:active,
+.top-area .search-row>button#voice,
+.top-area .search-row>button#voice:hover,
+.top-area .search-row>button#voice:focus,
+.top-area .search-row>button#voice:active{
+  background:transparent!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  box-shadow:none!important;
+  outline-color:transparent!important;
+  -webkit-appearance:none!important;
+  appearance:none!important;
+}
+.top-area .search-row>input#search::-webkit-search-decoration,
+.top-area .search-row>input#search::-webkit-search-cancel-button,
+.top-area .search-row>input#search::-webkit-search-results-button,
+.top-area .search-row>input#search::-webkit-search-results-decoration{
+  -webkit-appearance:none!important;
+}
 </style>
 
 <link rel="manifest" href="/manifest.json">
