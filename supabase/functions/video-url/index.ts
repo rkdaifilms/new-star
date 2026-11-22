@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ALLOWED_ORIGINS = new Set(["https://new-star-nepal.netlify.app","https://new-star-delta.vercel.app","https://new-star-rkdaifilms-8858.vercel.app"]);
+const ALLOWED_ORIGINS = new Set(["https://new-star-nepal.netlify.app","https://new-star-delta.vercel.app","https://new-star-rkdaifilms-8858.vercel.app","https://new-star.rkdaifilms.workers.dev"]);
 function corsHeaders(req: Request) {
   const origin=req.headers.get("Origin")||"";
   return {"Access-Control-Allow-Origin":ALLOWED_ORIGINS.has(origin)?origin:"https://new-star-nepal.netlify.app","Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info","Access-Control-Allow-Methods":"POST, OPTIONS","Content-Type":"application/json","Cache-Control":"no-store","Vary":"Origin"};
@@ -43,7 +43,7 @@ Deno.serve(async(req:Request)=>{
   if(!isOwner&&(!published||!accountAllows))continue;
   if(row.video_provider==="cloudflare"&&typeof row.provider_video_id==="string"&&row.provider_video_id){
    const accountId=Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-   const streamToken=Deno.env.get("CLOUDFLARE_STREAM_TOKEN");
+   const streamToken=Deno.env.get("CLOUDFLARE_STREAM_TOKEN")||Deno.env.get("CLOUDFLARE_API_TOKEN")||Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN");
    if(!accountId||!streamToken)continue;
    try{
     const streamResponse=await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/${encodeURIComponent(row.provider_video_id)}`,{
