@@ -490,7 +490,7 @@ html body #app header.top-area .search-row #voice::after{background:transparent!
    <div class="creator-stats"><span id="creatorProfileFollowers">Followers: —</span><span id="creatorProfileFollowing">Following: —</span><span id="creatorProfilePosts">Videos: —</span></div>
    <div class="creator-status" id="creatorProfileStatus">Loading creator…</div>
    <button type="button" id="creatorProfileRetry" class="creator-profile-retry" hidden>Retry profile loading</button>
-   <div class="creator-status" id="creatorProfileShortHeading" hidden>⚡ Shorts</div><div class="creator-videos" id="creatorProfileShortVideos"></div><div class="creator-status" id="creatorProfileLongHeading" hidden>▶ Long Videos</div><div class="creator-videos" id="creatorProfileLongVideos"></div>
+   <div class="creator-video-tabs" id="creatorProfileVideoTabs" role="tablist" aria-label="Creator videos"><button type="button" class="active" data-creator-video-filter="all" role="tab" aria-selected="true">All Videos</button><button type="button" data-creator-video-filter="short" role="tab" aria-selected="false">⚡ Shorts</button><button type="button" data-creator-video-filter="long" role="tab" aria-selected="false">▶ Long Videos</button></div><div class="creator-videos" id="creatorProfileVideoGrid"></div>
   </div>
  </div>
  <section class="video-info">
@@ -1209,7 +1209,7 @@ async function openCreatorProfile(creatorOverride=null){
  const item=creatorOverride||currentVideo;
  if(!item?.user_id){showToast("इस वीडियो के Creator की जानकारी उपलब्ध नहीं है।");return;}
  activeCreatorProfileItem=item;
- const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),shortGrid=$("creatorProfileShortVideos"),longGrid=$("creatorProfileLongVideos"),retry=$("creatorProfileRetry");
+ const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),videoGrid=$("creatorProfileVideoGrid"),retry=$("creatorProfileRetry");
  if(sheet.parentElement!==document.body)document.body.appendChild(sheet);
  if(!sheet.classList.contains("open")){history.pushState({newStarCreatorProfile:true},"",location.href);creatorProfileHistoryEntry=true;}
  sheet.classList.add("open");sheet.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
@@ -1219,7 +1219,7 @@ async function openCreatorProfile(creatorOverride=null){
  $("creatorProfileLocation").textContent="";$("creatorProfileLocation").hidden=true;
  $("creatorProfileAvatar").style.visibility="visible";$("creatorProfileAvatar").src="";
  $("creatorProfileFollowers").textContent="Followers: —";$("creatorProfileFollowing").textContent="Following: —";$("creatorProfilePosts").textContent="Videos: —";
- shortGrid.replaceChildren();longGrid.replaceChildren();$("creatorProfileShortHeading").hidden=true;$("creatorProfileLongHeading").hidden=true;status.textContent="प्रोफ़ाइल लोड हो रही है…";
+ videoGrid.replaceChildren();$("creatorProfileVideoTabs").hidden=true;status.textContent="प्रोफ़ाइल लोड हो रही है…";
  const follow=$("creatorProfileFollow");follow.style.display="inline-flex";follow.disabled=true;follow.dataset.creatorId=String(item.user_id);follow.textContent="Loading…";
  try{
   const profile=await getCreatorPublicCard(item.user_id);
@@ -1257,11 +1257,13 @@ async function openCreatorProfile(creatorOverride=null){
   rows.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   creatorProfileVideoRows=rows.slice();
   if(!rows.length){status.textContent=profile.is_private?"यह Private Creator है।":"इस Creator ने अभी कोई सार्वजनिक वीडियो अपलोड नहीं किया है।";return;}
-  const shortRows=rows.filter(row=>row.video_type==="short"||(row.video_type!=="long"&&Number(row.duration_seconds)>0&&Number(row.duration_seconds)<=60));
-  const longRows=rows.filter(row=>row.video_type==="long"||Number(row.duration_seconds)>60);
-  const unclassifiedRows=rows.filter(row=>!shortRows.includes(row)&&!longRows.includes(row));
-  // Keep legacy videos visible; infer type from duration only, never orientation.
-  longRows.push(...unclassifiedRows);
+  const shortRows=rows.filter(row=>{
+   const type=String(row.video_type||"").toLowerCase();
+   const duration=Number(row.duration_seconds)||0;
+   return type==="short"||(!["long","long_video"].includes(type)&&duration>0&&duration<=60);
+  });
+  const shortIds=new Set(shortRows.map(row=>String(row.id)));
+  const longRows=rows.filter(row=>!shortIds.has(String(row.id)));
   function appendProfileTiles(target,list){
    list.forEach(row=>{
     const tile=document.createElement("button");tile.type="button";tile.className="creator-video-tile";
@@ -1276,9 +1278,29 @@ async function openCreatorProfile(creatorOverride=null){
     tile.append(thumb,title,views);tile.addEventListener("click",()=>openFeedVideoFromProfile(row));target.append(tile);
    });
   }
-  if(shortRows.length){$("creatorProfileShortHeading").hidden=false;appendProfileTiles(shortGrid,shortRows);}
-  if(longRows.length){$("creatorProfileLongHeading").hidden=false;appendProfileTiles(longGrid,longRows);}
-  status.textContent="Public videos · Shorts और Long Videos अलग-अलग दिखाए गए हैं।";
+  const tabs=$("creatorProfileVideoTabs");
+  const tabButtons=Array.from(tabs.querySelectorAll("[data-creator-video-filter]"));
+  function showCreatorVideos(filter){
+   const list=filter==="short"?shortRows:filter==="long"?longRows:rows;
+   videoGrid.replaceChildren();
+   tabButtons.forEach(button=>{
+    const selected=button.dataset.creatorVideoFilter===filter;
+    button.classList.toggle("active",selected);
+    button.setAttribute("aria-selected",selected?"true":"false");
+   });
+   appendProfileTiles(videoGrid,list);
+   status.textContent=list.length
+    ?(filter==="all"?"सभी सार्वजनिक वीडियो":filter==="short"?"Shorts":"Long Videos")+" · "+list.length+" वीडियो"
+    :"इस कैटेगरी में अभी कोई सार्वजनिक वीडियो नहीं है।";
+  }
+  if(rows.length){
+   tabs.hidden=false;
+   tabButtons.forEach(button=>{
+    button.onclick=()=>showCreatorVideos(button.dataset.creatorVideoFilter);
+   });
+   showCreatorVideos("all");
+  }
+
  }catch(error){
   console.error("Creator profile load:",error);
   if(token===creatorProfileRequest){
