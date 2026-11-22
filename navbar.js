@@ -235,17 +235,7 @@
 
     overlay.innerHTML = `
       <div id="newstar-menu-panel">
-        <a href="camera.html" data-i18n="page.camera">📷 Camera / Create / Upload</a>
-        <a href="creator-ai.html">✨ New Star Creator Studio</a>
-        <a href="settings.html" data-i18n="settings.title">⚙️ Main Settings</a>
-        <a href="settings.html#help-support">🤖 Help & Support</a>
-        <a href="profile.html" data-i18n="nav.profile">👤 My Profile</a>
-        <a href="admin.html" id="newstar-owner-dashboard-link" hidden>🛡️ Developer / Owner Dashboard</a>
-        <a href="wallet.html" data-i18n="nav.wallet">💰 Wallet</a>
-        <a href="inbox.html" data-i18n="nav.inbox">✉️ Inbox</a>
-        <a href="monetization.html" data-i18n="page.monetization">💎 Monetization</a>
-         <a href="live.html" data-i18n="page.live">🔴 Live</a>
-        <a href="gaming.html" data-i18n="page.gaming">🎮 Gaming</a>
+        <a href="camera.html" data-i18n="page.camera">🎬 Video Editor, Upload & Copyright Tools</a>
         <div class="menu-divider"></div>
         <button type="button" id="newstar-logout">
           🚪 <span data-i18n="action.logout">Log Out</span>
