@@ -328,6 +328,25 @@ body.creator-profile-video-mode #creatorIdentityBar{display:none!important}
 }
 #feed .actions #videoSettingsBtn svg{width:17px!important;height:17px!important}
 
+/* Share control: retain the share arrow and label, but never show a red/dark tile behind it. */
+#feed #shareBtn,
+#feed #shareBtn:hover,
+#feed #shareBtn:focus,
+#feed #shareBtn:active,
+#feed #shareBtn .action-icon,
+#feed #shareBtn:hover .action-icon,
+#feed #shareBtn:focus .action-icon,
+#feed #shareBtn:active .action-icon,
+#feed.video-expanded #shareBtn,
+#feed.video-expanded #shareBtn .action-icon{
+ background:transparent!important;
+ background-color:transparent!important;
+ background-image:none!important;
+ border:0!important;
+ box-shadow:none!important;
+ outline:0!important;
+}
+
 /* Compact feed header: keep search and category controls clear of the video. */
 .top-area{padding:4px 10px 2px!important;background:linear-gradient(#000d,#0008,transparent)!important}
 .search-row{min-height:34px!important;padding:0 9px!important;gap:6px!important}
