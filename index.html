@@ -816,16 +816,11 @@ function recordEngagement(videoId,eventType){
 
 let followButtonVideoId=null;
 async function getCreatorPublicCard(creatorId){
- const publicResult=await db.from("creator_public_profiles")
+ const {data,error}=await db.from("creator_public_profiles")
   .select("user_id,username,full_name,avatar_url,bio,is_private")
   .eq("user_id",String(creatorId)).maybeSingle();
- if(publicResult.error)throw publicResult.error;
- if(publicResult.data)return publicResult.data;
- const fallback=await db.from("profiles")
-  .select("user_id,username,full_name,avatar_url,bio,is_private")
-  .eq("user_id",String(creatorId)).maybeSingle();
- if(fallback.error)throw fallback.error;
- return fallback.data||null;
+ if(error)throw error;
+ return data||null;
 }
 function paintFollowButton(button,state){
  const labels={
@@ -841,9 +836,13 @@ function paintFollowButton(button,state){
 async function refreshCreatorFollowButton(item){
  const button=$("followCreatorBtn");
  if(!button)return;
- followButtonVideoId=String(item?.id||"");
+ const videoId=String(item?.id||"");
+ followButtonVideoId=videoId;
  const creatorId=String(item?.user_id||"");
- if(!currentUser||!creatorId||creatorId===String(currentUser.id)){
+ if(!creatorId){button.style.display="none";return;}
+ if(!currentUser)currentUser=await getUser();
+ if(followButtonVideoId!==videoId||String(currentVideo?.id||"")!==videoId)return;
+ if(!currentUser||creatorId===String(currentUser.id)){
   button.style.display="none";return;
  }
  button.style.display="inline-flex";
@@ -881,13 +880,8 @@ async function openCreatorProfile(){
  $("creatorProfileName").textContent="@"+String(item.username||"creator").replace(/^@/,"");
  $("creatorProfileBio").textContent="";$("creatorProfileAvatar").src="";grid.replaceChildren();status.textContent="प्रोफ़ाइल लोड हो रही है…";
  try{
-  let {data:profile,error}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio,is_private").eq("user_id",String(item.user_id)).maybeSingle();
+  const {data:profile,error}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio,is_private").eq("user_id",String(item.user_id)).maybeSingle();
   if(error)throw error;
-  if(!profile){
-   const fallback=await db.from("profiles").select("user_id,username,full_name,avatar_url,bio,is_private").eq("user_id",String(item.user_id)).maybeSingle();
-   if(fallback.error)throw fallback.error;
-   profile=fallback.data;
-  }
   if(!profile)throw Error("Creator की सार्वजनिक प्रोफ़ाइल उपलब्ध नहीं है।");
   if(token!==creatorProfileRequest)return;
   $("creatorProfileName").textContent=(profile.full_name||"")+" @"+String(profile.username||item.username||"creator").replace(/^@/,"");
@@ -896,7 +890,7 @@ async function openCreatorProfile(){
   const [followers,following,posts]=await Promise.all([
    db.from("followers").select("id",{count:"exact",head:true}).eq("following_id",String(item.user_id)),
    db.from("followers").select("id",{count:"exact",head:true}).eq("follower_id",String(item.user_id)),
-   db.from("videos").select("id,video_url,caption,created_at",{count:"exact"}).eq("user_id",String(item.user_id)).eq("visibility","public").eq("processing_status","published").order("created_at",{ascending:false}).limit(24)
+   db.from("videos").select("id,video_url,caption,created_at",{count:"exact"}).eq("user_id",String(item.user_id)).or("visibility.eq.public,visibility.is.null").or("processing_status.eq.published,processing_status.is.null").order("created_at",{ascending:false}).limit(24)
   ]);
   if(token!==creatorProfileRequest)return;
   $("creatorProfileFollowers").textContent="Followers: "+(followers.error?"—":Number(followers.count||0));
@@ -912,6 +906,7 @@ function closeCreatorProfile(){creatorProfileRequest++;$("creatorProfileSheet").
 async function toggleCreatorFollow(){
  const item=currentVideo,button=$("followCreatorBtn");
  const videoId=String(item?.id||""),creatorId=String(item?.user_id||"");
+ if(!currentUser)currentUser=await getUser();
  if(!currentUser){showToast("Follow करने के लिए Login करें।");return;}
  if(!creatorId||creatorId===String(currentUser.id)||button.disabled)return;
  button.disabled=true;
