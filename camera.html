@@ -1147,12 +1147,22 @@ async function publishVideo() {
   let cloudflareVideoId=null;
   const tusEndpoint="https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy";
   await new Promise((resolve,reject)=>{
+   // Cloudflare TUS: use its 50 MiB recommended chunk on normal/reliable links.
+   // On data-saver or slower mobile links, use 10 MiB chunks for more frequent
+   // progress/resume checkpoints while staying above Cloudflare's 5 MiB minimum.
+   const network=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+   const slowNetwork=!!network?.saveData||["slow-2g","2g","3g"].includes(network?.effectiveType||"");
+   const uploadChunkSize=slowNetwork?10*1024*1024:50*1024*1024;
+   const uploadStartedAt=performance.now();
+   let lastSpeedSampleAt=uploadStartedAt;
+   let lastSpeedSampleBytes=0;
+   let smoothedBytesPerSecond=0;
    const tusUpload=new window.tus.Upload(selectedVideoFile,{
     endpoint:tusEndpoint,
     retryDelays:[0,3000,5000,10000,20000],
     headers:{authorization:"Bearer "+accessToken,apikey:window.SUPABASE_ANON_KEY},
     uploadDataDuringCreation:false,removeFingerprintOnSuccess:true,
-    chunkSize:50*1024*1024, // Cloudflare Stream recommended 50 MiB chunks for better throughput
+    chunkSize:uploadChunkSize,
     metadata:{
      maxDurationSeconds:String(Math.ceil(mediaInfo.duration)),
      name:displayName,
@@ -1164,9 +1174,21 @@ async function publishVideo() {
     },
     onError(error){reject(error);},
     onProgress(bytesUploaded,bytesTotal){
+     const now=performance.now();
+     const elapsedSeconds=Math.max(0.001,(now-uploadStartedAt)/1000);
+     const sampleSeconds=(now-lastSpeedSampleAt)/1000;
+     if(sampleSeconds>=0.5){
+      const instantSpeed=Math.max(0,(bytesUploaded-lastSpeedSampleBytes)/sampleSeconds);
+      smoothedBytesPerSecond=smoothedBytesPerSecond?smoothedBytesPerSecond*0.7+instantSpeed*0.3:instantSpeed;
+      lastSpeedSampleAt=now;
+      lastSpeedSampleBytes=bytesUploaded;
+     }
      const percent=bytesTotal?Math.floor(bytesUploaded/bytesTotal*100):0;
      const progressEl=$("uploadProgress");if(progressEl)progressEl.value=percent;
-     status.textContent="वीडियो अपलोड हो रहा है: "+percent+"%";
+     const speedText=smoothedBytesPerSecond>0?(smoothedBytesPerSecond/1048576).toFixed(2)+" MB/s":"स्पीड मापी जा रही है";
+     const remainingSeconds=smoothedBytesPerSecond>0&&bytesTotal>bytesUploaded?Math.ceil((bytesTotal-bytesUploaded)/smoothedBytesPerSecond):0;
+     const etaText=remainingSeconds>0?" · लगभग "+formatClock(remainingSeconds)+" बाकी":"";
+     status.textContent="वीडियो अपलोड हो रहा है: "+percent+"% · "+speedText+etaText;
     },
     onSuccess(){resolve();}
    });
