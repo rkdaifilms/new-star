@@ -46,6 +46,12 @@ button{cursor:pointer}
 #followCreatorBtn:disabled{opacity:.78}
 .video-info h3{font-size:15px;margin-bottom:7px}
 #username{cursor:pointer;text-decoration:underline;text-decoration-color:#ffffff66;text-underline-offset:3px;pointer-events:auto;position:relative;z-index:9}
+/* Creator identity controls must remain tappable above the video surface on touch devices. */
+.video-info{z-index:100001!important;isolation:isolate;}
+#creatorProfileButton,#username,#followCreatorBtn{pointer-events:auto!important;position:relative;z-index:100003!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent;}
+#creatorProfileButton{display:inline-flex;flex:0 0 38px;width:38px!important;height:38px!important;min-width:38px;min-height:38px;align-items:center;justify-content:center;cursor:pointer;}
+#username{display:inline-flex;align-items:center;min-height:38px;margin:0;padding:4px 0;color:#fff;font:700 15px/1.25 inherit;text-shadow:0 1px 5px #000;cursor:pointer;}
+#followCreatorBtn{min-height:36px;cursor:pointer;}
 #creatorProfileSheet{position:fixed;inset:0;z-index:100100;background:#080808f2;color:#fff;display:none;overflow:auto;padding:22px 16px 36px}
 #creatorProfileSheet.open{display:block}
 #creatorProfileSheet .creator-card{max-width:560px;margin:8vh auto 0;background:#19191f;border:1px solid #41414b;border-radius:18px;padding:20px}
