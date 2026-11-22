@@ -105,7 +105,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
  <div class="preview">
   <video id="editorVideo" playsinline controls></video>
   <div id="previewText"></div>
-  <button class="primary preview-save" id="saveEditsButton">💾 Save & Continue</button>
+  <button class="primary preview-save" id="previewSaveEditsButton">💾 Save & Continue</button>
   <div class="editor-menu">
    <button type="button" id="menuButton" aria-expanded="false">✏️ Edit Video</button>
    <div class="editor-dropdown" id="editorMenu">
@@ -314,6 +314,10 @@ function closePanels() {
 }
 function openPanel(id) {
  closePanels();
+ document.querySelector(".preview")?.classList.remove("editing-compact");
+ $("menuButton").textContent="✏️ Edit Video";
+ $("menuButton").setAttribute("aria-expanded","false");
+ $("editorMenu").classList.remove("open");
  if(id==="publishPanel") $("editorScreen").classList.add("editor-publishing");
  $(id).classList.remove("hidden");
  setTimeout(() => $(id).scrollIntoView({behavior:"smooth",block:"nearest"}),80);
@@ -549,7 +553,7 @@ $("menuButton").onclick = event => {
 };
 $("editorMenu").onclick = event => event.stopPropagation();
 document.addEventListener("click",()=> $("editorMenu").classList.remove("open"));
-$("saveEditsButton").onclick = async () => {
+async function continueToUpload() {
  try {
   await requireUser();
   document.querySelector(".preview").classList.remove("editing-compact");
@@ -562,7 +566,9 @@ $("saveEditsButton").onclick = async () => {
  } catch(error) {
   if (error.message !== "पहले Login करें।") toast(error.message);
  }
-};
+}
+$("previewSaveEditsButton").onclick = continueToUpload;
+$("saveEditsButton").onclick = continueToUpload;
 document.querySelectorAll("[data-panel]").forEach(button => {
  button.onclick = () => openPanel(button.dataset.panel);
 });
