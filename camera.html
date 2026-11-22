@@ -1085,7 +1085,8 @@ async function publishVideo() {
   const aspectRatioSetting="original";
   const qualityPreference="original";
   const frameFit="contain";
-  const videoType=mediaInfo.width<mediaInfo.height?"short":"long";
+  // Classify by duration, never by portrait/landscape orientation.
+  const videoType=mediaInfo.duration<=60?"short":"long";
   const affiliate = $("affiliateLink").value.trim();
   if (affiliate) {
    let link;
