@@ -51,6 +51,10 @@ button{cursor:pointer}
 #creatorProfileButton{flex:0 0 38px;width:38px!important;height:38px!important;min-width:38px;min-height:38px;align-items:center;justify-content:center;cursor:pointer;}
 #username{display:inline-flex;align-items:center;min-height:38px;margin:0;padding:4px 0;color:#fff;font:700 15px/1.25 inherit;text-shadow:0 1px 5px #000;cursor:pointer;}
 #followCreatorBtn{min-height:36px;cursor:pointer;}
+#creatorActionBtn{display:flex;align-items:center;gap:3px;min-height:54px;cursor:pointer;pointer-events:auto!important;touch-action:manipulation;}
+#creatorActionBtn .creator-action-avatar,#creatorActionBtn img{width:42px;height:42px;border-radius:50%;border:2px solid #fff;object-fit:cover;background:#333;display:grid;place-items:center;font-size:19px;font-weight:800;}
+#creatorActionBtn img[hidden]{display:none!important;}
+#creatorActionBtn span:last-child{font-size:11px;color:#fff;}
 #creatorProfileSheet{position:fixed;inset:0;z-index:100100;background:#080808f2;color:#fff;display:none;overflow:auto;padding:22px 16px 36px}
 #creatorProfileSheet.open{display:block}
 #creatorProfileSheet .creator-card{max-width:560px;margin:8vh auto 0;background:#19191f;border:1px solid #41414b;border-radius:18px;padding:20px}
@@ -324,6 +328,7 @@ button{cursor:pointer}
     <button type="button" data-feed-manage="voice">🎙️ <span data-i18n="action.recordVoice">Record Voice</span></button><button type="button" data-feed-manage="gallery">🎵 <span data-i18n="action.chooseAudio">Choose Audio from Gallery</span></button>
     <button type="button" data-feed-manage="mix">🎚️ <span data-i18n="action.mixSave">Mix & Save</span></button><button type="button" data-feed-manage="delete">🗑️ <span data-i18n="action.deleteVideo">Delete Video</span></button>
    </div></div>
+  <button class="action creator-action" id="creatorActionBtn" type="button" aria-label="Open creator profile" title="Creator Profile" style="display:none"><span class="creator-action-avatar" id="creatorActionFallback">👤</span><img id="creatorActionAvatar" alt="" hidden><span>Profile</span></button>
   <button class="action" id="likeBtn"><div class="action-icon">❤️</div><span id="likes">0</span></button>
   <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount">0</span><span data-i18n="action.comment">Comments</span></button>
   <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span data-i18n="action.gift">Gift</span></button>
@@ -1083,7 +1088,11 @@ function renderVideo(){
  $("username").textContent=name.startsWith("@")?name:"@"+name;
  const creatorAvatarButton=$("creatorProfileButton");
  const creatorAvatar=$("feedCreatorAvatar");
+ const creatorAction=$("creatorActionBtn"),creatorActionAvatar=$("creatorActionAvatar"),creatorActionFallback=$("creatorActionFallback");
  const creatorId=String(currentVideo.user_id||"");
+ creatorAction.style.display=creatorId?"flex":"none";
+ creatorActionFallback.textContent=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();
+ creatorActionAvatar.hidden=true;creatorActionAvatar.removeAttribute("src");
  creatorAvatarButton.style.display=creatorId?"inline-flex":"none";
  creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();
  creatorAvatarButton.setAttribute("aria-label","Open "+(name.startsWith("@")?name:"@"+name)+" creator profile");
@@ -1097,9 +1106,9 @@ function renderVideo(){
   Promise.resolve().then(async()=>{
    const card=await getCreatorPublicCard(creatorId);
    if(String(currentVideo?.id)!==videoId||String(currentVideo?.user_id)!==creatorId)return;
-   if(card?.avatar_url)creatorAvatar.src=card.avatar_url;
-   else{creatorAvatar.removeAttribute("src");creatorAvatar.style.display="none";creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();}
-  }).catch(error=>{console.warn("Creator avatar unavailable:",error.message);creatorAvatar.style.display="none";creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();});
+   if(card?.avatar_url){creatorAvatar.src=card.avatar_url;creatorActionAvatar.src=card.avatar_url;creatorActionAvatar.hidden=false;creatorActionFallback.style.display="none";}
+   else{creatorAvatar.removeAttribute("src");creatorAvatar.style.display="none";creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();creatorActionAvatar.hidden=true;creatorActionFallback.style.display="grid";}
+  }).catch(error=>{console.warn("Creator avatar unavailable:",error.message);creatorAvatar.style.display="none";creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();creatorActionAvatar.hidden=true;creatorActionFallback.style.display="grid";});
  }
  refreshCreatorFollowButton(currentVideo);
  $("caption").textContent=currentVideo.caption||"";
@@ -1577,6 +1586,7 @@ async function mixFeedVideo(){if(!feedOwnsVideo())return;const item=currentVideo
 $("feedMixSave").addEventListener("click",mixFeedVideo);
 
 $("followCreatorBtn").addEventListener("click",toggleCreatorFollow);
+$("creatorActionBtn").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
 $("username").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
 $("creatorProfileButton").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
 $("creatorProfileClose").addEventListener("click",closeCreatorProfile);
