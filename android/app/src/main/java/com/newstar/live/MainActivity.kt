@@ -415,10 +415,23 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        @JavascriptInterface fun getNativeCapabilities(): String {
+            return JSONObject()
+                .put("platform", "android")
+                .put("mediaProjection", true)
+                .put("apiLevel", Build.VERSION.SDK_INT)
+                .put("appId", packageName)
+                .toString()
+        }
+
         @JavascriptInterface fun startScreenStream(url: String) {
             val u = runCatching { Uri.parse(url) }.getOrNull()
-            if (u?.scheme != "https" || u.host.isNullOrBlank() || !(u.host == "cloudflarestream.com" || u.host!!.endsWith(".cloudflarestream.com"))) {
-                emit("error", "Server did not provide a valid secure Cloudflare WHIP endpoint."); return
+            val host = u?.host?.lowercase().orEmpty()
+            val trustedCloudflareHost = host == "cloudflarestream.com" ||
+                host.endsWith(".cloudflarestream.com") ||
+                host == "rtc.live.cloudflare.com"
+            if (u?.scheme != "https" || !trustedCloudflareHost) {
+                emit("error", "Server did not provide a valid secure Cloudflare Stream WHIP endpoint."); return
             }
             runOnUiThread {
                 pendingUrl = url
