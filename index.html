@@ -21,6 +21,13 @@ button{cursor:pointer}
 .search-row button{border:0;background:transparent;color:#fff;font-size:20px;padding:5px}
 .home-quick-links{display:flex;justify-content:flex-end;gap:8px;margin-top:7px}
 .home-quick-links a{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid #ffffff55;border-radius:18px;background:#111c;color:#fff;text-decoration:none;font-size:11px}
+.creator-search-results{position:absolute;top:54px;left:10px;right:10px;z-index:1000;max-height:min(48vh,360px);overflow:auto;background:#18181d;border:1px solid #555;border-radius:12px;box-shadow:0 10px 30px #000b;padding:5px}
+.creator-search-results[hidden]{display:none}
+.creator-search-item{width:100%;display:flex;align-items:center;gap:10px;padding:9px;border:0;border-bottom:1px solid #ffffff18;background:transparent;color:#fff;text-align:left}
+.creator-search-item:last-child{border-bottom:0}
+.creator-search-item img,.creator-search-fallback{width:40px;height:40px;flex:0 0 40px;border-radius:50%;object-fit:cover;background:#393943;display:grid;place-items:center;font-weight:700}
+.creator-search-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+.creator-search-copy small{color:#aaa}
 .categories{display:flex;gap:8px;overflow-x:auto;margin-top:10px;padding-bottom:5px;scrollbar-width:none}
 .categories::-webkit-scrollbar{display:none}
 .category{white-space:nowrap;border:0;border-radius:20px;background:#303030;color:#fff;padding:8px 13px;font-size:12px}
@@ -31,6 +38,8 @@ button{cursor:pointer}
 #followCreatorBtn{pointer-events:auto!important;position:relative;z-index:8;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #followCreatorBtn.following{background:#24242b!important;border:1px solid #fe2c55!important;color:#fff!important}
 #creatorProfileButton:before{content:"👤";position:absolute;inset:0;display:grid;place-items:center;font-size:19px;z-index:0}
+#creatorProfileButton[data-fallback]:not([data-fallback=""]):before{content:attr(data-fallback);font-size:15px;font-weight:800}
+#feedCreatorAvatar[style*="display: none"]{display:none!important}
 #feedCreatorAvatar{position:relative;z-index:1}
 #creatorProfileButton img:not([src]),#creatorProfileButton img[src=""]{opacity:0}
 #followCreatorBtn{min-width:82px;white-space:nowrap}
@@ -223,6 +232,7 @@ button{cursor:pointer}
   <input id="search" type="search" placeholder="Search creators, videos..." data-i18n-placeholder="feed.search" autocomplete="off">
   <button id="voice" aria-label="Voice search" data-i18n-aria-label="feed.voiceSearch">🎙️</button>
  </div>
+ <div id="creatorSearchResults" class="creator-search-results" hidden role="listbox" aria-label="Creator search results"></div>
  <div class="home-quick-links" aria-label="App help">
   <a href="settings.html#help-support">🤖 Help & Support</a>
  </div>
@@ -830,7 +840,10 @@ async function getCreatorPublicCard(creatorId){
   .select("user_id,username,full_name,avatar_url,bio,is_private")
   .eq("user_id",String(creatorId)).maybeSingle();
  if(error)throw error;
- return data||null;
+ if(data)return data;
+ const fallback=await db.from("profiles").select("user_id,username,full_name,avatar_url,bio,is_private").eq("user_id",String(creatorId)).maybeSingle();
+ if(fallback.error)throw fallback.error;
+ return fallback.data||null;
 }
 function paintFollowButton(button,state){
  const labels={
@@ -852,12 +865,14 @@ async function refreshCreatorFollowButton(item){
  if(!creatorId){button.style.display="none";return;}
  if(!currentUser)currentUser=await getUser();
  if(followButtonVideoId!==videoId||String(currentVideo?.id||"")!==videoId)return;
- if(!currentUser||creatorId===String(currentUser.id)){
+ if(currentUser&&creatorId===String(currentUser.id)){
   button.style.display="none";return;
  }
  button.style.display="inline-flex";
- button.disabled=true;
+ button.disabled=false;
  paintFollowButton(button,"follow");
+ if(!currentUser)return;
+ button.disabled=true;
  try{
   const [{data:row,error:followError},card]=await Promise.all([
    db.from("followers").select("id").eq("follower_id",String(currentUser.id))
@@ -883,24 +898,25 @@ async function refreshCreatorFollowButton(item){
  }
 }
 let creatorProfileRequest=0;
-async function openCreatorProfile(){
- const item=currentVideo;if(!item?.user_id)return;
+async function openCreatorProfile(creatorOverride=null){
+ const item=creatorOverride||currentVideo;if(!item?.user_id)return;
  const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),grid=$("creatorProfileVideos");
  sheet.classList.add("open");sheet.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
  $("creatorProfileName").textContent="@"+String(item.username||"creator").replace(/^@/,"");
  $("creatorProfileBio").textContent="";$("creatorProfileAvatar").src="";grid.replaceChildren();status.textContent="प्रोफ़ाइल लोड हो रही है…";
  try{
-  const {data:profile,error}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio,is_private").eq("user_id",String(item.user_id)).maybeSingle();
-  if(error)throw error;
+  const profile=await getCreatorPublicCard(item.user_id);
   if(!profile)throw Error("Creator की सार्वजनिक प्रोफ़ाइल उपलब्ध नहीं है।");
   if(token!==creatorProfileRequest)return;
   $("creatorProfileName").textContent=(profile.full_name||"")+" @"+String(profile.username||item.username||"creator").replace(/^@/,"");
   $("creatorProfileBio").textContent=profile.bio||"";
   if(profile.avatar_url)$("creatorProfileAvatar").src=profile.avatar_url;
+  $("creatorProfileAvatar").onerror=()=>{$("creatorProfileAvatar").style.visibility="hidden";};
+  $("creatorProfileAvatar").onload=()=>{$("creatorProfileAvatar").style.visibility="visible";};
   const [followers,following,posts]=await Promise.all([
    db.from("followers").select("id",{count:"exact",head:true}).eq("following_id",String(item.user_id)),
    db.from("followers").select("id",{count:"exact",head:true}).eq("follower_id",String(item.user_id)),
-   db.from("videos").select("id,video_url,caption,created_at",{count:"exact"}).eq("user_id",String(item.user_id)).or("visibility.eq.public,visibility.is.null").or("processing_status.eq.published,processing_status.is.null").order("created_at",{ascending:false}).limit(24)
+   db.from("videos").select("id,video_url,caption,created_at,username,user_id,category,likes_count,views_count,audience_type,duration_seconds,width,height,thumbnail_url,video_type,frame_fit,affiliate_link",{count:"exact"}).eq("user_id",String(item.user_id)).or("visibility.eq.public,visibility.is.null").or("processing_status.eq.published,processing_status.is.null").order("created_at",{ascending:false}).limit(24)
   ]);
   if(token!==creatorProfileRequest)return;
   $("creatorProfileFollowers").textContent="Followers: "+(followers.error?"—":Number(followers.count||0));
@@ -908,9 +924,20 @@ async function openCreatorProfile(){
   $("creatorProfilePosts").textContent="Videos: "+(posts.error?"—":Number(posts.count||0));
   if(posts.error)throw posts.error;
   const rows=await resolveFeedVideoUrls(posts.data||[]);
-  rows.forEach(row=>{if(!row.video_url)return;const v=document.createElement("video");v.src=row.video_url;v.poster=row.thumbnail_url||"";v.muted=true;v.playsInline=true;v.preload="metadata";v.addEventListener("click",()=>{closeCreatorProfile();const index=filtered.findIndex(x=>String(x.id)===String(row.id));if(index>=0){currentIndex=index;renderVideo();}else showToast("यह वीडियो अभी इस Feed में उपलब्ध नहीं है।");});grid.append(v);});
+  if(token!==creatorProfileRequest)return;
+  rows.forEach(row=>{
+   if(!row.video_url)return;
+   const v=document.createElement("video");v.src=row.video_url;v.poster=row.thumbnail_url||"";v.muted=true;v.playsInline=true;v.preload="metadata";
+   v.addEventListener("click",()=>{
+    closeCreatorProfile();
+    let index=filtered.findIndex(x=>String(x.id)===String(row.id));
+    if(index<0){videos=[row,...videos.filter(x=>String(x.id)!==String(row.id))];filtered=[row,...filtered.filter(x=>String(x.id)!==String(row.id))];index=0;}
+    currentIndex=index;renderVideo();
+   });
+   grid.append(v);
+  });
   status.textContent=profile.is_private?"यह Private Creator है। Follow Request भेजने के लिए Feed का Follow बटन इस्तेमाल करें।":"Creator की सार्वजनिक प्रोफ़ाइल और वीडियो";
- }catch(error){if(token===creatorProfileRequest)status.textContent="प्रोफ़ाइल लोड नहीं हुई: "+error.message;}
+ }catch(error){if(token===creatorProfileRequest)status.textContent="प्रोफ़ाइल नहीं खुली: "+error.message;}
 }
 function closeCreatorProfile(){creatorProfileRequest++;$("creatorProfileSheet").classList.remove("open");$("creatorProfileSheet").setAttribute("aria-hidden","true");document.body.style.overflow="";}
 async function toggleCreatorFollow(){
@@ -1002,15 +1029,18 @@ function renderVideo(){
  creatorAvatarButton.style.display=creatorId?"inline-flex":"none";
  creatorAvatarButton.setAttribute("aria-label","Open "+(name.startsWith("@")?name:"@"+name)+" creator profile");
  creatorAvatar.src="";
+ creatorAvatar.style.display="block";
  creatorAvatar.alt=(name||"Creator")+" profile";
+ creatorAvatar.onerror=()=>{creatorAvatar.style.display="none";creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();};
+ creatorAvatar.onload=()=>{creatorAvatar.style.display="block";creatorAvatarButton.dataset.fallback="";};
  if(creatorId){
   const videoId=String(currentVideo.id);
   Promise.resolve().then(async()=>{
    const card=await getCreatorPublicCard(creatorId);
    if(String(currentVideo?.id)!==videoId||String(currentVideo?.user_id)!==creatorId)return;
    if(card?.avatar_url)creatorAvatar.src=card.avatar_url;
-   else creatorAvatar.removeAttribute("src");
-  }).catch(error=>console.warn("Creator avatar unavailable:",error.message));
+   else{creatorAvatar.removeAttribute("src");creatorAvatar.style.display="none";creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();}
+  }).catch(error=>{console.warn("Creator avatar unavailable:",error.message);creatorAvatar.style.display="none";creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();});
  }
  refreshCreatorFollowButton(currentVideo);
  $("caption").textContent=currentVideo.caption||"";
@@ -1318,10 +1348,37 @@ document.querySelectorAll(".category").forEach(button=>{
   if(currentCategory==="Live")await loadLiveRooms();else await loadFeed();
  });
 });
-let searchTimer;
+let searchTimer,creatorSearchTimer=0,creatorSearchSequence=0;
+function hideCreatorSearchResults(){$("creatorSearchResults").hidden=true;$("creatorSearchResults").replaceChildren();}
+async function searchCreatorProfiles(query){
+ const panel=$("creatorSearchResults"),sequence=++creatorSearchSequence;
+ if(!query||query.length<2){hideCreatorSearchResults();return;}
+ const {data,error}=await db.rpc("search_newstar_creators",{p_search:query,p_limit:10});
+ if(sequence!==creatorSearchSequence)return;
+ if(error){console.warn("Creator search:",error.message);hideCreatorSearchResults();return;}
+ const creators=data||[];
+ panel.replaceChildren();
+ creators.forEach(creator=>{
+  const button=document.createElement("button");button.type="button";button.className="creator-search-item";button.setAttribute("role","option");
+  if(creator.avatar_url){const img=document.createElement("img");img.src=creator.avatar_url;img.alt="";img.onerror=()=>{const fallback=document.createElement("span");fallback.className="creator-search-fallback";fallback.textContent=(creator.username||"C").charAt(0).toUpperCase();img.replaceWith(fallback);};button.append(img);}
+  else{const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent=(creator.username||"C").charAt(0).toUpperCase();button.append(avatar);}
+  const copy=document.createElement("span");copy.className="creator-search-copy";
+  const name=document.createElement("strong");name.textContent=(creator.full_name||"")+" @"+String(creator.username||"creator").replace(/^@/,"");
+  const sub=document.createElement("small");sub.textContent="Creator profile · View videos";
+  copy.append(name,sub);button.append(copy);
+  button.addEventListener("click",()=>{hideCreatorSearchResults();$("search").value=creator.username||query;openCreatorProfile({user_id:creator.user_id,username:creator.username});});
+  panel.append(button);
+ });
+ if(creators.length){panel.hidden=false;}else hideCreatorSearchResults();
+}
 $("search").addEventListener("input",()=>{
- clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadFeed(),350);
+ const query=$("search").value.trim();
+ clearTimeout(searchTimer);clearTimeout(creatorSearchTimer);
+ searchTimer=setTimeout(()=>loadFeed(),350);
+ creatorSearchTimer=setTimeout(()=>searchCreatorProfiles(query),180);
 });
+$("search").addEventListener("keydown",event=>{if(event.key==="Escape")hideCreatorSearchResults();});
+document.addEventListener("click",event=>{if(!event.target.closest(".search-row")&&!event.target.closest("#creatorSearchResults"))hideCreatorSearchResults();});
 $("voice").addEventListener("click",()=>{
  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SpeechRecognition){showToast("इस Browser में Voice Search उपलब्ध नहीं है।");return;}
