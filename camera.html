@@ -37,6 +37,14 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .editor-meta{font-size:12px;color:#aeb4bf;text-align:center;padding:7px 4px}
 #editorVideo{width:100%;height:100%;object-fit:contain;transform-origin:center}
 #previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;max-width:90%;overflow-wrap:anywhere;z-index:5;pointer-events:none}
+.editor-menu{position:absolute;top:10px;right:10px;z-index:20}
+.editor-menu>button{background:#222;color:white;border:1px solid #555;border-radius:8px;padding:9px 12px}
+.editor-dropdown{display:none;position:absolute;right:0;top:44px;width:min(245px,78vw);max-height:65vh;overflow:auto;background:#18181c;border:1px solid #444;border-radius:10px;box-shadow:0 8px 28px #000b}
+.editor-dropdown.open{display:block}
+.editor-dropdown button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #333;border-radius:0;background:transparent;padding:12px;color:white}
+.preview.editing-compact{max-height:min(32vh,280px)!important}
+.preview-save{display:none;position:absolute;left:5%;bottom:12px;width:90%;z-index:25;margin:0;box-shadow:0 3px 16px #000b}
+.preview.editing-compact .preview-save{display:block}
 #editorActions .primary{display:block;margin:0}
 
 .savebar{position:absolute;bottom:12px;left:5%;width:90%;z-index:10}
@@ -97,7 +105,22 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
  <div class="preview">
   <video id="editorVideo" playsinline controls></video>
   <div id="previewText"></div>
-
+  <button class="primary preview-save" id="saveEditsButton">💾 Save & Continue</button>
+  <div class="editor-menu">
+   <button type="button" id="menuButton" aria-expanded="false">✏️ Edit Video</button>
+   <div class="editor-dropdown" id="editorMenu">
+    <button type="button" data-panel="trimPanel">✂️ Trim Video</button>
+    <button type="button" id="splitButton">⚡ Split Preview Point</button>
+    <button type="button" data-panel="cropPanel">📐 Crop & Rotate</button>
+    <button type="button" data-panel="filterPanel">🎨 Filters & Effects</button>
+    <button type="button" data-panel="speedPanel">⏩ Speed Control</button>
+    <button type="button" data-panel="textPanel">✍️ Text & Subtitles</button>
+    <button type="button" data-panel="audioPanel">🎵 Music & Voice-over Mixer</button>
+    <button type="button" data-panel="copyrightPanel">🛡 Copyright Check</button>
+    <button type="button" data-panel="infoPanel">📊 Video Information</button>
+    <button type="button" id="resetButton">↩ Reset Preview Edits</button>
+   </div>
+  </div>
  </div>
  <div id="editorActions">
   <div class="editor-meta" id="editorMeta">Video select करें — पूरा frame preview में दिखेगा</div>
@@ -515,9 +538,24 @@ async function loadVideo(file) {
  toast("वीडियो Editor में खुल गया।");
 }
 
+$("menuButton").onclick = event => {
+ event.stopPropagation();
+ const editing=document.querySelector(".preview").classList.toggle("editing-compact");
+ $("menuButton").textContent=editing?"↗ Close Editor Tools":"✏️ Edit Video";
+ $("menuButton").setAttribute("aria-expanded",String(editing));
+ $("editorMenu").classList.toggle("open",editing);
+ if(!editing) closePanels();
+ applyOutputFrame();
+};
+$("editorMenu").onclick = event => event.stopPropagation();
+document.addEventListener("click",()=> $("editorMenu").classList.remove("open"));
 $("saveEditsButton").onclick = async () => {
  try {
   await requireUser();
+  document.querySelector(".preview").classList.remove("editing-compact");
+  $("menuButton").textContent="✏️ Edit Video";
+  $("menuButton").setAttribute("aria-expanded","false");
+  $("editorMenu").classList.remove("open");
   closePanels();
   applyOutputFrame();
   openPanel("publishPanel");
@@ -590,6 +628,12 @@ video.ontimeupdate = () => {
   video.pause();
   trimEnd = null;
  }
+};
+$("splitButton").onclick = () => toast("Split point preview: " + video.currentTime.toFixed(2) + " sec. Export cutting is not enabled yet.");
+$("resetButton").onclick = () => {
+ zoom=1; rotation=0; video.style.transform=""; video.style.filter="none"; video.playbackRate=1;
+ $("textInput").value=""; updateText(); $("trimStart").value=0; $("trimEnd").value=video.duration||0; trimEnd=null;
+ toast("Preview settings reset.");
 };
 
 /* Text */
