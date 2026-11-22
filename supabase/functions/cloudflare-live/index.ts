@@ -70,6 +70,18 @@ Deno.serve(async (req: Request) => {
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
   const creatorId = auth.user.id;
+  const previewOrigin = "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app";
+  let previewOwnerTest = false;
+  if (origin === previewOrigin && (action === "prepare" || action === "confirm")) {
+    const { data: adminRecord, error: adminLookupError } = await admin
+      .schema("private").from("admin_users").select("role")
+      .eq("user_id", creatorId).maybeSingle();
+    if (adminLookupError) {
+      console.error("Preview owner eligibility lookup failed:", adminLookupError.message);
+      return json({ error: "Could not verify preview test access. Please retry." }, 503, headers);
+    }
+    previewOwnerTest = adminRecord?.role === "owner";
+  }
 
   async function getActiveRoom(roomId: string) {
     if (!roomId) return { data: null, error: new Error("Room ID is required.") };
@@ -159,7 +171,7 @@ Deno.serve(async (req: Request) => {
     console.error("LIVE follower eligibility lookup failed:", followerCountError.message);
     return json({ error: "Could not verify LIVE eligibility. Please retry." }, 503, headers);
   }
-  if ((followerCount || 0) < 1000) {
+  if ((followerCount || 0) < 1000 && !previewOwnerTest) {
     return json({ error: "LIVE unlocks at 1,000 genuine followers.", follower_count: followerCount || 0 }, 403, headers);
   }
 
@@ -173,8 +185,9 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true }, 200, headers);
   }
 
-  const title = typeof body.room_title === "string" ? body.room_title.trim().slice(0, 120) : "";
-  if (!title) return json({ error: "Enter a live room title." }, 400, headers);
+  const requestedTitle = typeof body.room_title === "string" ? body.room_title.trim().slice(0, 120) : "";
+  if (!requestedTitle) return json({ error: "Enter a live room title." }, 400, headers);
+  const title = previewOwnerTest ? "[PREVIEW TEST] " + requestedTitle.slice(0, 103) : requestedTitle;
   const roomType = body.room_type === "gaming" ? "gaming" : "live";
   const streamMode = roomType === "gaming" ? "screen" : "camera";
   const requestedSeats = Number(body.seat_capacity || 1);
