@@ -69,7 +69,9 @@ button{cursor:pointer}
 #creatorProfileSheet .creator-profile-follow{display:inline-flex;align-items:center;justify-content:center;min-width:110px;margin:8px 0 4px;padding:9px 18px;border:0;border-radius:20px;background:#fe2c55;color:#fff;font-weight:700}
 #creatorProfileSheet .creator-profile-follow.following{background:#292930;border:1px solid #fe2c55}
 #creatorProfileSheet .creator-videos button{position:relative;display:block;width:100%;padding:0;border:0;background:#111;color:#fff;text-align:left;border-radius:8px;overflow:hidden}
-#creatorProfileSheet .creator-videos video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;background:#000}
+#creatorProfileSheet .creator-video-thumb{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:9/16;overflow:hidden;background:#17171b;color:#fff;font-size:34px}
+#creatorProfileSheet .creator-video-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+#creatorProfileSheet .creator-video-thumb.no-thumbnail{background:linear-gradient(145deg,#292930,#111)} 
 #creatorProfileSheet .creator-video-label{display:block;padding:5px;font-size:11px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #creatorProfileSheet .creator-video-views{display:block;padding:0 5px 6px;color:#aaa;font-size:10px}
 .video-info p{font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -1026,10 +1028,17 @@ async function openCreatorProfile(creatorOverride=null){
   if(!rows.length){status.textContent=profile.is_private?"यह Private Creator है।":"इस Creator ने अभी कोई सार्वजनिक वीडियो अपलोड नहीं किया है।";return;}
   rows.forEach(row=>{
    const tile=document.createElement("button");tile.type="button";tile.className="creator-video-tile";
-   const v=document.createElement("video");v.src=row.video_url;v.poster=row.thumbnail_url||"";v.muted=true;v.playsInline=true;v.preload="metadata";
+   // Do not load HLS playback URLs directly in grid thumbnails: Android Chrome
+   // cannot reliably play raw HLS in a small inline video element.
+   const thumb=document.createElement("div");thumb.className="creator-video-thumb";
+   if(row.thumbnail_url){
+    const img=document.createElement("img");img.src=row.thumbnail_url;img.alt="";img.loading="lazy";
+    img.onerror=()=>{img.remove();thumb.classList.add("no-thumbnail");thumb.textContent="▶";};
+    thumb.append(img);
+   }else{thumb.classList.add("no-thumbnail");thumb.textContent="▶";}
    const title=document.createElement("span");title.className="creator-video-label";title.textContent=row.caption||"Video";
    const views=document.createElement("span");views.className="creator-video-views";views.textContent=numberFormat(row.views_count||0)+" views · Open to Like, Comment & Share";
-   tile.append(v,title,views);tile.addEventListener("click",()=>openFeedVideoFromProfile(row));grid.append(tile);
+   tile.append(thumb,title,views);tile.addEventListener("click",()=>openFeedVideoFromProfile(row));grid.append(tile);
   });
   status.textContent="Public videos · किसी वीडियो को खोलकर Like, Comment और Share कर सकते हो।";
  }catch(error){if(token===creatorProfileRequest)status.textContent="प्रोफ़ाइल नहीं खुली: "+(error?.message||"कृपया फिर कोशिश करें।");}
