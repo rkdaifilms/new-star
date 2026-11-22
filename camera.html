@@ -123,6 +123,35 @@ body.video-fullscreen-mode #editorScreen #editorExpandButton,\nbody.video-fullsc
 #editorFullscreenBack{display:none;position:fixed;z-index:2147483647;top:calc(env(safe-area-inset-top) + 12px);left:12px;min-width:76px;min-height:44px;padding:8px 14px;border:1px solid rgba(255,255,255,.7);border-radius:24px;background:rgba(0,0,0,.72);color:#fff;font-weight:700;font-size:15px}
 body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center;justify-content:center}
 
+
+/* Creator Studio touch-first preview and editor drawer */
+#editorScreen .editor-workspace>.preview{
+  margin-top:14px!important;
+  height:80vh!important;
+  min-height:460px!important;
+  max-height:none!important;
+}
+#editorScreen #editorExpandButton{
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  top:12px!important;
+  right:12px!important;
+  z-index:50!important;
+  width:50px!important;
+  height:50px!important;
+  border-radius:14px!important;
+  font-size:32px!important;
+}
+#editorScreen:not(.editor-expanded) .editor-tools-rail{display:none!important}
+#editorScreen.editor-expanded .editor-tools-rail{display:flex!important}
+#editorScreen.editor-expanded .editor-workspace>.preview{margin-top:14px!important;height:78vh!important;min-height:440px!important}
+#editorScreen .editor-workspace>.preview #editorVideo{object-position:center center}
+@media(max-width:600px){
+ #editorScreen .editor-workspace>.preview{height:80vh!important;min-height:460px!important}
+ #editorScreen.editor-expanded .editor-workspace>.preview{height:78vh!important;min-height:440px!important}
+}
+
 </style>
 
 <link rel="manifest" href="/manifest.json">
@@ -171,7 +200,7 @@ body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center
    <button type="button" id="editorFullscreenButton" aria-label="Play video fullscreen" title="Fullscreen">⛶</button>
    <button type="button" id="editorExpandButton" aria-expanded="false" aria-label="Open video editor tools">⋯</button>
    <div id="editorActions">
-    <button class="primary" id="saveEditsButton">Continue to Upload</button>
+    <button class="primary" id="saveEditsButton">Save & Continue to Publish</button>
    </div>
   </div>
   <aside class="editor-tools-rail" aria-label="Video editing tools">
@@ -201,6 +230,10 @@ body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center
  <section id="cropPanel" class="panel hidden">
   <div class="panel-head"><h3>📐 Crop & Rotate</h3><button class="close">✕</button></div>
   <div class="grid2">
+   <button class="secondary" data-crop-ratio="0">Original Frame</button>
+   <button class="secondary" data-crop-ratio="0.5625">Portrait 9:16</button>
+   <button class="secondary" data-crop-ratio="1">Square 1:1</button>
+   <button class="secondary" data-crop-ratio="1.7777778">Landscape 16:9</button>
    <button class="secondary" data-zoom="1">Fit 1x</button>
    <button class="secondary" data-zoom="1.4">Zoom 1.4x</button>
    <button class="secondary" data-zoom="2">Zoom 2x</button>
@@ -365,6 +398,7 @@ let musicObjectUrl = null;
 let voiceObjectUrl = null;
 let zoom = 1;
 let rotation = 0;
+let cropRatio = 0;
 let trimEnd = null;
 let publishing = false;
 let sourceMetadata = null;
@@ -635,6 +669,10 @@ async function loadVideo(file) {
  videoObjectUrl = URL.createObjectURL(file);
  closePanels();
  screen("editorScreen");
+ $("editorScreen").classList.remove("editor-expanded","has-open-panel","editor-publishing");
+ $("editorExpandButton").textContent="⋯";
+ $("editorExpandButton").setAttribute("aria-expanded","false");
+ $("editorExpandButton").setAttribute("aria-label","Open video editor tools");
  await new Promise((resolve,reject) => {
   const cleanup = () => {
    video.removeEventListener("loadedmetadata",ok);
@@ -652,6 +690,7 @@ async function loadVideo(file) {
  trimEnd = null;
  zoom = 1;
  rotation = 0;
+ cropRatio = 0;
  video.style.transform = "";
  video.style.filter = "none";
  video.style.objectFit="contain";
@@ -754,6 +793,14 @@ $("editorExpandButton").onclick = () => {
   requestAnimationFrame(()=>window.scrollTo({top:0,behavior:"smooth"}));
  }
 };
+/* Tap the video preview to close the editing tools and return to clean playback. */
+document.querySelector(".editor-workspace>.preview").addEventListener("click",event=>{
+ const editor=$("editorScreen");
+ if(!editor.classList.contains("editor-expanded") && !editor.classList.contains("has-open-panel")) return;
+ if(event.target.closest("#editorExpandButton,#editorFullscreenButton,#editorActions")) return;
+ closePanels();
+});
+
 document.querySelectorAll("[data-panel]").forEach(button => {
  button.onclick = () => openPanel(button.dataset.panel);
 });
@@ -781,15 +828,25 @@ function applyTransform() {
 function applyOutputFrame() {
  const preview=document.querySelector(".editor-workspace>.preview");
  if(!preview) return;
- // Keep the preview wide and tall on phones. The source's full frame is
- // fitted inside it, so portrait and landscape videos are never clipped.
  preview.style.width="100%";
  preview.style.aspectRatio="auto";
  preview.style.maxWidth="none";
  video.style.width="100%";
  video.style.height="100%";
- video.style.objectFit="contain";
+ video.style.objectFit=cropRatio>0?"cover":"contain";
+ video.style.objectPosition="center center";
+ video.style.transform="scale("+zoom+") rotate("+rotation+"deg)";
 }
+
+/* Crop aspect ratios */
+document.querySelectorAll("[data-crop-ratio]").forEach(button=>{
+ button.onclick=()=>{
+  cropRatio=Number(button.dataset.cropRatio)||0;
+  applyOutputFrame();
+  pendingEditorChanges=true;
+  toast(cropRatio===0?"Original video frame selected.": "Crop frame "+button.textContent.trim()+" selected. Export में यही crop लागू होगा।");
+ };
+});
 
 /* Filters */
 document.querySelectorAll("[data-filter]").forEach(button => {
@@ -838,9 +895,9 @@ $("splitButton").onclick = () => {
  toast("Split marker जोड़ा: "+point+" sec. यह marker timeline reference है; multi-clip export अभी उपलब्ध नहीं है।");
 };
 $("resetButton").onclick = () => {
- zoom=1; rotation=0; video.style.transform=""; video.style.filter="none"; video.playbackRate=1;
+ zoom=1; rotation=0; cropRatio=0; video.style.transform=""; video.style.filter="none"; video.playbackRate=1;
  $("textInput").value=""; updateText(); $("trimStart").value=0; $("trimEnd").value=video.duration||0; trimEnd=null;
- splitMarkers=[]; pendingEditorChanges=false;
+ splitMarkers=[]; cropRatio=0; applyOutputFrame(); pendingEditorChanges=false;
  $("videoVolume").value=100; $("musicVolume").value=40; $("voiceVolume").value=100; updateVolumes();
  toast("Preview settings reset.");
 };
@@ -972,13 +1029,18 @@ async function exportEditedVideo() {
   const ctxAudio=ensureEditorAudioGraph();
   await ctxAudio.resume();
   const canvas=document.createElement("canvas");
-  const maxSide=1280;
+  const maxSide=Math.min(1280,Math.max(video.videoWidth,video.videoHeight));
   const rotated=rotation%180!==0;
   const sourceW=rotated?video.videoHeight:video.videoWidth;
   const sourceH=rotated?video.videoWidth:video.videoHeight;
-  const factor=Math.min(1,maxSide/Math.max(sourceW,sourceH));
-  canvas.width=Math.max(2,Math.round(sourceW*factor/2)*2);
-  canvas.height=Math.max(2,Math.round(sourceH*factor/2)*2);
+  const ratio=cropRatio>0?cropRatio:sourceW/sourceH;
+  if(ratio>=1){
+   canvas.width=Math.max(2,Math.round(maxSide/2)*2);
+   canvas.height=Math.max(2,Math.round((maxSide/ratio)/2)*2);
+  }else{
+   canvas.height=Math.max(2,Math.round(maxSide/2)*2);
+   canvas.width=Math.max(2,Math.round((maxSide*ratio)/2)*2);
+  }
   const ctx=canvas.getContext("2d",{alpha:false});
   canvasStream=canvas.captureStream(30);
   const mixDestination=ctxAudio.createMediaStreamDestination();
@@ -1032,7 +1094,7 @@ async function exportEditedVideo() {
   await new Promise(resolve=>video.addEventListener("loadedmetadata",resolve,{once:true}));
   sourceMetadata={duration:video.duration,width:video.videoWidth,height:video.videoHeight};
   $("trimStart").value=0;$("trimEnd").value=video.duration.toFixed(2);trimEnd=null;
-  zoom=1;rotation=0;video.style.transform="";video.style.filter="none";
+  zoom=1;rotation=0;cropRatio=0;video.style.transform="";video.style.filter="none";
   $("textInput").value="";updateText();
   video.playbackRate=1;pendingEditorChanges=false;
   applyOutputFrame();inspectVideo();
