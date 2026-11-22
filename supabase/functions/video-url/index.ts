@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ALLOWED_ORIGINS = new Set(["https://new-star-nepal.netlify.app","https://new-star-delta.vercel.app","https://new-star-rkdaifilms-8858.vercel.app","https://new-star.rkdaifilms.workers.dev"]);
+const ALLOWED_ORIGINS = new Set(["https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app","https://new-star-nepal.netlify.app","https://new-star-delta.vercel.app","https://new-star-rkdaifilms-8858.vercel.app","https://new-star.rkdaifilms.workers.dev"]);
 function corsHeaders(req: Request) {
   const origin=req.headers.get("Origin")||"";
   return {"Access-Control-Allow-Origin":ALLOWED_ORIGINS.has(origin)?origin:"https://new-star-nepal.netlify.app","Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info","Access-Control-Allow-Methods":"POST, OPTIONS","Content-Type":"application/json","Cache-Control":"no-store","Vary":"Origin"};
