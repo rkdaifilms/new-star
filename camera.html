@@ -335,7 +335,6 @@ function closePanels() {
 }
 function openPanel(id) {
  closePanels();
- document.querySelector(".preview")?.classList.remove("editing-compact");
  $("menuButton").textContent="⋮";
  $("menuButton").setAttribute("aria-expanded","false");
  $("editorMenu").classList.remove("open");
@@ -595,7 +594,6 @@ async function continueToUpload() {
   if (error.message !== "पहले Login करें।") toast(error.message);
  }
 }
-$("previewSaveEditsButton").onclick = continueToUpload;
 $("saveEditsButton").onclick = continueToUpload;
 document.querySelectorAll("[data-panel]").forEach(button => {
  button.onclick = () => openPanel(button.dataset.panel);
