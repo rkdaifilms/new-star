@@ -572,7 +572,6 @@ async function loadStatsAndVideos(){
   const videos=await resolvePrivateVideoUrls((videoRows||[]).filter(item=>item&&item.video_url));
   await Promise.all(videos.map(async item=>{
    if(!item.video_url)return;
-    if(item.video_provider==="cloudflare")item.processing_status="published";
     if(Number(item.duration_seconds)>0&&Number(item.width)>0&&Number(item.height)>0)return;
    try{
     const probe=document.createElement("video");
