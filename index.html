@@ -36,6 +36,11 @@ button{cursor:pointer}
 #video{height:100%;width:100%;object-fit:contain;background:#000;touch-action:none}
 .video-info{position:absolute;z-index:100001;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:auto;isolation:isolate}
 #creatorIdentityBar{position:relative!important;inset:auto!important;z-index:100003!important;display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:max-content;max-width:100%;margin:0 0 8px;padding:0;border:0;border-radius:0;background:transparent!important;box-shadow:none!important;text-shadow:0 1px 4px #000;pointer-events:auto!important;isolation:isolate;}
+#feed>#creatorIdentityBar{position:absolute!important;left:12px!important;right:88px!important;bottom:calc(76px + env(safe-area-inset-bottom))!important;inset-inline:auto 88px!important;width:max-content!important;max-width:calc(100% - 112px)!important;margin:0!important;padding:5px 8px!important;gap:7px!important;flex-wrap:nowrap!important;border-radius:24px!important;background:linear-gradient(90deg,#000b,#0005)!important;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:100004!important}
+#feed>#creatorIdentityBar #username{color:#fff!important;text-decoration:none!important;min-height:26px!important;padding:2px 0!important;font-size:12px!important;white-space:nowrap!important;max-width:min(38vw,150px);overflow:hidden;text-overflow:ellipsis}
+#feed>#creatorIdentityBar #followCreatorBtn{flex:0 0 auto!important;min-width:58px!important;min-height:25px!important;padding:3px 8px!important;font-size:10px!important;border-radius:15px!important}
+#feed>#creatorIdentityBar #creatorProfileButton{flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important}
+
 #creatorIdentityBar button{pointer-events:auto!important;touch-action:manipulation!important;position:relative;z-index:2147482502!important;}
 #followCreatorBtn{pointer-events:auto!important;position:relative;z-index:8;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #followCreatorBtn.following{background:#24242b!important;border:1px solid #fe2c55!important;color:#fff!important}
@@ -1003,25 +1008,26 @@ let creatorProfileOriginalFiltered=[],creatorProfileOriginalCategory="For You",c
 async function openFeedVideoFromProfile(row){
  if(!row?.id)return;
  const selectedId=String(row.id);
- const rows=creatorProfileVideoRows.length?creatorProfileVideoRows:[row];
- const index=rows.findIndex(x=>String(x.id)===selectedId);
- let ready=rows[index>=0?index:0]||row;
- // Profile tiles carry the database's original object URL. Always exchange it for the
- // same short-lived, access-checked playback URL used by the Home Feed.
+ const sourceRows=creatorProfileVideoRows.length?creatorProfileVideoRows:[row];
+ const index=sourceRows.findIndex(x=>String(x.id)===selectedId);
+ // Resolve playback URLs for the entire creator list, not only the first tile.
+ // Otherwise the next swipe reaches a row that still has a raw storage URL.
+ let resolvedRows=[];
  try{
-  const resolved=await resolveFeedVideoUrls([ready]);
-  ready=resolved.find(x=>String(x.id)===selectedId)||null;
+  resolvedRows=await resolveFeedVideoUrls(sourceRows);
  }catch(error){
-  console.error("Creator profile playback URL:",error);
-  showToast("वीडियो का सुरक्षित लिंक नहीं मिला: "+(error?.message||"कृपया फिर कोशिश करें।"));
+  console.error("Creator profile playback URLs:",error);
+  showToast("Creator के वीडियो लिंक नहीं मिल पाए: "+(error?.message||"कृपया फिर कोशिश करें।"));
   return;
  }
+ const resolvedById=new Map(resolvedRows.map(x=>[String(x.id),x]));
+ const ready=resolvedById.get(selectedId)||null;
  if(!ready?.video_url){showToast("यह वीडियो अभी प्रकाशित या देखने योग्य नहीं है। प्रोफ़ाइल में वापस जाकर दूसरा वीडियो चुनें।");return;}
  creatorProfileOriginalFiltered=filtered.slice();
  creatorProfileOriginalCategory=currentCategory;
  creatorProfileOriginalIndex=currentIndex;
  creatorProfileReturnScroll=$("creatorProfileSheet").scrollTop;
- creatorProfileVideoRows=rows.map(x=>String(x.id)===selectedId?ready:x);
+ creatorProfileVideoRows=resolvedRows.slice();
  filtered=creatorProfileVideoRows.slice();
  currentCategory="Creator Profile";
  currentIndex=Math.max(0,index);
@@ -1147,7 +1153,8 @@ function renderVideo(){
  document.querySelector(".actions").style.display="flex";
  currentVideo=filtered[currentIndex];if(!currentVideo)return;
  const identityBar=$("creatorIdentityBar");
- if(identityBar&&identityBar.parentElement!==document.querySelector(".video-info"))document.querySelector(".video-info").appendChild(identityBar);
+ // Keep creator avatar, name and Follow in a compact overlay on the video itself.
+ if(identityBar&&identityBar.parentElement!==$("feed"))$("feed").appendChild(identityBar);
  const player=$("video");
  const renderingId=String(currentVideo.id);
  player.pause();
