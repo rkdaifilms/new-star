@@ -95,16 +95,89 @@ function requestedImageAspectRatio(description){
  return allowed.includes(picker?.value)?picker.value:"1:1";
 }
 async function generateImage(overrideDescription){const description=(typeof overrideDescription==="string"?overrideDescription:prompt.value).trim();if(busy)return;if(!description){notice.textContent="पहले तस्वीर का विवरण लिखें, फिर Generate image दबाएँ।";prompt.focus();return;}busy=true;send.disabled=true;voice.disabled=true;lastLanguage=detectLanguage(description);addMessage("🎨 "+description,"user");prompt.value="";imageResult.hidden=false;imageResult.replaceChildren();const label=document.createElement("p");label.textContent="Creating your image…";imageResult.append(label);try{const aspectRatio=requestedImageAspectRatio(description);const imageSize=$("image-resolution")?.value||"1K";const result=await invoke({action:"image",prompt:description,language:lastLanguage,aspectRatio,imageSize});if(typeof result.image!=="string"||result.image.length<100)throw new Error("Image provider returned no usable image data.");const mime=/^image\/(png|jpeg|webp)$/i.test(result.mimeType||"")?result.mimeType:"image/png";const img=document.createElement("img");img.alt="AI generated creator image";img.src="data:"+mime+";base64,"+result.image;img.onerror=()=>{label.textContent="Image returned, but this device could not display it. Please retry.";};const save=document.createElement("a");save.href=img.src;save.download="new-star-creator-image."+({"image/jpeg":"jpg","image/webp":"webp"}[mime]||"png");save.textContent="Save image";save.style.color="#ff9bb0";imageResult.replaceChildren(img,save);}catch(e){label.textContent=e.message||"Image generation failed.";}finally{busy=false;send.disabled=false;voice.disabled=false;}}
-send.addEventListener("click",()=>imageMode?generateImage():sendMessage());
-prompt.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();imageMode?generateImage():sendMessage();}});
+async function handleSendAction(){
+ if(recording&&recorder?.state!=="inactive"){
+  pendingSendAfterTranscription=true;
+  send.disabled=true;
+  voiceStatus.textContent="रिकॉर्डिंग रोककर आवाज़ को टेक्स्ट में बदल रहे हैं। उसके बाद संदेश अपने-आप AI को भेजा जाएगा…";
+  recorder.stop();
+  return;
+ }
+ if(imageMode) await generateImage(); else await sendMessage();
+}
+send.addEventListener("click",handleSendAction);
+prompt.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSendAction();}});
 $("image-mode").addEventListener("click",()=>{imageMode=!imageMode;$("image-mode").classList.toggle("active",imageMode);send.textContent=imageMode?uiText("ai.generateImage","Generate image"):uiText("ai.send","Send");prompt.placeholder=imageMode?uiText("ai.imagePlaceholder","Describe the image you want to create…"):uiText("ai.askPlaceholder","Ask anything or describe your video idea…");notice.textContent=imageMode?uiText("ai.imageNotice","Image generation uses the configured image provider."):uiText("ai.signinNotice","Sign in required. Do not enter passwords, OTPs, API keys or private financial details.");});
 document.querySelectorAll("[data-starter]").forEach(btn=>btn.addEventListener("click",()=>{imageMode=false;$("image-mode").classList.remove("active");send.textContent="Send";prompt.value=btn.dataset.starter;prompt.focus();}));
-async function startRecording(){if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){voiceStatus.textContent="इस browser में audio recording उपलब्ध नहीं है। आप लिखकर भेज सकते हैं।";return;}try{stream=await navigator.mediaDevices.getUserMedia({audio:true});const options=["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"].map(mimeType=>({mimeType}));const supported=options.find(o=>MediaRecorder.isTypeSupported(o.mimeType));recorder=new MediaRecorder(stream,supported||{});chunks=[];recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};recorder.onstop=async()=>{recording=false;stopVoice.hidden=true;voice.disabled=false;voice.textContent="🎙️";voice.setAttribute("aria-label","माइक से बोलें");stream?.getTracks().forEach(t=>t.stop());const blob=new Blob(chunks,{type:recorder.mimeType||"audio/webm"});if(blob.size>7*1024*1024){voiceStatus.textContent="Recording is too large. Please record a shorter message.";if(pendingSendAfterTranscription){pendingSendAfterTranscription=false;send.disabled=false;}return;}voiceStatus.textContent="Detecting spoken language and transcribing…";try{const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(",")[1]);reader.onerror=reject;reader.readAsDataURL(blob);});const result=await invoke({action:"transcribe",audio:base64,mimeType:blob.type||"audio/webm"});lastLanguage=result.language&&result.language!=="und"?result.language:detectLanguage(result.transcript)||lastLanguage;prompt.value=result.transcript||"";voiceStatus.textContent=result.transcript?"आवाज़ टेक्स्ट में बदल गई। "+(pendingSendAfterTranscription?"अब AI को भेज रहे हैं…":"जाँचकर नीचे Send दबाएँ।"):"कोई आवाज़ समझ नहीं आई। फिर बोलकर कोशिश करें।";prompt.focus();if(pendingSendAfterTranscription){pendingSendAfterTranscription=false;if(prompt.value.trim())await sendMessage();else send.disabled=false;}}catch(e){voiceStatus.textContent=e.message||"Voice transcription failed. You can type instead.";if(pendingSendAfterTranscription){pendingSendAfterTranscription=false;send.disabled=false;}}};
-recorder.start();recording=true;voice.textContent="■";voice.setAttribute("aria-label","रिकॉर्डिंग रोकें");stopVoice.hidden=false;voiceStatus.textContent="आपकी आवाज़ रिकॉर्ड हो रही है… भेजें दबाते ही रिकॉर्डिंग रुकेगी और ट्रांसक्रिप्शन AI को भेजा जाएगा। माइक दोबारा दबाकर भी रोक सकते हैं।";}catch(e){voiceStatus.textContent=e.name==="NotAllowedError"?"Microphone permission denied. Allow microphone access in browser settings.":(e.message||"Could not start microphone.");}}
+async function startRecording(){
+ if(busy||recording)return;
+ if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){
+  voiceStatus.textContent="इस पेज पर सुरक्षित microphone recording उपलब्ध नहीं है। HTTPS पर New Star खोलें या संदेश लिखकर भेजें।";
+  return;
+ }
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  const formats=["audio/ogg;codecs=opus","audio/webm;codecs=opus","audio/mp4","audio/webm","audio/ogg"];
+  const supported=formats.find(type=>MediaRecorder.isTypeSupported?.(type));
+  recorder=new MediaRecorder(stream,supported?{mimeType:supported}:{});
+  chunks=[];
+  recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+  recorder.onerror=e=>{
+   voiceStatus.textContent=e.error?.message||"माइक रिकॉर्डिंग में समस्या आई। फिर कोशिश करें।";
+   pendingSendAfterTranscription=false;
+   stream?.getTracks().forEach(track=>track.stop());stream=null;
+   recording=false;send.disabled=false;voice.disabled=false;stopVoice.hidden=true;
+  };
+  recorder.onstop=async()=>{
+   const stoppedRecorder=recorder;
+   const recordedChunks=chunks.slice();
+   const shouldSend=pendingSendAfterTranscription;
+   pendingSendAfterTranscription=false;
+   recording=false;stopVoice.hidden=true;voice.textContent="🎙️";
+   voice.setAttribute("aria-label","माइक से बोलें");
+   stream?.getTracks().forEach(track=>track.stop());stream=null;
+   voice.disabled=true;send.disabled=true;
+   const blob=new Blob(recordedChunks,{type:stoppedRecorder?.mimeType||recordedChunks[0]?.type||"audio/webm"});
+   chunks=[];
+   try{
+    if(!blob.size)throw new Error("रिकॉर्डिंग खाली है। माइक दबाकर फिर बोलें।");
+    if(blob.size>7*1024*1024)throw new Error("रिकॉर्डिंग 7 MB से बड़ी है। छोटा संदेश रिकॉर्ड करके भेजें।");
+    voiceStatus.textContent="आवाज़ को टेक्स्ट में बदला जा रहा है…";
+    const base64=await new Promise((resolve,reject)=>{
+     const reader=new FileReader();
+     reader.onload=()=>{const value=String(reader.result||"");const comma=value.indexOf(",");if(comma<0)reject(new Error("रिकॉर्डिंग पढ़ी नहीं जा सकी।"));else resolve(value.slice(comma+1));};
+     reader.onerror=()=>reject(new Error("रिकॉर्डिंग पढ़ी नहीं जा सकी।"));
+     reader.readAsDataURL(blob);
+    });
+    const mimeType=(blob.type||"audio/webm").split(";")[0].trim().toLowerCase();
+    const result=await invoke({action:"transcribe",audio:base64,mimeType});
+    const transcript=String(result.transcript||"").trim();
+    if(!transcript)throw new Error("आवाज़ से कोई शब्द नहीं मिला। थोड़ा साफ़ बोलकर फिर कोशिश करें।");
+    lastLanguage=result.language&&result.language!=="und"?result.language:detectLanguage(transcript)||lastLanguage;
+    prompt.value=transcript;
+    voiceStatus.textContent=shouldSend?"आवाज़ समझ ली गई। संदेश AI को भेज रहे हैं…":"आवाज़ टेक्स्ट में बदल गई। संदेश जाँचकर Send दबाएँ।";
+    prompt.focus();
+    if(shouldSend)await sendMessage();
+   }catch(e){
+    voiceStatus.textContent=e.message||"आवाज़ को टेक्स्ट में नहीं बदला जा सका। आप लिखकर भेज सकते हैं।";
+   }finally{
+    if(!busy){send.disabled=false;voice.disabled=false;}
+   }
+  };
+  recorder.start();
+  recording=true;voice.textContent="■";
+  voice.setAttribute("aria-label","रिकॉर्डिंग रोकें");
+  stopVoice.hidden=false;
+  voiceStatus.textContent="आपकी आवाज़ रिकॉर्ड हो रही है। रोकने के लिए माइक या Stop recording दबाएँ; Send दबाने पर रिकॉर्डिंग रुककर संदेश AI को भेजा जाएगा।";
+ }catch(e){
+  stream?.getTracks().forEach(track=>track.stop());stream=null;
+  recording=false;voice.disabled=false;send.disabled=false;stopVoice.hidden=true;
+  voiceStatus.textContent=e.name==="NotAllowedError"?"माइक की अनुमति नहीं मिली। Android/App की microphone permission अनुमति दें।":e.name==="NotFoundError"?"इस डिवाइस पर माइक नहीं मिला।":e.name==="NotReadableError"?"माइक किसी दूसरे ऐप में व्यस्त है।":(e.message||"माइक शुरू नहीं हो सका।");
+ }
+}
 voice.addEventListener("click",()=>{if(recording){if(recorder?.state!=="inactive")recorder.stop();return;}startRecording();});
 stopVoice.addEventListener("click",()=>{if(recording&&recorder?.state!=="inactive")recorder.stop();});
-send.addEventListener("click",()=>{if(recording&&recorder?.state!=="inactive"){pendingSendAfterTranscription=true;send.disabled=true;voiceStatus.textContent="Recording stopped. Transcribing your message before sending…";recorder.stop();}});
-document.querySelectorAll("[data-starter]").forEach(btn=>btn.addEventListener("keydown",()=>{}));
+
 (async()=>{try{await session();const ready=await invoke({action:"status"});const imageReady=Boolean(ready.providers?.gemini||ready.providers?.openai);status.textContent="";notice.textContent=imageReady?"AI तैयार है। आप लिखकर या माइक से पूछ सकते हैं और तस्वीर बनाने को भी कह सकते हैं।":"AI सेवा अभी तैयार नहीं है। कृपया बाद में फिर कोशिश करें।"; }catch(e){status.textContent="";notice.textContent="AI सेवा अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।";}if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};})();
 window.addEventListener("pagehide",()=>{if(recording&&recorder?.state!=="inactive")recorder.stop();stream?.getTracks().forEach(t=>t.stop());});
 })();
