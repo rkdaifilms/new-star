@@ -490,7 +490,7 @@ html body #app header.top-area .search-row #voice::after{background:transparent!
    <div class="creator-stats"><span id="creatorProfileFollowers">Followers: —</span><span id="creatorProfileFollowing">Following: —</span><span id="creatorProfilePosts">Videos: —</span></div>
    <div class="creator-status" id="creatorProfileStatus">Loading creator…</div>
    <button type="button" id="creatorProfileRetry" class="creator-profile-retry" hidden>Retry profile loading</button>
-   <div class="creator-videos" id="creatorProfileVideos"></div>
+   <div class="creator-status" id="creatorProfileShortHeading" hidden>⚡ Shorts</div><div class="creator-videos" id="creatorProfileShortVideos"></div><div class="creator-status" id="creatorProfileLongHeading" hidden>▶ Long Videos</div><div class="creator-videos" id="creatorProfileLongVideos"></div>
   </div>
  </div>
  <section class="video-info">
@@ -1054,16 +1054,14 @@ async function getCreatorPublicCard(creatorId){
   .eq("user_id",String(creatorId)).maybeSingle();
  if(error)throw error;
  if(data)return data;
- // A legacy fallback is allowed only for the signed-in account itself.
- if(currentUser&&String(currentUser.id)===String(creatorId)){
-  const fallback=await db.from("profiles")
-   .select("user_id,username,full_name,avatar_url,bio,is_private,creator_location_name,creator_location_visibility")
-   .eq("user_id",String(creatorId)).maybeSingle();
-  if(fallback.error)throw fallback.error;
-  if(fallback.data)return {...fallback.data,about:fallback.data.bio||"",
-   location_name:!fallback.data.is_private&&fallback.data.creator_location_visibility==="public"
-    ?fallback.data.creator_location_name:null};
- }
+ // Public profiles table is the fallback for every creator, not only the signed-in user.
+ const fallback=await db.from("profiles")
+  .select("user_id,username,full_name,avatar_url,bio,is_private,creator_location_name,creator_location_visibility")
+  .eq("user_id",String(creatorId)).maybeSingle();
+ if(fallback.error)throw fallback.error;
+ if(fallback.data&&!fallback.data.is_private)return {...fallback.data,about:fallback.data.bio||"",
+  location_name:fallback.data.creator_location_visibility==="public"
+   ?fallback.data.creator_location_name:null};
  return null;
 }
 function paintFollowButton(button,state){
@@ -1211,7 +1209,7 @@ async function openCreatorProfile(creatorOverride=null){
  const item=creatorOverride||currentVideo;
  if(!item?.user_id){showToast("इस वीडियो के Creator की जानकारी उपलब्ध नहीं है।");return;}
  activeCreatorProfileItem=item;
- const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),grid=$("creatorProfileVideos"),retry=$("creatorProfileRetry");
+ const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),grid=$("creatorProfileVideos"),shortGrid=$("creatorProfileShortVideos"),longGrid=$("creatorProfileLongVideos"),retry=$("creatorProfileRetry");
  if(sheet.parentElement!==document.body)document.body.appendChild(sheet);
  if(!sheet.classList.contains("open")){history.pushState({newStarCreatorProfile:true},"",location.href);creatorProfileHistoryEntry=true;}
  sheet.classList.add("open");sheet.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
@@ -1221,7 +1219,7 @@ async function openCreatorProfile(creatorOverride=null){
  $("creatorProfileLocation").textContent="";$("creatorProfileLocation").hidden=true;
  $("creatorProfileAvatar").style.visibility="visible";$("creatorProfileAvatar").src="";
  $("creatorProfileFollowers").textContent="Followers: —";$("creatorProfileFollowing").textContent="Following: —";$("creatorProfilePosts").textContent="Videos: —";
- grid.replaceChildren();status.textContent="प्रोफ़ाइल लोड हो रही है…";
+ grid.replaceChildren();shortGrid.replaceChildren();longGrid.replaceChildren();$("creatorProfileShortHeading").hidden=true;$("creatorProfileLongHeading").hidden=true;status.textContent="प्रोफ़ाइल लोड हो रही है…";
  const follow=$("creatorProfileFollow");follow.style.display="inline-flex";follow.disabled=true;follow.dataset.creatorId=String(item.user_id);follow.textContent="Loading…";
  try{
   const profile=await getCreatorPublicCard(item.user_id);
@@ -1259,19 +1257,28 @@ async function openCreatorProfile(creatorOverride=null){
   rows.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   creatorProfileVideoRows=rows.slice();
   if(!rows.length){status.textContent=profile.is_private?"यह Private Creator है।":"इस Creator ने अभी कोई सार्वजनिक वीडियो अपलोड नहीं किया है।";return;}
-  rows.forEach(row=>{
-   const tile=document.createElement("button");tile.type="button";tile.className="creator-video-tile";
-   const thumb=document.createElement("div");thumb.className="creator-video-thumb";
-   if(row.thumbnail_url){
-    const img=document.createElement("img");img.src=row.thumbnail_url;img.alt="";img.loading="lazy";
-    img.onerror=()=>{img.remove();thumb.classList.add("no-thumbnail");thumb.textContent="▶";};
-    thumb.append(img);
-   }else{thumb.classList.add("no-thumbnail");thumb.textContent="▶";}
-   const title=document.createElement("span");title.className="creator-video-label";title.textContent=row.caption||"Video";
-   const views=document.createElement("span");views.className="creator-video-views";views.textContent=numberFormat(row.views_count||0)+" views · Open to Like, Comment & Share";
-   tile.append(thumb,title,views);tile.addEventListener("click",()=>openFeedVideoFromProfile(row));grid.append(tile);
-  });
-  status.textContent="Public videos · किसी वीडियो को खोलकर Like, Comment और Share कर सकते हो।";
+  const shortRows=rows.filter(row=>row.video_type==="short"||(row.video_type!=="long"&&Number(row.duration_seconds)>0&&Number(row.duration_seconds)<=60));
+  const longRows=rows.filter(row=>row.video_type==="long"||Number(row.duration_seconds)>60);
+  const unclassifiedRows=rows.filter(row=>!shortRows.includes(row)&&!longRows.includes(row));
+  // Keep legacy videos visible; infer type from duration only, never orientation.
+  longRows.push(...unclassifiedRows);
+  function appendProfileTiles(target,list){
+   list.forEach(row=>{
+    const tile=document.createElement("button");tile.type="button";tile.className="creator-video-tile";
+    const thumb=document.createElement("div");thumb.className="creator-video-thumb";
+    if(row.thumbnail_url){
+     const img=document.createElement("img");img.src=row.thumbnail_url;img.alt="";img.loading="lazy";
+     img.onerror=()=>{img.remove();thumb.classList.add("no-thumbnail");thumb.textContent="▶";};
+     thumb.append(img);
+    }else{thumb.classList.add("no-thumbnail");thumb.textContent="▶";}
+    const title=document.createElement("span");title.className="creator-video-label";title.textContent=row.caption||"Video";
+    const views=document.createElement("span");views.className="creator-video-views";views.textContent=numberFormat(row.views_count||0)+" views · Open to Like, Comment & Share";
+    tile.append(thumb,title,views);tile.addEventListener("click",()=>openFeedVideoFromProfile(row));target.append(tile);
+   });
+  }
+  if(shortRows.length){$("creatorProfileShortHeading").hidden=false;appendProfileTiles(shortGrid,shortRows);}
+  if(longRows.length){$("creatorProfileLongHeading").hidden=false;appendProfileTiles(longGrid,longRows);}
+  status.textContent="Public videos · Shorts और Long Videos अलग-अलग दिखाए गए हैं।";
  }catch(error){
   console.error("Creator profile load:",error);
   if(token===creatorProfileRequest){
