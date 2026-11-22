@@ -468,7 +468,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val APP_HOST = "new-star-delta.vercel.app"
-        private const val HOME_URL = "https://new-star-delta.vercel.app/"
+        private const val APP_HOST = "new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app"
+        private const val HOME_URL = "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app/"
     }
 }
