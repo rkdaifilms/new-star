@@ -273,6 +273,7 @@ button{cursor:pointer}
  </div>
  <section class="video-info">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+   <button type="button" id="creatorProfileButton" aria-label="Open creator profile" style="display:none;width:34px;height:34px;padding:0;border:1px solid #ffffff99;border-radius:50%;overflow:hidden;background:#333;pointer-events:auto;position:relative;z-index:10"><img id="feedCreatorAvatar" alt="" style="width:100%;height:100%;object-fit:cover"></button>
    <h3 id="username"></h3>
    <button id="followCreatorBtn" type="button" style="display:none;background:#fe2c55;color:#fff;border:0;border-radius:18px;padding:6px 14px;font-weight:700">Follow</button>
   </div>
@@ -939,6 +940,14 @@ function renderVideo(){
   player.style.objectFit=currentVideo.frame_fit==="cover"?"cover":"contain";
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
+ const creatorAvatarButton=$("creatorProfileButton");
+ creatorAvatarButton.style.display=currentVideo.user_id?"inline-flex":"none";
+ $("feedCreatorAvatar").src="";
+ if(currentVideo.user_id){
+  db.from("creator_public_profiles").select("avatar_url").eq("user_id",String(currentVideo.user_id)).maybeSingle()
+   .then(({data,error})=>{if(!error&&String(currentVideo?.user_id)===String(currentVideo.user_id)&&data?.avatar_url)$("feedCreatorAvatar").src=data.avatar_url;})
+   .catch(()=>{});
+ }
  refreshCreatorFollowButton(currentVideo);
  $("caption").textContent=currentVideo.caption||"";
  $("meta").textContent=numberFormat(currentVideo.views_count)+" views · Video information loading...";
@@ -1357,6 +1366,7 @@ $("feedMixSave").addEventListener("click",mixFeedVideo);
 
 $("followCreatorBtn").addEventListener("click",toggleCreatorFollow);
 $("username").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
+$("creatorProfileButton").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
 $("creatorProfileClose").addEventListener("click",closeCreatorProfile);
 $("creatorProfileSheet").addEventListener("click",event=>{if(event.target===$("creatorProfileSheet"))closeCreatorProfile();});
 $("likeBtn").addEventListener("click",toggleLike);
