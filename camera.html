@@ -1220,12 +1220,17 @@ async function publishVideo() {
   const tusEndpoint="https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy";
   setUploadStage(2,"Cloudflare से सुरक्षित कनेक्शन बनाया जा रहा है…");
   await new Promise((resolve,reject)=>{
-   // Cloudflare TUS: use its 50 MiB recommended chunk on normal/reliable links.
-   // On data-saver or slower mobile links, use 10 MiB chunks for more frequent
-   // progress/resume checkpoints while staying above Cloudflare's 5 MiB minimum.
+   // Adapt chunk size to the browser network estimate. This is a hint (download
+   // estimates do not guarantee upload speed), so retain a safe 50 MiB default.
+   // Larger chunks reduce request overhead on strong links; smaller chunks
+   // limit the amount that may need retrying on weak/mobile connections.
    const network=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
-   const slowNetwork=!!network?.saveData||["slow-2g","2g","3g"].includes(network?.effectiveType||"");
-   const uploadChunkSize=slowNetwork?10*1024*1024:50*1024*1024;
+   const effectiveType=String(network?.effectiveType||"").toLowerCase();
+   const downlinkMbps=Number(network?.downlink)||0;
+   const slowNetwork=!!network?.saveData||["slow-2g","2g","3g"].includes(effectiveType);
+   const strongNetwork=!slowNetwork&&downlinkMbps>=10;
+   const veryStrongNetwork=!slowNetwork&&downlinkMbps>=25;
+   const uploadChunkSize=slowNetwork?10*1024*1024:(veryStrongNetwork?200*1024*1024:(strongNetwork?100*1024*1024:50*1024*1024));
    const uploadStartedAt=performance.now();
    let lastSpeedSampleAt=uploadStartedAt;
    let lastSpeedSampleBytes=0;
