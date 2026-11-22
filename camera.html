@@ -62,6 +62,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .progress{width:100%;accent-color:#25f4ee}
 #cameraVideo{width:100%;max-height:55vh;background:#000}
 #cameraTimer{margin-top:8px;color:#25f4ee;font-weight:bold;text-align:center}
+.upload-meter{margin:12px 0;padding:13px;background:#101014;border:1px solid #34343d;border-radius:12px;color:#fff}.upload-meter-top{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13px;margin-bottom:9px}#uploadPercent{font-size:18px;color:#25f4ee;font-variant-numeric:tabular-nums}#uploadBytes{font-size:11px;color:#c7c7ce;text-align:right}.upload-track{height:10px;background:#303039;border-radius:99px;overflow:hidden}.upload-fill{height:100%;width:0;background:linear-gradient(90deg,#25f4ee,#55d68b);border-radius:99px;transition:width .2s linear}.upload-steps{display:flex;align-items:center;justify-content:space-between;gap:3px;margin-top:14px}.upload-step{width:28px;height:28px;flex:0 0 28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#303039;color:#aaa;font-size:12px;font-weight:800;position:relative}.upload-step small{position:absolute;top:31px;font-size:9px;font-weight:500;white-space:nowrap;color:#999}.upload-step.active{background:#25f4ee;color:#071013;box-shadow:0 0 0 3px rgba(37,244,238,.15)}.upload-step.done{background:#238b68;color:#fff}.upload-arrow{color:#777;font-size:14px;flex:1;text-align:center}.upload-detail{margin-top:25px;font-size:11px;line-height:1.5;color:#d4d4dc;overflow-wrap:anywhere}
 /* Stable preview controls and on-demand editor drawer */
 .editor-workspace>.preview{position:relative;flex:0 0 auto;overflow:hidden;overscroll-behavior:contain;scroll-margin:0}
 #editorScreen:not(.editor-expanded) .editor-tools-rail{display:none}
@@ -281,6 +282,12 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
    <option value="hidden">🔒 Hide exact location from viewers</option>
   </select>
   <div class="status" id="publishStatus">वीडियो Publish करने के लिए Login आवश्यक है।</div>
+  <div id="uploadMeter" class="upload-meter hidden" role="status" aria-live="polite">
+   <div class="upload-meter-top"><strong id="uploadPercent">0% अपलोड</strong><span id="uploadBytes">0 MB / 0 MB</span></div>
+   <div class="upload-track"><div id="uploadFill" class="upload-fill"></div></div>
+   <div class="upload-steps"><span class="upload-step" data-step="1">1<small>तैयारी</small></span><span class="upload-arrow">➜</span><span class="upload-step" data-step="2">2<small>कनेक्ट</small></span><span class="upload-arrow">➜</span><span class="upload-step" data-step="3">3<small>अपलोड</small></span><span class="upload-arrow">➜</span><span class="upload-step" data-step="4">4<small>सेव</small></span><span class="upload-arrow">➜</span><span class="upload-step" data-step="5">5<small>पूरा</small></span></div>
+   <div id="uploadDetail" class="upload-detail">अपलोड शुरू होने की प्रतीक्षा…</div>
+  </div>
   <progress id="uploadProgress" class="progress hidden" max="100"></progress>
   <button class="primary" id="publishButton">🚀 Publish Video</button>
  </section>
@@ -1083,11 +1090,19 @@ async function publishVideo() {
  const button = $("publishButton");
  const status = $("publishStatus");
  const progress = $("uploadProgress");
+ const meter=$("uploadMeter"),meterPercent=$("uploadPercent"),meterBytes=$("uploadBytes"),meterFill=$("uploadFill"),meterDetail=$("uploadDetail");
+ const setUploadStage=(stage,detail)=>{
+  if(meter)meter.classList.remove("hidden");
+  document.querySelectorAll(".upload-step").forEach(el=>{const n=Number(el.dataset.step);el.classList.toggle("done",n<stage);el.classList.toggle("active",n===stage);});
+  if(meterDetail&&detail)meterDetail.textContent=detail;
+ };
+ const formatUploadBytes=value=>{if(!Number.isFinite(value)||value<=0)return "0 MB";const units=["B","KB","MB","GB","TB"];let n=value,i=0;while(n>=1024&&i<units.length-1){n/=1024;i++;}return n.toFixed(i>=2?2:1)+" "+units[i];};
  publishing = true;
  button.disabled = true;
  button.textContent = "Publishing...";
  progress.classList.remove("hidden");
  progress.removeAttribute("value");
+ setUploadStage(1,"वीडियो और अपलोड जानकारी तैयार हो रही है…");
  let uploadedPath = null;
  let databaseSaved = false;
  try {
@@ -1146,6 +1161,7 @@ async function publishVideo() {
   if(!accessToken)throw new Error("Login session समाप्त हो गई। दोबारा Login करें।");
   let cloudflareVideoId=null;
   const tusEndpoint="https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy";
+  setUploadStage(2,"Cloudflare से सुरक्षित कनेक्शन बनाया जा रहा है…");
   await new Promise((resolve,reject)=>{
    // Cloudflare TUS: use its 50 MiB recommended chunk on normal/reliable links.
    // On data-saver or slower mobile links, use 10 MiB chunks for more frequent
@@ -1174,6 +1190,7 @@ async function publishVideo() {
     },
     onError(error){reject(error);},
     onProgress(bytesUploaded,bytesTotal){
+     setUploadStage(3,"वीडियो डेटा Cloudflare पर भेजा जा रहा है…");
      const now=performance.now();
      const elapsedSeconds=Math.max(0.001,(now-uploadStartedAt)/1000);
      const sampleSeconds=(now-lastSpeedSampleAt)/1000;
@@ -1185,6 +1202,9 @@ async function publishVideo() {
      }
      const percent=bytesTotal?Math.floor(bytesUploaded/bytesTotal*100):0;
      const progressEl=$("uploadProgress");if(progressEl)progressEl.value=percent;
+     if(meterPercent)meterPercent.textContent=percent+"% अपलोड";
+     if(meterBytes)meterBytes.textContent=formatUploadBytes(bytesUploaded)+" / "+formatUploadBytes(bytesTotal);
+     if(meterFill)meterFill.style.width=percent+"%";
      const speedText=smoothedBytesPerSecond>0?(smoothedBytesPerSecond/1048576).toFixed(2)+" MB/s":"स्पीड मापी जा रही है";
      const remainingSeconds=smoothedBytesPerSecond>0&&bytesTotal>bytesUploaded?Math.ceil((bytesTotal-bytesUploaded)/smoothedBytesPerSecond):0;
      const etaText=remainingSeconds>0?" · लगभग "+formatClock(remainingSeconds)+" बाकी":"";
@@ -1199,6 +1219,7 @@ async function publishVideo() {
   });
   if(!cloudflareVideoId)throw new Error("Cloudflare upload पूरा हुआ, लेकिन Stream Video ID नहीं मिली। Support के लिए upload session ID सुरक्षित रखें।");
   const videoUrl="cloudflare://"+cloudflareVideoId;
+  setUploadStage(4,"अपलोड पूरा हुआ; वीडियो डेटाबेस में सेव हो रहा है…");
   status.textContent="वीडियो सुरक्षित किया जा रहा है...";
   const payload={
    media_kind:mediaKind,aspect_ratio_setting:aspectRatioSetting,frame_fit:frameFit,quality_preference:qualityPreference,
@@ -1219,6 +1240,10 @@ async function publishVideo() {
   if(!inserted?.id)throw new Error("Database से Video ID नहीं मिली। Cloudflare Stream ID: "+cloudflareVideoId);
   databaseSaved=true;
   progress.value=100;
+  if(meterPercent)meterPercent.textContent="100% पूरा";
+  if(meterFill)meterFill.style.width="100%";
+  if(meterBytes)meterBytes.textContent=formatUploadBytes(selectedVideoFile.size)+" / "+formatUploadBytes(selectedVideoFile.size);
+  setUploadStage(5,"✓ वीडियो सफलतापूर्वक अपलोड और सेव हो गया।");
   status.textContent="वीडियो अपलोड हो गया है। तैयार होते ही आपकी प्रोफ़ाइल पर दिखाई देगा।";
   toast("🌟 वीडियो अपलोड हो गया है।");
   setTimeout(()=>location.href="profile.html",1200);
