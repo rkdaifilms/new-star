@@ -28,6 +28,8 @@ button{cursor:pointer}
 #feed{height:100%;width:100%;position:relative;background:#080808;overflow:hidden;touch-action:none}
 #video{height:100%;width:100%;object-fit:contain;background:#000;touch-action:none}
 .video-info{position:absolute;z-index:5;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:none}
+#followCreatorBtn{pointer-events:auto!important;position:relative;z-index:8;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#followCreatorBtn.following{background:#24242b!important;border:1px solid #fe2c55!important;color:#fff!important}
 .video-info h3{font-size:15px;margin-bottom:7px}
 .video-info p{font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
 .video-info a{pointer-events:auto;display:none;color:#25f4ee;font-size:12px;margin-top:8px}
@@ -206,8 +208,7 @@ button{cursor:pointer}
   <input id="search" type="search" placeholder="Search creators, videos..." data-i18n-placeholder="feed.search" autocomplete="off">
   <button id="voice" aria-label="Voice search" data-i18n-aria-label="feed.voiceSearch">🎙️</button>
  </div>
- <div class="home-quick-links" aria-label="App help and settings">
-  <a href="settings.html">⚙️ Main Settings</a>
+ <div class="home-quick-links" aria-label="App help">
   <a href="settings.html#help-support">🤖 Help & Support</a>
  </div>
  <nav class="categories" id="categories">
@@ -794,7 +795,7 @@ async function refreshCreatorFollowButton(item){
  if(!currentUser||!item?.user_id||String(item.user_id)===String(currentUser.id)){
   button.style.display="none";return;
  }
- button.style.display="inline-block";button.disabled=true;button.textContent="…";
+ button.style.display="inline-block";button.disabled=true;button.textContent="…";button.classList.remove("following");
  try{
   const {data:card,error:profileError}=await db.from("creator_public_profiles")
    .select("user_id,is_private").eq("user_id",String(item.user_id)).maybeSingle();
@@ -814,6 +815,8 @@ async function refreshCreatorFollowButton(item){
  }catch(error){
   console.warn("Follow state:",error.message);
   button.textContent=feedText("action.follow","Follow");
+  button.classList.remove("following");
+  showToast("Follow की स्थिति लोड नहीं हुई: "+(error.message||"कृपया फिर कोशिश करें।"));
  }finally{button.disabled=false;}
 }
 async function toggleCreatorFollow(){
