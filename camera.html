@@ -418,10 +418,28 @@ function readVideoMetadata(file) {
 }
 async function requireUser() {
  if (!db) throw new Error("Supabase Client नहीं मिला। supabase-config.js जाँचें।");
+
+ // पहले सेव किया हुआ session जाँचें। बिना session getUser() से
+ // "Auth session missing" आता है; ऐसे में इसी वेबसाइट पर Login खोलें।
+ const loginUrl = "auth.html?next=" + encodeURIComponent("camera.html");
+ const {data:sessionData,error:sessionError} = await db.auth.getSession();
+ if (sessionError) throw sessionError;
+
+ if (!sessionData?.session?.access_token) {
+  location.replace(loginUrl);
+  throw new Error("पहले Login करें।");
+ }
+
  const {data,error} = await db.auth.getUser();
- if (error) throw error;
- if (!data.user) {
-  location.href = "auth.html?next=" + encodeURIComponent("camera.html");
+ if (error) {
+  if (error.name === "AuthSessionMissingError" || /auth session missing/i.test(error.message || "")) {
+   location.replace(loginUrl);
+   throw new Error("पहले Login करें।");
+  }
+  throw error;
+ }
+ if (!data?.user) {
+  location.replace(loginUrl);
   throw new Error("पहले Login करें।");
  }
  return data.user;
@@ -1107,14 +1125,9 @@ async function publishVideo() {
  let databaseSaved = false;
  try {
   if (!db) throw new Error("Supabase Client नहीं मिला।");
-  const {data:authData,error:authError} = await db.auth.getUser();
-  if (authError) throw authError;
-  const user = authData?.user;
-  if (!user) {
-   location.href = "auth.html?next=" + encodeURIComponent("camera.html");
-   throw new Error("पहले Login करें।");
-  }
-  if (!selectedVideoFile) throw new Error("पहले Camera या Gallery से वीडियो चुनें।");
+   // Continue और Publish दोनों एक ही session-validation path इस्तेमाल करें।
+   const user = await requireUser();
+   if (!selectedVideoFile) throw new Error("पहले Camera या Gallery से वीडियो चुनें।");
   if (!isVideoFile(selectedVideoFile)) throw new Error("सही Video File चुनें।");
   if (selectedVideoFile.size <= 0) throw new Error("Video File खाली है।");
   if (selectedVideoFile.size > CURRENT_VIDEO_BUCKET_LIMIT) {
