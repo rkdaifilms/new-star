@@ -165,6 +165,7 @@ body.creator-profile-video-mode #creatorIdentityBar{display:none!important}
 #feed.video-expanded .actions{display:flex!important;position:fixed!important;right:max(8px,env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom));z-index:100002!important}
 #feed.video-expanded #counter{display:none!important}
 #feed.video-expanded #video{touch-action:none!important}
+ #feed #affiliate{display:none!important}
 #feed.video-expanded .action-icon{background:#171717dd;border-color:#ffffff99}
 #feed.video-expanded .action{font-size:11px;text-shadow:0 1px 4px #000}
 #videoExpandClose{display:none;position:absolute;z-index:100000;top:calc(env(safe-area-inset-top) + 12px);right:12px;width:44px;height:44px;border:1px solid #ffffff66;border-radius:50%;background:#111c;color:#fff;font-size:25px;align-items:center;justify-content:center;touch-action:manipulation}
@@ -1259,7 +1260,7 @@ function renderVideo(){
   else if(ratio&&Math.abs(ratio-(16/9))<0.08)ratioLabel="16:9";
   const duration=Number(currentVideo.duration_seconds)||Number(player.duration)||0;
   const mode=duration>0&&duration<=60?"Shorts":duration>60?"Long Video":"Video";
-  $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode+" · "+ratioLabel+" · "+width+"×"+height;
+  $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode;
  };
  const playbackDuration=Number(currentVideo.duration_seconds)||0;
  const playbackIsShort=currentVideo.video_type==="short"?true:currentVideo.video_type==="long"?false:(playbackDuration>0?playbackDuration<=60:Number(currentVideo.height)>Number(currentVideo.width));
