@@ -77,7 +77,28 @@ async function speak(text,language){
  speechSynthesis.speak(utterance);
 }
 async function session(){const client=db();if(!client?.auth)throw new Error("Supabase connection not ready. Reload this page.");const {data,error}=await client.auth.getSession();if(error||!data?.session)throw new Error("Please sign in to use Creator AI Studio.");return client;}
-async function invoke(body){const client=await session();const {data,error}=await client.functions.invoke("ai-gateway",{body});if(error){if(body.action==="image")throw new Error("अभी तस्वीर नहीं बन पाई। थोड़ी देर बाद फिर कोशिश करें।");if(body.action==="transcribe")throw new Error("आवाज़ समझ नहीं आई। माइक की अनुमति जाँचकर दोबारा बोलें या संदेश लिखें।");if(body.action==="speak")throw new Error("अभी आवाज़ में जवाब उपलब्ध नहीं है। लिखित जवाब उपलब्ध रहेगा।");throw new Error("AI अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");}if(!data?.ok){if(body.action==="image")throw new Error("तस्वीर बनाने की सेवा अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");if(body.action==="transcribe")throw new Error("आवाज़ को टेक्स्ट में नहीं बदला जा सका। माइक की अनुमति जाँचकर फिर कोशिश करें।");if(body.action==="speak")throw new Error("अभी आवाज़ में जवाब उपलब्ध नहीं है। लिखित जवाब उपलब्ध रहेगा।");if(body.action==="status")throw new Error("AI स्थिति अभी जाँची नहीं जा सकी।");throw new Error("AI अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");}return data;}
+async function invoke(body){
+ const client=await session();
+ const {data,error}=await client.functions.invoke("ai-gateway",{body});
+ if(error){
+  if(body.action==="image")throw new Error("अभी तस्वीर नहीं बन पाई। थोड़ी देर बाद फिर कोशिश करें।");
+  if(body.action==="transcribe"){
+   let detail="";
+   try{const response=error.context;if(response?.clone){const payload=await response.clone().json();detail=String(payload?.error||"");}}catch(_){}
+   throw new Error(detail||"आवाज़ समझ नहीं आई। माइक की अनुमति जाँचकर दोबारा बोलें या संदेश लिखें।");
+  }
+  if(body.action==="speak")throw new Error("अभी आवाज़ में जवाब उपलब्ध नहीं है। लिखित जवाब उपलब्ध रहेगा।");
+  throw new Error("AI अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");
+ }
+ if(!data?.ok){
+  if(body.action==="image")throw new Error(data?.error||"तस्वीर बनाने की सेवा अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");
+  if(body.action==="transcribe")throw new Error(data?.error||"आवाज़ को टेक्स्ट में नहीं बदला जा सका। माइक की अनुमति जाँचकर फिर कोशिश करें।");
+  if(body.action==="speak")throw new Error(data?.error||"अभी आवाज़ में जवाब उपलब्ध नहीं है। लिखित जवाब उपलब्ध रहेगा।");
+  if(body.action==="status")throw new Error(data?.error||"AI स्थिति अभी जाँची नहीं जा सकी।");
+  throw new Error(data?.error||"AI अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");
+ }
+ return data;
+}
 function isImageRequest(text){return /\b(generate|create|make|draw|paint|render)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|thumbnail)\b/i.test(text)||/(?:तस्वीर|फोटो|चित्र|इमेज|छवि).*(?:बना|तैयार|जनरेट|दिखा)|(?:बना|तैयार|जनरेट).*(?:तस्वीर|फोटो|चित्र|इमेज|छवि)/u.test(text);}
 async function sendMessage(){const text=prompt.value.trim();if(!text||busy)return;if(imageMode||isImageRequest(text)){await generateImage(text);return;}busy=true;send.disabled=true;voice.disabled=true;lastLanguage=detectLanguage(text);addMessage(text,"user");prompt.value="";const pending=addMessage("…","assistant");try{const result=await invoke({messages:[...history.slice(-8),{role:"user",content:text}],language:lastLanguage});pending.textContent=result.answer;history.push({role:"user",content:text},{role:"assistant",content:result.answer});if(history.length>10)history=history.slice(-10);if($("speak-replies").checked)speak(result.answer,lastLanguage);}catch(e){pending.textContent=e.message||"AI unavailable. Please try again.";if(!prompt.value.trim())prompt.value=text;}finally{busy=false;send.disabled=false;voice.disabled=false;prompt.focus();}}
 function requestedImageAspectRatio(description){
@@ -178,6 +199,6 @@ async function startRecording(){
 voice.addEventListener("click",()=>{if(recording){if(recorder?.state!=="inactive")recorder.stop();return;}startRecording();});
 stopVoice.addEventListener("click",()=>{if(recording&&recorder?.state!=="inactive")recorder.stop();});
 
-(async()=>{try{await session();const ready=await invoke({action:"status"});const imageReady=Boolean(ready.providers?.gemini||ready.providers?.openai);status.textContent="";notice.textContent=imageReady?"AI तैयार है। आप लिखकर या माइक से पूछ सकते हैं और तस्वीर बनाने को भी कह सकते हैं।":"AI सेवा अभी तैयार नहीं है। कृपया बाद में फिर कोशिश करें।"; }catch(e){status.textContent="";notice.textContent="AI सेवा अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।";}if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};})();
+(async()=>{try{await session();const ready=await invoke({action:"status"});const chatReady=Boolean(ready.providers?.gemini||ready.providers?.openai||ready.providers?.openrouter);const voiceReady=Boolean(ready.providers?.gemini||ready.providers?.openai);status.textContent="";notice.textContent=!chatReady?"AI सेवा अभी तैयार नहीं है। सर्वर पर AI provider सेटअप की जाँच ज़रूरी है.":voiceReady?"AI तैयार है। आप लिखकर या माइक से पूछ सकते हैं और तस्वीर बनाने को भी कह सकते हैं।":"AI चैट तैयार है, लेकिन voice transcription provider उपलब्ध नहीं है।";}catch(e){status.textContent="";notice.textContent=e.message||"AI सेवा अभी उपलब्ध नहीं है। कृपया बाद में फिर कोशिश करें।";}if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};})();
 window.addEventListener("pagehide",()=>{if(recording&&recorder?.state!=="inactive")recorder.stop();stream?.getTracks().forEach(t=>t.stop());});
 })();
