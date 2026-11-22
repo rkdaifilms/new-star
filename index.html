@@ -385,11 +385,21 @@ document.querySelectorAll("[data-close]").forEach(btn=>{
 async function getUser(){
  if(!db)return null;
  try{
-  const {data,error}=await db.auth.getUser();
+  // Restore the locally persisted Supabase session first. getUser() makes a
+  // network verification request and can falsely look logged-out on a weak
+  // connection even when this device still has a valid saved session.
+  const {data,error}=await db.auth.getSession();
   if(error)throw error;
-  return data.user||null;
- }catch(error){console.error("Auth:",error);return null;}
+  return data.session?.user||null;
+ }catch(error){
+  console.error("Session restore:",error);
+  showToast("Session जाँचने में नेटवर्क समस्या है। Internet जुड़ने पर फिर कोशिश करें।");
+  return null;
+ }
 }
+db?.auth.onAuthStateChange((event,session)=>{
+ currentUser=session?.user||null;
+});
 
 function showEmpty(message){
  document.querySelector(".actions").style.display="none";
