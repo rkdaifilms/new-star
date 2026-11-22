@@ -827,13 +827,12 @@ async function refreshCreatorFollowButton(item){
   const {data:card,error:profileError}=await db.from("creator_public_profiles")
    .select("user_id,is_private").eq("user_id",String(item.user_id)).maybeSingle();
   if(profileError)throw profileError;
-  if(!card){button.style.display="none";return;}
   const {data:row,error}=await db.from("followers").select("id")
    .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
   if(error)throw error;
   if(followButtonVideoId!==String(item.id))return;
   if(row){button.textContent=feedText("action.following","Following");button.classList.add("following");}
-  else if(card.is_private){
+  else if(card?.is_private){
    const {data:request,error:requestError}=await db.from("follow_requests").select("id")
     .eq("requester_id",currentUser.id).eq("target_user_id",String(item.user_id)).eq("status","pending").maybeSingle();
    if(requestError)throw requestError;
@@ -854,8 +853,14 @@ async function openCreatorProfile(){
  $("creatorProfileName").textContent="@"+String(item.username||"creator").replace(/^@/,"");
  $("creatorProfileBio").textContent="";$("creatorProfileAvatar").src="";grid.replaceChildren();status.textContent="प्रोफ़ाइल लोड हो रही है…";
  try{
-  const {data:profile,error}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio,is_private").eq("user_id",String(item.user_id)).maybeSingle();
-  if(error)throw error;if(!profile)throw Error("Creator profile उपलब्ध नहीं है।");
+  let {data:profile,error}=await db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio,is_private").eq("user_id",String(item.user_id)).maybeSingle();
+  if(error)throw error;
+  if(!profile){
+   const fallback=await db.from("profiles").select("user_id,username,full_name,avatar_url,bio,is_private").eq("user_id",String(item.user_id)).maybeSingle();
+   if(fallback.error)throw fallback.error;
+   profile=fallback.data;
+  }
+  if(!profile)throw Error("Creator की सार्वजनिक प्रोफ़ाइल उपलब्ध नहीं है।");
   if(token!==creatorProfileRequest)return;
   $("creatorProfileName").textContent=(profile.full_name||"")+" @"+String(profile.username||item.username||"creator").replace(/^@/,"");
   $("creatorProfileBio").textContent=profile.bio||"";
@@ -885,7 +890,6 @@ async function toggleCreatorFollow(){
   const {data:card,error:profileError}=await db.from("creator_public_profiles")
    .select("user_id,is_private").eq("user_id",String(item.user_id)).maybeSingle();
   if(profileError)throw profileError;
-  if(!card)throw new Error("Creator profile नहीं मिली।");
   const {data:row,error:readError}=await db.from("followers").select("id")
    .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
   if(readError)throw readError;
@@ -893,7 +897,7 @@ async function toggleCreatorFollow(){
    const {error}=await db.from("followers").delete().eq("id",row.id).eq("follower_id",currentUser.id);
    if(error)throw error;
    showToast("अब आप इस Creator को Follow नहीं करते।");
-  }else if(card.is_private){
+  }else if(card?.is_private){
    const {data:request,error:requestError}=await db.from("follow_requests").select("id")
     .eq("requester_id",currentUser.id).eq("target_user_id",String(item.user_id)).eq("status","pending").maybeSingle();
    if(requestError)throw requestError;
@@ -952,9 +956,11 @@ function renderVideo(){
  $("feedCreatorAvatar").src="";
  if(currentVideo.user_id){
   const creatorId=String(currentVideo.user_id),videoId=String(currentVideo.id);
-  db.from("creator_public_profiles").select("avatar_url").eq("user_id",creatorId).maybeSingle()
-   .then(({data,error})=>{if(!error&&String(currentVideo?.id)===videoId&&String(currentVideo?.user_id)===creatorId)$("feedCreatorAvatar").src=data?.avatar_url||"";})
-   .catch(()=>{});
+  Promise.resolve().then(async()=>{
+   let result=await db.from("creator_public_profiles").select("avatar_url").eq("user_id",creatorId).maybeSingle();
+   if(!result.data&&!result.error)result=await db.from("profiles").select("avatar_url").eq("user_id",creatorId).maybeSingle();
+   if(String(currentVideo?.id)===videoId&&String(currentVideo?.user_id)===creatorId&&result.data?.avatar_url)$("feedCreatorAvatar").src=result.data.avatar_url;
+  }).catch(()=>{});
  }
  refreshCreatorFollowButton(currentVideo);
  $("caption").textContent=currentVideo.caption||"";
