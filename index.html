@@ -35,7 +35,7 @@ button{cursor:pointer}
 #feed{height:100%;width:100%;position:relative;background:#080808;overflow:hidden;touch-action:none}
 #video{height:100%;width:100%;object-fit:contain;background:#000;touch-action:none}
 .video-info{position:absolute;z-index:100001;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:auto;isolation:isolate}
-#creatorIdentityBar{position:fixed!important;left:12px!important;right:72px!important;bottom:calc(env(safe-area-inset-bottom) + 104px)!important;z-index:2147482501!important;display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:calc(100vw - 88px);padding:7px 9px;border-radius:14px;background:#080808b8;text-shadow:0 1px 4px #000;pointer-events:auto!important;isolation:isolate;}
+#creatorIdentityBar{position:relative!important;inset:auto!important;z-index:100003!important;display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:max-content;max-width:100%;margin:0 0 8px;padding:0;border:0;border-radius:0;background:transparent!important;box-shadow:none!important;text-shadow:0 1px 4px #000;pointer-events:auto!important;isolation:isolate;}
 #creatorIdentityBar button{pointer-events:auto!important;touch-action:manipulation!important;position:relative;z-index:2147482502!important;}
 #followCreatorBtn{pointer-events:auto!important;position:relative;z-index:8;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #followCreatorBtn.following{background:#24242b!important;border:1px solid #fe2c55!important;color:#fff!important}
@@ -474,7 +474,7 @@ function showEmpty(message){
  $("emptyMessage").textContent=message;$("empty").style.display="flex";
  $("counter").textContent="";$("username").textContent="";$("creatorProfileButton").style.display="none";$("followCreatorBtn").style.display="none";$("caption").textContent="";
  $("meta").textContent="";$("likes").textContent="0";$("commentCount").textContent="0";
- $("affiliate").style.display="none";$("likeBtn").classList.remove("liked");currentVideo=null;
+ $("affiliate").style.display="none";$("likeBtn").classList.remove("liked");$("creatorIdentityBar").style.display="none";$("creatorActionBtn").style.display="none";currentVideo=null;
 }
 
 function getVideoAspect(item){
@@ -920,7 +920,7 @@ async function refreshCreatorFollowButton(item){
  }finally{if(followButtonVideoId===videoId&&button.dataset.followState!=="self")button.disabled=false;}
 }
 
-let creatorProfileRequest=0;
+let creatorProfileRequest=0,creatorProfileHistoryEntry=false;
 async function refreshProfileFollowButton(creatorId,isPrivate=false){
  const button=$("creatorProfileFollow");if(!button)return;
  button.dataset.creatorId=String(creatorId);
@@ -990,6 +990,7 @@ async function openCreatorProfile(creatorOverride=null){
  const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),grid=$("creatorProfileVideos");
  // Move the sheet out of the clipped video-feed stacking context.
  if(sheet.parentElement!==document.body)document.body.appendChild(sheet);
+ if(!sheet.classList.contains("open")){history.pushState({newStarCreatorProfile:true},"",location.href);creatorProfileHistoryEntry=true;}
  sheet.classList.add("open");sheet.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
  $("creatorProfileName").textContent="@"+String(item.username||"creator").replace(/^@/,"");
  $("creatorProfileBio").textContent="";$("creatorProfileAbout").textContent="";$("creatorProfileAbout").hidden=true;
@@ -1033,7 +1034,12 @@ async function openCreatorProfile(creatorOverride=null){
   status.textContent="Public videos · किसी वीडियो को खोलकर Like, Comment और Share कर सकते हो।";
  }catch(error){if(token===creatorProfileRequest)status.textContent="प्रोफ़ाइल नहीं खुली: "+(error?.message||"कृपया फिर कोशिश करें।");}
 }
-function closeCreatorProfile(){creatorProfileRequest++;$("creatorProfileSheet").classList.remove("open");$("creatorProfileSheet").setAttribute("aria-hidden","true");document.body.style.overflow="";}
+function closeCreatorProfile(fromPopState=false){
+ if(creatorProfileHistoryEntry&&!fromPopState){creatorProfileHistoryEntry=false;history.back();return;}
+ creatorProfileHistoryEntry=false;creatorProfileRequest++;
+ $("creatorProfileSheet").classList.remove("open");$("creatorProfileSheet").setAttribute("aria-hidden","true");document.body.style.overflow="";
+}
+window.addEventListener("popstate",()=>{if($("creatorProfileSheet")?.classList.contains("open"))closeCreatorProfile(true);});
 async function toggleCreatorFollow(){
  const item=currentVideo,button=$("followCreatorBtn");
  const videoId=String(item?.id||""),creatorId=String(item?.user_id||"");
@@ -1061,7 +1067,7 @@ function renderVideo(){
  document.querySelector(".actions").style.display="flex";
  currentVideo=filtered[currentIndex];if(!currentVideo)return;
  const identityBar=$("creatorIdentityBar");
- if(identityBar&&identityBar.parentElement!==document.body)document.body.appendChild(identityBar);
+ if(identityBar&&identityBar.parentElement!==document.querySelector(".video-info"))document.querySelector(".video-info").appendChild(identityBar);
  const player=$("video");
  const renderingId=String(currentVideo.id);
  player.pause();
@@ -1093,14 +1099,12 @@ function renderVideo(){
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
  const creatorIdentityBar=$("creatorIdentityBar");
- // Move the complete creator controls out of the clipped feed stacking tree.
- if(creatorIdentityBar.parentElement!==document.body)document.body.appendChild(creatorIdentityBar);
  const creatorAvatarButton=$("creatorProfileButton");
  const creatorAvatar=$("feedCreatorAvatar"),creatorAvatarFallback=$("feedCreatorFallback");
  const creatorAction=$("creatorActionBtn"),creatorActionAvatar=$("creatorActionAvatar"),creatorActionFallback=$("creatorActionFallback");
- // Keep the creator entry outside the feed clipping/stacking context on mobile WebViews.
- if(creatorAction.parentElement!==document.body)document.body.appendChild(creatorAction);
+ // Keep the legacy duplicate profile shortcut inside the feed; the inline creator row is the active control.
  const creatorId=String(currentVideo.user_id||"").trim();
+ creatorIdentityBar.style.display=creatorId?"flex":"none";
  creatorAction.hidden=!creatorId;
  creatorAction.style.display=creatorId?"flex":"none";
  creatorAction.style.visibility=creatorId?"visible":"hidden";
