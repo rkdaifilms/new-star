@@ -433,15 +433,23 @@
             try {
                 const captureStatus = document.getElementById('gamingCaptureStatus');
                 const gameName = (document.getElementById('gameNameInput').value || 'Mobile Game').trim().slice(0, 80);
-                if (window.NewStarNative && typeof window.NewStarNative.startScreenStream === 'function') {
-                    if (captureStatus) { captureStatus.hidden = false; captureStatus.textContent = 'Android system screen-sharing permission requested…'; }
+                const nativeBridge = window.NewStarNative;
+                let nativeCaptureReady = !!(nativeBridge && typeof nativeBridge.startScreenStream === 'function');
+                if (nativeCaptureReady && typeof nativeBridge.getNativeCapabilities === 'function') {
+                    try {
+                        const nativeCapabilities = JSON.parse(nativeBridge.getNativeCapabilities());
+                        nativeCaptureReady = nativeCapabilities.platform === 'android' && nativeCapabilities.mediaProjection === true;
+                    } catch (_) { nativeCaptureReady = false; }
+                }
+                if (nativeCaptureReady) {
+                    if (captureStatus) { captureStatus.hidden = false; captureStatus.textContent = 'New Star native Android capture detected. Android screen-sharing permission will open next…'; }
                     await startNativeProGamingStream(gameName);
                     return;
                 }
                 if (!window.isSecureContext || !navigator.mediaDevices?.getDisplayMedia || !window.RTCPeerConnection) {
                     if (captureStatus) {
                         captureStatus.hidden = false;
-                        captureStatus.textContent = 'इस Android browser/WebView में पूरे फोन की स्क्रीन capture सुविधा उपलब्ध नहीं है। इसलिए stream शुरू नहीं की गई और कोई नकली LIVE status नहीं दिखाया जाएगा.\n\nपूरे फोन या दूसरे game app को stream करने के लिए New Star का native Android app और MediaProjection screen-capture permission चाहिए। सिर्फ Chrome update या वेबसाइट बदलने से हर Android फोन में यह सुविधा नहीं आती।';
+                        captureStatus.textContent = 'New Star का native Android screen-capture bridge इस पेज में नहीं मिला। इसलिए LIVE शुरू नहीं किया गया और कोई नकली LIVE status नहीं दिखाया जाएगा.\n\nपूरे फोन या किसी दूसरे game app को stream करने के लिए New Star Android app खोलें और Android की screen-sharing अनुमति दें। Chrome में वेबसाइट खोलने से पूरे फोन की स्क्रीन capture नहीं हो सकती।';
                     }
                     return;
                 }
