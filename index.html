@@ -34,7 +34,7 @@ button{cursor:pointer}
 .category.active{background:#fe2c55;font-weight:bold}
 #feed{height:100%;width:100%;position:relative;background:#080808;overflow:hidden;touch-action:none}
 #video{height:100%;width:100%;object-fit:contain;background:#000;touch-action:none}
-.video-info{position:absolute;z-index:100001;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:none;isolation:isolate}
+.video-info{position:absolute;z-index:100001;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:auto;isolation:isolate}
 #followCreatorBtn{pointer-events:auto!important;position:relative;z-index:8;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #followCreatorBtn.following{background:#24242b!important;border:1px solid #fe2c55!important;color:#fff!important}
 #creatorProfileButton:before{content:"👤";position:absolute;inset:0;display:grid;place-items:center;font-size:19px;z-index:0}
@@ -46,7 +46,7 @@ button{cursor:pointer}
 #followCreatorBtn:disabled{opacity:.78}
 .video-info #username{display:inline-flex;align-items:center;min-height:38px;margin:0;padding:4px 0;font-size:15px;font-weight:700;line-height:1.25;text-decoration:underline;text-decoration-color:#ffffff66;text-underline-offset:3px;text-shadow:0 1px 5px #000;cursor:pointer;pointer-events:auto;position:relative;z-index:100003;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 /* Creator identity controls must remain tappable above the video surface on touch devices. */
-#feed .video-info{z-index:100001!important;isolation:isolate;pointer-events:none!important;} #feed .video-info button,#feed .video-info a{pointer-events:auto!important;}
+#feed .video-info{z-index:100001!important;isolation:isolate;pointer-events:auto!important;} #feed .video-info button,#feed .video-info a{pointer-events:auto!important;}
 #creatorProfileButton,#username,#followCreatorBtn{pointer-events:auto!important;position:relative;z-index:100003!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent;}
 #creatorProfileButton{flex:0 0 38px;width:38px!important;height:38px!important;min-width:38px;min-height:38px;align-items:center;justify-content:center;cursor:pointer;}
 #username{display:inline-flex;align-items:center;min-height:38px;margin:0;padding:4px 0;color:#fff;font:700 15px/1.25 inherit;text-shadow:0 1px 5px #000;cursor:pointer;}
@@ -896,7 +896,7 @@ async function refreshCreatorFollowButton(item){
  const videoId=String(item?.id||""),creatorId=String(item?.user_id||"");
  followButtonVideoId=videoId;
  if(!creatorId){button.style.display="none";return;}
- button.style.display="inline-flex";button.disabled=true;
+ button.style.display="inline-flex";button.disabled=false;
  try{
   const state=await readCreatorFollowState(creatorId);
   if(followButtonVideoId!==videoId||String(currentVideo?.id||"")!==videoId)return;
