@@ -106,6 +106,23 @@ Deno.serve(async (req: Request) => {
       .insert({ room_id: room.id, sender_id: creatorId, display_name: displayName, message })
       .select("id,sender_id,display_name,message,created_at").single();
     if (error || !data) return json({ error: "Could not send LIVE chat message." }, 503, headers);
+    const rootAblyKey = Deno.env.get("ABLY_ROOT_API_KEY");
+    if (rootAblyKey) {
+      try {
+        const channel = "new-star-live-" + room.id;
+        const publishResponse = await fetch("https://rest.ably.io/channels/" + encodeURIComponent(channel) + "/messages", {
+          method: "POST",
+          headers: {
+            "Authorization": "Basic " + btoa(rootAblyKey),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: "chat-message", data }),
+        });
+        if (!publishResponse.ok) console.warn("Ably LIVE chat publish failed with status:", publishResponse.status);
+      } catch (publishError) {
+        console.warn("Ably LIVE chat publish request failed:", publishError);
+      }
+    }
     return json({ ok: true, message: data }, 200, headers);
   }
 
