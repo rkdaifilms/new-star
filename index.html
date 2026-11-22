@@ -249,6 +249,13 @@ button{cursor:pointer}
   <button class="category" data-cat="Reels" data-i18n="feed.reels">🎬 <span data-i18n="feed.reels">Reels</span></button>
   <button class="category" data-cat="Long Videos">▶ <span data-i18n="feed.longVideos">Long Videos</span></button>
   <button class="category" data-cat="Discover">🌍 <span data-i18n="feed.discover">Discover</span></button>
+  <button class="category" data-cat="Trending">🔥 Trending</button>
+  <button class="category" data-cat="Education">📚 Education</button>
+  <button class="category" data-cat="News">📰 News</button>
+  <button class="category" data-cat="Sports">⚽ Sports</button>
+  <button class="category" data-cat="Entertainment">🎭 Entertainment</button>
+  <button class="category" data-cat="Food">🍲 Food</button>
+  <button class="category" data-cat="Travel">🧭 Travel</button>
   <button class="category" data-cat="Friends">🤝 <span data-i18n="feed.friends">Friends</span></button>
   <button class="category" data-cat="Live">🔴 <span data-i18n="feed.live">Live</span></button>
   <button class="category" data-cat="Comedy">😂 <span data-i18n="feed.comedy">Comedy</span></button>
@@ -277,7 +284,7 @@ button{cursor:pointer}
    <button id="reload" data-i18n="feed.retry">Try again</button>
   </div>
  </div>
- <video id="video" playsinline loop preload="metadata"></video>
+ <video id="video" playsinline preload="metadata"></video>
  <button id="videoExpandClose" type="button" aria-label="Close expanded video">×</button>
  <button id="playHint">▶</button>
  <div id="counter"></div>
@@ -588,7 +595,7 @@ async function loadFeed(){
    const review=await db.rpc("refresh_video_distribution_reviews");
    if(review.error)console.warn("Distribution review refresh deferred:",review.error.message);
   }
-  const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
+  const category=["Comedy","Music","Gaming","Tech","Vlogs","Education","News","Sports","Entertainment","Food","Travel"].includes(currentCategory)?currentCategory:null;
   const search=$("search").value.trim()||null;
   const videoType=["Shorts","Reels"].includes(currentCategory)?"short":currentCategory==="Long Videos"?"long":null;
   const {data:rpcData,error:rpcError}=await db.rpc("get_recommended_video_feed_v2",{
@@ -782,7 +789,7 @@ async function applyFilters(){
    const isShort=v.video_type==="short"?true:v.video_type==="long"?false:(duration>0?duration<=60:Number(v.height)>Number(v.width));
    if(currentCategory==="Shorts"||currentCategory==="Reels")return isShort;
   if(currentCategory==="Long Videos")return v.video_type==="long"||(v.video_type!=="short"&&(duration>60||(duration===0&&Number(v.width)>=Number(v.height))));
-  if(["For You","Discover"].includes(currentCategory))return true;
+  if(["For You","Discover","Trending"].includes(currentCategory))return true;
   return String(v.category||"").toLowerCase().includes(currentCategory.toLowerCase());
  });
  currentIndex=0;
@@ -1134,6 +1141,9 @@ function renderVideo(){
   const mode=duration>0&&duration<=60?"Shorts":duration>60?"Long Video":"Video";
   $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode+" · "+ratioLabel+" · "+width+"×"+height;
  };
+ const playbackDuration=Number(currentVideo.duration_seconds)||0;
+ const playbackIsShort=currentVideo.video_type==="short"?true:currentVideo.video_type==="long"?false:(playbackDuration>0?playbackDuration<=60:Number(currentVideo.height)>Number(currentVideo.width));
+ player.loop=playbackIsShort;
  attachNewStarVideoSource(player,currentVideo.video_url);
  player.onplay=()=>{if(currentVideo&&String(currentVideo.id)===renderingId)startWatchSession(renderingId);};
  player.onpause=()=>{stopWatchSession();};
