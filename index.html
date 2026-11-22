@@ -51,7 +51,7 @@ button{cursor:pointer}
 #creatorProfileButton{flex:0 0 38px;width:38px!important;height:38px!important;min-width:38px;min-height:38px;align-items:center;justify-content:center;cursor:pointer;}
 #username{display:inline-flex;align-items:center;min-height:38px;margin:0;padding:4px 0;color:#fff;font:700 15px/1.25 inherit;text-shadow:0 1px 5px #000;cursor:pointer;}
 #followCreatorBtn{min-height:36px;cursor:pointer;}
-#creatorActionBtn.creator-profile-fab{position:absolute;right:12px;top:142px;z-index:100004;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:56px;min-height:64px;padding:5px 3px;border:1px solid #ffffffaa;border-radius:14px;background:#17171ddd;color:#fff;box-shadow:0 3px 14px #0009;cursor:pointer;pointer-events:auto!important;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+#creatorActionBtn.creator-profile-fab{position:fixed!important;right:max(12px,calc((100vw - 480px)/2 + 12px))!important;top:calc(env(safe-area-inset-top) + 150px)!important;z-index:2147482500!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:56px;min-height:64px;padding:5px 3px;border:1px solid #ffffffaa;border-radius:14px;background:#17171ddd;color:#fff;box-shadow:0 3px 14px #0009;cursor:pointer;pointer-events:auto!important;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 #creatorActionBtn .creator-action-avatar,#creatorActionBtn img{width:42px;height:42px;border-radius:50%;border:2px solid #fff;object-fit:cover;background:#333;display:grid;place-items:center;font-size:19px;font-weight:800;}
 #creatorActionBtn img[hidden]{display:none!important;}
 #creatorActionBtn span:last-child{font-size:11px;color:#fff;line-height:1.1;}
@@ -648,6 +648,7 @@ async function stopLiveViewer(){
  $("liveViewerWrap").hidden=true;
 }
 function showLiveFeedMode(){
+ const creatorAction=document.getElementById("creatorActionBtn");if(creatorAction)creatorAction.style.display="none";
  stopWatchSession();
  const player=$("video");
  player.pause();player.removeAttribute("src");player.load();player.style.display="none";
@@ -1090,8 +1091,12 @@ function renderVideo(){
  const creatorAvatarButton=$("creatorProfileButton");
  const creatorAvatar=$("feedCreatorAvatar");
  const creatorAction=$("creatorActionBtn"),creatorActionAvatar=$("creatorActionAvatar"),creatorActionFallback=$("creatorActionFallback");
+ // Keep the creator entry outside the feed clipping/stacking context on mobile WebViews.
+ if(creatorAction.parentElement!==document.body)document.body.appendChild(creatorAction);
  const creatorId=String(currentVideo.user_id||"").trim();
+ creatorAction.hidden=!creatorId;
  creatorAction.style.display=creatorId?"flex":"none";
+ creatorAction.style.visibility=creatorId?"visible":"hidden";
  creatorAction.disabled=!creatorId;
  creatorAction.setAttribute("aria-hidden",creatorId?"false":"true");
  creatorActionFallback.textContent=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();
