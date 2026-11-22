@@ -55,6 +55,12 @@ button{cursor:pointer}
 #creatorProfileSheet .creator-videos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:14px}
 #creatorProfileSheet .creator-videos video{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;border-radius:8px}
 #creatorProfileSheet .creator-status{color:#bbb;font-size:13px;margin-top:10px}
+#creatorProfileSheet .creator-profile-follow{display:inline-flex;align-items:center;justify-content:center;min-width:110px;margin:8px 0 4px;padding:9px 18px;border:0;border-radius:20px;background:#fe2c55;color:#fff;font-weight:700}
+#creatorProfileSheet .creator-profile-follow.following{background:#292930;border:1px solid #fe2c55}
+#creatorProfileSheet .creator-videos button{position:relative;display:block;width:100%;padding:0;border:0;background:#111;color:#fff;text-align:left;border-radius:8px;overflow:hidden}
+#creatorProfileSheet .creator-videos video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;background:#000}
+#creatorProfileSheet .creator-video-label{display:block;padding:5px;font-size:11px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#creatorProfileSheet .creator-video-views{display:block;padding:0 5px 6px;color:#aaa;font-size:10px}
 .video-info p{font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
 .video-info a{pointer-events:auto;display:none;color:#25f4ee;font-size:12px;margin-top:8px}
 .video-meta{font-size:11px;color:#ddd;margin-top:6px}
@@ -280,6 +286,7 @@ button{cursor:pointer}
    <button type="button" class="creator-close" id="creatorProfileClose" aria-label="Close">×</button>
    <img class="creator-avatar" id="creatorProfileAvatar" alt="Creator profile">
    <h2 id="creatorProfileName">Creator</h2>
+   <button type="button" id="creatorProfileFollow" class="creator-profile-follow">Follow</button>
    <p id="creatorProfileBio"></p>
    <div class="creator-stats"><span id="creatorProfileFollowers">Followers: —</span><span id="creatorProfileFollowing">Following: —</span><span id="creatorProfilePosts">Videos: —</span></div>
    <div class="creator-status" id="creatorProfileStatus">Loading creator…</div>
@@ -766,8 +773,7 @@ async function applyFilters(){
   try{followingIds=await getFollowingIds();}catch(e){showEmpty("Following सूची लोड नहीं हुई।");return;}
  }
  filtered=videos.filter(v=>{
-  const text=[v.caption,v.username,v.category,...(v.tags||[])].join(" ").toLowerCase();
-  if(keyword&&!text.includes(keyword))return false;
+  // Search matching is performed by get_recommended_video_feed_v2; do not re-filter here.
   if(currentCategory==="Following"||currentCategory==="Friends")return followingIds.includes(String(v.user_id));
   if(currentCategory==="Live")return false;
   const duration=Number(v.duration_seconds)||0;
@@ -898,25 +904,98 @@ async function refreshCreatorFollowButton(item){
  }
 }
 let creatorProfileRequest=0;
+async function refreshProfileFollowButton(creatorId,isPrivate=false){
+ const button=$("creatorProfileFollow");if(!button)return;
+ if(!currentUser)currentUser=await getUser();
+ if(!currentUser){button.textContent="Login to Follow";button.dataset.state="login";button.disabled=false;return;}
+ if(String(currentUser.id)===String(creatorId)){button.style.display="none";return;}
+ button.style.display="inline-flex";button.disabled=true;
+ try{
+  const {data:existing,error}=await db.from("followers").select("id").eq("follower_id",String(currentUser.id)).eq("following_id",String(creatorId)).limit(1).maybeSingle();
+  if(error)throw error;
+  if(existing){button.textContent="Following · Unfollow";button.dataset.state="following";}
+  else if(isPrivate){
+   const {data:request,error:requestError}=await db.from("follow_requests").select("id").eq("requester_id",String(currentUser.id)).eq("target_user_id",String(creatorId)).eq("status","pending").limit(1).maybeSingle();
+   if(requestError)throw requestError;
+   button.textContent=request?"Requested":"Follow";button.dataset.state=request?"requested":"follow";
+  }else{button.textContent="Follow";button.dataset.state="follow";}
+ }catch(error){console.warn("Profile follow state:",error);button.textContent="Follow";button.dataset.state="follow";}
+ finally{button.disabled=false;}
+}
+async function toggleProfileFollow(){
+ const button=$("creatorProfileFollow"),creatorId=String(button.dataset.creatorId||"");
+ if(!creatorId)return;
+ if(!currentUser)currentUser=await getUser();
+ if(!currentUser){showToast("Follow करने के लिए Login करें।");location.href="auth.html?next=index.html";return;}
+ if(String(currentUser.id)===creatorId)return;
+ button.disabled=true;
+ try{
+  const {data:existing,error:readError}=await db.from("followers").select("id").eq("follower_id",String(currentUser.id)).eq("following_id",creatorId).limit(1).maybeSingle();
+  if(readError)throw readError;
+  if(existing){
+   const {error}=await db.from("followers").delete().eq("id",existing.id).eq("follower_id",String(currentUser.id));
+   if(error)throw error;
+   showToast("Unfollow कर दिया गया।");
+  }else{
+   const profile=await getCreatorPublicCard(creatorId);
+   if(profile?.is_private){
+    const {data:request,error:requestError}=await db.from("follow_requests").select("id").eq("requester_id",String(currentUser.id)).eq("target_user_id",creatorId).eq("status","pending").limit(1).maybeSingle();
+    if(requestError)throw requestError;
+    if(!request){const {error}=await db.from("follow_requests").insert({requester_id:String(currentUser.id),target_user_id:creatorId,status:"pending"});if(error)throw error;}
+    showToast("Follow Request भेज दी गई।");
+   }else{
+    const {error}=await db.from("followers").insert({follower_id:String(currentUser.id),following_id:creatorId});
+    if(error)throw error;
+    showToast("Creator Follow हो गया!");
+   }
+  }
+  await refreshProfileFollowButton(creatorId);
+  const {count}=await db.from("followers").select("id",{count:"exact",head:true}).eq("following_id",creatorId);
+  $("creatorProfileFollowers").textContent="Followers: "+Number(count||0);
+ }catch(error){console.error("Profile follow:",error);showToast(socialActionErrorMessage(error,"follow"));}
+ finally{button.disabled=false;}
+}
+async function openFeedVideoFromProfile(row){
+ if(!row?.id)return;
+ closeCreatorProfile();
+ let ready=videos.find(x=>String(x.id)===String(row.id));
+ if(!ready?.video_url){
+  const resolved=await resolveFeedVideoUrls([row]);
+  ready=resolved[0];
+ }
+ if(!ready?.video_url){showToast("यह वीडियो अभी चल नहीं पा रहा है।");return;}
+ videos=[ready,...videos.filter(x=>String(x.id)!==String(ready.id))];
+ filtered=[ready,...filtered.filter(x=>String(x.id)!==String(ready.id))];
+ currentCategory="For You";
+ document.querySelectorAll(".category").forEach(button=>button.classList.toggle("active",button.dataset.cat==="For You"));
+ await loadLikes();
+ currentIndex=0;
+ renderVideo();
+}
 async function openCreatorProfile(creatorOverride=null){
- const item=creatorOverride||currentVideo;if(!item?.user_id)return;
+ const item=creatorOverride||currentVideo;if(!item?.user_id){showToast("इस वीडियो के Creator की जानकारी उपलब्ध नहीं है।");return;}
  const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),grid=$("creatorProfileVideos");
+ // Move the sheet out of the clipped video-feed stacking context.
+ if(sheet.parentElement!==document.body)document.body.appendChild(sheet);
  sheet.classList.add("open");sheet.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
  $("creatorProfileName").textContent="@"+String(item.username||"creator").replace(/^@/,"");
  $("creatorProfileBio").textContent="";$("creatorProfileAvatar").src="";grid.replaceChildren();status.textContent="प्रोफ़ाइल लोड हो रही है…";
+ const follow=$("creatorProfileFollow");follow.style.display="inline-flex";follow.disabled=true;follow.dataset.creatorId=String(item.user_id);follow.textContent="Loading…";
  try{
   const profile=await getCreatorPublicCard(item.user_id);
   if(!profile)throw Error("Creator की सार्वजनिक प्रोफ़ाइल उपलब्ध नहीं है।");
   if(token!==creatorProfileRequest)return;
-  $("creatorProfileName").textContent=(profile.full_name||"")+" @"+String(profile.username||item.username||"creator").replace(/^@/,"");
+  $("creatorProfileName").textContent=(profile.full_name?profile.full_name+" · ":"")+"@"+String(profile.username||item.username||"creator").replace(/^@/,"");
   $("creatorProfileBio").textContent=profile.bio||"";
-  if(profile.avatar_url)$("creatorProfileAvatar").src=profile.avatar_url;
+  $("creatorProfileAvatar").style.visibility="visible";
+  $("creatorProfileAvatar").src=profile.avatar_url||"";
   $("creatorProfileAvatar").onerror=()=>{$("creatorProfileAvatar").style.visibility="hidden";};
   $("creatorProfileAvatar").onload=()=>{$("creatorProfileAvatar").style.visibility="visible";};
+  await refreshProfileFollowButton(item.user_id,!!profile.is_private);
   const [followers,following,posts]=await Promise.all([
    db.from("followers").select("id",{count:"exact",head:true}).eq("following_id",String(item.user_id)),
    db.from("followers").select("id",{count:"exact",head:true}).eq("follower_id",String(item.user_id)),
-   db.from("videos").select("id,video_url,caption,created_at,username,user_id,category,likes_count,views_count,audience_type,duration_seconds,width,height,thumbnail_url,video_type,frame_fit,affiliate_link",{count:"exact"}).eq("user_id",String(item.user_id)).or("visibility.eq.public,visibility.is.null").or("processing_status.eq.published,processing_status.is.null").order("created_at",{ascending:false}).limit(24)
+   db.from("videos").select("id,video_url,caption,created_at,username,user_id,category,likes_count,views_count,audience_type,duration_seconds,width,height,thumbnail_url,video_type,frame_fit,affiliate_link,tags",{count:"exact"}).eq("user_id",String(item.user_id)).or("visibility.eq.public,visibility.is.null").or("processing_status.eq.published,processing_status.is.null").order("created_at",{ascending:false}).limit(50)
   ]);
   if(token!==creatorProfileRequest)return;
   $("creatorProfileFollowers").textContent="Followers: "+(followers.error?"—":Number(followers.count||0));
@@ -925,19 +1004,16 @@ async function openCreatorProfile(creatorOverride=null){
   if(posts.error)throw posts.error;
   const rows=await resolveFeedVideoUrls(posts.data||[]);
   if(token!==creatorProfileRequest)return;
+  if(!rows.length){status.textContent=profile.is_private?"यह Private Creator है।":"इस Creator ने अभी कोई सार्वजनिक वीडियो अपलोड नहीं किया है।";return;}
   rows.forEach(row=>{
-   if(!row.video_url)return;
+   const tile=document.createElement("button");tile.type="button";tile.className="creator-video-tile";
    const v=document.createElement("video");v.src=row.video_url;v.poster=row.thumbnail_url||"";v.muted=true;v.playsInline=true;v.preload="metadata";
-   v.addEventListener("click",()=>{
-    closeCreatorProfile();
-    let index=filtered.findIndex(x=>String(x.id)===String(row.id));
-    if(index<0){videos=[row,...videos.filter(x=>String(x.id)!==String(row.id))];filtered=[row,...filtered.filter(x=>String(x.id)!==String(row.id))];index=0;}
-    currentIndex=index;renderVideo();
-   });
-   grid.append(v);
+   const title=document.createElement("span");title.className="creator-video-label";title.textContent=row.caption||"Video";
+   const views=document.createElement("span");views.className="creator-video-views";views.textContent=numberFormat(row.views_count||0)+" views · Open to Like, Comment & Share";
+   tile.append(v,title,views);tile.addEventListener("click",()=>openFeedVideoFromProfile(row));grid.append(tile);
   });
-  status.textContent=profile.is_private?"यह Private Creator है। Follow Request भेजने के लिए Feed का Follow बटन इस्तेमाल करें।":"Creator की सार्वजनिक प्रोफ़ाइल और वीडियो";
- }catch(error){if(token===creatorProfileRequest)status.textContent="प्रोफ़ाइल नहीं खुली: "+error.message;}
+  status.textContent="Public videos · किसी वीडियो को खोलकर Like, Comment और Share कर सकते हो।";
+ }catch(error){if(token===creatorProfileRequest)status.textContent="प्रोफ़ाइल नहीं खुली: "+(error?.message||"कृपया फिर कोशिश करें।");}
 }
 function closeCreatorProfile(){creatorProfileRequest++;$("creatorProfileSheet").classList.remove("open");$("creatorProfileSheet").setAttribute("aria-hidden","true");document.body.style.overflow="";}
 async function toggleCreatorFollow(){
@@ -1350,26 +1426,57 @@ document.querySelectorAll(".category").forEach(button=>{
 });
 let searchTimer,creatorSearchTimer=0,creatorSearchSequence=0;
 function hideCreatorSearchResults(){$("creatorSearchResults").hidden=true;$("creatorSearchResults").replaceChildren();}
+function addSearchSection(panel,label){
+ const heading=document.createElement("div");heading.textContent=label;heading.style.cssText="padding:8px 10px 4px;color:#aaa;font-size:11px;font-weight:700;text-transform:uppercase";panel.append(heading);
+}
 async function searchCreatorProfiles(query){
  const panel=$("creatorSearchResults"),sequence=++creatorSearchSequence;
  if(!query||query.length<2){hideCreatorSearchResults();return;}
- const {data,error}=await db.rpc("search_newstar_creators",{p_search:query,p_limit:10});
+ const [creatorResult,videoResult]=await Promise.all([
+  db.rpc("search_newstar_creators",{p_search:query,p_limit:8}),
+  db.rpc("get_recommended_video_feed_v2",{p_limit:12,p_offset:0,p_video_type:null,p_category:null,p_search:query})
+ ]);
  if(sequence!==creatorSearchSequence)return;
- if(error){console.warn("Creator search:",error.message);hideCreatorSearchResults();return;}
- const creators=data||[];
  panel.replaceChildren();
- creators.forEach(creator=>{
-  const button=document.createElement("button");button.type="button";button.className="creator-search-item";button.setAttribute("role","option");
-  if(creator.avatar_url){const img=document.createElement("img");img.src=creator.avatar_url;img.alt="";img.onerror=()=>{const fallback=document.createElement("span");fallback.className="creator-search-fallback";fallback.textContent=(creator.username||"C").charAt(0).toUpperCase();img.replaceWith(fallback);};button.append(img);}
-  else{const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent=(creator.username||"C").charAt(0).toUpperCase();button.append(avatar);}
-  const copy=document.createElement("span");copy.className="creator-search-copy";
-  const name=document.createElement("strong");name.textContent=(creator.full_name||"")+" @"+String(creator.username||"creator").replace(/^@/,"");
-  const sub=document.createElement("small");sub.textContent="Creator profile · View videos";
-  copy.append(name,sub);button.append(copy);
-  button.addEventListener("click",()=>{hideCreatorSearchResults();$("search").value=creator.username||query;openCreatorProfile({user_id:creator.user_id,username:creator.username});});
-  panel.append(button);
- });
- if(creators.length){panel.hidden=false;}else hideCreatorSearchResults();
+ let count=0;
+ if(!creatorResult.error&&(creatorResult.data||[]).length){
+  addSearchSection(panel,"Creators");
+  (creatorResult.data||[]).forEach(creator=>{
+   const button=document.createElement("button");button.type="button";button.className="creator-search-item";button.setAttribute("role","option");
+   if(creator.avatar_url){const img=document.createElement("img");img.src=creator.avatar_url;img.alt="";img.onerror=()=>{const fallback=document.createElement("span");fallback.className="creator-search-fallback";fallback.textContent=(creator.username||"C").charAt(0).toUpperCase();img.replaceWith(fallback);};button.append(img);}
+   else{const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent=(creator.username||"C").charAt(0).toUpperCase();button.append(avatar);}
+   const copy=document.createElement("span");copy.className="creator-search-copy";
+   const name=document.createElement("strong");name.textContent=(creator.full_name||"")+" @"+String(creator.username||"creator").replace(/^@/,"");
+   const sub=document.createElement("small");sub.textContent="Creator profile · View all public videos";
+   copy.append(name,sub);button.append(copy);
+   button.addEventListener("click",()=>{hideCreatorSearchResults();$("search").value="";openCreatorProfile({user_id:creator.user_id,username:creator.username});});
+   panel.append(button);count++;
+  });
+ }
+ if(!videoResult.error&&(videoResult.data||[]).length){
+  addSearchSection(panel,"Videos");
+  (videoResult.data||[]).forEach(video=>{
+   const button=document.createElement("button");button.type="button";button.className="creator-search-item";
+   const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent="▶";button.append(avatar);
+   const copy=document.createElement("span");copy.className="creator-search-copy";
+   const name=document.createElement("strong");name.textContent=video.caption||"New Star Video";
+   const sub=document.createElement("small");sub.textContent="@"+String(video.username||"creator").replace(/^@/,"")+" · "+numberFormat(video.views_count||0)+" views";
+   copy.append(name,sub);button.append(copy);
+   button.addEventListener("click",async()=>{
+    hideCreatorSearchResults();$("search").value=query;currentCategory="For You";
+    document.querySelectorAll(".category").forEach(x=>x.classList.toggle("active",x.dataset.cat==="For You"));
+    await loadFeed();
+    const index=filtered.findIndex(x=>String(x.id)===String(video.id));
+    if(index>=0){currentIndex=index;renderVideo();}
+    else await openFeedVideoFromProfile(video);
+   });
+   panel.append(button);count++;
+  });
+ }
+ if(count)panel.hidden=false;
+ else{
+  const empty=document.createElement("div");empty.textContent="कोई Creator या Video नहीं मिला।";empty.style.cssText="padding:12px;color:#aaa;font-size:12px";panel.append(empty);panel.hidden=false;
+ }
 }
 $("search").addEventListener("input",()=>{
  const query=$("search").value.trim();
@@ -1490,6 +1597,7 @@ $("followCreatorBtn").addEventListener("click",toggleCreatorFollow);
 $("username").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
 $("creatorProfileButton").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
 $("creatorProfileClose").addEventListener("click",closeCreatorProfile);
+$("creatorProfileFollow").addEventListener("click",toggleProfileFollow);
 $("creatorProfileSheet").addEventListener("click",event=>{if(event.target===$("creatorProfileSheet"))closeCreatorProfile();});
 $("likeBtn").addEventListener("click",toggleLike);
 $("commentBtn").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openComments();});
