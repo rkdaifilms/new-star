@@ -382,6 +382,36 @@ body.creator-profile-video-mode #creatorIdentityBar{display:none!important}
 .top-area .search-row>input#search::-webkit-search-results-decoration{
   -webkit-appearance:none!important;
 }
+
+/* Final override: the search field and mic button themselves must stay clear. */
+html body #app header.top-area .search-row,
+html body #app header.top-area .search-row:focus-within{
+  background:transparent!important;background-color:transparent!important;
+  background-image:none!important;border:0!important;box-shadow:none!important;
+}
+html body #app header.top-area .search-row #search,
+html body #app header.top-area .search-row #search:focus,
+html body #app header.top-area .search-row #search:active,
+html body #app header.top-area .search-row #search:-webkit-autofill,
+html body #app header.top-area .search-row #voice,
+html body #app header.top-area .search-row #voice:hover,
+html body #app header.top-area .search-row #voice:focus,
+html body #app header.top-area .search-row #voice:active{
+  background:transparent!important;background-color:transparent!important;
+  background-image:none!important;border:0!important;box-shadow:none!important;
+  outline:0!important;-webkit-appearance:none!important;appearance:none!important;
+  -webkit-tap-highlight-color:transparent!important;
+}
+html body #app header.top-area .search-row #search:-webkit-autofill,
+html body #app header.top-area .search-row #search:-webkit-autofill:hover,
+html body #app header.top-area .search-row #search:-webkit-autofill:focus{
+  -webkit-text-fill-color:#fff!important;
+  -webkit-box-shadow:0 0 0 1000px transparent inset!important;
+  box-shadow:0 0 0 1000px transparent inset!important;
+  transition:background-color 999999s ease-out 0s!important;
+}
+html body #app header.top-area .search-row #voice::before,
+html body #app header.top-area .search-row #voice::after{background:transparent!important;box-shadow:none!important}
 </style>
 
 <link rel="manifest" href="/manifest.json">
