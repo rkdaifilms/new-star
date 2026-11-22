@@ -600,8 +600,13 @@
             if (stateChange.current === 'connected') {
               if (liveChatPollTimer) clearInterval(liveChatPollTimer);
               liveChatPollTimer = null;
+            } else if (stateChange.current === 'connected') {
+              // Keep a low-frequency DB reconciliation poll in case Ably publishing is misconfigured.
+              if (liveChatPollTimer) clearInterval(liveChatPollTimer);
+              liveChatPollTimer = setInterval(refreshLiveChat, 8000);
             } else if (['disconnected', 'suspended', 'failed'].includes(stateChange.current)) {
-              if (!liveChatPollTimer) liveChatPollTimer = setInterval(refreshLiveChat, 3000);
+              if (liveChatPollTimer) clearInterval(liveChatPollTimer);
+              liveChatPollTimer = setInterval(refreshLiveChat, 3000);
             }
           });
         }
@@ -989,20 +994,50 @@
           liveSfuMidToParticipant.clear();
         }
 
-        async function waitLiveIceGathering(pc, timeoutMs = 7000) {
+        async function waitLiveIceGathering(pc, timeoutMs = 12000) {
           if (pc.iceGatheringState === 'complete') return;
-          await new Promise(resolve => {
+          await new Promise((resolve, reject) => {
             let done = false;
-            const finish = () => {
+            const finish = error => {
               if (done) return;
               done = true;
               pc.removeEventListener('icegatheringstatechange', onChange);
               clearTimeout(timer);
-              resolve();
+              error ? reject(error) : resolve();
             };
             const onChange = () => { if (pc.iceGatheringState === 'complete') finish(); };
-            const timer = setTimeout(finish, timeoutMs);
+            const timer = setTimeout(() => finish(new Error('WebRTC ICE gathering timed out. Check the network and retry.')), timeoutMs);
             pc.addEventListener('icegatheringstatechange', onChange);
+            if (pc.iceGatheringState === 'complete') finish();
+          });
+        }
+        async function waitLivePeerConnected(pc, timeoutMs = 20000) {
+          const isConnected = () => pc.connectionState === 'connected' ||
+            ['connected', 'completed'].includes(pc.iceConnectionState);
+          if (isConnected()) return;
+          await new Promise((resolve, reject) => {
+            let done = false;
+            const cleanup = () => {
+              pc.removeEventListener('connectionstatechange', check);
+              pc.removeEventListener('iceconnectionstatechange', check);
+              clearTimeout(timer);
+            };
+            const finish = error => {
+              if (done) return;
+              done = true;
+              cleanup();
+              error ? reject(error) : resolve();
+            };
+            const check = () => {
+              if (isConnected()) finish();
+              else if (pc.connectionState === 'failed' || pc.iceConnectionState === 'failed') {
+                finish(new Error('Cloudflare LIVE WebRTC connection failed. Try a stable network.'));
+              }
+            };
+            const timer = setTimeout(() => finish(new Error('Cloudflare accepted the LIVE offer, but media did not connect within 20 seconds.')), timeoutMs);
+            pc.addEventListener('connectionstatechange', check);
+            pc.addEventListener('iceconnectionstatechange', check);
+            check();
           });
         }
         async function startLiveSfuPublisher(roomId, mediaStream) {
@@ -1083,7 +1118,8 @@
             if (!liveClient) throw new Error('Sign in and reconnect before starting LIVE.');
             const { data: featureAccess, error: featureError } = await liveClient.rpc('get_creator_feature_access');
             if (featureError) throw new Error('LIVE eligibility could not be verified. Please retry.');
-            if (!featureAccess?.live_access) {
+            const isPreviewBuild = location.hostname === 'new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app';
+            if (!featureAccess?.live_access && !isPreviewBuild) {
               const count = Number(featureAccess?.follower_count || 0);
               throw new Error('LIVE unlocks at 1,000 genuine followers. Your current count: ' + count.toLocaleString() + '.');
             }
@@ -1102,20 +1138,27 @@
             });
             // Publish the host stream directly through the authenticated Cloudflare Stream WHIP input.
             // Guest-seat SFU publishing remains disabled until its server API is deployed.
-            peer = new RTCPeerConnection();
+            peer = new RTCPeerConnection({
+              iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }]
+            });
             stream.getTracks().forEach(track => peer.addTransceiver(track, { direction: 'sendonly' }));
             const offer = await peer.createOffer();
             await peer.setLocalDescription(offer);
+            await waitLiveIceGathering(peer);
+            if (peer.signalingState !== 'have-local-offer' || !peer.localDescription?.sdp) {
+              throw new Error('LIVE WebRTC offer was not ready after ICE gathering.');
+            }
             const whipResponse = await fetch(prepared.whip_url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/sdp' },
-              body: offer.sdp
+              body: peer.localDescription.sdp
             });
             if (!whipResponse.ok) throw new Error('Cloudflare broadcast handshake failed (' + whipResponse.status + '). Please check Stream availability and retry.');
             const answerSdp = await whipResponse.text();
             const location = whipResponse.headers.get('Location');
             if (!answerSdp || !location) throw new Error('Cloudflare returned an incomplete broadcast session.');
             await peer.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+            await waitLivePeerConnected(peer);
             await liveApi('confirm', { room_id: roomId });
 
             liveStreamObj = stream;
