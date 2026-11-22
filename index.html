@@ -1092,6 +1092,9 @@ function renderVideo(){
   player.style.objectFit=currentVideo.frame_fit==="cover"?"cover":"contain";
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
+ const creatorIdentityBar=$("creatorIdentityBar");
+ // Move the complete creator controls out of the clipped feed stacking tree.
+ if(creatorIdentityBar.parentElement!==document.body)document.body.appendChild(creatorIdentityBar);
  const creatorAvatarButton=$("creatorProfileButton");
  const creatorAvatar=$("feedCreatorAvatar"),creatorAvatarFallback=$("feedCreatorFallback");
  const creatorAction=$("creatorActionBtn"),creatorActionAvatar=$("creatorActionAvatar"),creatorActionFallback=$("creatorActionFallback");
