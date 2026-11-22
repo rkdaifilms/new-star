@@ -2,7 +2,7 @@ name: New Star Developer Android APK
 
 on:
   push:
-    branches: [main]
+    branches: [main, new-star-repair-pass-1]
     paths:
       - "developer-android/**"
       - ".github/workflows/android-developer-build.yml"
