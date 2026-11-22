@@ -1791,12 +1791,9 @@ async function searchCreatorProfiles(query){
     const kind=document.createElement("small");kind.textContent=videoType;
     videoCopy.append(title,kind);openVideo.append(thumb,videoCopy);
     openVideo.addEventListener("click",async()=>{
-     hideCreatorSearchResults();$("search").value=raw;currentCategory="For You";
-     document.querySelectorAll(".category").forEach(x=>x.classList.toggle("active",x.dataset.cat==="For You"));
-     await loadFeed();
-     const index=filtered.findIndex(x=>String(x.id)===String(video.id));
-     if(index>=0){currentIndex=index;renderVideo();}
-     else await openFeedVideoFromProfile(video);
+     hideCreatorSearchResults();
+     creatorProfileVideoRows=videos.slice();
+     await openFeedVideoFromProfile(video);
     });
     const creatorButton=document.createElement("button");creatorButton.type="button";creatorButton.className="creator-search-video-creator";
     if(creator.avatar_url){const avatar=document.createElement("img");avatar.src=creator.avatar_url;avatar.alt="";avatar.loading="lazy";avatar.onerror=()=>{const fallback=document.createElement("span");fallback.className="creator-search-fallback";fallback.textContent=(creator.username||video.username||"C").charAt(0).toUpperCase();avatar.replaceWith(fallback);};creatorButton.append(avatar);}
@@ -1827,7 +1824,6 @@ async function searchCreatorProfiles(query){
 $("search").addEventListener("input",()=>{
  const query=$("search").value.trim();
  clearTimeout(searchTimer);clearTimeout(creatorSearchTimer);
- searchTimer=setTimeout(()=>loadFeed(),350);
  creatorSearchTimer=setTimeout(()=>searchCreatorProfiles(query),180);
 });
 $("search").addEventListener("keydown",event=>{if(event.key==="Escape")hideCreatorSearchResults();});
@@ -1836,7 +1832,7 @@ $("voice").addEventListener("click",()=>{
  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SpeechRecognition){showToast("इस Browser में Voice Search उपलब्ध नहीं है।");return;}
  const recognition=new SpeechRecognition();recognition.lang="hi-IN";recognition.interimResults=false;
- recognition.onresult=event=>{$("search").value=event.results[0][0].transcript;loadFeed();};
+ recognition.onresult=event=>{$("search").value=event.results[0][0].transcript;searchCreatorProfiles(event.results[0][0].transcript);};
  recognition.onerror=()=>showToast("Voice Search काम नहीं कर पाया।");
  recognition.start();
 });
