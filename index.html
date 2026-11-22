@@ -551,16 +551,20 @@ const newStarHlsPlayers=new WeakMap();
 function attachNewStarVideoSource(player,source){
  const previous=newStarHlsPlayers.get(player);if(previous){previous.destroy();newStarHlsPlayers.delete(player);}
  player.pause();player.removeAttribute("src");player.load();
- if(!source)return;
+ if(!source)return false;
  const isHls=/\.m3u8(?:$|[?#])/i.test(source);
  if(isHls&&window.Hls&&window.Hls.isSupported()){
   const hls=new window.Hls({enableWorker:true,lowLatencyMode:false,backBufferLength:30});
-  newStarHlsPlayers.set(player,hls);hls.loadSource(source);hls.attachMedia(player);
- }else{
-  if(isHls&&player.canPlayType("application/vnd.apple.mpegurl"))player.src=source;
-  else player.src=source;
-  player.load();
+  newStarHlsPlayers.set(player,hls);
+  hls.on(window.Hls.Events.MANIFEST_PARSED,()=>player.play().catch(()=>{$("playHint").style.display="block";}));
+  hls.on(window.Hls.Events.ERROR,(_event,data)=>{if(data?.fatal){console.error("HLS playback failed:",data);$("playHint").style.display="block";}});
+  hls.loadSource(source);hls.attachMedia(player);
+  return true;
  }
+ if(isHls&&player.canPlayType("application/vnd.apple.mpegurl"))player.src=source;
+ else player.src=source;
+ player.load();
+ return false;
 }
 async function loadLikes(){
  likedIds.clear();
@@ -1002,11 +1006,17 @@ async function openFeedVideoFromProfile(row){
  const rows=creatorProfileVideoRows.length?creatorProfileVideoRows:[row];
  const index=rows.findIndex(x=>String(x.id)===selectedId);
  let ready=rows[index>=0?index:0]||row;
- if(!ready?.video_url||ready.video_provider==="cloudflare"){
+ // Profile tiles carry the database's original object URL. Always exchange it for the
+ // same short-lived, access-checked playback URL used by the Home Feed.
+ try{
   const resolved=await resolveFeedVideoUrls([ready]);
-  ready=resolved[0]||ready;
+  ready=resolved.find(x=>String(x.id)===selectedId)||null;
+ }catch(error){
+  console.error("Creator profile playback URL:",error);
+  showToast("वीडियो का सुरक्षित लिंक नहीं मिला: "+(error?.message||"कृपया फिर कोशिश करें।"));
+  return;
  }
- if(!ready?.video_url){showToast("यह वीडियो अभी चल नहीं पा रहा है।");return;}
+ if(!ready?.video_url){showToast("यह वीडियो अभी प्रकाशित या देखने योग्य नहीं है। प्रोफ़ाइल में वापस जाकर दूसरा वीडियो चुनें।");return;}
  creatorProfileOriginalFiltered=filtered.slice();
  creatorProfileOriginalCategory=currentCategory;
  creatorProfileOriginalIndex=currentIndex;
@@ -1156,10 +1166,10 @@ function renderVideo(){
  const playbackDuration=Number(currentVideo.duration_seconds)||0;
  const playbackIsShort=currentVideo.video_type==="short"?true:currentVideo.video_type==="long"?false:(playbackDuration>0?playbackDuration<=60:Number(currentVideo.height)>Number(currentVideo.width));
  player.loop=playbackIsShort;
- attachNewStarVideoSource(player,currentVideo.video_url);
+ const hlsPlayback=attachNewStarVideoSource(player,currentVideo.video_url);
  player.onplay=()=>{if(currentVideo&&String(currentVideo.id)===renderingId)startWatchSession(renderingId);};
  player.onpause=()=>{stopWatchSession();};
- player.play().catch(()=>{$("playHint").style.display="block";});
+ if(!hlsPlayback)player.play().catch(error=>{console.warn("Video autoplay deferred:",error);$("playHint").style.display="block";});
  player.onended=()=>{stopWatchSession();};
  const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
  const currentDuration=Number(currentVideo.duration_seconds)||0;
