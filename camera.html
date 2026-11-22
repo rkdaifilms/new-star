@@ -30,27 +30,26 @@ p,.muted{font-size:12px;color:#aaa;line-height:1.6}
 .input,.select{width:100%;padding:11px;margin:5px 0 10px;background:#08080b;border:1px solid #444;color:#fff;border-radius:8px}
 label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .hidden{display:none!important}
-.preview{width:100%;max-width:640px;height:auto;aspect-ratio:var(--preview-ratio,.5625);max-height:min(90vh,760px);min-height:0;background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #292930;border-radius:12px;margin:0 auto 12px}
-#editorVideo{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;background:#000}
+.preview{width:100%;max-width:820px;height:58vh;min-height:320px;max-height:680px;aspect-ratio:auto;background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #292930;border-radius:14px;margin:0 auto 12px}
+#editorVideo{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;background:#000;transform-origin:center}
 #editorActions{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 14px}
 #editorActions .primary{margin:0}
 .editor-meta{font-size:12px;color:#aeb4bf;text-align:center;padding:7px 4px}
-#editorVideo{width:100%;height:100%;object-fit:contain;transform-origin:center}
 #previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;max-width:90%;overflow-wrap:anywhere;z-index:5;pointer-events:none}
-.editor-workspace{display:flex;flex-direction:column;gap:8px;width:100%;max-width:820px;margin:0 auto 10px}
-.editor-workspace>.preview{width:100%;max-width:none;min-width:0;height:auto;max-height:42vh;min-height:0;margin:0 auto;aspect-ratio:var(--preview-ratio,.5625);align-self:center;transition:max-height .18s ease}
+.editor-workspace{display:flex;flex-direction:column;gap:10px;width:100%;max-width:820px;margin:0 auto 10px}
+.editor-workspace>.preview{width:100%;max-width:none;min-width:0;height:58vh;min-height:320px;max-height:680px;margin:0 auto;aspect-ratio:auto;align-self:stretch;transition:height .18s ease}
 .editor-tools-rail{display:flex;flex-direction:row;flex-wrap:nowrap;gap:8px;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;overscroll-behavior-y:none;scrollbar-width:none;padding:7px 5px;background:#111116;border:1px solid #303039;border-radius:10px}
 .editor-tools-rail::-webkit-scrollbar{display:none}
 .editor-tools-rail button{display:flex;align-items:center;justify-content:center;flex:0 0 48px;width:48px;height:48px;min-height:48px;padding:0;border:1px solid #35353e;border-radius:12px;background:#222229;color:#f4f4f5;font-size:23px;line-height:1}
 .editor-tools-rail button span{display:none!important}
 .editor-tools-rail button:active,.editor-tools-rail button:focus-visible{background:#3a2630;border-color:#fe2c55;outline:none}
-#editorScreen.has-open-panel .editor-workspace>.preview{max-height:31vh}
+#editorScreen.has-open-panel .editor-workspace>.preview{height:42vh;min-height:250px}
 #editorScreen.has-open-panel .editor-tools-rail{border-color:#fe2c55}
 #editorScreen .panel{width:100%;max-width:820px;margin:10px auto 12px;scroll-margin-top:8px}
 #editorActions{display:grid;grid-template-columns:1fr;gap:8px;margin:12px auto 14px;width:100%;max-width:820px}
 #editorActions .primary{display:block;width:100%;min-height:50px;margin:0;position:static;inset:auto;transform:none}
-@media(max-width:390px){.editor-workspace>.preview{max-height:39vh}.editor-tools-rail{gap:7px;padding:6px 4px}.editor-tools-rail button{flex-basis:44px;width:44px;height:44px;min-height:44px;font-size:21px}#editorScreen.has-open-panel .editor-workspace>.preview{max-height:28vh}}
-@media(min-width:700px){.editor-workspace{max-width:820px}.editor-workspace>.preview{max-height:52vh}.editor-tools-rail{justify-content:center}.editor-tools-rail button{flex-basis:52px;width:52px;height:52px;min-height:52px}#editorScreen.has-open-panel .editor-workspace>.preview{max-height:40vh}}
+@media(max-width:390px){.editor-workspace>.preview{height:54vh;min-height:300px}.editor-tools-rail{gap:7px;padding:6px 4px}.editor-tools-rail button{flex-basis:44px;width:44px;height:44px;min-height:44px;font-size:21px}#editorScreen.has-open-panel .editor-workspace>.preview{height:38vh;min-height:230px}}
+@media(min-width:700px){.editor-workspace{max-width:820px}.editor-workspace>.preview{height:68vh;max-height:760px}.editor-tools-rail{justify-content:center}.editor-tools-rail button{flex-basis:52px;width:52px;height:52px;min-height:52px}#editorScreen.has-open-panel .editor-workspace>.preview{height:50vh;min-height:340px}}
 
 .panel{border-radius:10px}
 .panel-head{display:flex;justify-content:space-between;align-items:center}
@@ -599,14 +598,15 @@ function applyTransform() {
  toast("Preview Crop/Rotate लागू हुआ। Export में लागू होगा।");
 }
 function applyOutputFrame() {
- const preview=document.querySelector(".preview");
- const ratio=sourceMetadata?.width&&sourceMetadata?.height
-  ? sourceMetadata.width/sourceMetadata.height : 9/16;
- preview.style.setProperty("--preview-ratio",String(ratio));
- preview.style.aspectRatio=String(ratio);
- const availableWidth=preview.parentElement?.clientWidth||preview.clientWidth||640;
- const maxPreviewHeight=Math.min(window.innerHeight*($("editorScreen").classList.contains("has-open-panel")?0.31:0.42),760);
- preview.style.width=Math.max(120,Math.min(availableWidth,maxPreviewHeight*ratio))+"px";
+ const preview=document.querySelector(".editor-workspace>.preview");
+ if(!preview) return;
+ // Keep the preview wide and tall on phones. The source's full frame is
+ // fitted inside it, so portrait and landscape videos are never clipped.
+ preview.style.width="100%";
+ preview.style.aspectRatio="auto";
+ preview.style.maxWidth="none";
+ video.style.width="100%";
+ video.style.height="100%";
  video.style.objectFit="contain";
 }
 
