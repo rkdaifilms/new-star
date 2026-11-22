@@ -603,7 +603,6 @@ $("editorExpandButton").onclick = () => {
  if(expanded) {
   closePanels();
   editor.classList.add("editor-expanded");
-  setTimeout(()=>document.querySelector(".editor-tools-rail")?.scrollIntoView({behavior:"smooth",block:"nearest"}),80);
  } else {
   closePanels();
   editor.classList.remove("editor-expanded");
