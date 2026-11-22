@@ -107,6 +107,22 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
  #editorExpandButton{top:8px;right:8px;width:46px;height:46px}
 }
 
+
+/* Immersive video playback: show only the video, with a clear Back control. */
+body.video-fullscreen-mode{padding:0!important;overflow:hidden!important;background:#000!important}
+body.video-fullscreen-mode>.studio{display:none!important}
+body.video-fullscreen-mode #editorScreen{display:block!important;position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;padding:0!important;background:#000!important;overflow:hidden!important}
+body.video-fullscreen-mode #editorScreen .editor-workspace{display:block!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important}
+body.video-fullscreen-mode #editorScreen .preview{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;max-width:none!important;margin:0!important;border:0!important;border-radius:0!important;background:#000!important}
+body.video-fullscreen-mode #editorScreen #editorVideo{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;background:#000!important}
+body.video-fullscreen-mode #editorScreen .editor-tools-rail,
+body.video-fullscreen-mode #editorScreen #editorActions,
+body.video-fullscreen-mode #editorScreen>.panel,
+body.video-fullscreen-mode #editorScreen #editorExpandButton{display:none!important}
+#editorFullscreenButton{position:absolute;z-index:40;top:10px;left:10px;width:46px;height:46px;border:1px solid rgba(255,255,255,.65);border-radius:12px;background:rgba(8,8,12,.82);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center}
+#editorFullscreenBack{display:none;position:fixed;z-index:2147483647;top:calc(env(safe-area-inset-top) + 12px);left:12px;min-width:76px;min-height:44px;padding:8px 14px;border:1px solid rgba(255,255,255,.7);border-radius:24px;background:rgba(0,0,0,.72);color:#fff;font-weight:700;font-size:15px}
+body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center;justify-content:center}
+
 </style>
 
 <link rel="manifest" href="/manifest.json">
@@ -152,6 +168,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
   <div class="preview">
    <video id="editorVideo" playsinline controls></video>
    <div id="previewText"></div>
+   <button type="button" id="editorFullscreenButton" aria-label="Play video fullscreen" title="Fullscreen">⛶</button>
    <button type="button" id="editorExpandButton" aria-expanded="false" aria-label="Open video editor tools">⋯</button>
    <div id="editorActions">
     <button class="primary" id="saveEditsButton">Continue to Upload</button>
@@ -320,6 +337,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
  </section>
 </section>
 </main>
+<button type="button" id="editorFullscreenBack" aria-label="Back to Creator Studio">← Back</button>
 <div id="toast"></div>
 <script src="i18n.js"></script>
 <script src="./navbar.js"></script>
@@ -664,6 +682,66 @@ async function continueToUpload() {
  }
 }
 $("saveEditsButton").onclick = continueToUpload;
+
+/* Fullscreen playback mode. The Back button and Android/browser Back both return
+   to the Creator Studio editor without losing the selected video or edits. */
+let videoFullscreenActive = false;
+let fullscreenHistoryEntry = false;
+async function enterVideoFullscreen() {
+ if (videoFullscreenActive || !video.src) {
+  if (!video.src) toast("पहले वीडियो चुनें।");
+  return;
+ }
+ closePanels();
+ videoFullscreenActive = true;
+ document.body.classList.add("video-fullscreen-mode");
+ $("editorFullscreenButton").setAttribute("aria-pressed","true");
+ try {
+  history.pushState({newStarVideoFullscreen:true},"","#video-fullscreen");
+  fullscreenHistoryEntry = true;
+ } catch (_) {}
+ try {
+  const preview = $("editorScreen").querySelector(".preview");
+  if (preview?.requestFullscreen) await preview.requestFullscreen();
+  else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+ } catch (error) {
+  console.warn("Native fullscreen unavailable; using immersive layout:",error);
+ }
+ try {
+  if (screen.orientation?.lock) await screen.orientation.lock("landscape");
+ } catch (_) {}
+}
+function exitVideoFullscreen(fromPopState = false) {
+ if (!videoFullscreenActive) return;
+ videoFullscreenActive = false;
+ document.body.classList.remove("video-fullscreen-mode");
+ $("editorFullscreenButton").setAttribute("aria-pressed","false");
+ try {
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+ } catch (_) {}
+ try { if (screen.orientation?.unlock) screen.orientation.unlock(); } catch (_) {}
+ if (!fromPopState && fullscreenHistoryEntry) {
+  fullscreenHistoryEntry = false;
+  try { history.back(); } catch (_) {}
+ } else {
+  fullscreenHistoryEntry = false;
+ }
+}
+$("editorFullscreenButton").addEventListener("click",enterVideoFullscreen);
+$("editorFullscreenBack").addEventListener("click",()=>exitVideoFullscreen());
+window.addEventListener("popstate",()=>{
+ if(videoFullscreenActive) exitVideoFullscreen(true);
+});
+document.addEventListener("fullscreenchange",()=>{
+ if(videoFullscreenActive && !document.fullscreenElement && !video.webkitDisplayingFullscreen) exitVideoFullscreen(true);
+});
+document.addEventListener("keydown",event=>{
+ if(videoFullscreenActive && (event.key==="Escape" || event.key==="Backspace")) {
+  event.preventDefault();
+  exitVideoFullscreen();
+ }
+});
+
 $("editorExpandButton").onclick = () => {
  const editor=$("editorScreen");
  const expanded=!editor.classList.contains("editor-expanded");
