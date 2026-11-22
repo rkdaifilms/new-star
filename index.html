@@ -53,7 +53,7 @@ button{cursor:pointer}
 #creatorProfileButton{flex:0 0 38px;width:38px!important;height:38px!important;min-width:38px;min-height:38px;align-items:center;justify-content:center;cursor:pointer;}
 #username{display:inline-flex;align-items:center;min-height:38px;margin:0;padding:4px 0;color:#fff;font:700 15px/1.25 inherit;text-shadow:0 1px 5px #000;cursor:pointer;}
 #followCreatorBtn{min-height:36px;cursor:pointer;}
-#creatorActionBtn.creator-profile-fab{position:fixed!important;right:max(12px,calc((100vw - 480px)/2 + 12px))!important;top:calc(env(safe-area-inset-top) + 150px)!important;z-index:2147482500!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:56px;min-height:64px;padding:5px 3px;border:1px solid #ffffffaa;border-radius:14px;background:#17171ddd;color:#fff;box-shadow:0 3px 14px #0009;cursor:pointer;pointer-events:auto!important;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+#creatorActionBtn.creator-profile-fab{position:fixed!important;right:max(12px,calc((100vw - 480px)/2 + 12px))!important;top:calc(env(safe-area-inset-top) + 142px)!important;z-index:2147483600!important;display:flex!important;visibility:visible!important;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:60px;min-height:68px;padding:5px 3px;border:1px solid #ffffffcc;border-radius:16px;background:#17171df2;color:#fff;box-shadow:0 3px 16px #000c;cursor:pointer;pointer-events:auto!important;touch-action:manipulation;-webkit-tap-highlight-color:transparent;} #creatorActionBtn[hidden]{display:none!important;}
 #creatorActionBtn .creator-action-avatar,#creatorActionBtn img{width:42px;height:42px;border-radius:50%;border:2px solid #fff;object-fit:cover;background:#333;display:grid;place-items:center;font-size:19px;font-weight:800;}
 #creatorActionBtn img[hidden]{display:none!important;}
 #creatorActionBtn span:last-child{font-size:11px;color:#fff;line-height:1.1;}
@@ -1103,8 +1103,12 @@ function renderVideo(){
  creatorAction.style.visibility=creatorId?"visible":"hidden";
  creatorAction.disabled=!creatorId;
  creatorAction.setAttribute("aria-hidden",creatorId?"false":"true");
- creatorActionFallback.textContent=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();
+ creatorActionFallback.textContent="👤";
+ // Always show a usable profile icon immediately; replace it with the creator avatar only after it loads.
+ creatorActionFallback.style.display="grid";
  creatorActionAvatar.hidden=true;creatorActionAvatar.removeAttribute("src");
+ creatorActionAvatar.onload=()=>{creatorActionAvatar.hidden=false;creatorActionFallback.style.display="none";};
+ creatorActionAvatar.onerror=()=>{creatorActionAvatar.hidden=true;creatorActionAvatar.removeAttribute("src");creatorActionFallback.style.display="grid";};
  creatorAvatarButton.style.display=creatorId?"inline-flex":"none";
  creatorAvatarButton.dataset.fallback=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();
  creatorAvatarButton.setAttribute("aria-label","Open "+(name.startsWith("@")?name:"@"+name)+" creator profile");
