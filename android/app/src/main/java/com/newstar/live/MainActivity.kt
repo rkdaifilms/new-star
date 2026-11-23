@@ -154,7 +154,7 @@ class MainActivity : ComponentActivity() {
                         email = email, page = page, selectedMedia = selectedMedia,
                         liveStatus = liveStatus, liveBusy = liveBusy, liveActive = liveActive, liveError = liveError,
                         isGamingLive = liveKind == "gaming", gamingMicEnabled = gamingMicEnabled,
-                        onToggleGamingMic = { setGamingMicEnabled(!gamingMicEnabled) },
+                        onToggleGamingMic = { updateGamingMicEnabled(!gamingMicEnabled) },
                         onPage = { page = it },
                         onPickMedia = { mediaPicker.launch(arrayOf("video/*")) },
                         onStartStandard = { requestStandardLive() },
@@ -233,7 +233,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun setGamingMicEnabled(enabled: Boolean) {
+    private fun updateGamingMicEnabled(enabled: Boolean) {
         if (liveKind != "gaming" || !liveActive) {
             liveError = "Mic नियंत्रण Gaming LIVE जुड़ने के बाद उपलब्ध होगा।"
             return
