@@ -81,14 +81,18 @@ async function invoke(body){
  const client=await session();
  const {data,error}=await client.functions.invoke("ai-gateway",{body});
  if(error){
-  if(body.action==="image")throw new Error("अभी तस्वीर नहीं बन पाई। थोड़ी देर बाद फिर कोशिश करें।");
-  if(body.action==="transcribe"){
-   let detail="";
-   try{const response=error.context;if(response?.clone){const payload=await response.clone().json();detail=String(payload?.error||"");}}catch(_){}
-   throw new Error(detail||"आवाज़ समझ नहीं आई। माइक की अनुमति जाँचकर दोबारा बोलें या संदेश लिखें।");
-  }
-  if(body.action==="speak")throw new Error("अभी आवाज़ में जवाब उपलब्ध नहीं है। लिखित जवाब उपलब्ध रहेगा।");
-  throw new Error("AI अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");
+  let detail="";
+  try{
+   const response=error.context;
+   if(response?.clone){
+    const payload=await response.clone().json();
+    detail=String(payload?.error||payload?.message||"");
+   }
+  }catch(_){}
+  if(body.action==="image")throw new Error(detail||"अभी तस्वीर नहीं बन पाई। थोड़ी देर बाद फिर कोशिश करें।");
+  if(body.action==="transcribe")throw new Error(detail||"आवाज़ समझ नहीं आई। माइक की अनुमति जाँचकर दोबारा बोलें या संदेश लिखें।");
+  if(body.action==="speak")throw new Error(detail||"अभी आवाज़ में जवाब उपलब्ध नहीं है। लिखित जवाब उपलब्ध रहेगा।");
+  throw new Error(detail||"AI अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");
  }
  if(!data?.ok){
   if(body.action==="image")throw new Error(data?.error||"तस्वीर बनाने की सेवा अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");
