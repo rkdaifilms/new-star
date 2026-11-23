@@ -1413,6 +1413,7 @@ async function publishVideo() {
    // constrained links, 16 MiB normally, and 32 MiB only on strong connections.
    const uploadChunkSize=slowNetwork?8*1024*1024:(strongNetwork?32*1024*1024:16*1024*1024);
    const uploadStartedAt=performance.now();
+   let connectionTimer=null;
    let lastSpeedSampleAt=uploadStartedAt;
    let lastSpeedSampleBytes=0;
    let smoothedBytesPerSecond=0;
@@ -1428,14 +1429,16 @@ async function publishVideo() {
      filetype:selectedVideoFile.type || "video/mp4"
     },
     onAfterResponse(_request,response){
+     if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null;}
      const receivedId=response.getHeader("stream-media-id");
      if(receivedId){
       cloudflareVideoId=receivedId;
       try{localStorage.setItem(pendingUploadKey,JSON.stringify({id:receivedId,userId:user.id,size:selectedVideoFile.size,lastModified:selectedVideoFile.lastModified||0,completed:false,expiresAt:Date.now()+12*60*60*1000}));}catch(_){}
      }
     },
-    onError(error){reject(error);},
+    onError(error){if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null;}reject(error);},
     onProgress(bytesUploaded,bytesTotal){
+     if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null;}
      setUploadStage(3,"3/5 · वीडियो डेटा Cloudflare पर भेजा जा रहा है…");
      const now=performance.now();
      const elapsedSeconds=Math.max(0.001,(now-uploadStartedAt)/1000);
@@ -1461,16 +1464,22 @@ async function publishVideo() {
      status.textContent="वीडियो अपलोड हो रहा है: "+percent+"% · "+speedText+etaText;
     },
     onSuccess(){
+     if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null;}
      if(cloudflareVideoId){
       try{localStorage.setItem(pendingUploadKey,JSON.stringify({id:cloudflareVideoId,userId:user.id,size:selectedVideoFile.size,lastModified:selectedVideoFile.lastModified||0,completed:true,expiresAt:Date.now()+7*24*60*60*1000}));}catch(_){}
      }
      resolve();
     }
    });
+   connectionTimer=setTimeout(()=>{
+    connectionTimer=null;
+    tusUpload.abort().catch(()=>{});
+    reject(new Error("Cloudflare से कनेक्शन नहीं बन पाया। इंटरनेट और अपलोड सेवा जाँचकर फिर कोशिश करें।"));
+   },45000);
    tusUpload.findPreviousUploads().then(previous=>{
     if(previous.length)tusUpload.resumeFromPreviousUpload(previous[0]);
     tusUpload.start();
-   }).catch(reject);
+   }).catch(error=>{if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null;}reject(error);});
   });
   }
   if(!cloudflareVideoId)throw new Error("Cloudflare upload पूरा हुआ, लेकिन Stream Video ID नहीं मिली। Upload को फिर से Resume करें।");
