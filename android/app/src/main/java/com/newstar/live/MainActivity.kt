@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
     private var liveBusy by mutableStateOf(false)
     private var liveActive by mutableStateOf(false)
     private var liveError by mutableStateOf("")
+    private var gamingMicEnabled by mutableStateOf(true)
     private var pendingGamingPermission: Intent? = null
     private var permissionRequestForGaming = false
 
@@ -152,6 +153,8 @@ class MainActivity : ComponentActivity() {
                     NativeHome(
                         email = email, page = page, selectedMedia = selectedMedia,
                         liveStatus = liveStatus, liveBusy = liveBusy, liveActive = liveActive, liveError = liveError,
+                        isGamingLive = liveKind == "gaming", gamingMicEnabled = gamingMicEnabled,
+                        onToggleGamingMic = { setGamingMicEnabled(!gamingMicEnabled) },
                         onPage = { page = it },
                         onPickMedia = { mediaPicker.launch(arrayOf("video/*")) },
                         onStartStandard = { requestStandardLive() },
@@ -214,6 +217,7 @@ class MainActivity : ComponentActivity() {
                 val prepared = withContext(Dispatchers.IO) { liveApi("prepare", null, "gaming") }
                 roomId = prepared.getString("room_id")
                 liveKind = "gaming"
+                gamingMicEnabled = true
                 val service = Intent(this@MainActivity, GamingStreamService::class.java)
                     .setAction(GamingStreamService.START)
                     .putExtra(GamingStreamService.WHIP_URL, prepared.getString("whip_url"))
@@ -229,12 +233,27 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun setGamingMicEnabled(enabled: Boolean) {
+        if (liveKind != "gaming" || !liveActive) {
+            liveError = "Mic नियंत्रण Gaming LIVE जुड़ने के बाद उपलब्ध होगा।"
+            return
+        }
+        gamingMicEnabled = enabled
+        startService(
+            Intent(this, GamingStreamService::class.java)
+                .setAction(GamingStreamService.SET_MIC)
+                .putExtra(GamingStreamService.MIC_ENABLED, enabled)
+        )
+        liveStatus = if (enabled) "Gaming LIVE microphone चालू है।" else "Mic mute है; screen stream जारी है।"
+    }
+
     private fun stopNativeLive() {
         val kind = liveKind
         val id = roomId
         if (kind == "gaming") startService(Intent(this, GamingStreamService::class.java).setAction(GamingStreamService.STOP))
         if (kind == "live") startService(Intent(this, CameraLiveService::class.java).setAction(CameraLiveService.STOP))
         roomId = null; liveKind = null; liveActive = false; liveBusy = false
+        gamingMicEnabled = true
         liveStatus = "LIVE बंद कर दिया गया।"
         if (id != null) lifecycleScope.launch(Dispatchers.IO) { runCatching { liveApi("stop", id) } }
     }
@@ -317,7 +336,8 @@ private fun AuthScreen(mode: String, email: String, password: String, busy: Bool
 
 @Composable
 private fun NativeHome(email: String, page: String, selectedMedia: Uri?, liveStatus: String, liveBusy: Boolean,
-    liveActive: Boolean, liveError: String, onPage: (String) -> Unit, onPickMedia: () -> Unit,
+    liveActive: Boolean, liveError: String, isGamingLive: Boolean, gamingMicEnabled: Boolean,
+    onToggleGamingMic: () -> Unit, onPage: (String) -> Unit, onPickMedia: () -> Unit,
     onStartStandard: () -> Unit, onStartGaming: () -> Unit, onStopLive: () -> Unit, onLogout: () -> Unit) {
     Column(Modifier.fillMaxSize().background(Ink)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -356,6 +376,16 @@ private fun NativeHome(email: String, page: String, selectedMedia: Uri?, liveSta
                     NativeTile("Standard LIVE", "फोन के camera और microphone से Cloudflare Stream पर broadcast.", if (liveActive || liveBusy) "चल रहा है" else "Standard LIVE शुरू करें", if (liveActive || liveBusy) null else onStartStandard)
                     Spacer(Modifier.height(12.dp))
                     NativeTile("Gaming LIVE", "Android screen capture और microphone से gameplay broadcast. Android की screen-share अनुमति जरूरी है.", if (liveActive || liveBusy) "चल रहा है" else "Gaming LIVE शुरू करें", if (liveActive || liveBusy) null else onStartGaming)
+                    if (isGamingLive && liveActive) {
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedButton(onClick = onToggleGamingMic, modifier = Modifier.fillMaxWidth()) {
+                            Text(if (gamingMicEnabled) "🎙 Mic mute करें" else "🎙 Mic unmute करें")
+                        }
+                        Text(
+                            if (gamingMicEnabled) "Mic चालू — screen stream जारी है।" else "Mic mute — screen stream जारी है।",
+                            color = Cyan, fontSize = 12.sp
+                        )
+                    }
                     Spacer(Modifier.height(12.dp))
                     Button(onClick = onStopLive, enabled = liveActive || liveBusy, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Accent)) { Text("LIVE बंद करें") }
                     if (liveBusy) { Spacer(Modifier.height(10.dp)); LinearProgressIndicator(Modifier.fillMaxWidth()) }
