@@ -599,7 +599,7 @@ private suspend fun uploadNativeVideo(
         .put("processing_status", "processing").put("visibility", "public")
         .put("media_kind", "video").put("aspect_ratio_setting", "original")
         .put("quality_preference", "original").put("frame_fit", "contain")
-        .put("source_quality", "\${width}x\${height}").put("video_provider", "cloudflare")
+        .put("source_quality", (width.toString() + "x" + height.toString())).put("video_provider", "cloudflare")
         .put("provider_video_id", streamId).put("provider_status", "processing")
     val insert = Request.Builder().url("$SB_URL/rest/v1/videos").post(payload.toString().toRequestBody("application/json".toMediaType()))
         .header("apikey", SB_KEY).header("Authorization", "Bearer $accessToken")
