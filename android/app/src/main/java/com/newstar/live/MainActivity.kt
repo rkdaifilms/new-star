@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
     private val prefs by lazy { getSharedPreferences("newstar_native_session", MODE_PRIVATE) }
     private var selectedMedia by mutableStateOf<Uri?>(null)
     private var tokenState by mutableStateOf("")
+    private var passwordRecoveryMode by mutableStateOf(false)
     private var roomId: String? = null
     private var liveKind: String? = null
     private var liveStatus by mutableStateOf("अभी LIVE बंद है।")
@@ -108,6 +109,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleAuthCallback(intent)
         tokenState = prefs.getString("access_token", "") ?: ""
         val filter = IntentFilter().apply {
             addAction(GamingStreamService.STATUS)
@@ -124,10 +126,27 @@ class MainActivity : ComponentActivity() {
                 var busy by remember { mutableStateOf(false) }
                 var error by remember { mutableStateOf("") }
                 var mode by remember { mutableStateOf("login") }
+                var recoveryMode by remember { mutableStateOf(passwordRecoveryMode) }
+                var newPassword by remember { mutableStateOf("") }
                 var page by remember { mutableStateOf("home") }
                 var emailInput by remember { mutableStateOf("") }
                 var password by remember { mutableStateOf("") }
-                if (accessToken.isBlank()) {
+                if (recoveryMode) {
+                    PasswordResetScreen(newPassword, { newPassword = it }, busy, error, onSubmit = {
+                        if (newPassword.length < 6) error = "नया पासवर्ड कम-से-कम 6 अक्षर का रखें।"
+                        else {
+                            busy = true; error = ""
+                            lifecycleScope.launch {
+                                try {
+                                    withContext(Dispatchers.IO) { authUpdatePassword(newPassword, prefs.getString("access_token", "") ?: "") }
+                                    prefs.edit().clear().apply(); accessToken = ""; tokenState = ""; email = ""; passwordRecoveryMode = false; recoveryMode = false; newPassword = ""
+                                    error = ""
+                                } catch (e: Exception) { error = e.message ?: "पासवर्ड अपडेट नहीं हुआ।" }
+                                finally { busy = false }
+                            }
+                        }
+                    })
+                } else if (accessToken.isBlank()) {
                     AuthScreen(mode, emailInput, password, busy, error,
                         onMode = { mode = it; error = "" }, onEmail = { emailInput = it }, onPassword = { password = it },
                         onGoogleLogin = { startGoogleSignIn() },
@@ -156,7 +175,7 @@ class MainActivity : ComponentActivity() {
                                         else {
                                             accessToken = newToken; tokenState = newToken
                                             email = result.optJSONObject("user")?.optString("email", emailInput) ?: emailInput
-                                            prefs.edit().putString("access_token", newToken).putString("email", email).apply()
+                                            prefs.edit().putString("access_token", newToken).putString("refresh_token", result.optString("refresh_token")).putString("email", email).apply()
                                         }
                                      } catch (e: Exception) {
                                         val raw = e.message.orEmpty()
@@ -317,13 +336,12 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleAuthCallback(intent)
-        if (tokenState.isNotBlank()) recreate()
+        if (handleAuthCallback(intent)) recreate()
     }
 
-    private fun handleAuthCallback(source: Intent?) {
-        val uri = source?.data ?: return
-        if (uri.scheme != "com.newstar.live" || uri.host != "auth-callback") return
+    private fun handleAuthCallback(source: Intent?): Boolean {
+        val uri = source?.data ?: return false
+        if (uri.scheme != "com.newstar.live" || uri.host != "auth-callback") return false
         val values = uri.fragment.orEmpty().split("&").mapNotNull { part ->
             val pair = part.split("=", limit = 2)
             if (pair.size == 2) pair[0] to Uri.decode(pair[1]) else null
@@ -332,8 +350,11 @@ class MainActivity : ComponentActivity() {
         val refresh = values["refresh_token"].orEmpty()
         if (access.isNotBlank()) {
             tokenState = access
+            passwordRecoveryMode = values["type"] == "recovery"
             prefs.edit().putString("access_token", access).putString("refresh_token", refresh).apply()
+            return true
         }
+        return false
     }
 
     override fun onDestroy() {
@@ -343,7 +364,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private suspend fun authRecoveryRequest(email: String) = withContext(Dispatchers.IO) {
-    val redirect = java.net.URLEncoder.encode("https://new-star-delta.vercel.app/auth.html?mode=recovery&next=index.html", "UTF-8")
+    val redirect = java.net.URLEncoder.encode("com.newstar.live://auth-callback", "UTF-8")
     val conn = (URL("$SB_URL/auth/v1/recover?redirect_to=$redirect").openConnection() as HttpURLConnection).apply {
         requestMethod = "POST"; connectTimeout = 15000; readTimeout = 20000; doOutput = true
         setRequestProperty("apikey", SB_KEY); setRequestProperty("Content-Type", "application/json")
@@ -357,6 +378,31 @@ private suspend fun authRecoveryRequest(email: String) = withContext(Dispatchers
     if (code !in 200..299) {
         val message = runCatching { JSONObject(raw).optString("msg").ifBlank { JSONObject(raw).optString("message") } }.getOrNull()
         throw IllegalStateException(message?.takeIf { it.isNotBlank() } ?: "Password recovery request failed ($code)")
+    }
+}
+
+private suspend fun authUpdatePassword(password: String, accessToken: String) = withContext(Dispatchers.IO) {
+    check(accessToken.isNotBlank()) { "पासवर्ड बदलने का लिंक दोबारा खोलें।" }
+    val conn = (URL("$SB_URL/auth/v1/user").openConnection() as HttpURLConnection).apply {
+        requestMethod = "PUT"; connectTimeout = 15000; readTimeout = 20000; doOutput = true
+        setRequestProperty("apikey", SB_KEY); setRequestProperty("Authorization", "Bearer $accessToken"); setRequestProperty("Content-Type", "application/json")
+    }
+    conn.outputStream.use { it.write(JSONObject().put("password", password).toString().toByteArray()) }
+    val code = conn.responseCode
+    val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+    val raw = stream.bufferedReader().use { it.readText() }; conn.disconnect()
+    if (code !in 200..299) throw IllegalStateException(runCatching { JSONObject(raw).optString("message").ifBlank { JSONObject(raw).optString("msg") } }.getOrNull()?.ifBlank { null } ?: "पासवर्ड अपडेट नहीं हुआ ($code)")
+}
+
+@Composable
+private fun PasswordResetScreen(password: String, onPassword: (String) -> Unit, busy: Boolean, error: String, onSubmit: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(Ink).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.Center) {
+        Text("NEW STAR", color = Accent, fontSize = 32.sp, fontWeight = FontWeight.Black)
+        Spacer(Modifier.height(24.dp)); Text("नया पासवर्ड बनाएँ", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(12.dp)); Text("ईमेल से मिले सुरक्षित लिंक के बाद अपना नया पासवर्ड दर्ज करें।", color = Color.LightGray)
+        Spacer(Modifier.height(16.dp)); OutlinedTextField(password, onPassword, Modifier.fillMaxWidth(), label = { Text("नया पासवर्ड") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
+        if (error.isNotBlank()) { Spacer(Modifier.height(10.dp)); Text(error, color = Color(0xFFFF8A8A), fontSize = 13.sp) }
+        Spacer(Modifier.height(18.dp)); Button(onClick = onSubmit, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text(if (busy) "अपडेट हो रहा है…" else "पासवर्ड अपडेट करें") }
     }
 }
 
