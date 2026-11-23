@@ -161,23 +161,35 @@ async function callOpenAI(key: string, messages: ChatMessage[], systemPrompt: st
 async function callGemini(key: string, messages: ChatMessage[], systemPrompt: string) {
   const contents = normalizeGeminiContents(messages);
   if (!contents.length || contents[contents.length - 1].role !== "user") throw new Error("INVALID_GEMINI_TURN_SEQUENCE");
-  const response = await fetchWithTimeout(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
-    {
-      method: "POST",
-      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { temperature: 0.4, maxOutputTokens: 900 }
-      })
+
+  // Prefer the current Flash model; retain Flash-Lite as a compatibility fallback.
+  // Older 2.5 model access can be restricted for newer API projects.
+  const models = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+  let lastFailure = "GEMINI_UNAVAILABLE";
+  for (const model of models) {
+    const response = await fetchWithTimeout(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: "POST",
+        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: { temperature: 0.4, maxOutputTokens: 900 }
+        })
+      }
+    );
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      lastFailure = providerHttpError(response.status, data);
+      if (response.status === 404 && model !== models[models.length - 1]) continue;
+      throw new Error(lastFailure);
     }
-  );
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(providerHttpError(response.status, data));
-  const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
-  if (typeof text !== "string" || !text.trim()) throw new Error("EMPTY_RESPONSE");
-  return text;
+    const answer = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
+    if (typeof answer !== "string" || !answer.trim()) throw new Error("EMPTY_RESPONSE");
+    return answer;
+  }
+  throw new Error(lastFailure);
 }
 
 async function callOpenRouter(key: string, messages: ChatMessage[], systemPrompt: string) {
