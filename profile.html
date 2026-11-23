@@ -153,6 +153,11 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
 .profileViewerSettingsMenu button{width:100%;min-height:42px;flex:none;display:block;text-align:left;padding:10px 12px;border:0;border-radius:8px;background:transparent;box-shadow:none;font-size:13px}
 .profileViewerSettingsMenu button:hover{background:#383844}
 .profileViewerSettingsMenu button.danger{color:#ff8498}
+/* Creator profile video grid: show the video itself, not caption/type text below it. */
+.videoCard > .videoFormat,
+.videoCard > p{display:none!important}
+/* Full-screen profile viewer stays video-only; keep action buttons and settings. */
+.profileViewerInfo{display:none!important}
 .profileViewerInfo{position:fixed;z-index:10011;left:14px;right:82px;bottom:calc(28px + env(safe-area-inset-bottom));text-shadow:0 1px 5px #000;pointer-events:none}
 .profileViewerInfo strong{font-size:15px}.profileViewerInfo p{font-size:13px;line-height:1.4;margin-top:5px;white-space:pre-wrap;overflow-wrap:anywhere}
 .profileSheet{position:fixed;z-index:10030;left:50%;bottom:0;transform:translateX(-50%);width:min(100vw,520px);height:min(62dvh,560px);max-height:calc(100dvh - env(safe-area-inset-top) - 10px);background:#1d1d25;border:1px solid #555;border-radius:17px 17px 0 0;display:none;flex-direction:column;overflow:hidden;box-shadow:0 -8px 30px #000b}
