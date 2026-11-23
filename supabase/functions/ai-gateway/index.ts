@@ -33,13 +33,19 @@ const AI_LANGUAGE_NAMES: Record<string,string> = {hi:"Hindi",ne:"Nepali",en:"Eng
 
 const NEW_STAR_HELP_SYSTEM_PROMPT = "You are New Star Help Center AI, the app's limited Creator Support, Safety, Reports, and Moderation assistant. You are NOT a general-purpose creative studio and must not replace New Star Creator Studio. Your scope is only New Star account and app support, creator protection, community rules, reports, warnings, moderation notices, safety notifications, upload/playback problems, profiles, settings, privacy, and help using creator features. Act like a careful support and safety desk: explain how to submit a report, collect and organize information supplied by the user, identify which app rule may be relevant when the rules are provided, explain report steps and warning notices, and guide creators on how to protect their accounts and use the appeal/support process. Help review reported behavior neutrally; do not assume the reporter is always right, do not declare guilt from an allegation, and do not invent evidence, report status, warnings, or notification records. You may prepare a warning recommendation or draft for an authorized human moderator, but you must never independently issue a warning, suspend/ban a user, remove content, change account access, or send a notification unless a verified moderation tool and authorized workflow explicitly permit that action. Explain that protection cannot guarantee nobody will ever violate rules; use reporting, evidence review, moderation, and appeals to respond fairly. If a user asks for scripts, stories, images, thumbnails, titles, hashtags, coding, broad research, or other creative production, politely direct them to New Star Creator Studio. Keep responses focused, clear, brief, and step-by-step. Reply in the user's latest language and script. Never claim to see private account data or perform actions without verified app data/tool results. Never ask for passwords, OTPs, API keys, bank/card details, or secrets. Distinguish available, planned, configured, deployed, and tested features. Be safe, neutral, fair, and respectful.";
 
-function firstSecret(...names: string[]) {
+function secretCandidates(...names: string[]) {
+  const values = new Set<string>();
   for (const name of names) {
-    const value = Deno.env.get(name);
-
-    if (value && value.trim()) return value.trim();
+    for (const suffix of ["", "_1", "_2", "_3", "_4", "_5", "_6"]) {
+      const value = Deno.env.get(name + suffix);
+      if (value && value.trim()) values.add(value.trim());
+    }
   }
-  return "";
+  return [...values];
+}
+
+function firstSecret(...names: string[]) {
+  return secretCandidates(...names)[0] || "";
 }
 
 function providerHttpError(status: number, data: any) {
@@ -503,10 +509,10 @@ Deno.serve(async (req: Request) => {
   }
 
   const providers = [
-    { name: "gemini", key: firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"), run: callGemini },
-    { name: "openrouter", key: firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter },
-    { name: "openai", key: firstSecret("OPENAI_API_KEY", "OPENAI_KEY"), run: callOpenAI }
-  ].filter((p): p is { name: string; key: string; run: (key: string, messages: ChatMessage[], systemPrompt: string) => Promise<string> } => Boolean(p.key));
+    { name: "gemini", keys: secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"), run: callGemini },
+    { name: "openrouter", keys: secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter },
+    { name: "openai", keys: secretCandidates("OPENAI_API_KEY", "OPENAI_KEY"), run: callOpenAI }
+  ].filter((p): p is { name: string; keys: string[]; run: (key: string, messages: ChatMessage[], systemPrompt: string) => Promise<string> } => p.keys.length > 0);
 
   if (providers.length === 0) {
     return json({
@@ -532,13 +538,16 @@ Deno.serve(async (req: Request) => {
 
   const failedProviders: string[] = [];
   for (const provider of providers) {
-    try {
-      const answer = await provider.run(provider.key, messages, systemPrompt);
-      return json({ ok: true, provider: provider.name, answer }, 200, headers);
-    } catch (error) {
-      // Never log prompts, provider responses, or API keys.
-      failedProviders.push(`${provider.name}:${error instanceof Error ? error.message : "UNKNOWN"}`);
-      console.error("AI provider failed:", provider.name, error instanceof Error ? error.message : "unknown");
+    for (let keyIndex = 0; keyIndex < provider.keys.length; keyIndex++) {
+      try {
+        const answer = await provider.run(provider.keys[keyIndex], messages, systemPrompt);
+        return json({ ok: true, provider: provider.name, answer }, 200, headers);
+      } catch (error) {
+        // Never log prompts, provider responses, or API keys.
+        const reason = error instanceof Error ? error.message : "UNKNOWN";
+        failedProviders.push(`${provider.name}[${keyIndex + 1}]:${reason}`);
+        console.error("AI provider failed:", provider.name, keyIndex + 1, reason);
+      }
     }
   }
 
