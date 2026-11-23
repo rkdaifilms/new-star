@@ -5,6 +5,16 @@ val releaseStorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSW
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
 
+// Stable TEST-ONLY signing identity so successive CI debug APKs can update the same install.
+// This key must never be used for a production Play Store release.
+val stableDebugKeystore = layout.buildDirectory.file("stable-debug.keystore").get().asFile
+if (!stableDebugKeystore.exists()) {
+    stableDebugKeystore.parentFile.mkdirs()
+    stableDebugKeystore.writeBytes(
+        java.util.Base64.getDecoder().decode(file("debug-keystore.b64").readText().trim())
+    )
+}
+
 android {
     namespace = "com.newstar.live"
     compileSdk = 35
@@ -13,11 +23,17 @@ android {
         applicationId = "com.newstar.live"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
     }
 
     signingConfigs {
+        getByName("debug") {
+            storeFile = stableDebugKeystore
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
             create("release") {
                 storeFile = file(releaseStoreFile)
@@ -29,6 +45,9 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
