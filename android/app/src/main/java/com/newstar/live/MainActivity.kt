@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
     private var gamingMicEnabled by mutableStateOf(true)
     private var pendingGamingPermission: Intent? = null
     private var permissionRequestForGaming = false
+    private var pendingRoute by mutableStateOf("home")
 
     private val mediaPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); selectedMedia = uri }
@@ -132,6 +133,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleAuthCallback(intent)
+        if (intent?.data?.scheme == "com.newstar.live" && intent.data?.host == "gaming-live") pendingRoute = "live"
         tokenState = prefs.getString("access_token", "") ?: ""
         val filter = IntentFilter().apply {
             addAction(GamingStreamService.STATUS)
@@ -165,7 +167,8 @@ class MainActivity : ComponentActivity() {
                         } catch (_: Exception) { /* Keep the existing access token; transient network failures must not log the user out. */ }
                     }
                 }
-                var page by remember { mutableStateOf("home") }
+                var page by remember { mutableStateOf(pendingRoute) }
+                LaunchedEffect(pendingRoute) { page = pendingRoute }
                 var emailInput by remember { mutableStateOf("") }
                 var password by remember { mutableStateOf("") }
                 if (recoveryMode) {
@@ -388,7 +391,8 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (handleAuthCallback(intent)) recreate()
+        if (handleAuthCallback(intent)) { recreate(); return }
+        if (intent?.data?.scheme == "com.newstar.live" && intent.data?.host == "gaming-live") pendingRoute = "live"
     }
 
     private fun handleAuthCallback(source: Intent?): Boolean {
