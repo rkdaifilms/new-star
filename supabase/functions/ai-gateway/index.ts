@@ -280,30 +280,40 @@ Deno.serve(async (req: Request) => {
     if (speechLimitError || speechAllowed !== true) return json({ ok: false, error: speechLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, speechLimitError ? 503 : 429, headers);
 
     if (geminiKey) {
-      try {
-        const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions", {
-          method: "POST",
-          headers: { "x-goog-api-key": geminiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "gemini-3.8-flash-tts",
-            input: [{ type: "user_input", content: [{
-              type: "text",
-              text: spokenText,
-              annotations: [{ type: "speech_metadata", style: "warm, clear, natural conversational delivery. Speak the text exactly in its original language; do not translate." }]
-            }]}],
-            response_format: { type: "audio" },
-            generation_config: { speech_config: [{ voice: "Kore" }] }
-          })
-        }, 60000);
-        const data = await response.json().catch(() => ({}));
-        const audio = data?.output_audio?.data || data?.steps?.filter((step: any) => step?.type === "model_output").flatMap((step: any) => step?.content || []).filter((part: any) => part?.type === "audio").at(-1)?.data;
-        if (response.ok && typeof audio === "string" && audio) {
-          return json({ ok: true, audio, mimeType: "audio/wav", provider: "gemini" }, 200, headers);
+      const models = ["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts", "gemini-2.5-flash-tts"];
+      let geminiSpeechFailure = "";
+      for (const model of models) {
+        try {
+          const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+            method: "POST",
+            headers: { "x-goog-api-key": geminiKey, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: "Speak the following text naturally and clearly in the same language. Do not translate or add words: " + spokenText }] }],
+              generationConfig: {
+                responseModalities: ["AUDIO"],
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+              }
+            })
+          }, 60000);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            geminiSpeechFailure = providerHttpError(response.status, data);
+            if (response.status === 404) continue;
+            break;
+          }
+          const audioPart = data?.candidates?.[0]?.content?.parts?.find((part: any) =>
+            typeof part?.inlineData?.data === "string" && part.inlineData.data.length > 0
+          );
+          if (audioPart?.inlineData?.data) {
+            return json({ ok: true, audio: audioPart.inlineData.data, mimeType: audioPart.inlineData.mimeType || "audio/wav", provider: "gemini" }, 200, headers);
+          }
+          geminiSpeechFailure = "GEMINI_RETURNED_NO_AUDIO";
+        } catch (error) {
+          geminiSpeechFailure = error instanceof Error ? error.message : "GEMINI_TTS_UNAVAILABLE";
+          break;
         }
-        if (!openaiKey) return json({ ok: false, error: response.ok ? "Gemini voice returned no audio." : providerHttpError(response.status, data) }, 502, headers);
-      } catch (error) {
-        if (!openaiKey) return json({ ok: false, error: error instanceof Error ? error.message : "Gemini voice service unavailable." }, 502, headers);
       }
+      if (!openaiKey) return json({ ok: false, error: geminiSpeechFailure || "Gemini voice service unavailable." }, 502, headers);
     }
 
     if (openaiKey) {
