@@ -54,13 +54,23 @@ class MainActivity : ComponentActivity() {
     private var liveActive by mutableStateOf(false)
     private var liveError by mutableStateOf("")
     private var pendingGamingPermission: Intent? = null
+    private var permissionRequestForGaming = false
 
     private val mediaPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); selectedMedia = uri }
     }
     private val runtimePermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         val granted = result[Manifest.permission.CAMERA] == true && result[Manifest.permission.RECORD_AUDIO] == true
-        if (granted) startStandardLiveRequest() else liveError = "Camera और microphone permissions दोनों आवश्यक हैं।"
+        if (granted) {
+            if (permissionRequestForGaming) {
+                permissionRequestForGaming = false
+                val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                projectionPermission.launch(manager.createScreenCaptureIntent())
+            } else startStandardLiveRequest()
+        } else {
+            permissionRequestForGaming = false
+            liveError = "Camera और microphone permissions दोनों आवश्यक हैं।"
+        }
     }
     private val projectionPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val data = result.data
@@ -169,7 +179,8 @@ class MainActivity : ComponentActivity() {
     private fun requestGamingLive() {
         if (liveBusy || liveActive) return
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            runtimePermissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
+            permissionRequestForGaming = true
+            runtimePermissions.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
             return
         }
         val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
