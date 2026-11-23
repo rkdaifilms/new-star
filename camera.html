@@ -164,6 +164,22 @@ body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center
 #uploadMeter .upload-meter-top{margin-bottom:8px}
 @media(max-width:600px){#editorScreen .editor-workspace>.preview{height:64vh!important;min-height:320px!important}#editorScreen.editor-expanded .editor-workspace>.preview{height:54vh!important;min-height:280px!important}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:42vh!important;min-height:220px!important}}
 
+
+/* Final mobile polish: keep video controls out of the picture and remove noisy upload stages. */
+#editorScreen #editorFullscreenButton{display:none!important}
+#editorScreen .editor-workspace>.preview{height:66vh!important;min-height:360px!important;max-height:680px!important}
+#editorScreen #editorActions{position:static!important;display:block!important;width:100%!important;max-width:none!important;margin:10px 0 14px!important;padding:0!important;background:none!important}
+#editorScreen #editorActions .primary{width:100%!important;min-height:54px!important}
+#editorScreen.editor-expanded .editor-workspace>.preview,
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:52vh!important;min-height:280px!important}
+.upload-meter .upload-steps,.upload-meter .upload-detail,#uploadMeter .upload-steps,#uploadMeter #uploadDetail{display:none!important}
+.upload-meter .upload-meter-top{margin-bottom:10px}
+.upload-meter #uploadPercent{font-size:22px}
+@media(max-width:600px){
+ #editorScreen .editor-workspace>.preview{height:64vh!important;min-height:340px!important}
+ #editorScreen.editor-expanded .editor-workspace>.preview,
+ #editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:48vh!important;min-height:260px!important}
+}
 </style>
 
 <link rel="manifest" href="/manifest.json">
