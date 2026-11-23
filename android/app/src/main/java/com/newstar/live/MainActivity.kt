@@ -686,7 +686,7 @@ private fun NativeHome(email: String, accessToken: String, page: String, selecte
             TextButton(onClick = onLogout) { Text("लॉगआउट") }
         }
         NavigationBar(containerColor = Panel) {
-            listOf("home" to "होम", "studio" to "स्टूडियो", "live" to "LIVE", "profile" to "प्रोफाइल").forEach { (key, label) ->
+            listOf("home" to "होम", "studio" to "स्टूडियो", "ai" to "AI", "live" to "LIVE", "profile" to "प्रोफाइल").forEach { (key, label) ->
                 NavigationBarItem(selected = page == key, onClick = { onPage(key) }, icon = {}, label = { Text(label) })
             }
         }
@@ -714,6 +714,9 @@ private fun NativeHome(email: String, accessToken: String, page: String, selecte
                     if (uploadBusy || uploadProgress > 0) { Spacer(Modifier.height(10.dp)); LinearProgressIndicator(progress = uploadProgress / 100f, modifier = Modifier.fillMaxWidth()); Text("$uploadProgress% · $uploadStatus", color = Cyan, fontSize = 12.sp) }
                     else if (uploadStatus.isNotBlank()) Text(uploadStatus, color = Cyan, fontSize = 12.sp)
                     if (uploadError.isNotBlank()) Text(uploadError, color = Color(0xFFFF8A8A), fontSize = 12.sp)
+                }
+                "ai" -> {
+                    NativeAiStudio(accessToken = accessToken)
                 }
                 "live" -> {
                     Text("LIVE Center", fontSize = 24.sp, fontWeight = FontWeight.Bold)
