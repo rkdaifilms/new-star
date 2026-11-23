@@ -48,11 +48,13 @@ Deno.serve(async (req: Request) => {
   const anon = Deno.env.get("SUPABASE_ANON_KEY");
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-  const tokenCandidates = [
-    { name: "CLOUDFLARE_STREAM_TOKEN", value: Deno.env.get("CLOUDFLARE_STREAM_TOKEN") },
-    { name: "CLOUDFLARE_API_TOKEN", value: Deno.env.get("CLOUDFLARE_API_TOKEN") },
-    { name: "CLOUDFLARE_STREAM_API_TOKEN", value: Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN") },
-  ].filter((item): item is { name: string; value: string } => Boolean(item.value));
+  const tokenNames = ["CLOUDFLARE_STREAM_TOKEN", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_STREAM_API_TOKEN"];
+  const tokenCandidates = tokenNames.flatMap((name) =>
+    ["", "_1", "_2", "_3", "_4", "_5", "_6"].map((suffix) => ({
+      name: name + suffix,
+      value: Deno.env.get(name + suffix),
+    }))
+  ).filter((item): item is { name: string; value: string } => Boolean(item.value?.trim()));
   if (!url || !anon || !service) return json({ error: "Server configuration incomplete." }, 503, headers);
   if (!accountId || tokenCandidates.length === 0) return json({ error: "Cloudflare Stream is not configured. Ask the project owner to check the server-side Cloudflare secrets." }, 503, headers);
 
