@@ -449,7 +449,15 @@
                 if (!window.isSecureContext || !navigator.mediaDevices?.getDisplayMedia || !window.RTCPeerConnection) {
                     if (captureStatus) {
                         captureStatus.hidden = false;
-                        captureStatus.textContent = 'New Star का native Android screen-capture bridge इस पेज में नहीं मिला। इसलिए LIVE शुरू नहीं किया गया और कोई नकली LIVE status नहीं दिखाया जाएगा.\n\nपूरे फोन या किसी दूसरे game app को stream करने के लिए New Star Android app खोलें और Android की screen-sharing अनुमति दें। Chrome में वेबसाइट खोलने से पूरे फोन की स्क्रीन capture नहीं हो सकती।';
+                        captureStatus.textContent = 'इस ब्राउज़र पेज में Android screen-capture bridge उपलब्ध नहीं है। LIVE शुरू करने के लिए नीचे दिए बटन से New Star Android ऐप के Native LIVE Center में जाएँ।';
+                        const openApp = document.createElement('a');
+                        openApp.href = 'com.newstar.live://gaming-live';
+                        openApp.textContent = 'New Star ऐप में Gaming LIVE खोलें';
+                        openApp.style.cssText = 'display:block;margin-top:12px;padding:12px;border-radius:10px;background:#25f4ee;color:#001014;text-align:center;font-weight:700;text-decoration:none;';
+                        openApp.addEventListener('click', function () {
+                            captureStatus.textContent = 'New Star ऐप खुल रहा है… अगर ऐप नहीं खुलता, तो पहले New Star Android ऐप इंस्टॉल/अपडेट करें।';
+                        });
+                        captureStatus.appendChild(openApp);
                     }
                     return;
                 }
