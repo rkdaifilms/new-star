@@ -35,6 +35,13 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import android.media.MediaMetadataRetriever
+import android.util.Base64
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
 
 private const val SB_URL = "https://uzsusgoetrkujmofxcmb.supabase.co"
 private const val SB_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr"
@@ -48,6 +55,10 @@ class MainActivity : ComponentActivity() {
     private var selectedMedia by mutableStateOf<Uri?>(null)
     private var tokenState by mutableStateOf("")
     private var passwordRecoveryMode by mutableStateOf(false)
+    private var nativeUploadBusy by mutableStateOf(false)
+    private var nativeUploadProgress by mutableStateOf(0)
+    private var nativeUploadStatus by mutableStateOf("")
+    private var nativeUploadError by mutableStateOf("")
     private var roomId: String? = null
     private var liveKind: String? = null
     private var liveStatus by mutableStateOf("अभी LIVE बंद है।")
@@ -211,7 +222,22 @@ class MainActivity : ComponentActivity() {
                         })
                 } else {
                     NativeHome(
-                        email = email, page = page, selectedMedia = selectedMedia,
+                        email = email, accessToken = accessToken, page = page, selectedMedia = selectedMedia,
+                        uploadBusy = nativeUploadBusy, uploadProgress = nativeUploadProgress, uploadStatus = nativeUploadStatus, uploadError = nativeUploadError,
+                        onPublishVideo = { title, caption ->
+                            if (selectedMedia == null) nativeUploadError = "पहले गैलरी से वीडियो चुनें।"
+                            else if (title.isBlank()) nativeUploadError = "वीडियो का शीर्षक लिखें।"
+                            else if (!nativeUploadBusy) {
+                                nativeUploadBusy = true; nativeUploadProgress = 0; nativeUploadError = ""; nativeUploadStatus = "वीडियो की जानकारी पढ़ी जा रही है…"
+                                lifecycleScope.launch {
+                                    try {
+                                        withContext(Dispatchers.IO) { uploadNativeVideo(this@MainActivity, selectedMedia!!, accessToken, email, title.trim(), caption.trim()) { pct, status -> runOnUiThread { nativeUploadProgress = pct; nativeUploadStatus = status } } }
+                                        nativeUploadProgress = 100; nativeUploadStatus = "✓ वीडियो अपलोड और डेटाबेस में सेव हो गया।"
+                                    } catch (e: Exception) { nativeUploadError = e.message ?: "वीडियो अपलोड नहीं हो सका।"; nativeUploadStatus = "अपलोड रुक गया।" }
+                                    finally { nativeUploadBusy = false }
+                                }
+                            }
+                        },
                         liveStatus = liveStatus, liveBusy = liveBusy, liveActive = liveActive, liveError = liveError,
                         isGamingLive = liveKind == "gaming", gamingMicEnabled = gamingMicEnabled,
                         onToggleGamingMic = { updateGamingMicEnabled(!gamingMicEnabled) },
@@ -486,11 +512,111 @@ private fun AuthScreen(mode: String, email: String, password: String, busy: Bool
     }
 }
 
+private suspend fun uploadNativeVideo(
+    context: Context, uri: Uri, accessToken: String, email: String, title: String, description: String,
+    onProgress: (Int, String) -> Unit
+) = withContext(Dispatchers.IO) {
+    check(accessToken.isNotBlank()) { "अपलोड करने से पहले लॉगिन करें।" }
+    val size = context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length }
+        ?: throw IllegalStateException("वीडियो फ़ाइल का आकार नहीं पढ़ा जा सका।")
+    require(size > 0 && size <= 5L * 1024 * 1024 * 1024) { "वीडियो 5 GiB की सीमा के अंदर होना चाहिए।" }
+    val retriever = MediaMetadataRetriever()
+    val durationMs: Long
+    val width: Int
+    val height: Int
+    try {
+        retriever.setDataSource(context, uri)
+        durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+            ?: error("वीडियो की अवधि पढ़ी नहीं जा सकी।")
+        width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+        height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+    } finally { retriever.release() }
+    val duration = ((durationMs + 999) / 1000).toInt()
+    require(duration in 1..10800) { "वीडियो 1 सेकंड से 3 घंटे के बीच होना चाहिए।" }
+    val mime = context.contentResolver.getType(uri) ?: "video/mp4"
+    val name = uri.lastPathSegment?.substringAfterLast('/')?.take(180)?.ifBlank { "video.mp4" } ?: "video.mp4"
+    val encode: (String) -> String = { Base64.encodeToString(it.toByteArray(Charsets.UTF_8), Base64.NO_WRAP) }
+    val metadata = listOf("maxDurationSeconds " + encode(duration.toString()), "name " + encode(name), "filetype " + encode(mime)).joinToString(",")
+    val client = OkHttpClient.Builder().connectTimeout(30, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(0, TimeUnit.MILLISECONDS).build()
+    val endpoint = "$SB_URL/functions/v1/cloudflare-tus-proxy"
+    val create = Request.Builder().url(endpoint).post(ByteArray(0).toRequestBody())
+        .header("Origin", "https://new-star-delta.vercel.app")
+        .header("Authorization", "Bearer $accessToken").header("apikey", SB_KEY)
+        .header("Tus-Resumable", "1.0.0").header("Upload-Length", size.toString())
+        .header("Upload-Metadata", metadata).build()
+    var location = ""
+    var streamId = ""
+    client.newCall(create).execute().use { response ->
+        if (!response.isSuccessful) throw IllegalStateException("Cloudflare upload शुरू नहीं हुआ (" + response.code + "): " + response.body?.string()?.take(500))
+        location = response.header("Location") ?: error("Cloudflare ने upload URL नहीं दिया।")
+        streamId = response.header("stream-media-id") ?: error("Cloudflare ने Video ID नहीं दिया।")
+    }
+    onProgress(1, "Cloudflare upload session तैयार है…")
+    val chunkSize = 8 * 1024 * 1024
+    var offset = 0L
+    context.contentResolver.openInputStream(uri)?.use { input ->
+        val mediaType = "application/offset+octet-stream".toMediaType()
+        val buffer = ByteArray(chunkSize)
+        while (offset < size) {
+            var filled = 0
+            val wanted = minOf(chunkSize.toLong(), size - offset).toInt()
+            while (filled < wanted) {
+                val count = input.read(buffer, filled, wanted - filled)
+                if (count < 0) error("वीडियो फ़ाइल पढ़ते समय अधूरी मिली।")
+                filled += count
+            }
+            val bytes = if (filled == buffer.size) buffer else buffer.copyOf(filled)
+            val patch = Request.Builder().url(location).patch(bytes.toRequestBody(mediaType))
+                .header("Tus-Resumable", "1.0.0").header("Upload-Offset", offset.toString()).build()
+            client.newCall(patch).execute().use { response ->
+                if (response.code != 204) throw IllegalStateException("वीडियो upload बीच में रुक गया (" + response.code + "): " + response.body?.string()?.take(300))
+                val returnedOffset = response.header("Upload-Offset")?.toLongOrNull()
+                    ?: throw IllegalStateException("Cloudflare ने upload offset वापस नहीं दिया।")
+                if (returnedOffset != offset + filled) error("Cloudflare upload offset मेल नहीं खा रहा।")
+            }
+            offset += filled
+            val percent = (offset * 100 / size).toInt().coerceIn(1, 99)
+            onProgress(percent, "वीडियो अपलोड हो रहा है: $percent%")
+        }
+    } ?: error("वीडियो फ़ाइल खोली नहीं जा सकी।")
+    onProgress(99, "अपलोड पूरा; वीडियो डेटाबेस में सेव हो रहा है…")
+    val caption = listOf(title, description).filter { it.isNotBlank() }.joinToString("\n\n")
+    val username = email.substringBefore("@").ifBlank { "New Star Creator" }
+    val userRequest = Request.Builder().url("$SB_URL/auth/v1/user").get()
+        .header("apikey", SB_KEY).header("Authorization", "Bearer $accessToken").build()
+    val userId = client.newCall(userRequest).execute().use { response ->
+        if (!response.isSuccessful) error("लॉगिन सत्र सत्यापित नहीं हुआ (" + response.code + ")।")
+        JSONObject(response.body?.string().orEmpty()).optString("id").takeIf { it.isNotBlank() }
+            ?: error("Supabase user ID नहीं मिली।")
+    }
+    val payload = JSONObject()
+        .put("user_id", userId).put("video_url", "cloudflare://" + streamId)
+        .put("caption", caption).put("category", "Other").put("username", username)
+        .put("likes_count", 0).put("views_count", 0).put("audience_type", "all")
+        .put("duration_seconds", duration).put("width", width).put("height", height)
+        .put("video_type", if (duration <= 60) "short" else "long")
+        .put("processing_status", "processing").put("visibility", "public")
+        .put("media_kind", "video").put("aspect_ratio_setting", "original")
+        .put("quality_preference", "original").put("frame_fit", "contain")
+        .put("source_quality", "\${width}x\${height}").put("video_provider", "cloudflare")
+        .put("provider_video_id", streamId).put("provider_status", "processing")
+    val insert = Request.Builder().url("$SB_URL/rest/v1/videos").post(payload.toString().toRequestBody("application/json".toMediaType()))
+        .header("apikey", SB_KEY).header("Authorization", "Bearer $accessToken")
+        .header("Content-Type", "application/json").header("Prefer", "return=minimal").build()
+    client.newCall(insert).execute().use { response ->
+        if (!response.isSuccessful) throw IllegalStateException("Cloudflare पर वीडियो सुरक्षित है, लेकिन database में सेव नहीं हुआ (" + response.code + "): " + response.body?.string()?.take(500))
+    }
+    onProgress(100, "✓ वीडियो अपलोड और डेटाबेस में सेव हो गया।")
+}
+
 @Composable
-private fun NativeHome(email: String, page: String, selectedMedia: Uri?, liveStatus: String, liveBusy: Boolean,
+private fun NativeHome(email: String, accessToken: String, page: String, selectedMedia: Uri?, uploadBusy: Boolean, uploadProgress: Int, uploadStatus: String, uploadError: String, onPublishVideo: (String, String) -> Unit, liveStatus: String, liveBusy: Boolean,
     liveActive: Boolean, liveError: String, isGamingLive: Boolean, gamingMicEnabled: Boolean,
     onToggleGamingMic: () -> Unit, onPage: (String) -> Unit, onPickMedia: () -> Unit,
     onStartStandard: () -> Unit, onStartGaming: () -> Unit, onStopLive: () -> Unit, onLogout: () -> Unit) {
+    var videoTitle by remember { mutableStateOf("") }
+    var videoDescription by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().background(Ink)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("NEW STAR", color = Accent, fontWeight = FontWeight.Black, fontSize = 25.sp)
@@ -516,7 +642,15 @@ private fun NativeHome(email: String, page: String, selectedMedia: Uri?, liveSta
                     Text("Android फ़ाइल पिकर से वीडियो चुनें।", color = Color.LightGray)
                     Spacer(Modifier.height(16.dp)); Button(onClick = onPickMedia) { Text("गैलरी से वीडियो चुनें") }
                     selectedMedia?.let { Spacer(Modifier.height(12.dp)); Text("चुनी गई फ़ाइल:", color = Cyan); Text(it.lastPathSegment ?: it.toString(), color = Color.White) }
-                    Spacer(Modifier.height(12.dp)); Text("वीडियो upload/publish का Native integration अलग चरण में बाकी है।", color = Color(0xFFFFC66D), fontSize = 13.sp)
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(videoTitle, { videoTitle = it }, Modifier.fillMaxWidth(), label = { Text("वीडियो शीर्षक") }, singleLine = true)
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(videoDescription, { videoDescription = it }, Modifier.fillMaxWidth(), label = { Text("विवरण (वैकल्पिक)") }, minLines = 2)
+                    Spacer(Modifier.height(10.dp))
+                    Button(onClick = { onPublishVideo(videoTitle, videoDescription) }, enabled = !uploadBusy && selectedMedia != null, modifier = Modifier.fillMaxWidth()) { Text(if (uploadBusy) "अपलोड हो रहा है…" else "वीडियो अपलोड और Publish करें") }
+                    if (uploadBusy || uploadProgress > 0) { Spacer(Modifier.height(10.dp)); LinearProgressIndicator(progress = uploadProgress / 100f, modifier = Modifier.fillMaxWidth()); Text("$uploadProgress% · $uploadStatus", color = Cyan, fontSize = 12.sp) }
+                    else if (uploadStatus.isNotBlank()) Text(uploadStatus, color = Cyan, fontSize = 12.sp)
+                    if (uploadError.isNotBlank()) Text(uploadError, color = Color(0xFFFF8A8A), fontSize = 12.sp)
                 }
                 "live" -> {
                     Text("LIVE Center", fontSize = 24.sp, fontWeight = FontWeight.Bold)
