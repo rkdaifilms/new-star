@@ -136,7 +136,7 @@ class MainActivity : ComponentActivity() {
                                 busy = true; error = ""
                                 lifecycleScope.launch {
                                     try {
-                                        withContext(Dispatchers.IO) { authRecoveryRequest(emailInput.trim()) }
+                                        withContext(Dispatchers.IO) { authRecoveryRequest(emailInput.trim().lowercase()) }
                                         error = "यदि इस ईमेल का अकाउंट है, तो पासवर्ड बदलने का लिंक भेजा गया है। अपना ईमेल देखें।"
                                     } catch (e: Exception) { error = e.message ?: "रिकवरी ईमेल नहीं भेजा जा सका।" }
                                     finally { busy = false }
@@ -144,12 +144,12 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         onSubmit = {
-                            if (emailInput.isBlank() || password.length < 6) error = "ईमेल और कम-से-कम 6 अक्षर का पासवर्ड दर्ज करें।"
+                            if (emailInput.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(emailInput.trim()).matches() || password.isBlank() || (mode == "signup" && password.length < 6)) error = if (mode == "signup") "सही ईमेल और कम-से-कम 6 अक्षर का पासवर्ड दर्ज करें।" else "सही ईमेल और पासवर्ड दर्ज करें।"
                             else {
                                 busy = true; error = ""
                                 lifecycleScope.launch {
                                     try {
-                                        val result = withContext(Dispatchers.IO) { authRequest(if (mode == "signup") "signup" else "token?grant_type=password", emailInput.trim(), password) }
+                                        val result = withContext(Dispatchers.IO) { authRequest(if (mode == "signup") "signup" else "token?grant_type=password", emailInput.trim().lowercase(), password) }
                                         val newToken = result.optString("access_token")
                                         if (newToken.isBlank()) error = if (mode == "signup") "खाता अनुरोध मिला। ईमेल सत्यापन पूरा करके लॉगिन करें।" else result.optString("msg", "लॉगिन नहीं हो सका।")
                                         else {
@@ -157,7 +157,19 @@ class MainActivity : ComponentActivity() {
                                             email = result.optJSONObject("user")?.optString("email", emailInput) ?: emailInput
                                             prefs.edit().putString("access_token", newToken).putString("email", email).apply()
                                         }
-                                    } catch (e: Exception) { error = e.message ?: "नेटवर्क कनेक्शन नहीं हो सका।" }
+                                     } catch (e: Exception) {
+                                        val raw = e.message.orEmpty()
+                                        error = when {
+                                            raw.contains("already registered", ignoreCase = true) || raw.contains("user_already_exists", ignoreCase = true) -> {
+                                                mode = "login"
+                                                "यह ईमेल पहले से रजिस्टर्ड है। अब लॉगिन करें या ‘पासवर्ड भूल गए?’ से नया पासवर्ड बनाएँ।"
+                                            }
+                                            raw.contains("invalid login credentials", ignoreCase = true) || raw.contains("invalid_credentials", ignoreCase = true) -> "ईमेल या पासवर्ड मेल नहीं खा रहा। ईमेल जाँचें या ‘पासवर्ड भूल गए?’ दबाकर पासवर्ड बदलें।"
+                                            raw.contains("email not confirmed", ignoreCase = true) -> "आपका ईमेल अभी सत्यापित नहीं है। Inbox में Supabase verification लिंक खोलें।"
+                                            raw.contains("network", ignoreCase = true) || raw.contains("timeout", ignoreCase = true) -> "इंटरनेट कनेक्शन धीमा है। नेटवर्क जाँचकर फिर कोशिश करें।"
+                                            else -> raw.ifBlank { "लॉगिन नहीं हो सका। कुछ देर बाद फिर कोशिश करें।" }
+                                        }
+                                    }
                                     finally { busy = false }
                                 }
                             }
@@ -327,7 +339,7 @@ private suspend fun authRequest(path: String, email: String, password: String): 
     val body = stream.bufferedReader().use { it.readText() }
     conn.disconnect()
     if (code !in 200..299) {
-        val message = runCatching { JSONObject(body).optString("msg").ifBlank { JSONObject(body).optString("message") } }.getOrNull()
+        val message = runCatching { val json = JSONObject(body); json.optString("msg").ifBlank { json.optString("message").ifBlank { json.optString("error_description").ifBlank { json.optString("error").ifBlank { json.optString("code") } } } } }.getOrNull()
         throw IllegalStateException(message?.takeIf { it.isNotBlank() } ?: "Supabase authentication error ($code)")
     }
     JSONObject(body)
@@ -372,7 +384,7 @@ private fun NativeHome(email: String, page: String, selectedMedia: Uri?, liveSta
     onStartStandard: () -> Unit, onStartGaming: () -> Unit, onStopLive: () -> Unit, onLogout: () -> Unit) {
     Column(Modifier.fillMaxSize().background(Ink)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) { Text("NEW STAR", color = Accent, fontWeight = FontWeight.Black, fontSize = 25.sp); Text("Native Android", color = Cyan, fontSize = 12.sp) }
+            Text("NEW STAR", color = Accent, fontWeight = FontWeight.Black, fontSize = 25.sp)
             TextButton(onClick = onLogout) { Text("लॉगआउट") }
         }
         NavigationBar(containerColor = Panel) {
