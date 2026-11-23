@@ -130,6 +130,19 @@ class MainActivity : ComponentActivity() {
                 if (accessToken.isBlank()) {
                     AuthScreen(mode, emailInput, password, busy, error,
                         onMode = { mode = it; error = "" }, onEmail = { emailInput = it }, onPassword = { password = it },
+                        onForgotPassword = {
+                            if (emailInput.isBlank()) error = "पहले अपना ईमेल दर्ज करें।"
+                            else {
+                                busy = true; error = ""
+                                lifecycleScope.launch {
+                                    try {
+                                        withContext(Dispatchers.IO) { authRecoveryRequest(emailInput.trim()) }
+                                        error = "यदि इस ईमेल का अकाउंट है, तो पासवर्ड बदलने का लिंक भेजा गया है। अपना ईमेल देखें।"
+                                    } catch (e: Exception) { error = e.message ?: "रिकवरी ईमेल नहीं भेजा जा सका।" }
+                                    finally { busy = false }
+                                }
+                            }
+                        },
                         onSubmit = {
                             if (emailInput.isBlank() || password.length < 6) error = "ईमेल और कम-से-कम 6 अक्षर का पासवर्ड दर्ज करें।"
                             else {
@@ -285,6 +298,23 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private suspend fun authRecoveryRequest(email: String) = withContext(Dispatchers.IO) {
+    val conn = (URL("$SB_URL/auth/v1/recover").openConnection() as HttpURLConnection).apply {
+        requestMethod = "POST"; connectTimeout = 15000; readTimeout = 20000; doOutput = true
+        setRequestProperty("apikey", SB_KEY); setRequestProperty("Content-Type", "application/json")
+    }
+    val body = JSONObject().put("email", email).put("redirect_to", "https://new-star-delta.vercel.app/auth.html?mode=recovery&next=index.html")
+    conn.outputStream.use { it.write(body.toString().toByteArray()) }
+    val code = conn.responseCode
+    val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+    val raw = stream.bufferedReader().use { it.readText() }
+    conn.disconnect()
+    if (code !in 200..299) {
+        val message = runCatching { JSONObject(raw).optString("msg").ifBlank { JSONObject(raw).optString("message") } }.getOrNull()
+        throw IllegalStateException(message?.takeIf { it.isNotBlank() } ?: "Password recovery request failed ($code)")
+    }
+}
+
 private suspend fun authRequest(path: String, email: String, password: String): JSONObject = withContext(Dispatchers.IO) {
     val conn = (URL("$SB_URL/auth/v1/$path").openConnection() as HttpURLConnection).apply {
         requestMethod = "POST"; connectTimeout = 15000; readTimeout = 20000; doOutput = true
@@ -312,11 +342,11 @@ private fun authLogout(token: String) {
 
 @Composable
 private fun AuthScreen(mode: String, email: String, password: String, busy: Boolean, error: String,
-    onMode: (String) -> Unit, onEmail: (String) -> Unit, onPassword: (String) -> Unit, onSubmit: () -> Unit) {
+    onMode: (String) -> Unit, onEmail: (String) -> Unit, onPassword: (String) -> Unit,
+    onForgotPassword: () -> Unit, onSubmit: () -> Unit) {
     Column(Modifier.fillMaxSize().background(Ink).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.Center) {
         Text("NEW STAR", color = Accent, fontSize = 32.sp, fontWeight = FontWeight.Black)
-        Text("Creator platform • Native Android", color = Cyan, fontSize = 14.sp)
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(34.dp))
         Text(if (mode == "login") "लॉगिन करें" else "नया अकाउंट बनाएँ", fontSize = 25.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(18.dp))
         OutlinedTextField(email, onEmail, Modifier.fillMaxWidth(), label = { Text("ईमेल") }, singleLine = true)
@@ -327,10 +357,10 @@ private fun AuthScreen(mode: String, email: String, password: String, busy: Bool
         Button(onClick = onSubmit, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp)) {
             Text(if (busy) "कनेक्ट हो रहा है…" else if (mode == "login") "लॉगिन" else "साइन अप")
         }
+        if (mode == "login") TextButton(onClick = onForgotPassword, enabled = !busy, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("पासवर्ड भूल गए?") }
         TextButton(onClick = { onMode(if (mode == "login") "signup" else "login") }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(if (mode == "login") "नया अकाउंट बनाएँ" else "पहले से अकाउंट है? लॉगिन")
         }
-        Text("लॉगिन सीधे New Star Supabase Auth से सत्यापित होता है।", color = Color.LightGray, fontSize = 12.sp)
     }
 }
 
