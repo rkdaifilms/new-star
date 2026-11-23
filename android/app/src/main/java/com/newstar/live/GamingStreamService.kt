@@ -101,7 +101,7 @@ class GamingStreamService : Service() {
             override fun onStop() { emit("error", "Android screen sharing was stopped."); stopStreaming() }
         })
         capturer!!.initialize(texture!!, applicationContext, source!!.capturerObserver)
-        capturer!!.startCapture(1280, 720, 30)
+        capturer!!.startCapture(GAMING_WIDTH, GAMING_HEIGHT, GAMING_FPS)
         check(!stopped.get()) { "Gaming LIVE was stopped during screen capture startup." }
         track = factory!!.createVideoTrack("newstar-screen", source)
         if (includeMic) {
@@ -174,8 +174,8 @@ class GamingStreamService : Service() {
         check(!stopped.get()) { "Gaming LIVE was stopped before the media connection completed." }
         emit(
             "connected",
-            if (includeMic) "Gaming screen and microphone are connected to Cloudflare."
-            else "Gaming screen connected to Cloudflare. Microphone is off.",
+            if (includeMic) "Gaming LIVE connected at up to 1080p (1920×1080), 30 FPS, with microphone."
+            else "Gaming LIVE connected at up to 1080p (1920×1080), 30 FPS. Microphone is off.",
             whipResource ?: ""
         )
     }
@@ -280,6 +280,9 @@ class GamingStreamService : Service() {
         const val RESULT_DATA = "result_data"
         const val WHIP_URL = "whip_url"
         const val INCLUDE_MIC = "include_mic"
+        private const val GAMING_WIDTH = 1920
+        private const val GAMING_HEIGHT = 1080
+        private const val GAMING_FPS = 30
         private const val CHANNEL = "newstar_gaming_live"
         private const val NOTIFICATION_ID = 7041
     }
