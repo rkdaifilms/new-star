@@ -59,7 +59,7 @@ jobs:
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot -wipe-data
           script: |
-            set -euo pipefail
+            set -eu
             APK="android/app/build/outputs/apk/debug/app-debug.apk"
             test -s "$APK"
             adb wait-for-device
