@@ -17,6 +17,12 @@
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="com.newstar.live" android:host="gaming-live"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="com.newstar.live" android:host="auth-callback"/>
             </intent-filter>
         </activity>
