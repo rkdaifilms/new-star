@@ -62,11 +62,13 @@ Deno.serve(async (req: Request) => {
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
   // Try every configured token alias in priority order. A stale primary secret
   // must not prevent a valid fallback alias from being used.
-  const streamTokenCandidates = [
-    { name: "CLOUDFLARE_STREAM_TOKEN", value: Deno.env.get("CLOUDFLARE_STREAM_TOKEN") },
-    { name: "CLOUDFLARE_API_TOKEN", value: Deno.env.get("CLOUDFLARE_API_TOKEN") },
-    { name: "CLOUDFLARE_STREAM_API_TOKEN", value: Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN") },
-  ].filter((item): item is { name: string; value: string } => Boolean(item.value));
+  const streamTokenNames = ["CLOUDFLARE_STREAM_TOKEN", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_STREAM_API_TOKEN"];
+  const streamTokenCandidates = streamTokenNames.flatMap((name) =>
+    ["", "_1", "_2", "_3", "_4", "_5", "_6"].map((suffix) => ({
+      name: name + suffix,
+      value: Deno.env.get(name + suffix),
+    }))
+  ).filter((item): item is { name: string; value: string } => Boolean(item.value?.trim()));
 
   const missingConfig: string[] = [];
   if (!supabaseUrl) missingConfig.push("SUPABASE_URL");
