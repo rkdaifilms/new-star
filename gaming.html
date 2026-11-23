@@ -446,6 +446,22 @@
                     await startNativeProGamingStream(gameName);
                     return;
                 }
+                // Android Chrome is not the New Star native screen-capture service.
+                // Route Android phones to the app's MediaProjection flow instead of asking
+                // Chrome to capture a website tab or screen.
+                if (/Android/i.test(navigator.userAgent) && !nativeCaptureReady) {
+                    if (captureStatus) {
+                        captureStatus.hidden = false;
+                        captureStatus.textContent = 'Gaming LIVE मोबाइल पर New Star Android ऐप से शुरू होगा। ऐप खोलें और LIVE Center में Gaming LIVE शुरू करें।';
+                        const openApp = document.createElement('a');
+                        openApp.href = 'com.newstar.live://gaming-live';
+                        openApp.textContent = 'New Star Android ऐप खोलें';
+                        openApp.style.cssText = 'display:block;margin-top:12px;padding:12px;border-radius:10px;background:#25f4ee;color:#001014;text-align:center;font-weight:700;text-decoration:none;';
+                        captureStatus.replaceChildren(openApp);
+                    }
+                    return;
+                }
+
                 if (!window.isSecureContext || !navigator.mediaDevices?.getDisplayMedia || !window.RTCPeerConnection) {
                     if (captureStatus) {
                         captureStatus.hidden = false;
