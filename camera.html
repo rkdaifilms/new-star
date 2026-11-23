@@ -85,6 +85,12 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 @media(max-width:390px){#editorScreen.editor-expanded .editor-workspace>.preview{height:50vh;min-height:290px}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:38vh;min-height:230px}#editorExpandButton{width:40px;height:40px}}
 @media(min-width:700px){#editorScreen.editor-expanded .editor-workspace>.preview{height:60vh;max-height:650px}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:48vh;min-height:340px}}
 #editorScreen.editor-publishing .preview,#editorScreen.editor-publishing #editorActions,#editorScreen.editor-publishing .editor-tools-rail{display:none!important}
+#editorScreen.editor-publishing .editor-topbar,#editorScreen.editor-publishing #editorExpandButton{display:none!important}
+#editorScreen.editor-publishing #publishPanel{margin:8px auto 24px!important;padding-top:8px}
+#editorScreen.editor-publishing #publishPanel .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#editorScreen.editor-publishing #backToPreviewButton{flex:0 0 48px;width:48px;min-width:48px;height:48px;padding:0;margin:0;border-radius:50%;font-size:28px;line-height:1}
+#editorScreen.editor-publishing #publishPanel label{margin-top:12px}
+#editorScreen.editor-publishing #publishPanel .primary{margin-top:14px;margin-bottom:12px}
 #ns-ai-launch,#ns-ai-panel{display:none!important}
 
 /* Mobile editor layout repair: keep the source video large and put tools above it. */
@@ -312,7 +318,7 @@ body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center
  </section>
 
  <section id="publishPanel" class="panel hidden">
-  <div class="panel-head"><h3>🚀 Publish Video</h3><button class="secondary" type="button" id="backToPreviewButton">← Back to Preview</button></div>
+  <div class="panel-head"><h3>🚀 Publish Video</h3><button class="secondary publish-back" type="button" id="backToPreviewButton" aria-label="Back to video preview" title="Back to preview">←</button></div>
   <label>Video Title</label>
   <input class="input" id="videoTitle" maxlength="150" placeholder="वीडियो का Title">
   <label>Description & Hashtags</label>
