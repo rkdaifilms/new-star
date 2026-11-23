@@ -73,16 +73,27 @@ class MainActivity : ComponentActivity() {
         if (uri != null) { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); selectedMedia = uri }
     }
     private val runtimePermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-        val granted = result[Manifest.permission.CAMERA] == true && result[Manifest.permission.RECORD_AUDIO] == true
+        // Gaming LIVE captures the display through MediaProjection; it does not need camera permission.
+        // Standard camera LIVE still requires both camera and microphone.
+        val gamingRequest = permissionRequestForGaming
+        val granted = if (gamingRequest) {
+            result[Manifest.permission.RECORD_AUDIO] == true
+        } else {
+            result[Manifest.permission.CAMERA] == true && result[Manifest.permission.RECORD_AUDIO] == true
+        }
         if (granted) {
-            if (permissionRequestForGaming) {
+            if (gamingRequest) {
                 permissionRequestForGaming = false
                 val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                 projectionPermission.launch(manager.createScreenCaptureIntent())
             } else startStandardLiveRequest()
         } else {
             permissionRequestForGaming = false
-            liveError = "Camera और microphone permissions दोनों आवश्यक हैं।"
+            liveError = if (gamingRequest) {
+                "Gaming LIVE के लिए microphone permission आवश्यक है।"
+            } else {
+                "Standard LIVE के लिए camera और microphone permissions आवश्यक हैं।"
+            }
         }
     }
     private val projectionPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
