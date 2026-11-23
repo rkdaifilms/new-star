@@ -298,7 +298,7 @@ Deno.serve(async (req: Request) => {
     if (speechLimitError || speechAllowed !== true) return json({ ok: false, error: speechLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, speechLimitError ? 503 : 429, headers);
 
     if (geminiKey) {
-      const models = ["gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts"];
+      const models = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"];
       let geminiSpeechFailure = "";
       for (const model of models) {
         try {
