@@ -147,6 +147,23 @@ body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center
  #editorScreen.editor-expanded .editor-workspace>.preview{height:62vh!important;min-height:340px!important}
  #editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:48vh!important;min-height:260px!important}
 }
+
+/* Final mobile editor layout: no floating zoom/fullscreen overlay; publish sits below video. */
+#editorFullscreenButton{display:none!important}
+#editorScreen .editor-workspace>.preview{height:66vh!important;min-height:340px!important;max-height:620px!important}
+#editorScreen #editorActions{position:static!important;display:block!important;width:100%!important;max-width:none!important;margin:10px 0 4px!important;padding:0!important;background:none!important}
+#editorScreen #editorActions .primary{position:static!important;width:100%!important;min-height:54px!important;margin:0!important}
+#editorScreen .editor-tools-rail{order:3!important}
+#editorScreen .editor-workspace>.preview{order:2!important}
+#editorScreen #editorActions{order:3!important}
+#editorScreen .editor-tools-rail{order:4!important}
+#editorScreen.editor-expanded .editor-workspace>.preview{height:58vh!important;min-height:300px!important}
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:44vh!important;min-height:240px!important}
+#uploadMeter .upload-steps,#uploadMeter .upload-detail{display:none!important}
+#uploadMeter{padding:12px!important}
+#uploadMeter .upload-meter-top{margin-bottom:8px}
+@media(max-width:600px){#editorScreen .editor-workspace>.preview{height:64vh!important;min-height:320px!important}#editorScreen.editor-expanded .editor-workspace>.preview{height:54vh!important;min-height:280px!important}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:42vh!important;min-height:220px!important}}
+
 </style>
 
 <link rel="manifest" href="/manifest.json">
@@ -196,11 +213,9 @@ body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center
    <div class="preview">
    <video id="editorVideo" playsinline controls></video>
    <div id="previewText"></div>
-   <button type="button" id="editorFullscreenButton" aria-label="Play video fullscreen" title="Fullscreen">⛶</button>
-   
-   <div id="editorActions">
-    <button class="primary" id="saveEditsButton">Save & Continue to Publish</button>
-   </div>
+  </div>
+  <div id="editorActions">
+   <button class="primary" id="saveEditsButton">Save & Continue to Publish</button>
   </div>
   <aside class="editor-tools-rail" aria-label="Video editing tools">
    <button type="button" data-panel="trimPanel" title="Trim" aria-label="Trim">✂️<span>Trim</span></button>
