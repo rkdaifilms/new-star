@@ -130,6 +130,7 @@ class MainActivity : ComponentActivity() {
                 if (accessToken.isBlank()) {
                     AuthScreen(mode, emailInput, password, busy, error,
                         onMode = { mode = it; error = "" }, onEmail = { emailInput = it }, onPassword = { password = it },
+                        onGoogleLogin = { startGoogleSignIn() },
                         onForgotPassword = {
                             if (emailInput.isBlank()) error = "पहले अपना ईमेल दर्ज करें।"
                             else {
@@ -304,6 +305,37 @@ class MainActivity : ComponentActivity() {
         payload
     }
 
+    private fun startGoogleSignIn() {
+        val redirect = "com.newstar.live://auth-callback"
+        val authUrl = Uri.parse("$SB_URL/auth/v1/authorize").buildUpon()
+            .appendQueryParameter("provider", "google")
+            .appendQueryParameter("redirect_to", redirect)
+            .build()
+        startActivity(Intent(Intent.ACTION_VIEW, authUrl))
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleAuthCallback(intent)
+        if (tokenState.isNotBlank()) recreate()
+    }
+
+    private fun handleAuthCallback(source: Intent?) {
+        val uri = source?.data ?: return
+        if (uri.scheme != "com.newstar.live" || uri.host != "auth-callback") return
+        val values = uri.fragment.orEmpty().split("&").mapNotNull { part ->
+            val pair = part.split("=", limit = 2)
+            if (pair.size == 2) pair[0] to Uri.decode(pair[1]) else null
+        }.toMap()
+        val access = values["access_token"].orEmpty()
+        val refresh = values["refresh_token"].orEmpty()
+        if (access.isNotBlank()) {
+            tokenState = access
+            prefs.edit().putString("access_token", access).putString("refresh_token", refresh).apply()
+        }
+    }
+
     override fun onDestroy() {
         runCatching { unregisterReceiver(streamReceiver) }
         super.onDestroy()
@@ -356,12 +388,16 @@ private fun authLogout(token: String) {
 @Composable
 private fun AuthScreen(mode: String, email: String, password: String, busy: Boolean, error: String,
     onMode: (String) -> Unit, onEmail: (String) -> Unit, onPassword: (String) -> Unit,
-    onForgotPassword: () -> Unit, onSubmit: () -> Unit) {
+    onGoogleLogin: () -> Unit, onForgotPassword: () -> Unit, onSubmit: () -> Unit) {
     Column(Modifier.fillMaxSize().background(Ink).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.Center) {
         Text("NEW STAR", color = Accent, fontSize = 32.sp, fontWeight = FontWeight.Black)
         Spacer(Modifier.height(34.dp))
         Text(if (mode == "login") "लॉगिन करें" else "नया अकाउंट बनाएँ", fontSize = 25.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(18.dp))
+        OutlinedButton(onClick = onGoogleLogin, enabled = !busy, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text("Google से जारी रखें") }
+        Spacer(Modifier.height(12.dp))
+        Text("या ईमेल से लॉगिन करें", color = Color.LightGray, fontSize = 13.sp)
+        Spacer(Modifier.height(10.dp))
         OutlinedTextField(email, onEmail, Modifier.fillMaxWidth(), label = { Text("ईमेल") }, singleLine = true)
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(password, onPassword, Modifier.fillMaxWidth(), label = { Text("पासवर्ड") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
