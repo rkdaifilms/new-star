@@ -18,7 +18,7 @@ concurrency:
 jobs:
   install-launch-smoke:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -39,17 +39,23 @@ jobs:
 
       - name: Boot Android emulator, install and launch app
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          # GitHub's Linux hosted runner has no KVM; explicitly enable QEMU TCG.
+          ANDROID_I_WANT_MY_TCG: "yes"
         with:
           api-level: 34
           target: google_apis
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot -wipe-data
           script: |
             set -euo pipefail
             APK="android/app/build/outputs/apk/debug/app-debug.apk"
+            test -s "$APK"
+            adb wait-for-device
+            adb shell pm wait-for-device
             adb install -r "$APK"
             adb shell pm grant com.newstar.live android.permission.RECORD_AUDIO || true
             adb shell pm grant com.newstar.live android.permission.CAMERA || true
