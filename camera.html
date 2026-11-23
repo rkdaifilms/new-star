@@ -62,12 +62,11 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .progress{width:100%;accent-color:#25f4ee}
 #cameraVideo{width:100%;max-height:55vh;background:#000}
 #cameraTimer{margin-top:8px;color:#25f4ee;font-weight:bold;text-align:center}
-.upload-meter{margin:12px 0;padding:13px;background:#101014;border:1px solid #34343d;border-radius:12px;color:#fff}.upload-meter-top{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13px;margin-bottom:9px}#uploadPercent{font-size:18px;color:#25f4ee;font-variant-numeric:tabular-nums}#uploadBytes{font-size:11px;color:#c7c7ce;text-align:right}.upload-track{height:10px;background:#303039;border-radius:99px;overflow:hidden}.upload-fill{height:100%;width:0;background:linear-gradient(90deg,#25f4ee,#55d68b);border-radius:99px;transition:width .2s linear}.upload-steps{display:flex;align-items:center;justify-content:space-between;gap:3px;margin-top:14px}.upload-step{width:28px;height:28px;flex:0 0 28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#303039;color:#aaa;font-size:12px;font-weight:800;position:relative}.upload-step small{position:absolute;top:31px;font-size:9px;font-weight:500;white-space:nowrap;color:#999}.upload-step.active{background:#25f4ee;color:#071013;box-shadow:0 0 0 3px rgba(37,244,238,.15)}.upload-step.done{background:#238b68;color:#fff}.upload-arrow{color:#777;font-size:14px;flex:1;text-align:center;display:inline-block;animation:uploadArrowFlow 1.15s ease-in-out infinite;will-change:transform,color}
-.upload-arrow:nth-of-type(2){animation-delay:.18s}.upload-arrow:nth-of-type(4){animation-delay:.36s}.upload-arrow:nth-of-type(6){animation-delay:.54s}.upload-arrow:nth-of-type(8){animation-delay:.72s}
+.upload-meter{margin:12px 0;padding:13px;background:#101014;border:1px solid #34343d;border-radius:12px;color:#fff}.upload-meter-top{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13px;margin-bottom:9px}#uploadPercent{font-size:18px;color:#25f4ee;font-variant-numeric:tabular-nums}#uploadBytes{font-size:11px;color:#c7c7ce;text-align:right}.upload-track{height:10px;background:#303039;border-radius:99px;overflow:hidden}.upload-fill{height:100%;width:0;background:linear-gradient(90deg,#25f4ee,#55d68b);border-radius:99px;transition:width .2s linear}.upload-steps{display:flex;align-items:center;justify-content:space-between;gap:3px;margin-top:14px}.upload-step{width:28px;height:28px;flex:0 0 28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#303039;color:#aaa;font-size:12px;font-weight:800;position:relative}.upload-step small{position:absolute;top:31px;font-size:9px;font-weight:500;white-space:nowrap;color:#999}.upload-step.active{background:#25f4ee;color:#071013;box-shadow:0 0 0 3px rgba(37,244,238,.15)}.upload-step.done{background:#238b68;color:#fff}.upload-arrow{color:#777;font-size:14px;flex:1;text-align:center;display:inline-block;animation:none!important;will-change:auto}
+.upload-arrow:nth-of-type(2),.upload-arrow:nth-of-type(4),.upload-arrow:nth-of-type(6),.upload-arrow:nth-of-type(8){animation:none!important}
 @keyframes uploadArrowFlow{0%,100%{transform:translateX(-3px);color:#777;text-shadow:none}50%{transform:translateX(4px);color:#25f4ee;text-shadow:0 0 9px rgba(37,244,238,.8)}}
-.upload-meter:not(.hidden) .upload-fill{background-size:200% 100%;animation:uploadFillFlow 1.4s linear infinite}
-@keyframes uploadFillFlow{from{background-position:100% 0}to{background-position:-100% 0}}
-@media(prefers-reduced-motion:reduce){.upload-arrow,.upload-meter:not(.hidden) .upload-fill{animation:none}}
+.upload-meter:not(.hidden) .upload-fill{background-size:100% 100%;animation:none!important;background-position:left center}
+@media(prefers-reduced-motion:reduce){.upload-arrow,.upload-meter:not(.hidden) .upload-fill{animation:none!important}}
 .upload-detail{margin-top:25px;font-size:11px;line-height:1.5;color:#d4d4dc;overflow-wrap:anywhere}
 /* Stable preview controls and on-demand editor drawer */
 .editor-workspace>.preview{position:relative;flex:0 0 auto;overflow:hidden;overscroll-behavior:contain;scroll-margin:0}
@@ -1295,9 +1294,13 @@ async function publishVideo() {
  const status = $("publishStatus");
  const progress = $("uploadProgress");
  const meter=$("uploadMeter"),meterPercent=$("uploadPercent"),meterBytes=$("uploadBytes"),meterFill=$("uploadFill"),meterDetail=$("uploadDetail");
+ let currentUploadStage=0;
+ let maxProgressPercent=0;
+ let maxUploadedBytes=0;
  const setUploadStage=(stage,detail)=>{
+  currentUploadStage=Math.max(currentUploadStage,Number(stage)||0);
   if(meter)meter.classList.remove("hidden");
-  document.querySelectorAll(".upload-step").forEach(el=>{const n=Number(el.dataset.step);el.classList.toggle("done",n<stage);el.classList.toggle("active",n===stage);});
+  document.querySelectorAll(".upload-step").forEach(el=>{const n=Number(el.dataset.step);el.classList.toggle("done",n<currentUploadStage);el.classList.toggle("active",n===currentUploadStage);});
   if(meterDetail&&detail)meterDetail.textContent=detail;
  };
  const formatUploadBytes=value=>{if(!Number.isFinite(value)||value<=0)return "0 MB";const units=["B","KB","MB","GB","TB"];let n=value,i=0;while(n>=1024&&i<units.length-1){n/=1024;i++;}return n.toFixed(i>=2?2:1)+" "+units[i];};
@@ -1305,8 +1308,8 @@ async function publishVideo() {
  button.disabled = true;
  button.textContent = "Publishing...";
  progress.classList.remove("hidden");
- progress.removeAttribute("value");
- if(meterPercent)meterPercent.textContent="0% अपलोड";
+ progress.max=100;\n progress.value=0;
+ maxProgressPercent=0;\n maxUploadedBytes=0;\n if(meterPercent)meterPercent.textContent="0% अपलोड";
  meterBytes.textContent="0 MB / "+formatUploadBytes(selectedVideoFile?.size||0);
  if(meterFill)meterFill.style.width="0%";
  document.querySelectorAll(".upload-step").forEach(el=>el.classList.remove("done","active"));
@@ -1348,11 +1351,8 @@ async function publishVideo() {
   const caption = [title,description].filter(Boolean).join("\n\n") || "New Star Video";
   let username = user.user_metadata?.username || user.user_metadata?.full_name ||
    user.email?.split("@")[0] || "New Star Creator";
-  try {
-   const {data:profile,error:profileError} = await db.from("profiles")
-    .select("username,full_name").eq("user_id",user.id).maybeSingle();
-   if (!profileError && profile) username = profile.username || profile.full_name || username;
-  } catch(error) { console.warn("Profile lookup skipped:",error); }
+  // Do not block the start of a large video transfer on a separate profile lookup.
+  // Auth metadata/email provides a safe username fallback for the video record.
 
   const originalName = selectedVideoFile.name || "video.webm";
   const displayName = originalName.slice(0,180);
@@ -1393,7 +1393,9 @@ async function publishVideo() {
    const strongNetwork=!slowNetwork&&downlinkMbps>=10;
    const veryStrongNetwork=!slowNetwork&&downlinkMbps>=25;
    // Moderate chunk sizes avoid long stalls and expensive retries on Android mobile links.
-   const uploadChunkSize=slowNetwork?8*1024*1024:(veryStrongNetwork?64*1024*1024:(strongNetwork?32*1024*1024:16*1024*1024));
+   // Avoid oversized 64 MiB chunks on Android mobile browsers: 8 MiB on
+   // constrained links, 16 MiB normally, and 32 MiB only on strong connections.
+   const uploadChunkSize=slowNetwork?8*1024*1024:(strongNetwork?32*1024*1024:16*1024*1024);
    const uploadStartedAt=performance.now();
    let lastSpeedSampleAt=uploadStartedAt;
    let lastSpeedSampleBytes=0;
@@ -1428,10 +1430,14 @@ async function publishVideo() {
       lastSpeedSampleAt=now;
       lastSpeedSampleBytes=bytesUploaded;
      }
-     const percent=bytesTotal?Math.floor(bytesUploaded/bytesTotal*100):0;
-     const progressEl=$("uploadProgress");if(progressEl)progressEl.value=percent;
+     // Keep the visible meter monotonic across TUS retries/resume callbacks.
+     maxUploadedBytes=Math.max(maxUploadedBytes,Math.min(bytesUploaded,bytesTotal||bytesUploaded));
+     const reportedPercent=bytesTotal?Math.floor(bytesUploaded/bytesTotal*100):0;
+     maxProgressPercent=Math.max(maxProgressPercent,Math.min(100,reportedPercent));
+     const percent=maxProgressPercent;
+     const progressEl=$("uploadProgress");if(progressEl){progressEl.max=100;progressEl.value=percent;}
      if(meterPercent)meterPercent.textContent=percent+"% अपलोड";
-     if(meterBytes)meterBytes.textContent=formatUploadBytes(bytesUploaded)+" / "+formatUploadBytes(bytesTotal);
+     if(meterBytes)meterBytes.textContent=formatUploadBytes(maxUploadedBytes)+" / "+formatUploadBytes(bytesTotal);
      if(meterFill)meterFill.style.width=percent+"%";
      const speedText=smoothedBytesPerSecond>0?(smoothedBytesPerSecond/1048576).toFixed(2)+" MB/s":"स्पीड मापी जा रही है";
      const remainingSeconds=smoothedBytesPerSecond>0&&bytesTotal>bytesUploaded?Math.ceil((bytesTotal-bytesUploaded)/smoothedBytesPerSecond):0;
