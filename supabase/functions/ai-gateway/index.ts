@@ -367,60 +367,78 @@ Deno.serve(async (req: Request) => {
         !supportedAudioTypes.has(mimeType)) {
       return json({ ok: false, error: "Voice recording is missing, too large, or uses an unsupported format." }, 400, headers);
     }
-    const geminiKey = firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    const openaiKey = firstSecret("OPENAI_API_KEY", "OPENAI_KEY");
-    if (!geminiKey && !openaiKey) return json({ ok: false, error: "Voice transcription is not configured. Add a Gemini or OpenAI provider key on the server." }, 503, headers);
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
+    if (!geminiKeys.length && !openaiKeys.length) return json({ ok: false, error: "Voice transcription is not configured. Add a Gemini or OpenAI provider key on the server." }, 503, headers);
     const voiceAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: allowedVoice, error: voiceLimitError } = await voiceAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
     if (voiceLimitError || allowedVoice !== true) return json({ ok: false, error: voiceLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, voiceLimitError ? 503 : 429, headers);
 
-    let geminiFailure = "";
-    let openaiFailure = "";
-    // Android Chrome commonly records WebM/Opus. Send that format to
-    // OpenAI first because it accepts WebM directly; Gemini remains fallback.
-    if (openaiKey && mimeType === "audio/webm") {
-      try {
-        const transcript = await transcribeWithOpenAI(openaiKey, audio, mimeType);
-        return json({ ok: true, transcript, language: "und", provider: "openai" }, 200, headers);
-      } catch (error) {
-        openaiFailure = error instanceof Error ? error.message : "OPENAI_TRANSCRIPTION_FAILED";
-        console.error("AI voice transcription provider failed:", "openai", openaiFailure);
+    const failures: string[] = [];
+    // WebM/Opus is the usual Android Chrome recording format. Try every configured
+    // OpenAI key first for WebM, then Gemini; never let one stale key block the others.
+    if (mimeType === "audio/webm") {
+      for (let i = 0; i < openaiKeys.length; i++) {
+        try {
+          const transcript = await transcribeWithOpenAI(openaiKeys[i], audio, mimeType);
+          return json({ ok: true, transcript, language: "und", provider: "openai" }, 200, headers);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : "OPENAI_TRANSCRIPTION_FAILED";
+          failures.push("openai[" + (i + 1) + "]:" + reason);
+          console.error("AI voice transcription provider failed:", "openai", i + 1, reason);
+        }
       }
     }
-    if (geminiKey) {
-      try {
-        const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
-          method: "POST",
-          headers: { "x-goog-api-key": geminiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [
-              { text: "Transcribe this recording exactly in the language spoken. Detect the language automatically. Do not translate. Return only valid JSON with keys language (BCP-47 language tag, best effort) and transcript (verbatim text). If speech is unclear, use the closest accurate transcript and do not invent words." },
-              { inline_data: { mime_type: mimeType, data: audio } }
-            ] }],
-            generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 1200 }
-          })
-        }, 60000);
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(providerHttpError(response.status, data));
-        const output = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
-        const parsed = JSON.parse(output);
-        if (typeof parsed.transcript !== "string" || !parsed.transcript.trim()) throw new Error("EMPTY_TRANSCRIPTION");
-        return json({ ok: true, transcript: parsed.transcript.trim(), language: String(parsed.language || "und"), provider: "gemini" }, 200, headers);
-      } catch (error) {
-        geminiFailure = error instanceof Error ? error.message : "GEMINI_TRANSCRIPTION_FAILED";
-        console.error("AI voice transcription provider failed:", "gemini", geminiFailure);
+
+    const transcriptionModels = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+    for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
+      for (const model of transcriptionModels) {
+        try {
+          const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+            method: "POST",
+            headers: { "x-goog-api-key": geminiKeys[keyIndex], "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [
+                { text: "Transcribe this recording exactly in the language spoken. Detect the language automatically. Do not translate. Return only valid JSON with keys language (BCP-47 language tag, best effort) and transcript (verbatim text). If speech is unclear, use the closest accurate transcript and do not invent words." },
+                { inline_data: { mime_type: mimeType, data: audio } }
+              ] }],
+              generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 1200 }
+            })
+          }, 60000);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const reason = providerHttpError(response.status, data);
+            failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":" + reason);
+            if (response.status === 404) continue;
+            break;
+          }
+          const output = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
+          const parsed = JSON.parse(output);
+          if (typeof parsed.transcript !== "string" || !parsed.transcript.trim()) throw new Error("EMPTY_TRANSCRIPTION");
+          return json({ ok: true, transcript: parsed.transcript.trim(), language: String(parsed.language || "und"), provider: "gemini" }, 200, headers);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : "GEMINI_TRANSCRIPTION_FAILED";
+          failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":" + reason);
+          console.error("AI voice transcription provider failed:", "gemini", keyIndex + 1, model, reason);
+          break;
+        }
       }
     }
-    if (openaiKey && !openaiFailure) {
-      try {
-        const transcript = await transcribeWithOpenAI(openaiKey, audio, mimeType);
-        return json({ ok: true, transcript, language: "und", provider: "openai" }, 200, headers);
-      } catch (error) {
-        openaiFailure = error instanceof Error ? error.message : "OPENAI_TRANSCRIPTION_FAILED";
-        console.error("AI voice transcription provider failed:", "openai", openaiFailure);
+
+    // Non-WebM formats, or a fallback after Gemini failure, can still use any OpenAI key.
+    if (mimeType !== "audio/webm" || failures.some(value => value.startsWith("gemini["))) {
+      for (let i = 0; i < openaiKeys.length; i++) {
+        if (mimeType === "audio/webm" && failures.some(value => value.startsWith("openai[" + (i + 1) + "]:"))) continue;
+        try {
+          const transcript = await transcribeWithOpenAI(openaiKeys[i], audio, mimeType);
+          return json({ ok: true, transcript, language: "und", provider: "openai" }, 200, headers);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : "OPENAI_TRANSCRIPTION_FAILED";
+          failures.push("openai[" + (i + 1) + "]:" + reason);
+          console.error("AI voice transcription provider failed:", "openai", i + 1, reason);
+        }
       }
     }
-    const failures = [geminiFailure && "Gemini: " + geminiFailure, openaiFailure && "OpenAI: " + openaiFailure].filter(Boolean);
     return json({ ok: false, error: "Voice transcription providers are unavailable. " + (failures.join("; ") || "No compatible voice provider is configured.") }, 502, headers);
   }
 
