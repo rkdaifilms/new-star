@@ -112,11 +112,27 @@ class MainActivity : ComponentActivity() {
             liveStatus = message
             when (status) {
                 "connected" -> {
-                    liveActive = true
                     val id = roomId
                     if (id != null) lifecycleScope.launch {
-                        runCatching { liveApi("confirm", id) }
-                            .onFailure { liveError = "Stream जुड़ गया, लेकिन room activate नहीं हुआ: ${it.message}" }
+                        liveStatus = "Cloudflare media जुड़ गया है; LIVE room activate हो रहा है…"
+                        try {
+                            liveApi("confirm", id)
+                            liveActive = true
+                            liveError = ""
+                            liveStatus = message.ifBlank { "Cloudflare पर LIVE चालू है।" }
+                        } catch (e: Exception) {
+                            liveActive = false
+                            if (liveKind == "gaming") {
+                                startService(Intent(this@MainActivity, GamingStreamService::class.java).setAction(GamingStreamService.STOP))
+                            } else if (liveKind == "live") {
+                                startService(Intent(this@MainActivity, CameraLiveService::class.java).setAction(CameraLiveService.STOP))
+                            }
+                            runCatching { liveApi("stop", id) }
+                            roomId = null
+                            liveKind = null
+                            liveError = "Stream जुड़ा, लेकिन LIVE room activate नहीं हुआ: ${e.message}"
+                            liveStatus = "LIVE बंद है।"
+                        }
                     }
                 }
                 "error" -> {
