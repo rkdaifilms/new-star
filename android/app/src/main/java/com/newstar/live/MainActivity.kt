@@ -128,6 +128,21 @@ class MainActivity : ComponentActivity() {
                 var mode by remember { mutableStateOf("login") }
                 var recoveryMode by remember { mutableStateOf(passwordRecoveryMode) }
                 var newPassword by remember { mutableStateOf("") }
+                LaunchedEffect(Unit) {
+                    val refresh = prefs.getString("refresh_token", "").orEmpty()
+                    if (refresh.isNotBlank() && !recoveryMode) {
+                        try {
+                            val renewed = withContext(Dispatchers.IO) { authRefreshRequest(refresh) }
+                            val renewedAccess = renewed.optString("access_token")
+                            if (renewedAccess.isNotBlank()) {
+                                val renewedRefresh = renewed.optString("refresh_token", refresh)
+                                tokenState = renewedAccess; accessToken = renewedAccess
+                                email = renewed.optJSONObject("user")?.optString("email", email) ?: email
+                                prefs.edit().putString("access_token", renewedAccess).putString("refresh_token", renewedRefresh).putString("email", email).apply()
+                            }
+                        } catch (_: Exception) { /* Keep the existing access token; transient network failures must not log the user out. */ }
+                    }
+                }
                 var page by remember { mutableStateOf("home") }
                 var emailInput by remember { mutableStateOf("") }
                 var password by remember { mutableStateOf("") }
@@ -379,6 +394,18 @@ private suspend fun authRecoveryRequest(email: String) = withContext(Dispatchers
         val message = runCatching { JSONObject(raw).optString("msg").ifBlank { JSONObject(raw).optString("message") } }.getOrNull()
         throw IllegalStateException(message?.takeIf { it.isNotBlank() } ?: "Password recovery request failed ($code)")
     }
+}
+
+private suspend fun authRefreshRequest(refreshToken: String): JSONObject = withContext(Dispatchers.IO) {
+    val conn = (URL("$SB_URL/auth/v1/token?grant_type=refresh_token").openConnection() as HttpURLConnection).apply {
+        requestMethod = "POST"; connectTimeout = 15000; readTimeout = 20000; doOutput = true
+        setRequestProperty("apikey", SB_KEY); setRequestProperty("Content-Type", "application/json")
+    }
+    conn.outputStream.use { it.write(JSONObject().put("refresh_token", refreshToken).toString().toByteArray()) }
+    val code = conn.responseCode; val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+    val raw = stream.bufferedReader().use { it.readText() }; conn.disconnect()
+    if (code !in 200..299) throw IllegalStateException("Session refresh failed ($code): $raw")
+    JSONObject(raw)
 }
 
 private suspend fun authUpdatePassword(password: String, accessToken: String) = withContext(Dispatchers.IO) {
