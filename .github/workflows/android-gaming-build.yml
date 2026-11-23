@@ -1,5 +1,5 @@
 name: Android App (automatic APK)
-# Rebuild after adding Gaming LIVE mic mute controls.
+# Rebuild after adding Gaming LIVE mic mute controls and Full HD 1080p capture.
 
 on:
   push:
