@@ -1308,8 +1308,11 @@ async function publishVideo() {
  button.disabled = true;
  button.textContent = "Publishing...";
  progress.classList.remove("hidden");
- progress.max=100;\n progress.value=0;
- maxProgressPercent=0;\n maxUploadedBytes=0;\n if(meterPercent)meterPercent.textContent="0% अपलोड";
+ progress.max=100;
+ progress.value=0;
+ maxProgressPercent=0;
+ maxUploadedBytes=0;
+ if(meterPercent)meterPercent.textContent="0% अपलोड";
  meterBytes.textContent="0 MB / "+formatUploadBytes(selectedVideoFile?.size||0);
  if(meterFill)meterFill.style.width="0%";
  document.querySelectorAll(".upload-step").forEach(el=>el.classList.remove("done","active"));
@@ -1383,15 +1386,13 @@ async function publishVideo() {
   setUploadStage(2,"2/5 · Cloudflare से सुरक्षित कनेक्शन बनाया जा रहा है…");
   await new Promise((resolve,reject)=>{
    // Adapt chunk size to the browser network estimate. This is a hint (download
-   // estimates do not guarantee upload speed), so retain a safe 50 MiB default.
-   // Larger chunks reduce request overhead on strong links; smaller chunks
-   // limit the amount that may need retrying on weak/mobile connections.
+   // estimates do not guarantee upload speed). Smaller chunks reduce long stalls
+   // and the amount that needs retrying when an Android mobile connection drops.
    const network=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
    const effectiveType=String(network?.effectiveType||"").toLowerCase();
    const downlinkMbps=Number(network?.downlink)||0;
    const slowNetwork=!!network?.saveData||["slow-2g","2g","3g"].includes(effectiveType);
    const strongNetwork=!slowNetwork&&downlinkMbps>=10;
-   const veryStrongNetwork=!slowNetwork&&downlinkMbps>=25;
    // Moderate chunk sizes avoid long stalls and expensive retries on Android mobile links.
    // Avoid oversized 64 MiB chunks on Android mobile browsers: 8 MiB on
    // constrained links, 16 MiB normally, and 32 MiB only on strong connections.
