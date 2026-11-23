@@ -11,8 +11,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA"/>
     <application android:allowBackup="false" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:label="New Star" android:theme="@style/Theme.AppCompat.Light.NoActionBar" android:usesCleartextTraffic="false">
-        <activity android:name=".MainActivity" android:configChanges="orientation|screenSize|keyboardHidden" android:windowSoftInputMode="adjustResize" android:exported="true">
+        <activity android:name=".MainActivity" android:configChanges="orientation|screenSize|keyboardHidden" android:windowSoftInputMode="adjustResize" android:exported="true" android:launchMode="singleTop">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="com.newstar.live" android:host="auth-callback"/>
+            </intent-filter>
         </activity>
         <service android:name=".GamingStreamService" android:exported="false" android:foregroundServiceType="mediaProjection|microphone"/>
     <service android:name=".CameraLiveService" android:exported="false" android:foregroundServiceType="camera|microphone"/>
