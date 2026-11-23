@@ -537,23 +537,29 @@ private suspend fun uploadNativeVideo(
     val name = uri.lastPathSegment?.substringAfterLast('/')?.take(180)?.ifBlank { "video.mp4" } ?: "video.mp4"
     val encode: (String) -> String = { Base64.encodeToString(it.toByteArray(Charsets.UTF_8), Base64.NO_WRAP) }
     val metadata = listOf("maxDurationSeconds " + encode(duration.toString()), "name " + encode(name), "filetype " + encode(mime)).joinToString(",")
-    val client = OkHttpClient.Builder().connectTimeout(30, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(0, TimeUnit.MILLISECONDS).build()
+    val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(0, TimeUnit.MILLISECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
     val endpoint = "$SB_URL/functions/v1/cloudflare-tus-proxy"
     val create = Request.Builder().url(endpoint).post(ByteArray(0).toRequestBody())
         .header("Origin", "https://new-star-delta.vercel.app")
         .header("Authorization", "Bearer $accessToken").header("apikey", SB_KEY)
         .header("Tus-Resumable", "1.0.0").header("Upload-Length", size.toString())
         .header("Upload-Metadata", metadata).build()
-    var location = ""
-    var streamId = ""
+    val location: String
+    val streamId: String
+    onProgress(0, "Cloudflare से कनेक्ट हो रहा है…")
     client.newCall(create).execute().use { response ->
-        if (!response.isSuccessful) throw IllegalStateException("Cloudflare upload शुरू नहीं हुआ (" + response.code + "): " + response.body?.string()?.take(500))
+        if (!response.isSuccessful) throw IllegalStateException("Cloudflare upload शुरू नहीं हुआ (" + response.code + "): " + response.body?.string()?.take(350))
         location = response.header("Location") ?: error("Cloudflare ने upload URL नहीं दिया।")
         streamId = response.header("stream-media-id") ?: error("Cloudflare ने Video ID नहीं दिया।")
     }
-    onProgress(1, "Cloudflare upload session तैयार है…")
-    val chunkSize = 8 * 1024 * 1024
+    onProgress(0, "अपलोड शुरू हो रहा है…")
+    // Larger TUS chunks reduce per-request overhead on long videos and mobile links.
+    val chunkSize = 32 * 1024 * 1024
     var offset = 0L
     context.contentResolver.openInputStream(uri)?.use { input ->
         val mediaType = "application/offset+octet-stream".toMediaType()
@@ -567,20 +573,46 @@ private suspend fun uploadNativeVideo(
                 filled += count
             }
             val bytes = if (filled == buffer.size) buffer else buffer.copyOf(filled)
-            val patch = Request.Builder().url(location).patch(bytes.toRequestBody(mediaType))
-                .header("Tus-Resumable", "1.0.0").header("Upload-Offset", offset.toString()).build()
-            client.newCall(patch).execute().use { response ->
-                if (response.code != 204) throw IllegalStateException("वीडियो upload बीच में रुक गया (" + response.code + "): " + response.body?.string()?.take(300))
-                val returnedOffset = response.header("Upload-Offset")?.toLongOrNull()
-                    ?: throw IllegalStateException("Cloudflare ने upload offset वापस नहीं दिया।")
-                if (returnedOffset != offset + filled) error("Cloudflare upload offset मेल नहीं खा रहा।")
+            var confirmed = false
+            var lastFailure: Exception? = null
+            for (attempt in 1..4) {
+                try {
+                    val patch = Request.Builder().url(location).patch(bytes.toRequestBody(mediaType))
+                        .header("Tus-Resumable", "1.0.0").header("Upload-Offset", offset.toString()).build()
+                    client.newCall(patch).execute().use { response ->
+                        if (response.code != 204) throw IllegalStateException("Cloudflare upload रुक गया (" + response.code + "): " + response.body?.string()?.take(200))
+                        val returnedOffset = response.header("Upload-Offset")?.toLongOrNull()
+                            ?: throw IllegalStateException("Cloudflare ने upload offset वापस नहीं दिया।")
+                        if (returnedOffset != offset + filled) throw IllegalStateException("Cloudflare upload offset मेल नहीं खा रहा।")
+                    }
+                    confirmed = true
+                    break
+                } catch (failure: Exception) {
+                    lastFailure = failure
+                    // A connection can drop after Cloudflare has stored a chunk.
+                    // Ask the TUS server for its authoritative offset before retrying.
+                    val remoteOffset = runCatching {
+                        val head = Request.Builder().url(location).head().header("Tus-Resumable", "1.0.0").build()
+                        client.newCall(head).execute().use { response ->
+                            if (!response.isSuccessful) error("TUS offset जाँच विफल हुई (" + response.code + ").")
+                            response.header("Upload-Offset")?.toLongOrNull()
+                                ?: error("Cloudflare ने resumable offset नहीं दिया।")
+                        }
+                    }.getOrNull()
+                    when (remoteOffset) {
+                        offset + filled -> { confirmed = true; break }
+                        offset -> if (attempt < 4) Thread.sleep(750L * attempt)
+                        else -> throw IllegalStateException("Upload resume offset असंगत है। कृपया दोबारा अपलोड करें।", failure)
+                    }
+                }
             }
+            if (!confirmed) throw IllegalStateException("नेटवर्क के कारण upload आगे नहीं बढ़ा: " + (lastFailure?.message ?: "कनेक्शन विफल"))
             offset += filled
             val percent = (offset * 100 / size).toInt().coerceIn(1, 99)
             onProgress(percent, "वीडियो अपलोड हो रहा है: $percent%")
         }
     } ?: error("वीडियो फ़ाइल खोली नहीं जा सकी।")
-    onProgress(99, "अपलोड पूरा; वीडियो डेटाबेस में सेव हो रहा है…")
+    onProgress(99, "अपलोड पूरा; वीडियो सेव हो रहा है…")
     val caption = listOf(title, description).filter { it.isNotBlank() }.joinToString("\n\n")
     val username = email.substringBefore("@").ifBlank { "New Star Creator" }
     val userRequest = Request.Builder().url("$SB_URL/auth/v1/user").get()
@@ -599,15 +631,15 @@ private suspend fun uploadNativeVideo(
         .put("processing_status", "processing").put("visibility", "public")
         .put("media_kind", "video").put("aspect_ratio_setting", "original")
         .put("quality_preference", "original").put("frame_fit", "contain")
-        .put("source_quality", (width.toString() + "x" + height.toString())).put("video_provider", "cloudflare")
+        .put("source_quality", width.toString() + "x" + height.toString()).put("video_provider", "cloudflare")
         .put("provider_video_id", streamId).put("provider_status", "processing")
     val insert = Request.Builder().url("$SB_URL/rest/v1/videos").post(payload.toString().toRequestBody("application/json".toMediaType()))
         .header("apikey", SB_KEY).header("Authorization", "Bearer $accessToken")
         .header("Content-Type", "application/json").header("Prefer", "return=minimal").build()
     client.newCall(insert).execute().use { response ->
-        if (!response.isSuccessful) throw IllegalStateException("Cloudflare पर वीडियो सुरक्षित है, लेकिन database में सेव नहीं हुआ (" + response.code + "): " + response.body?.string()?.take(500))
+        if (!response.isSuccessful) throw IllegalStateException("Cloudflare पर वीडियो सुरक्षित है, लेकिन database में सेव नहीं हुआ (" + response.code + "): " + response.body?.string()?.take(350))
     }
-    onProgress(100, "✓ वीडियो अपलोड और डेटाबेस में सेव हो गया।")
+    onProgress(100, "✓ वीडियो अपलोड और डेटाबेस में सेव हो गया। Cloudflare processing जारी रह सकती है।")
 }
 
 @Composable
