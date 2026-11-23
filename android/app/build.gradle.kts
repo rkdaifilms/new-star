@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose") }
 
 val releaseStoreFile = providers.environmentVariable("ANDROID_KEYSTORE_FILE").orNull
@@ -11,7 +13,7 @@ val stableDebugKeystore = layout.buildDirectory.file("stable-debug.keystore").ge
 if (!stableDebugKeystore.exists()) {
     stableDebugKeystore.parentFile.mkdirs()
     stableDebugKeystore.writeBytes(
-        java.util.Base64.getDecoder().decode(file("debug-keystore.b64").readText().trim())
+        Base64.getDecoder().decode(file("debug-keystore.b64").readText().trim())
     )
 }
 
