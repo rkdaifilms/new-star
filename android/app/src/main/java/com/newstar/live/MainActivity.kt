@@ -299,11 +299,12 @@ class MainActivity : ComponentActivity() {
 }
 
 private suspend fun authRecoveryRequest(email: String) = withContext(Dispatchers.IO) {
-    val conn = (URL("$SB_URL/auth/v1/recover").openConnection() as HttpURLConnection).apply {
+    val redirect = java.net.URLEncoder.encode("https://new-star-delta.vercel.app/auth.html?mode=recovery&next=index.html", "UTF-8")
+    val conn = (URL("$SB_URL/auth/v1/recover?redirect_to=$redirect").openConnection() as HttpURLConnection).apply {
         requestMethod = "POST"; connectTimeout = 15000; readTimeout = 20000; doOutput = true
         setRequestProperty("apikey", SB_KEY); setRequestProperty("Content-Type", "application/json")
     }
-    val body = JSONObject().put("email", email).put("redirect_to", "https://new-star-delta.vercel.app/auth.html?mode=recovery&next=index.html")
+    val body = JSONObject().put("email", email)
     conn.outputStream.use { it.write(body.toString().toByteArray()) }
     val code = conn.responseCode
     val stream = if (code in 200..299) conn.inputStream else conn.errorStream
