@@ -54,7 +54,7 @@ curl http://127.0.0.1:8000/v1/chat/completions \
 
 ## Connect to New Star AI Gateway
 
-The separate New Star AI Gateway deployment already has a hosted open-model adapter. When the CPU service is deployed behind a reachable HTTPS endpoint, configure these **server-side Supabase Edge Function secrets**:
+This pull request adds a hosted open-model adapter to the New Star AI Gateway source. The adapter becomes usable only after this source is reviewed, merged, and deployed to the active Supabase Edge Function. After the CPU service is deployed behind a reachable HTTPS endpoint and the matching gateway code is deployed, configure these **server-side Supabase Edge Function secrets**:
 
 - `NEW_STAR_MODEL_BASE_URL`: the HTTPS base URL ending in `/v1`, for example `https://your-private-gateway.example/v1`
 - `NEW_STAR_MODEL_NAME`: `new-star-local`
