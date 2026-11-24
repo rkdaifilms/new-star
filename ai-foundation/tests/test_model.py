@@ -179,7 +179,7 @@ def test_validation_corpus_loader_accepts_validation_only_jsonl(tmp_path):
         {"language": "ne", "split": "validation", "text": "नेपाली जाँच सामग्री " * 12},
         {"language": "en", "split": "validation", "text": "English heldout material " * 12},
     ]
-    path.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows), encoding="utf-8")
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
     result = load_language_validation_corpora(path)
     assert set(result) == {"ne", "en"}
     assert "नेपाली" in result["ne"]
