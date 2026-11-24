@@ -168,3 +168,18 @@ def test_balanced_batch_samples_from_all_declared_languages():
     assert x.shape == (32, 8)
     assert y.shape == (32, 8)
     assert torch.all(y[:, :-1] == x[:, 1:])
+
+
+def test_validation_corpus_loader_accepts_validation_only_jsonl(tmp_path):
+    import json
+    from corpus import load_language_validation_corpora
+
+    path = tmp_path / "heldout.jsonl"
+    rows = [
+        {"language": "ne", "split": "validation", "text": "नेपाली जाँच सामग्री " * 12},
+        {"language": "en", "split": "validation", "text": "English heldout material " * 12},
+    ]
+    path.write_text("\\n".join(json.dumps(row, ensure_ascii=False) for row in rows), encoding="utf-8")
+    result = load_language_validation_corpora(path)
+    assert set(result) == {"ne", "en"}
+    assert "नेपाली" in result["ne"]
