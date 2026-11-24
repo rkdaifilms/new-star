@@ -97,22 +97,51 @@ class NewStarGPT(nn.Module):
 
     @torch.no_grad()
     def generate(self, tokens: torch.Tensor, max_new_tokens: int = 100,
-                 temperature: float = 1.0) -> torch.Tensor:
+                 temperature: float = 1.0, top_k: int | None = 50,
+                 top_p: float = 0.95, repetition_penalty: float = 1.0) -> torch.Tensor:
+        """Sample continuations with temperature, top-k/top-p and repetition control."""
         if not isinstance(max_new_tokens, int) or max_new_tokens < 0:
             raise ValueError("max_new_tokens must be a non-negative integer")
-        if temperature <= 0:
-            raise ValueError("temperature must be greater than zero")
+        if not isinstance(temperature, (int, float)) or not 0 < temperature <= 2:
+            raise ValueError("temperature must be greater than 0 and at most 2")
+        if top_k is not None and (not isinstance(top_k, int) or top_k < 1):
+            raise ValueError("top_k must be None or a positive integer")
+        if not isinstance(top_p, (int, float)) or not 0 < top_p <= 1:
+            raise ValueError("top_p must be greater than 0 and at most 1")
+        if not isinstance(repetition_penalty, (int, float)) or repetition_penalty < 1:
+            raise ValueError("repetition_penalty must be at least 1")
         if tokens.ndim != 2 or tokens.shape[1] < 1:
             raise ValueError("generation prompt must be a non-empty [batch, sequence] tensor")
         if tokens.dtype != torch.long:
             raise ValueError("generation tokens must use torch.long byte-token IDs")
         if torch.any(tokens < 0) or torch.any(tokens >= self.config.vocab_size):
-            raise ValueError("generation token IDs must be within the configured vocabulary")
+            raise ValueError("generation tokens must be within the configured vocabulary")
         self.eval()
         for _ in range(max_new_tokens):
             context = tokens[:, -self.config.block_size:]
             logits, _ = self(context)
-            probabilities = torch.softmax(logits[:, -1, :] / temperature, dim=-1)
+            next_logits = logits[:, -1, :] / float(temperature)
+            if repetition_penalty > 1:
+                for row in range(tokens.shape[0]):
+                    seen = torch.unique(tokens[row])
+                    values = next_logits[row, seen]
+                    next_logits[row, seen] = torch.where(
+                        values > 0, values / float(repetition_penalty),
+                        values * float(repetition_penalty),
+                    )
+            if top_k is not None:
+                k = min(top_k, next_logits.shape[-1])
+                threshold = torch.topk(next_logits, k, dim=-1).values[:, -1, None]
+                next_logits = next_logits.masked_fill(next_logits < threshold, float("-inf"))
+            if top_p < 1:
+                sorted_logits, sorted_indices = torch.sort(next_logits, descending=True, dim=-1)
+                sorted_probs = torch.softmax(sorted_logits, dim=-1)
+                cumulative = torch.cumsum(sorted_probs, dim=-1)
+                remove = cumulative - sorted_probs >= float(top_p)
+                sorted_logits = sorted_logits.masked_fill(remove, float("-inf"))
+                filtered = torch.full_like(next_logits, float("-inf"))
+                next_logits = filtered.scatter(1, sorted_indices, sorted_logits)
+            probabilities = torch.softmax(next_logits, dim=-1)
             next_token = torch.multinomial(probabilities, num_samples=1)
             tokens = torch.cat((tokens, next_token), dim=1)
         return tokens
