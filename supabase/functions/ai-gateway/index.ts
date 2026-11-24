@@ -197,9 +197,12 @@ async function getGoogleCloudAccessToken(): Promise<{ token: string; projectId: 
     exp: now + 3600
   })));
   const unsigned = header + "." + claims;
+  const privateKeyBytes = privateKeyPemToBytes(account.private_key);
+  const privateKeyBuffer = new ArrayBuffer(privateKeyBytes.byteLength);
+  new Uint8Array(privateKeyBuffer).set(privateKeyBytes);
   const key = await crypto.subtle.importKey(
     "pkcs8",
-    privateKeyPemToBytes(account.private_key),
+    privateKeyBuffer,
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
     ["sign"]
