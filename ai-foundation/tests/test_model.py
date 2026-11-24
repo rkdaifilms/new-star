@@ -388,9 +388,17 @@ def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeyp
         "\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
         encoding="utf-8",
     )
+    manifest = tmp_path / "instruction-manifest.json"
+    manifest.write_text(json.dumps({
+        "dataset_name": "tiny test instructions",
+        "source": "locally authored test fixture",
+        "license": "CC0-1.0",
+        "permission_basis": "created for automated tests",
+    }), encoding="utf-8")
     checkpoint = tmp_path / "tiny-sft.pt"
     monkeypatch.setattr(sys, "argv", [
-        "sft_train.py", "--data", str(path), "--output", str(checkpoint),
+        "sft_train.py", "--data", str(path), "--manifest", str(manifest),
+        "--output", str(checkpoint),
         "--steps", "1", "--batch-size", "2", "--block-size", "64",
         "--width", "16", "--layers", "1", "--heads", "4",
         "--eval-interval", "1", "--max-vocab-size", "512",
@@ -398,6 +406,7 @@ def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeyp
     main()
 
     assert checkpoint.is_file()
+    assert checkpoint.with_suffix(".pt.corpus-audit.json").is_file()
     metadata = json.loads(checkpoint.with_suffix(".pt.json").read_text(encoding="utf-8"))
     assert metadata["training_method"] == "supervised-fine-tuning-response-only"
     assert metadata["languages"] == ["en", "ne"]
@@ -412,8 +421,8 @@ def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeyp
 
     # Resume from the saved optimizer/model/RNG state and continue to step 2.
     monkeypatch.setattr(sys, "argv", [
-        "sft_train.py", "--data", str(path), "--output", str(checkpoint),
-        "--steps", "2", "--batch-size", "2", "--block-size", "64",
+        "sft_train.py", "--data", str(path), "--manifest", str(manifest),
+        "--output", str(checkpoint), "--steps", "2", "--batch-size", "2", "--block-size", "64",
         "--width", "16", "--layers", "1", "--heads", "4",
         "--eval-interval", "1", "--max-vocab-size", "512",
         "--resume-from", str(resume_checkpoint),
