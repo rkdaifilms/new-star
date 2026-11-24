@@ -1011,6 +1011,7 @@ def test_byte_bpe_sft_checkpoint_loads_in_native_inference_server(tmp_path, monk
 
 
 def test_sft_can_finetune_existing_pretraining_checkpoint_without_retokenizing(tmp_path, monkeypatch):
+    import hashlib
     import json
     import sys
     from sft_train import main
@@ -1082,4 +1083,5 @@ def test_sft_can_finetune_existing_pretraining_checkpoint_without_retokenizing(t
     )
     metadata = json.loads(output.with_suffix(".pt.json").read_text(encoding="utf-8"))
     assert metadata["tokenizer_type"] == ByteBPETokenizer.FORMAT
-    assert metadata["base_checkpoint"] == str(base_checkpoint)
+    assert metadata["base_checkpoint"] == base_checkpoint.name
+    assert metadata["base_checkpoint_fingerprint"] == hashlib.sha256(base_checkpoint.read_bytes()).hexdigest()
