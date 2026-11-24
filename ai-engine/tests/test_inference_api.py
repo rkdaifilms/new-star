@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import threading
+import tempfile
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -17,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ai_engine.config import EngineSettings
 from ai_engine.inference import ChatInference
+from ai_engine.jobs import JobQueue
 from ai_engine.registry import ModelRegistry, ModelSpec
 from ai_engine.server import make_handler, validate_chat_request
 
@@ -231,6 +233,46 @@ class InferenceAPITests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join(timeout=2)
+
+
+    def test_http_background_job_submission_polling_and_idempotency(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            queue = JobQueue(Path(directory) / "queue.sqlite3")
+            server = ThreadingHTTPServer(
+                ("127.0.0.1", 0),
+                make_handler(self.inference, api_keys={"mobile": "queue-secret"}, job_queue=queue),
+            )
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                base = f"http://127.0.0.1:{server.server_address[1]}"
+                body = json.dumps({"messages": [{"role": "user", "content": "Hi"}]}).encode()
+                headers = {"Authorization": "Bearer queue-secret", "Content-Type": "application/json",
+                           "Idempotency-Key": "mobile-request-1"}
+                request = Request(base + "/v1/jobs", data=body, headers=headers)
+                with urlopen(request) as response:
+                    self.assertEqual(response.status, 202)
+                    job = json.loads(response.read())
+                    self.assertEqual(response.headers.get("Location"), "/v1/jobs/" + job["id"])
+                retry = Request(base + "/v1/jobs", data=body, headers=headers)
+                with urlopen(retry) as response:
+                    self.assertEqual(response.status, 200)
+                    self.assertEqual(json.loads(response.read())["id"], job["id"])
+                claimed = queue.claim("test-worker")
+                self.assertEqual(claimed["id"], job["id"])
+                queue.succeed(job["id"], "test-worker", {"object": "chat.completion"})
+                poll = Request(base + "/v1/jobs/" + job["id"],
+                               headers={"Authorization": "Bearer queue-secret"})
+                with urlopen(poll) as response:
+                    completed = json.loads(response.read())
+                    self.assertEqual(completed["status"], "succeeded")
+                stats = Request(base + "/v1/queue", headers={"Authorization": "Bearer queue-secret"})
+                with urlopen(stats) as response:
+                    self.assertEqual(json.loads(response.read())["counts"]["succeeded"], 1)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=2)
 
     def test_api_key_is_required_even_when_server_token_is_also_configured(self) -> None:
         server = ThreadingHTTPServer(

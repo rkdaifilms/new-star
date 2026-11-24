@@ -105,3 +105,24 @@ Configure NEW_STAR_AI_QUEUE_DB (default var/new-star-jobs.sqlite3), NEW_STAR_AI_
 Start a worker with PYTHONPATH=ai-engine python -m ai_engine.worker. Start additional worker processes on the same host for bounded parallelism. API and worker processes must mount the same persistent queue volume. Scale only within measured CPU/GPU and memory capacity; automatic cluster autoscaling requires an orchestrator and infrastructure metrics and is not enabled by this SQLite queue.
 
 Queue operations use the API authentication and rate limiter. GET /v1/queue returns aggregate counts; job payloads and results are visible only to the owning client.
+
+
+## Container deployment for API and workers
+
+From the repository root, copy the example model registry and configure a long random API token in the shell. The registry must point to reachable model-serving endpoints; keep provider credentials in environment variables.
+
+```sh
+cp ai-engine/config/models.example.json ai-engine/config/models.json
+cd ai-engine
+export NEW_STAR_AI_SERVER_TOKEN='replace-with-a-long-random-secret'
+docker compose -f docker-compose.yml up -d --build
+docker compose -f docker-compose.yml logs -f
+```
+
+Increase the same-host worker pool with:
+
+```sh
+docker compose -f docker-compose.yml up -d --build --scale new-star-worker=3
+```
+
+This is manual, capacity-bounded worker scaling, not automatic metrics-driven autoscaling. The API and all workers share one SQLite database volume and must stay on the same Docker host. For multi-host or automatic autoscaling, replace SQLite with a managed transactional queue and deploy workers under Kubernetes or another orchestrator using queue-depth, latency, and CPU/GPU memory metrics. Do not share this SQLite volume across hosts.
