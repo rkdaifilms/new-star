@@ -175,6 +175,22 @@ def main() -> None:
         print(f"heldout_cross_entropy={loss:.4f} {unit}")
         print(f"heldout_perplexity={perplexity:.4f}")
         print(f"evaluated_tokens={evaluated_tokens}")
+        if args.report_json:
+            output = {
+                "checkpoint": Path(args.checkpoint).name,
+                "checkpoint_format": checkpoint_format,
+                "metric_unit": unit,
+                "evaluation_method": "full-corpus-token-weighted",
+                "heldout_cross_entropy": loss,
+                "heldout_perplexity": perplexity,
+                "evaluated_tokens": evaluated_tokens,
+            }
+            report_path = Path(args.report_json)
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            report_path.write_text(
+                json.dumps(output, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
 
 
 if __name__ == "__main__":
