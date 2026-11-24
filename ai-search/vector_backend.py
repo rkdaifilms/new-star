@@ -95,39 +95,72 @@ class PgVectorSearch:
         return len(records)
 
     @staticmethod
+    def fuse_rankings(vector_rows: list[dict[str, Any]], lexical_rows: list[dict[str, Any]],
+                      limit: int, rank_constant: int = 60) -> list[dict[str, Any]]:
+        """Fuse vector and full-text rankings with reciprocal-rank fusion."""
+        fused: dict[int, dict[str, Any]] = {}
+        for ranking_name, rows in (("vector", vector_rows), ("lexical", lexical_rows)):
+            for rank, item in enumerate(rows, start=1):
+                key = int(item["id"])
+                entry = fused.setdefault(key, {**item, "rrf_score": 0.0})
+                entry["rrf_score"] += 1.0 / (rank_constant + rank)
+                entry[f"{ranking_name}_rank"] = rank
+                if ranking_name == "lexical":
+                    entry["title"] = item["title"]
+                    entry["snippet"] = item["snippet"]
+                    entry["source"] = item["source"]
+                    entry["url"] = item["url"]
+        return sorted(fused.values(), key=lambda item: item["rrf_score"], reverse=True)[:limit]
+
+    @staticmethod
     def rerank(query: str, candidates: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
-        """Blend cosine relevance with Unicode token overlap for a bounded second-stage rerank."""
-        query_terms = set(re.findall(r"[\w]+", query.casefold(), flags=re.UNICODE))
+        """Blend cosine relevance, RRF and Unicode token overlap."""
+        query_terms = set(re.findall(r"[\\w]+", query.casefold(), flags=re.UNICODE))
         rescored = []
         for item in candidates:
             text_terms = set(re.findall(
-                r"[\w]+", (str(item.get("title", "")) + " " + str(item.get("snippet", ""))).casefold(),
+                r"[\\w]+", (str(item.get("title", "")) + " " + str(item.get("snippet", ""))).casefold(),
                 flags=re.UNICODE))
             overlap = len(query_terms & text_terms) / max(1, len(query_terms))
             semantic = (max(-1.0, min(1.0, float(item.get("similarity", 0.0)))) + 1.0) / 2.0
-            score = 0.8 * semantic + 0.2 * overlap
+            rrf = min(1.0, float(item.get("rrf_score", 0.0)) * 30.0)
+            score = 0.65 * semantic + 0.20 * overlap + 0.15 * rrf
             rescored.append({**item, "rerank_score": round(score, 6)})
-        rescored.sort(key=lambda item: (item["rerank_score"], item["similarity"]), reverse=True)
+        rescored.sort(key=lambda item: (item["rerank_score"], item.get("similarity", 0.0)), reverse=True)
         return rescored[:limit]
 
     def search(self, query: str, limit: int = 5, source: str | None = None) -> list[dict[str, Any]]:
+        if not isinstance(query, str) or not query.strip():
+            raise ValueError("query cannot be empty")
         vector = self.embedder.encode(query, passage=False)
         bounded = min(10, max(1, int(limit)))
         candidate_limit = min(50, bounded * 4)
+        source_filter = " AND source=%s" if source else ""
         with self.connect() as connection:
             with connection.cursor() as cursor:
-                if source:
-                    cursor.execute(
-                        """SELECT title,url,source,content,1-(embedding <=> %s) AS similarity
-                           FROM public.new_star_search_chunks WHERE source=%s
-                           ORDER BY embedding <=> %s LIMIT %s""",
-                        (vector, source, vector, candidate_limit))
-                else:
-                    cursor.execute(
-                        """SELECT title,url,source,content,1-(embedding <=> %s) AS similarity
-                           FROM public.new_star_search_chunks ORDER BY embedding <=> %s LIMIT %s""",
-                        (vector, vector, candidate_limit))
-                rows = cursor.fetchall()
-        candidates = [{"title": row[0], "url": row[1], "source": row[2],
-                       "snippet": row[3][:420], "similarity": float(row[4])} for row in rows]
-        return self.rerank(query, candidates, bounded)
+                vector_sql = (
+                    "SELECT id,title,url,source,content,1-(embedding <=> %s) AS similarity "
+                    "FROM public.new_star_search_chunks WHERE TRUE" + source_filter +
+                    " ORDER BY embedding <=> %s LIMIT %s"
+                )
+                vector_params = [vector] + ([source] if source else []) + [vector, candidate_limit]
+                cursor.execute(vector_sql, vector_params)
+                vector_rows = cursor.fetchall()
+                lexical_sql = (
+                    "SELECT id,title,url,source,content,0.0 AS similarity "
+                    "FROM public.new_star_search_chunks "
+                    "WHERE search_vector @@ plainto_tsquery('simple', %s)" + source_filter +
+                    " ORDER BY ts_rank_cd(search_vector, plainto_tsquery('simple', %s)) DESC LIMIT %s"
+                )
+                lexical_params = [query] + ([source] if source else []) + [query, candidate_limit]
+                cursor.execute(lexical_sql, lexical_params)
+                lexical_rows = cursor.fetchall()
+        def as_item(row):
+            return {"id": int(row[0]), "title": row[1], "url": row[2], "source": row[3],
+                    "snippet": row[4][:420], "similarity": float(row[5])}
+        fused = self.fuse_rankings(
+            [as_item(row) for row in vector_rows],
+            [as_item(row) for row in lexical_rows],
+            candidate_limit,
+        )
+        return self.rerank(query, fused, bounded)
