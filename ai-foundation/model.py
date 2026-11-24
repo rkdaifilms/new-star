@@ -12,7 +12,7 @@ from torch import nn
 class NewStarConfig:
     def __init__(self, vocab_size: int = 256, block_size: int = 256,
                  width: int = 256, layers: int = 4, heads: int = 4,
-                 dropout: float = 0.1):
+                 dropout: float = 0.1, gradient_checkpointing: bool = False):
         if width % heads:
             raise ValueError("width must be divisible by heads")
         if min(vocab_size, block_size, width, layers, heads) < 1:
@@ -25,6 +25,7 @@ class NewStarConfig:
         self.layers = layers
         self.heads = heads
         self.dropout = dropout
+        self.gradient_checkpointing = bool(gradient_checkpointing)
 
 
 class CausalBlock(nn.Module):
@@ -89,7 +90,10 @@ class NewStarGPT(nn.Module):
                        dtype=torch.bool), diagonal=1
         )
         for block in self.blocks:
-            x = block(x, mask)
+            if self.training and self.config.gradient_checkpointing and x.requires_grad:
+                x = torch.utils.checkpoint.checkpoint(block, x, mask, use_reentrant=False)
+            else:
+                x = block(x, mask)
         logits = self.language_head(self.final_norm(x))
         loss = None
         if targets is not None:
