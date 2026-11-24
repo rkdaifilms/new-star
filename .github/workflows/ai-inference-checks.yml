@@ -6,13 +6,6 @@ on:
       - "ai-inference/**"
       - "supabase/functions/ai-gateway/**"
       - ".github/workflows/ai-inference-checks.yml"
-  push:
-    branches:
-      - new-star-own-ai-engine-cpu
-    paths:
-      - "ai-inference/**"
-      - "supabase/functions/ai-gateway/**"
-      - ".github/workflows/ai-inference-checks.yml"
 
 jobs:
   unit-tests:
