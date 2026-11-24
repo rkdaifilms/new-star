@@ -160,6 +160,7 @@ def main():
     model = NewStarGPT(config).to(args.device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
+    data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
     training_config = {
         "seed": args.seed,
         "data_fingerprint": data_fingerprint,
@@ -172,7 +173,6 @@ def main():
         "max_vocab_size": args.max_vocab_size,
         "data_format": "instruction-jsonl",
     }
-    data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
     start_step = 0
     if args.resume_from:
         resume_path = Path(args.resume_from)
