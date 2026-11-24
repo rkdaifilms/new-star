@@ -938,7 +938,7 @@ def test_byte_bpe_pretraining_checkpoint_loads_in_native_inference_server(tmp_pa
         "train.py", "--data", str(corpus), "--output", str(checkpoint),
         "--steps", "1", "--batch-size", "2", "--block-size", "2",
         "--width", "16", "--layers", "1", "--heads", "4",
-        "--max-vocab-size", "320", "--tokenizer", "bpe", "--seed", "19",
+        "--max-vocab-size", "257", "--tokenizer", "bpe", "--seed", "19",
     ])
     main()
 
@@ -980,7 +980,7 @@ def test_byte_bpe_sft_checkpoint_loads_in_native_inference_server(tmp_path, monk
                 ],
             })
     data.write_text(
-        "\\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
         encoding="utf-8",
     )
     manifest = tmp_path / "bpe-instructions-manifest.json"
