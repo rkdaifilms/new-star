@@ -619,7 +619,8 @@ Deno.serve(async (req: Request) => {
     : baseSystemPrompt + "\n\nAUTOMATIC LANGUAGE MODE: Detect the language and script of the LATEST user message (including romanized Nepali, Hindi, and other languages). Reply naturally in that same language and script. Do not default to Hindi or English because of the app interface or previous messages. If the user switches language, switch immediately. If the message is short or ambiguous, ask a brief clarification in the language most likely used."; 
 
 
-  // New Star's own conversation store: load only messages owned by the signed-in user.
+  // Load only conversations owned by the signed-in user. New conversations are
+  // created only after a provider returns a successful answer, avoiding empty rows.
   let conversationId = typeof body.conversationId === "string" ? body.conversationId : "";
   if (conversationId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(conversationId)) {
     return json({ ok: false, error: "Invalid conversation ID." }, 400, headers);
@@ -635,12 +636,6 @@ Deno.serve(async (req: Request) => {
     const previous = (previousMessages || []).reverse().map((m: any) => ({ role: m.role, content: m.content })) as ChatMessage[];
     messages.splice(0, messages.length, ...previous, ...messages.slice(-1));
     while (messages.length > 10) messages.shift();
-  } else {
-    const title = messages[messages.length - 1].content.slice(0, 80) || "New conversation";
-    const { data: createdConversation, error: createConversationError } = await admin
-      .from("new_star_ai_conversations").insert({ user_id: userData.user.id, title }).select("id").single();
-    if (createConversationError || !createdConversation?.id) return json({ ok: false, error: "Could not start a New Star AI conversation." }, 503, headers);
-    conversationId = createdConversation.id;
   }
 
   const failedProviders: string[] = [];
@@ -649,13 +644,26 @@ Deno.serve(async (req: Request) => {
       try {
         const answer = await provider.run(provider.keys[keyIndex], messages, systemPrompt);
         const latestUserMessage = messages[messages.length - 1];
+        if (!conversationId) {
+          const title = latestUserMessage.content.slice(0, 80) || "New conversation";
+          const { data: createdConversation, error: createConversationError } = await admin
+            .from("new_star_ai_conversations").insert({ user_id: userData.user.id, title }).select("id").single();
+          if (createConversationError || !createdConversation?.id) {
+            console.error("New Star AI conversation creation failed:", createConversationError?.code || "DB_ERROR");
+            return json({ ok: true, provider: provider.name, answer, memorySaved: false }, 200, headers);
+          }
+          conversationId = createdConversation.id;
+        }
         const { error: saveMessagesError } = await admin.from("new_star_ai_messages").insert([
           { conversation_id: conversationId, user_id: userData.user.id, role: "user", content: latestUserMessage.content },
           { conversation_id: conversationId, user_id: userData.user.id, role: "assistant", content: answer, provider: provider.name }
         ]);
-        if (saveMessagesError) console.error("New Star AI message persistence failed:", saveMessagesError.code || "DB_ERROR");
-        else await admin.from("new_star_ai_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId).eq("user_id", userData.user.id);
-        return json({ ok: true, provider: provider.name, answer, conversationId }, 200, headers);
+        if (saveMessagesError) {
+          console.error("New Star AI message persistence failed:", saveMessagesError.code || "DB_ERROR");
+          return json({ ok: true, provider: provider.name, answer, conversationId, memorySaved: false }, 200, headers);
+        }
+        await admin.from("new_star_ai_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId).eq("user_id", userData.user.id);
+        return json({ ok: true, provider: provider.name, answer, conversationId, memorySaved: true }, 200, headers);
       } catch (error) {
         // Never log prompts, provider responses, or API keys.
         const reason = error instanceof Error ? error.message : "UNKNOWN";
