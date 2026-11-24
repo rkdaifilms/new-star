@@ -46,7 +46,9 @@ Deno.serve(async (req: Request) => {
 
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
-  if (!origin || !ALLOWED_ORIGINS.has(origin)) return json({ error: "Origin not allowed" }, 403, cors);
+  // Browser requests must use an approved origin. Native Android sends no Origin
+  // header; it is still protected by the mandatory Supabase user-token check below.
+  if (origin && !ALLOWED_ORIGINS.has(origin)) return json({ error: "Origin not allowed" }, 403, cors);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   // New Supabase projects expose publishable keys as a JSON map. Keep support
@@ -134,9 +136,10 @@ Deno.serve(async (req: Request) => {
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream?direct_user=true`;
   let upstream: Response | null = null;
   let lastProviderStatus = 0;
+  let lastAuthDetail = "";
   for (const candidate of streamTokenCandidates) {
     try {
-      const attempt = await fetch(endpoint, {
+      let attempt = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${candidate.value}`,
@@ -146,16 +149,33 @@ Deno.serve(async (req: Request) => {
           "Upload-Creator": authData.user.id.slice(0, 64),
         },
       });
+      // A single bounded retry respects Cloudflare's Retry-After response.
+      if (attempt.status === 429) {
+        const retryAfter = Number(attempt.headers.get("Retry-After") || "2");
+        const waitMs = Math.max(1000, Math.min(6000, Number.isFinite(retryAfter) ? retryAfter * 1000 : 2000));
+        await attempt.body?.cancel().catch(() => {});
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        attempt = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${candidate.value}`,
+            "Tus-Resumable": "1.0.0",
+            "Upload-Length": String(uploadLength),
+            "Upload-Metadata": safeMetadata,
+            "Upload-Creator": authData.user.id.slice(0, 64),
+          },
+        });
+      }
       upstream = attempt;
       if (attempt.ok) {
         console.info("Cloudflare TUS initialized using configured token alias:", candidate.name);
         break;
       }
       lastProviderStatus = attempt.status;
-      // Retry another configured alias only for authentication/authorization failures.
       if (attempt.status !== 401 && attempt.status !== 403) break;
       const detail = await attempt.text();
-      console.warn("Cloudflare rejected configured token alias:", candidate.name, attempt.status, detail.slice(0, 300));
+      lastAuthDetail = detail.slice(0, 300);
+      console.warn("Cloudflare rejected configured token alias:", candidate.name, attempt.status, lastAuthDetail);
       upstream = null;
     } catch {
       return json({ error: "Cloudflare could not be reached. Please retry." }, 502, cors);
@@ -164,7 +184,13 @@ Deno.serve(async (req: Request) => {
 
   if (!upstream) {
     console.error("Cloudflare TUS initialization failed for all configured token aliases. Last provider status:", lastProviderStatus);
-    return json({ error: "Cloudflare rejected all configured API tokens. Check the token permissions and account ID.", providerStatus: lastProviderStatus || 401 }, 502, cors);
+    return json({
+      error: lastProviderStatus === 401 || lastProviderStatus === 403
+        ? "Cloudflare rejected the configured API token. The project owner must replace it with a valid Cloudflare Stream token that has Stream edit permission and matches this account."
+        : "Cloudflare upload could not be initialized. Please retry later.",
+      providerStatus: lastProviderStatus || 401,
+      providerDetail: lastAuthDetail || undefined,
+    }, lastProviderStatus === 401 || lastProviderStatus === 403 ? lastProviderStatus : 502, cors);
   }
 
   if (!upstream.ok) {
