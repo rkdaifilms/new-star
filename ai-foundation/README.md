@@ -19,7 +19,7 @@ Use Python 3.10+ and install the separate training dependency:
 python -m venv .venv
 . .venv/bin/activate
 pip install -r ai-foundation/requirements.txt
-python ai-foundation/train.py --data ./your-permitted-corpus.txt --steps 2000
+python ai-foundation/train.py --data ./your-permitted-corpus.txt --steps 2000 --seed 1337
 python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-permitted-corpus.txt
 python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120
 ```
