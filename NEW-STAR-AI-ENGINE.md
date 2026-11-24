@@ -1,39 +1,50 @@
 # New Star AI Engine
 
-This is a protected New Star frontend workspace on branch `new-star-ai-engine-foundation`. Provider credentials stay on the server; the browser never receives API keys.
+## Architecture and ownership
+New Star now has its own AI orchestration layer, conversation storage, prompt policy, session checks, rate limiting, and model adapters in its Supabase backend. This is an application-owned AI engine; it is not a newly trained foundation model. Running an independent model without third-party inference APIs requires separately provisioned open-weight model files and GPU inference infrastructure.
 
-## Files
-- `new-star-ai.html` — AI workspace
-- `new-star-ai.css` — responsive styling
-- `new-star-ai.js` — authenticated gateway calls, voice input/output, image rendering
-- `navbar.js` — authenticated navigation entry
-- `supabase/functions/ai-gateway/index.ts` — synced source for the existing Supabase AI gateway
+Vercel is not required for the AI backend. The live AI gateway runs as a Supabase Edge Function in the existing New Star Supabase project.
 
-## Connected capabilities
-The page uses the existing Supabase Edge Function `ai-gateway` with the signed-in user's session.
+## Connected backend
+- Supabase Edge Function: `ai-gateway` (active deployment version 75).
+- Supabase auth: validates the signed-in user before any AI operation.
+- Provider keys remain in server-side Supabase secrets; no provider keys are sent to the browser.
+- Provider adapters currently support configured Gemini, OpenAI and OpenRouter keys for chat/image where supported by the existing gateway.
+- Per-user request limiting is enforced through the existing `consume_ai_gateway_rate_limit` RPC.
+- The system prompt is owned by New Star and switches language based on the user's latest message or saved language preference.
 
-- **Chat:** sends conversation history and language; receives the provider's actual answer.
-- **Voice input:** records in the browser and calls `action: "transcribe"`; transcript is inserted into the composer for review/edit before sending.
-- **Voice output:** calls `action: "speak"` for actual audio and plays the returned audio.
-- **Image generation:** calls `action: "image"`, sends the selected 1K/2K/4K size, displays returned base64 image data, and provides a save link. Upload-based image editing is not connected yet.
+## New Star conversation memory
+Migration `new_star_ai_conversation_memory` created:
+- `public.new_star_ai_conversations`
+- `public.new_star_ai_messages`
 
-These actions require sign-in, server-side provider secrets, and available provider quota. The gateway applies per-user rate limiting. A configured key is not proof that a provider request will succeed; provider errors are surfaced rather than replaced with fake output.
+Both tables have RLS enabled. Authenticated users can read/delete only their own conversations and read only their own messages. Writes are performed server-side by the authenticated Edge Function using its service role after verifying the caller's session and ownership. The gateway loads the previous messages for the owned conversation, appends the latest user message, sends context to the model, and stores the user/assistant exchange.
 
-## Not connected yet
-- **Live Research:** needs a real search provider and source retrieval.
-- **Video generation:** needs a video inference provider, job queue, storage, and job-status polling.
-- **Image editing from an uploaded reference:** not implemented in the gateway/page yet.
+The New Star AI page remembers the current conversation ID in the browser so a chat can continue after a page reload. A New chat action starts a separate conversation.
 
-Keep these modes marked unavailable until their real services are integrated.
+## Connected user features
+- **Chat:** uses New Star's own system prompt and saved conversation context.
+- **Voice input:** records in the browser and calls the gateway transcription action; the transcript is inserted for review before sending.
+- **Voice output:** calls the gateway speech action and plays returned audio.
+- **Text-to-image:** calls the image action, sends the chosen 1K/2K/4K size, and renders the returned image. Actual success depends on provider availability and quota.
 
-## Gateway deployment
-The existing Supabase project `New Star` has an active `ai-gateway` Edge Function. Version 74 was deployed to add the New Star AI branch preview origin to its CORS allowlist while preserving its existing authentication and provider logic. The same source was committed in this branch.
+## Not connected
+- **Live Research:** no live web-search provider is integrated.
+- **Video generation:** no video inference runtime or job queue is connected.
+- **Uploaded-image editing:** the current page does not send image content for editing.
 
-## Vercel deployment status
-The frontend changes are committed to GitHub branch `new-star-ai-engine-foundation`. A fresh Vercel deployment was blocked by the Vercel API's HTTP 402 `api-deployments-free-per-day` daily limit. Therefore the existing Vercel preview is older and does not contain these latest frontend commits. Do not treat the latest GitHub source as already deployed to Vercel.
+The UI labels these as unavailable rather than pretending to complete them.
 
-## Safety and security
-- Never put provider keys or service-role keys in frontend code.
-- Keep Supabase session validation and per-user rate limiting on the Edge Function.
-- Do not claim a result was generated unless the backend returned the actual result.
-- Do not claim Research or Video works until those backends are deployed and tested.
+## Deployment and verification
+- Supabase AI Gateway version 75 is active.
+- The conversation-memory migration applied successfully.
+- A database verification query confirmed both conversation tables exist with RLS enabled.
+- Security advisors were run. They reported existing project-wide findings (including private tables with no policies, security-definer RPC exposure warnings, and leaked-password protection disabled). These were not introduced or modified as part of this AI feature and should be reviewed separately.
+- Frontend changes are committed to GitHub branch `new-star-ai-engine-foundation`.
+- A fresh Vercel deployment is not part of this architecture. The existing app hosting setup still needs to publish the latest branch frontend files before users can access the updated page.
+
+## Security
+- Never place provider keys or service-role keys in browser code.
+- Keep user verification, conversation ownership checks, and rate limits in the Edge Function.
+- Do not expose conversations across users.
+- Do not claim a generation or live search succeeded unless a real backend response confirms it.
