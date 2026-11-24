@@ -45,7 +45,7 @@ try{
    throw new Error("Video generation needs a video model server and job queue. This feature is not connected yet; no fake video will be shown.");
  }
  attachment=null;fileInput.value="";$("ns-attachment-wrap").hidden=true;
-}catch(error){pending.textContent=error.message||"AI backend unavailable.";pending.dataset.error="true";}
+}catch(error){pending.textContent=error.message||"AI backend unavailable.";pending.dataset.error="true";if(!prompt.value.trim())prompt.value=sendText;}
 finally{busy=false;submit.disabled=false;prompt.focus();}
 }
 $("ns-mic").addEventListener("click",toggleVoice);
