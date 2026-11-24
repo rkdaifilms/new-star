@@ -125,3 +125,17 @@ docker compose -f docker-compose.yml -f docker-compose.cuda.yml logs -f
 ```
 
 The CUDA Dockerfile compiles `llama-cpp-python` with `GGML_CUDA`. The Compose override requests NVIDIA devices from Docker. The host must already have a compatible NVIDIA driver and NVIDIA Container Toolkit; a CUDA container cannot create a GPU or driver where none exists. Set `N_GPU_LAYERS` to a measured positive number or `-1` to request all eligible layers. The health endpoint reports this as a requested offload setting, not proof of actual GPU utilization. Confirm utilization and VRAM with host NVIDIA monitoring tools and benchmark the loaded model before production use. If GPU initialization fails, set `N_GPU_LAYERS=0` and use the CPU Compose setup.
+
+## NVIDIA GPU inference
+
+CPU inference remains the default. GPU inference is an optional Compose profile and requires an NVIDIA GPU, a compatible host driver, NVIDIA Container Toolkit, and Docker Compose GPU reservations.
+
+```sh
+cd ai-inference
+cp .env.example .env
+# Set MODEL_TOKEN in .env before starting the service.
+docker compose --profile gpu up --build -d new-star-gpu-inference
+curl -H "Authorization: Bearer $MODEL_TOKEN" http://127.0.0.1:8001/healthz
+```
+
+The CUDA image builds llama.cpp with CUDA 12.4 support. `N_GPU_LAYERS` defaults to 999 to offload as many layers as the device can hold; lower it if GPU memory is insufficient. CPU and GPU services can be started independently. The image does not include proprietary GPU hardware or model weights; model download is checksum-verified at startup.
