@@ -952,3 +952,55 @@ def test_byte_bpe_pretraining_checkpoint_loads_in_native_inference_server(tmp_pa
     sample = "नेपाली हिन्दी বাংলা 🌍"
     assert tokenizer.decode(tokenizer.encode(sample)) == sample
     assert model.config.vocab_size == len(tokenizer)
+
+
+def test_byte_bpe_sft_checkpoint_loads_in_native_inference_server(tmp_path, monkeypatch):
+    import json
+    import sys
+    from sft_train import main
+    from serve import load_engine
+    from bpe_tokenizer import ByteBPETokenizer
+
+    data = tmp_path / "bpe-instructions.jsonl"
+    rows = []
+    for language, question, answer in [
+        ("ne", "नमस्ते प्रश्न", "नमस्कार उत्तर"),
+        ("en", "hello question", "hello answer"),
+    ]:
+        for split, marker in [("train", "train"), ("validation", "heldout")]:
+            rows.append({
+                "language": language,
+                "split": split,
+                "messages": [
+                    {"role": "user", "content": f"{question} {marker}"},
+                    {"role": "assistant", "content": f"{answer} {marker}"},
+                ],
+            })
+    data.write_text(
+        "\\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
+        encoding="utf-8",
+    )
+    manifest = tmp_path / "bpe-instructions-manifest.json"
+    manifest.write_text(json.dumps({
+        "dataset_name": "BPE SFT test fixture",
+        "source": "locally authored automated test",
+        "license": "CC0-1.0",
+        "permission_basis": "created for automated tests",
+    }), encoding="utf-8")
+    checkpoint = tmp_path / "bpe-sft.pt"
+    monkeypatch.setattr(sys, "argv", [
+        "sft_train.py", "--data", str(data), "--manifest", str(manifest),
+        "--output", str(checkpoint), "--steps", "1", "--batch-size", "2",
+        "--block-size", "64", "--width", "16", "--layers", "1",
+        "--heads", "4", "--eval-interval", "1", "--max-vocab-size", "320",
+        "--tokenizer", "bpe",
+    ])
+    main()
+
+    saved = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    assert saved["format"] == "new-star-byte-bpe-gpt-v1"
+    assert saved["tokenizer"]["type"] == ByteBPETokenizer.FORMAT
+    model, tokenizer = load_engine(str(checkpoint), "cpu")
+    sample = "नेपाली हिन्दी বাংলা 🌍"
+    assert tokenizer.decode(tokenizer.encode(sample)) == sample
+    assert model.config.vocab_size == len(tokenizer)
