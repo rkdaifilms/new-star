@@ -95,10 +95,20 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
                         raise ValueError("prompt must be non-empty text")
                 temperature = float(body.get("temperature", 0.8))
                 max_tokens = int(body.get("max_tokens", 96))
+                top_k = body.get("top_k", 50)
+                top_k = int(top_k) if top_k is not None else None
+                top_p = float(body.get("top_p", 0.95))
+                repetition_penalty = float(body.get("repetition_penalty", 1.0))
                 if not 0 < temperature <= 2:
                     raise ValueError("temperature must be greater than 0 and at most 2")
                 if not 1 <= max_tokens <= 512:
                     raise ValueError("max_tokens must be between 1 and 512")
+                if top_k is not None and top_k < 1:
+                    raise ValueError("top_k must be null or a positive integer")
+                if not 0 < top_p <= 1:
+                    raise ValueError("top_p must be greater than 0 and at most 1")
+                if repetition_penalty < 1:
+                    raise ValueError("repetition_penalty must be at least 1")
                 encoded = tokenizer.encode(prompt)
                 if not encoded:
                     raise ValueError("prompt did not produce any tokens")
@@ -107,7 +117,7 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
                 input_ids = torch.tensor(encoded, dtype=torch.long, device=device).unsqueeze(0)
                 started = time.time()
                 with torch.inference_mode():
-                    generated = model.generate(input_ids, max_tokens, temperature)[0].tolist()
+                    generated = model.generate(input_ids, max_tokens, temperature, top_k, top_p, repetition_penalty)[0].tolist()
                 answer = tokenizer.decode(generated[len(encoded):])
                 completion_id = "ns-" + uuid.uuid4().hex
                 usage = {
