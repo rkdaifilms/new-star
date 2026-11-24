@@ -227,7 +227,7 @@ async function startRecording(){
     prompt.value=[voiceDraftPrefix,transcript].filter(Boolean).join(" ");
     voiceStatus.textContent="आवाज़ टेक्स्ट बॉक्स में लिख दी गई है। जाँचकर Send दबाएँ।";
     prompt.focus();
-    if(shouldSend)await sendMessage();
+    // Speech is transcribed into the draft; the user must explicitly press Send.
    }catch(e){
     voiceStatus.textContent=e.message||"आवाज़ को टेक्स्ट में नहीं बदला जा सका। आप लिखकर भेज सकते हैं।";
    }finally{
