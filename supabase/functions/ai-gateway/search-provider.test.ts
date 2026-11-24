@@ -1,4 +1,4 @@
-import { normalizeNewStarSearchResults } from "./search-provider.ts";
+import { formatRetrievedContext, normalizeNewStarSearchResults } from "./search-provider.ts";
 
 Deno.test("normalizes valid HTTPS results and caps untrusted fields", () => {
   const results = normalizeNewStarSearchResults([
@@ -27,4 +27,16 @@ Deno.test("limits result count and rejects invalid limits", () => {
   }));
   if (normalizeNewStarSearchResults(input, 3).length !== 3) throw new Error("Result count limit was not applied");
   if (normalizeNewStarSearchResults(input, 11).length !== 0) throw new Error("Invalid limit was accepted");
+});
+
+Deno.test("formats bounded retrieved search context with source URLs", () => {
+  const context = formatRetrievedContext([
+    { title: "  Nepal AI  ", url: "https://example.org/ai", snippet: "Useful excerpt" },
+    { title: "Unsafe", url: "http://example.org", snippet: "must not appear" },
+  ], 5);
+  if (!context.includes("[Source 1] Nepal AI")) throw new Error("Source title was not formatted");
+  if (!context.includes("URL: https://example.org/ai")) throw new Error("Source URL was not preserved");
+  if (context.includes("Unsafe") || context.includes("must not appear")) {
+    throw new Error("Unsafe source URL was included in retrieved context");
+  }
 });
