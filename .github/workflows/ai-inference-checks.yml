@@ -7,6 +7,7 @@ on:
       - "ai-chat.js"
       - "creator-ai.js"
       - "supabase/functions/ai-gateway/**"
+      - "supabase/migrations/**"
       - ".github/workflows/ai-inference-checks.yml"
 
 jobs:
@@ -52,7 +53,12 @@ jobs:
           grep -F 'new-star-local-test-model' "$FILE"
           grep -F 'NEW_STAR_MODEL_ENABLE_FALLBACK' "$FILE"
           grep -F 'newStarTestFallbackEnabled' "$FILE"
-          grep -F 'async function generateGeminiVideo' "$FILE"
+          grep -F 'async function startGeminiVideo' "$FILE"
+          grep -F 'async function getGeminiVideoInteraction' "$FILE"
+          grep -F 'background: true' "$FILE"
+          grep -F 'body?.action === "video-status"' "$FILE"
+          grep -F 'ai_video_jobs' "$FILE"
+          grep -F 'create table if not exists public.ai_video_jobs' supabase/migrations/20261124130000_add_async_ai_video_jobs.sql
           grep -F 'body?.action === "video"' "$FILE"
           grep -F 'new-star-ai-videos' "$FILE"
 
