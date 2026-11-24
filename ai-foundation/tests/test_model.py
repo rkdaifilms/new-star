@@ -401,6 +401,12 @@ def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeyp
     metadata = json.loads(checkpoint.with_suffix(".pt.json").read_text(encoding="utf-8"))
     assert metadata["training_method"] == "supervised-fine-tuning-response-only"
     assert metadata["languages"] == ["en", "ne"]
+    assert metadata["seed"] == 1337
+    assert metadata["learning_rate"] == 1e-4
+    assert metadata["batch_size"] == 2
+    assert metadata["block_size"] == 64
+    assert metadata["final_validation_loss"] is not None
+    assert metadata["validation_metric"].endswith("assistant-response cross-entropy")
     saved = torch.load(checkpoint, map_location="cpu", weights_only=False)
     tokenizer = UnicodeCharTokenizer.from_dict(saved["tokenizer"])
     restored = NewStarGPT(NewStarConfig(**saved["config"]))
