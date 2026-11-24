@@ -6,7 +6,7 @@ function selectedAppLanguage(){try{const p=JSON.parse(localStorage.getItem("news
 const uiText=(key,fallback)=>window.NewStarTranslations?.[selectedAppLanguage()]?.[key]||fallback;
 
 const log=$("chat-log"),prompt=$("prompt"),send=$("send"),voice=$("voice"),stopVoice=$("stop-voice"),status=$("gateway-status"),voiceStatus=$("voice-status"),notice=$("notice"),imageResult=$("image-result");
-let history=[],busy=false,recorder=null,stream=null,chunks=[],recording=false,pendingSendAfterTranscription=false,lastLanguage="en",imageMode=false,browserRecognition=null,browserTranscript="",voiceDraftPrefix="";
+let history=[],busy=false,recorder=null,stream=null,chunks=[],recording=false,pendingSendAfterTranscription=false,lastLanguage="en",imageMode=false,browserRecognition=null,browserTranscript="",browserInterimTranscript="",voiceDraftPrefix="";
 const langMap={"ह":"hi","अ":"hi","क":"hi","ख":"hi","ग":"hi","घ":"hi","च":"hi","ज":"hi","ट":"hi","ड":"hi","त":"hi","द":"hi","न":"hi","प":"hi","ब":"hi","म":"hi","य":"hi","र":"hi","ल":"hi","व":"hi","श":"hi","स":"hi","क्ष":"hi","ज्ञ":"hi","ँ":"hi","ं":"hi","ः":"hi","ि":"hi","ा":"hi","े":"hi","ो":"hi","्":"hi","़":"hi","়":"bn","অ":"bn","আ":"bn","ই":"bn","উ":"bn","এ":"bn","ও":"bn","ক":"bn","খ":"bn","গ":"bn","চ":"bn","জ":"bn","ট":"bn","ড":"bn","ত":"bn","দ":"bn","ন":"bn","প":"bn","ব":"bn","ম":"bn","য":"bn","র":"bn","ল":"bn","শ":"bn","স":"bn","ং":"bn","ঃ":"bn","ા":"gu","ક":"gu","મ":"gu","ત":"gu","પ":"gu","ર":"gu","ન":"gu","અ":"gu","આ":"gu","ಕ":"kn","ತ":"kn","ನ":"kn","ಮ":"kn","ಪ":"kn","ಅ":"kn","ആ":"ml","ക":"ml","മ":"ml","ന":"ml","പ":"ml","த":"ta","ம":"ta","ந":"ta","ப":"ta","அ":"ta","త":"te","మ":"te","న":"te","క":"te","అ":"te","ಅ":"kn","ಅ":"kn","ಕ":"kn","ಮ":"kn","ತ":"kn","ಪ":"kn","ಯ":"kn","ಖ":"kn","ก":"th","ข":"th","ค":"th","ง":"th","จ":"th","ส":"th","ร":"th","ม":"th","ย":"th","ว":"th","ه":"ar","ا":"ar","ل":"ar","م":"ar","ن":"ar","ي":"ar","ع":"ar","ك":"ar","و":"ar","پ":"fa","چ":"fa","ژ":"fa","گ":"fa","ی":"fa","ا":"fa","ب":"fa","ت":"fa","ث":"fa","ج":"fa","ح":"fa","خ":"fa","د":"fa","ر":"fa","ز":"fa","س":"fa","ش":"fa","ص":"fa","ض":"fa","ط":"fa","ظ":"fa","ع":"fa","غ":"fa","ف":"fa","ق":"fa","ک":"fa","ل":"fa","م":"fa","ن":"fa","و":"fa","ھ":"ur","ے":"ur","ٹ":"ur","ڈ":"ur","ڑ":"ur","ں":"ur","گ":"ur","چ":"ur","پ":"ur","ک":"ur","ا":"ur","ب":"ur","ت":"ur","ث":"ur","ج":"ur","ح":"ur","خ":"ur","د":"ur","ر":"ur","ز":"ur","س":"ur","ش":"ur","ص":"ur","ض":"ur","ط":"ur","ظ":"ur","ع":"ur","غ":"ur","ف":"ur","ق":"ur","ل":"ur","م":"ur","ن":"ur","و":"ur","ي":"ur","ی":"ur","ئ":"ur","ء":"ur","ؤ":"ur","إ":"ar","أ":"ar","ة":"ar","ى":"ar","я":"ru","ы":"ru","э":"ru","ё":"ru","ж":"ru","щ":"ru","ф":"ru","ц":"ru","й":"ru","ш":"ru","ю":"ru","д":"ru","г":"ru","п":"ru","л":"ru","о":"ru","р":"ru","а":"ru","в":"ru","к":"ru","м":"ru","с":"ru","т":"ru","н":"ru","е":"ru","и":"ru","у":"ru","б":"ru","з":"ru","х":"ru","ч":"ru","ъ":"ru","ь":"ru","ў":"uk","і":"uk","є":"uk","ґ":"uk","ї":"uk","あ":"ja","い":"ja","う":"ja","え":"ja","お":"ja","か":"ja","き":"ja","く":"ja","け":"ja","こ":"ja","さ":"ja","し":"ja","す":"ja","せ":"ja","そ":"ja","た":"ja","ち":"ja","つ":"ja","て":"ja","と":"ja","な":"ja","に":"ja","ぬ":"ja","ね":"ja","の":"ja","は":"ja","ひ":"ja","ふ":"ja","へ":"ja","ほ":"ja","ア":"ja","イ":"ja","ウ":"ja","エ":"ja","オ":"ja","カ":"ja","キ":"ja","ク":"ja","ケ":"ja","コ":"ja","サ":"ja","シ":"ja","ス":"ja","セ":"ja","ソ":"ja","タ":"ja","チ":"ja","ツ":"ja","テ":"ja","ト":"ja","ニ":"ja","ヌ":"ja","ネ":"ja","ノ":"ja","ハ":"ja","ヒ":"ja","フ":"ja","ヘ":"ja","ホ":"ja","ン":"ja","가":"ko","나":"ko","다":"ko","라":"ko","마":"ko","바":"ko","사":"ko","아":"ko","자":"ko","차":"ko","카":"ko","타":"ko","파":"ko","하":"ko","는":"ko","을":"ko","에":"ko","의":"ko","한":"ko","글":"ko","어":"ko"};
 function detectLanguage(text){
  const value=String(text||"").trim(), lower=value.toLowerCase(), app=selectedAppLanguage();
@@ -161,18 +161,21 @@ async function startRecording(forceRecorder=false){
   try{
    browserRecognition=new SpeechRecognition();
    browserRecognition.lang=selectedAppLanguage()==="ne"?"ne-NP":selectedAppLanguage()==="hi"?"hi-IN":selectedAppLanguage()==="en"?"en-US":selectedAppLanguage();
-   browserRecognition.continuous=true;browserRecognition.interimResults=true;browserTranscript="";voiceDraftPrefix=prompt.value.trim();
+   browserRecognition.continuous=true;browserRecognition.interimResults=true;browserRecognition.maxAlternatives=1;browserTranscript="";browserInterimTranscript="";voiceDraftPrefix=prompt.value.trim();
    browserRecognition.onresult=event=>{
     let finalText="";
-    for(let i=event.resultIndex;i<event.results.length;i++){
-     const part=event.results[i][0]?.transcript||"";
-     if(event.results[i].isFinal)finalText+=part;
+    const interimParts=[];
+    for(let i=0;i<event.results.length;i++){
+     const part=String(event.results[i][0]?.transcript||"").trim();
+     if(!part)continue;
+     if(event.results[i].isFinal)finalText+=" "+part;
+     else interimParts.push(part);
     }
     if(finalText)browserTranscript=(browserTranscript+" "+finalText).trim();
-    const interim=event.results[event.results.length-1]?.[0]?.transcript||"";
-    const liveText=(browserTranscript+" "+interim).trim();
-    prompt.value=[voiceDraftPrefix,liveText].filter(Boolean).join(" ");
-    voiceStatus.textContent="🔴 रिकॉर्डिंग चालू — टेक्स्ट बॉक्स में: "+liveText;
+    browserInterimTranscript=interimParts.join(" ").trim();
+    const liveText=[browserTranscript,browserInterimTranscript].filter(Boolean).join(" ").trim();
+    if(liveText)prompt.value=[voiceDraftPrefix,liveText].filter(Boolean).join(" ");
+    voiceStatus.textContent=liveText?"🔴 बोलते ही टेक्स्ट लिखा जा रहा है: "+liveText:"🔴 माइक सुन रहा है…";
    };
    browserRecognition.onerror=event=>{
     const reason=event.error||"unknown";
@@ -187,7 +190,7 @@ async function startRecording(forceRecorder=false){
     setTimeout(()=>startRecording(true),150);
    };
    browserRecognition.onend=async()=>{
-    const transcript=browserTranscript.trim();
+    const transcript=(browserTranscript||browserInterimTranscript).trim();
     const shouldSend=pendingSendAfterTranscription;
     browserRecognition=null;recording=false;
     voice.textContent="🎙️";voice.setAttribute("aria-label","माइक से बोलें");stopVoice.hidden=true;
