@@ -407,6 +407,25 @@ def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeyp
     assert metadata["block_size"] == 64
     assert metadata["final_validation_loss"] is not None
     assert metadata["validation_metric"].endswith("assistant-response cross-entropy")
+    resume_checkpoint = checkpoint.with_suffix(".pt.resume.pt")
+    assert resume_checkpoint.is_file()
+
+    # Resume from the saved optimizer/model/RNG state and continue to step 2.
+    monkeypatch.setattr(sys, "argv", [
+        "sft_train.py", "--data", str(path), "--output", str(checkpoint),
+        "--steps", "2", "--batch-size", "2", "--block-size", "64",
+        "--width", "16", "--layers", "1", "--heads", "4",
+        "--eval-interval", "1", "--max-vocab-size", "512",
+        "--resume-from", str(resume_checkpoint),
+    ])
+    main()
+    resumed_metadata = json.loads(
+        checkpoint.with_suffix(".pt.json").read_text(encoding="utf-8")
+    )
+    assert resumed_metadata["training_steps"] == 2
+    assert resumed_metadata["resumed_from_step"] == 1
+    assert resumed_metadata["final_validation_loss"] is not None
+
     saved = torch.load(checkpoint, map_location="cpu", weights_only=False)
     tokenizer = UnicodeCharTokenizer.from_dict(saved["tokenizer"])
     restored = NewStarGPT(NewStarConfig(**saved["config"]))
