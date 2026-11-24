@@ -14,9 +14,17 @@ export async function readBoundedJson(
     return { ok: false, status: 415, error: "Content-Type must be application/json." };
   }
 
-  const declaredLength = Number(request.headers.get("content-length") || 0);
-  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-    return { ok: false, status: 413, error: "Request body is too large." };
+  if (request.headers.has("transfer-encoding")) {
+    return { ok: false, status: 400, error: "Transfer-Encoding is not accepted." };
+  }
+  const rawLength = request.headers.get("content-length");
+  if (rawLength !== null) {
+    if (!/^\\d+$/.test(rawLength.trim())) {
+      return { ok: false, status: 400, error: "Invalid Content-Length header." };
+    }
+    if (Number(rawLength) > maxBytes) {
+      return { ok: false, status: 413, error: "Request body is too large." };
+    }
   }
   if (!request.body) {
     return { ok: false, status: 400, error: "Request body is empty." };
@@ -31,7 +39,11 @@ export async function readBoundedJson(
       if (done) break;
       total += value.byteLength;
       if (total > maxBytes) {
-        await reader.cancel("Request body exceeds configured limit.");
+        try {
+          await reader.cancel("Request body exceeds configured limit.");
+        } catch {
+          // The size limit remains authoritative even if the stream cannot be cancelled.
+        }
         return { ok: false, status: 413, error: "Request body is too large." };
       }
       chunks.push(value);
