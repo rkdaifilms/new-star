@@ -571,3 +571,17 @@ def test_multilingual_benchmark_reports_per_language_and_macro_metrics():
     ) / 2
     assert first["macro_average_cross_entropy"] == expected_macro
     assert first["macro_geometric_mean_perplexity"] > 0
+
+
+
+def test_full_corpus_evaluation_counts_every_next_token_target():
+    from evaluate import evaluate_full_corpus
+
+    model = tiny_model()
+    data = torch.randint(0, 256, (53,), dtype=torch.long)
+    first_loss, first_count = evaluate_full_corpus(model, data, batch_size=2)
+    second_loss, second_count = evaluate_full_corpus(model, data, batch_size=5)
+    assert first_count == len(data) - 1
+    assert second_count == len(data) - 1
+    assert first_loss == second_loss
+    assert torch.isfinite(torch.tensor(first_loss))
