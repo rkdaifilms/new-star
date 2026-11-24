@@ -20,7 +20,7 @@ Deno.test("detects Japanese kana", () => {
 });
 
 Deno.test("does not infer a language from a short or mixed-script message", () => {
-  if (detectReplyScript("OK नमस्ते") !== null) throw new Error("Mixed short message should remain ambiguous");
+  if (detectReplyScript("OK नमस्ते hello") !== null) throw new Error("Mixed short message should remain ambiguous");
   if (detectReplyScript("Hi!") !== null) throw new Error("Short Latin message should remain ambiguous");
 });
 
