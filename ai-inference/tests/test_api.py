@@ -107,8 +107,9 @@ def test_chat_rejects_unknown_model_before_inference(monkeypatch):
         assert response.status_code == 404
 
 
-def test_chat_rejects_oversized_conversation():
+def test_chat_rejects_oversized_conversation(monkeypatch):
     with TestClient(app.app) as client:
+        monkeypatch.setattr(app, "_model", FakeModel())
         response = client.post(
             "/v1/chat/completions",
             headers={"Authorization": "Bearer test-token"},
