@@ -77,8 +77,9 @@ class NewStarGPT(nn.Module):
         if targets is not None:
             if targets.shape != tokens.shape or targets.dtype != torch.long:
                 raise ValueError("targets must be torch.long and match the token shape")
-            if torch.any(targets < 0) or torch.any(targets >= self.config.vocab_size):
-                raise ValueError("target IDs must be within the configured vocabulary")
+            valid_targets = targets != -100
+            if torch.any(targets[valid_targets] < 0) or torch.any(targets[valid_targets] >= self.config.vocab_size):
+                raise ValueError("target IDs must be -100 (ignored) or within the configured vocabulary")
         positions = torch.arange(tokens.shape[1], device=tokens.device)
         x = self.dropout(self.token_embedding(tokens) + self.position_embedding(positions))
         mask = torch.triu(
