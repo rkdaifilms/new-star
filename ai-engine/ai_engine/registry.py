@@ -55,7 +55,7 @@ class ModelSpec:
         if not self.capabilities or not self.capabilities.issubset(SUPPORTED_CAPABILITIES):
             invalid = sorted(self.capabilities - SUPPORTED_CAPABILITIES)
             raise ConfigurationError(f"invalid or empty model capabilities: {invalid}")
-        if any(not isinstance(language, str) or not re.fullmatch(r"(?:\\*|[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*)", language)
+        if any(not isinstance(language, str) or not re.fullmatch(r"(?:\*|[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*)", language)
                for language in self.languages):
             raise ConfigurationError("languages must contain valid language tags or '*'")
         if self.priority < 0:
