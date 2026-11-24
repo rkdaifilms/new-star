@@ -54,13 +54,28 @@ def audit_corpus(
                 raise ValueError(f"invalid JSON on line {line_number}") from exc
             if not isinstance(row, dict):
                 raise ValueError(f"line {line_number} must be a JSON object")
-            language, split, text = row.get("language"), row.get("split"), row.get("text")
+            language, split = row.get("language"), row.get("split")
+            text = row.get("text")
+            if text is None and isinstance(row.get("messages"), list):
+                messages = row["messages"]
+                if not messages or any(
+                    not isinstance(message, dict)
+                    or message.get("role") not in {"system", "user", "assistant"}
+                    or not isinstance(message.get("content"), str)
+                    or not message["content"].strip()
+                    for message in messages
+                ):
+                    raise ValueError(f"line {line_number} has invalid messages for audit")
+                text = "\\n".join(
+                    f"{message['role']}: {message['content'].strip()}"
+                    for message in messages
+                )
             if not isinstance(language, str) or not language.strip():
                 raise ValueError(f"line {line_number} requires a language label")
             if split not in {"train", "validation"}:
                 raise ValueError(f"line {line_number} split must be train or validation")
             if not isinstance(text, str) or not text.strip():
-                raise ValueError(f"line {line_number} requires non-empty text")
+                raise ValueError(f"line {line_number} requires non-empty text or messages")
             records[language.strip()][split].append(text.strip())
 
     if not records:
