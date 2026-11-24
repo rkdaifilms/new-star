@@ -589,8 +589,8 @@ private suspend fun uploadNativeVideo(
         streamId = response.header("stream-media-id") ?: error("Cloudflare ने Video ID नहीं दिया।")
     }
     onProgress(0, "अपलोड शुरू हो रहा है…")
-    // Larger TUS chunks reduce per-request overhead on long videos and mobile links.
-    val chunkSize = 32 * 1024 * 1024
+    // Keep memory use predictable on lower-RAM Android phones while staying above Stream TUS 5 MiB minimum.
+    val chunkSize = 8 * 1024 * 1024
     var offset = 0L
     context.contentResolver.openInputStream(uri)?.use { input ->
         val mediaType = "application/offset+octet-stream".toMediaType()
