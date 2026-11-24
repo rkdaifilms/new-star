@@ -12,6 +12,9 @@ from vector_server import make_handler
 
 
 class FakeStore:
+    def health(self):
+        return True
+
     def search(self, query, limit, source=None):
         return [{"title": "नयाँ तारा", "url": "https://example.org/ne", "source": "example.org",
                  "snippet": "नेपाली खोज नतिजा", "similarity": 0.91}]
