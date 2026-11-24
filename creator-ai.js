@@ -165,13 +165,13 @@ async function startRecording(){
     recording=false;browserRecognition=null;pendingSendAfterTranscription=false;send.disabled=false;voice.disabled=false;stopVoice.hidden=true;
    };
    browserRecognition.onend=async()=>{
-    const transcript=browserTranscript.trim(),shouldSend=pendingSendAfterTranscription;
+    const transcript=browserTranscript.trim();
     browserRecognition=null;recording=false;pendingSendAfterTranscription=false;
     voice.textContent="🎙️";voice.setAttribute("aria-label","माइक से बोलें");stopVoice.hidden=true;
     if(transcript){
      prompt.value=[voiceDraftPrefix,transcript].filter(Boolean).join(" ");lastLanguage=detectLanguage(transcript);
      voiceStatus.textContent=shouldSend?"आवाज़ समझ ली गई। AI को भेज रहे हैं…":"आवाज़ टेक्स्ट में बदल गई।";
-     if(shouldSend)await sendMessage();
+     // Never auto-send recognized speech; the user explicitly presses Send.
     }else if(!voiceStatus.textContent.includes("समस्या")&&!voiceStatus.textContent.includes("अनुमति")){
      voiceStatus.textContent="कोई आवाज़ पहचान में नहीं आई। दोबारा बोलें या संदेश लिखें।";
     }
@@ -202,7 +202,6 @@ async function startRecording(){
   recorder.onstop=async()=>{
    const stoppedRecorder=recorder;
    const recordedChunks=chunks.slice();
-   const shouldSend=pendingSendAfterTranscription;
    pendingSendAfterTranscription=false;
    recording=false;stopVoice.hidden=true;voice.textContent="🎙️";
    voice.setAttribute("aria-label","माइक से बोलें");
