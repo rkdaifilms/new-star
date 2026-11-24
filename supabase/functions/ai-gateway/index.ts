@@ -191,6 +191,52 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 1600
   }
 }
 
+async function probeCredential(url: string, headers: Record<string, string>) {
+  try {
+    const response = await fetchWithTimeout(url, { method: "GET", headers, redirect: "error" }, 7000);
+    await response.body?.cancel().catch(() => {});
+    if (response.ok) return { configured: true, credentialValid: true, status: "key_valid_inference_not_tested" };
+    if (response.status === 401) return { configured: true, credentialValid: false, status: "invalid_key" };
+    if (response.status === 403) return { configured: true, credentialValid: false, status: "access_denied" };
+    if (response.status === 429) return { configured: true, credentialValid: true, status: "provider_rate_limited" };
+    return { configured: true, credentialValid: null, status: "provider_check_failed_" + response.status };
+  } catch {
+    return { configured: true, credentialValid: null, status: "provider_unreachable" };
+  }
+}
+
+async function probeGemini(key: string) {
+  return await probeCredential("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash", {
+    "x-goog-api-key": key
+  });
+}
+
+async function probeOpenAI(key: string) {
+  return await probeCredential("https://api.openai.com/v1/models/gpt-4o-mini", {
+    "Authorization": "Bearer " + key
+  });
+}
+
+async function probeOpenRouter(key: string) {
+  const headers = { "Authorization": "Bearer " + key };
+  const keyCheck = await probeCredential("https://openrouter.ai/api/v1/key", headers);
+  if (!keyCheck.credentialValid) return keyCheck;
+  try {
+    const response = await fetchWithTimeout("https://openrouter.ai/api/v1/credits", { method: "GET", headers, redirect: "error" }, 7000);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { ...keyCheck, status: "credit_check_failed_" + response.status };
+    const total = Number(data?.data?.total_credits);
+    const used = Number(data?.data?.total_usage);
+    if (Number.isFinite(total) && Number.isFinite(used)) {
+      const remaining = Math.max(0, total - used);
+      return { ...keyCheck, status: remaining > 0 ? "credits_available" : "credits_exhausted", creditsRemaining: Number(remaining.toFixed(4)) };
+    }
+    return { ...keyCheck, status: "key_valid_credit_balance_unknown" };
+  } catch {
+    return { ...keyCheck, status: "key_valid_credit_check_unreachable" };
+  }
+}
+
 async function callOpenAI(key: string, messages: ChatMessage[], systemPrompt: string) {
   const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -721,17 +767,31 @@ Deno.serve(async (req: Request) => {
 
   if (body?.action === "status") {
     const newStarModel = await probeNewStarHostedModel();
+    const geminiKey = firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const openaiKey = firstSecret("OPENAI_API_KEY", "OPENAI_KEY");
+    const openrouterKey = firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY");
+    const [geminiHealth, openaiHealth, openrouterHealth] = await Promise.all([
+      geminiKey ? probeGemini(geminiKey) : Promise.resolve({ configured: false, credentialValid: false, status: "not_configured" }),
+      openaiKey ? probeOpenAI(openaiKey) : Promise.resolve({ configured: false, credentialValid: false, status: "not_configured" }),
+      openrouterKey ? probeOpenRouter(openrouterKey) : Promise.resolve({ configured: false, credentialValid: false, status: "not_configured" })
+    ]);
     return json({
       ok: true,
       status: true,
       providers: {
         newStarHostedModel: newStarModel.configured,
-        openai: Boolean(firstSecret("OPENAI_API_KEY", "OPENAI_KEY")),
-        gemini: Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY")),
-        openrouter: Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY")),
-        research: Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"))
+        openai: Boolean(openaiKey),
+        gemini: Boolean(geminiKey),
+        openrouter: Boolean(openrouterKey),
+        research: Boolean(geminiKey)
       },
-      health: { newStarHostedModel: newStarModel }
+      health: {
+        newStarHostedModel: newStarModel,
+        gemini: geminiHealth,
+        openai: openaiHealth,
+        openrouter: openrouterHealth,
+        note: "Credential checks do not run paid inference. Gemini/OpenAI inference quota is not tested."
+      }
     }, 200, headers);
   }
 
