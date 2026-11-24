@@ -38,7 +38,7 @@ class VectorServerTests(unittest.TestCase):
             "Content-Type": "application/json", "Authorization": "Bearer secret"})
         with urlopen(request) as response:
             result = json.loads(response.read())
-        self.assertEqual(result["retrieval"], "vector-cosine")
+        self.assertEqual(result["retrieval"], "hybrid-vector-fts-rrf")
         self.assertEqual(result["results"][0]["title"], "नयाँ तारा")
 
     def test_rejects_missing_auth(self):
