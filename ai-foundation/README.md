@@ -46,7 +46,14 @@ separate train/validation records. Each line is one JSON object:
 {"language":"en","split":"validation","text":"Separate English validation material"}
 ```
 
-Run it with `--data-format jsonl`. The evaluation command scans every next-token target in each held-out
+Run multilingual pretraining with a provenance manifest (the audit runs automatically before training):
+
+```sh
+python ai-foundation/train.py --data ./permitted-multilingual.jsonl \\
+  --data-format jsonl --manifest ./dataset-manifest.json --steps 2000
+```
+
+Run evaluation with `--data-format jsonl`. The evaluation command scans every next-token target in each held-out
 language corpus (rather than estimating quality from a random sample), prints
 token-weighted cross-entropy and perplexity per language plus a macro-average,
 and `--report-json` optionally saves the metrics and evaluated-token counts
@@ -196,3 +203,10 @@ does not detect paraphrases, translations, or semantic overlap, and the tool
 cannot verify that a claimed license or permission is genuine. A human must
 review source terms and rights before training; never include private records,
 secrets, or material you are not authorized to use.
+
+
+Both multilingual pretraining and SFT require a provenance manifest and run
+an exact normalized train/validation duplicate audit before optimization. The
+result is saved beside the checkpoint as `.corpus-audit.json`. For SFT, the
+audit uses the role-tagged conversation content. This catches exact overlap,
+not paraphrase or semantic leakage; human review of data rights remains required.
