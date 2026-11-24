@@ -281,3 +281,11 @@ For CUDA, use `--device cuda` and omit `--threads`. This measures local
 autoregressive generation only; it does not claim production serving capacity
 or model quality. The experimental baseline may generate low-quality text
 until trained on suitable, permitted data.
+
+
+Experiment comparisons are deliberately strict. A validation-loss delta is shown
+only when both runs have matching dataset and tokenizer fingerprints, language
+sets, model configuration, evaluation protocol, and validation metric. The
+"best" run is selected only from the compatibility group matching the latest
+run; older records missing these fields are not silently treated as comparable.
+Pretraining and SFT use distinct evaluation protocol identifiers.
