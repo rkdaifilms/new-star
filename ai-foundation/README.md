@@ -337,3 +337,17 @@ sets, model configuration, evaluation protocol, and validation metric. The
 "best" run is selected only from the compatibility group matching the latest
 run; older records missing these fields are not silently treated as comparable.
 Pretraining and SFT use distinct evaluation protocol identifiers.
+
+
+## Hardware-aware training
+
+The training scripts now resolve `--device auto|cpu|cuda|cuda:N` and `--precision auto|fp32|fp16|bf16`. Auto selects CUDA when PyTorch can see it; otherwise it uses CPU. CPU training is kept in FP32. CUDA auto precision selects BF16 when the device reports support and FP16 otherwise; FP16 uses gradient scaling. Runtime hardware details are printed at startup and saved in the checkpoint metadata. The chosen precision is included in resume compatibility checks.
+
+Run a training job with automatic hardware selection:
+
+```sh
+python ai-foundation/train.py --data ./permitted-corpus.txt --device auto --precision auto --steps 2000
+python ai-foundation/sft_train.py --data ./permitted-instructions.jsonl --manifest ./dataset-manifest.json --base-checkpoint ./artifacts/newstar-small.pt --device auto --precision auto --steps 1000
+```
+
+To force CPU execution, use `--device cpu --precision fp32`. To select a particular GPU, use `--device cuda:0 --precision auto`. A CUDA-enabled PyTorch installation and compatible NVIDIA driver are required for GPU training; installing the CPU-only PyTorch wheel will correctly leave auto mode on CPU.

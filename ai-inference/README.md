@@ -109,3 +109,19 @@ The Compose defaults use two CPU threads, zero GPU layers, and one concurrent ge
 ## Gateway capability status
 
 The authenticated Supabase AI Gateway accepts `{ "action": "status" }` and reports each modality separately under `capabilities`. A configured provider key means only that a secret exists; it does not guarantee billing, quota, provider reachability, or a successful generation. The current gateway reports text chat, image generation, speech generation, speech transcription, and a separate video-generation path when their provider paths exist. A configured key does not prove a successful generation. Live web search is explicitly unsupported until a real adapter and end-to-end tests are implemented.
+
+
+## NVIDIA CUDA inference build
+
+The default Dockerfile remains the small CPU/OpenBLAS build. For a Linux host with a compatible NVIDIA driver and NVIDIA Container Toolkit, build the CUDA-enabled llama.cpp backend using the override file:
+
+```sh
+cd ai-inference
+cp .env.example .env
+# Set MODEL_TOKEN in .env. Keep N_GPU_LAYERS positive; the default is 999 for this CUDA override.
+docker compose -f docker-compose.yml -f docker-compose.cuda.yml build
+docker compose -f docker-compose.yml -f docker-compose.cuda.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.cuda.yml logs -f
+```
+
+The CUDA Dockerfile compiles `llama-cpp-python` with `GGML_CUDA`. The Compose override requests NVIDIA devices from Docker. The host must already have a compatible NVIDIA driver and NVIDIA Container Toolkit; a CUDA container cannot create a GPU or driver where none exists. Set `N_GPU_LAYERS` to a measured positive number or `-1` to request all eligible layers. The health endpoint reports this as a requested offload setting, not proof of actual GPU utilization. Confirm utilization and VRAM with host NVIDIA monitoring tools and benchmark the loaded model before production use. If GPU initialization fails, set `N_GPU_LAYERS=0` and use the CPU Compose setup.
