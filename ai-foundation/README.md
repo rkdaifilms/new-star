@@ -236,3 +236,27 @@ python ai-foundation/experiment_registry.py \
 The registry is local experiment bookkeeping, not a remote tracking service or
 a substitute for backing up checkpoint files. Keep the registry and checkpoint
 artifacts together and do not include private dataset text or credentials.
+
+
+## Compare registered experiments
+
+Compare runs within the same training stage. A latest-vs-previous validation
+loss delta is shown only when both runs have the same dataset fingerprint and
+the same language set; otherwise the report explicitly marks them incomparable.
+The best run is selected by the lowest recorded validation loss within that
+stage. Optionally verify that checkpoint files still exist and match their
+registered SHA-256 hashes.
+
+```sh
+python ai-foundation/compare_experiments.py \
+  --registry artifacts/experiments.jsonl --stage pretraining \
+  --verify-checkpoints --output artifacts/pretraining-comparison.json
+
+python ai-foundation/compare_experiments.py \
+  --registry artifacts/experiments.jsonl --stage sft
+```
+
+A lower validation loss is better only for comparable evaluation setups.
+Changing the validation corpus, tokenizer, evaluation procedure, or model
+objective can make scores incomparable even if the language set matches.
+Keep validation data and evaluation settings fixed when measuring progress.
