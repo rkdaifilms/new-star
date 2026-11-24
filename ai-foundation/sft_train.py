@@ -47,9 +47,6 @@ def sample_instruction_batch(corpora, batch_size, block_size, device, generator=
         examples = corpora[languages[lang_index]]
         example_index = int(torch.randint(len(examples), (1,), generator=generator).item())
         selected.append((examples, example_index))
-    # All examples are copied into one temporary list so collation remains simple.
-    flat = [example for examples, _ in selected for example in [examples[0]]]
-    del flat
     rows = [selected[i][0][selected[i][1]] for i in range(batch_size)]
     return collate_examples(rows, list(range(batch_size)), block_size, device)
 
