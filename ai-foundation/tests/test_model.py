@@ -390,7 +390,7 @@ def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeyp
     served_model, served_tokenizer = load_engine(str(checkpoint), "cpu")
     httpd = ThreadingHTTPServer(
         ("127.0.0.1", 0),
-        create_handler(served_model, served_tokenizer, "tiny-sft-test", "cpu", ""),
+        create_handler(served_model, served_tokenizer, "tiny-sft-test", "cpu", "test-only-secret"),
     )
     worker = threading.Thread(target=httpd.serve_forever, daemon=True)
     worker.start()
@@ -406,10 +406,27 @@ def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeyp
             "messages": [{"role": "user", "content": "नमस्ते"}],
             "max_tokens": 2,
         }).encode("utf-8")
-        request = Request(
+        # Protected inference must reject a missing bearer token.
+        from urllib.error import HTTPError
+        unauthorized = Request(
             f"{base_url}/v1/chat/completions",
             data=request_body,
             headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urlopen(unauthorized, timeout=5)
+            raise AssertionError("protected inference unexpectedly accepted an unauthenticated request")
+        except HTTPError as error:
+            assert error.code == 401
+
+        request = Request(
+            f"{base_url}/v1/chat/completions",
+            data=request_body,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer test-only-secret",
+            },
             method="POST",
         )
         with urlopen(request, timeout=10) as response:
