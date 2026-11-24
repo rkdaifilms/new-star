@@ -56,7 +56,7 @@ A successful response includes `ok`, `provider`, and `answer`. If all providers 
 
 ## Important status
 
-The gateway is connected to the shared floating AI assistant (`ai-chat.js`). Provider secrets and live provider failover have not been end-to-end verified. The Qwen CPU model is an opt-in test engine, not the production ChatGPT/Gemini model. The Help Center reports per-modality support/configuration separately; “configured” is not a live health check. Video generation has a separate Gemini Interactions adapter; live web search is not implemented.
+The gateway is connected to the shared floating AI assistant (`ai-chat.js`). Provider secrets and live provider failover have not been end-to-end verified. The Qwen CPU model is an opt-in test engine, not the production ChatGPT/Gemini model. The Help Center reports per-modality support/configuration separately; “configured” is not a live health check. Video generation has a separate Vertex AI Interactions adapter; live web search is not implemented.
 
 
 ## Video generation
@@ -72,7 +72,7 @@ Required Supabase Edge Function secrets:
 - `GOOGLE_CLOUD_PROJECT_ID`: Google Cloud project ID (optional if present in the service-account JSON)
 - `NEW_STAR_VIDEO_MODEL`: optional model override; default order is `gemini-omni-1.2-flash`, then `gemini-omni-1.1-flash-preview`
 
-The gateway starts a provider-side background interaction, stores its interaction ID in the private `ai_video_jobs` table, and checks progress through a separate authenticated `video-status` action. The MP4 is uploaded to the private Supabase Storage bucket only after the provider reports completion. The Creator Studio currently requests a six-second clip. The API supports 3–15 seconds for `gemini-omni-1.2-flash` and 3–10 seconds for preview models; the UI currently keeps duration fixed at six seconds until broader controls are tested.
+The gateway starts a provider-side background interaction, stores its interaction ID in the private `ai_video_jobs` table, and checks progress through a separate authenticated `video-status` action. The MP4 is uploaded to the private Supabase Storage bucket only after the provider reports completion. Creator Studio exposes 6-, 10-, and 15-second options. The API supports 3–15 seconds for `gemini-omni-1.2-flash` and 3–10 seconds for preview models; New Star does not attempt the preview fallback for a 15-second request.
 
 Google Cloud service-account private keys are sensitive. An authorized adult account owner should create and configure the service account, grant only the minimum Vertex AI permissions, enable the API, and review project billing and model access before enabling generation. Never paste service-account JSON or private keys into chat, GitHub, frontend code, or browser storage.
 
