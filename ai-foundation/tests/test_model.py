@@ -358,7 +358,7 @@ def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeyp
                 ],
             })
     path.write_text(
-        "\\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
         encoding="utf-8",
     )
     checkpoint = tmp_path / "tiny-sft.pt"
