@@ -50,6 +50,25 @@ the language of a user's prompt. Use balanced, licensed, high-quality data for
 each language and evaluate each language separately before claiming support.
 
 
+
+## Run the experimental native checkpoint server
+
+After training a Unicode checkpoint, start the local HTTP adapter:
+
+```sh
+python ai-foundation/serve.py --checkpoint artifacts/newstar-small.pt
+```
+
+It listens on `127.0.0.1:8765` and exposes `GET /health`,
+`POST /v1/completions`, and `POST /v1/chat/completions`. The chat endpoint
+accepts ordinary `system`, `user`, and `assistant` messages and returns an
+OpenAI-style non-streaming response. Streaming is not implemented. To bind to
+a non-loopback interface, set `NEW_STAR_FOUNDATION_API_KEY` first; requests
+must then include `Authorization: Bearer ...`. Do not expose this experimental
+server directly to the public internet. It has no production-grade abuse
+controls, tenant isolation, queueing, or high-availability design. Its text
+quality depends entirely on the checkpoint and training corpus.
+
 ## Reply-language routing in the hosted gateway
 
 The AI gateway gives an explicitly selected app language priority. If no
