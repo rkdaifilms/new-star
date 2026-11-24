@@ -679,6 +679,7 @@ Deno.serve(async (req: Request) => {
 
   if (body?.action === "status") {
     const newStarModel = await probeNewStarHostedModel();
+    const newStarTestFallbackEnabled = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true" && newStarModel.configured;
     const hasOpenAI = Boolean(firstSecret("OPENAI_API_KEY", "OPENAI_KEY"));
     const hasGemini = Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"));
     const hasOpenRouter = Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"));
@@ -688,13 +689,14 @@ Deno.serve(async (req: Request) => {
       ok: true,
       status: true,
       providers: {
-        newStarHostedModel: newStarModel.configured,
+        newStarTestModelConfigured: newStarModel.configured,
+        newStarTestFallbackEnabled,
         openai: hasOpenAI,
         gemini: hasGemini,
         openrouter: hasOpenRouter
       },
       capabilities: {
-        chat: { supported: true, configured: newStarModel.configured || hasOpenAI || hasGemini || hasOpenRouter },
+        chat: { supported: true, configured: newStarTestFallbackEnabled || hasOpenAI || hasGemini || hasOpenRouter },
         imageGeneration: { supported: true, configured: imageConfigured },
         speechGeneration: { supported: true, configured: speechConfigured },
         speechTranscription: { supported: true, configured: speechConfigured },
@@ -742,11 +744,12 @@ Deno.serve(async (req: Request) => {
   const newStarModelUrl = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
   const newStarModelName = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
   const newStarModelKey = Deno.env.get("NEW_STAR_MODEL_API_KEY")?.trim() || "local-no-key";
+  const enableLocalTestFallback = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true";
   const providers = [
-    ...(newStarModelUrl && newStarModelName ? [{ name: "new-star-hosted-model", keys: [newStarModelKey], run: callNewStarHostedModel }] : []),
     { name: "gemini", keys: secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"), run: callGemini },
     { name: "openai", keys: secretCandidates("OPENAI_API_KEY", "OPENAI_KEY"), run: callOpenAI },
-    { name: "openrouter", keys: secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter }
+    { name: "openrouter", keys: secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter },
+    ...(enableLocalTestFallback && newStarModelUrl && newStarModelName ? [{ name: "new-star-local-test-model", keys: [newStarModelKey], run: callNewStarHostedModel }] : [])
   ].filter((p): p is { name: string; keys: string[]; run: (key: string, messages: ChatMessage[], systemPrompt: string) => Promise<string> } => p.keys.length > 0);
 
   if (providers.length === 0) {
