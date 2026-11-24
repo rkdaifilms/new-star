@@ -227,7 +227,7 @@ async function callGemini(key: string, messages: ChatMessage[], systemPrompt: st
             generationConfig: { temperature: 0.4, maxOutputTokens: 1400 }
           })
         },
-        20000
+        30000
       );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
