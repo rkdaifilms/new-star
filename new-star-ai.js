@@ -61,8 +61,8 @@ async function refreshEngineStatus(){
   const result=await client.functions.invoke("ai-gateway",{body:{action:"status"}});
   if(result.error||!result.data?.ok)throw new Error(result.data?.error||"Gateway status check failed");
   const providers=Object.entries(result.data.providers||{}).filter(([,enabled])=>enabled).map(([name])=>name);
-  if(providers.length){status.textContent="AI ready · "+providers.join(", ");status.style.color="#91e6b0";}
-  else{status.textContent="No AI provider";status.style.color="#f6c66b";}
+  if(providers.length){status.textContent="Keys found · "+providers.join(", ");status.style.color="#91e6b0";}
+  else{status.textContent="No provider keys";status.style.color="#f6c66b";}
  }catch(error){status.textContent="AI service unavailable";status.style.color="#ff9b9b";foot.textContent=error.message||"Could not check New Star AI service status.";}
 }
 window.addEventListener("load",refreshEngineStatus);
