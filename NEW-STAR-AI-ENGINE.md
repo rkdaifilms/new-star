@@ -6,7 +6,7 @@ New Star now has its own AI orchestration layer, conversation storage, prompt po
 Vercel is not required for the AI backend. The live AI gateway runs as a Supabase Edge Function in the existing New Star Supabase project.
 
 ## Connected backend
-- Supabase Edge Function: `ai-gateway` (active deployment version 76 at last verified check; the hosted-model adapter described below is committed to the feature branch but not yet deployed).
+- Supabase Edge Function: `ai-gateway` (active deployment version 77).
 - Supabase auth: validates the signed-in user before any AI operation.
 - Provider keys remain in server-side Supabase secrets; no provider keys are sent to the browser.
 - Provider adapters support configured Gemini, OpenAI and OpenRouter keys for chat/image where supported by the existing gateway.
@@ -40,7 +40,7 @@ The UI labels these as unavailable rather than pretending to complete them.
 ## Deployment and verification
 - Supabase AI Gateway version 77 is active. The New Star hosted-model adapter is deployed, but no inference endpoint or GPU host has been provisioned.
 - The conversation-memory migration applied successfully.
-- A database verification query confirmed both conversation tables exist with RLS enabled. Current row counts are zero, so the version-75 conversation-memory path has not yet been proven by a real chat turn.\n- Historical Supabase logs from version 72 on 24 Nov 2026 showed image generation provider failures: Gemini quota/rate limit, OpenRouter HTTP 402 (billing/credits), and OpenAI invalid API key. These are provider-account/configuration failures, not a frontend fix. No version-75 end-to-end image test is recorded yet.\n- The page status indicator reports only whether provider keys are present; it deliberately does not label them healthy or claim a successful provider test.
+- The page status indicator reports configured providers and explicitly says they are not health-tested; configuration is not proof of a successful inference call.
 - Conversation creation now happens only after an AI provider successfully answers, preventing failed first requests from leaving empty conversation rows. The UI also warns when a reply succeeds but its memory could not be saved.
 - GitHub Actions validation previously passed for JavaScript syntax, Deno type-checking of the Edge Function, and required auth/rate-limit/action guards. The hosted-model adapter passed CI after its endpoint normalization fix. The runtime Compose files are configuration artifacts and have not been run on a GPU host. Static validation is not a live provider or signed-in user test.
 - Security advisors were run. They reported existing project-wide findings (including private tables with no policies, security-definer RPC exposure warnings, and leaked-password protection disabled). These were not introduced or modified as part of this AI feature and should be reviewed separately.
