@@ -211,6 +211,11 @@ class SafeCrawler:
             try:
                 data, charset = self._read(robots_url, ("text/plain", "text/html"))
                 parser.parse(data.decode(charset, errors="replace").splitlines())
+            except urllib.error.HTTPError as exc:
+                if exc.code == 404:
+                    parser.parse(["User-agent: *", "Allow: /"])
+                else:
+                    parser.parse(["User-agent: *", "Disallow: /"])
             except Exception:
                 parser.parse(["User-agent: *", "Disallow: /"])
             self.robots[origin] = parser
