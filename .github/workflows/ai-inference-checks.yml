@@ -55,7 +55,7 @@ jobs:
           grep -F 'newStarTestFallbackEnabled' "$FILE"
           grep -F 'async function startGeminiVideo' "$FILE"
           grep -F 'NEW_STAR_IMAGE_MODEL' "$FILE"
-          grep -F 'response_format: { type: "video", aspect_ratio: aspectRatio, resolution, duration }' "$FILE"
+          grep -F 'response_format: { type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }' "$FILE"
           grep -F 'gemini-omni-1.1-flash' "$FILE"
           grep -F 'generation_config: { video_config: { task: "text_to_video" } }' "$FILE"
           grep -F 'delivery: "inline"' "$FILE"
