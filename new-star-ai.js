@@ -15,9 +15,35 @@ async function getSession(){const client=window.supabaseClient||window.cloudClie
 function mediaUrl(value){try{const u=new URL(value,location.href);return ["https:","http:"].includes(u.protocol)?u.href:null;}catch{return null;}}
 async function pollJob(jobId,token,pending){const pollPath=cfg.jobPath||"/api/new-star-ai/jobs/";const deadline=Date.now()+(cfg.jobTimeoutMs||600000);while(Date.now()<deadline){await new Promise(r=>setTimeout(r,cfg.pollIntervalMs||2500));if(abortController?.signal.aborted)throw new Error("Request cancelled.");const r=await fetch(base+pollPath+encodeURIComponent(jobId),{headers:{Authorization:"Bearer "+token},signal:abortController.signal});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Could not check generation status ("+r.status+").");if(d.status==="failed"||d.status==="error")throw new Error(d.error||"Generation failed.");if(d.status==="completed"||d.status==="succeeded")return d;pending.textContent=d.message||("Generation in progress"+(d.progress!=null?" · "+d.progress+"%":"")+"…");}throw new Error("Generation is taking longer than expected. You can retry; the server job may still be running.");}
 function renderResult(data,pending){pending.textContent=data.answer||data.message||"Completed.";const image=mediaUrl(data.imageUrl||data.image_url);if(image){const img=document.createElement("img");img.alt="AI-generated image";img.loading="lazy";img.src=image;pending.append(img);}const video=mediaUrl(data.videoUrl||data.video_url);if(video){const v=document.createElement("video");v.controls=true;v.playsInline=true;v.src=video;v.style.cssText="width:100%;max-width:640px;border-radius:12px;margin-top:10px";pending.append(v);}if(Array.isArray(data.sources)&&data.sources.length){const list=document.createElement("div");for(const s of data.sources){const url=mediaUrl(s?.url);if(!url)continue;const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=s.title||url;a.style.display="block";list.append(a);}pending.append(list);}if(mode==="image"&&!image)pending.textContent+=" No image URL was returned by the backend.";if(mode==="video"&&!video)pending.textContent+=" No video URL was returned by the backend.";}
-async function run(event){event?.preventDefault();const text=prompt.value.trim();if((!text&&!attachment)||busy)return;busy=true;submit.disabled=true;const sendText=text||"Please analyze the attached image.";bubble(text||"Attached image","user");const pending=bubble(mode==="image"?"Submitting image job…":mode==="video"?"Submitting video job…":"Working…");prompt.value="";abortController=new AbortController();
-try{const session=await getSession();if(!session)throw new Error("Please sign in to New Star first.");const fd=new FormData();fd.append("prompt",sendText);fd.append("mode",mode);fd.append("size",$("ns-size").value);fd.append("history",JSON.stringify(history.slice(-12)));if(attachment)fd.append("image",attachment);const response=await fetch(base+(cfg.routes?.[mode]||routes[mode]),{method:"POST",headers:{Authorization:"Bearer "+session.access_token},body:fd,signal:abortController.signal});const data=await response.json().catch(()=>({}));if(!response.ok||data.ok===false){if(response.status===404)throw new Error("AI backend endpoint is not installed yet. The frontend is ready, but a private model server/API must be connected.");throw new Error(data.error||"AI request failed ("+response.status+").");}let result=data;if(data.jobId||data.job_id)result=await pollJob(data.jobId||data.job_id,session.access_token,pending);renderResult(result,pending);if(mode==="chat"||mode==="research"){history.push({role:"user",content:sendText},{role:"assistant",content:result.answer||result.message||""});if(history.length>20)history=history.slice(-20);}attachment=null;fileInput.value="";$("ns-attachment-wrap").hidden=true;
-}catch(error){pending.textContent=error.name==="AbortError"?"Request cancelled.":(error.message||"AI backend unavailable.");pending.dataset.error="true";}finally{busy=false;abortController=null;submit.disabled=false;prompt.focus();}}
+async function run(event){event?.preventDefault();const text=prompt.value.trim();if((!text&&!attachment)||busy)return;busy=true;submit.disabled=true;const sendText=text||"Please analyze the attached image.";bubble(text||"Attached image","user");const pending=bubble(mode==="image"?"Creating your image…":mode==="video"?"Preparing video request…":"Working…");prompt.value="";
+try{
+ const client=window.supabaseClient||window.cloudClient;
+ if(!client?.auth)throw new Error("Supabase connection is not ready. Reload and sign in.");
+ const {data:sessionData,error:sessionError}=await client.auth.getSession();
+ const session=sessionData?.session;if(sessionError||!session)throw new Error("Please sign in to New Star first.");
+ if(mode==="chat"){
+   const result=await client.functions.invoke("ai-gateway",{body:{messages:[...history.slice(-8),{role:"user",content:sendText}],language:document.documentElement.lang||"en"}});
+   if(result.error||!result.data?.ok)throw new Error(result.data?.error||"New Star AI chat service is unavailable.");
+   pending.textContent=result.data.answer||"The AI returned an empty response.";
+   history.push({role:"user",content:sendText},{role:"assistant",content:result.data.answer||""});if(history.length>20)history=history.slice(-20);
+ }else if(mode==="image"){
+   if(attachment)throw new Error("Image editing with uploads is not enabled in the current AI gateway yet. Text-to-image is available when a provider is configured.");
+   const result=await client.functions.invoke("ai-gateway",{body:{action:"image",prompt:sendText,language:document.documentElement.lang||"en"}});
+   if(result.error||!result.data?.ok)throw new Error(result.data?.error||"Image generation is unavailable. Check the server-side Gemini/OpenAI provider configuration.");
+   if(typeof result.data.image!=="string"||result.data.image.length<100)throw new Error("The image provider returned no usable image data.");
+   const mime=/^image\/(png|jpeg|webp)$/i.test(result.data.mimeType||"")?result.data.mimeType:"image/png";
+   pending.textContent="Image created · "+(result.data.provider||"AI provider");
+   const img=document.createElement("img");img.alt="AI-generated image";img.loading="lazy";img.src="data:"+mime+";base64,"+result.data.image;img.style.cssText="display:block;width:100%;max-width:640px;border-radius:12px;margin-top:10px";
+   const save=document.createElement("a");save.href=img.src;save.download="new-star-ai-image."+({"image/jpeg":"jpg","image/webp":"webp"}[mime]||"png");save.textContent="Save image";save.style.display="inline-block";save.style.marginTop="10px";pending.append(img,save);
+ }else if(mode==="research"){
+   throw new Error("Live Research needs a connected search provider. The current Supabase AI gateway supports chat, image generation and voice, but does not yet provide web-search results.");
+ }else{
+   throw new Error("Video generation needs a video model server and job queue. This feature is not connected yet; no fake video will be shown.");
+ }
+ attachment=null;fileInput.value="";$("ns-attachment-wrap").hidden=true;
+}catch(error){pending.textContent=error.message||"AI backend unavailable.";pending.dataset.error="true";}
+finally{busy=false;submit.disabled=false;prompt.focus();}
+}
 form.addEventListener("submit",run);prompt.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();form.requestSubmit();}});
 window.addEventListener("load",async()=>{const s=await getSession().catch(()=>null);status.textContent=s?"Signed in":"Sign in required";status.style.color=s?"#91e6b0":"#f6c66b";});
 setMode("chat");
