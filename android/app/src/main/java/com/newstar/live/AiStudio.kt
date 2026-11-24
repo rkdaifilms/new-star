@@ -265,7 +265,7 @@ internal fun NativeAiStudio(accessToken: String) {
 private fun requestNativeImage(accessToken: String, prompt: String): Pair<String, String> {
     check(accessToken.isNotBlank()) { "तस्वीर बनाने के लिए पहले लॉगिन करें।" }
     val payload = JSONObject().put("action", "image").put("prompt", prompt).put("language", Locale.getDefault().language).put("aspectRatio", "1:1").put("imageSize", "1K")
-    val client = OkHttpClient.Builder().connectTimeout(20, TimeUnit.SECONDS).readTimeout(90, TimeUnit.SECONDS).writeTimeout(20, TimeUnit.SECONDS).build()
+    val client = OkHttpClient.Builder().connectTimeout(20, TimeUnit.SECONDS).readTimeout(120, TimeUnit.SECONDS).writeTimeout(20, TimeUnit.SECONDS).build()
     val request = Request.Builder()
         .url("https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/ai-gateway")
         .post(payload.toString().toRequestBody("application/json".toMediaType()))
