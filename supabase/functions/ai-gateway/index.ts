@@ -130,6 +130,44 @@ async function generateOpenAIImage(key: string, prompt: string, aspectRatio: str
   return { image, mimeType: "image/png" };
 }
 
+async function generateOpenRouterImage(key: string, prompt: string, aspectRatio: string) {
+  const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${key}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://new-star-delta.vercel.app",
+      "X-Title": "New Star Creator Studio"
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3.1-flash-image",
+      modalities: ["text", "image"],
+      image_config: { aspect_ratio: aspectRatio },
+      messages: [{ role: "user", content: "Generate one image, not just a description. Create this image: " + prompt }]
+    })
+  }, 90000);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
+  const imageItem = data?.choices?.[0]?.message?.images?.find((item: any) =>
+    typeof item?.image_url?.url === "string" && item.image_url.url.length > 20
+  );
+  const imageUrl = imageItem?.image_url?.url;
+  if (!imageUrl) throw new Error("OPENROUTER_RETURNED_NO_IMAGE");
+  const dataMatch = imageUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/i);
+  if (dataMatch) return { image: dataMatch[2], mimeType: dataMatch[1] };
+  if (/^https:\/\//i.test(imageUrl)) {
+    const imageResponse = await fetchWithTimeout(imageUrl, {}, 60000);
+    if (!imageResponse.ok) throw new Error("OPENROUTER_IMAGE_DOWNLOAD_HTTP_" + imageResponse.status);
+    const mimeType = imageResponse.headers.get("content-type")?.split(";")[0] || "image/png";
+    if (!/^image\/(png|jpeg|webp)$/i.test(mimeType)) throw new Error("OPENROUTER_UNSUPPORTED_IMAGE_FORMAT");
+    const bytes = new Uint8Array(await imageResponse.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return { image: btoa(binary), mimeType };
+  }
+  throw new Error("OPENROUTER_INVALID_IMAGE_DATA");
+}
+
 function normalizeGeminiContents(messages: ChatMessage[]) {
   const contents: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }> = [];
   for (const message of messages) {
@@ -471,8 +509,9 @@ Deno.serve(async (req: Request) => {
     const localizedImagePrompt = imageLanguage ? prompt + "\nIf any visible text is included in the image, write it only in " + imageLanguage + "." : prompt;
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter an image description of up to 1,800 characters." }, 400, headers);
     const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const openrouterKeys = secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY");
     const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
-    if (!geminiKeys.length && !openaiKeys.length) return json({ ok: false, error: "Image generation is not configured. Add a Gemini or OpenAI provider key on the server." }, 503, headers);
+    if (!geminiKeys.length && !openrouterKeys.length && !openaiKeys.length) return json({ ok: false, error: "Image generation is not configured. Add a Gemini, OpenRouter, or OpenAI provider key on the server." }, 503, headers);
     const imageAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: imageAllowed, error: imageLimitError } = await imageAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
     if (imageLimitError || imageAllowed !== true) return json({ ok: false, error: imageLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, imageLimitError ? 503 : 429, headers);
@@ -486,6 +525,16 @@ Deno.serve(async (req: Request) => {
         const reason = error instanceof Error ? error.message : "UNKNOWN";
         failures.push("gemini[" + (keyIndex + 1) + "]:" + reason);
         console.error("AI image provider failed:", "gemini", keyIndex + 1, reason);
+      }
+    }
+    for (let keyIndex = 0; keyIndex < openrouterKeys.length; keyIndex++) {
+      try {
+        const result = await generateOpenRouterImage(openrouterKeys[keyIndex], localizedImagePrompt, aspectRatio);
+        return json({ ok: true, ...result, aspectRatio, provider: "openrouter" }, 200, headers);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "UNKNOWN";
+        failures.push("openrouter[" + (keyIndex + 1) + "]:" + reason);
+        console.error("AI image provider failed:", "openrouter", keyIndex + 1, reason);
       }
     }
     for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
