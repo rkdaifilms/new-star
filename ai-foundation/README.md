@@ -57,7 +57,9 @@ Run evaluation with `--data-format jsonl`. The evaluation command scans every ne
 language corpus (rather than estimating quality from a random sample), prints
 token-weighted cross-entropy and perplexity per language plus a macro-average,
 and `--report-json` optionally saves the metrics and evaluated-token counts
-as a JSON artifact. This supports repeatable comparisons across checkpoints;
+as a JSON artifact. Each report includes SHA-256 fingerprints for the checkpoint,
+held-out data, and tokenizer, plus the model configuration and evaluation method,
+so results can be traced to their exact inputs. This supports repeatable comparisons across checkpoints;
 it does not establish language fluency by itself. Training samples each batch row from a
 uniformly selected language, so a large language corpus does not automatically
 dominate every batch. Every language must have its own held-out validation
