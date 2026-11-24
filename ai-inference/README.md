@@ -14,11 +14,16 @@ This is New Star-owned inference-service code, not a newly trained foundation mo
 
 It does **not** yet generate images, audio, or video, train its own foundation-model weights, or provide multi-tenant quotas. Text streaming is supported.
 
-## Prepare a model
+## Default model bootstrap
 
-Choose a GGUF model whose license permits your intended use. Check its model card, redistribution terms, hardware requirements, and safety limitations. Do not download model weights from an untrusted source. The model weights are intentionally not stored in this Git repository.
+The default Compose setup downloads and verifies a small Qwen3 0.6B Q4_0 GGUF model from the ggml-org Hugging Face repository at container startup. The pinned file is about 429 MB and its published model page identifies the license as Apache-2.0. The downloader checks the pinned SHA-256 before the service starts; an incomplete or changed file is rejected. Model weights are intentionally not stored in Git.
 
-Create a `models` folder and place the chosen model at `models/model.gguf`.
+- Model: [ggml-org/Qwen3-0.6B-GGUF](https://huggingface.co/ggml-org/Qwen3-0.6B-GGUF)
+- File: `Qwen3-0.6B-Q4_0.gguf`
+- SHA-256: `da2572f16c06133561ce56accaa822216f2391ef4d37fba427801cd6736417d4`
+- Approximate download: 429 MB
+
+This 0.6B model is a bootstrap/local CPU model, not a frontier ChatGPT/Gemini replacement. Expect lower reasoning quality and slower CPU responses. A stronger model needs more RAM/compute and a separately reviewed model choice. The downloader supports intentional overrides using `MODEL_URL` and `MODEL_SHA256`; do not change only one of them.
 
 ## Run with Docker Compose
 
@@ -29,6 +34,8 @@ cp .env.example .env
 docker compose up -d --build
 docker compose logs -f
 ```
+
+On first start, Docker downloads the model into `ai-inference/models`, verifies its checksum, and then launches the API. The first startup therefore needs internet access and roughly 500 MB of free disk space for the model file plus temporary download. Later starts reuse the verified file. Keep `models` writable by the container so the bootstrap can save the download.
 
 The service binds to `127.0.0.1:8000`, not to all public network interfaces. Keep it behind an HTTPS reverse proxy or private network when connecting the hosted New Star gateway. Do not expose the raw inference port publicly.
 
@@ -71,7 +78,7 @@ The response uses OpenAI-compatible `data: ...` events and ends with `data: [DON
 This pull request adds a hosted open-model adapter to the New Star AI Gateway source. The adapter becomes usable only after this source is reviewed, merged, and deployed to the active Supabase Edge Function. After the CPU service is deployed behind a reachable HTTPS endpoint and the matching gateway code is deployed, configure these **server-side Supabase Edge Function secrets**:
 
 - `NEW_STAR_MODEL_BASE_URL`: the HTTPS base URL ending in `/v1`, for example `https://your-private-gateway.example/v1`
-- `NEW_STAR_MODEL_NAME`: `new-star-local`
+- `NEW_STAR_MODEL_NAME`: `new-star-qwen3-0.6b`
 - `NEW_STAR_MODEL_API_KEY`: the exact same secret as `MODEL_TOKEN` in this service
 
 The adapter sends requests to `/chat/completions` and checks `/models`, so this service exposes the matching OpenAI-compatible paths. Keep the endpoint behind TLS and authentication. Never put the token in browser JavaScript, HTML, a mobile app bundle, or source control.
