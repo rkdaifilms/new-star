@@ -53,6 +53,7 @@ def main():
     parser.add_argument("--resume-from", help="Resume model/optimizer/RNG state from a .resume.pt checkpoint")
     parser.add_argument("--device", default="auto", help="auto, cpu, cuda, or cuda:N")
     parser.add_argument("--precision", choices=("auto", "fp32", "fp16", "bf16"), default="auto")
+    parser.add_argument("--gradient-checkpointing", action="store_true", help="Trade extra compute for lower activation memory")
     args = parser.parse_args()
     if args.steps < 1 or args.batch_size < 1 or args.block_size < 1:
         parser.error("--steps, --batch-size, and --block-size must be positive")
@@ -107,7 +108,8 @@ def main():
                        for lang, text in validation_by_language.items()}
 
     config = NewStarConfig(vocab_size=len(tokenizer), block_size=args.block_size,
-                           width=args.width, layers=args.layers, heads=args.heads)
+                           width=args.width, layers=args.layers, heads=args.heads,
+                           gradient_checkpointing=args.gradient_checkpointing)
     model = NewStarGPT(config).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     batch_generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
@@ -123,6 +125,7 @@ def main():
         "max_vocab_size": args.max_vocab_size,
         "tokenizer_type": args.tokenizer,
         "precision": precision,
+        "gradient_checkpointing": args.gradient_checkpointing,
     }
     data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
     tokenizer_fingerprint = hashlib.sha256(json.dumps(
