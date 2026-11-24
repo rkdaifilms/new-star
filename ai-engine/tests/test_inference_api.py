@@ -193,7 +193,7 @@ class InferenceAPITests(unittest.TestCase):
 
     def test_api_key_auth_new_star_alias_and_get_rate_limit(self) -> None:
         with patch.dict(os.environ, {
-            "NEW_STAR_AI_RATE_LIMIT_CAPACITY": "1",
+            "NEW_STAR_AI_RATE_LIMIT_CAPACITY": "2",
             "NEW_STAR_AI_RATE_LIMIT_REFILL_PER_SECOND": "0.001",
         }):
             server = ThreadingHTTPServer(
@@ -219,8 +219,13 @@ class InferenceAPITests(unittest.TestCase):
                 data=body,
                 headers={"Authorization": "Bearer test-secret", "Content-Type": "application/json"},
             )
+            with urlopen(alias_req) as response:
+                self.assertEqual(response.status, 200)
+                self.assertEqual(json.loads(response.read())["object"], "chat.completion")
+
+            health_req = Request(base + "/health", headers={"Authorization": "Bearer test-secret"})
             with self.assertRaises(HTTPError) as limited:
-                urlopen(alias_req)
+                urlopen(health_req)
             self.assertEqual(limited.exception.code, 429)
         finally:
             server.shutdown()
