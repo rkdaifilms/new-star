@@ -100,6 +100,14 @@ class ModelRegistryTests(unittest.TestCase):
         with self.assertRaises(ConfigurationError):
             make_model("invalid", capabilities=("telepathy",))
 
+    def test_invalid_language_tag_is_rejected(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            ModelSpec(
+                model_id="bad-language", provider="local", endpoint_url="http://127.0.0.1:9000",
+                protocol="openai_chat", model_name="bad", capabilities=frozenset({"chat"}),
+                languages=frozenset({"not a language"}),
+            )
+
 
 class ModelRouterTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -149,6 +157,21 @@ class ModelRouterTests(unittest.TestCase):
             excluded_models=frozenset({"primary"})
         ))
         self.assertEqual(plan.model_ids, ("secondary",))
+
+    def test_language_routing_prefers_models_that_support_requested_language(self) -> None:
+        hindi = ModelSpec(
+            model_id="hindi", provider="local", endpoint_url="http://127.0.0.1:9001",
+            protocol="openai_chat", model_name="hindi", capabilities=frozenset({"chat"}),
+            priority=1, languages=frozenset({"hi"}),
+        )
+        english = ModelSpec(
+            model_id="english", provider="local", endpoint_url="http://127.0.0.1:9002",
+            protocol="openai_chat", model_name="english", capabilities=frozenset({"chat"}),
+            priority=1, languages=frozenset({"en"}),
+        )
+        registry = ModelRegistry(self.settings, [english, hindi])
+        plan = ModelRouter(registry).plan(RoutingRequest(capability="chat", language="hi-IN"))
+        self.assertEqual(plan.model_ids, ("hindi",))
 
     def test_request_cannot_exceed_configured_fallback_limit(self) -> None:
         registry = ModelRegistry(self.settings, [

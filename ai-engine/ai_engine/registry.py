@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -34,6 +35,7 @@ class ModelSpec:
     auth_env: str | None = None
     enabled: bool = True
     tags: frozenset[str] = field(default_factory=frozenset)
+    languages: frozenset[str] = field(default_factory=frozenset)
     health_path: str = "/health"
 
     def __post_init__(self) -> None:
@@ -53,6 +55,9 @@ class ModelSpec:
         if not self.capabilities or not self.capabilities.issubset(SUPPORTED_CAPABILITIES):
             invalid = sorted(self.capabilities - SUPPORTED_CAPABILITIES)
             raise ConfigurationError(f"invalid or empty model capabilities: {invalid}")
+        if any(not isinstance(language, str) or not re.fullmatch(r"(?:\\*|[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*)", language)
+               for language in self.languages):
+            raise ConfigurationError("languages must contain valid language tags or '*'")
         if self.priority < 0:
             raise ConfigurationError("priority must be zero or greater")
         if self.weight < 1:
@@ -73,6 +78,7 @@ class ModelSpec:
         try:
             caps = data["capabilities"]
             tags = data.get("tags", [])
+            languages = data.get("languages", [])
             endpoint_url = data["endpoint_url"]
             enabled = data.get("enabled", True)
             auth_env = data.get("auth_env")
@@ -86,6 +92,8 @@ class ModelSpec:
                 raise ConfigurationError("capabilities must be an array of strings")
             if not isinstance(tags, list) or not all(isinstance(x, str) for x in tags):
                 raise ConfigurationError("tags must be an array of strings")
+            if not isinstance(languages, list) or not all(isinstance(x, str) for x in languages):
+                raise ConfigurationError("languages must be an array of strings")
             timeout = data.get("timeout_seconds", default_timeout)
             return cls(
                 model_id=data["model_id"],
@@ -100,6 +108,7 @@ class ModelSpec:
                 auth_env=auth_env,
                 enabled=enabled,
                 tags=frozenset(tags),
+                languages=frozenset(x.lower() for x in languages),
                 health_path=data.get("health_path", "/health"),
             )
         except KeyError as exc:
@@ -187,15 +196,24 @@ class ModelRegistry:
             )
 
     def is_eligible(self, model: ModelSpec, capability: str, required_tags: frozenset[str],
-                    now: float | None = None) -> bool:
+                    language: str | None = None, now: float | None = None) -> bool:
         with self._lock:
             health = self._health[model.model_id]
             return (
                 model.enabled
                 and capability in model.capabilities
                 and required_tags.issubset(model.tags)
+                and self._supports_language(model, language)
                 and not health.circuit_is_open(now)
             )
+
+    @staticmethod
+    def _supports_language(model: ModelSpec, language: str | None) -> bool:
+        if not language or not model.languages or "*" in model.languages:
+            return True
+        normalized = language.strip().lower()
+        primary = normalized.split("-", 1)[0]
+        return normalized in model.languages or primary in model.languages
 
     def mark_success(self, model_id: str) -> None:
         with self._lock:

@@ -57,9 +57,10 @@ The plan contains endpoint metadata only. It does not make network calls. A call
 
 1. Disabled, capability-incompatible, tag-incompatible, excluded, or open-circuit models are omitted.
 2. A preferred model is tried first when it is eligible.
-3. Remaining models are ordered by ascending priority, then weighted round-robin within equal-priority groups.
-4. A failed attempt increments that model's failure count and opens its circuit after the configured threshold.
-5. A successful attempt resets its failure count and circuit state.
-6. If every candidate fails, a typed `RoutingExhausted` error is raised with model IDs and safe error messages.
+3. Models are filtered by requested language when a model declares language support; an empty language list or `*` means all languages are supported.
+4. Remaining models are ordered by ascending priority, then weighted round-robin within equal-priority groups.
+5. A failed attempt increments that model's failure count and opens its circuit after the configured threshold.
+6. A successful attempt resets its failure count and circuit state.
+7. If every candidate fails, a typed `RoutingExhausted` error is raised with model IDs and safe error messages.
 
 Only endpoints explicitly configured by the operator are contacted. Private-network endpoints are supported for self-hosted models. The router does not discover or call arbitrary user-supplied URLs.

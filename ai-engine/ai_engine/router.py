@@ -25,6 +25,8 @@ class RoutingRequest:
     def __post_init__(self) -> None:
         if not self.capability:
             raise ValueError("capability is required")
+        if self.language is not None and not self.language.strip():
+            raise ValueError("language must be non-empty when provided")
         if self.max_candidates is not None and self.max_candidates < 1:
             raise ValueError("max_candidates must be positive when provided")
 
@@ -86,7 +88,9 @@ class ModelRouter:
         eligible = [
             model for model in self.registry.list_models()
             if model.model_id not in request.excluded_models
-            and self.registry.is_eligible(model, request.capability, request.required_tags)
+            and self.registry.is_eligible(
+                model, request.capability, request.required_tags, request.language
+            )
         ]
         ordered = self._ordered_by_priority(eligible)
         if preferred is not None:
