@@ -5,6 +5,7 @@ on:
     paths:
       - "ai-inference/**"
       - "ai-foundation/**"
+      - "ai-engine/**"
       - "ai-chat.js"
       - "creator-ai.js"
       - "creator-ai.html"
@@ -119,3 +120,15 @@ jobs:
         run: python -m compileall -q ai-foundation
       - name: Test New Star Transformer
         run: PYTHONPATH=. pytest -q ai-foundation/tests
+
+  self-hosted-router-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile self-hosted AI engine
+        run: python -m compileall -q ai-engine/ai_engine
+      - name: Test model registry and fallback router
+        run: python -m unittest discover -s ai-engine/tests -v

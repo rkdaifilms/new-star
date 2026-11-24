@@ -50,6 +50,7 @@ class ModelRouter:
     def __init__(self, registry: ModelRegistry) -> None:
         self.registry = registry
         self._rotation: dict[tuple[int, tuple[str, ...]], int] = {}
+        self._weighted_current: dict[tuple[int, tuple[str, ...]], dict[str, int]] = {}
         self._lock = threading.Lock()
 
     def _ordered_by_priority(self, models: list[ModelSpec]) -> list[ModelSpec]:
@@ -62,9 +63,18 @@ class ModelRouter:
             if len(group) > 1:
                 key = (priority, tuple(item.model_id for item in group))
                 with self._lock:
-                    offset = self._rotation.get(key, 0) % len(group)
+                    current = self._weighted_current.setdefault(key, {item.model_id: 0 for item in group})
+                    total_weight = sum(item.weight for item in group)
+                    for item in group:
+                        current[item.model_id] += item.weight
+                    selected = max(group, key=lambda item: (current[item.model_id], item.model_id))
+                    current[selected.model_id] -= total_weight
+                    remainder = [item for item in group if item.model_id != selected.model_id]
+                    offset = self._rotation.get(key, 0) % len(remainder) if remainder else 0
                     self._rotation[key] = offset + 1
-                group = group[offset:] + group[:offset]
+                if remainder:
+                    remainder = remainder[offset:] + remainder[:offset]
+                group = [selected, *remainder]
             ordered.extend(group)
         return ordered
 

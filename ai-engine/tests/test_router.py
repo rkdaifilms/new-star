@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ai_engine.config import EngineSettings
 from ai_engine.errors import (
@@ -106,6 +109,23 @@ class ModelRouterTests(unittest.TestCase):
     def test_preferred_model_is_tried_first(self) -> None:
         plan = self.router.plan(RoutingRequest(capability="chat", preferred_model="secondary"))
         self.assertEqual(plan.model_ids[0], "secondary")
+
+    def test_weighted_round_robin_distributes_primary_selection(self) -> None:
+        weighted = ModelRegistry(self.settings, [
+            make_model("heavy", priority=10),
+            ModelSpec(
+                model_id="light", provider="test", endpoint_url="http://127.0.0.1:9001/light",
+                protocol="openai_chat", model_name="light", capabilities=frozenset({"chat"}),
+                priority=10, weight=1,
+            ),
+        ])
+        weighted.get("heavy")
+        heavy_count = 0
+        router = ModelRouter(weighted)
+        for _ in range(3):
+            if router.plan(RoutingRequest(capability="chat")).model_ids[0] == "heavy":
+                heavy_count += 1
+        self.assertEqual(heavy_count, 2)
 
     def test_disabled_or_incompatible_models_are_not_selected(self) -> None:
         disabled = make_model("disabled", priority=0, enabled=False)

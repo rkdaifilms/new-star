@@ -135,6 +135,8 @@ class ModelRegistry:
         if not isinstance(payload, dict) or not isinstance(payload.get("models"), list):
             raise RegistryError("model registry must be an object containing a models array")
         models = [ModelSpec.from_dict(item, settings.default_timeout_seconds) for item in payload["models"]]
+        if not models:
+            raise RegistryError("model registry must contain at least one model")
         return cls(settings, models)
 
     def register(self, model: ModelSpec) -> None:
