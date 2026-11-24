@@ -3,13 +3,14 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from new_star_search import PageParser, SearchIndex, make_handler, normalize_url, host_is_allowed
+from new_star_search import PageParser, SafeCrawler, SearchIndex, make_handler, normalize_url, host_is_allowed, resolve_public_host
 
 class SearchIndexTests(unittest.TestCase):
     def setUp(self):
@@ -47,6 +48,14 @@ class SearchIndexTests(unittest.TestCase):
         with self.assertRaises(ValueError): normalize_url("https://user:pass@example.org")
         self.assertTrue(host_is_allowed("news.example.org",("example.org",)))
         self.assertFalse(host_is_allowed("example.org.attacker.test",("example.org",)))
+    def test_crawler_rejects_domains_outside_allowlist_before_dns(self):
+        crawler=SafeCrawler(self.index,("allowed.example",),max_pages=2)
+        with self.assertRaises(ValueError):
+            crawler._check_url("https://not-allowed.example/page")
+    def test_private_dns_destinations_are_blocked(self):
+        with patch("socket.getaddrinfo",return_value=[(2,1,6,"",("127.0.0.1",443))]):
+            with self.assertRaisesRegex(ValueError,"private, local, or reserved"):
+                resolve_public_host("public-looking.example")
     def test_authenticated_search_http_endpoint(self):
         server=ThreadingHTTPServer(("127.0.0.1",0),make_handler(self.index,"test-secret"))
         thread=threading.Thread(target=server.serve_forever,daemon=True)
