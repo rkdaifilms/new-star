@@ -21,8 +21,6 @@ services:
       - ${NEW_STAR_MODEL_MAX_LEN:-8192}
       - --dtype
       - auto
-      - --trust-remote-code
-      - false
     deploy:
       resources:
         reservations:
