@@ -20,7 +20,7 @@ python -m venv .venv
 . .venv/bin/activate
 pip install -r ai-foundation/requirements.txt
 python ai-foundation/train.py --data ./your-permitted-corpus.txt --steps 2000 --seed 1337
-python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-permitted-corpus.txt
+python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-permitted-corpus.txt\n# For per-language scores, pass a validation-only JSONL file:\npython ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-languages.jsonl --data-format jsonl
 python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120
 ```
 
