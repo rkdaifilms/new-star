@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
-MODEL_PATH = Path(os.getenv("MODEL_PATH", "/models/model.gguf"))
+MODEL_PATH = Path(os.getenv("MODEL_PATH", "/models/Qwen3-0.6B-Q4_0.gguf"))
 MODEL_ID = os.getenv("MODEL_ID", "new-star-local")
 MODEL_TOKEN = os.getenv("MODEL_TOKEN", "")
 N_CTX = int(os.getenv("N_CTX", "4096"))
