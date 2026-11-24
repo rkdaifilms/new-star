@@ -4,6 +4,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.Intent
+import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import java.util.Locale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +41,71 @@ internal fun NativeAiStudio(accessToken: String) {
     var error by remember { mutableStateOf("") }
     val lines = remember { mutableStateListOf<AiChatLine>() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var listening by remember { mutableStateOf(false) }
+    var voiceStatus by remember { mutableStateOf("") }
+    var speechRecognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
+
+    fun startVoiceRecognition() {
+        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
+            voiceStatus = "इस Android डिवाइस पर speech recognition उपलब्ध नहीं है।"
+            return
+        }
+        runCatching { speechRecognizer?.destroy() }
+        val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
+        speechRecognizer = recognizer
+        recognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) { listening = true; voiceStatus = "सुन रहा है… अब बोलें।" }
+            override fun onBeginningOfSpeech() { voiceStatus = "आवाज़ सुन रहा है…" }
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() { listening = false; voiceStatus = "आवाज़ को टेक्स्ट में बदल रहा है…" }
+            override fun onError(errorCode: Int) {
+                listening = false
+                voiceStatus = when (errorCode) {
+                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "आवाज़ समझ नहीं आई। फिर बोलें या लिखें।"
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "माइक्रोफोन की अनुमति नहीं मिली।"
+                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Speech recognition के लिए नेटवर्क उपलब्ध नहीं है।"
+                    else -> "Voice recognition रुक गया। दोबारा कोशिश करें।"
+                }
+            }
+            override fun onResults(results: Bundle?) {
+                listening = false
+                val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+                if (spoken.isNotBlank()) {
+                    draft = listOf(draft.trim(), spoken.trim()).filter { it.isNotBlank() }.joinToString(" ")
+                    error = ""
+                    voiceStatus = "आवाज़ टेक्स्ट में आ गई। अब AI को भेजें।"
+                } else voiceStatus = "कोई शब्द पहचान में नहीं आया। फिर कोशिश करें।"
+            }
+            override fun onPartialResults(partialResults: Bundle?) {
+                val partial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                if (!partial.isNullOrBlank()) voiceStatus = "पहचाने गए शब्द: " + partial
+            }
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        }
+        runCatching { recognizer.startListening(intent) }.onFailure {
+            listening = false
+            voiceStatus = it.message ?: "माइक्रोफोन शुरू नहीं हो सका।"
+        }
+    }
+
+    val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) startVoiceRecognition() else voiceStatus = "AI voice input के लिए microphone permission आवश्यक है।"
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            runCatching { speechRecognizer?.cancel(); speechRecognizer?.destroy() }
+            speechRecognizer = null
+        }
+    }
 
     Column(Modifier.fillMaxWidth()) {
         Text("AI Creator Studio", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -80,6 +157,25 @@ internal fun NativeAiStudio(accessToken: String) {
             maxLines = 5,
             enabled = !sending
         )
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = {
+                if (listening) {
+                    runCatching { speechRecognizer?.stopListening() }
+                    listening = false
+                } else if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    startVoiceRecognition()
+                } else {
+                    micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            },
+            enabled = !sending,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (listening) "■ आवाज़ रोकें" else "🎙️ बोलकर लिखें") }
+        if (voiceStatus.isNotBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Text(voiceStatus, color = Color(0xFF25F4EE), fontSize = 12.sp)
+        }
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = {
