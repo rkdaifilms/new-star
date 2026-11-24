@@ -11,6 +11,12 @@ import app
 
 class FakeModel:
     def create_chat_completion(self, **kwargs):
+        if kwargs.get("stream"):
+            return iter([
+                {"id": "test-stream", "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}]},
+                {"id": "test-stream", "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"content": "नमस्ते!"}, "finish_reason": None}]},
+                {"id": "test-stream", "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]},
+            ])
         assert kwargs["messages"][-1]["content"] == "नमस्ते"
         return {
             "id": "test-id",
@@ -52,7 +58,7 @@ def test_chat_completion_uses_local_model(monkeypatch):
         assert response.json()["choices"][0]["message"]["content"] == "नमस्ते!"
 
 
-def test_streaming_is_rejected(monkeypatch):
+def test_streaming_returns_server_sent_events(monkeypatch):
     with TestClient(app.app) as client:
         monkeypatch.setattr(app, "_model", FakeModel())
         response = client.post(
@@ -60,7 +66,10 @@ def test_streaming_is_rejected(monkeypatch):
             headers={"Authorization": "Bearer test-token"},
             json={"messages": [{"role": "user", "content": "hello"}], "stream": True},
         )
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/event-stream")
+        assert '"content": "नमस्ते!"' in response.text
+        assert "data: [DONE]" in response.text
 
 
 def test_client_cannot_supply_system_prompt():
