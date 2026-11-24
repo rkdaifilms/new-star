@@ -9,6 +9,7 @@ This folder contains New Star's own experimental decoder-only Transformer archit
 - Learned token and position embeddings, causal attention masking, feed-forward blocks, residual paths, and tied input/output embeddings.
 - A next-byte prediction training loop with validation loss, AdamW, and gradient clipping.
 - Local checkpoint saving and text generation.
+- A deterministic held-out evaluation command reporting cross-entropy (nats/byte) and perplexity.
 
 ## Run a tiny experiment
 
@@ -19,10 +20,11 @@ python -m venv .venv
 . .venv/bin/activate
 pip install -r ai-foundation/requirements.txt
 python ai-foundation/train.py --data ./your-permitted-corpus.txt --steps 2000
+python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-permitted-corpus.txt
 python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120
 ```
 
-The scripts import their model directly from the same source folder. The first experiments should use a small, curated corpus and a small model on CPU. A GPU substantially reduces training time. The corpus must be lawfully obtained and suitable for the intended use; do not scrape private data or include secrets or personal records.
+The scripts import their model directly from the same source folder. Keep evaluation data separate from training data: use a held-out corpus that was not included in the training file. Evaluation uses deterministic sampling so repeated runs with the same checkpoint, data, and seed produce the same reported loss. The first experiments should use a small, curated corpus and a small model on CPU. A GPU substantially reduces training time. The corpus must be lawfully obtained and suitable for the intended use; do not scrape private data or include secrets or personal records.
 
 ## Honest capability boundary
 
