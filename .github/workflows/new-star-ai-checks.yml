@@ -7,6 +7,7 @@ on:
     paths:
       - "new-star-ai.js"
       - "supabase/functions/ai-gateway/**"
+      - "ai-model/**"
       - ".github/workflows/new-star-ai-checks.yml"
   pull_request:
     branches:
@@ -48,6 +49,9 @@ jobs:
 
       - name: Type-check Supabase Edge Function
         run: deno check --no-lock supabase/functions/ai-gateway/index.ts
+
+      - name: Validate self-hosted model runtime configuration
+        run: ruby -e 'require "yaml"; config = YAML.load_file("ai-model/docker-compose.yml"); abort "missing new-star-model service" unless config.dig("services", "new-star-model")'
 
       - name: Verify required AI actions and authentication guards
         shell: bash
