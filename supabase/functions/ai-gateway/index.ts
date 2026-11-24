@@ -963,7 +963,7 @@ Deno.serve(async (req: Request) => {
   }
   const selectedLanguage = AI_LANGUAGE_NAMES[selectedLanguageCode] || "";
   const detectedScript = detectReplyScript(messages[messages.length - 1].content);
-  const systemPrompt = selectedLanguage
+  let systemPrompt = selectedLanguage
     ? baseSystemPrompt + "\n\nLANGUAGE SETTING: The app user has selected " + selectedLanguage + ". Write every user-facing response entirely in " + selectedLanguage + " using its native script. Do not answer in Hindi or English unless that is the selected language. Keep names, code, URLs, and technical identifiers unchanged where necessary. If the user explicitly asks for translation into another language, follow that request for that answer only."
     : detectedScript
     ? baseSystemPrompt + "\n\nAUTOMATIC REPLY LANGUAGE GUIDANCE: " + detectedScript.instruction + " This is script-based guidance, not guaranteed language identification. If the wording clearly identifies a more specific language, use that language. If the message is too ambiguous, ask a brief clarification rather than guessing."
