@@ -156,7 +156,8 @@ async function generateVideo(overrideDescription){
   if(!jobId){
    const aspectRatio=$("video-aspect-ratio")?.value||"16:9";
    const resolution=$("video-resolution")?.value||"720p";
-   const started=await invoke({action:"video",prompt:description,aspectRatio,resolution,duration:"6s"});
+   const duration=$("video-duration")?.value||"6s";
+   const started=await invoke({action:"video",prompt:description,aspectRatio,resolution,duration});
    if(typeof started.jobId!=="string"||!started.jobId)throw new Error("The video service did not return a job ID.");
    jobId=started.jobId;pendingVideoJobId=jobId;try{localStorage.setItem("newstar_pending_video_job",jobId);}catch(_){}
   }
