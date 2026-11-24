@@ -23,11 +23,10 @@ Deno.test("rejects non-JSON content types", async () => {
 });
 
 Deno.test("rejects oversized declared and streamed bodies", async () => {
-  const declared = new Request("https://example.test", {
-    method: "POST",
-    headers: { "content-type": "application/json", "content-length": "100" },
-    body: "{}",
-  });
+  const declared = {
+    headers: new Headers({ "content-type": "application/json", "content-length": "100" }),
+    body: new Blob(["{}"]).stream(),
+  } as Request;
   const declaredResult = await readBoundedJson(declared, 10);
   if (declaredResult.ok || declaredResult.status !== 413) {
     throw new Error("Oversized declared body was accepted");
