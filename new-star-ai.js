@@ -28,7 +28,7 @@ try{
  if(mode==="chat"){
    const result=await client.functions.invoke("ai-gateway",{body:{messages:[{role:"user",content:sendText}],conversationId:conversationId||undefined,language:"auto"}});
    if(result.error||!result.data?.ok)throw new Error(result.data?.error||"New Star AI chat service is unavailable.");
-   pending.textContent=result.data.answer||"The AI returned an empty response.";
+   pending.textContent=result.data.answer||"The AI returned an empty response.";if(result.data.memorySaved===false){const memoryNote=document.createElement("small");memoryNote.textContent="This reply was generated, but conversation saving is temporarily unavailable.";memoryNote.style.display="block";memoryNote.style.opacity=".75";pending.append(memoryNote);}
    conversationId=result.data.conversationId||conversationId;if(conversationId)localStorage.setItem("new-star-ai-conversation",conversationId);const voiceButton=document.createElement("button");voiceButton.type="button";voiceButton.textContent="▶ Listen";voiceButton.className="ns-listen";voiceButton.addEventListener("click",()=>speakText(result.data.answer||"",voiceButton));pending.append(voiceButton);
  }else if(mode==="image"){
    if(attachment)throw new Error("Image editing with uploads is not enabled in the current AI gateway yet. Text-to-image is available when a provider is configured.");
