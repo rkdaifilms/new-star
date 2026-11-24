@@ -665,8 +665,8 @@ Deno.serve(async (req: Request) => {
     const failureText = failures.join(" ").toUpperCase();
     const message = failureText.includes("HTTP_402") || failureText.includes("RATE_LIMIT_OR_QUOTA_EXCEEDED")
       ? "Video provider quota or billing limit reached. An authorized account owner can check provider usage."
-      : failureText.includes("INVALID_API_KEY") || failureText.includes("HTTP_403")
-        ? "The video provider rejected its server-side key or project access."
+      : failureText.includes("INVALID_API_KEY") || failureText.includes("HTTP_403") || failureText.includes("PERMISSION_DENIED")
+        ? "Google Cloud rejected the service account or it lacks Vertex AI access. Check the project and IAM permissions."
         : "Could not start the video job. Check provider access and try again.";
     return json({ ok: false, error: message, code: "VIDEO_JOB_START_FAILED", attempted: failures }, 502, headers);
   }
@@ -697,7 +697,7 @@ Deno.serve(async (req: Request) => {
     let lastFailure = "VERTEX_VIDEO_STATUS_UNAVAILABLE";
     try { interaction = await getGeminiVideoInteraction(job.provider_interaction_id); }
     catch (error) { lastFailure = error instanceof Error ? error.message : lastFailure; }
-    if (!interaction) return json({ ok: false, error: "Could not check video progress. Please retry.", code: lastFailure }, 502, headers);
+    if (!interaction) return json({ ok: false, error: /GOOGLE_SERVICE_ACCOUNT_JSON|Google Cloud service account/i.test(lastFailure) ? "Video status needs a valid Google Cloud service account configuration." : "Could not check video progress. Please retry.", code: lastFailure }, /GOOGLE_SERVICE_ACCOUNT_JSON|Google Cloud service account/i.test(lastFailure) ? 503 : 502, headers);
     if (interaction.status === "in_progress") return json({ ok: true, status: "in_progress", jobId: job.id, model: job.provider_model }, 200, headers);
     if (interaction.status !== "completed") {
       await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "GEMINI_" + String(interaction.status || "FAILED").toUpperCase(), updated_at: new Date().toISOString() }).eq("id", job.id);
