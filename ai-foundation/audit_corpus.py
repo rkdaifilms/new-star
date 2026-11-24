@@ -66,7 +66,7 @@ def audit_corpus(
                     for message in messages
                 ):
                     raise ValueError(f"line {line_number} has invalid messages for audit")
-                text = "\\n".join(
+                text = "\n".join(
                     f"{message['role']}: {message['content'].strip()}"
                     for message in messages
                 )
