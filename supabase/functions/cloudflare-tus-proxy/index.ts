@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = new Set([
   "https://star-delta.vercel.app",
+  "https://new-star-delta.vercel.app",
   "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app",
   "https://new-star.rkdaifilms.workers.dev",
   "https://new-star-rkdaifilms-8858.vercel.app",
@@ -123,7 +124,7 @@ Deno.serve(async (req: Request) => {
   const expiry = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
   metadata.delete("maxDurationSeconds");
   // Cloudflare Stream expects the lower-case TUS metadata key.
-  metadata.set("maxdurationseconds", btoa(String(durationSeconds)));
+  metadata.set("maxDurationSeconds", btoa(String(durationSeconds)));
   metadata.set("expiry", btoa(expiry));
   metadata.set("requiresignedurls", "");
   const safeMetadata = [...metadata.entries()]
@@ -166,10 +167,36 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Cloudflare rejected all configured API tokens. Check the token permissions and account ID.", providerStatus: lastProviderStatus || 401 }, 502, cors);
   }
 
+  if (!upstream.ok) {
+    const providerStatus = upstream.status;
+    const providerBody = await upstream.text();
+    // Keep the provider's actionable error visible instead of collapsing every
+    // Cloudflare 4xx/5xx response into an opaque "incomplete session" 502.
+    let providerMessage = "";
+    try {
+      const parsed = JSON.parse(providerBody);
+      providerMessage = Array.isArray(parsed.errors)
+        ? parsed.errors.map((item: { message?: string }) => item?.message || "").filter(Boolean).join("; ")
+        : String(parsed.error || "");
+    } catch {
+      providerMessage = providerBody.slice(0, 400);
+    }
+    console.error("Cloudflare TUS create request failed:", providerStatus, providerMessage.slice(0, 400));
+    return json({
+      error: providerMessage || "Cloudflare could not create the upload session.",
+      providerStatus,
+    }, providerStatus >= 400 && providerStatus < 500 ? providerStatus : 502, cors);
+  }
+
   const location = upstream.headers.get("Location");
   const streamMediaId = upstream.headers.get("stream-media-id");
   if (!location || !streamMediaId) {
-    return json({ error: "Cloudflare returned an incomplete upload session." }, 502, cors);
+    console.error("Cloudflare TUS response missing required headers:", {
+      hasLocation: Boolean(location),
+      hasStreamMediaId: Boolean(streamMediaId),
+      status: upstream.status,
+    });
+    return json({ error: "Cloudflare returned an incomplete upload session.", providerStatus: upstream.status }, 502, cors);
   }
 
   return new Response(null, {
