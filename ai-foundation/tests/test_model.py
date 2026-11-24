@@ -224,3 +224,62 @@ def test_generation_rejects_invalid_sampling_parameters():
         model.generate(prompt, repetition_penalty=0.9)
     with pytest.raises(ValueError, match="top_k"):
         model.generate(prompt, top_k=0)
+
+
+
+def test_instruction_example_masks_prompt_and_trains_only_assistant_tokens():
+    from instruction_data import encode_instruction_example
+    from tokenizer import UnicodeCharTokenizer
+
+    messages = [
+        {"role": "system", "content": "Answer briefly."},
+        {"role": "user", "content": "नमस्ते?"},
+        {"role": "assistant", "content": "नमस्ते!"},
+    ]
+    tokenizer = UnicodeCharTokenizer.train("".join(m["content"] for m in messages), 512)
+    inputs, labels = encode_instruction_example(messages, tokenizer, max_length=256)
+    assert len(inputs) == len(labels)
+    assert any(label == -100 for label in labels)
+    assert any(label != -100 for label in labels)
+    model = NewStarGPT(NewStarConfig(
+        vocab_size=len(tokenizer), block_size=256, width=16, layers=1, heads=4, dropout=0.0
+    ))
+    _, loss = model(torch.tensor([inputs]), torch.tensor([labels]))
+    assert loss is not None and torch.isfinite(loss)
+
+
+def test_instruction_loader_rejects_invalid_turn_order_and_split_leakage(tmp_path):
+    import json
+    import pytest
+    from instruction_data import load_instruction_corpora, validate_messages
+
+    with pytest.raises(ValueError, match="alternate"):
+        validate_messages([
+            {"role": "user", "content": "Question"},
+            {"role": "user", "content": "Second question"},
+        ])
+    path = tmp_path / "instruction.jsonl"
+    row = {
+        "language": "ne", "split": "train",
+        "messages": [
+            {"role": "user", "content": "प्रश्न"},
+            {"role": "assistant", "content": "उत्तर"},
+        ],
+    }
+    path.write_text(json.dumps(row, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="languages differ"):
+        load_instruction_corpora(path)
+
+
+def test_instruction_encoder_rejects_examples_truncated_before_answer():
+    import pytest
+    from instruction_data import encode_instruction_example
+    from tokenizer import UnicodeCharTokenizer
+
+    messages = [
+        {"role": "user", "content": "A very long prompt " * 10},
+        {"role": "assistant", "content": "short answer"},
+    ]
+    tokenizer = UnicodeCharTokenizer.train("".join(m["content"] for m in messages), 512)
+    with pytest.raises(ValueError, match="no assistant response"):
+        encode_instruction_example(messages, tokenizer, max_length=8)
