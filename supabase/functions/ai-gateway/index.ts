@@ -74,40 +74,46 @@ function requestedImageAspectRatio(prompt: string, requested: unknown) {
 }
 
 async function generateGeminiImage(key: string, prompt: string, aspectRatio: string, imageSize: string) {
-  // Gemini 3.1 Flash Image (Nano Banana 2) uses generateContent with
-  // responseModalities. Keep Gemini 2.5 Flash Image as compatibility fallback.
-  const models = ["gemini-3-pro-image", "gemini-3.1-flash-image", "gemini-2.5-flash-image"];
+  // Try fast native image generation first, then compatible higher-quality and
+  // lightweight models. Quota/model access failures must not stop model fallback.
+  const models = ["gemini-3.1-flash-image", "gemini-3-pro-image", "gemini-3.1-flash-lite-image", "gemini-2.5-flash-image"];
   let lastFailure = "GEMINI_IMAGE_UNAVAILABLE";
   for (const model of models) {
-    const response = await fetchWithTimeout(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: "Generate one image based on this description. Return an image, not only text: " + prompt }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"], imageConfig: { aspectRatio, imageSize } }
-        })
-      },
-      60000
-    );
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      lastFailure = model + ":" + providerHttpError(response.status, data);
-      if (response.status === 404 && model !== models[models.length - 1]) continue;
-      throw new Error(lastFailure);
+    try {
+      const response = await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: "Generate one image based on this description. Return an image, not only text: " + prompt }] }],
+            generationConfig: { responseModalities: ["TEXT", "IMAGE"], imageConfig: { aspectRatio, imageSize } }
+          })
+        },
+        60000
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        lastFailure = model + ":" + providerHttpError(response.status, data);
+        if (response.status === 401) throw new Error(lastFailure);
+        console.warn("Gemini image model fallback:", model, lastFailure);
+        continue;
+      }
+      const parts = data?.candidates?.[0]?.content?.parts || [];
+      const imagePart = parts.find((part: any) =>
+        (typeof part?.inlineData?.data === "string" && part.inlineData.data.length > 0) ||
+        (typeof part?.inline_data?.data === "string" && part.inline_data.data.length > 0)
+      );
+      const image = imagePart?.inlineData?.data || imagePart?.inline_data?.data;
+      if (image) {
+        return { image, mimeType: imagePart?.inlineData?.mimeType || imagePart?.inline_data?.mime_type || "image/png" };
+      }
+      lastFailure = model + ":GEMINI_RETURNED_NO_IMAGE:" + (data?.candidates?.[0]?.finishReason || "UNKNOWN");
+    } catch (error) {
+      lastFailure = model + ":" + (error instanceof Error ? error.message : "REQUEST_FAILED");
+      if (lastFailure.includes("INVALID_API_KEY")) throw error;
+      console.warn("Gemini image model request failed; trying fallback:", model, lastFailure);
     }
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    const imagePart = parts.find((part: any) =>
-      (typeof part?.inlineData?.data === "string" && part.inlineData.data.length > 0) ||
-      (typeof part?.inline_data?.data === "string" && part.inline_data.data.length > 0)
-    );
-    const image = imagePart?.inlineData?.data || imagePart?.inline_data?.data;
-    if (!image) {
-      const finishReason = data?.candidates?.[0]?.finishReason || "UNKNOWN";
-      throw new Error(model + ":GEMINI_RETURNED_NO_IMAGE:" + finishReason);
-    }
-    return { image, mimeType: imagePart?.inlineData?.mimeType || imagePart?.inline_data?.mime_type || "image/png" };
   }
   throw new Error(lastFailure);
 }
@@ -154,7 +160,7 @@ async function callOpenAI(key: string, messages: ChatMessage[], systemPrompt: st
       model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }, ...messages.map(m => ({ role: m.role, content: m.content }))],
       temperature: 0.4,
-      max_tokens: 900
+      max_tokens: 1400
     })
   });
   const data = await response.json().catch(() => ({}));
@@ -168,32 +174,38 @@ async function callGemini(key: string, messages: ChatMessage[], systemPrompt: st
   const contents = normalizeGeminiContents(messages);
   if (!contents.length || contents[contents.length - 1].role !== "user") throw new Error("INVALID_GEMINI_TURN_SEQUENCE");
 
-  // Prefer the current Flash model; retain Flash-Lite as a compatibility fallback.
-  // Older 2.5 model access can be restricted for newer API projects.
   const models = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
   let lastFailure = "GEMINI_UNAVAILABLE";
   for (const model of models) {
-    const response = await fetchWithTimeout(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { temperature: 0.4, maxOutputTokens: 900 }
-        })
+    try {
+      const response = await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents,
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            generationConfig: { temperature: 0.4, maxOutputTokens: 1400 }
+          })
+        },
+        20000
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        lastFailure = providerHttpError(response.status, data);
+        if (response.status === 401) throw new Error(lastFailure);
+        console.warn("Gemini chat model fallback:", model, lastFailure);
+        continue;
       }
-    );
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      lastFailure = providerHttpError(response.status, data);
-      if (response.status === 404 && model !== models[models.length - 1]) continue;
-      throw new Error(lastFailure);
+      const answer = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
+      if (typeof answer === "string" && answer.trim()) return answer;
+      lastFailure = model + ":EMPTY_RESPONSE";
+    } catch (error) {
+      lastFailure = error instanceof Error ? error.message : "GEMINI_REQUEST_FAILED";
+      if (lastFailure === "INVALID_API_KEY") throw error;
+      console.warn("Gemini chat request failed; trying fallback:", model, lastFailure);
     }
-    const answer = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
-    if (typeof answer !== "string" || !answer.trim()) throw new Error("EMPTY_RESPONSE");
-    return answer;
   }
   throw new Error(lastFailure);
 }
