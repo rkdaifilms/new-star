@@ -58,6 +58,12 @@ jobs:
           grep -F 'NEW_STAR_MODEL_API_KEY' "$FILE"
           grep -F 'new-star-local-test-model' "$FILE"
           grep -F 'NEW_STAR_MODEL_ENABLE_FALLBACK' "$FILE"
+          grep -F 'NEW_STAR_MODEL_PRIMARY' "$FILE"
+          grep -F 'body?.action === "search"' "$FILE"
+          grep -F 'NEW_STAR_SEARCH_BASE_URL' "$FILE"
+          grep -F 'newStarApiPrimary' "$FILE"
+          grep -F 'id="search-mode"' creator-ai.html
+          grep -F 'async function searchWeb' creator-ai.js
           grep -F 'newStarTestFallbackEnabled' "$FILE"
           grep -F 'async function startGeminiVideo' "$FILE"
           grep -F 'NEW_STAR_IMAGE_MODEL' "$FILE"
