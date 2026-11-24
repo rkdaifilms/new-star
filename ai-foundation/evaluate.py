@@ -9,6 +9,7 @@ import torch
 
 from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer
+from corpus import load_language_corpora
 
 
 def evaluate_model(model: NewStarGPT, data: torch.Tensor, batch_size: int = 16,
@@ -38,7 +39,8 @@ def evaluate_model(model: NewStarGPT, data: torch.Tensor, batch_size: int = 16,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", required=True)
-    parser.add_argument("--data", required=True, help="Held-out UTF-8 text corpus")
+    parser.add_argument("--data", required=True, help="Held-out UTF-8 text corpus or language-tagged JSONL")
+    parser.add_argument("--data-format", choices=("text", "jsonl"), default="text")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--batches", type=int, default=50)
     parser.add_argument("--seed", type=int, default=1234)
@@ -55,23 +57,45 @@ def main() -> None:
     model = NewStarGPT(config).to(args.device)
     model.load_state_dict(checkpoint["state_dict"])
 
-    corpus = Path(args.data).read_text(encoding="utf-8")
     if checkpoint_format == "new-star-unicode-char-gpt-v1":
         tokenizer = UnicodeCharTokenizer.from_dict(checkpoint["tokenizer"])
-        encoded = tokenizer.encode(corpus)
         unit = "nats/token"
     else:
-        encoded = list(corpus.encode("utf-8"))
+        tokenizer = None
         unit = "nats/byte"
-    data = torch.tensor(encoded, dtype=torch.long)
-    try:
-        loss = evaluate_model(model, data, args.batch_size, args.batches,
-                              args.device, args.seed)
-    except ValueError as exc:
-        parser.error(str(exc))
-    perplexity = math.exp(min(loss, 80.0))
-    print(f"heldout_cross_entropy={loss:.4f} {unit}")
-    print(f"heldout_perplexity={perplexity:.4f}")
+
+    if args.data_format == "jsonl":
+        try:
+            _, validation_by_language = load_language_corpora(args.data)
+            language_losses = {}
+            for language in sorted(validation_by_language):
+                text = validation_by_language[language]
+                encoded = tokenizer.encode(text) if tokenizer else list(text.encode("utf-8"))
+                data = torch.tensor(encoded, dtype=torch.long)
+                language_losses[language] = evaluate_model(
+                    model, data, args.batch_size, args.batches,
+                    args.device, args.seed,
+                )
+        except ValueError as exc:
+            parser.error(str(exc))
+        for language, loss in language_losses.items():
+            print(f"language={language} heldout_cross_entropy={loss:.4f} {unit} "
+                  f"perplexity={math.exp(min(loss, 80.0)):.4f}")
+        macro_loss = sum(language_losses.values()) / len(language_losses)
+        print(f"macro_average_cross_entropy={macro_loss:.4f} {unit}")
+        print(f"macro_average_perplexity={math.exp(min(macro_loss, 80.0)):.4f}")
+    else:
+        corpus = Path(args.data).read_text(encoding="utf-8")
+        encoded = tokenizer.encode(corpus) if tokenizer else list(corpus.encode("utf-8"))
+        data = torch.tensor(encoded, dtype=torch.long)
+        try:
+            loss = evaluate_model(model, data, args.batch_size, args.batches,
+                                  args.device, args.seed)
+        except ValueError as exc:
+            parser.error(str(exc))
+        perplexity = math.exp(min(loss, 80.0))
+        print(f"heldout_cross_entropy={loss:.4f} {unit}")
+        print(f"heldout_perplexity={perplexity:.4f}")
 
 
 if __name__ == "__main__":
