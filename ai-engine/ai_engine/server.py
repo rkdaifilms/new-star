@@ -17,6 +17,7 @@ from .config import EngineSettings
 from .errors import NewStarAIError, NoEligibleModelError, RoutingExhausted
 from .inference import ChatInference
 from .registry import ModelRegistry
+from .security import TokenBucketLimiter, UsageLogger, authenticate_api_key, load_api_keys
 
 MAX_BODY_BYTES = 1_048_576
 ALLOWED_ROLES = frozenset({"system", "developer", "user", "assistant", "tool"})
@@ -82,7 +83,10 @@ def validate_chat_request(payload: Any) -> dict[str, Any]:
     return result
 
 
-def make_handler(inference: ChatInference, server_token: str | None = None):
+def make_handler(inference: ChatInference, server_token: str | None = None, api_keys: dict[str, str] | None = None):
+    configured_keys = api_keys if api_keys is not None else load_api_keys()
+    limiter = TokenBucketLimiter(int(os.environ.get('NEW_STAR_AI_RATE_LIMIT_CAPACITY', '60')), float(os.environ.get('NEW_STAR_AI_RATE_LIMIT_REFILL_PER_SECOND', '1')))
+    audit = UsageLogger()
     class InferenceHandler(BaseHTTPRequestHandler):
         server_version = "NewStarAI/0.3"
         protocol_version = "HTTP/1.1"
@@ -101,11 +105,25 @@ def make_handler(inference: ChatInference, server_token: str | None = None):
             self.wfile.write(body)
 
         def _authorized(self) -> bool:
-            if not server_token:
-                return True
             header = self.headers.get("Authorization", "")
-            scheme, _, supplied = header.partition(" ")
-            return scheme.lower() == "bearer" and secrets.compare_digest(supplied, server_token)
+            if configured_keys:
+                identity = authenticate_api_key(header, configured_keys)
+                self.client_id = identity or ""
+                return identity is not None
+            if server_token:
+                scheme, _, supplied = header.partition(" ")
+                ok = scheme.lower() == "bearer" and secrets.compare_digest(supplied, server_token)
+                self.client_id = "server-token" if ok else ""
+                return ok
+            self.client_id = "local-development"
+            return True
+
+        def _rate_allowed(self) -> bool:
+            identity = self.client_id or self.client_address[0]
+            if limiter.allow(identity):
+                return True
+            self._send_json(429, {"error": {"message": "rate limit exceeded", "type": "rate_limit_error"}})
+            return False
 
         def _read_json(self) -> Any:
             content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
@@ -158,22 +176,34 @@ def make_handler(inference: ChatInference, server_token: str | None = None):
                 self._send_json(401, {"error": {"message": "unauthorized", "type": "authentication_error"}})
                 return
             path = urlsplit(self.path).path
-            if path not in ("/v1/chat/completions", "/chat/completions"):
+            if path not in ("/v1/chat/completions", "/chat/completions", "/v1/new-star/chat"):
                 self._send_json(404, {"error": {"message": "not found", "type": "not_found_error"}})
                 return
+            if not self._rate_allowed():
+                return
+            started = __import__("time").monotonic()
+            request_id = self.headers.get("X-Request-ID", "")[:100] or str(uuid.uuid4())
+            status, model_id = 200, ""
             try:
                 request = validate_chat_request(self._read_json())
             except ValueError as exc:
-                self._send_json(400, {"error": {"message": str(exc), "type": "invalid_request_error"}})
+                status = 400
+                self._send_json(status, {"error": {"message": str(exc), "type": "invalid_request_error"}})
+                audit.record(request_id, self.client_id, path, status, (__import__("time").monotonic()-started)*1000)
                 return
             try:
                 if request["stream"]:
                     self._stream(request)
+                    model_id = request.get("model", "")
                 else:
-                    self._send_json(200, inference.complete(request))
+                    response = inference.complete(request)
+                    model_id = response.get("model", "")
+                    self._send_json(200, response)
             except NoEligibleModelError as exc:
+                status = 503
                 self._send_json(503, {"error": {"message": str(exc), "type": "model_unavailable"}})
             except RoutingExhausted as exc:
+                status = 502
                 self._send_json(502, {
                     "error": {
                         "message": "all configured model routes failed",
@@ -182,9 +212,14 @@ def make_handler(inference: ChatInference, server_token: str | None = None):
                     }
                 })
             except NewStarAIError as exc:
+                status = 502
                 self._send_json(502, {"error": {"message": str(exc)[:500], "type": "upstream_error"}})
             except (BrokenPipeError, ConnectionResetError):
+                status = 499
                 return
+            finally:
+                audit.record(request_id, self.client_id, path, status,
+                             (__import__("time").monotonic()-started)*1000, model_id)
 
         def _stream(self, request: dict[str, Any]) -> None:
             response_id, model_id, chunks = inference.stream(request)
@@ -237,9 +272,10 @@ def create_server(host: str | None = None, port: int | None = None,
     bind_host = host or os.environ.get("NEW_STAR_AI_HOST", "127.0.0.1")
     bind_port = port if port is not None else int(os.environ.get("NEW_STAR_AI_PORT", "8090"))
     token = os.environ.get("NEW_STAR_AI_SERVER_TOKEN", "").strip() or None
-    if bind_host not in ("127.0.0.1", "::1", "localhost") and not token:
-        raise ValueError("NEW_STAR_AI_SERVER_TOKEN is required when binding outside loopback")
-    server = ThreadingHTTPServer((bind_host, bind_port), make_handler(inference, token))
+    api_keys = load_api_keys()
+    if bind_host not in ("127.0.0.1", "::1", "localhost") and not token and not api_keys:
+        raise ValueError("NEW_STAR_AI_SERVER_TOKEN or NEW_STAR_AI_API_KEYS is required outside loopback")
+    server = ThreadingHTTPServer((bind_host, bind_port), make_handler(inference, token, api_keys))
     server.daemon_threads = True
     return server
 

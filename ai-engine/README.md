@@ -1,4 +1,4 @@
-# New Star AI Engine — Phases 1, 2, and 3
+# New Star AI Engine — Phases 1–4
 
 This Python 3.11+ package provides a provider-neutral model registry, capability/language-aware router, bounded circuit-breaker fallback, and a dependency-free HTTP inference server. The engine calls only endpoints explicitly configured by the operator. It does not require a paid hosted API; actual model weights and model-serving processes are deployed separately.
 
@@ -11,6 +11,7 @@ This Python 3.11+ package provides a provider-neutral model registry, capability
 - `ai_engine/providers.py`: OpenAI-compatible, Ollama, and custom JSON HTTP adapters.
 - `ai_engine/inference.py`: chat orchestration, response normalization, and streaming selection.
 - `ai_engine/server.py`: threaded HTTP server, request validation, OpenAI-compatible API, and SSE output.
+- `ai_engine/security.py`: API-key registry, token-bucket rate limiter, and rotating privacy-safe usage log.
 - `config/models.example.json`: example self-hosted model registry.
 - `tests/`: standard-library unit and HTTP integration tests.
 
@@ -80,7 +81,7 @@ Supported request fields include `model`, `messages`, `stream`, `temperature`, `
 
 For non-streaming requests, connection failures, timeouts, non-success HTTP statuses, and invalid upstream payloads trigger the router's bounded fallback. For streaming, fallback is attempted until an upstream has successfully returned response headers; after downstream SSE headers or generated content have been sent, switching models would corrupt the stream, so a mid-stream error is returned as an SSE error event instead. Socket timeouts are set per model.
 
-The API is loopback-only by default. When exposed on another interface, a server bearer token is mandatory. This phase provides basic server-token protection; per-user application authentication, quotas, durable usage logs, and New Star product integration belong to Phase 4.
+The API is loopback-only by default. When exposed on another interface, a server bearer token is mandatory. Phase 4 adds optional client API keys, per-client token-bucket limits, a rotating JSONL usage log, and the `/v1/new-star/chat` alias. Set `NEW_STAR_AI_API_KEYS` to comma-separated `client_id:secret` pairs; when configured, these keys are required for every route. Keep secrets in environment variables, never in the model JSON or Git. Configure `NEW_STAR_AI_RATE_LIMIT_CAPACITY` (default 60) and `NEW_STAR_AI_RATE_LIMIT_REFILL_PER_SECOND` (default 1). Set `NEW_STAR_AI_USAGE_LOG` to enable a rotating log (5 MB, three backups). Logs contain request metadata only—never prompts, completions, or bearer tokens. Rate-limit state is process-local and resets on restart; use a shared store before multi-instance production deployment. The New Star route accepts the same OpenAI-compatible chat payload.
 
 ## Tests
 
