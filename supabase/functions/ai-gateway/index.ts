@@ -619,12 +619,43 @@ Deno.serve(async (req: Request) => {
     : baseSystemPrompt + "\n\nAUTOMATIC LANGUAGE MODE: Detect the language and script of the LATEST user message (including romanized Nepali, Hindi, and other languages). Reply naturally in that same language and script. Do not default to Hindi or English because of the app interface or previous messages. If the user switches language, switch immediately. If the message is short or ambiguous, ask a brief clarification in the language most likely used."; 
 
 
+  // New Star's own conversation store: load only messages owned by the signed-in user.
+  let conversationId = typeof body.conversationId === "string" ? body.conversationId : "";
+  if (conversationId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(conversationId)) {
+    return json({ ok: false, error: "Invalid conversation ID." }, 400, headers);
+  }
+  if (conversationId) {
+    const { data: ownedConversation, error: conversationReadError } = await admin
+      .from("new_star_ai_conversations").select("id").eq("id", conversationId).eq("user_id", userData.user.id).maybeSingle();
+    if (conversationReadError || !ownedConversation) return json({ ok: false, error: "Conversation not found." }, 404, headers);
+    const { data: previousMessages, error: historyError } = await admin
+      .from("new_star_ai_messages").select("role,content").eq("conversation_id", conversationId).eq("user_id", userData.user.id)
+      .order("created_at", { ascending: false }).limit(10);
+    if (historyError) return json({ ok: false, error: "Could not load conversation history." }, 503, headers);
+    const previous = (previousMessages || []).reverse().map((m: any) => ({ role: m.role, content: m.content })) as ChatMessage[];
+    messages.splice(0, messages.length, ...previous, ...messages.slice(-1));
+    while (messages.length > 10) messages.shift();
+  } else {
+    const title = messages[messages.length - 1].content.slice(0, 80) || "New conversation";
+    const { data: createdConversation, error: createConversationError } = await admin
+      .from("new_star_ai_conversations").insert({ user_id: userData.user.id, title }).select("id").single();
+    if (createConversationError || !createdConversation?.id) return json({ ok: false, error: "Could not start a New Star AI conversation." }, 503, headers);
+    conversationId = createdConversation.id;
+  }
+
   const failedProviders: string[] = [];
   for (const provider of providers) {
     for (let keyIndex = 0; keyIndex < provider.keys.length; keyIndex++) {
       try {
         const answer = await provider.run(provider.keys[keyIndex], messages, systemPrompt);
-        return json({ ok: true, provider: provider.name, answer }, 200, headers);
+        const latestUserMessage = messages[messages.length - 1];
+        const { error: saveMessagesError } = await admin.from("new_star_ai_messages").insert([
+          { conversation_id: conversationId, user_id: userData.user.id, role: "user", content: latestUserMessage.content },
+          { conversation_id: conversationId, user_id: userData.user.id, role: "assistant", content: answer, provider: provider.name }
+        ]);
+        if (saveMessagesError) console.error("New Star AI message persistence failed:", saveMessagesError.code || "DB_ERROR");
+        else await admin.from("new_star_ai_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId).eq("user_id", userData.user.id);
+        return json({ ok: true, provider: provider.name, answer, conversationId }, 200, headers);
       } catch (error) {
         // Never log prompts, provider responses, or API keys.
         const reason = error instanceof Error ? error.message : "UNKNOWN";
