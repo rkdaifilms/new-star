@@ -7,9 +7,9 @@ class JobQueue:
     def __init__(self, database=None, max_pending=1000, lease_seconds=300, max_attempts=3):
         self.database = Path(database or os.environ.get("NEW_STAR_AI_QUEUE_DB", "var/new-star-jobs.sqlite3"))
         self.database.parent.mkdir(parents=True, exist_ok=True)
-        self.max_pending = max(1, max_pending)
-        self.lease_seconds = max(30, lease_seconds)
-        self.max_attempts = max(1, max_attempts)
+        self.max_pending = max(1, int(os.environ.get('NEW_STAR_AI_QUEUE_MAX_PENDING', max_pending)))
+        self.lease_seconds = max(30, int(os.environ.get('NEW_STAR_AI_JOB_LEASE_SECONDS', lease_seconds)))
+        self.max_attempts = max(1, int(os.environ.get('NEW_STAR_AI_JOB_MAX_ATTEMPTS', max_attempts)))
         self._initialize()
 
     def _connect(self):
@@ -79,6 +79,11 @@ class JobQueue:
             return {"id":claimed["id"],"client_id":claimed["client_id"],"kind":claimed["kind"],
                 "payload":json.loads(claimed["payload"]),"attempts":claimed["attempts"],
                 "max_attempts":claimed["max_attempts"],"worker_id":owner}
+
+    def heartbeat(self, job_id, worker_id):
+        now = time.time()
+        with self._connect() as db:
+            return db.execute("UPDATE jobs SET lease_until=?,updated_at=? WHERE id=? AND status='running' AND worker_id=?", (now+self.lease_seconds,now,job_id,worker_id)).rowcount == 1
 
     def succeed(self, job_id, worker_id, result):
         now = time.time()

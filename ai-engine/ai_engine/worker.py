@@ -1,6 +1,6 @@
 """Run durable New Star background inference jobs."""
 from __future__ import annotations
-import argparse, os, socket, time, uuid
+import argparse, os, socket, threading, time, uuid
 from .config import EngineSettings
 from .inference import ChatInference
 from .jobs import JobQueue
@@ -22,7 +22,22 @@ def run_worker(once=False, poll_seconds=1.0):
         try:
             if job["kind"] != "chat":
                 raise ValueError("unsupported background job kind")
-            result = inference.complete(job["payload"])
+            stop_heartbeat = threading.Event()
+            lease_lost = threading.Event()
+            def keep_lease():
+                while not stop_heartbeat.wait(max(5, queue.lease_seconds // 3)):
+                    if not queue.heartbeat(job["id"], worker_id):
+                        lease_lost.set()
+                        return
+            heartbeat_thread = threading.Thread(target=keep_lease, daemon=True)
+            heartbeat_thread.start()
+            try:
+                result = inference.complete(job["payload"])
+            finally:
+                stop_heartbeat.set()
+                heartbeat_thread.join(timeout=2)
+            if lease_lost.is_set():
+                raise RuntimeError("job lease was lost while inference was running")
             if not queue.succeed(job["id"],worker_id,result):
                 raise RuntimeError("job lease was lost before completion")
         except Exception as exc:
