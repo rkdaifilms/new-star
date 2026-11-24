@@ -197,6 +197,8 @@ def main():
         "vocabulary_size": len(tokenizer),
         "seed": args.seed,
         "data_fingerprint": data_fingerprint,
+        "tokenizer_fingerprint": tokenizer_fingerprint,
+        "evaluation_protocol": "pretraining-balanced-language-validation-ce-v1",
         "languages": sorted(train_by_language),
         "training_characters_by_language": {lang: len(text) for lang, text in train_by_language.items()},
         "validation_characters_by_language": {lang: len(text) for lang, text in validation_by_language.items()},
