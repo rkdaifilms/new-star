@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import torch
 
-from ai_foundation.model import NewStarConfig, NewStarGPT
+from model import NewStarConfig, NewStarGPT
 
 
 def main():
