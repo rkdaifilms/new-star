@@ -219,7 +219,6 @@ private fun requestNativeAi(accessToken: String, history: List<Pair<String, Stri
     val request = Request.Builder()
         .url("https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/ai-gateway")
         .post(payload.toString().toRequestBody("application/json".toMediaType()))
-        .header("Origin", "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app")
         .header("apikey", "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr")
         .header("Authorization", "Bearer $accessToken")
         .build()
