@@ -80,7 +80,7 @@ def encode_instruction_example(messages, tokenizer, max_length: int):
     token_ids: list[int] = []
     target_mask: list[bool] = []
     for message in messages:
-        segment = tokenizer.encode(f"{message['role']}: {message['content']}\\n")
+        segment = tokenizer.encode(f"{message['role']}: {message['content']}\n")
         token_ids.extend(segment)
         target_mask.extend([message["role"] == "assistant"] * len(segment))
     start = max(0, len(token_ids) - (max_length + 1))
