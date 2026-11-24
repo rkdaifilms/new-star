@@ -67,3 +67,31 @@ def test_zero_token_generation_is_a_noop():
     prompt = torch.tensor([[65, 66]], dtype=torch.long)
     result = model.generate(prompt, max_new_tokens=0)
     torch.testing.assert_close(result, prompt)
+
+
+
+def test_evaluation_is_reproducible_and_returns_finite_loss():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from evaluate import evaluate_model
+
+    model = tiny_model()
+    corpus = torch.randint(0, 256, (256,), dtype=torch.long)
+    first = evaluate_model(model, corpus, batch_size=2, batches=3, seed=7)
+    second = evaluate_model(model, corpus, batch_size=2, batches=3, seed=7)
+    assert first == second
+    assert torch.isfinite(torch.tensor(first))
+
+
+def test_evaluation_rejects_too_short_corpus():
+    import pytest
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from evaluate import evaluate_model
+
+    with pytest.raises(ValueError, match="block_size"):
+        evaluate_model(tiny_model(), torch.tensor([1, 2, 3], dtype=torch.long))
