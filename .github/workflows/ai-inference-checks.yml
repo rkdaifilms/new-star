@@ -59,9 +59,12 @@ jobs:
           grep -F 'newStarTestFallbackEnabled' "$FILE"
           grep -F 'async function startGeminiVideo' "$FILE"
           grep -F 'NEW_STAR_IMAGE_MODEL' "$FILE"
-          grep -F 'response_format: [{ type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }]' "$FILE"
-          grep -F 'generation_config: { video_config: { task: "text_to_video" } }' "$FILE"
-          grep -F 'delivery: "inline"' "$FILE"
+          grep -F 'buildGeminiVideoRequest' "$FILE"
+          grep -F 'response_format: [{ type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }]' supabase/functions/ai-gateway/video-provider.ts
+          grep -F 'generation_config: { video_config: { task: "text_to_video" } }' supabase/functions/ai-gateway/video-provider.ts
+          grep -F 'delivery: "inline"' supabase/functions/ai-gateway/video-provider.ts
+          grep -F 'input: [{ type: "text", text: prompt }]' supabase/functions/ai-gateway/video-provider.ts
+          grep -F 'videoJobOwnerKey' creator-ai.js
           grep -F 'newstar_pending_video_job' creator-ai.js
           grep -F 'video-duration' creator-ai.html
           grep -F 'duration=$("video-duration")' creator-ai.js
@@ -71,7 +74,7 @@ jobs:
           grep -F 'oauth2.googleapis.com/token' "$FILE"
           grep -F 'gemini-omni-1.2-flash' "$FILE"
           grep -F 'gemini-omni-1.1-flash-preview' "$FILE"
-          grep -F 'background: true' "$FILE"
+          grep -F 'background: true' supabase/functions/ai-gateway/video-provider.ts
           grep -F 'body?.action === "video-status"' "$FILE"
           grep -F 'pendingVideoJobId' creator-ai.js
           grep -F 'async function getGeminiVideoInteraction' "$FILE"
