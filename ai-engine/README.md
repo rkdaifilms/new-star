@@ -94,3 +94,14 @@ CI compiles the package, runs router and HTTP integration tests, validates the e
 ## Important operational boundary
 
 The inference server is the HTTP orchestration layer, not a trained foundation model. It does not create model weights or provide GPU compute. To generate responses, configure at least one reachable model server with compatible model weights. The independent New Star foundation model remains an experimental training codebase until it has been trained and evaluated on a suitable corpus and hardware.
+
+
+## Durable background jobs
+
+Submit non-streaming chat requests with POST /v1/jobs using the same validated JSON payload as the synchronous endpoint. The API returns HTTP 202 and a Location header containing /v1/jobs/{id}; poll that resource for queued, running, succeeded, or failed. Successful jobs include the normal chat completion response in result. Jobs are scoped to the authenticated client identity. An Idempotency-Key header (up to 128 visible characters) makes safe retries return the original job.
+
+Configure NEW_STAR_AI_QUEUE_DB (default var/new-star-jobs.sqlite3), NEW_STAR_AI_QUEUE_MAX_PENDING (default 1000), NEW_STAR_AI_JOB_LEASE_SECONDS (default 300), and NEW_STAR_AI_JOB_MAX_ATTEMPTS (default 3). SQLite WAL and transactional claims coordinate multiple worker processes on one host with a shared local database volume. Expired worker leases are recovered; failures retry with capped exponential backoff. Do not place this SQLite database on an unreliable network filesystem or treat this single-host queue as a multi-region distributed queue.
+
+Start a worker with PYTHONPATH=ai-engine python -m ai_engine.worker. Start additional worker processes on the same host for bounded parallelism. API and worker processes must mount the same persistent queue volume. Scale only within measured CPU/GPU and memory capacity; automatic cluster autoscaling requires an orchestrator and infrastructure metrics and is not enabled by this SQLite queue.
+
+Queue operations use the API authentication and rate limiter. GET /v1/queue returns aggregate counts; job payloads and results are visible only to the owning client.

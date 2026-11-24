@@ -16,6 +16,7 @@ from urllib.parse import urlsplit
 from .config import EngineSettings
 from .errors import NewStarAIError, NoEligibleModelError, RoutingExhausted
 from .inference import ChatInference
+from .jobs import JobQueue
 from .registry import ModelRegistry
 from .security import TokenBucketLimiter, UsageLogger, authenticate_api_key, load_api_keys
 
@@ -83,10 +84,11 @@ def validate_chat_request(payload: Any) -> dict[str, Any]:
     return result
 
 
-def make_handler(inference: ChatInference, server_token: str | None = None, api_keys: dict[str, str] | None = None):
+def make_handler(inference: ChatInference, server_token: str | None = None, api_keys: dict[str, str] | None = None, job_queue: JobQueue | None = None):
     configured_keys = api_keys if api_keys is not None else load_api_keys()
     limiter = TokenBucketLimiter(int(os.environ.get('NEW_STAR_AI_RATE_LIMIT_CAPACITY', '60')), float(os.environ.get('NEW_STAR_AI_RATE_LIMIT_REFILL_PER_SECOND', '1')))
     audit = UsageLogger()
+    queue = job_queue or JobQueue()
     class InferenceHandler(BaseHTTPRequestHandler):
         server_version = "NewStarAI/0.3"
         protocol_version = "HTTP/1.1"
@@ -162,6 +164,15 @@ def make_handler(inference: ChatInference, server_token: str | None = None, api_
                     "service": "new-star-ai",
                     "models_configured": len(inference.registry.list_models(enabled_only=True)),
                 })
+            elif path == "/v1/queue":
+                self._send_json(200, {"object": "queue.stats", "counts": queue.counts()})
+            elif path.startswith("/v1/jobs/"):
+                job = queue.get(path.rsplit("/", 1)[-1], self.client_id)
+                if job is None:
+                    status = 404
+                    self._send_json(404, {"error": {"message": "job not found", "type": "not_found_error"}})
+                else:
+                    self._send_json(200, job)
             elif path == "/v1/models":
                 models = [
                     {
@@ -185,7 +196,7 @@ def make_handler(inference: ChatInference, server_token: str | None = None, api_
                 self._send_json(401, {"error": {"message": "unauthorized", "type": "authentication_error"}})
                 return
             path = urlsplit(self.path).path
-            if path not in ("/v1/chat/completions", "/chat/completions", "/v1/new-star/chat"):
+            if path not in ("/v1/chat/completions", "/chat/completions", "/v1/new-star/chat", "/v1/jobs"):
                 self._send_json(404, {"error": {"message": "not found", "type": "not_found_error"}})
                 return
             started = __import__("time").monotonic()
@@ -203,13 +214,37 @@ def make_handler(inference: ChatInference, server_token: str | None = None, api_
                 audit.record(request_id, self.client_id, path, status, (__import__("time").monotonic()-started)*1000)
                 return
             try:
-                if request["stream"]:
+                if path == "/v1/jobs":
+                    if request["stream"]:
+                        raise ValueError("background jobs do not support streaming; poll the job resource")
+                    idempotency_key = self.headers.get("Idempotency-Key", "").strip() or None
+                    if idempotency_key and (len(idempotency_key) > 128 or any(ord(ch) < 33 for ch in idempotency_key)):
+                        raise ValueError("Idempotency-Key must contain 1 to 128 visible characters")
+                    try:
+                        job, created = queue.enqueue(self.client_id, request, idempotency_key)
+                    except OverflowError as exc:
+                        status = 429
+                        self._send_json(status, {"error": {"message": str(exc), "type": "queue_full"}})
+                        return
+                    status = 202 if created else 200
+                    body = json.dumps(job, ensure_ascii=False).encode("utf-8")
+                    self.send_response(status)
+                    self.send_header("Content-Type", "application/json; charset=utf-8")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.send_header("Location", "/v1/jobs/" + job["id"])
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    self.wfile.write(body)
+                elif request["stream"]:
                     self._stream(request)
                     model_id = request.get("model", "")
                 else:
                     response = inference.complete(request)
                     model_id = response.get("model", "")
                     self._send_json(200, response)
+            except ValueError as exc:
+                status = 400
+                self._send_json(400, {"error": {"message": str(exc), "type": "invalid_request_error"}})
             except NoEligibleModelError as exc:
                 status = 503
                 self._send_json(503, {"error": {"message": str(exc), "type": "model_unavailable"}})
