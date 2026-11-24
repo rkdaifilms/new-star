@@ -30,7 +30,7 @@ export function detectReplyScript(text: string): ScriptHint | null {
   }
   const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   const [dominant, count] = ranked[0] || [];
-  if (!dominant || count < 2) return null;
+  if (!dominant || count < 3) return null;
   const total = ranked.reduce((sum, item) => sum + item[1], 0);
   if (count / total < 0.6) return null;
 
