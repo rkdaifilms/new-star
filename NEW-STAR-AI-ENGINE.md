@@ -30,15 +30,15 @@ The New Star AI page remembers the current conversation ID in the browser so a c
 - **Voice output:** calls the gateway speech action and plays returned audio.
 - **Text-to-image:** calls the image action, sends the chosen 1K/2K/4K size, and renders the returned image. Actual success depends on provider availability and quota.
 
-## Not connected
-- **Live Research:** no live web-search provider is integrated.
+## Research and image understanding
+- **Live Research:** the `research` action uses Gemini Google Search grounding and returns source links from grounding metadata. It requires a configured Gemini key and model access; provider search usage may be billable.
+- **Image understanding:** the `vision` action accepts PNG/JPEG/WebP uploads up to 6 MB and uses configured Gemini vision first, then OpenAI vision. This is image analysis, not image editing.
 - **Video generation:** no video inference runtime or job queue is connected.
-- **Uploaded-image editing:** the current page does not send image content for editing.
 
 The UI labels these as unavailable rather than pretending to complete them.
 
 ## Deployment and verification
-- Supabase AI Gateway version 77 is active. The New Star hosted-model adapter is deployed, but no inference endpoint or GPU host has been provisioned.
+- Supabase AI Gateway version 78 is active. The New Star hosted-model adapter is deployed, but no inference endpoint or GPU host has been provisioned.
 - The conversation-memory migration applied successfully.
 - The page status indicator reports configured providers and explicitly says they are not health-tested; configuration is not proof of a successful inference call.
 - Conversation creation now happens only after an AI provider successfully answers, preventing failed first requests from leaving empty conversation rows. The UI also warns when a reply succeeds but its memory could not be saved.
