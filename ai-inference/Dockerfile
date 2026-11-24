@@ -17,6 +17,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
+COPY scripts ./scripts
 RUN useradd --system --uid 10001 appuser && mkdir -p /models && chown -R appuser:appuser /app /models
 USER appuser
 
