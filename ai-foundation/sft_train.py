@@ -8,6 +8,7 @@ from pathlib import Path
 
 import torch
 
+from audit_corpus import audit_corpus
 from instruction_data import encode_instruction_example, load_instruction_corpora
 from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer
@@ -104,6 +105,7 @@ def evaluate_sft(model, corpora, batch_size, block_size, device):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", required=True, help="JSONL with language, split, and messages")
+    parser.add_argument("--manifest", required=True, help="dataset provenance JSON; required before SFT")
     parser.add_argument("--output", default="artifacts/newstar-sft.pt")
     parser.add_argument("--steps", type=int, default=1000)
     parser.add_argument("--batch-size", type=int, default=8)
@@ -132,6 +134,9 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
     try:
+        audit_report = audit_corpus(args.data, args.manifest)
+        if not audit_report["ok"]:
+            parser.error("instruction corpus audit failed: " + "; ".join(audit_report["errors"]))
         train_messages, validation_messages = load_instruction_corpora(args.data)
         for language, conversations in train_messages.items():
             if not conversations:
@@ -248,6 +253,9 @@ def main():
         "validation_metric": "unweighted macro-average of per-language token-weighted assistant-response cross-entropy",
         "source_data": str(Path(args.data).name),
     }
+    output.with_suffix(output.suffix + ".corpus-audit.json").write_text(
+        json.dumps(audit_report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     output.with_suffix(output.suffix + ".json").write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
     )
