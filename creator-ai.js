@@ -145,6 +145,7 @@ async function generateImage(overrideDescription){const description=(typeof over
 async function generateVideo(overrideDescription){
  const description=(typeof overrideDescription==="string"?overrideDescription:prompt.value).trim();
  if(busy)return;
+ if(pendingVideoJobId&&description){notice.textContent="पहले चल रहे वीडियो को पूरा होने दें। उसी job की स्थिति देखने के लिए prompt खाली रखकर Generate video दबाएँ।";return;}
  if(!description&&!pendingVideoJobId){notice.textContent="पहले वीडियो का विवरण लिखें, फिर Generate video दबाएँ।";prompt.focus();return;}
  busy=true;send.disabled=true;voice.disabled=true;
  if(description){lastLanguage=detectLanguage(description);addMessage("🎬 "+description,"user");prompt.value="";}
