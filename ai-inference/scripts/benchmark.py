@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
 import time
 import urllib.error
@@ -31,23 +32,25 @@ def percentile(values: list[float], p: float) -> float:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", required=True, help="Service URL, e.g. http://127.0.0.1:8000")
-    parser.add_argument("--token", required=True, help="MODEL_TOKEN; never share benchmark output containing command history")
     parser.add_argument("--model", default="new-star-local")
     parser.add_argument("--requests", type=int, default=3)
     parser.add_argument("--max-tokens", type=int, default=128)
     args = parser.parse_args()
+    token = os.getenv("MODEL_TOKEN", "")
+    if not token:
+        parser.error("Set MODEL_TOKEN in the environment; do not pass secrets as command-line arguments.")
     if args.requests < 1 or args.requests > 20 or args.max_tokens < 1 or args.max_tokens > 512:
         parser.error("--requests must be 1..20 and --max-tokens must be 1..512")
 
     base = args.base_url.rstrip("/")
     try:
-        with request(base + "/healthz", args.token) as response:
+        with request(base + "/healthz", token) as response:
             health = json.load(response)
         print("health:", json.dumps(health, ensure_ascii=False))
         if not health.get("ok") or not health.get("model_loaded"):
             print("NOT READY: model is not loaded; no inference benchmark was run.")
             return 2
-        with request(base + "/v1/models", args.token) as response:
+        with request(base + "/v1/models", token) as response:
             models = json.load(response)
         print("models endpoint: OK")
 
@@ -64,7 +67,7 @@ def main() -> int:
             started = time.perf_counter()
             first = None
             chunks = 0
-            with request(base + "/v1/chat/completions", args.token, body, stream=True) as response:
+            with request(base + "/v1/chat/completions", token, body, stream=True) as response:
                 for raw in response:
                     line = raw.decode("utf-8", errors="replace").strip()
                     if not line.startswith("data: ") or line == "data: [DONE]":
