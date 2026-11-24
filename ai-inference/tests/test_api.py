@@ -37,8 +37,8 @@ def test_models_requires_bearer_token():
 
 
 def test_chat_completion_uses_local_model(monkeypatch):
-    monkeypatch.setattr(app, "_model", FakeModel())
     with TestClient(app.app) as client:
+        monkeypatch.setattr(app, "_model", FakeModel())
         response = client.post(
             "/v1/chat/completions",
             headers={"Authorization": "Bearer test-token"},
@@ -53,8 +53,8 @@ def test_chat_completion_uses_local_model(monkeypatch):
 
 
 def test_streaming_is_rejected(monkeypatch):
-    monkeypatch.setattr(app, "_model", FakeModel())
     with TestClient(app.app) as client:
+        monkeypatch.setattr(app, "_model", FakeModel())
         response = client.post(
             "/v1/chat/completions",
             headers={"Authorization": "Bearer test-token"},
