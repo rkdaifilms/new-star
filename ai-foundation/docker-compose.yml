@@ -54,4 +54,5 @@ services:
       - ${NEW_STAR_TRAIN_STEPS:-2000}
       - --tokenizer
       - ${NEW_STAR_TOKENIZER:-bpe}
+      - --gradient-checkpointing
     restart: "no"
