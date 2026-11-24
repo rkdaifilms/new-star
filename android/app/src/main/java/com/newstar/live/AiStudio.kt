@@ -233,7 +233,7 @@ internal fun NativeAiStudio(accessToken: String) {
                 val message = draft.trim()
                 if (message.isNotEmpty() && !sending) {
                     val wantsImage = imageMode || Regex(
-                        "(तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|image|picture|photo|illustration|thumbnail|logo).*(बना|बनाओ|बनाइ|बनाइदे|तैयार|जनरेट|create|make|draw|generate)|(?:बना|बनाओ|बनाइ|बनाइदे|तैयार|जनरेट|create|make|draw|generate).*(तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|image|picture|photo|illustration|thumbnail|logo)",
+                        "(तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|image|picture|photo|illustration|thumbnail|logo).*(बना|बनाओ|बनाइ|बनाइदे|तैयार|जनरेट|दिखा|चाहिए|create|make|draw|generate|show)|(?:बना|बनाओ|बनाइ|बनाइदे|तैयार|जनरेट|दिखा|चाहिए|create|make|draw|generate|show).*(तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|image|picture|photo|illustration|thumbnail|logo)",
                         RegexOption.IGNORE_CASE
                     ).containsMatchIn(message)
                     draft = ""
