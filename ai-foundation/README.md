@@ -106,10 +106,11 @@ PyTorch `-100` ignore label. Each record must contain `language`, `split`
 turns and end with an assistant response; an optional system message may appear
 only first. Every language needs both training and held-out validation records.
 
-This is data preparation, not a completed fine-tuning run. Review source
+This module is paired with the response-only SFT optimizer loop documented
+below. It is an experimental training pipeline, not a completed large-scale
+fine-tuning run or a production assistant-quality claim. Review source
 permissions, quality, privacy, safety, and language balance before training.
-Do not mix validation conversations into training. The current baseline does
-not yet include an SFT optimizer loop or a production assistant-quality claim.
+Do not mix validation conversations into training.
 
 
 ## Run response-only multilingual supervised fine-tuning
