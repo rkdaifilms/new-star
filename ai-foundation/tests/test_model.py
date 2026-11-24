@@ -585,3 +585,39 @@ def test_full_corpus_evaluation_counts_every_next_token_target():
     assert second_count == len(data) - 1
     assert abs(first_loss - second_loss) < 1e-5
     assert torch.isfinite(torch.tensor(first_loss))
+
+
+
+def test_text_evaluation_cli_writes_json_report(tmp_path, monkeypatch):
+    import json
+    import sys
+    from evaluate import main
+    from tokenizer import UnicodeCharTokenizer
+
+    tokenizer = UnicodeCharTokenizer.train("hello world नमस्ते", 512)
+    config = NewStarConfig(
+        vocab_size=len(tokenizer), block_size=8, width=16,
+        layers=1, heads=4, dropout=0.0,
+    )
+    model = NewStarGPT(config)
+    checkpoint = tmp_path / "tiny-checkpoint.pt"
+    torch.save({
+        "format": "new-star-unicode-char-gpt-v1",
+        "config": vars(config),
+        "tokenizer": tokenizer.to_dict(),
+        "state_dict": model.state_dict(),
+    }, checkpoint)
+    corpus = tmp_path / "heldout.txt"
+    corpus.write_text("hello world नमस्ते " * 12, encoding="utf-8")
+    report_path = tmp_path / "metrics" / "report.json"
+    monkeypatch.setattr(sys, "argv", [
+        "evaluate.py", "--checkpoint", str(checkpoint),
+        "--data", str(corpus), "--report-json", str(report_path),
+        "--batch-size", "2",
+    ])
+    main()
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["evaluation_method"] == "full-corpus-token-weighted"
+    assert report["evaluated_tokens"] == len(tokenizer.encode(corpus.read_text(encoding="utf-8"))) - 1
+    assert report["heldout_cross_entropy"] > 0
+    assert report["heldout_perplexity"] > 0
