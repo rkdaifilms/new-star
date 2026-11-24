@@ -112,6 +112,11 @@ jobs:
         run: docker build --tag new-star-cpu-inference:ci ./ai-inference
       - name: Build New Star Search container
         run: docker build --tag new-star-search:ci ./ai-search
+      - name: Validate Compose deployment manifests
+        run: |
+          NEW_STAR_AI_SERVER_TOKEN=ci-test-token docker compose -f ai-engine/docker-compose.yml config --quiet
+          NEW_STAR_SEARCH_API_KEY=ci-test-token docker compose -f ai-search/docker-compose.yml config --quiet
+          MODEL_TOKEN=ci-test-token docker compose -f ai-inference/docker-compose.yml config --quiet
 
   foundation-model-tests:
     runs-on: ubuntu-latest
