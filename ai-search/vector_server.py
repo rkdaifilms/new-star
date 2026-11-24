@@ -63,7 +63,7 @@ def make_handler(store, api_key: str):
                 if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 10:
                     raise ValueError("limit must be an integer from 1 to 10")
                 results = store.search(query, limit, payload.get("source"))
-                self.send_json(200, {"ok": True, "retrieval": "vector-cosine", "results": results})
+                self.send_json(200, {"ok": True, "retrieval": "hybrid-vector-fts-rrf", "results": results})
             except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
                 self.send_json(400, {"ok": False, "error": str(exc)})
             except Exception:
