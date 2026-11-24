@@ -132,6 +132,7 @@ def main():
     model = NewStarGPT(config).to(args.device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
+    final_validation_loss = None
     for step in range(1, args.steps + 1):
         model.train()
         x, y = sample_instruction_batch(
@@ -148,6 +149,7 @@ def main():
             validation_loss = evaluate_sft(
                 model, validation_data, args.batch_size, args.block_size, args.device
             )
+            final_validation_loss = validation_loss
             print(
                 f"step={step} train_loss={loss.item():.4f} "
                 f"macro_language_val_loss={validation_loss:.4f}",
@@ -166,10 +168,15 @@ def main():
         "training_method": "supervised-fine-tuning-response-only",
         "training_steps": args.steps,
         "seed": args.seed,
+        "learning_rate": args.learning_rate,
+        "batch_size": args.batch_size,
+        "block_size": args.block_size,
+        "model_config": vars(config),
+        "final_validation_loss": final_validation_loss,
         "languages": sorted(train_data),
         "train_examples_by_language": {lang: len(rows) for lang, rows in train_data.items()},
         "validation_examples_by_language": {lang: len(rows) for lang, rows in validation_data.items()},
-        "validation_metric": "unweighted macro-average of per-language batch losses",
+        "validation_metric": "unweighted macro-average of per-language token-weighted assistant-response cross-entropy",
         "source_data": str(Path(args.data).name),
     }
     output.with_suffix(output.suffix + ".json").write_text(
