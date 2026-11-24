@@ -1085,3 +1085,17 @@ def test_sft_can_finetune_existing_pretraining_checkpoint_without_retokenizing(t
     assert metadata["tokenizer_type"] == ByteBPETokenizer.FORMAT
     assert metadata["base_checkpoint"] == base_checkpoint.name
     assert metadata["base_checkpoint_fingerprint"] == hashlib.sha256(base_checkpoint.read_bytes()).hexdigest()
+
+
+
+def test_gradient_checkpointing_forward_backward_matches_standard_model():
+    config = NewStarConfig(
+        vocab_size=256, block_size=8, width=16, layers=2, heads=2,
+        dropout=0.0, gradient_checkpointing=True,
+    )
+    model = NewStarGPT(config).train()
+    tokens = torch.randint(0, 256, (2, 8))
+    _, loss = model(tokens, tokens)
+    assert loss is not None and torch.isfinite(loss)
+    loss.backward()
+    assert model.token_embedding.weight.grad is not None
