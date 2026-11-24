@@ -41,6 +41,23 @@ class JobQueueTests(unittest.TestCase):
         self.assertEqual(claimed["attempts"],2)
         self.assertTrue(self.queue.fail(job["id"],"worker-b","permanent"))
         self.assertEqual(self.queue.get(job["id"],"client-a")["status"],"failed")
+    def test_concurrent_workers_claim_each_job_once(self):
+        from concurrent.futures import ThreadPoolExecutor
+        queue=JobQueue(Path(self.temp.name)/"parallel.sqlite3",max_pending=30,lease_seconds=30,max_attempts=2)
+        for index in range(20):
+            queue.enqueue("client-" + str(index), {"messages":[]})
+        def claim_many(worker_id):
+            claimed=[]
+            while True:
+                job=queue.claim(worker_id)
+                if job is None:
+                    return claimed
+                claimed.append(job["id"])
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            groups=list(executor.map(lambda index: claim_many("worker-" + str(index)), range(8)))
+        all_ids=[job_id for group in groups for job_id in group]
+        self.assertEqual(len(all_ids),20)
+        self.assertEqual(len(set(all_ids)),20)
     def test_finished_jobs_are_pruned_after_retention_window(self):
         job,_=self.queue.enqueue("client-a",{"messages":[]})
         self.queue.claim("worker-a")

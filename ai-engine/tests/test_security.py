@@ -34,6 +34,18 @@ class SecurityTests(unittest.TestCase):
             self.assertFalse(first.allow("shared-client", now=100))
             self.assertTrue(second.allow("shared-client", now=101))
 
+    def test_concurrent_sqlite_rate_limit_never_exceeds_capacity(self):
+        import tempfile
+        from concurrent.futures import ThreadPoolExecutor
+        with tempfile.TemporaryDirectory() as folder:
+            database = str(Path(folder) / "shared-limits.sqlite3")
+            limiters = [SQLiteTokenBucketLimiter(database, capacity=10, refill_per_second=0.01) for _ in range(8)]
+            def attempt(index):
+                return limiters[index % len(limiters)].allow("one-client", now=500)
+            with ThreadPoolExecutor(max_workers=16) as executor:
+                allowed = list(executor.map(attempt, range(40)))
+            self.assertEqual(sum(allowed), 10)
+
     def test_usage_log_does_not_accept_prompt_fields(self):
         import tempfile, json
         with tempfile.TemporaryDirectory() as folder:
