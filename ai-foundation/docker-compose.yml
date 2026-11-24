@@ -47,7 +47,7 @@ services:
       - --output
       - /artifacts/newstar-gpu.pt
       - --device
-      - auto
+      - cuda
       - --precision
       - auto
       - --steps
