@@ -285,6 +285,11 @@ def make_handler(index: SearchIndex, api_key: str):
                 self.send_json(401,{"ok":False,"error":"unauthorized"})
                 return
             try:
+                content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+                if content_type != "application/json":
+                    raise ValueError("Content-Type must be application/json")
+                if self.headers.get("Transfer-Encoding"):
+                    raise ValueError("transfer-encoded request bodies are not supported")
                 length=int(self.headers.get("Content-Length","0"))
                 if length<1 or length>16384:
                     raise ValueError("request body must be between 1 and 16384 bytes")

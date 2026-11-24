@@ -67,6 +67,10 @@ class SearchIndexTests(unittest.TestCase):
             with self.assertRaises(HTTPError) as denied:
                 urlopen(Request(base+"/search",data=body,headers={"Content-Type":"application/json"}))
             self.assertEqual(denied.exception.code,401)
+            wrong_type=Request(base+"/search",data=body,headers={"Content-Type":"text/plain","Authorization":"Bearer test-secret"})
+            with self.assertRaises(HTTPError) as invalid_type:
+                urlopen(wrong_type)
+            self.assertEqual(invalid_type.exception.code,400)
             request=Request(base+"/search",data=body,headers={"Content-Type":"application/json","Authorization":"Bearer test-secret"})
             with urlopen(request) as response:
                 payload=json.loads(response.read())
