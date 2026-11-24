@@ -738,13 +738,21 @@ def test_experiment_comparison_only_compares_matching_data_and_languages(tmp_pat
     registry = tmp_path / "experiments.jsonl"
     records = [
         {"run_id": "run-a", "stage": "pretraining", "final_validation_loss": 3.0,
-         "data_fingerprint": "dataset-1", "languages": ["en", "ne"]},
+         "data_fingerprint": "dataset-1", "languages": ["en", "ne"],
+         "tokenizer_fingerprint": "tok-v1", "model_config": {"width": 16},
+         "evaluation_protocol": "eval-v1", "validation_metric": "ce"},
         {"run_id": "run-b", "stage": "pretraining", "final_validation_loss": 2.5,
-         "data_fingerprint": "dataset-1", "languages": ["ne", "en"]},
+         "data_fingerprint": "dataset-1", "languages": ["ne", "en"],
+         "tokenizer_fingerprint": "tok-v1", "model_config": {"width": 16},
+         "evaluation_protocol": "eval-v1", "validation_metric": "ce"},
         {"run_id": "run-c", "stage": "pretraining", "final_validation_loss": 1.2,
-         "data_fingerprint": "dataset-2", "languages": ["en", "ne"]},
+         "data_fingerprint": "dataset-2", "languages": ["en", "ne"],
+         "tokenizer_fingerprint": "tok-v1", "model_config": {"width": 16},
+         "evaluation_protocol": "eval-v1", "validation_metric": "ce"},
         {"run_id": "sft-a", "stage": "sft", "final_validation_loss": 4.0,
-         "data_fingerprint": "dataset-1", "languages": ["en"]},
+         "data_fingerprint": "dataset-1", "languages": ["en"],
+         "tokenizer_fingerprint": "tok-v1", "model_config": {"width": 16},
+         "evaluation_protocol": "eval-v1", "validation_metric": "ce"},
     ]
     registry.write_text("\n".join(json.dumps(row) for row in records), encoding="utf-8")
 
@@ -767,9 +775,13 @@ def test_experiment_comparison_reports_delta_for_same_dataset(tmp_path):
     registry = tmp_path / "experiments.jsonl"
     records = [
         {"run_id": "older", "stage": "sft", "final_validation_loss": 2.0,
-         "data_fingerprint": "same", "languages": ["en", "ne"]},
+         "data_fingerprint": "same", "languages": ["en", "ne"],
+         "tokenizer_fingerprint": "tok-v1", "model_config": {"width": 16},
+         "evaluation_protocol": "eval-v1", "validation_metric": "ce"},
         {"run_id": "newer", "stage": "sft", "final_validation_loss": 1.7,
-         "data_fingerprint": "same", "languages": ["ne", "en"]},
+         "data_fingerprint": "same", "languages": ["ne", "en"],
+         "tokenizer_fingerprint": "tok-v1", "model_config": {"width": 16},
+         "evaluation_protocol": "eval-v1", "validation_metric": "ce"},
     ]
     registry.write_text("\n".join(json.dumps(row) for row in records), encoding="utf-8")
     report = compare_runs(registry, "sft")
@@ -814,3 +826,32 @@ def test_cpu_benchmark_rejects_invalid_iteration_counts():
 
     with pytest.raises(ValueError, match="iterations"):
         benchmark("not-needed.pt", warmup=0, iterations=0)
+
+
+def test_experiment_comparison_rejects_tokenizer_or_model_mismatch(tmp_path):
+    import json
+    from compare_experiments import compare_runs
+
+    common = {
+        "stage": "pretraining",
+        "data_fingerprint": "same-data",
+        "languages": ["en", "ne"],
+        "tokenizer_fingerprint": "same-tokenizer",
+        "model_config": {"width": 16, "layers": 1},
+        "evaluation_protocol": "eval-v1",
+        "validation_metric": "cross-entropy",
+    }
+    records = [
+        {"run_id": "baseline", **common, "final_validation_loss": 2.0},
+        {"run_id": "different-tokenizer", **common,
+         "tokenizer_fingerprint": "other-tokenizer", "final_validation_loss": 1.0},
+        {"run_id": "different-model", **common,
+         "model_config": {"width": 32, "layers": 2}, "final_validation_loss": 0.5},
+    ]
+    registry = tmp_path / "experiments.jsonl"
+    registry.write_text("\\n".join(json.dumps(row) for row in records), encoding="utf-8")
+    report = compare_runs(registry, "pretraining")
+    assert report["comparable_to_previous"] is False
+    assert report["validation_loss_delta_latest_minus_previous"] is None
+    assert report["best_run_id"] == "baseline"
+    assert "different model configuration" in report["incompatibility_reasons"]
