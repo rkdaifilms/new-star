@@ -31,3 +31,11 @@ jobs:
         run: python -m compileall -q app.py tests
       - name: Run API tests
         run: pytest -q
+
+  container-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build CPU inference container
+        run: docker build --tag new-star-cpu-inference:ci ./ai-inference
