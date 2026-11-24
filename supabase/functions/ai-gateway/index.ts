@@ -517,7 +517,8 @@ Deno.serve(async (req: Request) => {
     }
     const { count: activeKeyCount, error: countError } = await admin.from("new_star_ai_api_keys")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", userData.user.id).is("revoked_at", null);
+      .eq("user_id", userData.user.id).is("revoked_at", null)
+      .or("expires_at.is.null,expires_at.gt." + new Date().toISOString());
     if (countError) return json({ ok: false, error: "Could not check your active API keys." }, 503, headers);
     if ((activeKeyCount || 0) >= 10) return json({ ok: false, error: "You can have up to 10 active API keys. Revoke an unused key first." }, 429, headers);
     const rateLimit = Number.isInteger(body.rateLimit) ? Math.min(20, Math.max(1, body.rateLimit)) : 20;
