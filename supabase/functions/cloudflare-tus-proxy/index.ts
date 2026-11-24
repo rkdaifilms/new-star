@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = new Set([
+  "https://star-delta.vercel.app",
   "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app",
   "https://new-star.rkdaifilms.workers.dev",
   "https://new-star-rkdaifilms-8858.vercel.app",
