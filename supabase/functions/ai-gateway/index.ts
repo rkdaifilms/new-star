@@ -263,7 +263,7 @@ async function callNewStarHostedModel(key: string, messages: ChatMessage[], syst
   if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
     throw new Error("NEW_STAR_MODEL_ENDPOINT_MUST_BE_HTTPS");
   }
-  const base = endpoint.toString().replace(/\\/$/, "");
+  const base = endpoint.toString().replace(/\/$/, "");
   const requestUrl = base.endsWith("/chat/completions") ? base : base + "/chat/completions";
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (key && key !== "local-no-key") headers.Authorization = "Bearer " + key;
