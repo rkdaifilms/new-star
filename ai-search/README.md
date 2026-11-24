@@ -42,3 +42,26 @@ Place the API behind a trusted HTTPS reverse proxy before connecting the hosted 
 ## Limits
 
 This is a focused allowlist-based crawler and FTS index, not a complete global search engine. It does not crawl the open web indiscriminately, render JavaScript, guarantee freshness, or provide multi-node distributed indexing. The database and API are single-host. Back up the database and monitor crawl errors before production use.
+
+
+## Multilingual semantic retrieval (pgvector)
+
+The lexical SQLite index remains available on port 8081. A separate semantic retrieval service runs on port 8082 and stores vectors in Supabase Postgres using pgvector.
+
+1. Apply `supabase/migrations/20261125000000_new_star_vector_search.sql` to the Supabase project.
+2. Configure `NEW_STAR_SEARCH_API_KEY` and `NEW_STAR_VECTOR_DATABASE_URL` in the search host environment. The database URL must use a restricted server-side role; never expose it to browser code.
+3. Start the vector service with `docker compose up -d new-star-vector-search`. The service downloads and caches the multilingual FastEmbed ONNX model on first start; its health check verifies database connectivity.
+4. Crawl only domains for which indexing is authorized using the existing `crawl` command.
+5. Backfill the SQLite pages into pgvector:
+   `docker compose run --rm new-star-vector-search python vector_sync.py --sqlite-db /var/lib/new-star-search/index.sqlite3`
+6. Expose port 8082 through an HTTPS reverse proxy with authentication preserved. Configure the Supabase Edge Function's `NEW_STAR_SEARCH_BASE_URL` to that HTTPS origin to route RAG through vector cosine retrieval and the second-stage lexical reranker.
+
+The encoder is the pretrained `intfloat/multilingual-e5-small` baseline (384 dimensions), not a New Star-trained embedding model. It is local at inference time after model download. The retrieval stage expands to up to four times the requested candidates, applies cosine similarity, then reranks with Unicode token overlap. Source filtering is supported by the vector API. Hybrid reciprocal-rank fusion with SQLite FTS and a learned cross-encoder reranker are not included yet.
+
+### Vector API contract
+
+- `GET /healthz`: checks the live Postgres connection.
+- `POST /search`: bearer-authenticated JSON `{"query":"...","limit":5,"source":"optional.example"}`.
+- Response includes `ok`, `retrieval: "vector-cosine"`, and `results` with `title`, `url`, `source`, `snippet`, `similarity`, and `rerank_score`.
+
+Run the service unit tests with `python -m unittest discover -s tests -v` from this directory. The CI container build validates dependencies and the Compose manifest; a live Supabase migration, model download, populated index, and real semantic query still require the authorized deployment environment.
