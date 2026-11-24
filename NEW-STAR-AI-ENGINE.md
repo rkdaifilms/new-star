@@ -32,3 +32,29 @@ For long-running image/video jobs, return a job ID and add a status endpoint or 
 
 ## Important current state
 This is a frontend foundation only. The endpoints and inference server are intentionally not fabricated in this branch. Until the private backend and model runtime are deployed, chat/research/image/video requests return a clear backend-not-connected message. This avoids fake generation buttons or fake outputs.
+
+
+## Async generation support
+The browser accepts either an immediate result or a queued job response:
+`{ "ok": true, "jobId": "opaque-id", "status": "queued" }`
+The UI polls `GET /api/new-star-ai/jobs/{jobId}` using the same authenticated session. Return:
+- queued/running: `{ "status": "running", "progress": 35, "message": "Rendering…" }`
+- complete: `{ "status": "completed", "imageUrl": "https://..." }` or `videoUrl`
+- failure: `{ "status": "failed", "error": "..." }`
+
+## Optional frontend configuration
+Before `new-star-ai.js`, set `window.NEW_STAR_AI_CONFIG`:
+```js
+window.NEW_STAR_AI_CONFIG = {
+  apiBase: "https://your-private-api.example",
+  pollIntervalMs: 2500,
+  jobTimeoutMs: 600000,
+  routes: {
+    chat: "/api/new-star-ai/chat",
+    research: "/api/new-star-ai/research",
+    image: "/api/new-star-ai/images",
+    video: "/api/new-star-ai/videos"
+  }
+};
+```
+Do not put provider keys in this object. It is public browser configuration only.
