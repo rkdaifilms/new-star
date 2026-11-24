@@ -11,7 +11,7 @@ from pathlib import Path
 from threading import BoundedSemaphore
 from typing import Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
@@ -30,7 +30,7 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 class Message(BaseModel):
-    role: Literal["system", "user", "assistant"]
+    role: Literal["user", "assistant"]
     content: str = Field(min_length=1, max_length=8000)
 
 
