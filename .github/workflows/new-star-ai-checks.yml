@@ -10,6 +10,7 @@ on:
       - "new-star-ai.css"
       - "ai-video/**"
       - "supabase/functions/ai-gateway/**"
+      - "supabase/migrations/**"
       - "ai-model/**"
       - ".github/workflows/new-star-ai-checks.yml"
   pull_request:
@@ -84,6 +85,12 @@ jobs:
           grep -F 'async function probeOpenRouter' "$FILE"
           grep -F 'credits_exhausted' "$FILE"
           grep -F 'inference quota is not tested' "$FILE"
+          grep -F 'x-new-star-api-key' "$FILE"
+          grep -F 'api_key_create' "$FILE"
+          grep -F 'api_key_list' "$FILE"
+          grep -F 'api_key_revoke' "$FILE"
+          grep -F 'new_star_ai_api_keys' "$FILE"
+          grep -F 'SHA-256' "$FILE"
 
       - name: Verify Creator Studio AI controls and safe video state
         shell: bash
