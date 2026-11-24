@@ -621,3 +621,51 @@ def test_text_evaluation_cli_writes_json_report(tmp_path, monkeypatch):
     assert report["evaluated_tokens"] == len(tokenizer.encode(corpus.read_text(encoding="utf-8"))) - 1
     assert report["heldout_cross_entropy"] > 0
     assert report["heldout_perplexity"] > 0
+
+
+
+def test_corpus_audit_detects_cross_split_duplicates_and_reports(tmp_path):
+    import json
+    from audit_corpus import audit_corpus
+
+    data = tmp_path / "corpus.jsonl"
+    manifest = tmp_path / "manifest.json"
+    rows = [
+        {"language": "ne", "split": "train", "text": "नमस्ते   संसार"},
+        {"language": "ne", "split": "validation", "text": "नमस्ते संसार"},
+        {"language": "en", "split": "train", "text": "Hello training data"},
+        {"language": "en", "split": "validation", "text": "Held out validation data"},
+    ]
+    data.write_text("\\n".join(json.dumps(row, ensure_ascii=False) for row in rows), encoding="utf-8")
+    manifest.write_text(json.dumps({
+        "dataset_name": "small test corpus", "source": "locally authored test fixture",
+        "license": "CC0-1.0", "permission_basis": "created for automated tests",
+    }), encoding="utf-8")
+    report = audit_corpus(data, manifest)
+    assert report["ok"] is False
+    assert report["languages"]["ne"]["cross_split_duplicate_texts"] == 1
+    assert any("duplicates" in error for error in report["errors"])
+
+
+def test_corpus_audit_checks_minimum_sizes_and_manifest(tmp_path):
+    import json
+    import pytest
+    from audit_corpus import audit_corpus
+
+    data = tmp_path / "corpus.jsonl"
+    manifest = tmp_path / "manifest.json"
+    rows = [
+        {"language": "en", "split": "train", "text": "short"},
+        {"language": "en", "split": "validation", "text": "tiny"},
+    ]
+    data.write_text("\\n".join(json.dumps(row) for row in rows), encoding="utf-8")
+    manifest.write_text(json.dumps({
+        "dataset_name": "tiny", "source": "test fixture",
+        "license": "CC0-1.0", "permission_basis": "test-created",
+    }), encoding="utf-8")
+    report = audit_corpus(data, manifest, min_train_chars=10, min_validation_chars=10)
+    assert not report["ok"]
+    assert any("below minimum" in error for error in report["errors"])
+    manifest.write_text(json.dumps({"dataset_name": "missing provenance"}), encoding="utf-8")
+    with pytest.raises(ValueError, match="manifest missing"):
+        audit_corpus(data, manifest)
