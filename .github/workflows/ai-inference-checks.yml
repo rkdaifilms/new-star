@@ -50,6 +50,9 @@ jobs:
           grep -F 'NEW_STAR_MODEL_NAME' "$FILE"
           grep -F 'NEW_STAR_MODEL_API_KEY' "$FILE"
           grep -F 'new-star-hosted-model' "$FILE"
+          grep -F 'async function generateGeminiVideo' "$FILE"
+          grep -F 'body?.action === "video"' "$FILE"
+          grep -F 'new-star-ai-videos' "$FILE"
 
 
   frontend-syntax:
