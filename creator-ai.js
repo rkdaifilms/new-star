@@ -108,10 +108,16 @@ async function invoke(body){
 }
 function isImageRequest(text){
  const value=String(text||"").trim();
+ if(!value)return false;
+ const hasImageTerm=/\b(?:image|images|picture|pictures|photo|photos|photograph|thumbnail|logo|artwork|drawing|tasvir|tasveer|tasbir|tasbira|taswira|chitra|foto)\b/i.test(value) ||
+  /(?:तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|लोगो)/u.test(value);
+ const hasCreateIntent=/\b(?:generate|create|make|draw|paint|render|show|bana\w*|banau\w*|banai\w*|banadeu\w*|banado\w*|banaideu\w*|banauna\w*|dikha\w*|chahiye|chahie|create|generate)\b/i.test(value) ||
+  /(?:बना|बनाओ|बनाइ|तैयार|जनरेट|दिखा|चाहिए)/u.test(value);
+ // Route romanized Hindi/Nepali requests such as "tasvir Nahin banaa sakte ho"
+ // directly to the image API instead of letting chat text refuse the request.
+ if(hasImageTerm&&hasCreateIntent)return true;
  return /\b(generate|create|make|draw|paint|render|show)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|thumbnail|logo)\b/i.test(value) ||
- /\b(?:tasbir|tasbira|tasveer|chitra|photo|foto|image|thumbnail|logo)\b.*\b(?:bana|banau|banao|banadeu|banai|create|generate|draw|make)\b/i.test(value) ||
- /\b(?:bana|banau|banao|banadeu|banai|create|generate|draw|make)\b.*\b(?:tasbir|tasbira|tasveer|chitra|photo|foto|image|thumbnail|logo)\b/i.test(value) ||
- /(?:तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|लोगो).*(?:बना|बनाओ|बनाइ|तैयार|जनरेट|दिखा|चाहिए)|(?:बना|बनाओ|बनाइ|तैयार|जनरेट|दिखा|चाहिए).*(?:तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|लोगो)/u.test(value);
+  /(?:तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|लोगो).*(?:बना|बनाओ|बनाइ|तैयार|जनरेट|दिखा|चाहिए)|(?:बना|बनाओ|बनाइ|तैयार|जनरेट|दिखा|चाहिए).*(?:तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|लोगो)/u.test(value);
 }
 async function sendMessage(){const text=prompt.value.trim();if(!text||busy)return;if(imageMode||isImageRequest(text)){await generateImage(text);return;}busy=true;send.disabled=true;voice.disabled=true;lastLanguage=detectLanguage(text);addMessage(text,"user");prompt.value="";const pending=addMessage("…","assistant");try{const result=await invoke({messages:[...history.slice(-8),{role:"user",content:text}],language:"auto"});pending.textContent=result.answer;history.push({role:"user",content:text},{role:"assistant",content:result.answer});if(history.length>10)history=history.slice(-10);if($("speak-replies").checked)speak(result.answer,lastLanguage);}catch(e){pending.textContent=e.message||"AI unavailable. Please try again.";if(!prompt.value.trim())prompt.value=text;}finally{busy=false;send.disabled=false;voice.disabled=false;prompt.focus();}}
 function requestedImageAspectRatio(description){
