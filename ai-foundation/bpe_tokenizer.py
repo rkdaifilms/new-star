@@ -41,7 +41,7 @@ class ByteBPETokenizer:
             raise ValueError("min_frequency must be at least one")
 
         # Keep whitespace and punctuation: BPE learns from the exact UTF-8 stream.
-        sequence = list(text.encode("utf-8"))
+        sequence = [bytes([value]) for value in text.encode("utf-8")];
         merges: list[tuple[bytes, bytes]] = []
         for _ in range(max_merges):
             pairs = Counter(zip(sequence, sequence[1:]))
@@ -53,10 +53,8 @@ class ByteBPETokenizer:
             if frequency < min_frequency:
                 break
             left, right = best
-            left_bytes = bytes([left]) if isinstance(left, int) else left
-            right_bytes = bytes([right]) if isinstance(right, int) else right
-            merges.append((left_bytes, right_bytes))
-            merged = left_bytes + right_bytes
+            merges.append((left, right))
+            merged = left + right
             next_sequence: list[bytes] = []
             index = 0
             while index < len(sequence):
@@ -66,10 +64,7 @@ class ByteBPETokenizer:
                     next_sequence.append(merged)
                     index += 2
                 else:
-                    item = sequence[index]
-                    next_sequence.append(
-                        bytes([item]) if isinstance(item, int) else item
-                    )
+                    next_sequence.append(sequence[index])
                     index += 1
             sequence = next_sequence
         return cls(merges)
@@ -93,18 +88,10 @@ class ByteBPETokenizer:
         ]
 
     def decode(self, token_ids: list[int]) -> str:
-        output = bytearray()
+        expanded = bytearray()
         for token_id in token_ids:
             if not isinstance(token_id, int) or not 0 <= token_id < len(self):
                 raise ValueError("token ID is outside the tokenizer vocabulary")
-            if token_id < self.BYTE_VOCAB_SIZE:
-                output.append(token_id)
-            else:
-                output.extend(self.merges[token_id - self.BYTE_VOCAB_SIZE][0])
-                output.extend(self.merges[token_id - self.BYTE_VOCAB_SIZE][1])
-        # Expand learned tokens recursively through the merge table.
-        expanded = bytearray()
-        for token_id in token_ids:
             if token_id < self.BYTE_VOCAB_SIZE:
                 expanded.append(token_id)
             else:
