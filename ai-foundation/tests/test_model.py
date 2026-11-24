@@ -849,7 +849,7 @@ def test_experiment_comparison_rejects_tokenizer_or_model_mismatch(tmp_path):
          "model_config": {"width": 32, "layers": 2}, "final_validation_loss": 0.5},
     ]
     registry = tmp_path / "experiments.jsonl"
-    registry.write_text("\\n".join(json.dumps(row) for row in records), encoding="utf-8")
+    registry.write_text("\n".join(json.dumps(row) for row in records), encoding="utf-8")
     report = compare_runs(registry, "pretraining")
     assert report["comparable_to_previous"] is False
     assert report["validation_loss_delta_latest_minus_previous"] is None
