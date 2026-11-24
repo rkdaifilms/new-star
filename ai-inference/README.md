@@ -12,7 +12,7 @@ This is New Star-owned inference-service code, not a newly trained foundation mo
 - Limits request size, output tokens, and simultaneous inference.
 - Returns generic server errors without exposing prompts, model paths, or credentials.
 
-It does **not** yet generate images, audio, or video; train model weights; stream tokens; or provide multi-tenant quotas.
+It does **not** yet generate images, audio, or video, train its own foundation-model weights, or provide multi-tenant quotas. Text streaming is supported.
 
 ## Prepare a model
 
@@ -77,6 +77,20 @@ This pull request adds a hosted open-model adapter to the New Star AI Gateway so
 The adapter sends requests to `/chat/completions` and checks `/models`, so this service exposes the matching OpenAI-compatible paths. Keep the endpoint behind TLS and authentication. Never put the token in browser JavaScript, HTML, a mobile app bundle, or source control.
 
 The adapter exists in the separately maintained/deployed AI Gateway. Do not redeploy an older Edge Function source branch over the active gateway without first reconciling the newer AI Gateway changes. After secrets are configured, use an authenticated New Star account to test a real chat request and inspect server logs. A successful `/healthz` alone does not prove the hosted gateway can reach the service.
+
+## Benchmark a deployed service
+
+After the model is loaded and the service is reachable, run the standard-library benchmark from the repository root:
+
+```sh
+python ai-inference/scripts/benchmark.py \
+  --base-url https://your-inference-host.example \
+  --token "$MODEL_TOKEN" \
+  --requests 5 \
+  --max-tokens 128
+```
+
+It checks health and model-list endpoints, then measures time-to-first-token and total streamed response time. The reported text-chunks/second is only a rough proxy, **not** tokenizer tokens/second. Compare only identical prompts, model files, quantization, hardware, and token limits. Do not paste the token into chat or commit it.
 
 ## Resource and production notes
 
