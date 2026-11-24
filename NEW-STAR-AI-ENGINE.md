@@ -33,7 +33,7 @@ The New Star AI page remembers the current conversation ID in the browser so a c
 ## Research and image understanding
 - **Live Research:** the branch adds a `research` action using Gemini Google Search grounding and returning source links from grounding metadata. It requires a configured Gemini key and model access; Google Search grounding may incur charges when a user runs a research request. The action is deployed; live provider availability still requires an authenticated user request.
 - **Image understanding:** the branch adds a `vision` action accepting PNG/JPEG/WebP uploads up to 6 MB and using configured Gemini vision first, then OpenAI vision. This is image analysis, not image editing. The new action is not live until the Edge Function is deployed.
-- **Video generation:** no video inference runtime or job queue is connected.
+- **Video generation:** not connected yet. The 10-second prompt-to-video, asynchronous job, private storage, and voiceover/export architecture is documented in `ai-video/README.md`. A model runtime, worker, storage setup, and end-to-end verification are still required.
 
 The UI labels these as unavailable rather than pretending to complete them.
 
