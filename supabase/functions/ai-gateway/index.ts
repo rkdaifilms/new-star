@@ -15,7 +15,7 @@ function corsHeaders(origin: string) {
   const allowedOrigin = ALLOWED_ORIGINS.has(origin) ? origin : "https://new-star-nepal.netlify.app";
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+    "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-new-star-api-key",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Content-Type": "application/json",
     "Vary": "Origin"
@@ -439,18 +439,45 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "Server authentication is not configured" }, 503, headers);
   }
 
+  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const authorization = req.headers.get("Authorization") || "";
-  if (!authorization.startsWith("Bearer ")) {
-    return json({ ok: false, error: "Sign-in required" }, 401, headers);
-  }
+  const presentedApiKey = req.headers.get("x-new-star-api-key") || "";
+  let userData: { user: { id: string } };
+  let userClient: any;
+  let apiKeyContext: { id: string; scopes: string[]; rateLimit: number } | null = null;
 
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authorization } },
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
-  const { data: userData, error: userError } = await userClient.auth.getUser();
-  if (userError || !userData.user) {
-    return json({ ok: false, error: "Your session is invalid. Please sign in again." }, 401, headers);
+  if (presentedApiKey) {
+    if (presentedApiKey.length < 30 || presentedApiKey.length > 160) {
+      return json({ ok: false, error: "Invalid New Star API key." }, 401, headers);
+    }
+    const keyHashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(presentedApiKey));
+    const keyHash = Array.from(new Uint8Array(keyHashBuffer), byte => byte.toString(16).padStart(2, "0")).join("");
+    const { data: keyRecord, error: keyError } = await admin
+      .from("new_star_ai_api_keys")
+      .select("id,user_id,key_hash,scopes,rate_limit,expires_at,revoked_at")
+      .eq("key_hash", keyHash)
+      .maybeSingle();
+    if (keyError || !keyRecord || keyRecord.revoked_at ||
+        (keyRecord.expires_at && new Date(keyRecord.expires_at).getTime() <= Date.now())) {
+      return json({ ok: false, error: "Invalid, expired, or revoked New Star API key." }, 401, headers);
+    }
+    userData = { user: { id: keyRecord.user_id } };
+    userClient = admin;
+    apiKeyContext = { id: keyRecord.id, scopes: keyRecord.scopes || [], rateLimit: keyRecord.rate_limit || 20 };
+    await admin.from("new_star_ai_api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRecord.id);
+  } else {
+    if (!authorization.startsWith("Bearer ")) {
+      return json({ ok: false, error: "Sign-in or a New Star API key is required." }, 401, headers);
+    }
+    userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authorization } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+    const { data: authenticatedUser, error: userError } = await userClient.auth.getUser();
+    if (userError || !authenticatedUser.user) {
+      return json({ ok: false, error: "Your session is invalid. Please sign in again." }, 401, headers);
+    }
+    userData = { user: { id: authenticatedUser.user.id } };
   }
 
   let body: any;
@@ -458,6 +485,76 @@ Deno.serve(async (req: Request) => {
     body = await req.json();
   } catch {
     return json({ ok: false, error: "Invalid request body" }, 400, headers);
+  }
+
+  const apiKeyManagementActions = ["api_key_create", "api_key_list", "api_key_revoke"];
+  if (apiKeyManagementActions.includes(body?.action)) {
+    if (apiKeyContext || !authorization.startsWith("Bearer ")) {
+      return json({ ok: false, error: "Sign in with your New Star account to manage API keys." }, 403, headers);
+    }
+    if (body.action === "api_key_list") {
+      const { data, error } = await admin.from("new_star_ai_api_keys")
+        .select("id,name,key_prefix,scopes,rate_limit,created_at,last_used_at,expires_at,revoked_at")
+        .eq("user_id", userData.user.id).order("created_at", { ascending: false }).limit(50);
+      if (error) return json({ ok: false, error: "Could not load API keys." }, 503, headers);
+      return json({ ok: true, keys: data || [] }, 200, headers);
+    }
+    if (body.action === "api_key_revoke") {
+      if (typeof body.keyId !== "string") return json({ ok: false, error: "A valid key ID is required." }, 400, headers);
+      const { data, error } = await admin.from("new_star_ai_api_keys")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("id", body.keyId).eq("user_id", userData.user.id).is("revoked_at", null)
+        .select("id").maybeSingle();
+      if (error) return json({ ok: false, error: "Could not revoke this API key." }, 503, headers);
+      if (!data) return json({ ok: false, error: "Active API key not found." }, 404, headers);
+      return json({ ok: true, revoked: true }, 200, headers);
+    }
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const scopes = Array.isArray(body.scopes) ? [...new Set(body.scopes)] : ["chat"];
+    const allowedScopes = ["chat", "image", "vision", "transcribe", "speak", "research", "status"];
+    if (!name || name.length > 80 || !scopes.length || scopes.some((scope: unknown) => typeof scope !== "string" || !allowedScopes.includes(scope))) {
+      return json({ ok: false, error: "Provide a key name and valid API scopes." }, 400, headers);
+    }
+    const rateLimit = Number.isInteger(body.rateLimit) ? Math.min(120, Math.max(1, body.rateLimit)) : 20;
+    let expiresAt: string | null = null;
+    if (body.expiresAt !== undefined && body.expiresAt !== null && body.expiresAt !== "") {
+      const parsedExpiry = new Date(body.expiresAt);
+      if (!Number.isFinite(parsedExpiry.getTime()) || parsedExpiry.getTime() <= Date.now() ||
+          parsedExpiry.getTime() > Date.now() + 366 * 24 * 60 * 60 * 1000) {
+        return json({ ok: false, error: "Expiry must be a future date within one year." }, 400, headers);
+      }
+      expiresAt = parsedExpiry.toISOString();
+    }
+    const randomBytes = crypto.getRandomValues(new Uint8Array(32));
+    const randomPart = btoa(String.fromCharCode(...randomBytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    const rawApiKey = "ns_live_" + randomPart;
+    const prefix = rawApiKey.slice(0, 18);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(rawApiKey));
+    const hash = Array.from(new Uint8Array(hashBuffer), byte => byte.toString(16).padStart(2, "0")).join("");
+    const { data, error } = await admin.from("new_star_ai_api_keys").insert({
+      user_id: userData.user.id, name, key_prefix: prefix, key_hash: hash,
+      scopes, rate_limit: rateLimit, expires_at: expiresAt
+    }).select("id,name,key_prefix,scopes,rate_limit,created_at,expires_at").single();
+    if (error) return json({ ok: false, error: "Could not create API key. Please retry." }, 503, headers);
+    return json({ ok: true, key: rawApiKey, record: data, warning: "Copy this key now. It will not be shown again." }, 201, headers);
+  }
+
+  if (apiKeyContext) {
+    const requiredScope = body?.action === "image" ? "image"
+      : body?.action === "vision" ? "vision"
+      : body?.action === "transcribe" ? "transcribe"
+      : body?.action === "speak" ? "speak"
+      : body?.action === "research" ? "research"
+      : body?.action === "status" ? "status" : "chat";
+    if (!apiKeyContext.scopes.includes(requiredScope)) {
+      return json({ ok: false, error: "This API key does not include the required scope." }, 403, headers);
+    }
+    const { data: allowed, error } = await admin.rpc("consume_ai_gateway_rate_limit", {
+      p_user_id: userData.user.id, p_limit: apiKeyContext.rateLimit
+    });
+    if (error || allowed !== true) {
+      return json({ ok: false, error: error ? "API key rate-limit check unavailable." : "API key rate limit reached." }, error ? 503 : 429, headers);
+    }
   }
 
   if (body?.action === "speak") {
