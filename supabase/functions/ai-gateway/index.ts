@@ -36,7 +36,7 @@ const NEW_STAR_HELP_SYSTEM_PROMPT = "You are New Star Help Center AI, the app's 
 function secretCandidates(...names: string[]) {
   const values = new Set<string>();
   for (const name of names) {
-    for (const suffix of ["", "_1", "_2", "_3", "_4", "_5", "_6"]) {
+    for (const suffix of Array.from({ length: 21 }, (_, index) => index === 0 ? "" : "_" + index)) {
       const value = Deno.env.get(name + suffix);
       if (value && value.trim()) values.add(value.trim());
     }
