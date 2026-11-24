@@ -6,7 +6,7 @@ function selectedAppLanguage(){try{const p=JSON.parse(localStorage.getItem("news
 const uiText=(key,fallback)=>window.NewStarTranslations?.[selectedAppLanguage()]?.[key]||fallback;
 
 const log=$("chat-log"),prompt=$("prompt"),send=$("send"),voice=$("voice"),stopVoice=$("stop-voice"),status=$("gateway-status"),voiceStatus=$("voice-status"),notice=$("notice"),imageResult=$("image-result");
-let history=[],busy=false,recorder=null,stream=null,chunks=[],recording=false,pendingSendAfterTranscription=false,lastLanguage="en",imageMode=false,browserRecognition=null,browserTranscript="";
+let history=[],busy=false,recorder=null,stream=null,chunks=[],recording=false,pendingSendAfterTranscription=false,lastLanguage="en",imageMode=false,browserRecognition=null,browserTranscript="",voiceDraftPrefix="";
 const langMap={"ह":"hi","अ":"hi","क":"hi","ख":"hi","ग":"hi","घ":"hi","च":"hi","ज":"hi","ट":"hi","ड":"hi","त":"hi","द":"hi","न":"hi","प":"hi","ब":"hi","म":"hi","य":"hi","र":"hi","ल":"hi","व":"hi","श":"hi","स":"hi","क्ष":"hi","ज्ञ":"hi","ँ":"hi","ं":"hi","ः":"hi","ि":"hi","ा":"hi","े":"hi","ो":"hi","्":"hi","़":"hi","়":"bn","অ":"bn","আ":"bn","ই":"bn","উ":"bn","এ":"bn","ও":"bn","ক":"bn","খ":"bn","গ":"bn","চ":"bn","জ":"bn","ট":"bn","ড":"bn","ত":"bn","দ":"bn","ন":"bn","প":"bn","ব":"bn","ম":"bn","য":"bn","র":"bn","ল":"bn","শ":"bn","স":"bn","ং":"bn","ঃ":"bn","ા":"gu","ક":"gu","મ":"gu","ત":"gu","પ":"gu","ર":"gu","ન":"gu","અ":"gu","આ":"gu","ಕ":"kn","ತ":"kn","ನ":"kn","ಮ":"kn","ಪ":"kn","ಅ":"kn","ആ":"ml","ക":"ml","മ":"ml","ന":"ml","പ":"ml","த":"ta","ம":"ta","ந":"ta","ப":"ta","அ":"ta","త":"te","మ":"te","న":"te","క":"te","అ":"te","ಅ":"kn","ಅ":"kn","ಕ":"kn","ಮ":"kn","ತ":"kn","ಪ":"kn","ಯ":"kn","ಖ":"kn","ก":"th","ข":"th","ค":"th","ง":"th","จ":"th","ส":"th","ร":"th","ม":"th","ย":"th","ว":"th","ه":"ar","ا":"ar","ل":"ar","م":"ar","ن":"ar","ي":"ar","ع":"ar","ك":"ar","و":"ar","پ":"fa","چ":"fa","ژ":"fa","گ":"fa","ی":"fa","ا":"fa","ب":"fa","ت":"fa","ث":"fa","ج":"fa","ح":"fa","خ":"fa","د":"fa","ر":"fa","ز":"fa","س":"fa","ش":"fa","ص":"fa","ض":"fa","ط":"fa","ظ":"fa","ع":"fa","غ":"fa","ف":"fa","ق":"fa","ک":"fa","ل":"fa","م":"fa","ن":"fa","و":"fa","ھ":"ur","ے":"ur","ٹ":"ur","ڈ":"ur","ڑ":"ur","ں":"ur","گ":"ur","چ":"ur","پ":"ur","ک":"ur","ا":"ur","ب":"ur","ت":"ur","ث":"ur","ج":"ur","ح":"ur","خ":"ur","د":"ur","ر":"ur","ز":"ur","س":"ur","ش":"ur","ص":"ur","ض":"ur","ط":"ur","ظ":"ur","ع":"ur","غ":"ur","ف":"ur","ق":"ur","ل":"ur","م":"ur","ن":"ur","و":"ur","ي":"ur","ی":"ur","ئ":"ur","ء":"ur","ؤ":"ur","إ":"ar","أ":"ar","ة":"ar","ى":"ar","я":"ru","ы":"ru","э":"ru","ё":"ru","ж":"ru","щ":"ru","ф":"ru","ц":"ru","й":"ru","ш":"ru","ю":"ru","д":"ru","г":"ru","п":"ru","л":"ru","о":"ru","р":"ru","а":"ru","в":"ru","к":"ru","м":"ru","с":"ru","т":"ru","н":"ru","е":"ru","и":"ru","у":"ru","б":"ru","з":"ru","х":"ru","ч":"ru","ъ":"ru","ь":"ru","ў":"uk","і":"uk","є":"uk","ґ":"uk","ї":"uk","あ":"ja","い":"ja","う":"ja","え":"ja","お":"ja","か":"ja","き":"ja","く":"ja","け":"ja","こ":"ja","さ":"ja","し":"ja","す":"ja","せ":"ja","そ":"ja","た":"ja","ち":"ja","つ":"ja","て":"ja","と":"ja","な":"ja","に":"ja","ぬ":"ja","ね":"ja","の":"ja","は":"ja","ひ":"ja","ふ":"ja","へ":"ja","ほ":"ja","ア":"ja","イ":"ja","ウ":"ja","エ":"ja","オ":"ja","カ":"ja","キ":"ja","ク":"ja","ケ":"ja","コ":"ja","サ":"ja","シ":"ja","ス":"ja","セ":"ja","ソ":"ja","タ":"ja","チ":"ja","ツ":"ja","テ":"ja","ト":"ja","ニ":"ja","ヌ":"ja","ネ":"ja","ノ":"ja","ハ":"ja","ヒ":"ja","フ":"ja","ヘ":"ja","ホ":"ja","ン":"ja","가":"ko","나":"ko","다":"ko","라":"ko","마":"ko","바":"ko","사":"ko","아":"ko","자":"ko","차":"ko","카":"ko","타":"ko","파":"ko","하":"ko","는":"ko","을":"ko","에":"ko","의":"ko","한":"ko","글":"ko","어":"ko"};
 function detectLanguage(text){
  const value=String(text||"").trim(), lower=value.toLowerCase(), app=selectedAppLanguage();
@@ -122,15 +122,15 @@ function requestedImageAspectRatio(description){
 async function generateImage(overrideDescription){const description=(typeof overrideDescription==="string"?overrideDescription:prompt.value).trim();if(busy)return;if(!description){notice.textContent="पहले तस्वीर का विवरण लिखें, फिर Generate image दबाएँ।";prompt.focus();return;}busy=true;send.disabled=true;voice.disabled=true;lastLanguage=detectLanguage(description);addMessage("🎨 "+description,"user");prompt.value="";imageResult.hidden=false;imageResult.replaceChildren();const label=document.createElement("p");label.textContent="Creating your image…";imageResult.append(label);try{const aspectRatio=requestedImageAspectRatio(description);const imageSize=$("image-resolution")?.value||"1K";const result=await invoke({action:"image",prompt:description,language:lastLanguage,aspectRatio,imageSize});if(typeof result.image!=="string"||result.image.length<100)throw new Error("Image provider returned no usable image data.");const mime=/^image\/(png|jpeg|webp)$/i.test(result.mimeType||"")?result.mimeType:"image/png";const img=document.createElement("img");img.alt="AI generated creator image";img.src="data:"+mime+";base64,"+result.image;img.onerror=()=>{label.textContent="Image returned, but this device could not display it. Please retry.";};const save=document.createElement("a");save.href=img.src;save.download="new-star-creator-image."+({"image/jpeg":"jpg","image/webp":"webp"}[mime]||"png");save.textContent="Save image";save.style.color="#ff9bb0";imageResult.replaceChildren(img,save);}catch(e){label.textContent=e.message||"Image generation failed.";}finally{busy=false;send.disabled=false;voice.disabled=false;}}
 async function handleSendAction(){
  if(recording&&browserRecognition){
-  pendingSendAfterTranscription=true;send.disabled=true;
-  voiceStatus.textContent="आवाज़ पहचानकर संदेश भेज रहे हैं…";
+  pendingSendAfterTranscription=false;send.disabled=true;
+  voiceStatus.textContent="रिकॉर्डिंग रोक रहे हैं। शब्द टेक्स्ट बॉक्स में आएँगे—जाँचकर फिर Send दबाएँ।";
   try{browserRecognition.stop();}catch(_){}
   return;
  }
  if(recording&&recorder?.state!=="inactive"){
-  pendingSendAfterTranscription=true;
+  pendingSendAfterTranscription=false;
   send.disabled=true;
-  voiceStatus.textContent="रिकॉर्डिंग रोककर आवाज़ को टेक्स्ट में बदल रहे हैं। उसके बाद संदेश अपने-आप AI को भेजा जाएगा…";
+  voiceStatus.textContent="रिकॉर्डिंग रोक रहे हैं। शब्द टेक्स्ट बॉक्स में आएँगे—जाँचकर फिर Send दबाएँ।";
   recorder.stop();
   return;
  }
@@ -147,7 +147,7 @@ async function startRecording(){
   try{
    browserRecognition=new SpeechRecognition();
    browserRecognition.lang=selectedAppLanguage()==="ne"?"ne-NP":selectedAppLanguage()==="hi"?"hi-IN":selectedAppLanguage()==="en"?"en-US":selectedAppLanguage();
-   browserRecognition.continuous=true;browserRecognition.interimResults=true;browserTranscript="";
+   browserRecognition.continuous=true;browserRecognition.interimResults=true;browserTranscript="";voiceDraftPrefix=prompt.value.trim();
    browserRecognition.onresult=event=>{
     let finalText="";
     for(let i=event.resultIndex;i<event.results.length;i++){
@@ -156,7 +156,9 @@ async function startRecording(){
     }
     if(finalText)browserTranscript=(browserTranscript+" "+finalText).trim();
     const interim=event.results[event.results.length-1]?.[0]?.transcript||"";
-    voiceStatus.textContent="सुन रहा है: "+(browserTranscript+" "+interim).trim();
+    const liveText=(browserTranscript+" "+interim).trim();
+    prompt.value=[voiceDraftPrefix,liveText].filter(Boolean).join(" ");
+    voiceStatus.textContent="🔴 रिकॉर्डिंग चालू — टेक्स्ट बॉक्स में: "+liveText;
    };
    browserRecognition.onerror=event=>{
     voiceStatus.textContent=event.error==="not-allowed"?"माइक की अनुमति नहीं मिली। Chrome की Site settings में Microphone अनुमति दें।":"आवाज़ पहचानने में समस्या: "+event.error;
@@ -167,7 +169,7 @@ async function startRecording(){
     browserRecognition=null;recording=false;pendingSendAfterTranscription=false;
     voice.textContent="🎙️";voice.setAttribute("aria-label","माइक से बोलें");stopVoice.hidden=true;
     if(transcript){
-     prompt.value=transcript;lastLanguage=detectLanguage(transcript);
+     prompt.value=[voiceDraftPrefix,transcript].filter(Boolean).join(" ");lastLanguage=detectLanguage(transcript);
      voiceStatus.textContent=shouldSend?"आवाज़ समझ ली गई। AI को भेज रहे हैं…":"आवाज़ टेक्स्ट में बदल गई।";
      if(shouldSend)await sendMessage();
     }else if(!voiceStatus.textContent.includes("समस्या")&&!voiceStatus.textContent.includes("अनुमति")){
@@ -189,7 +191,7 @@ async function startRecording(){
   const formats=["audio/ogg;codecs=opus","audio/webm;codecs=opus","audio/mp4","audio/webm","audio/ogg"];
   const supported=formats.find(type=>MediaRecorder.isTypeSupported?.(type));
   recorder=new MediaRecorder(stream,supported?{mimeType:supported}:{});
-  chunks=[];
+  chunks=[];voiceDraftPrefix=prompt.value.trim();
   recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
   recorder.onerror=e=>{
    voiceStatus.textContent=e.error?.message||"माइक रिकॉर्डिंग में समस्या आई। फिर कोशिश करें।";
@@ -223,8 +225,8 @@ async function startRecording(){
     const transcript=String(result.transcript||"").trim();
     if(!transcript)throw new Error("आवाज़ से कोई शब्द नहीं मिला। थोड़ा साफ़ बोलकर फिर कोशिश करें।");
     lastLanguage=result.language&&result.language!=="und"?result.language:detectLanguage(transcript)||lastLanguage;
-    prompt.value=transcript;
-    voiceStatus.textContent=shouldSend?"आवाज़ समझ ली गई। संदेश AI को भेज रहे हैं…":"आवाज़ टेक्स्ट में बदल गई। संदेश जाँचकर Send दबाएँ।";
+    prompt.value=[voiceDraftPrefix,transcript].filter(Boolean).join(" ");
+    voiceStatus.textContent="आवाज़ टेक्स्ट बॉक्स में लिख दी गई है। जाँचकर Send दबाएँ।";
     prompt.focus();
     if(shouldSend)await sendMessage();
    }catch(e){
