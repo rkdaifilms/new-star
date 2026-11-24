@@ -576,7 +576,6 @@ private suspend fun uploadNativeVideo(
         .build()
     val endpoint = "$SB_URL/functions/v1/cloudflare-tus-proxy"
     val create = Request.Builder().url(endpoint).post(ByteArray(0).toRequestBody())
-        .header("Origin", "https://new-star-delta.vercel.app")
         .header("Authorization", "Bearer $accessToken").header("apikey", SB_KEY)
         .header("Tus-Resumable", "1.0.0").header("Upload-Length", size.toString())
         .header("Upload-Metadata", metadata).build()
