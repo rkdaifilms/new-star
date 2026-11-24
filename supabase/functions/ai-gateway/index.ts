@@ -419,7 +419,7 @@ Deno.serve(async (req: Request) => {
 
   if (body?.action === "transcribe") {
     const audio = body.audio;
-    const rawMimeType = typeof body.mimeType === "string" ? body.mimeType : "audio/webm";
+    const rawMimeType = typeof body.mimeType === "string" ? body.mimeType : "audio/mp4";
     const mimeType = rawMimeType.split(";")[0].trim().toLowerCase();
     const supportedAudioTypes = new Set(["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav", "audio/mp3", "audio/m4a"]);
     if (typeof audio !== "string" || audio.length < 100 || audio.length > 11000000 ||
@@ -427,27 +427,14 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "Voice recording is missing, too large, or uses an unsupported format." }, 400, headers);
     }
     const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    const openaiKeys: string[] = []; // Disabled for transcription: current server key returns INVALID_API_KEY.
-    if (!geminiKeys.length && !openaiKeys.length) return json({ ok: false, error: "Voice transcription is not configured. Add a Gemini or OpenAI provider key on the server." }, 503, headers);
+    if (!geminiKeys.length) return json({ ok: false, error: "Gemini voice transcription is not configured on the server." }, 503, headers);
     const voiceAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: allowedVoice, error: voiceLimitError } = await voiceAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
     if (voiceLimitError || allowedVoice !== true) return json({ ok: false, error: voiceLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, voiceLimitError ? 503 : 429, headers);
 
     const failures: string[] = [];
-    // Route voice transcription through Gemini. The configured OpenAI audio key
-    // returned INVALID_API_KEY in live logs, so do not waste a request on it.
-      for (let i = 0; i < openaiKeys.length; i++) {
-        try {
-          const transcript = await transcribeWithOpenAI(openaiKeys[i], audio, mimeType);
-          return json({ ok: true, transcript, language: "und", provider: "openai" }, 200, headers);
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : "OPENAI_TRANSCRIPTION_FAILED";
-          failures.push("openai[" + (i + 1) + "]:" + reason);
-          console.error("AI voice transcription provider failed:", "openai", i + 1, reason);
-        }
-      }
-    }
-
+    // Gemini is the configured voice transcription provider. OpenAI audio returned
+    // INVALID_API_KEY in the live logs, so this route deliberately does not call it.
     const transcriptionModels = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
     for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
       for (const model of transcriptionModels) {
@@ -482,22 +469,7 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
-
-    // OpenAI audio transcription is intentionally skipped until its server key is repaired.
-    if (false) {
-      for (let i = 0; i < openaiKeys.length; i++) {
-        if (mimeType === "audio/webm" && failures.some(value => value.startsWith("openai[" + (i + 1) + "]:"))) continue;
-        try {
-          const transcript = await transcribeWithOpenAI(openaiKeys[i], audio, mimeType);
-          return json({ ok: true, transcript, language: "und", provider: "openai" }, 200, headers);
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : "OPENAI_TRANSCRIPTION_FAILED";
-          failures.push("openai[" + (i + 1) + "]:" + reason);
-          console.error("AI voice transcription provider failed:", "openai", i + 1, reason);
-        }
-      }
-    }
-    return json({ ok: false, error: "Voice transcription providers are unavailable. " + (failures.join("; ") || "No compatible voice provider is configured.") }, 502, headers);
+    return json({ ok: false, error: "Gemini voice transcription failed. " + (failures.join("; ") || "No compatible model is available.") }, 502, headers);
   }
 
   if (body?.action === "image") {
