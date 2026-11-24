@@ -170,15 +170,71 @@ async function generateOpenRouterImage(key: string, prompt: string, aspectRatio:
 }
 
 
-async function startGeminiVideo(key: string, model: string, prompt: string, aspectRatio: string, resolution: string, duration: string) {
-  const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions", {
+let cachedGoogleAccessToken = "";
+let cachedGoogleAccessTokenExpiresAt = 0;
+
+function base64UrlEncode(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_");
+}
+
+async function getGoogleCloudAccessToken(): Promise<{ token: string; projectId: string }> {
+  if (cachedGoogleAccessToken && Date.now() < cachedGoogleAccessTokenExpiresAt - 60000) {
+    const cachedAccount = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || "{}");
+    return { token: cachedGoogleAccessToken, projectId: Deno.env.get("GOOGLE_CLOUD_PROJECT_ID")?.trim() || cachedAccount.project_id || "" };
+  }
+  const rawAccount = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON")?.trim();
+  if (!rawAccount) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not configured.");
+  let account: any;
+  try { account = JSON.parse(rawAccount); } catch { throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON."); }
+  const projectId = Deno.env.get("GOOGLE_CLOUD_PROJECT_ID")?.trim() || account.project_id;
+  if (typeof account.client_email !== "string" || typeof account.private_key !== "string" || typeof projectId !== "string" || !projectId) {
+    throw new Error("Google Cloud service account must include client_email, private_key and project_id.");
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64UrlEncode(new TextEncoder().encode(JSON.stringify({ alg: "RS256", typ: "JWT" })));
+  const claims = base64UrlEncode(new TextEncoder().encode(JSON.stringify({
+    iss: account.client_email,
+    scope: "https://www.googleapis.com/auth/cloud-platform",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600
+  })));
+  const unsigned = header + "." + claims;
+  const pem = account.private_key.replace(/\\n/g, "\n").replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\\s/g, "");
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    Uint8Array.from(atob(pem), (char) => char.charCodeAt(0)),
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned)));
+  const assertion = unsigned + "." + base64UrlEncode(signature);
+  const response = await fetchWithTimeout("https://oauth2.googleapis.com/token", {
     method: "POST",
-    headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion })
+  }, 15000);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || typeof data.access_token !== "string") throw new Error("Google Cloud OAuth token exchange failed: " + providerHttpError(response.status, data));
+  cachedGoogleAccessToken = data.access_token;
+  cachedGoogleAccessTokenExpiresAt = Date.now() + Math.max(60, Number(data.expires_in) || 3600) * 1000;
+  return { token: cachedGoogleAccessToken, projectId };
+}
+
+async function startGeminiVideo(model: string, prompt: string, aspectRatio: string, resolution: string, duration: string) {
+  const { token, projectId } = await getGoogleCloudAccessToken();
+  const endpoint = "https://aiplatform.googleapis.com/v1beta1/projects/" + encodeURIComponent(projectId) + "/locations/global/interactions";
+  const response = await fetchWithTimeout(endpoint, {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
-      input: [{ type: "text", text: prompt }],
+      input: prompt,
       generation_config: { video_config: { task: "text_to_video" } },
-      response_format: { type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration },
+      response_format: [{ type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }],
       background: true,
       store: true
     })
@@ -191,12 +247,10 @@ async function startGeminiVideo(key: string, model: string, prompt: string, aspe
   return { interactionId: data.id, status: data.status, model };
 }
 
-async function getGeminiVideoInteraction(key: string, interactionId: string) {
-  const response = await fetchWithTimeout(
-    "https://generativelanguage.googleapis.com/v1beta/interactions/" + encodeURIComponent(interactionId),
-    { method: "GET", headers: { "x-goog-api-key": key } },
-    25000
-  );
+async function getGeminiVideoInteraction(interactionId: string) {
+  const { token, projectId } = await getGoogleCloudAccessToken();
+  const endpoint = "https://aiplatform.googleapis.com/v1beta1/projects/" + encodeURIComponent(projectId) + "/locations/global/interactions/" + encodeURIComponent(interactionId);
+  const response = await fetchWithTimeout(endpoint, { method: "GET", headers: { "Authorization": "Bearer " + token } }, 25000);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
   return data;
