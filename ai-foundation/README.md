@@ -351,3 +351,28 @@ python ai-foundation/sft_train.py --data ./permitted-instructions.jsonl --manife
 ```
 
 To force CPU execution, use `--device cpu --precision fp32`. To select a particular GPU, use `--device cuda:0 --precision auto`. A CUDA-enabled PyTorch installation and compatible NVIDIA driver are required for GPU training; installing the CPU-only PyTorch wheel will correctly leave auto mode on CPU.
+
+
+## Reproducible CPU and NVIDIA GPU training containers
+
+Training containers keep the corpus read-only and write checkpoints only to the mounted artifacts directory. Use only data you have the legal right to train on; provide a provenance manifest when using multilingual JSONL data.
+
+CPU setup (Docker Engine required):
+
+```sh
+cd ai-foundation
+mkdir -p data artifacts
+cp /path/to/your-permitted-corpus.txt data/corpus.txt
+NEW_STAR_CORPUS_DIR=./data NEW_STAR_ARTIFACTS_DIR=./artifacts docker compose --profile cpu run --build --rm train-cpu
+```
+
+NVIDIA GPU setup requires a compatible NVIDIA driver, NVIDIA Container Toolkit, and Docker Compose GPU device reservations:
+
+```sh
+cd ai-foundation
+mkdir -p data artifacts
+cp /path/to/your-permitted-corpus.txt data/corpus.txt
+NEW_STAR_CORPUS_DIR=./data NEW_STAR_ARTIFACTS_DIR=./artifacts docker compose --profile gpu run --build --rm train-gpu
+```
+
+Set `NEW_STAR_TRAIN_STEPS` and `NEW_STAR_TOKENIZER` before the Compose command to change the run. The GPU image pins PyTorch 2.5.1 with CUDA 12.4 wheels; the host driver must support CUDA 12.4. The training scripts auto-select CUDA when available and report the selected device, precision, CUDA runtime, and GPU memory. CPU mode is FP32. This container setup provides reproducible execution environments; it does not supply GPU hardware, a training corpus, or trained weights. Start with a small authorized corpus and short run, inspect the loss/evaluation report, then scale only on hardware with sufficient memory.

@@ -1,0 +1,57 @@
+services:
+  train-cpu:
+    profiles: ["cpu"]
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    init: true
+    volumes:
+      - ${NEW_STAR_CORPUS_DIR:-./data}:/data:ro
+      - ${NEW_STAR_ARTIFACTS_DIR:-./artifacts}:/artifacts
+    command:
+      - --data
+      - /data/corpus.txt
+      - --output
+      - /artifacts/newstar-cpu.pt
+      - --device
+      - cpu
+      - --precision
+      - fp32
+      - --steps
+      - ${NEW_STAR_TRAIN_STEPS:-2000}
+      - --tokenizer
+      - ${NEW_STAR_TOKENIZER:-bpe}
+    restart: "no"
+
+  train-gpu:
+    profiles: ["gpu"]
+    build:
+      context: .
+      dockerfile: Dockerfile.cuda
+    init: true
+    volumes:
+      - ${NEW_STAR_CORPUS_DIR:-./data}:/data:ro
+      - ${NEW_STAR_ARTIFACTS_DIR:-./artifacts}:/artifacts
+    environment:
+      CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-0}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command:
+      - --data
+      - /data/corpus.txt
+      - --output
+      - /artifacts/newstar-gpu.pt
+      - --device
+      - auto
+      - --precision
+      - auto
+      - --steps
+      - ${NEW_STAR_TRAIN_STEPS:-2000}
+      - --tokenizer
+      - ${NEW_STAR_TOKENIZER:-bpe}
+    restart: "no"
