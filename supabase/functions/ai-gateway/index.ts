@@ -206,13 +206,16 @@ async function probeCredential(url: string, headers: Record<string, string>) {
 }
 
 async function probeGemini(key: string) {
-  return await probeCredential("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash", {
+  // List models instead of probing a hard-coded model ID: a valid key should
+  // not appear invalid merely because one model is unavailable to its project.
+  return await probeCredential("https://generativelanguage.googleapis.com/v1beta/models", {
     "x-goog-api-key": key
   });
 }
 
 async function probeOpenAI(key: string) {
-  return await probeCredential("https://api.openai.com/v1/models/gpt-4o-mini", {
+  // The collection endpoint validates account access without assuming a model.
+  return await probeCredential("https://api.openai.com/v1/models", {
     "Authorization": "Bearer " + key
   });
 }
