@@ -775,3 +775,42 @@ def test_experiment_comparison_reports_delta_for_same_dataset(tmp_path):
     report = compare_runs(registry, "sft")
     assert report["comparable_to_previous"] is True
     assert abs(report["validation_loss_delta_latest_minus_previous"] + 0.3) < 1e-8
+
+
+def test_cpu_inference_benchmark_reports_latency_and_throughput(tmp_path):
+    import json
+    from benchmark_inference import benchmark
+    from tokenizer import UnicodeCharTokenizer
+
+    tokenizer = UnicodeCharTokenizer.train("Hello benchmark")
+    config = NewStarConfig(
+        vocab_size=len(tokenizer), block_size=32, width=16, layers=1, heads=4, dropout=0.0
+    )
+    model = NewStarGPT(config)
+    checkpoint = tmp_path / "tiny.pt"
+    torch.save({
+        "format": "new-star-unicode-char-gpt-v1",
+        "config": vars(config),
+        "tokenizer": tokenizer.to_dict(),
+        "state_dict": model.state_dict(),
+    }, checkpoint)
+
+    report = benchmark(
+        str(checkpoint), prompt="Hi", device="cpu",
+        warmup=0, iterations=2, max_new_tokens=2, threads=1,
+    )
+    assert report["benchmark"] == "new-star-generation-v1"
+    assert report["device"] == "cpu"
+    assert report["measured_iterations"] == 2
+    assert report["generated_tokens"] == 4
+    assert report["tokens_per_second"] > 0
+    assert report["latency_seconds"]["median"] > 0
+    assert report["parameter_count"] > 0
+
+
+def test_cpu_benchmark_rejects_invalid_iteration_counts():
+    import pytest
+    from benchmark_inference import benchmark
+
+    with pytest.raises(ValueError, match="iterations"):
+        benchmark("not-needed.pt", warmup=0, iterations=0)
