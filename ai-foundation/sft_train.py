@@ -164,7 +164,7 @@ def main():
         "layers": args.layers,
         "heads": args.heads,
         "max_vocab_size": args.max_vocab_size,
-        "data_format": args.data_format,
+        "data_format": "instruction-jsonl",
     }
     data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
     start_step = 0
