@@ -109,6 +109,11 @@ class InferenceAPITests(unittest.TestCase):
 
     def setUp(self) -> None:
         FakeUpstreamHandler.fail = False
+        self._rate_limit_temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._rate_limit_temp.cleanup)
+        rate_limit_env = patch.dict(os.environ, {"NEW_STAR_AI_RATE_LIMIT_DB": str(Path(self._rate_limit_temp.name) / "limits.sqlite3")})
+        rate_limit_env.start()
+        self.addCleanup(rate_limit_env.stop)
         self.settings = EngineSettings(models_file=Path("unused"), failure_threshold=1,
                                        circuit_cooldown_seconds=1, max_circuit_cooldown_seconds=2)
         self.openai = ModelSpec(
