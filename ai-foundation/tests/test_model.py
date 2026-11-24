@@ -664,7 +664,7 @@ def test_multilingual_evaluation_cli_writes_reproducible_language_report(tmp_pat
         {"language": "ne", "split": "validation", "text": "नेपाली परीक्षण सामग्री " * 5},
     ]
     corpus.write_text(
-        "\\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
         encoding="utf-8",
     )
     report_path = tmp_path / "metrics" / "multilingual.json"
