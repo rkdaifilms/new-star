@@ -1053,7 +1053,7 @@ def test_sft_can_finetune_existing_pretraining_checkpoint_without_retokenizing(t
                 ],
             })
     data.write_text(
-        "\\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
         encoding="utf-8",
     )
     manifest = tmp_path / "base-sft-manifest.json"
