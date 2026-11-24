@@ -122,15 +122,14 @@ function requestedImageAspectRatio(description){
 async function generateImage(overrideDescription){const description=(typeof overrideDescription==="string"?overrideDescription:prompt.value).trim();if(busy)return;if(!description){notice.textContent="पहले तस्वीर का विवरण लिखें, फिर Generate image दबाएँ।";prompt.focus();return;}busy=true;send.disabled=true;voice.disabled=true;lastLanguage=detectLanguage(description);addMessage("🎨 "+description,"user");prompt.value="";imageResult.hidden=false;imageResult.replaceChildren();const label=document.createElement("p");label.textContent="Creating your image…";imageResult.append(label);try{const aspectRatio=requestedImageAspectRatio(description);const imageSize=$("image-resolution")?.value||"1K";const result=await invoke({action:"image",prompt:description,language:lastLanguage,aspectRatio,imageSize});if(typeof result.image!=="string"||result.image.length<100)throw new Error("Image provider returned no usable image data.");const mime=/^image\/(png|jpeg|webp)$/i.test(result.mimeType||"")?result.mimeType:"image/png";const img=document.createElement("img");img.alt="AI generated creator image";img.src="data:"+mime+";base64,"+result.image;img.onerror=()=>{label.textContent="Image returned, but this device could not display it. Please retry.";};const save=document.createElement("a");save.href=img.src;save.download="new-star-creator-image."+({"image/jpeg":"jpg","image/webp":"webp"}[mime]||"png");save.textContent="Save image";save.style.color="#ff9bb0";imageResult.replaceChildren(img,save);}catch(e){label.textContent=e.message||"Image generation failed.";}finally{busy=false;send.disabled=false;voice.disabled=false;}}
 async function handleSendAction(){
  if(recording&&browserRecognition){
-  pendingSendAfterTranscription=false;send.disabled=true;
-  voiceStatus.textContent="रिकॉर्डिंग रोक रहे हैं। शब्द टेक्स्ट बॉक्स में आएँगे—जाँचकर फिर Send दबाएँ।";
-  try{browserRecognition.stop();}catch(_){}
+  pendingSendAfterTranscription=true;send.disabled=true;
+  voiceStatus.textContent="आवाज़ पहचानकर संदेश भेजा जा रहा है…";
+  try{browserRecognition.stop();}catch(_){pendingSendAfterTranscription=false;send.disabled=false;}
   return;
  }
  if(recording&&recorder?.state!=="inactive"){
-  pendingSendAfterTranscription=false;
-  send.disabled=true;
-  voiceStatus.textContent="रिकॉर्डिंग रोक रहे हैं। शब्द टेक्स्ट बॉक्स में आएँगे—जाँचकर फिर Send दबाएँ।";
+  pendingSendAfterTranscription=true;send.disabled=true;
+  voiceStatus.textContent="रिकॉर्डिंग रोककर संदेश भेजा जा रहा है…";
   recorder.stop();
   return;
  }
@@ -174,14 +173,18 @@ async function startRecording(forceRecorder=false){
    };
    browserRecognition.onend=async()=>{
     const transcript=browserTranscript.trim();
-    browserRecognition=null;recording=false;pendingSendAfterTranscription=false;
+    const shouldSend=pendingSendAfterTranscription;
+    browserRecognition=null;recording=false;
     voice.textContent="🎙️";voice.setAttribute("aria-label","माइक से बोलें");stopVoice.hidden=true;
     if(transcript){
      prompt.value=[voiceDraftPrefix,transcript].filter(Boolean).join(" ");lastLanguage=detectLanguage(transcript);
-     voiceStatus.textContent="आवाज़ टेक्स्ट बॉक्स में लिख दी गई है। जाँचकर Send दबाएँ।";
-     // Never auto-send recognized speech; the user explicitly presses Send.
-    }else if(!voiceStatus.textContent.includes("समस्या")&&!voiceStatus.textContent.includes("अनुमति")){
-     voiceStatus.textContent="कोई आवाज़ पहचान में नहीं आई। दोबारा बोलें या संदेश लिखें।";
+     voiceStatus.textContent=shouldSend?"आवाज़ पहचान ली गई। संदेश भेजा जा रहा है…":"आवाज़ टेक्स्ट बॉक्स में लिख दी गई है।";
+     pendingSendAfterTranscription=false;
+     if(shouldSend) await sendMessage();
+    }else{
+     voiceStatus.textContent="ब्राउज़र ने शब्द नहीं पहचाने। रिकॉर्डिंग मोड शुरू किया जा रहा है…";
+     pendingSendAfterTranscription=shouldSend;
+     if(!busy) await startRecording(true);
     }
     if(!busy){send.disabled=false;voice.disabled=false;}
    };
@@ -210,6 +213,7 @@ async function startRecording(forceRecorder=false){
   recorder.onstop=async()=>{
    const stoppedRecorder=recorder;
    const recordedChunks=chunks.slice();
+   const shouldSend=pendingSendAfterTranscription;
    pendingSendAfterTranscription=false;
    recording=false;stopVoice.hidden=true;voice.textContent="🎙️";
    voice.setAttribute("aria-label","माइक से बोलें");
@@ -233,9 +237,9 @@ async function startRecording(forceRecorder=false){
     if(!transcript)throw new Error("आवाज़ से कोई शब्द नहीं मिला। थोड़ा साफ़ बोलकर फिर कोशिश करें।");
     lastLanguage=result.language&&result.language!=="und"?result.language:detectLanguage(transcript)||lastLanguage;
     prompt.value=[voiceDraftPrefix,transcript].filter(Boolean).join(" ");
-    voiceStatus.textContent="आवाज़ टेक्स्ट बॉक्स में लिख दी गई है। जाँचकर Send दबाएँ।";
+    voiceStatus.textContent=shouldSend?"आवाज़ पहचान ली गई। संदेश भेजा जा रहा है…":"आवाज़ टेक्स्ट बॉक्स में लिख दी गई है।";
     prompt.focus();
-    // Speech is transcribed into the draft; the user must explicitly press Send.
+    if(shouldSend) await sendMessage();
    }catch(e){
     voiceStatus.textContent=e.message||"आवाज़ को टेक्स्ट में नहीं बदला जा सका। आप लिखकर भेज सकते हैं।";
    }finally{
