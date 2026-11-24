@@ -18,7 +18,7 @@ from .errors import NewStarAIError, NoEligibleModelError, RoutingExhausted
 from .inference import ChatInference
 from .jobs import JobQueue
 from .registry import ModelRegistry
-from .security import TokenBucketLimiter, UsageLogger, authenticate_api_key, load_api_keys
+from .security import SQLiteTokenBucketLimiter, UsageLogger, authenticate_api_key, load_api_keys
 
 MAX_BODY_BYTES = 1_048_576
 ALLOWED_ROLES = frozenset({"system", "developer", "user", "assistant", "tool"})
@@ -86,7 +86,7 @@ def validate_chat_request(payload: Any) -> dict[str, Any]:
 
 def make_handler(inference: ChatInference, server_token: str | None = None, api_keys: dict[str, str] | None = None, job_queue: JobQueue | None = None):
     configured_keys = api_keys if api_keys is not None else load_api_keys()
-    limiter = TokenBucketLimiter(int(os.environ.get('NEW_STAR_AI_RATE_LIMIT_CAPACITY', '60')), float(os.environ.get('NEW_STAR_AI_RATE_LIMIT_REFILL_PER_SECOND', '1')))
+    limiter = SQLiteTokenBucketLimiter(capacity=int(os.environ.get('NEW_STAR_AI_RATE_LIMIT_CAPACITY', '60')), refill_per_second=float(os.environ.get('NEW_STAR_AI_RATE_LIMIT_REFILL_PER_SECOND', '1')))
     audit = UsageLogger()
     queue = job_queue or JobQueue()
     class InferenceHandler(BaseHTTPRequestHandler):

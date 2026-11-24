@@ -2,7 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ai_engine.security import TokenBucketLimiter, authenticate_api_key, load_api_keys, UsageLogger
+from ai_engine.security import SQLiteTokenBucketLimiter, TokenBucketLimiter, authenticate_api_key, load_api_keys, UsageLogger
 
 class SecurityTests(unittest.TestCase):
     def test_api_key_registry_and_authentication(self):
@@ -22,6 +22,17 @@ class SecurityTests(unittest.TestCase):
         self.assertTrue(limiter.allow("client", now=10))
         self.assertFalse(limiter.allow("client", now=10))
         self.assertTrue(limiter.allow("client", now=11))
+
+    def test_sqlite_rate_limit_is_shared_between_instances(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            database = str(Path(folder) / "limits.sqlite3")
+            first = SQLiteTokenBucketLimiter(database, capacity=2, refill_per_second=1)
+            second = SQLiteTokenBucketLimiter(database, capacity=2, refill_per_second=1)
+            self.assertTrue(first.allow("shared-client", now=100))
+            self.assertTrue(second.allow("shared-client", now=100))
+            self.assertFalse(first.allow("shared-client", now=100))
+            self.assertTrue(second.allow("shared-client", now=101))
 
     def test_usage_log_does_not_accept_prompt_fields(self):
         import tempfile, json
