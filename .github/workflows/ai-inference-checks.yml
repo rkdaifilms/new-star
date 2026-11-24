@@ -55,10 +55,13 @@ jobs:
           grep -F 'newStarTestFallbackEnabled' "$FILE"
           grep -F 'async function startGeminiVideo' "$FILE"
           grep -F 'NEW_STAR_IMAGE_MODEL' "$FILE"
-          grep -F 'response_format: { type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }' "$FILE"
+          grep -F 'response_format: [{ type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }]' "$FILE"
           grep -F 'generation_config: { video_config: { task: "text_to_video" } }' "$FILE"
           grep -F 'delivery: "inline"' "$FILE"
           grep -F 'newstar_pending_video_job' creator-ai.js
+          grep -F 'video-duration' creator-ai.html
+          grep -F 'duration=$("video-duration")' creator-ai.js
+          grep -F 'videoGeneration: { supported: true, configured: Boolean(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON")?.trim())' "$FILE"
           grep -F 'https://aiplatform.googleapis.com/v1beta1/projects/' "$FILE"
           grep -F 'GOOGLE_SERVICE_ACCOUNT_JSON' "$FILE"
           grep -F 'oauth2.googleapis.com/token' "$FILE"
