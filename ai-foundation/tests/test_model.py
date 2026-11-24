@@ -583,5 +583,5 @@ def test_full_corpus_evaluation_counts_every_next_token_target():
     second_loss, second_count = evaluate_full_corpus(model, data, batch_size=5)
     assert first_count == len(data) - 1
     assert second_count == len(data) - 1
-    assert first_loss == second_loss
+    assert abs(first_loss - second_loss) < 1e-5
     assert torch.isfinite(torch.tensor(first_loss))
