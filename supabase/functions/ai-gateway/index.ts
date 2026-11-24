@@ -171,14 +171,14 @@ async function generateOpenRouterImage(key: string, prompt: string, aspectRatio:
 
 async function startGeminiVideo(key: string, prompt: string, aspectRatio: string, resolution: string, duration: string) {
   const model = Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim() || "gemini-omni-1.2-flash";
-  const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1/interactions", {
+  const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
     headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
       input: [{ type: "text", text: prompt }],
       generation_config: { video_config: { task: "text_to_video" } },
-      response_format: [{ type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }],
+      response_format: { type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration },
       background: true,
       store: true
     })
@@ -193,7 +193,7 @@ async function startGeminiVideo(key: string, prompt: string, aspectRatio: string
 
 async function getGeminiVideoInteraction(key: string, interactionId: string) {
   const response = await fetchWithTimeout(
-    "https://generativelanguage.googleapis.com/v1/interactions/" + encodeURIComponent(interactionId),
+    "https://generativelanguage.googleapis.com/v1beta/interactions/" + encodeURIComponent(interactionId),
     { method: "GET", headers: { "x-goog-api-key": key } },
     25000
   );
@@ -600,7 +600,7 @@ Deno.serve(async (req: Request) => {
           status: result.status
         }).select("id").single();
         if (jobError || !job?.id) {
-          await fetchWithTimeout("https://generativelanguage.googleapis.com/v1/interactions/" + encodeURIComponent(result.interactionId) + "/cancel", {
+          await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions/" + encodeURIComponent(result.interactionId) + "/cancel", {
             method: "POST", headers: { "x-goog-api-key": geminiKeys[keyIndex] }
           }, 10000).catch(() => {});
           throw new Error("VIDEO_JOB_SAVE_FAILED");
