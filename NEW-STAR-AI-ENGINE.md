@@ -6,8 +6,8 @@ New Star now has its own AI orchestration layer, conversation storage, prompt po
 Vercel is not required for the AI backend. The live AI gateway runs as a Supabase Edge Function in the existing New Star Supabase project.
 
 ## Connected backend
-- Supabase Edge Function: `ai-gateway` (active deployment version 81).
-- Supabase auth: validates the signed-in user before any AI operation.
+- Supabase Edge Function: `ai-gateway` (active deployment version 82).
+- Supabase auth: validates either a signed-in Supabase user session or a scoped New Star API key before AI operations.
 - Provider keys remain in server-side Supabase secrets; no provider keys are sent to the browser.
 - Provider adapters support configured Gemini, OpenAI and OpenRouter keys for chat/image where supported by the existing gateway.
 - A New Star hosted open-model adapter is deployed. It can route chat to a New Star-managed OpenAI-compatible inference endpoint using server-only `NEW_STAR_MODEL_BASE_URL`, `NEW_STAR_MODEL_NAME`, and optional `NEW_STAR_MODEL_API_KEY` secrets. It runs before fallback providers when configured and accepts HTTPS endpoints only. GPU runtime deployment files are in `ai-model/`; no GPU host is currently provisioned.
@@ -38,7 +38,7 @@ The New Star AI page remembers the current conversation ID in the browser so a c
 The UI labels these as unavailable rather than pretending to complete them.
 
 ## Deployment and verification
-- Supabase AI Gateway version 81 is active. Research and vision actions plus non-billable provider credential/credit diagnostics are deployed. No live provider inference request was made, so successful live search and image understanding remain unverified. The New Star hosted-model adapter is deployed, but no inference endpoint or GPU host has been provisioned.
+- Supabase AI Gateway version 82 is active. Research and vision actions, non-billable provider diagnostics, and scoped New Star API-key authentication/management are deployed. No live provider inference request was made, so successful live search and image understanding remain unverified. The New Star hosted-model adapter is deployed, but no inference endpoint or GPU host has been provisioned.
 - The conversation-memory migration applied successfully.
 - The status action now performs non-billable credential/access probes for Gemini and OpenAI using model-independent model-list endpoints, and checks OpenRouter key/credit endpoints. It does not run paid inference; Gemini/OpenAI inference quota is not tested. The New Star hosted-model check verifies the model-list endpoint only.
 - Conversation creation now happens only after an AI provider successfully answers, preventing failed first requests from leaving empty conversation rows. The UI also warns when a reply succeeds but its memory could not be saved.
@@ -48,10 +48,10 @@ The UI labels these as unavailable rather than pretending to complete them.
 - A fresh Vercel deployment is not part of this architecture. The existing app hosting setup still needs to publish the latest branch frontend files before users can access the updated page.
 
 ## New Star developer API keys
-- Migration `20261124075022_new_star_ai_api_key_management` is applied. The table stores only a SHA-256 hash and short prefix; RLS is enabled and direct client table access is revoked.
+- Migration `20261124075022_new_star_ai_api_key_management` is applied. The table stores only a SHA-256 hash and short prefix; RLS is enabled and direct `anon`/`authenticated` table access is revoked. The Security Advisor's no-policy notice for this table is intentional: only the server-side service role accesses it.
 - Signed-in users can create, list, and revoke their own keys from the Developer API keys panel on the New Star AI page.
 - Keys are generated with 256 bits of cryptographic randomness, shown once, scoped to chat/image/vision/voice/research/status, and may expire within one year. The server validates revocation, expiry, scope, and the owner's account request limit.
-- Programmatic requests send the key in the `x-new-star-api-key` header to the Supabase `/functions/v1/ai-gateway` endpoint. Keep keys in a private server environment; never put them in browser JavaScript or public mobile bundles.
+- Programmatic requests send the key in the `x-new-star-api-key` header to the Supabase `/functions/v1/ai-gateway` endpoint; include the project's publishable `apikey` header when calling the Supabase endpoint directly. Keep New Star keys in a private server environment; never put them in browser JavaScript or public mobile bundles. Do not send the New Star key as a Bearer token.
 - API-key management requires the user's normal signed-in Supabase session. The API key itself cannot create, list, or revoke keys. Account-level request limits are shared by that user's keys.
 - The frontend manager is committed to the feature branch; it will appear in the deployed app only after the branch frontend is published by the app host.
 
