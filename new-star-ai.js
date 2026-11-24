@@ -4,7 +4,7 @@ const form=$("ns-form"),prompt=$("ns-prompt"),output=$("ns-output"),submit=$("ns
 let mode="chat",busy=false,attachment=null,conversationId=localStorage.getItem("new-star-ai-conversation")||"",recorder=null,recordedChunks=[];
 const cfg=window.NEW_STAR_AI_CONFIG||{};
 const base=(cfg.apiBase||"").replace(/\\/$/,"");
-const modes={chat:["AI Chat","Ask questions, plan and create."],research:["Live Research","Search the web and return source links."],image:["Image Generation","Describe an image, edit an upload, and choose output size."],video:["Video Generation","Describe a video or attach an image to animate."]};
+const modes={chat:["AI Chat","Ask questions, plan and create."],research:["Live Research","Search the web and return source links."],image:["Image Generation","Describe an image and choose output size."],video:["Video Generation","Describe a video or attach an image to animate."]};
 const routes={chat:"/api/new-star-ai/chat",research:"/api/new-star-ai/research",image:"/api/new-star-ai/images",video:"/api/new-star-ai/videos"};
 function bubble(text,kind="ai"){const el=document.createElement("div");el.className="ns-message "+(kind==="user"?"ns-user":"ns-ai");el.textContent=text;output.append(el);output.scrollTop=output.scrollHeight;return el;}
 function toBase64(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(new Error("Could not read voice recording."));reader.readAsDataURL(blob);});}
