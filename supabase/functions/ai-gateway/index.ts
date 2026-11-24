@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { base64UrlEncode, privateKeyPemToBytes } from "./google-auth.ts";
 import { buildGeminiVideoRequest } from "./video-provider.ts";
+import { detectReplyScript } from "./language-policy.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -889,9 +890,12 @@ Deno.serve(async (req: Request) => {
     } catch { /* Use the language detected from the user's message when no saved preference is available. */ }
   }
   const selectedLanguage = AI_LANGUAGE_NAMES[selectedLanguageCode] || "";
+  const detectedScript = detectReplyScript(messages[messages.length - 1].content);
   const systemPrompt = selectedLanguage
     ? baseSystemPrompt + "\n\nLANGUAGE SETTING: The app user has selected " + selectedLanguage + ". Write every user-facing response entirely in " + selectedLanguage + " using its native script. Do not answer in Hindi or English unless that is the selected language. Keep names, code, URLs, and technical identifiers unchanged where necessary. If the user explicitly asks for translation into another language, follow that request for that answer only."
-    : baseSystemPrompt;
+    : detectedScript
+    ? baseSystemPrompt + "\n\nAUTOMATIC REPLY LANGUAGE GUIDANCE: " + detectedScript.instruction + " This is script-based guidance, not guaranteed language identification. If the wording clearly identifies a more specific language, use that language. If the message is too ambiguous, ask a brief clarification rather than guessing."
+    : baseSystemPrompt + "\n\nAUTOMATIC REPLY LANGUAGE GUIDANCE: Identify the language of the latest user message from its words and context, then reply in that language. If uncertain, ask a brief clarification rather than defaulting to English.";
 
   const failedProviders: string[] = [];
   for (const provider of providers) {
