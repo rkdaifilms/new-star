@@ -170,7 +170,7 @@ async function startRecording(){
     voice.textContent="🎙️";voice.setAttribute("aria-label","माइक से बोलें");stopVoice.hidden=true;
     if(transcript){
      prompt.value=[voiceDraftPrefix,transcript].filter(Boolean).join(" ");lastLanguage=detectLanguage(transcript);
-     voiceStatus.textContent=shouldSend?"आवाज़ समझ ली गई। AI को भेज रहे हैं…":"आवाज़ टेक्स्ट में बदल गई।";
+     voiceStatus.textContent="आवाज़ टेक्स्ट बॉक्स में लिख दी गई है। जाँचकर Send दबाएँ।";
      // Never auto-send recognized speech; the user explicitly presses Send.
     }else if(!voiceStatus.textContent.includes("समस्या")&&!voiceStatus.textContent.includes("अनुमति")){
      voiceStatus.textContent="कोई आवाज़ पहचान में नहीं आई। दोबारा बोलें या संदेश लिखें।";
