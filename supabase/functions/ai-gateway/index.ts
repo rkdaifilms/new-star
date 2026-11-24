@@ -300,8 +300,8 @@ async function searchNewStarIndex(query: string, language: string, limit: number
   const base = endpoint.toString().replace(/\/$/, "");
   const searchUrl = base.endsWith("/search") ? base : base + "/search";
   const token = Deno.env.get("NEW_STAR_SEARCH_API_KEY")?.trim() || "";
-  const requestHeaders: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) requestHeaders.Authorization = "Bearer " + token;
+  if (!token) return json({ ok: false, error: "New Star Search API authentication is not configured." }, 503, headers);
+  const requestHeaders: Record<string, string> = { "Content-Type": "application/json", Authorization: "Bearer " + token };
   try {
     const response = await fetchWithTimeout(searchUrl, {
       method: "POST", headers: requestHeaders,
@@ -866,7 +866,7 @@ Deno.serve(async (req: Request) => {
         speechGeneration: { supported: true, configured: speechConfigured },
         speechTranscription: { supported: true, configured: speechConfigured },
         videoGeneration: { supported: true, configured: Boolean(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON")?.trim()), provider: "google-vertex-ai", model: Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim() || "gemini-omni-1.2-flash", reason: "A configured service account does not verify Vertex AI permissions, model access, billing, quota, or successful video generation." },
-        webSearch: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SEARCH_BASE_URL")?.trim()), provider: "new-star-search", reason: "Adapter to the separately deployed New Star Search service; its crawler and index must be deployed separately." }
+        webSearch: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SEARCH_BASE_URL")?.trim() && Deno.env.get("NEW_STAR_SEARCH_API_KEY")?.trim()), provider: "new-star-search", reason: "Adapter to the separately deployed New Star Search service; its crawler and index must be deployed separately." }
       },
       health: {
         newStarHostedModel: newStarModel,
