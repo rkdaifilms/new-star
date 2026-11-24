@@ -56,7 +56,7 @@ A successful response includes `ok`, `provider`, and `answer`. If all providers 
 
 ## Important status
 
-The gateway is connected to the shared floating AI assistant (`ai-chat.js`). Provider secrets and live provider failover have not been end-to-end verified. The Qwen CPU model is an opt-in test engine, not the production ChatGPT/Gemini model. The Help Center reports per-modality support/configuration separately; “configured” is not a live health check. Video generation has a separate Vertex AI Interactions adapter; live web search is not implemented.
+The gateway is connected to the shared floating AI assistant (`ai-chat.js`). Provider secrets and live provider failover have not been end-to-end verified. The Qwen CPU model is an opt-in test engine, not the production ChatGPT/Gemini model. The Help Center reports per-modality support/configuration separately; “configured” is not a live health check. Video generation has a separate Vertex AI Interactions adapter. New Star Search is wired through a separately deployed search service; the crawler, index, and ranking service must be deployed separately.
 
 
 ## Video generation
@@ -77,3 +77,16 @@ The gateway sends the prompt as a typed Interactions API text input (`input: [{ 
 Google Cloud service-account private keys are sensitive. An authorized adult account owner should create and configure the service account, grant only the minimum Vertex AI permissions, enable the API, and review project billing and model access before enabling generation. Never paste service-account JSON or private keys into chat, GitHub, frontend code, or browser storage.
 
 Generated MP4 files are uploaded to the private Supabase Storage bucket `new-star-ai-videos`; the user receives a signed URL valid for one hour. The migration `20261124120000_add_private_ai_video_storage.sql` creates the private bucket and user-scoped read policy. Video rendering runs as a provider-side background interaction. New Star stores a user-owned job record and polls the provider on demand; it is not a continuously running worker. The browser stores only the pending job ID locally and can resume polling after a page reload; the authenticated gateway verifies that the job belongs to the signed-in user. A configured service account is not proof of live generation; an actual provider request is still required to verify the end-to-end flow.
+
+
+## Unified multimodal actions and New Star Search
+
+Creator Studio uses one authenticated Supabase Edge Function for chat, image generation, video generation/status, speech generation, speech transcription, and search. The browser sends a typed action to the same gateway; each modality keeps its own validation, provider credentials, rate limit, timeout, and response shape.
+
+Search is routed to the self-hosted New Star Search service. Configure these Supabase Edge Function secrets:
+- NEW_STAR_SEARCH_BASE_URL: HTTPS origin or base path for the New Star Search API. The gateway posts to /search unless the configured path already ends in /search.
+- NEW_STAR_SEARCH_API_KEY: optional bearer token required by the search service.
+
+The search service must accept POST JSON containing query, language, and limit, and return JSON with a results array. Each result must contain title and an HTTPS url; snippet and publishedAt are optional. The gateway validates result URLs and limits response fields before returning them. Creator Studio has a Search Web mode that displays clickable indexed results.
+
+This is an integration contract, not a claim that the crawler or index already exists. If NEW_STAR_SEARCH_BASE_URL is not configured, search returns a clear 503 and the UI does not invent results. Do not configure an endpoint until the New Star Search service has been deployed and secured.
