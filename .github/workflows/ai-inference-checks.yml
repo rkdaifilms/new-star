@@ -43,7 +43,7 @@ jobs:
       - name: Type-check the hosted-model gateway adapter
         run: deno check --no-lock supabase/functions/ai-gateway/index.ts
       - name: Test Google Cloud service-account helpers
-        run: deno test --no-check supabase/functions/ai-gateway/google-auth.test.ts
+        run: deno test --no-check supabase/functions/ai-gateway/google-auth.test.ts supabase/functions/ai-gateway/video-provider.test.ts
       - name: Verify local model adapter and provider priority
         shell: bash
         run: |
