@@ -97,7 +97,7 @@ def supported_language_codes(catalog_path: str | Path | None = None) -> set[str]
     if not catalog.is_file():
         raise ValueError(f"canonical language catalog is missing: {catalog}")
     source = catalog.read_text(encoding="utf-8")
-    codes = set(re.findall(r'^\\s{2}([a-z]{2,3}): "', source, flags=re.MULTILINE))
+    codes = set(re.findall(r"\\b([a-z]{2,3}): \"", source))
     if not codes:
         raise ValueError("canonical language catalog contains no language entries")
     return codes
