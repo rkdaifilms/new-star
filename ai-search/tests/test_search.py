@@ -56,6 +56,22 @@ class SearchIndexTests(unittest.TestCase):
         with patch("socket.getaddrinfo",return_value=[(2,1,6,"",("127.0.0.1",443))]):
             with self.assertRaisesRegex(ValueError,"private, local, or reserved"):
                 resolve_public_host("public-looking.example")
+
+    def test_crawler_deduplicates_seed_and_discovered_urls(self):
+        crawler=SafeCrawler(self.index,("example.org",),max_pages=10)
+        page_a=b'<html><title>A</title><body>Page A<a href="/b">B</a><a href="/b">B again</a></body></html>'
+        page_b=b'<html><title>B</title><body>Page B</body></html>'
+        calls=[]
+        def fake_read(url, accepted_types=("text/html",)):
+            calls.append(url)
+            return (page_a if url.endswith("/a") else page_b), "utf-8"
+        with patch.object(crawler,"_robots_allowed",return_value=True), patch.object(crawler,"_read",side_effect=fake_read):
+            stats=crawler.crawl(["https://example.org/a","https://example.org/a"])
+        self.assertEqual(stats["visited"],2)
+        self.assertEqual(stats["indexed"],2)
+        self.assertEqual(calls.count("https://example.org/a"),1)
+        self.assertEqual(calls.count("https://example.org/b"),1)
+
     def test_authenticated_search_http_endpoint(self):
         server=ThreadingHTTPServer(("127.0.0.1",0),make_handler(self.index,"test-secret"))
         thread=threading.Thread(target=server.serve_forever,daemon=True)
