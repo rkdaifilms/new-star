@@ -120,6 +120,25 @@ python ai-foundation/sft_train.py --data ./permitted-instructions.jsonl \
   --output artifacts/newstar-sft.pt
 ```
 
+SFT writes a separate resumable state file next to the output checkpoint at
+each evaluation interval (and at the final step). If training is interrupted,
+continue to a larger total step count with the same dataset and training
+configuration:
+
+```sh
+python ai-foundation/sft_train.py --data ./permitted-instructions.jsonl \
+  --steps 2000 --batch-size 8 --block-size 256 --eval-interval 100 \
+  --output artifacts/newstar-sft.pt \
+  --resume-from artifacts/newstar-sft.pt.resume.pt
+```
+
+The resume file includes model weights, optimizer state, batch-sampling RNG,
+and PyTorch RNG state. The trainer rejects a changed dataset or incompatible
+training configuration rather than silently resuming a different experiment.
+The `--steps` value is the desired total step count, not additional steps.
+This resume support currently applies to SFT; pretraining resume is not yet
+implemented.
+
 The SFT loop trains only on assistant response targets; system/user tokens and
 padding positions are ignored by the loss. Each batch row selects a language
 uniformly. Within each language, validation cross-entropy is weighted by
