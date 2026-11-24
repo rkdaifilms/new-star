@@ -8,7 +8,8 @@ from pathlib import Path
 
 import torch
 
-from audit_corpus import audit_corpus\nfrom corpus import combine_languages, load_language_corpora
+from audit_corpus import audit_corpus
+from corpus import combine_languages, load_language_corpora
 from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer
 
@@ -34,7 +35,8 @@ def sample_balanced_batch(corpora: dict[str, torch.Tensor], batch_size: int,
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", required=True, help="Permitted UTF-8 text file or language-tagged JSONL corpus")
-    parser.add_argument("--data-format", choices=("text", "jsonl"), default="text")\n    parser.add_argument("--manifest", help="required provenance JSON for multilingual JSONL data")
+    parser.add_argument("--data-format", choices=("text", "jsonl"), default="text")
+    parser.add_argument("--manifest", help="required provenance JSON for multilingual JSONL data")
     parser.add_argument("--output", default="artifacts/newstar-small.pt")
     parser.add_argument("--steps", type=int, default=2000)
     parser.add_argument("--batch-size", type=int, default=16)
@@ -57,8 +59,16 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
 
+    audit_report = None
     if args.data_format == "jsonl":
+        if not args.manifest:
+            parser.error("--manifest is required with --data-format jsonl")
         try:
+            audit_report = audit_corpus(
+                args.data, args.manifest, args.block_size + 2, args.block_size + 2
+            )
+            if not audit_report["ok"]:
+                parser.error("corpus audit failed: " + "; ".join(audit_report["errors"]))
             train_by_language, validation_by_language = load_language_corpora(args.data)
         except ValueError as exc:
             parser.error(str(exc))
@@ -191,6 +201,10 @@ def main():
         "validation_characters_by_language": {lang: len(text) for lang, text in validation_by_language.items()},
         "sampling": "uniform language selection per batch row",
     }
+    if audit_report is not None:
+        output.with_suffix(output.suffix + ".corpus-audit.json").write_text(
+            json.dumps(audit_report, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
     output.with_suffix(output.suffix + ".json").write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
     )
