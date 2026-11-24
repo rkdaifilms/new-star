@@ -379,3 +379,46 @@ def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeyp
     restored = NewStarGPT(NewStarConfig(**saved["config"]))
     restored.load_state_dict(saved["state_dict"])
     assert tokenizer.decode(tokenizer.encode("नमस्ते 🌍")) == "नमस्ते 🌍"
+
+    # Exercise the actual native HTTP adapter with the checkpoint just trained.
+    import json as json_module
+    import threading
+    from http.server import ThreadingHTTPServer
+    from urllib.request import Request, urlopen
+    from serve import create_handler, load_engine
+
+    served_model, served_tokenizer = load_engine(str(checkpoint), "cpu")
+    httpd = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        create_handler(served_model, served_tokenizer, "tiny-sft-test", "cpu", ""),
+    )
+    worker = threading.Thread(target=httpd.serve_forever, daemon=True)
+    worker.start()
+    try:
+        base_url = f"http://127.0.0.1:{httpd.server_port}"
+        with urlopen(f"{base_url}/health", timeout=5) as response:
+            health = json_module.loads(response.read().decode("utf-8"))
+        assert health["ok"] is True
+        assert health["engine"] == "new-star-from-scratch"
+
+        request_body = json_module.dumps({
+            "model": "tiny-sft-test",
+            "messages": [{"role": "user", "content": "नमस्ते"}],
+            "max_tokens": 2,
+        }).encode("utf-8")
+        request = Request(
+            f"{base_url}/v1/chat/completions",
+            data=request_body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=10) as response:
+            completion = json_module.loads(response.read().decode("utf-8"))
+        assert completion["object"] == "chat.completion"
+        assert completion["model"] == "tiny-sft-test"
+        assert completion["choices"][0]["message"]["role"] == "assistant"
+        assert completion["usage"]["completion_tokens"] <= 2
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        worker.join(timeout=5)
