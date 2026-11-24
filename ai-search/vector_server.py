@@ -34,6 +34,8 @@ def make_handler(store, api_key: str):
                 self.send_json(404, {"ok": False, "error": "not found"})
                 return
             try:
+                if not store.health():
+                    raise RuntimeError("database readiness check failed")
                 self.send_json(200, {"ok": True, "service": "new-star-vector-search", "backend": "supabase-pgvector"})
             except Exception:
                 self.send_json(503, {"ok": False, "error": "vector backend unavailable"})
