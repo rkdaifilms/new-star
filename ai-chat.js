@@ -71,7 +71,7 @@ async function checkProviderStatus(force=false){
   if(!sessionData?.session){providerStatus.textContent="AI इस्तेमाल करने के लिए पहले Login करें।";return;}
   const {data,error}=await db.functions.invoke("ai-gateway",{body:{action:"status"}});
   if(error||!data?.ok)throw error||new Error(data?.error||"Status unavailable");
-  const names=[["newStarTestFallbackEnabled","New Star test engine (opt-in)"],["openai","OpenAI"],["gemini","Gemini"],["openrouter","OpenRouter"]];
+  const names=[["newStarApiPrimary","New Star AI API (primary)"],["newStarTestFallbackEnabled","New Star AI API (fallback)"],["openai","OpenAI"],["gemini","Gemini"],["openrouter","OpenRouter"]];
   const ready=names.filter(([key])=>data.providers?.[key]).map(([,label])=>label);
   const capabilityNames=[["chat","Chat"],["imageGeneration","Image"],["speechGeneration","Voice"],["speechTranscription","Voice input"],["videoGeneration","Video"],["webSearch","Live search"]];
   const capabilitySummary=capabilityNames.map(([key,label])=>{

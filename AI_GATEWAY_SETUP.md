@@ -90,3 +90,16 @@ Search is routed to the self-hosted New Star Search service. Configure these Sup
 The search service must accept POST JSON containing query, language, and limit, and return JSON with a results array. Each result must contain title and an HTTPS url; snippet and publishedAt are optional. The gateway validates result URLs and limits response fields before returning them. Creator Studio has a Search Web mode that displays clickable indexed results.
 
 This is an integration contract, not a claim that the crawler or index already exists. If NEW_STAR_SEARCH_BASE_URL is not configured, search returns a clear 503 and the UI does not invent results. Do not configure an endpoint until the New Star Search service has been deployed and secured.
+
+
+## Connect the New Star AI API to Creator Studio
+
+Creator Studio and the Help Center already call the authenticated ai-gateway function. To route chat through the self-hosted New Star API first, configure these Supabase Edge Function secrets after deploying the New Star API at a publicly reachable HTTPS endpoint:
+
+- NEW_STAR_MODEL_BASE_URL: HTTPS base URL of the New Star API, without credentials, query, or fragment. The gateway calls its /chat/completions compatibility route.
+- NEW_STAR_MODEL_NAME: model ID accepted by the New Star API.
+- NEW_STAR_MODEL_API_KEY: bearer token configured on the New Star API. Keep this server-side only.
+- NEW_STAR_MODEL_PRIMARY: set to true to try New Star first; Gemini, OpenAI, and OpenRouter remain bounded fallbacks.
+- NEW_STAR_MODEL_ENABLE_FALLBACK: when New Star is not primary, set true only if you want to opt into it as a last-resort test backend.
+
+The gateway verifies HTTPS endpoint syntax and sends the bearer token server-side. The New Star endpoint must be internet-reachable from Supabase Edge Functions; localhost/private-network addresses are not reachable from the hosted gateway. The Creator Studio UI continues to use one authenticated gateway endpoint, so provider credentials never enter browser JavaScript. A configured endpoint does not prove model quality, reachability, or production readiness; run live end-to-end checks after an authorized deployment.

@@ -851,6 +851,7 @@ Deno.serve(async (req: Request) => {
   if (body?.action === "status") {
     const newStarModel = await probeNewStarHostedModel();
     const newStarTestFallbackEnabled = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true" && newStarModel.configured;
+    const newStarApiPrimary = Deno.env.get("NEW_STAR_MODEL_PRIMARY") === "true" && newStarModel.configured;
     const hasOpenAI = Boolean(firstSecret("OPENAI_API_KEY", "OPENAI_KEY"));
     const hasGemini = Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"));
     const hasOpenRouter = Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"));
@@ -862,6 +863,7 @@ Deno.serve(async (req: Request) => {
       providers: {
         newStarTestModelConfigured: newStarModel.configured,
         newStarTestFallbackEnabled,
+        newStarApiPrimary,
         openai: hasOpenAI,
         gemini: hasGemini,
         openrouter: hasOpenRouter
@@ -916,11 +918,14 @@ Deno.serve(async (req: Request) => {
   const newStarModelName = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
   const newStarModelKey = Deno.env.get("NEW_STAR_MODEL_API_KEY")?.trim() || "local-no-key";
   const enableLocalTestFallback = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true";
+  const newStarApiPrimary = Deno.env.get("NEW_STAR_MODEL_PRIMARY") === "true";
+  const newStarApiConfigured = Boolean(newStarModelUrl && newStarModelName);
   const providers = [
+    ...(newStarApiPrimary && newStarApiConfigured ? [{ name: "new-star-ai", keys: [newStarModelKey], run: callNewStarHostedModel }] : []),
     { name: "gemini", keys: secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"), run: callGemini },
     { name: "openai", keys: secretCandidates("OPENAI_API_KEY", "OPENAI_KEY"), run: callOpenAI },
     { name: "openrouter", keys: secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter },
-    ...(enableLocalTestFallback && newStarModelUrl && newStarModelName ? [{ name: "new-star-local-test-model", keys: [newStarModelKey], run: callNewStarHostedModel }] : [])
+    ...(!newStarApiPrimary && enableLocalTestFallback && newStarApiConfigured ? [{ name: "new-star-ai-fallback", keys: [newStarModelKey], run: callNewStarHostedModel }] : [])
   ].filter((p): p is { name: string; keys: string[]; run: (key: string, messages: ChatMessage[], systemPrompt: string) => Promise<string> } => p.keys.length > 0);
 
   if (providers.length === 0) {
