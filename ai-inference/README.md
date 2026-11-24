@@ -7,6 +7,7 @@ This is New Star-owned inference-service code, not a newly trained foundation mo
 - Loads one GGUF model from a mounted file.
 - Runs CPU-only inference (`n_gpu_layers=0`).
 - Provides authenticated `POST /v1/chat/completions` and `GET /v1/models` endpoints.
+- Streams chat tokens over Server-Sent Events when `stream: true` is requested, so the UI can show the first tokens before the full answer is ready.
 - Provides unauthenticated `GET /healthz` for deployment health checks.
 - Limits request size, output tokens, and simultaneous inference.
 - Returns generic server errors without exposing prompts, model paths, or credentials.
@@ -51,6 +52,19 @@ curl http://127.0.0.1:8000/v1/chat/completions \
     "max_tokens": 256
   }'
 ```
+
+## Stream a response
+
+Use `curl -N` to keep the connection open and display each generated chunk as it arrives:
+
+```sh
+curl -N http://127.0.0.1:8000/v1/chat/completions \\
+  -H 'Authorization: Bearer replace-with-the-same-MODEL_TOKEN' \\
+  -H 'Content-Type: application/json' \\
+  -d '{"model":"new-star-local","messages":[{"role":"user","content":"नमस्ते"}],"stream":true,"max_tokens":256}'
+```
+
+The response uses OpenAI-compatible `data: ...` events and ends with `data: [DONE]`. Streaming improves perceived responsiveness; it does not make the model compute tokens faster.
 
 ## Connect to New Star AI Gateway
 
