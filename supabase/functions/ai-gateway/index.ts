@@ -249,6 +249,42 @@ async function callGemini(key: string, messages: ChatMessage[], systemPrompt: st
   throw new Error(lastFailure);
 }
 
+async function callNewStarHostedModel(key: string, messages: ChatMessage[], systemPrompt: string) {
+  const configuredEndpoint = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
+  const model = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
+  if (!configuredEndpoint || !model) throw new Error("NEW_STAR_MODEL_NOT_CONFIGURED");
+
+  let endpoint: URL;
+  try {
+    endpoint = new URL(configuredEndpoint);
+  } catch {
+    throw new Error("NEW_STAR_MODEL_INVALID_ENDPOINT");
+  }
+  if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+    throw new Error("NEW_STAR_MODEL_ENDPOINT_MUST_BE_HTTPS");
+  }
+  const base = endpoint.toString().replace(/\\/$/, "");
+  const requestUrl = base.endsWith("/chat/completions") ? base : base + "/chat/completions";
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (key && key !== "local-no-key") headers.Authorization = "Bearer " + key;
+
+  const response = await fetchWithTimeout(requestUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "system", content: systemPrompt }, ...messages.map(m => ({ role: m.role, content: m.content }))],
+      temperature: 0.4,
+      max_tokens: 1400
+    })
+  }, 45000);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
+  const answer = data?.choices?.[0]?.message?.content;
+  if (typeof answer !== "string" || !answer.trim()) throw new Error("NEW_STAR_MODEL_EMPTY_RESPONSE");
+  return answer.trim();
+}
+
 async function callOpenRouter(key: string, messages: ChatMessage[], systemPrompt: string) {
   const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -551,6 +587,7 @@ Deno.serve(async (req: Request) => {
       ok: true,
       status: true,
       providers: {
+        newStarHostedModel: Boolean(Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() && Deno.env.get("NEW_STAR_MODEL_NAME")?.trim()),
         openai: Boolean(firstSecret("OPENAI_API_KEY", "OPENAI_KEY")),
         gemini: Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY")),
         openrouter: Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"))
@@ -589,7 +626,11 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "Too many requests. Please wait one minute and try again." }, 429, headers);
   }
 
+  const newStarModelUrl = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
+  const newStarModelName = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
+  const newStarModelKey = Deno.env.get("NEW_STAR_MODEL_API_KEY")?.trim() || "local-no-key";
   const providers = [
+    ...(newStarModelUrl && newStarModelName ? [{ name: "new-star-hosted-model", keys: [newStarModelKey], run: callNewStarHostedModel }] : []),
     { name: "gemini", keys: secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"), run: callGemini },
     { name: "openai", keys: secretCandidates("OPENAI_API_KEY", "OPENAI_KEY"), run: callOpenAI },
     { name: "openrouter", keys: secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter }
