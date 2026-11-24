@@ -1,0 +1,51 @@
+services:
+  new-star-api:
+    build:
+      context: ..
+      dockerfile: ai-engine/Dockerfile
+    restart: unless-stopped
+    environment:
+      NEW_STAR_AI_MODELS_FILE: /config/models.json
+      NEW_STAR_AI_HOST: 0.0.0.0
+      NEW_STAR_AI_PORT: 8090
+      NEW_STAR_AI_SERVER_TOKEN: \${NEW_STAR_AI_SERVER_TOKEN:?Set NEW_STAR_AI_SERVER_TOKEN}
+      NEW_STAR_AI_QUEUE_DB: /var/lib/new-star/jobs.sqlite3
+      NEW_STAR_AI_QUEUE_MAX_PENDING: \${NEW_STAR_AI_QUEUE_MAX_PENDING:-1000}
+      NEW_STAR_AI_JOB_LEASE_SECONDS: \${NEW_STAR_AI_JOB_LEASE_SECONDS:-300}
+      NEW_STAR_AI_JOB_MAX_ATTEMPTS: \${NEW_STAR_AI_JOB_MAX_ATTEMPTS:-3}
+    volumes:
+      - ./config:/config:ro
+      - new-star-queue:/var/lib/new-star
+    ports:
+      - "127.0.0.1:8090:8090"
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz',timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+  new-star-worker:
+    build:
+      context: ..
+      dockerfile: ai-engine/Dockerfile
+    command: ["python","-m","ai_engine.worker"]
+    restart: unless-stopped
+    environment:
+      NEW_STAR_AI_MODELS_FILE: /config/models.json
+      NEW_STAR_AI_QUEUE_DB: /var/lib/new-star/jobs.sqlite3
+      NEW_STAR_AI_QUEUE_MAX_PENDING: \${NEW_STAR_AI_QUEUE_MAX_PENDING:-1000}
+      NEW_STAR_AI_JOB_LEASE_SECONDS: \${NEW_STAR_AI_JOB_LEASE_SECONDS:-300}
+      NEW_STAR_AI_JOB_MAX_ATTEMPTS: \${NEW_STAR_AI_JOB_MAX_ATTEMPTS:-3}
+      NEW_STAR_AI_WORKER_POLL_SECONDS: \${NEW_STAR_AI_WORKER_POLL_SECONDS:-1}
+    volumes:
+      - ./config:/config:ro
+      - new-star-queue:/var/lib/new-star
+    depends_on:
+      new-star-api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: \${NEW_STAR_WORKER_CPU_LIMIT:-1.0}
+          memory: \${NEW_STAR_WORKER_MEMORY_LIMIT:-2G}
+volumes:
+  new-star-queue:
