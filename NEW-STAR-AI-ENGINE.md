@@ -10,7 +10,7 @@ Vercel is not required for the AI backend. The live AI gateway runs as a Supabas
 - Supabase auth: validates the signed-in user before any AI operation.
 - Provider keys remain in server-side Supabase secrets; no provider keys are sent to the browser.
 - Provider adapters support configured Gemini, OpenAI and OpenRouter keys for chat/image where supported by the existing gateway.
-- A New Star hosted open-model adapter is now implemented on the feature branch. It can route chat to a New Star-managed OpenAI-compatible inference endpoint using server-only `NEW_STAR_MODEL_BASE_URL`, `NEW_STAR_MODEL_NAME`, and optional `NEW_STAR_MODEL_API_KEY` secrets. It runs before fallback providers when configured and accepts HTTPS endpoints only.
+- A New Star hosted open-model adapter is deployed. It can route chat to a New Star-managed OpenAI-compatible inference endpoint using server-only `NEW_STAR_MODEL_BASE_URL`, `NEW_STAR_MODEL_NAME`, and optional `NEW_STAR_MODEL_API_KEY` secrets. It runs before fallback providers when configured and accepts HTTPS endpoints only. GPU runtime deployment files are in `ai-model/`; no GPU host is currently provisioned.
 - This adapter is the connection point for a self-hosted open-weight model (for example, a model served by vLLM or another OpenAI-compatible runtime). It does not include model weights or GPU hosting; those are separate infrastructure and must be provisioned before New Star can run an independent model.
 - Per-user request limiting is enforced through the existing `consume_ai_gateway_rate_limit` RPC.
 - The system prompt is owned by New Star and switches language based on the user's latest message or saved language preference.
@@ -38,11 +38,11 @@ The New Star AI page remembers the current conversation ID in the browser so a c
 The UI labels these as unavailable rather than pretending to complete them.
 
 ## Deployment and verification
-- Supabase AI Gateway version 76 was active at the last verified check. The new hosted-model adapter is committed to the feature branch but has not yet been deployed.
+- Supabase AI Gateway version 77 is active. The New Star hosted-model adapter is deployed, but no inference endpoint or GPU host has been provisioned.
 - The conversation-memory migration applied successfully.
 - A database verification query confirmed both conversation tables exist with RLS enabled. Current row counts are zero, so the version-75 conversation-memory path has not yet been proven by a real chat turn.\n- Historical Supabase logs from version 72 on 24 Nov 2026 showed image generation provider failures: Gemini quota/rate limit, OpenRouter HTTP 402 (billing/credits), and OpenAI invalid API key. These are provider-account/configuration failures, not a frontend fix. No version-75 end-to-end image test is recorded yet.\n- The page status indicator reports only whether provider keys are present; it deliberately does not label them healthy or claim a successful provider test.
 - Conversation creation now happens only after an AI provider successfully answers, preventing failed first requests from leaving empty conversation rows. The UI also warns when a reply succeeds but its memory could not be saved.
-- GitHub Actions validation previously passed for JavaScript syntax, Deno type-checking of the Edge Function, and required auth/rate-limit/action guards. The new hosted-model adapter still needs a fresh CI run. Static validation is not a live provider or signed-in user test.
+- GitHub Actions validation previously passed for JavaScript syntax, Deno type-checking of the Edge Function, and required auth/rate-limit/action guards. The hosted-model adapter passed CI after its endpoint normalization fix. The runtime Compose files are configuration artifacts and have not been run on a GPU host. Static validation is not a live provider or signed-in user test.
 - Security advisors were run. They reported existing project-wide findings (including private tables with no policies, security-definer RPC exposure warnings, and leaked-password protection disabled). These were not introduced or modified as part of this AI feature and should be reviewed separately.
 - Frontend changes are committed to GitHub branch `new-star-ai-engine-foundation`.
 - A fresh Vercel deployment is not part of this architecture. The existing app hosting setup still needs to publish the latest branch frontend files before users can access the updated page.
