@@ -192,7 +192,9 @@ def main():
         generator.set_state(resume["batch_generator_state"])
         torch.set_rng_state(resume["torch_rng_state"].cpu())
         if torch.cuda.is_available() and resume.get("cuda_rng_states") is not None:
-            torch.cuda.set_rng_state_all(resume["cuda_rng_states"])
+            torch.cuda.set_rng_state_all(
+                [state.cpu() for state in resume["cuda_rng_states"]]
+            )
     final_validation_loss = None
     for step in range(start_step + 1, args.steps + 1):
         model.train()
