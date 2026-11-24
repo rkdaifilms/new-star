@@ -20,13 +20,13 @@ Deno.test("detects Japanese kana", () => {
 });
 
 Deno.test("does not infer a language from a short or mixed-script message", () => {
-  if (detectReplyScript("OK नमस्ते hello") !== null) throw new Error("Mixed short message should remain ambiguous");
+  if (detectReplyScript("hello नमस्ते") !== null) throw new Error("Mixed short message should remain ambiguous");
   if (detectReplyScript("Hi!") !== null) throw new Error("Short Latin message should remain ambiguous");
 });
 
 Deno.test("treats Arabic script as language-ambiguous", () => {
   const result = detectReplyScript("یہ ایک اردو زبان کا جملہ ہے");
   if (result?.script !== "Arabic") throw new Error("Arabic script was not detected");
-  assertEquals(result?.confidence, "low");
+  if (result?.confidence !== "low") throw new Error("Arabic script must remain ambiguous");
   if (result && !result.instruction.includes("Do not assume Arabic")) throw new Error("Arabic/Urdu/Persian ambiguity warning missing");
 });
