@@ -122,9 +122,11 @@ python ai-foundation/sft_train.py --data ./permitted-instructions.jsonl \
 
 The SFT loop trains only on assistant response targets; system/user tokens and
 padding positions are ignored by the loss. Each batch row selects a language
-uniformly. Within each language, validation loss is weighted by the number
-of supervised assistant tokens in each batch; the final score is an unweighted
-macro-average across languages. The tokenizer is learned from training conversations only. The output
+uniformly. Within each language, validation cross-entropy is weighted by
+the number of supervised assistant-response tokens; the final score is an
+unweighted macro-average across languages. The checkpoint sidecar records the
+seed, model/training configuration, per-language example counts, and final
+validation score for experiment tracking. The tokenizer is learned from training conversations only. The output
 checkpoint uses the same native format as the pretraining checkpoint and writes
 a sidecar JSON with training metadata. This script has not been run on a
 large-scale licensed dataset in CI; passing unit tests verifies the pipeline
