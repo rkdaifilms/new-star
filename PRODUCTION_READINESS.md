@@ -47,13 +47,13 @@ docker compose -f ai-foundation/docker-compose.yml --profile gpu run --rm train-
 docker compose -f ai-foundation/docker-compose.yml --profile gpu run --rm --entrypoint python3 train-gpu gpu_validate.py --device cuda --report-json /artifacts/gpu-validation.json
 ```
 
-The last command overrides the training entrypoint so the GPU smoke test runs instead of starting a training job. The validation script fails when CUDA is unavailable and records device, precision, peak allocated/reserved memory and synthetic-token throughput. It is a smoke test, not a model-quality benchmark. Run a separate licensed-corpus training experiment and record validation loss before production use.
+The last command overrides the training entrypoint so the GPU smoke test runs instead of starting a training job. The validation script fails when CUDA is unavailable and records device, precision, peak allocated/reserved memory and synthetic-token throughput. GPU training Compose enables activation checkpointing to reduce activation memory. This is a smoke test, not a model-quality benchmark. Run a separate licensed-corpus training experiment and record validation loss before production use.
 
 For inference, build `ai-inference/Dockerfile.cuda`, enable the Compose `gpu` profile, verify `/healthz` reports the loaded model and GPU offload requested, then run `ai-inference/scripts/benchmark.py` with `MODEL_TOKEN` in the environment. A GPU layer request alone does not prove that the model is actually offloaded; inspect runtime logs and GPU utilization.
 
 ## Multilingual evaluation
 
-Use a language-tagged JSONL corpus with separate `train` and `validation` records per language. Keep validation text disjoint from training text. Run the corpus audit, train, then run `evaluate.py --data-format jsonl` against held-out validation data. Store per-language cross-entropy/perplexity reports and compare regressions across runs. The included CI regression set covers eight Unicode scripts/languages; it is a code-path smoke test, not a claim of proficiency across all world languages.
+Use a language-tagged JSONL corpus with separate `train` and `validation` records per language. Keep validation text disjoint from training text. Run the corpus audit, train, then run `evaluate.py --data-format jsonl` against held-out validation data. Store per-language cross-entropy/perplexity reports and compare regressions across runs. The included CI regression set covers eight Unicode scripts/languages and verifies that the canonical gateway catalog (90+ language entries) can be checked for complete validation-corpus coverage. CI uses synthetic smoke data only; it is not a claim of translation quality or proficiency. For a genuine all-language quality run, provide reviewed, rights-cleared held-out validation text for every catalog language and run `python evaluate.py --checkpoint artifacts/newstar.pt --data validation.jsonl --data-format jsonl --require-all-supported-languages --report-json artifacts/multilingual-report.json`.
 
 ## Operations, security and monitoring
 
