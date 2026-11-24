@@ -636,7 +636,7 @@ def test_corpus_audit_detects_cross_split_duplicates_and_reports(tmp_path):
         {"language": "en", "split": "train", "text": "Hello training data"},
         {"language": "en", "split": "validation", "text": "Held out validation data"},
     ]
-    data.write_text("\\n".join(json.dumps(row, ensure_ascii=False) for row in rows), encoding="utf-8")
+    data.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows), encoding="utf-8")
     manifest.write_text(json.dumps({
         "dataset_name": "small test corpus", "source": "locally authored test fixture",
         "license": "CC0-1.0", "permission_basis": "created for automated tests",
@@ -658,7 +658,7 @@ def test_corpus_audit_checks_minimum_sizes_and_manifest(tmp_path):
         {"language": "en", "split": "train", "text": "short"},
         {"language": "en", "split": "validation", "text": "tiny"},
     ]
-    data.write_text("\\n".join(json.dumps(row) for row in rows), encoding="utf-8")
+    data.write_text("\n".join(json.dumps(row) for row in rows), encoding="utf-8")
     manifest.write_text(json.dumps({
         "dataset_name": "tiny", "source": "test fixture",
         "license": "CC0-1.0", "permission_basis": "test-created",
