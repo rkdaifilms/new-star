@@ -146,6 +146,16 @@ async function generateImage(overrideDescription){const description=(typeof over
 async function generateVideo(overrideDescription){
  const description=(typeof overrideDescription==="string"?overrideDescription:prompt.value).trim();
  if(busy)return;
+ const authClient=await session();
+ const {data:authData,error:authError}=await authClient.auth.getUser();
+ if(authError||!authData?.user?.id)throw new Error("Please sign in again before checking a video job.");
+ const videoJobOwnerKey="newstar_pending_video_job_owner";
+ let savedOwner=null;
+ try{savedOwner=localStorage.getItem(videoJobOwnerKey);}catch(_){}
+ if(pendingVideoJobId&&savedOwner!==authData.user.id){
+  pendingVideoJobId=null;
+  try{localStorage.removeItem("newstar_pending_video_job");localStorage.removeItem(videoJobOwnerKey);}catch(_){}
+ }
  if(pendingVideoJobId&&description){notice.textContent="पहले चल रहे वीडियो को पूरा होने दें। उसी job की स्थिति देखने के लिए prompt खाली रखकर Generate video दबाएँ।";return;}
  if(!description&&!pendingVideoJobId){notice.textContent="पहले वीडियो का विवरण लिखें, फिर Generate video दबाएँ।";prompt.focus();return;}
  busy=true;send.disabled=true;voice.disabled=true;
@@ -160,15 +170,15 @@ async function generateVideo(overrideDescription){
    const duration=$("video-duration")?.value||"6s";
    const started=await invoke({action:"video",prompt:description,aspectRatio,resolution,duration});
    if(typeof started.jobId!=="string"||!started.jobId)throw new Error("The video service did not return a job ID.");
-   jobId=started.jobId;pendingVideoJobId=jobId;try{localStorage.setItem("newstar_pending_video_job",jobId);}catch(_){}
+   jobId=started.jobId;pendingVideoJobId=jobId;try{localStorage.setItem("newstar_pending_video_job",jobId);localStorage.setItem(videoJobOwnerKey,authData.user.id);}catch(_){}
   }
   let result=null;
   for(let attempt=0;attempt<60;attempt++){
    label.textContent="Video is rendering in the background… checking progress ("+(attempt+1)+"/60).";
    await new Promise(resolve=>setTimeout(resolve,5000));
    const status=await invoke({action:"video-status",jobId});
-   if(status.status==="completed"){result=status;pendingVideoJobId=null;try{localStorage.removeItem("newstar_pending_video_job");}catch(_){}break;}
-   if(status.status==="failed"){pendingVideoJobId=null;try{localStorage.removeItem("newstar_pending_video_job");}catch(_){}throw new Error(status.error||"Video generation failed.");}
+   if(status.status==="completed"){result=status;pendingVideoJobId=null;try{localStorage.removeItem("newstar_pending_video_job");localStorage.removeItem(videoJobOwnerKey);}catch(_){}break;}
+   if(status.status==="failed"){pendingVideoJobId=null;try{localStorage.removeItem("newstar_pending_video_job");localStorage.removeItem(videoJobOwnerKey);}catch(_){}throw new Error(status.error||"Video generation failed.");}
   }
   if(!result)throw new Error("Video is still rendering. Press Generate video again to continue checking this same job.");
   if(typeof result.videoUrl!=="string"||!result.videoUrl.startsWith("https://"))throw new Error("New Star storage did not return a secure video link.");
