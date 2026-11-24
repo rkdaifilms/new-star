@@ -47,13 +47,13 @@ class PgVectorSearch:
         self.embedder = embedder or MultilingualEmbedder()
         with self.connect() as connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT 1 FROM information_schema.tables WHERE table_name='new_star_search_chunks'")
+                cursor.execute("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='new_star_search_chunks'")
                 if cursor.fetchone() is None:
                     raise RuntimeError("Apply the New Star pgvector migration before enabling vector retrieval")
 
     def connect(self):
         connection = self.psycopg.connect(self.database_url, connect_timeout=8)
-        self.register_vector(connection)
+        self.register_vector(connection, schema="extensions")
         return connection
 
     @staticmethod
@@ -82,9 +82,9 @@ class PgVectorSearch:
         records = [(url, title[:240], source[:253], part, self.embedder.encode(part, passage=True)) for part in chunks]
         with self.connect() as connection:
             with connection.cursor() as cursor:
-                cursor.execute("DELETE FROM new_star_search_chunks WHERE url=%s", (url,))
+                cursor.execute("DELETE FROM public.new_star_search_chunks WHERE url=%s", (url,))
                 cursor.executemany(
-                    """INSERT INTO new_star_search_chunks(url,title,source,content,embedding)
+                    """INSERT INTO public.new_star_search_chunks(url,title,source,content,embedding)
                        VALUES (%s,%s,%s,%s,%s)""", records)
         return len(records)
 
@@ -96,13 +96,13 @@ class PgVectorSearch:
                 if source:
                     cursor.execute(
                         """SELECT title,url,source,content,1-(embedding <=> %s) AS similarity
-                           FROM new_star_search_chunks WHERE source=%s
+                           FROM public.new_star_search_chunks WHERE source=%s
                            ORDER BY embedding <=> %s LIMIT %s""",
                         (vector, source, vector, bounded))
                 else:
                     cursor.execute(
                         """SELECT title,url,source,content,1-(embedding <=> %s) AS similarity
-                           FROM new_star_search_chunks ORDER BY embedding <=> %s LIMIT %s""",
+                           FROM public.new_star_search_chunks ORDER BY embedding <=> %s LIMIT %s""",
                         (vector, vector, bounded))
                 rows = cursor.fetchall()
         return [{"title": row[0], "url": row[1], "source": row[2],
