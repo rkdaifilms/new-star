@@ -41,7 +41,8 @@ def resolve_precision(device: torch.device, requested: str = "auto") -> str:
     return value
 
 
-def autocast_context(device: torch.device, precision: str):
+def autocast_context(device: torch.device | str, precision: str):
+    device = torch.device(device)
     if device.type != "cuda" or precision == "fp32":
         return nullcontext()
     dtype = torch.float16 if precision == "fp16" else torch.bfloat16
