@@ -11,7 +11,7 @@ import torch
 from audit_corpus import audit_corpus
 from instruction_data import encode_instruction_example, load_instruction_corpora
 from model import NewStarConfig, NewStarGPT
-from tokenizer import UnicodeCharTokenizer
+from tokenizer import UnicodeCharTokenizer, tokenizer_from_dict
 from bpe_tokenizer import ByteBPETokenizer
 
 
@@ -116,7 +116,8 @@ def main():
     parser.add_argument("--heads", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--max-vocab-size", type=int, default=8192)
-    parser.add_argument("--tokenizer", choices=("char", "bpe"), default="char", help="Tokenizer for new SFT checkpoints; must match the intended base model tokenizer")
+    parser.add_argument("--tokenizer", choices=("char", "bpe"), default="char", help="Tokenizer for a new SFT model when --base-checkpoint is omitted")
+    parser.add_argument("--base-checkpoint", help="Optional pretrained New Star checkpoint to fine-tune; preserves its exact model config and tokenizer")
     parser.add_argument("--eval-interval", type=int, default=100)
     parser.add_argument("--resume-from", help="Resume optimizer/model/RNG state from a .resume.pt checkpoint")
     parser.add_argument("--seed", type=int, default=1337)
@@ -151,19 +152,45 @@ def main():
             for messages in conversations
             for message in messages
         )
-        tokenizer = (
-            ByteBPETokenizer.train(tokenizer_text, max_merges=args.max_vocab_size - 256)
-            if args.tokenizer == "bpe"
-            else UnicodeCharTokenizer.train(tokenizer_text, args.max_vocab_size)
-        )
+        base_checkpoint = None
+        if args.base_checkpoint:
+            base_path = Path(args.base_checkpoint)
+            if not base_path.is_file():
+                raise ValueError(f"base checkpoint does not exist: {base_path}")
+            try:
+                base_checkpoint = torch.load(base_path, map_location="cpu", weights_only=True)
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise ValueError(f"could not load base checkpoint: {exc}") from exc
+            if base_checkpoint.get("format") not in {
+                "new-star-byte-bpe-gpt-v1", "new-star-unicode-char-gpt-v1"
+            }:
+                raise ValueError("unsupported base checkpoint format")
+            tokenizer = tokenizer_from_dict(base_checkpoint.get("tokenizer"))
+            base_config = base_checkpoint.get("config", {})
+            if int(base_config.get("block_size", 0)) != args.block_size:
+                raise ValueError("--block-size must match the base checkpoint")
+            config = NewStarConfig(**base_config)
+            if config.vocab_size != len(tokenizer):
+                raise ValueError("base checkpoint vocabulary size does not match its tokenizer")
+        else:
+            tokenizer = (
+                ByteBPETokenizer.train(tokenizer_text, max_merges=args.max_vocab_size - 256)
+                if args.tokenizer == "bpe"
+                else UnicodeCharTokenizer.train(tokenizer_text, args.max_vocab_size)
+            )
+            config = NewStarConfig(vocab_size=len(tokenizer), block_size=args.block_size,
+                                   width=args.width, layers=args.layers, heads=args.heads)
         train_data = encode_corpora(train_messages, tokenizer, args.block_size)
         validation_data = encode_corpora(validation_messages, tokenizer, args.block_size)
     except ValueError as exc:
         parser.error(str(exc))
 
-    config = NewStarConfig(vocab_size=len(tokenizer), block_size=args.block_size,
-                           width=args.width, layers=args.layers, heads=args.heads)
     model = NewStarGPT(config).to(args.device)
+    if args.base_checkpoint:
+        try:
+            model.load_state_dict(base_checkpoint["state_dict"], strict=True)
+        except (KeyError, RuntimeError) as exc:
+            parser.error(f"base checkpoint weights do not match its model config: {exc}")
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
     data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
