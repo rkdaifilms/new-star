@@ -283,3 +283,45 @@ def test_instruction_encoder_rejects_examples_truncated_before_answer():
     tokenizer = UnicodeCharTokenizer.train("".join(m["content"] for m in messages), 512)
     with pytest.raises(ValueError, match="no assistant response"):
         encode_instruction_example(messages, tokenizer, max_length=8)
+
+
+
+def test_sft_batch_sampler_and_macro_validation_are_finite():
+    from instruction_data import encode_instruction_example
+    from sft_train import evaluate_sft, sample_instruction_batch
+    from tokenizer import UnicodeCharTokenizer
+
+    conversations = [
+        [{"role": "user", "content": "नमस्ते"}, {"role": "assistant", "content": "नमस्कार"}],
+        [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "Hi there"}],
+    ]
+    tokenizer = UnicodeCharTokenizer.train(
+        "".join(message["content"] for row in conversations for message in row), 512
+    )
+    encoded = [
+        encode_instruction_example(row, tokenizer, max_length=16)
+        for row in conversations
+    ]
+    corpora = {"en": encoded, "ne": encoded}
+    generator = torch.Generator(device="cpu").manual_seed(19)
+    x, y = sample_instruction_batch(corpora, batch_size=4, block_size=16,
+                                    device="cpu", generator=generator)
+    assert x.shape == y.shape
+    assert torch.any(y != -100)
+    model = NewStarGPT(NewStarConfig(
+        vocab_size=len(tokenizer), block_size=16, width=16, layers=1, heads=4, dropout=0.0
+    ))
+    score = evaluate_sft(model, corpora, batch_size=2, block_size=16, device="cpu")
+    assert torch.isfinite(torch.tensor(score))
+
+
+def test_sft_collation_masks_padding_and_preserves_response_labels():
+    from sft_train import collate_examples
+
+    examples = [
+        ([1, 2, 3], [-100, 4, 5]),
+        ([6, 7], [-100, 8]),
+    ]
+    x, y = collate_examples(examples, [0, 1], block_size=8, device="cpu")
+    assert x.tolist() == [[1, 2, 3], [6, 7, 0]]
+    assert y.tolist() == [[-100, 4, 5], [-100, 8, -100]]
