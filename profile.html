@@ -153,6 +153,11 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
 .profileViewerSettingsMenu button{width:100%;min-height:42px;flex:none;display:block;text-align:left;padding:10px 12px;border:0;border-radius:8px;background:transparent;box-shadow:none;font-size:13px}
 .profileViewerSettingsMenu button:hover{background:#383844}
 .profileViewerSettingsMenu button.danger{color:#ff8498}
+/* Creator profile video grid: show the video itself, not caption/type text below it. */
+.videoCard > .videoFormat,
+.videoCard > p{display:none!important}
+/* Full-screen profile viewer stays video-only; keep action buttons and settings. */
+.profileViewerInfo{display:none!important}
 .profileViewerInfo{position:fixed;z-index:10011;left:14px;right:82px;bottom:calc(28px + env(safe-area-inset-bottom));text-shadow:0 1px 5px #000;pointer-events:none}
 .profileViewerInfo strong{font-size:15px}.profileViewerInfo p{font-size:13px;line-height:1.4;margin-top:5px;white-space:pre-wrap;overflow-wrap:anywhere}
 .profileSheet{position:fixed;z-index:10030;left:50%;bottom:0;transform:translateX(-50%);width:min(100vw,520px);height:min(62dvh,560px);max-height:calc(100dvh - env(safe-area-inset-top) - 10px);background:#1d1d25;border:1px solid #555;border-radius:17px 17px 0 0;display:none;flex-direction:column;overflow:hidden;box-shadow:0 -8px 30px #000b}
@@ -238,22 +243,21 @@ html,body{background:radial-gradient(ellipse at 12% 8%,#51247d 0%,transparent 38
  <section class="card" id="profileHero">
   <div class="heroTop">
    <div class="menuWrap">
-    <button id="profileMenuButton" class="iconButton" type="button" aria-label="Profile settings" aria-expanded="false">⋮</button>
+    <button id="profileMenuButton" class="iconButton" type="button" aria-label="Profile menu" aria-expanded="false">⋮</button>
 
-    <nav id="profileMenu" class="menu hidden" aria-label="Profile and app settings menu">
-     <a href="settings.html" data-i18n="settings.title">⚙️ Open Main Settings</a>
-     <hr>
-     <div class="menuLabel">NEW STAR APP</div>
-     <a href="index.html" data-i18n="nav.home">Home</a>
-     <a href="camera.html">📷 Camera / Create / Upload</a>
+    <nav id="profileMenu" class="menu hidden" aria-label="Profile main menu">
+     <a href="camera.html">📷 Camera / Video Upload</a>
+     <a href="creator-studio.html">✨ New Star Creator Studio</a>
+     <a href="profile.html">👤 Profile</a>
+     <a href="settings.html">⚙️ Main Settings</a>
+     <a href="admin.html">🛡 Developer / Owner Dashboard</a>
      <a href="wallet.html">💰 Wallet</a>
-     <a href="inbox.html" data-i18n="nav.inbox">Inbox</a>
-     <a href="monetization.html">💎 Monetization</a>
+     <a href="inbox.html">✉️ Inbox</a>
+     <a href="monetization.html">📈 Monetization</a>
      <a href="live.html">🔴 Live</a>
      <a href="gaming.html">🎮 Gaming</a>
-     <a href="profile.html" data-i18n="nav.profile">Profile</a>
      <hr>
-     <button type="button" data-action="logout" class="danger" data-i18n="action.logout">Log out</button>
+     <button type="button" data-action="logout" class="danger" data-i18n="action.logout">🚪 Log out</button>
     </nav>
    </div>
   </div>
@@ -573,7 +577,6 @@ async function loadStatsAndVideos(){
   const videos=await resolvePrivateVideoUrls((videoRows||[]).filter(item=>item&&item.video_url));
   await Promise.all(videos.map(async item=>{
    if(!item.video_url)return;
-    if(item.video_provider==="cloudflare")item.processing_status="published";
     if(Number(item.duration_seconds)>0&&Number(item.width)>0&&Number(item.height)>0)return;
    try{
     const probe=document.createElement("video");

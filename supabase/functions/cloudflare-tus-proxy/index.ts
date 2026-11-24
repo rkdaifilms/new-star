@@ -2,6 +2,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = new Set([
+  "https://star-delta.vercel.app",
+  "https://new-star-delta.vercel.app",
+  "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app",
+  "https://new-star.rkdaifilms.workers.dev",
   "https://new-star-rkdaifilms-8858.vercel.app",
   "https://new-star-delta.vercel.app",
   "https://new-star-nepal.netlify.app",
@@ -42,15 +46,45 @@ Deno.serve(async (req: Request) => {
 
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
-  if (!origin || !ALLOWED_ORIGINS.has(origin)) return json({ error: "Origin not allowed" }, 403, cors);
+  // Browser requests must use an approved origin. Native Android sends no Origin
+  // header; it is still protected by the mandatory Supabase user-token check below.
+  if (origin && !ALLOWED_ORIGINS.has(origin)) return json({ error: "Origin not allowed" }, 403, cors);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  // New Supabase projects expose publishable keys as a JSON map. Keep support
+  // for the legacy anon key so existing projects continue to work.
+  let supabasePublishableKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+  if (!supabasePublishableKey) {
+    try {
+      const publishableKeys = JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") || "{}");
+      supabasePublishableKey = publishableKeys.default ||
+        Object.values(publishableKeys).find((value) => typeof value === "string" && value.length > 0) || "";
+    } catch {
+      supabasePublishableKey = "";
+    }
+  }
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-  const streamToken = Deno.env.get("CLOUDFLARE_STREAM_TOKEN");
+  // Try every configured token alias in priority order. A stale primary secret
+  // must not prevent a valid fallback alias from being used.
+  const streamTokenNames = ["CLOUDFLARE_STREAM_TOKEN", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_STREAM_API_TOKEN"];
+  const streamTokenCandidates = streamTokenNames.flatMap((name) =>
+    Array.from({ length: 21 }, (_, index) => index === 0 ? "" : "_" + index).map((suffix) => ({
+      name: name + suffix,
+      value: Deno.env.get(name + suffix),
+    }))
+  ).filter((item): item is { name: string; value: string } => Boolean(item.value?.trim()));
 
-  if (!supabaseUrl || !supabaseAnonKey || !accountId || !streamToken) {
-    return json({ error: "Video upload service is not configured yet." }, 503, cors);
+  const missingConfig: string[] = [];
+  if (!supabaseUrl) missingConfig.push("SUPABASE_URL");
+  if (!supabasePublishableKey) missingConfig.push("SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_KEYS");
+  if (!accountId) missingConfig.push("CLOUDFLARE_ACCOUNT_ID");
+  if (streamTokenCandidates.length === 0) missingConfig.push("CLOUDFLARE_STREAM_TOKEN (or CLOUDFLARE_API_TOKEN)");
+  if (missingConfig.length) {
+    console.error("Video upload configuration missing:", missingConfig.join(", "));
+    return json({
+      error: "Video upload service configuration is incomplete.",
+      missing: missingConfig,
+    }, 503, cors);
   }
 
   const authorization = req.headers.get("authorization");
@@ -58,7 +92,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Login required." }, 401, cors);
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createClient(supabaseUrl, supabasePublishableKey, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -83,13 +117,16 @@ Deno.serve(async (req: Request) => {
     if (key) metadata.set(key, value);
   }
 
-  const durationEncoded = metadata.get("maxDurationSeconds");
+  const durationEncoded = metadata.get("maxDurationSeconds") || metadata.get("maxdurationseconds");
   const durationSeconds = durationEncoded ? Number(decodeMetadataValue(durationEncoded)) : NaN;
   if (!Number.isInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > MAX_DURATION_SECONDS) {
     return json({ error: "Video duration must be between 1 second and 3 hours." }, 400, cors);
   }
 
-  const expiry = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const expiry = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+  metadata.delete("maxDurationSeconds");
+  // Cloudflare Stream expects the lower-case TUS metadata key.
+  metadata.set("maxDurationSeconds", btoa(String(durationSeconds)));
   metadata.set("expiry", btoa(expiry));
   metadata.set("requiresignedurls", "");
   const safeMetadata = [...metadata.entries()]
@@ -97,32 +134,95 @@ Deno.serve(async (req: Request) => {
     .join(",");
 
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream?direct_user=true`;
-  let upstream: Response;
-  try {
-    upstream = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${streamToken}`,
-        "Tus-Resumable": "1.0.0",
-        "Upload-Length": String(uploadLength),
-        "Upload-Metadata": safeMetadata,
-        "Upload-Creator": authData.user.id.slice(0, 64),
-      },
-    });
-  } catch {
-    return json({ error: "Cloudflare could not be reached. Please retry." }, 502, cors);
+  let upstream: Response | null = null;
+  let lastProviderStatus = 0;
+  let lastAuthDetail = "";
+  for (const candidate of streamTokenCandidates) {
+    try {
+      let attempt = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${candidate.value}`,
+          "Tus-Resumable": "1.0.0",
+          "Upload-Length": String(uploadLength),
+          "Upload-Metadata": safeMetadata,
+          "Upload-Creator": authData.user.id.slice(0, 64),
+        },
+      });
+      // A single bounded retry respects Cloudflare's Retry-After response.
+      if (attempt.status === 429) {
+        const retryAfter = Number(attempt.headers.get("Retry-After") || "2");
+        const waitMs = Math.max(1000, Math.min(6000, Number.isFinite(retryAfter) ? retryAfter * 1000 : 2000));
+        await attempt.body?.cancel().catch(() => {});
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        attempt = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${candidate.value}`,
+            "Tus-Resumable": "1.0.0",
+            "Upload-Length": String(uploadLength),
+            "Upload-Metadata": safeMetadata,
+            "Upload-Creator": authData.user.id.slice(0, 64),
+          },
+        });
+      }
+      upstream = attempt;
+      if (attempt.ok) {
+        console.info("Cloudflare TUS initialized using configured token alias:", candidate.name);
+        break;
+      }
+      lastProviderStatus = attempt.status;
+      if (attempt.status !== 401 && attempt.status !== 403) break;
+      const detail = await attempt.text();
+      lastAuthDetail = detail.slice(0, 300);
+      console.warn("Cloudflare rejected configured token alias:", candidate.name, attempt.status, lastAuthDetail);
+      upstream = null;
+    } catch {
+      return json({ error: "Cloudflare could not be reached. Please retry." }, 502, cors);
+    }
+  }
+
+  if (!upstream) {
+    console.error("Cloudflare TUS initialization failed for all configured token aliases. Last provider status:", lastProviderStatus);
+    return json({
+      error: lastProviderStatus === 401 || lastProviderStatus === 403
+        ? "Cloudflare rejected the configured API token. The project owner must replace it with a valid Cloudflare Stream token that has Stream edit permission and matches this account."
+        : "Cloudflare upload could not be initialized. Please retry later.",
+      providerStatus: lastProviderStatus || 401,
+      providerDetail: lastAuthDetail || undefined,
+    }, lastProviderStatus === 401 || lastProviderStatus === 403 ? lastProviderStatus : 502, cors);
   }
 
   if (!upstream.ok) {
-    const detail = await upstream.text();
-    console.error("Cloudflare TUS initialization failed:", upstream.status, detail.slice(0, 1000));
-    return json({ error: "Cloudflare could not create the upload session.", providerStatus: upstream.status }, 502, cors);
+    const providerStatus = upstream.status;
+    const providerBody = await upstream.text();
+    // Keep the provider's actionable error visible instead of collapsing every
+    // Cloudflare 4xx/5xx response into an opaque "incomplete session" 502.
+    let providerMessage = "";
+    try {
+      const parsed = JSON.parse(providerBody);
+      providerMessage = Array.isArray(parsed.errors)
+        ? parsed.errors.map((item: { message?: string }) => item?.message || "").filter(Boolean).join("; ")
+        : String(parsed.error || "");
+    } catch {
+      providerMessage = providerBody.slice(0, 400);
+    }
+    console.error("Cloudflare TUS create request failed:", providerStatus, providerMessage.slice(0, 400));
+    return json({
+      error: providerMessage || "Cloudflare could not create the upload session.",
+      providerStatus,
+    }, providerStatus >= 400 && providerStatus < 500 ? providerStatus : 502, cors);
   }
 
   const location = upstream.headers.get("Location");
   const streamMediaId = upstream.headers.get("stream-media-id");
   if (!location || !streamMediaId) {
-    return json({ error: "Cloudflare returned an incomplete upload session." }, 502, cors);
+    console.error("Cloudflare TUS response missing required headers:", {
+      hasLocation: Boolean(location),
+      hasStreamMediaId: Boolean(streamMediaId),
+      status: upstream.status,
+    });
+    return json({ error: "Cloudflare returned an incomplete upload session.", providerStatus: upstream.status }, 502, cors);
   }
 
   return new Response(null, {

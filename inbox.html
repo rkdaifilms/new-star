@@ -63,10 +63,14 @@
         
         /* Chat Input Area - FIXED AT BOTTOM */
         .chat-input-area { display: flex; padding: 12px 15px; background: #111; border-top: 1px solid #222; gap: 10px; align-items: center; flex-shrink: 0; position: sticky; bottom: 0; }
-        .chat-input-area input { flex: 1; padding: 10px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
+         .chat-input-area input { flex: 1; min-width:0; padding: 10px 15px; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; font-size: 14px; outline: none; }
+        .chat-input-area input[type="text"]{width:0}
+        .chat-input-area #voiceInputStatus{max-width:90px;font-size:10px;line-height:1.2;overflow-wrap:anywhere}
+        .chat-icon-btn.is-disabled{opacity:.42;cursor:not-allowed}
         
         .chat-icon-btn { background: #222; border: 1px solid #444; color: #fff; width: 38px; height: 38px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 16px; flex-shrink: 0; }
-        .chat-icon-btn:hover { background: #333; border-color: #fe2c55; }
+         .chat-icon-btn:hover { background: #333; border-color: #fe2c55; }
+       
         .send-btn { background: #fe2c55; color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
 
         /* Profile Pop-up Modal */
@@ -117,14 +121,14 @@
         
         <div class="chat-input-area">
             <!-- Plus (+) Button for Gallery Photos/Videos -->
-            <label for="mediaFile" class="chat-icon-btn" title="Send Photo/Video">➕</label>
-            <input type="file" id="mediaFile" accept="image/*,video/*" style="display:none;" onchange="sendMediaFile(event)">
+            <button type="button" class="chat-icon-btn is-disabled" title="Photo/video sharing is unavailable until private chat storage is configured" aria-label="Photo and video sharing unavailable" disabled>➕</button>
+            <input type="file" id="mediaFile" accept="image/*,video/*" style="display:none;" disabled>
             
             <!-- Voice Recording Mic Button -->
             <button type="button" class="chat-icon-btn" onclick="startVoiceRecording()" id="micBtn" title="Speak your message" aria-label="Start voice input" aria-pressed="false">🎙️</button><span id="voiceInputStatus" class="muted" role="status" aria-live="polite"></span>
             
             <!-- Text Input Box -->
-            <input type="text" id="messageInput" data-i18n-placeholder="inbox.messagePlaceholder" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="messageInput" maxlength="2000" autocomplete="off" data-i18n-placeholder="inbox.messagePlaceholder" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
             
             <!-- Send Button -->
             <button class="send-btn" onclick="sendMessage()" data-i18n="action.send">Send</button>
@@ -282,11 +286,21 @@ async function loadConversation(){
  await db.from("messages").update({read_at:new Date().toISOString()}).eq("conversation_id",activeConversation).eq("recipient_id",me.id).is("read_at",null);
 }
 window.sendMessage=async function(){
- const input=$("messageInput"),body=input.value.trim();if(inboxRecording)inboxRecognition?.stop();if(!body||!activePeer)return;
- const btn=document.querySelector(".send-btn");if(btn)btn.disabled=true;
- const {error}=await db.from("messages").insert({conversation_id:activeConversation,sender_id:me.id,recipient_id:activePeer,body});
- if(error){setStatus("Message नहीं भेजा गया: "+error.message);}else{input.value="";input.dataset.voiceBase="";inboxVoiceStatus.textContent="";await loadConversation();await loadThreads();}
- if(btn)btn.disabled=false;
+ const input=$("messageInput"),body=input.value.trim();if(inboxRecording)inboxRecognition?.stop();if(!body||!activePeer||!activeConversation)return;
+ const btn=document.querySelector(".send-btn");if(btn?.disabled)return;
+ if(btn)btn.disabled=true;
+ try{
+  const {error}=await db.from("messages").insert({conversation_id:activeConversation,sender_id:me.id,recipient_id:activePeer,body});
+  if(error)throw error;
+  input.value="";input.dataset.voiceBase="";inboxVoiceStatus.textContent="";
+  await loadConversation();await loadThreads();
+  setStatus("Message भेज दिया गया।");
+ }catch(error){
+  console.error("Inbox send:",error);
+  setStatus("Message नहीं भेजा गया। Internet या chat permission जाँचें।");
+ }finally{
+  if(btn)btn.disabled=false;
+ }
 };
 window.closeChat=function(){$("chatBoxWindow").style.display="none";document.body.classList.remove("chat-open");activePeer=null;activeConversation=null;};
 window.handleKeyPress=e=>{if(e.key==="Enter"){e.preventDefault();window.sendMessage();}};

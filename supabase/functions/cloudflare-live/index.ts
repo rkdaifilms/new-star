@@ -2,9 +2,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = new Set([
+  "https://star-delta.vercel.app",
+  "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app",
   "https://new-star-delta.vercel.app",
   "https://new-star-rkdaifilms-8858.vercel.app",
   "https://new-star-nepal.netlify.app",
+  "https://new-star.rkdaifilms.workers.dev",
 ]);
 
 function cors(origin: string | null) {
@@ -17,6 +20,20 @@ function cors(origin: string | null) {
     "Cache-Control": "no-store",
   };
 }
+async function cloudflareFetch(url: string, init: RequestInit, candidates: Array<{ name: string; value: string }>): Promise<Response> {
+  let last: Response | null = null;
+  for (const candidate of candidates) {
+    const headers = new Headers(init.headers || {});
+    headers.set("Authorization", `Bearer ${candidate.value}`);
+    const response = await fetch(url, { ...init, headers });
+    if (response.ok) return response;
+    last = response;
+    if (response.status !== 401 && response.status !== 403) return response;
+    console.warn("Cloudflare rejected configured token alias:", candidate.name, response.status);
+  }
+  return last || new Response("Cloudflare token unavailable", { status: 401 });
+}
+
 function json(body: unknown, status: number, headers: Record<string,string>) {
   return new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
 }
@@ -26,15 +43,21 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, headers);
   const origin = req.headers.get("origin");
-  if (!origin || !ALLOWED_ORIGINS.has(origin)) return json({ error: "Origin not allowed" }, 403, headers);
+  if (origin && !ALLOWED_ORIGINS.has(origin)) return json({ error: "Origin not allowed" }, 403, headers);
 
   const url = Deno.env.get("SUPABASE_URL");
   const anon = Deno.env.get("SUPABASE_ANON_KEY");
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-  const token = Deno.env.get("CLOUDFLARE_STREAM_TOKEN");
+  const tokenNames = ["CLOUDFLARE_STREAM_TOKEN", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_STREAM_API_TOKEN"];
+  const tokenCandidates = tokenNames.flatMap((name) =>
+    Array.from({ length: 21 }, (_, index) => index === 0 ? "" : "_" + index).map((suffix) => ({
+      name: name + suffix,
+      value: Deno.env.get(name + suffix),
+    }))
+  ).filter((item): item is { name: string; value: string } => Boolean(item.value?.trim()));
   if (!url || !anon || !service) return json({ error: "Server configuration incomplete." }, 503, headers);
-  if (!accountId || !token) return json({ error: "Cloudflare Stream is not configured. Ask the project owner to check the server-side Cloudflare secrets." }, 503, headers);
+  if (!accountId || tokenCandidates.length === 0) return json({ error: "Cloudflare Stream is not configured. Ask the project owner to check the server-side Cloudflare secrets." }, 503, headers);
 
   const authorization = req.headers.get("authorization") || "";
   if (!authorization.startsWith("Bearer ")) return json({ error: "Login required." }, 401, headers);
@@ -50,6 +73,18 @@ Deno.serve(async (req: Request) => {
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
   const creatorId = auth.user.id;
+  const previewOrigin = "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app";
+  let previewOwnerTest = false;
+  if (origin === previewOrigin && (action === "prepare" || action === "confirm")) {
+    const { data: adminRecord, error: adminLookupError } = await admin
+      .schema("private").from("admin_users").select("role")
+      .eq("user_id", creatorId).maybeSingle();
+    if (adminLookupError) {
+      console.error("Preview owner eligibility lookup failed:", adminLookupError.message);
+      return json({ error: "Could not verify preview test access. Please retry." }, 503, headers);
+    }
+    previewOwnerTest = adminRecord?.role === "owner";
+  }
 
   async function getActiveRoom(roomId: string) {
     if (!roomId) return { data: null, error: new Error("Room ID is required.") };
@@ -87,6 +122,23 @@ Deno.serve(async (req: Request) => {
       .insert({ room_id: room.id, sender_id: creatorId, display_name: displayName, message })
       .select("id,sender_id,display_name,message,created_at").single();
     if (error || !data) return json({ error: "Could not send LIVE chat message." }, 503, headers);
+    const rootAblyKey = Deno.env.get("ABLY_ROOT_API_KEY");
+    if (rootAblyKey) {
+      try {
+        const channel = "new-star-live-" + room.id;
+        const publishResponse = await fetch("https://rest.ably.io/channels/" + encodeURIComponent(channel) + "/messages", {
+          method: "POST",
+          headers: {
+            "Authorization": "Basic " + btoa(rootAblyKey),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: "chat-message", data }),
+        });
+        if (!publishResponse.ok) console.warn("Ably LIVE chat publish failed with status:", publishResponse.status);
+      } catch (publishError) {
+        console.warn("Ably LIVE chat publish request failed:", publishError);
+      }
+    }
     return json({ ok: true, message: data }, 200, headers);
   }
 
@@ -122,7 +174,7 @@ Deno.serve(async (req: Request) => {
     console.error("LIVE follower eligibility lookup failed:", followerCountError.message);
     return json({ error: "Could not verify LIVE eligibility. Please retry." }, 503, headers);
   }
-  if ((followerCount || 0) < 1000) {
+  if ((followerCount || 0) < 1000 && !previewOwnerTest) {
     return json({ error: "LIVE unlocks at 1,000 genuine followers.", follower_count: followerCount || 0 }, 403, headers);
   }
 
@@ -136,8 +188,9 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true }, 200, headers);
   }
 
-  const title = typeof body.room_title === "string" ? body.room_title.trim().slice(0, 120) : "";
-  if (!title) return json({ error: "Enter a live room title." }, 400, headers);
+  const requestedTitle = typeof body.room_title === "string" ? body.room_title.trim().slice(0, 120) : "";
+  if (!requestedTitle) return json({ error: "Enter a live room title." }, 400, headers);
+  const title = previewOwnerTest ? "[PREVIEW TEST] " + requestedTitle.slice(0, 103) : requestedTitle;
   const roomType = body.room_type === "gaming" ? "gaming" : "live";
   const streamMode = roomType === "gaming" ? "screen" : "camera";
   const requestedSeats = Number(body.seat_capacity || 1);
@@ -151,9 +204,7 @@ Deno.serve(async (req: Request) => {
   let input: any = null;
   if (existing?.stream_room_name) {
     try {
-      const get = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${encodeURIComponent(existing.stream_room_name)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const get = await cloudflareFetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${encodeURIComponent(existing.stream_room_name)}`, {}, tokenCandidates);
       if (get.ok) {
         const payload = await get.json();
         if (payload?.success && payload?.result?.enabled !== false) input = payload.result;
@@ -164,19 +215,15 @@ Deno.serve(async (req: Request) => {
   if (!input) {
     let response: Response;
     try {
-      response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs`, {
+      response = await cloudflareFetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          
           "Content-Type": "application/json",
           "Idempotency-Key": crypto.randomUUID(),
         },
-        body: JSON.stringify({
-          enabled: true,
-          defaultCreator: creatorId,
-          meta: { app: "New Star", creatorId, roomTitle: title },
-        }),
-      });
+        body: JSON.stringify({ enabled: true, defaultCreator: creatorId, meta: { app: "New Star", creatorId, roomTitle: title } }),
+      }, tokenCandidates);
     } catch (e) {
       console.error("Cloudflare live input request failed:", e);
       return json({ error: "Could not reach Cloudflare Stream." }, 502, headers);

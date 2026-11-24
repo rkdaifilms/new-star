@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101014">
+<title>New Star Creator Studio</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="preferences.js"></script>
+<script src="navbar.js" defer></script>
+<style>
+:root{color-scheme:dark;--bg:#101014;--panel:#1d1d26;--line:#393944;--muted:#b4b4c0;--accent:#fe2c55}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at top,#292033 0,#101014 48%);color:#fff;font:15px system-ui,-apple-system,Segoe UI,sans-serif;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:calc(13px + env(safe-area-inset-top)) 16px 13px;background:#15151bf2;border-bottom:1px solid var(--line)}
+.back{color:#fff;text-decoration:none;font-size:26px}
+header h1{font-size:18px;margin:0}
+main{width:min(920px,100%);margin:auto;padding:18px 14px 28px}
+.intro{padding:22px;border:1px solid #4a4055;border-radius:18px;background:linear-gradient(135deg,#34213d,#1b2b38);margin-bottom:16px}
+.intro .mark{font-size:34px}.intro h2{font-size:24px;margin:7px 0}.intro p{color:#dedbe5;line-height:1.6;margin:0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{display:flex;flex-direction:column;min-height:170px;padding:17px;border:1px solid var(--line);border-radius:16px;background:#1c1c25;color:#fff;text-decoration:none;transition:border-color .15s,transform .15s}
+.card:active{transform:scale(.99);border-color:var(--accent)}
+.icon{font-size:29px}.card h3{font-size:17px;margin:10px 0 6px}.card p{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 14px}.go{margin-top:auto;color:#ff8da4;font-weight:700;font-size:13px}
+.note{margin:16px 3px;color:var(--muted);font-size:12px;line-height:1.55}
+@media(max-width:540px){main{padding:12px}.grid{grid-template-columns:1fr;gap:9px}.card{min-height:138px;padding:15px}.intro{padding:18px}.intro h2{font-size:21px}}
+</style>
+</head>
+<body>
+<header><a class="back" href="profile.html" aria-label="वापस">‹</a><h1>✨ New Star Creator Studio</h1></header>
+<main>
+<section class="intro"><div class="mark">🎬 ✨</div><h2>Creator Studio में आपका स्वागत है</h2><p>यह मुख्य Studio पेज है। यहाँ से जिस काम की जरूरत हो, वही खोलें—Studio खुलते ही Gallery/File Picker अपने-आप नहीं खुलेगा।</p></section>
+<section class="grid" aria-label="Creator Studio tools">
+<a class="card" href="camera.html"><span class="icon">🎞️</span><h3>Video Studio & Editor</h3><p>Camera से रिकॉर्ड करें या अपनी Gallery से वीडियो चुनकर editing और upload शुरू करें।</p><span class="go">Open Video Studio →</span></a>
+<a class="card" href="creator-ai.html"><span class="icon">🤖</span><h3>Creator Studio AI</h3><p>AI से सवाल पूछें, scripts, stories, captions और creator ideas तैयार करें; voice input भी इस्तेमाल करें।</p><span class="go">Open Creator AI →</span></a>
+<a class="card" href="live.html"><span class="icon">🔴</span><h3>Live Studio</h3><p>अपना LIVE room खोलें और उपलब्ध live controls इस्तेमाल करें।</p><span class="go">Open Live Studio →</span></a>
+<a class="card" href="gaming.html"><span class="icon">🎮</span><h3>Gaming Live Studio</h3><p>Gaming LIVE और screen-streaming controls खोलें।</p><span class="go">Open Gaming Studio →</span></a>
+</section>
+<p class="note">नोट: Video Studio खोलने के बाद Camera या Gallery का विकल्प आप खुद चुनेंगे। Creator AI अलग workspace है।</p>
+</main>
+</body>
+</html>

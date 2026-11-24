@@ -1,7 +1,13 @@
 name: Android App (automatic APK)
+# Rebuild after adding Gaming LIVE mic mute controls and Full HD 1080p capture.
 
 on:
   push:
+    branches:
+      - main
+      - gaming-connectivity-fix
+      - new-star-repair-pass-1
+  pull_request:
     branches:
       - main
   workflow_dispatch:
@@ -9,9 +15,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: android-apk-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   build-debug-apk:

@@ -1,27 +1,38 @@
 # New Star Android App
 
-This repository automatically builds a test-installable Android APK from the latest `main` branch.
+New Star for Android is a **native Jetpack Compose application** (package `com.newstar.live`). Its app screens are rendered by Android; it does not embed the website in a WebView and does not load the Vercel website as its app interface.
 
-## Download the latest APK
+## Native app and services
 
-1. Open the repository on GitHub.
-2. Open **Actions**.
-3. Select **Android App (automatic APK)**.
-4. Open the newest successful run (green check mark).
-5. Under **Artifacts**, download `new-star-android-apk-...`.
-6. Extract the ZIP and install `app-debug.apk` on an Android test device.
+- Android UI, authentication screens, creator studio, video selection/upload UI, and LIVE controls are native Kotlin/Jetpack Compose.
+- The app communicates directly with the Supabase project APIs for authentication, AI gateway, video upload sessions, and LIVE session setup.
+- Video media is uploaded to Cloudflare Stream using resumable TUS; camera and gaming broadcasts use Android foreground services and WebRTC/WHIP.
+- Vercel hosts the separate website/preview. It is not the Android app runtime or a dependency for rendering Android screens.
+- Google OAuth may open the device's external browser for the provider sign-in flow; that does not turn the app UI into a website. Email/password sign-in stays in the native app.
 
-**Do not use Code -> Download ZIP as the Android installer.** That ZIP contains source code, not an APK.
+## Download and install the Android app
 
-Every push to `main` starts a fresh Android build. The artifact is tied to the exact Git commit and includes a SHA-256 checksum. Failed builds stay visible in Actions with their error logs, making it easier to identify which code change caused a regression. Artifacts are retained for 30 days.
+Open the [latest New Star Android release](https://github.com/rkdaifilms/new-star/releases/latest), download **NewStar.apk**, then tap the downloaded file and confirm Android's installer prompt.
 
-## Important build and security notes
+- The APK is built and signed by GitHub Actions from a version tag.
+- The release also includes **NewStar.aab** for Google Play publishing and **SHA256SUMS.txt** to verify downloads.
+- Android controls installation and may ask the user to confirm installation from the browser or file manager used to download the APK. Keep Play Protect and other device security checks enabled.
+- Production updates require the same privately managed release signing key and a higher Android versionCode. CI debug APKs use a runner-generated debug key; uninstall an older debug build before installing a new CI debug APK if Android reports a signature conflict. Never commit any keystore or publish a debug key as a production signing key.
 
-- The automatic APK is a **debug/test build**, signed with Android's standard debug key. It is intended for controlled testing, not public distribution or Play Store release.
-- Android or Play Protect may still show a warning for a sideloaded or unfamiliar app. A successful signature check does not mean Google has certified the app as safe.
-- Do not disable Android security protections to install it.
-- A public release requires a securely managed, persistent upload key and a signed release build. Never commit a keystore or share its passwords in chat.
-- The app currently wraps the New Star website in Android WebView. A native wrapper does not automatically remove browser/WebView restrictions; camera, microphone, file selection, notifications and other device features need explicit native permission handling and device testing.
-- Gaming LIVE native publishing currently sends screen video only; game/system audio, microphone mixing, face-camera overlay and Calls guest-seat publishing are not implemented in this native path.
-- Real-device testing is required for login, navigation, uploads, permissions, network behavior and streaming before public release.
-- Google Play publishing also requires store listing assets, privacy policy, Data safety declarations, content rating, target API compliance and Play Console review.
+## Publishing a release
+
+1. An authorized repository maintainer creates and pushes a version tag such as `v1.0.2`, or runs **Actions → Android Release (signed APK + Play Store AAB)** for an existing tag.
+2. GitHub Actions builds the signed APK and AAB, then attaches them to that tag's GitHub Release.
+3. Users install from the **latest release** link above.
+
+The release workflow requires these GitHub Actions repository secrets, configured by the repository owner/adult maintainer:
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+Keep the keystore and passwords private and backed up securely. Never commit them to the repository or paste them into chat. If these secrets are not configured, the signed release workflow will stop with a clear error; the separate debug APK workflow remains for testing only.
+
+## Testing and device compatibility
+
+A successful GitHub build proves that the APK compiles and is signed; it does not prove every phone, camera, microphone, upload, or streaming feature works. Test authentication, speech recognition, full video upload/playback, and LIVE playback on supported Android devices before public distribution. Gaming LIVE requires Android's screen-capture consent and a working Cloudflare Stream/WHIP configuration.

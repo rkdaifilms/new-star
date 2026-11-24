@@ -19,14 +19,88 @@ button{cursor:pointer}
 .search-row{display:flex;align-items:center;gap:8px;background:#252525;border:1px solid #444;border-radius:25px;padding:0 12px}
 .search-row input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:#fff;padding:12px 0;font-size:14px}
 .search-row button{border:0;background:transparent;color:#fff;font-size:20px;padding:5px}
+.home-quick-links{display:flex;justify-content:flex-end;gap:8px;margin-top:7px}
+.home-quick-links a{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid #ffffff55;border-radius:18px;background:#111c;color:#fff;text-decoration:none;font-size:11px}
+.creator-search-results{position:absolute;top:54px;left:10px;right:10px;z-index:1000;max-height:min(48vh,360px);overflow:auto;background:#18181d;border:1px solid #555;border-radius:12px;box-shadow:0 10px 30px #000b;padding:5px}
+.creator-search-results[hidden]{display:none}
+.creator-search-item{width:100%;display:flex;align-items:center;gap:10px;padding:9px;border:0;border-bottom:1px solid #ffffff18;background:transparent;color:#fff;text-align:left}
+.creator-search-item:last-child{border-bottom:0}
+.creator-search-item img,.creator-search-fallback{width:40px;height:40px;flex:0 0 40px;border-radius:50%;object-fit:cover;background:#393943;display:grid;place-items:center;font-weight:700}
+.creator-search-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+.creator-search-copy small{color:#aaa}
+.creator-search-video{padding:8px 7px;border-bottom:1px solid #ffffff18}
+.creator-search-video:last-child{border-bottom:0}
+.creator-search-video-open{width:100%;display:flex;align-items:center;gap:10px;padding:3px;border:0;background:transparent;color:#fff;text-align:left}
+.creator-search-video-thumb{width:76px;height:54px;flex:0 0 76px;display:grid;place-items:center;overflow:hidden;border-radius:7px;background:#30303a;color:#fff;font-size:22px}
+.creator-search-video-thumb img{width:100%;height:100%;object-fit:cover}
+.creator-search-video-creator{display:flex;align-items:center;gap:8px;width:100%;margin-top:7px;padding:3px 5px;border:0;background:transparent;color:#fff;text-align:left}
+.creator-search-video-creator img,.creator-search-video-creator .creator-search-fallback{width:25px;height:25px;flex:0 0 25px;border-radius:50%;object-fit:cover}
+.creator-search-video-creator .creator-search-copy strong{font-size:11px}
+.creator-search-video-creator .creator-search-copy small{font-size:10px}
 .categories{display:flex;gap:8px;overflow-x:auto;margin-top:10px;padding-bottom:5px;scrollbar-width:none}
 .categories::-webkit-scrollbar{display:none}
 .category{white-space:nowrap;border:0;border-radius:20px;background:#303030;color:#fff;padding:8px 13px;font-size:12px}
 .category.active{background:#fe2c55;font-weight:bold}
 #feed{height:100%;width:100%;position:relative;background:#080808;overflow:hidden;touch-action:none}
 #video{height:100%;width:100%;object-fit:contain;background:#000;touch-action:none}
-.video-info{position:absolute;z-index:5;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:none}
-.video-info h3{font-size:15px;margin-bottom:7px}
+.video-info{position:absolute;z-index:100001;left:13px;right:82px;bottom:85px;text-shadow:0 1px 4px #000;pointer-events:auto;isolation:isolate}
+#creatorIdentityBar{position:relative!important;inset:auto!important;z-index:100003!important;display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:max-content;max-width:100%;margin:0 0 8px;padding:0;border:0;border-radius:0;background:transparent!important;box-shadow:none!important;text-shadow:0 1px 4px #000;pointer-events:auto!important;isolation:isolate;}
+#feed>#creatorIdentityBar{position:absolute!important;left:12px!important;right:88px!important;bottom:calc(76px + env(safe-area-inset-bottom))!important;inset-inline:auto 88px!important;width:max-content!important;max-width:calc(100% - 112px)!important;margin:0!important;padding:0!important;gap:10px!important;flex-wrap:nowrap!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:100004!important}
+#feed>#creatorIdentityBar #username{display:inline-flex!important;align-items:center!important;color:#fff!important;text-decoration:none!important;min-height:26px!important;padding:2px 0!important;font-size:12px!important;font-weight:700!important;white-space:nowrap!important;max-width:min(38vw,150px);overflow:hidden;text-overflow:ellipsis;background:transparent!important;border:0!important;box-shadow:none!important;text-shadow:0 1px 4px #000!important}
+#feed>#creatorIdentityBar #followCreatorBtn{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;min-width:0!important;min-height:25px!important;padding:2px 0!important;font-size:11px!important;font-weight:700!important;color:#fff!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;text-shadow:0 1px 4px #000!important}
+#feed .actions>#creatorProfileButton{display:flex!important;flex:0 0 38px!important;width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;margin:0 auto 5px!important;position:relative!important;z-index:100006!important}
+
+#creatorIdentityBar button{pointer-events:auto!important;touch-action:manipulation!important;position:relative;z-index:2147482502!important;}
+#followCreatorBtn{pointer-events:auto!important;position:relative;z-index:8;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#followCreatorBtn.following{background:#24242b!important;border:1px solid #fe2c55!important;color:#fff!important}
+#creatorProfileButton{flex:0 0 34px;width:34px!important;height:34px!important;min-width:34px;min-height:34px;align-items:center;justify-content:center;position:relative;overflow:hidden;border:2px solid #fff!important;border-radius:50%;background:#262630!important;box-shadow:0 2px 10px #000b;cursor:pointer;pointer-events:auto!important;touch-action:manipulation!important}
+#creatorProfileButton.has-creator{display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;flex:0 0 34px!important;width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;background:#fe2c55!important;border:2px solid #fff!important;}
+#feedCreatorFallback{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:21px;font-weight:800;line-height:1;z-index:1}
+#feedCreatorAvatar{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:2;background:#333}
+#feedCreatorAvatar[hidden]{display:none!important}
+#followCreatorBtn{min-width:66px;min-height:28px;padding:4px 9px!important;font-size:11px;white-space:nowrap}
+#followCreatorBtn:disabled{opacity:.78}
+ .video-info #username{display:inline-flex;align-items:center;min-height:30px;margin:0;padding:3px 0;font-size:12px;font-weight:700;line-height:1.25;text-decoration:underline;text-decoration-color:#ffffff66;text-underline-offset:3px;text-shadow:0 1px 5px #000;cursor:pointer;pointer-events:auto;position:relative;z-index:100003;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+/* Creator identity controls must remain tappable above the video surface on touch devices. */
+#feed .video-info{z-index:100001!important;isolation:isolate;pointer-events:auto!important;} #feed .video-info button,#feed .video-info a{pointer-events:auto!important;}
+#creatorProfileButton,#username,#followCreatorBtn{pointer-events:auto!important;position:relative;z-index:100003!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent;}
+#creatorProfileButton{flex:0 0 34px;width:34px!important;height:34px!important;min-width:34px;min-height:34px;align-items:center;justify-content:center;cursor:pointer;}
+#username{display:inline-flex;align-items:center;min-height:30px;margin:0;padding:3px 0;color:#fff;font:700 12px/1.25 inherit;text-shadow:0 1px 5px #000;cursor:pointer;}
+#followCreatorBtn{min-height:36px;cursor:pointer;}
+#creatorActionBtn.creator-profile-fab{display:none!important;}
+#creatorActionBtn .creator-action-avatar,#creatorActionBtn img{width:42px;height:42px;border-radius:50%;border:2px solid #fff;object-fit:cover;background:#333;display:grid;place-items:center;font-size:19px;font-weight:800;}
+#creatorActionBtn img[hidden]{display:none!important;}
+#creatorActionBtn span:last-child{font-size:11px;color:#fff;line-height:1.1;}
+#creatorProfileVideoBack{display:none;position:fixed;z-index:100050;top:calc(env(safe-area-inset-top) + 12px);left:12px;padding:9px 14px;border:1px solid #ffffff66;border-radius:22px;background:#171717e8;color:#fff;font-size:13px;font-weight:700;touch-action:manipulation}
+body.creator-profile-video-mode #creatorProfileVideoBack{display:block}
+body.creator-profile-video-mode .top-area{display:none!important}
+body.creator-profile-video-mode #creatorIdentityBar{display:none!important}
+#creatorProfileSheet{position:fixed;inset:0;z-index:100100;background:#080808f2;color:#fff;display:none;overflow:auto;padding:22px 16px 36px}
+#creatorProfileSheet.open{display:block}
+#creatorProfileSheet .creator-card{max-width:560px;margin:8vh auto 0;background:#19191f;border:1px solid #41414b;border-radius:18px;padding:20px}
+#creatorProfileSheet .creator-close{float:right;border:0;border-radius:50%;width:40px;height:40px;background:#333;color:white;font-size:24px}
+#creatorProfileSheet .creator-avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;background:#333;display:block;margin-bottom:12px}
+#creatorProfileSheet .creator-stats{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;color:#ddd;font-size:12px} #creatorProfileFollowing{font-size:11px}
+#creatorProfileSheet .creator-videos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:14px}
+#creatorProfileSheet .creator-video-tabs{display:flex;gap:7px;overflow-x:auto;margin:14px 0 4px;padding:3px 0;scrollbar-width:none}
+#creatorProfileSheet .creator-video-tabs[hidden]{display:none!important}
+#creatorProfileSheet .creator-video-tabs button{flex:1 0 auto;min-height:36px;padding:8px 12px;border:1px solid #454550;border-radius:18px;background:#25252c;color:#eee;font-size:12px;font-weight:700;white-space:nowrap}
+#creatorProfileSheet .creator-video-tabs button.active{background:#fe2c55;border-color:#fe2c55;color:#fff}
+#creatorProfileSheet .creator-video-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#creatorProfileSheet .creator-videos video{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;border-radius:8px}
+#creatorProfileSheet .creator-status{color:#bbb;font-size:13px;margin-top:10px}
+#creatorProfileSheet .creator-profile-retry{margin-top:10px;padding:9px 15px;border:1px solid #fe2c55;border-radius:18px;background:#222;color:#fff;font-weight:700}
+#creatorProfileSheet .creator-profile-retry[hidden]{display:none!important}
+#creatorProfileSheet .creator-profile-follow{display:inline-flex;align-items:center;justify-content:center;min-width:110px;margin:8px 0 4px;padding:9px 18px;border:0;border-radius:20px;background:#fe2c55;color:#fff;font-weight:700}
+#creatorProfileSheet .creator-profile-follow.following{background:#292930;border:1px solid #fe2c55}
+#creatorProfileSheet .creator-videos button{position:relative;display:block;width:100%;padding:0;border:0;background:#111;color:#fff;text-align:left;border-radius:8px;overflow:hidden}
+#creatorProfileSheet .creator-video-thumb{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:9/16;overflow:hidden;background:#17171b;color:#fff;font-size:34px}
+#creatorProfileSheet .creator-video-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+#creatorProfileSheet .creator-video-thumb.no-thumbnail{background:linear-gradient(145deg,#292930,#111)} 
+#creatorProfileSheet .creator-video-label{display:block;padding:5px;font-size:11px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#creatorProfileSheet .creator-video-views{display:block;padding:0 5px 6px;color:#aaa;font-size:10px}
+/* Creator profile cards are video-only: hide title and view/action helper text. */
+#creatorProfileSheet .creator-video-label,#creatorProfileSheet .creator-video-views{display:none!important}
 .video-info p{font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
 .video-info a{pointer-events:auto;display:none;color:#25f4ee;font-size:12px;margin-top:8px}
 .video-meta{font-size:11px;color:#ddd;margin-top:6px}
@@ -105,8 +179,9 @@ button{cursor:pointer}
 #feed.video-expanded .top-area,#feed.video-expanded #playHint{display:none!important}
 #feed.video-expanded .video-info{display:block!important;left:12px;right:84px;bottom:calc(24px + env(safe-area-inset-bottom));z-index:100001}
 #feed.video-expanded .actions{display:flex!important;position:fixed!important;right:max(8px,env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom));z-index:100002!important}
-#feed.video-expanded #counter{display:block!important;top:calc(env(safe-area-inset-top) + 12px);left:12px;right:auto;z-index:100002}
+#feed.video-expanded #counter{display:none!important}
 #feed.video-expanded #video{touch-action:none!important}
+ #feed #affiliate{display:none!important}
 #feed.video-expanded .action-icon{background:#171717dd;border-color:#ffffff99}
 #feed.video-expanded .action{font-size:11px;text-shadow:0 1px 4px #000}
 #videoExpandClose{display:none;position:absolute;z-index:100000;top:calc(env(safe-area-inset-top) + 12px);right:12px;width:44px;height:44px;border:1px solid #ffffff66;border-radius:50%;background:#111c;color:#fff;font-size:25px;align-items:center;justify-content:center;touch-action:manipulation}
@@ -189,6 +264,172 @@ button{cursor:pointer}
 #liveViewerStatus{color:#ccc;overflow-wrap:anywhere}
 .live-feed-empty{padding:22px 14px;text-align:center;color:#aaa;background:#151515;border:1px dashed #444;border-radius:12px;font-size:13px}
 @media(min-width:650px){.live-room-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+
+
+/* Explicitly clear every category chip background, including the selected tab. */
+#categories .category,
+#categories .category.active,
+#categories .category:focus,
+#categories .category:active{
+ background:none!important;
+ background-color:transparent!important;
+ border:0!important;
+ outline:0!important;
+ box-shadow:none!important;
+ -webkit-appearance:none!important;
+ appearance:none!important;
+}
+#categories{background:transparent!important;box-shadow:none!important}
+#categories .category.active{color:#fff!important;font-weight:800!important;text-decoration:underline!important;text-underline-offset:5px}
+
+/* Transparent feed controls: keep all icons and labels, remove colored tiles. */
+.top-area{background:transparent!important}
+.top-area .category,.top-area .category.active{
+ background:transparent!important;background-color:transparent!important;
+ border:0!important;box-shadow:none!important;border-radius:0!important;color:#fff!important;
+}
+.top-area .category.active{font-weight:800!important;text-decoration:underline;text-underline-offset:5px}
+#feed .actions .action,#feed .actions .action-icon,#feed .actions .action.liked .action-icon{
+ background:transparent!important;background-color:transparent!important;border:0!important;box-shadow:none!important;
+}
+
+/* Minimal transparent action rail so controls do not cover the video. */
+#feed .actions{
+ right:5px!important;
+ bottom:calc(72px + env(safe-area-inset-bottom))!important;
+ gap:5px!important;
+ align-items:center!important;
+}
+#feed .actions .action{
+ min-width:34px!important;
+ width:36px!important;
+ padding:0!important;
+ font-size:8px!important;
+ line-height:1.05!important;
+ color:#fff!important;
+ text-shadow:0 1px 3px #000!important;
+}
+#feed .actions .action-icon{
+ width:29px!important;
+ height:29px!important;
+ min-width:29px!important;
+ min-height:29px!important;
+ margin:0 auto 1px!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ font-size:17px!important;
+ line-height:1!important;
+}
+#feed .actions .action span{
+ font-size:8px!important;
+ line-height:1.05!important;
+}
+#feed .actions .video-settings-wrap{
+ min-height:27px!important;
+ margin:0 0 1px!important;
+}
+#feed .actions #videoSettingsBtn{
+ width:27px!important;
+ height:27px!important;
+ min-width:27px!important;
+ min-height:27px!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+}
+#feed .actions #videoSettingsBtn svg{width:17px!important;height:17px!important}
+
+
+/* Search field only: remove the colored fill behind the top search control. */
+.top-area .search-row{
+ background:transparent!important;
+ background-color:transparent!important;
+ background-image:none!important;
+ border-color:transparent!important;
+ box-shadow:none!important;
+}
+
+/* Compact feed header: keep search and category controls clear of the video. */
+.top-area{padding:4px 10px 2px!important;background:linear-gradient(#000d,#0008,transparent)!important}
+.search-row{min-height:34px!important;padding:0 9px!important;gap:6px!important}
+.search-row input{padding:5px 0!important;font-size:12px!important;line-height:18px!important}
+.search-row>span{font-size:14px!important}
+.search-row button{font-size:16px!important;padding:3px!important;line-height:18px!important}
+.home-quick-links{margin-top:2px!important;gap:5px!important}
+.home-quick-links a{padding:3px 7px!important;font-size:10px!important;line-height:14px!important}
+.categories{margin-top:-4px!important;padding-bottom:2px!important;gap:6px!important;scroll-padding-inline:10px}
+.category{flex:0 0 auto!important;padding:5px 10px!important;font-size:11px!important;line-height:16px!important}
+/* Keep Long Videos clearly visible beside Shorts on the home feed. */
+#categories .category[data-cat="Long Videos"]{display:inline-flex!important;align-items:center;gap:4px;white-space:nowrap!important;font-weight:700!important}
+#counter{display:none!important}
+
+/* Search and microphone: remove only their individual background tiles. Keep layout and behavior unchanged. */
+.top-area .search-row,
+.top-area .search-row:focus-within{
+  background:transparent!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.top-area .search-row>span,
+.top-area .search-row>input#search,
+.top-area .search-row>input#search:focus,
+.top-area .search-row>input#search:active,
+.top-area .search-row>button#voice,
+.top-area .search-row>button#voice:hover,
+.top-area .search-row>button#voice:focus,
+.top-area .search-row>button#voice:active{
+  background:transparent!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  box-shadow:none!important;
+  outline-color:transparent!important;
+  -webkit-appearance:none!important;
+  appearance:none!important;
+}
+.top-area .search-row>input#search::-webkit-search-decoration,
+.top-area .search-row>input#search::-webkit-search-cancel-button,
+.top-area .search-row>input#search::-webkit-search-results-button,
+.top-area .search-row>input#search::-webkit-search-results-decoration{
+  -webkit-appearance:none!important;
+}
+
+/* Final override: the search field and mic button themselves must stay clear. */
+html body #app header.top-area .search-row,
+html body #app header.top-area .search-row:focus-within{
+  background:transparent!important;background-color:transparent!important;
+  background-image:none!important;border:0!important;box-shadow:none!important;
+}
+html body #app header.top-area .search-row #search,
+html body #app header.top-area .search-row #search:focus,
+html body #app header.top-area .search-row #search:active,
+html body #app header.top-area .search-row #search:-webkit-autofill,
+html body #app header.top-area .search-row #voice,
+html body #app header.top-area .search-row #voice:hover,
+html body #app header.top-area .search-row #voice:focus,
+html body #app header.top-area .search-row #voice:active{
+  background:transparent!important;background-color:transparent!important;
+  background-image:none!important;border:0!important;box-shadow:none!important;
+  outline:0!important;-webkit-appearance:none!important;appearance:none!important;
+  -webkit-tap-highlight-color:transparent!important;
+}
+html body #app header.top-area .search-row #search:-webkit-autofill,
+html body #app header.top-area .search-row #search:-webkit-autofill:hover,
+html body #app header.top-area .search-row #search:-webkit-autofill:focus{
+  -webkit-text-fill-color:#fff!important;
+  -webkit-box-shadow:0 0 0 1000px transparent inset!important;
+  box-shadow:0 0 0 1000px transparent inset!important;
+  transition:background-color 999999s ease-out 0s!important;
+}
+html body #app header.top-area .search-row #voice::before,
+html body #app header.top-area .search-row #voice::after{background:transparent!important;box-shadow:none!important}
 </style>
 
 <link rel="manifest" href="/manifest.json">
@@ -204,13 +445,24 @@ button{cursor:pointer}
   <input id="search" type="search" placeholder="Search creators, videos..." data-i18n-placeholder="feed.search" autocomplete="off">
   <button id="voice" aria-label="Voice search" data-i18n-aria-label="feed.voiceSearch">🎙️</button>
  </div>
+ <div id="creatorSearchResults" class="creator-search-results" hidden role="listbox" aria-label="Creator search results"></div>
+ <div class="home-quick-links" aria-label="App help">
+  <a href="settings.html#help-support">🤖 Help & Support</a>
+ </div>
  <nav class="categories" id="categories">
   <button class="category active" data-cat="For You">🔥 <span data-i18n="feed.forYou">For You</span></button>
   <button class="category" data-cat="Following">👥 <span data-i18n="feed.following">Following</span></button>
   <button class="category" data-cat="Shorts">⚡ <span data-i18n="feed.shorts">Shorts</span></button>
+  <button class="category" data-cat="Long Videos" aria-label="Long Videos">▶ <span>Long Videos</span></button>
   <button class="category" data-cat="Reels" data-i18n="feed.reels">🎬 <span data-i18n="feed.reels">Reels</span></button>
-  <button class="category" data-cat="Long Videos">▶ <span data-i18n="feed.longVideos">Long Videos</span></button>
   <button class="category" data-cat="Discover">🌍 <span data-i18n="feed.discover">Discover</span></button>
+  <button class="category" data-cat="Trending">🔥 Trending</button>
+  <button class="category" data-cat="Education">📚 Education</button>
+  <button class="category" data-cat="News">📰 News</button>
+  <button class="category" data-cat="Sports">⚽ Sports</button>
+  <button class="category" data-cat="Entertainment">🎭 Entertainment</button>
+  <button class="category" data-cat="Food">🍲 Food</button>
+  <button class="category" data-cat="Travel">🧭 Travel</button>
   <button class="category" data-cat="Friends">🤝 <span data-i18n="feed.friends">Friends</span></button>
   <button class="category" data-cat="Live">🔴 <span data-i18n="feed.live">Live</span></button>
   <button class="category" data-cat="Comedy">😂 <span data-i18n="feed.comedy">Comedy</span></button>
@@ -239,26 +491,44 @@ button{cursor:pointer}
    <button id="reload" data-i18n="feed.retry">Try again</button>
   </div>
  </div>
- <video id="video" playsinline loop preload="metadata"></video>
+ <video id="video" playsinline preload="metadata"></video>
  <button id="videoExpandClose" type="button" aria-label="Close expanded video">×</button>
+ <button id="creatorProfileVideoBack" type="button">← Back to Creator Profile</button>
  <button id="playHint">▶</button>
  <div id="counter"></div>
+ <div id="creatorProfileSheet" aria-hidden="true">
+  <div class="creator-card">
+   <button type="button" class="creator-close" id="creatorProfileClose" aria-label="Close">×</button>
+   <img class="creator-avatar" id="creatorProfileAvatar" alt="Creator profile">
+   <h2 id="creatorProfileName">Creator</h2>
+   <button type="button" id="creatorProfileFollow" class="creator-profile-follow">Follow</button>
+   <p id="creatorProfileBio"></p>
+   <p id="creatorProfileAbout" class="creator-status" hidden></p>
+   <p id="creatorProfileLocation" class="creator-status" hidden></p>
+   <div class="creator-stats"><span id="creatorProfileFollowers">Followers: —</span><span id="creatorProfileFollowing">Following: —</span><span id="creatorProfilePosts">Videos: —</span></div>
+   <div class="creator-status" id="creatorProfileStatus">Loading creator…</div>
+   <button type="button" id="creatorProfileRetry" class="creator-profile-retry" hidden>Retry profile loading</button>
+   <div class="creator-video-tabs" id="creatorProfileVideoTabs" role="tablist" aria-label="Creator videos"><button type="button" class="active" data-creator-video-filter="all" role="tab" aria-selected="true">All Videos</button><button type="button" data-creator-video-filter="short" role="tab" aria-selected="false">⚡ Shorts</button><button type="button" data-creator-video-filter="long" role="tab" aria-selected="false">▶ Long Videos</button></div><div class="creator-videos" id="creatorProfileVideoGrid"></div>
+  </div>
+ </div>
  <section class="video-info">
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-   <h3 id="username"></h3>
-   <button id="followCreatorBtn" type="button" style="display:none;background:#fe2c55;color:#fff;border:0;border-radius:18px;padding:6px 14px;font-weight:700">Follow</button>
+  <div id="creatorIdentityBar" style="display:flex;align-items:center;gap:9px;flex-wrap:nowrap">
+   <button type="button" id="username" aria-label="Open creator profile" style="border:0;background:transparent;color:#fff;text-align:left"></button>
+   <button id="followCreatorBtn" type="button" style="display:none;background:transparent;color:#fff;border:0;border-radius:0;padding:2px 0;font-weight:700">Follow</button>
   </div>
   <p id="caption"></p>
   <a id="affiliate" href="#" target="_blank" rel="noopener noreferrer nofollow sponsored">🔗 Brand / Affiliate Link</a>
   <div class="video-meta" id="meta"></div>
  </section>
  <aside class="actions">
+   <button type="button" id="creatorProfileButton" aria-label="Open creator profile" title="Open creator profile" style="display:none"><span id="feedCreatorFallback" aria-hidden="true">👤</span><img id="feedCreatorAvatar" alt="" hidden></button>
   <div class="video-settings-wrap" id="videoSettingsWrap"><button type="button" id="videoSettingsBtn" aria-label="Video settings" data-i18n-aria-label="action.videoSettings" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.1.9-1.2 2.1-1.4-.6a8 8 0 0 1-1.5.9l-.2 1.5h-2.5l-.3-1.5a8 8 0 0 1-1.6-.9l-1.4.6-1.2-2.1 1.2-1a7 7 0 0 1 0-1.8l-1.2-1 1.2-2.1 1.4.6a8 8 0 0 1 1.6-.9l.3-1.5h2.5l.2 1.5a8 8 0 0 1 1.5.9l1.4-.6 1.2 2.1-1.1.9a7 7 0 0 1 0 1.8Z"/></svg></button>
    <div id="videoSettingsMenu" hidden>
     <button type="button" data-feed-manage="title">✏️ <span data-i18n="action.editTitle">Edit Title</span></button><button type="button" data-feed-manage="tags">#️⃣ <span data-i18n="action.editHashtags">Edit Hashtags</span></button>
     <button type="button" data-feed-manage="voice">🎙️ <span data-i18n="action.recordVoice">Record Voice</span></button><button type="button" data-feed-manage="gallery">🎵 <span data-i18n="action.chooseAudio">Choose Audio from Gallery</span></button>
     <button type="button" data-feed-manage="mix">🎚️ <span data-i18n="action.mixSave">Mix & Save</span></button><button type="button" data-feed-manage="delete">🗑️ <span data-i18n="action.deleteVideo">Delete Video</span></button>
    </div></div>
+  
   <button class="action" id="likeBtn"><div class="action-icon">❤️</div><span id="likes">0</span></button>
   <button class="action" id="commentBtn"><div class="action-icon">💬</div><span id="commentCount">0</span><span data-i18n="action.comment">Comments</span></button>
   <button class="action" id="giftBtn"><div class="action-icon">🎁</div><span data-i18n="action.gift">Gift</span></button>
@@ -266,6 +536,7 @@ button{cursor:pointer}
   <button class="action" id="reportVideoBtn" type="button" aria-label="Report video"><div class="action-icon">⚑</div><span>Report</span></button>
   <button class="action" id="downloadBtn"><div class="action-icon">⬇️</div><span data-i18n="action.download">Download</span></button>
  </aside>
+ <button class="creator-profile-fab" id="creatorActionBtn" type="button" aria-label="Open creator profile" title="Creator Profile" style="display:none"><span class="creator-action-avatar" id="creatorActionFallback">👤</span><img id="creatorActionAvatar" alt="" hidden><span>Profile</span></button>
 </main>
 </div>
 
@@ -379,19 +650,29 @@ document.querySelectorAll("[data-close]").forEach(btn=>{
 async function getUser(){
  if(!db)return null;
  try{
-  const {data,error}=await db.auth.getUser();
+  // Restore the locally persisted Supabase session first. getUser() makes a
+  // network verification request and can falsely look logged-out on a weak
+  // connection even when this device still has a valid saved session.
+  const {data,error}=await db.auth.getSession();
   if(error)throw error;
-  return data.user||null;
- }catch(error){console.error("Auth:",error);return null;}
+  return data.session?.user||null;
+ }catch(error){
+  console.error("Session restore:",error);
+  showToast("Session जाँचने में नेटवर्क समस्या है। Internet जुड़ने पर फिर कोशिश करें।");
+  return null;
+ }
 }
+db?.auth.onAuthStateChange((event,session)=>{
+ currentUser=session?.user||null;
+});
 
 function showEmpty(message){
  document.querySelector(".actions").style.display="none";
  $("video").pause();$("video").removeAttribute("src");$("video").load();
  $("emptyMessage").textContent=message;$("empty").style.display="flex";
- $("counter").textContent="";$("username").textContent="";$("caption").textContent="";
+ $("counter").textContent="";$("username").textContent="";$("creatorProfileButton").style.display="none";$("followCreatorBtn").style.display="none";$("caption").textContent="";
  $("meta").textContent="";$("likes").textContent="0";$("commentCount").textContent="0";
- $("affiliate").style.display="none";$("likeBtn").classList.remove("liked");currentVideo=null;
+ $("affiliate").style.display="none";$("likeBtn").classList.remove("liked");$("creatorIdentityBar").style.display="none";$("creatorActionBtn").style.display="none";currentVideo=null;
 }
 
 function getVideoAspect(item){
@@ -458,16 +739,20 @@ const newStarHlsPlayers=new WeakMap();
 function attachNewStarVideoSource(player,source){
  const previous=newStarHlsPlayers.get(player);if(previous){previous.destroy();newStarHlsPlayers.delete(player);}
  player.pause();player.removeAttribute("src");player.load();
- if(!source)return;
+ if(!source)return false;
  const isHls=/\.m3u8(?:$|[?#])/i.test(source);
  if(isHls&&window.Hls&&window.Hls.isSupported()){
   const hls=new window.Hls({enableWorker:true,lowLatencyMode:false,backBufferLength:30});
-  newStarHlsPlayers.set(player,hls);hls.loadSource(source);hls.attachMedia(player);
- }else{
-  if(isHls&&player.canPlayType("application/vnd.apple.mpegurl"))player.src=source;
-  else player.src=source;
-  player.load();
+  newStarHlsPlayers.set(player,hls);
+  hls.on(window.Hls.Events.MANIFEST_PARSED,()=>player.play().catch(()=>{$("playHint").style.display="block";}));
+  hls.on(window.Hls.Events.ERROR,(_event,data)=>{if(data?.fatal){console.error("HLS playback failed:",data);$("playHint").style.display="block";}});
+  hls.loadSource(source);hls.attachMedia(player);
+  return true;
  }
+ if(isHls&&player.canPlayType("application/vnd.apple.mpegurl"))player.src=source;
+ else player.src=source;
+ player.load();
+ return false;
 }
 async function loadLikes(){
  likedIds.clear();
@@ -519,25 +804,26 @@ async function loadFeed(){
  $("loading").style.display="flex";$("empty").style.display="none";
  if(!db){$("loading").style.display="none";showEmpty("Supabase client नहीं मिला।");return;}
  try{
-  let rpcData=null,rpcError=null;
-  try{
-   const category=["Comedy","Music","Gaming","Tech","Vlogs"].includes(currentCategory)?currentCategory:null;
-   const result=await db.rpc("get_recommended_video_feed",{p_limit:50,p_offset:0,p_video_type:null,p_category:category});
-   rpcData=result.data;rpcError=result.error;
-  }catch(error){rpcError=error;}
-  // An RPC can succeed but return an empty list. In that case, query the
-  // public videos table directly instead of leaving the feed blank.
-  const rpcVideos=Array.isArray(rpcData)?rpcData.filter(v=>v&&v.id&&typeof v.video_url==="string"&&v.video_url.trim()):[];
-  if(!rpcError&&rpcVideos.length){
-   videos=rpcVideos.map(v=>({...v,video_url:v.video_url.trim(),likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
-  }else{
-   if(rpcError)console.warn("Recommended feed RPC failed; using direct query:",rpcError.message||rpcError);
-   else console.info("Recommended feed RPC returned no playable video rows; using direct query.");
-   const direct=await loadDirectPublicFeed();
-   videos=direct.filter(v=>v&&v.id&&typeof v.video_url==="string"&&v.video_url.trim())
-    .map(v=>({...v,video_url:v.video_url.trim(),likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+  // Revisit overdue Shorts cohorts when a signed-in viewer opens or refreshes a feed.
+  // The RPC only evaluates cohorts whose 24-hour review window has elapsed.
+  if(currentUser){
+   const review=await db.rpc("refresh_video_distribution_reviews");
+   if(review.error)console.warn("Distribution review refresh deferred:",review.error.message);
   }
-  if(!videos.length)throw new Error("कोई playable public video नहीं मिला। वीडियो का Storage URL और publish status जाँचें।");
+  const category=["Comedy","Music","Gaming","Tech","Vlogs","Education","News","Sports","Entertainment","Food","Travel"].includes(currentCategory)?currentCategory:null;
+  const search=$("search").value.trim()||null;
+  const videoType=["Shorts","Reels"].includes(currentCategory)?"short":currentCategory==="Long Videos"?"long":null;
+  const {data:rpcData,error:rpcError}=await db.rpc("get_recommended_video_feed_v2",{
+   p_limit:50,p_offset:0,p_video_type:videoType,p_category:category,p_search:search
+  });
+  if(rpcError)throw new Error("Recommendation service unavailable: "+rpcError.message);
+  const rpcVideos=Array.isArray(rpcData)?rpcData.filter(v=>v&&v.id&&typeof v.video_url==="string"&&v.video_url.trim()):[];
+  // Never bypass stage gates or privacy filters with a direct-table fallback.
+  videos=rpcVideos.map(v=>({...v,video_url:v.video_url.trim(),likes_count:Number(v.likes_count||0),views_count:Number(v.views_count||0)}));
+  if(!videos.length){
+   await applyFilters();
+   return;
+  }
   videos=await resolveFeedVideoUrls(videos);
   await hydrateFeedVideoMetadata();
   await loadLikes();
@@ -566,6 +852,7 @@ async function stopLiveViewer(){
  $("liveViewerWrap").hidden=true;
 }
 function showLiveFeedMode(){
+ const creatorAction=document.getElementById("creatorActionBtn");if(creatorAction)creatorAction.style.display="none";
  stopWatchSession();
  const player=$("video");
  player.pause();player.removeAttribute("src");player.load();player.style.display="none";
@@ -711,15 +998,14 @@ async function applyFilters(){
   try{followingIds=await getFollowingIds();}catch(e){showEmpty("Following सूची लोड नहीं हुई।");return;}
  }
  filtered=videos.filter(v=>{
-  const text=[v.caption,v.username,v.category,...(v.tags||[])].join(" ").toLowerCase();
-  if(keyword&&!text.includes(keyword))return false;
+  // Search matching is performed by get_recommended_video_feed_v2; do not re-filter here.
   if(currentCategory==="Following"||currentCategory==="Friends")return followingIds.includes(String(v.user_id));
   if(currentCategory==="Live")return false;
   const duration=Number(v.duration_seconds)||0;
    const isShort=v.video_type==="short"?true:v.video_type==="long"?false:(duration>0?duration<=60:Number(v.height)>Number(v.width));
    if(currentCategory==="Shorts"||currentCategory==="Reels")return isShort;
   if(currentCategory==="Long Videos")return v.video_type==="long"||(v.video_type!=="short"&&(duration>60||(duration===0&&Number(v.width)>=Number(v.height))));
-  if(["For You","Discover"].includes(currentCategory))return true;
+  if(["For You","Discover","Trending"].includes(currentCategory))return true;
   return String(v.category||"").toLowerCase().includes(currentCategory.toLowerCase());
  });
  currentIndex=0;
@@ -769,80 +1055,323 @@ function recordEngagement(videoId,eventType){
   if(error)console.debug("Engagement not recorded:",error.message);
  });
 }
+function recordFeedImpression(videoId,isShort){
+ if(!currentUser||!videoId||!db)return;
+ if(["Following","Friends","Live"].includes(currentCategory))return;
+ const surface=$("search").value.trim()?"search":(isShort?"short_feed":"long_feed");
+ db.rpc("record_video_feed_impression",{p_video_id:videoId,p_surface:surface}).then(({data,error})=>{
+  if(error)console.debug("Feed impression not recorded:",error.message);
+  else if(data?.stage_status==="paused")console.info("Short distribution paused:",videoId,data);
+ }).catch(error=>console.debug("Feed impression unavailable:",error?.message||error));
+}
 
 let followButtonVideoId=null;
-async function refreshCreatorFollowButton(item){
- const button=$("followCreatorBtn");
- if(!button)return;
- followButtonVideoId=String(item?.id||"");
- if(!currentUser||!item?.user_id||String(item.user_id)===String(currentUser.id)){
-  button.style.display="none";return;
- }
- button.style.display="inline-block";button.disabled=true;button.textContent="…";
- try{
-  const {data:card,error:profileError}=await db.from("creator_public_profiles")
-   .select("user_id,is_private").eq("user_id",String(item.user_id)).maybeSingle();
-  if(profileError)throw profileError;
-  if(!card){button.style.display="none";return;}
-  const {data:row,error}=await db.from("followers").select("id")
-   .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
-  if(error)throw error;
-  if(followButtonVideoId!==String(item.id))return;
-  if(row){button.textContent=feedText("action.following","Following");button.classList.add("following");}
-  else if(card.is_private){
-   const {data:request,error:requestError}=await db.from("follow_requests").select("id")
-    .eq("requester_id",currentUser.id).eq("target_user_id",String(item.user_id)).eq("status","pending").maybeSingle();
-   if(requestError)throw requestError;
-   button.textContent=request?feedText("action.requested","Requested"):feedText("action.requestFollow","Request Follow");button.classList.toggle("following",!!request);
-  }else{button.textContent=feedText("action.follow","Follow");button.classList.remove("following");}
- }catch(error){
-  console.warn("Follow state:",error.message);
-  button.textContent=feedText("action.follow","Follow");
- }finally{button.disabled=false;}
+async function getCreatorPublicCard(creatorId){
+ const {data,error}=await db.from("creator_public_profiles")
+  .select("user_id,username,full_name,avatar_url,bio,about,is_private,location_name")
+  .eq("user_id",String(creatorId)).maybeSingle();
+ if(error)throw error;
+ if(data)return data;
+ // Public profiles table is the fallback for every creator, not only the signed-in user.
+ const fallback=await db.from("profiles")
+  .select("user_id,username,full_name,avatar_url,bio,is_private,creator_location_name,creator_location_visibility")
+  .eq("user_id",String(creatorId)).maybeSingle();
+ if(fallback.error)throw fallback.error;
+ if(fallback.data&&!fallback.data.is_private)return {...fallback.data,about:fallback.data.bio||"",
+  location_name:fallback.data.creator_location_visibility==="public"
+   ?fallback.data.creator_location_name:null};
+ return null;
 }
-async function toggleCreatorFollow(){
- const item=currentVideo,button=$("followCreatorBtn");
- if(!currentUser){showToast("Follow करने के लिए Login करें।");return;}
- if(!item?.user_id||String(item.user_id)===String(currentUser.id))return;
+function paintFollowButton(button,state){
+ const labels={
+  following:feedText("action.following","Following"),
+  requested:feedText("action.requested","Requested"),
+  follow:feedText("action.follow","Follow"),
+  request:feedText("action.requestFollow","Request Follow")
+ };
+ button.textContent=labels[state]||labels.follow;
+ button.classList.toggle("following",state==="following"||state==="requested");
+ button.dataset.followState=state;
+}
+async function readCreatorFollowState(creatorId){
+ if(!currentUser)currentUser=await getUser();
+ if(!currentUser)return "login";
+ const {data,error}=await db.rpc("get_creator_follow_state",{p_creator_id:creatorId});
+ if(error)throw error;
+ return String(data||"follow");
+}
+async function refreshCreatorFollowButton(item){
+ const button=$("followCreatorBtn");if(!button)return;
+ const videoId=String(item?.id||""),creatorId=String(item?.user_id||"");
+ followButtonVideoId=videoId;
+ if(!creatorId){button.style.display="none";return;}
+ button.style.display="inline-flex";button.disabled=false;
+ try{
+  const state=await readCreatorFollowState(creatorId);
+  if(followButtonVideoId!==videoId||String(currentVideo?.id||"")!==videoId)return;
+  if(state==="self"){button.style.display="inline-flex";button.disabled=true;button.textContent="आपका वीडियो";button.dataset.followState="self";button.classList.remove("following");return;}
+  if(state==="login"){paintFollowButton(button,"follow");return;}
+  if(!["following","requested","request","follow"].includes(state))throw Error("Creator follow state: "+state);
+  paintFollowButton(button,state);
+ }catch(error){
+  console.error("Creator follow state failed:",error);
+  paintFollowButton(button,"follow");
+  showToast("Follow स्थिति नहीं पढ़ी जा सकी: "+(error.message||"फिर कोशिश करें।"));
+ }finally{if(followButtonVideoId===videoId&&button.dataset.followState!=="self")button.disabled=false;}
+}
+
+let creatorProfileRequest=0,creatorProfileHistoryEntry=false;
+async function refreshProfileFollowButton(creatorId,isPrivate=false){
+ const button=$("creatorProfileFollow");if(!button)return;
+ button.dataset.creatorId=String(creatorId);
  button.disabled=true;
  try{
-  const {data:card,error:profileError}=await db.from("creator_public_profiles")
-   .select("user_id,is_private").eq("user_id",String(item.user_id)).maybeSingle();
-  if(profileError)throw profileError;
-  if(!card)throw new Error("Creator profile नहीं मिली।");
-  const {data:row,error:readError}=await db.from("followers").select("id")
-   .eq("follower_id",currentUser.id).eq("following_id",String(item.user_id)).maybeSingle();
-  if(readError)throw readError;
-  if(row){
-   const {error}=await db.from("followers").delete().eq("id",row.id).eq("follower_id",currentUser.id);
-   if(error)throw error;
-   showToast("अब आप इस Creator को Follow नहीं करते।");
-  }else if(card.is_private){
-   const {data:request,error:requestError}=await db.from("follow_requests").select("id")
-    .eq("requester_id",currentUser.id).eq("target_user_id",String(item.user_id)).eq("status","pending").maybeSingle();
-   if(requestError)throw requestError;
-   if(request){showToast("आपकी Follow Request पहले से Pending है।");}
-   else{
-    const {error}=await db.from("follow_requests").insert({requester_id:currentUser.id,target_user_id:String(item.user_id),status:"pending"});
-    if(error)throw error;
-    showToast("Private Creator को Follow Request भेज दी गई।");
-   }
-  }else{
-   const {error}=await db.from("followers").insert({follower_id:currentUser.id,following_id:String(item.user_id)});
-   if(error)throw error;
-   showToast("Creator Follow हो गया!");
+  const state=await readCreatorFollowState(String(creatorId));
+  if(state==="self"){button.style.display="none";return;}
+  button.style.display="inline-flex";
+  if(state==="login"){button.textContent="Login to Follow";button.dataset.state="login";}
+  else{
+   const labels={following:"Following · Unfollow",requested:"Requested",request:"Request Follow",follow:"Follow"};
+   button.textContent=labels[state]||"Follow";button.dataset.state=state;
+   button.classList.toggle("following",state==="following"||state==="requested");
   }
-  await refreshCreatorFollowButton(item);
  }catch(error){
+  console.error("Profile follow state:",error);
+  button.textContent="Follow unavailable";button.dataset.state="error";
+  showToast("Follow स्थिति नहीं पढ़ी जा सकी: "+(error.message||"फिर कोशिश करें।"));
+ }finally{button.disabled=false;}
+}
+
+async function toggleProfileFollow(){
+ const button=$("creatorProfileFollow"),creatorId=String(button.dataset.creatorId||"");
+ if(!creatorId||button.disabled)return;
+ if(!currentUser)currentUser=await getUser();
+ if(!currentUser){showToast("Follow करने के लिए Login करें।");location.href="auth.html?next=index.html";return;}
+ if(String(currentUser.id)===creatorId)return;
+ button.disabled=true;
+ try{
+  const {data,error}=await db.rpc("toggle_creator_follow",{p_creator_id:creatorId});
+  if(error)throw error;
+  const state=data?.state;
+  if(!["following","unfollowed","requested"].includes(state))throw Error("Follow server ने पुष्टि नहीं की।");
+  await refreshProfileFollowButton(creatorId);
+  const {count,countError}=await (async()=>{
+   const result=await db.from("followers").select("id",{count:"exact",head:true}).eq("following_id",creatorId);
+   return {count:result.count,countError:result.error};
+  })();
+  if(!countError)$("creatorProfileFollowers").textContent="Followers: "+Number(count||0);
+  showToast(state==="following"?"Creator Follow हो गया!":state==="unfollowed"?"Unfollow कर दिया गया।":"Follow Request भेज दी गई।");
+ }catch(error){
+  console.error("Profile follow RPC:",error);
   showToast(socialActionErrorMessage(error,"follow"));
-  button.disabled=false;
+  await refreshProfileFollowButton(creatorId);
+ }finally{button.disabled=false;}
+}
+
+let activeCreatorProfileItem=null,creatorProfileVideoRows=[],creatorProfileVideoMode=false,creatorProfileReturnScroll=0;
+function restoreCreatorProfileVideo(fromPopState=false){
+ if(!creatorProfileVideoMode)return;
+ creatorProfileVideoMode=false;
+ document.body.classList.remove("creator-profile-video-mode");
+ $("creatorProfileVideoBack").style.display="none";
+ filtered=creatorProfileOriginalFiltered;
+ currentCategory=creatorProfileOriginalCategory;
+ currentIndex=creatorProfileOriginalIndex;
+ $("creatorProfileSheet").classList.add("open");
+ $("creatorProfileSheet").setAttribute("aria-hidden","false");
+ document.body.style.overflow="hidden";
+ if(!fromPopState&&creatorProfileVideoHistoryEntry){creatorProfileVideoHistoryEntry=false;history.back();}
+ else creatorProfileVideoHistoryEntry=false;
+ if(creatorProfileReturnScroll) $("creatorProfileSheet").scrollTop=creatorProfileReturnScroll;
+ renderVideo();
+}
+let creatorProfileOriginalFiltered=[],creatorProfileOriginalCategory="For You",creatorProfileOriginalIndex=0,creatorProfileVideoHistoryEntry=false;
+async function openFeedVideoFromProfile(row){
+ if(!row?.id)return;
+ const selectedId=String(row.id);
+ const sourceRows=creatorProfileVideoRows.length?creatorProfileVideoRows:[row];
+ const index=sourceRows.findIndex(x=>String(x.id)===selectedId);
+ // Resolve playback URLs for the entire creator list, not only the first tile.
+ // Otherwise the next swipe reaches a row that still has a raw storage URL.
+ let resolvedRows=[];
+ try{
+  resolvedRows=await resolveFeedVideoUrls(sourceRows);
+ }catch(error){
+  console.error("Creator profile playback URLs:",error);
+  showToast("Creator के वीडियो लिंक नहीं मिल पाए: "+(error?.message||"कृपया फिर कोशिश करें।"));
+  return;
  }
+ const resolvedById=new Map(resolvedRows.map(x=>[String(x.id),x]));
+ const ready=resolvedById.get(selectedId)||null;
+ if(!ready?.video_url){showToast("यह वीडियो अभी प्रकाशित या देखने योग्य नहीं है। प्रोफ़ाइल में वापस जाकर दूसरा वीडियो चुनें।");return;}
+ creatorProfileOriginalFiltered=filtered.slice();
+ creatorProfileOriginalCategory=currentCategory;
+ creatorProfileOriginalIndex=currentIndex;
+ creatorProfileReturnScroll=$("creatorProfileSheet").scrollTop;
+ creatorProfileVideoRows=resolvedRows.slice();
+ filtered=creatorProfileVideoRows.slice();
+ currentCategory="Creator Profile";
+ currentIndex=Math.max(0,index);
+ creatorProfileVideoMode=true;
+ creatorProfileVideoHistoryEntry=true;
+ history.pushState({newStarCreatorProfileVideo:true},"",location.href);
+ $("creatorProfileSheet").classList.remove("open");
+ $("creatorProfileSheet").setAttribute("aria-hidden","true");
+ document.body.classList.add("creator-profile-video-mode");
+ document.body.style.overflow="hidden";
+ $("creatorProfileVideoBack").style.display="block";
+ await loadLikes();
+ renderVideo();
+}
+async function openCreatorProfile(creatorOverride=null){
+ const item=creatorOverride||currentVideo;
+ if(!item?.user_id){showToast("इस वीडियो के Creator की जानकारी उपलब्ध नहीं है।");return;}
+ activeCreatorProfileItem=item;
+ const token=++creatorProfileRequest,sheet=$("creatorProfileSheet"),status=$("creatorProfileStatus"),videoGrid=$("creatorProfileVideoGrid"),retry=$("creatorProfileRetry");
+ if(sheet.parentElement!==document.body)document.body.appendChild(sheet);
+ if(!sheet.classList.contains("open")){history.pushState({newStarCreatorProfile:true},"",location.href);creatorProfileHistoryEntry=true;}
+ sheet.classList.add("open");sheet.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
+ retry.hidden=true;
+ $("creatorProfileName").textContent="@"+String(item.username||"creator").replace(/^@/,"");
+ $("creatorProfileBio").textContent="";$("creatorProfileAbout").textContent="";$("creatorProfileAbout").hidden=true;
+ $("creatorProfileLocation").textContent="";$("creatorProfileLocation").hidden=true;
+ $("creatorProfileAvatar").style.visibility="visible";$("creatorProfileAvatar").src="";
+ $("creatorProfileFollowers").textContent="Followers: —";$("creatorProfileFollowing").textContent="Following: —";$("creatorProfilePosts").textContent="Videos: —";
+ videoGrid.replaceChildren();$("creatorProfileVideoTabs").hidden=true;status.textContent="प्रोफ़ाइल लोड हो रही है…";
+ const follow=$("creatorProfileFollow");follow.style.display="inline-flex";follow.disabled=true;follow.dataset.creatorId=String(item.user_id);follow.textContent="Loading…";
+ try{
+  const profile=await getCreatorPublicCard(item.user_id);
+  if(!profile)throw Error("इस Creator की सार्वजनिक प्रोफ़ाइल उपलब्ध नहीं है।");
+  if(token!==creatorProfileRequest)return;
+  $("creatorProfileName").textContent=(profile.full_name?profile.full_name+" · ":"")+"@"+String(profile.username||item.username||"creator").replace(/^@/,"");
+  $("creatorProfileBio").textContent=profile.bio||"";
+  const aboutText=String(profile.about||"").trim();
+  if(aboutText){$("creatorProfileAbout").textContent="About: "+aboutText;$("creatorProfileAbout").hidden=false;}
+  if(profile.location_name){$("creatorProfileLocation").textContent="📍 "+profile.location_name;$("creatorProfileLocation").hidden=false;}
+  if(profile.avatar_url){
+   $("creatorProfileAvatar").src=profile.avatar_url;
+   $("creatorProfileAvatar").onerror=()=>{$("creatorProfileAvatar").style.visibility="hidden";};
+   $("creatorProfileAvatar").onload=()=>{$("creatorProfileAvatar").style.visibility="visible";};
+  }else{$("creatorProfileAvatar").style.visibility="hidden";}
+  // Follow status is independent: it must never prevent the public videos from loading.
+  refreshProfileFollowButton(item.user_id,!!profile.is_private).catch(error=>console.warn("Profile follow state:",error));
+  const [followers,following,posts]=await Promise.all([
+   db.from("followers").select("id",{count:"exact",head:true}).eq("following_id",String(item.user_id)),
+   db.from("followers").select("id",{count:"exact",head:true}).eq("follower_id",String(item.user_id)),
+   db.from("videos").select("id,video_url,video_provider,provider_video_id,caption,created_at,username,user_id,category,likes_count,views_count,audience_type,duration_seconds,width,height,thumbnail_url,video_type,frame_fit,affiliate_link,tags,visibility,processing_status",{count:"exact"}).eq("user_id",String(item.user_id)).or("visibility.eq.public,visibility.is.null").or("processing_status.eq.published,processing_status.is.null").order("created_at",{ascending:false}).limit(1000)
+  ]);
+  if(token!==creatorProfileRequest)return;
+  $("creatorProfileFollowers").textContent="Followers: "+(followers.error?"—":Number(followers.count||0));
+  $("creatorProfileFollowing").textContent="Following: "+(following.error?"—":Number(following.count||0));
+  $("creatorProfilePosts").textContent="Videos: "+(posts.error?"—":Number(posts.count||0));
+  if(posts.error)throw posts.error;
+  let rows=(posts.data||[]).filter(row=>row.video_provider!=="cloudflare"&&row.video_url);
+  const cloudRows=(posts.data||[]).filter(row=>row.video_provider==="cloudflare"||!row.video_url);
+  if(cloudRows.length){
+   const resolved=await resolveFeedVideoUrls(cloudRows);
+   rows=rows.concat(resolved);
+  }
+  if(token!==creatorProfileRequest)return;
+  rows.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  creatorProfileVideoRows=rows.slice();
+  if(!rows.length){status.textContent=profile.is_private?"यह Private Creator है।":"इस Creator ने अभी कोई सार्वजनिक वीडियो अपलोड नहीं किया है।";return;}
+  // Use the same classification rules as profile.html so Search-opened
+  // creator profiles show the exact same All / Shorts / Long categories.
+  function creatorProfileVideoType(row){
+   const stored=String(row.video_type||"").toLowerCase();
+   if(stored==="short"||stored==="long")return stored;
+   const duration=Number(row.duration_seconds)||0;
+   if(duration>0)return duration<=60?"short":"long";
+   const width=Number(row.width)||0,height=Number(row.height)||0;
+   return height>width?"short":"long";
+  }
+  const shortRows=rows.filter(row=>creatorProfileVideoType(row)==="short");
+  const longRows=rows.filter(row=>creatorProfileVideoType(row)==="long");
+  function appendProfileTiles(target,list){
+   list.forEach(row=>{
+    const tile=document.createElement("button");tile.type="button";tile.className="creator-video-tile";
+    const thumb=document.createElement("div");thumb.className="creator-video-thumb";
+    if(row.thumbnail_url){
+     const img=document.createElement("img");img.src=row.thumbnail_url;img.alt="";img.loading="lazy";
+     img.onerror=()=>{img.remove();thumb.classList.add("no-thumbnail");thumb.textContent="▶";};
+     thumb.append(img);
+    }else{thumb.classList.add("no-thumbnail");thumb.textContent="▶";}
+    const title=document.createElement("span");title.className="creator-video-label";title.textContent=row.caption||"Video";
+    const views=document.createElement("span");views.className="creator-video-views";views.textContent=numberFormat(row.views_count||0)+" views · Open to Like, Comment & Share";
+    tile.append(thumb,title,views);tile.addEventListener("click",()=>openFeedVideoFromProfile(row));target.append(tile);
+   });
+  }
+  const tabs=$("creatorProfileVideoTabs");
+  const tabButtons=Array.from(tabs.querySelectorAll("[data-creator-video-filter]"));
+  function showCreatorVideos(filter){
+   const list=filter==="short"?shortRows:filter==="long"?longRows:rows;
+   videoGrid.replaceChildren();
+   tabButtons.forEach(button=>{
+    const selected=button.dataset.creatorVideoFilter===filter;
+    button.classList.toggle("active",selected);
+    button.setAttribute("aria-selected",selected?"true":"false");
+   });
+   appendProfileTiles(videoGrid,list);
+   status.textContent=list.length
+    ?(filter==="all"?"सभी सार्वजनिक वीडियो":filter==="short"?"Shorts":"Long Videos")+" · "+list.length+" वीडियो"
+    :"इस कैटेगरी में अभी कोई सार्वजनिक वीडियो नहीं है।";
+  }
+  if(rows.length){
+   tabs.hidden=false;
+   tabButtons.forEach(button=>{
+    button.onclick=()=>showCreatorVideos(button.dataset.creatorVideoFilter);
+   });
+   showCreatorVideos("all");
+  }
+
+ }catch(error){
+  console.error("Creator profile load:",error);
+  if(token===creatorProfileRequest){
+   status.textContent="प्रोफ़ाइल लोड नहीं हुई: "+(error?.message||"नेटवर्क या अनुमति की समस्या।");
+   retry.hidden=false;
+  }
+ }
+}
+function closeCreatorProfile(fromPopState=false){
+ if(creatorProfileVideoMode){restoreCreatorProfileVideo(fromPopState);return;}
+ if(creatorProfileHistoryEntry&&!fromPopState){creatorProfileHistoryEntry=false;history.back();return;}
+ creatorProfileHistoryEntry=false;creatorProfileRequest++;
+ $("creatorProfileSheet").classList.remove("open");$("creatorProfileSheet").setAttribute("aria-hidden","true");document.body.style.overflow="";
+}
+window.addEventListener("popstate",()=>{
+ if(creatorProfileVideoMode){restoreCreatorProfileVideo(true);return;}
+ if($("creatorProfileSheet")?.classList.contains("open"))closeCreatorProfile(true);
+});
+$("creatorProfileVideoBack").addEventListener("click",()=>{if(creatorProfileVideoMode)history.back();});
+async function toggleCreatorFollow(){
+ const item=currentVideo,button=$("followCreatorBtn");
+ const videoId=String(item?.id||""),creatorId=String(item?.user_id||"");
+ if(!creatorId||!item||button.disabled)return;
+ if(!currentUser)currentUser=await getUser();
+ if(!currentUser){showToast("Follow करने के लिए Login करें।");location.href="auth.html?next=index.html";return;}
+ if(creatorId===String(currentUser.id))return;
+ button.disabled=true;
+ try{
+  const {data,error}=await db.rpc("toggle_creator_follow",{p_creator_id:creatorId});
+  if(error)throw error;
+  const state=data?.state;
+  if(!["following","unfollowed","requested"].includes(state))throw Error("Follow server ने पुष्टि नहीं की।");
+  if(String(currentVideo?.id)===videoId)await refreshCreatorFollowButton(item);
+  showToast(state==="following"?"Creator Follow हो गया!":state==="unfollowed"?"Unfollow कर दिया गया।":"Follow Request भेज दी गई।");
+ }catch(error){
+  console.error("Creator follow RPC:",error);
+  showToast(socialActionErrorMessage(error,"follow"));
+  if(String(currentVideo?.id)===videoId)await refreshCreatorFollowButton(item);
+ }finally{button.disabled=false;}
 }
 
 function renderVideo(){
  if(!filtered.length)return;
  document.querySelector(".actions").style.display="flex";
  currentVideo=filtered[currentIndex];if(!currentVideo)return;
+ const identityBar=$("creatorIdentityBar");
+ // Keep creator avatar, name and Follow in a compact overlay on the video itself.
+ if(identityBar&&identityBar.parentElement!==$("feed"))$("feed").appendChild(identityBar);
  const player=$("video");
  const renderingId=String(currentVideo.id);
  player.pause();
@@ -856,19 +1385,62 @@ function renderVideo(){
   else if(ratio&&Math.abs(ratio-(16/9))<0.08)ratioLabel="16:9";
   const duration=Number(currentVideo.duration_seconds)||Number(player.duration)||0;
   const mode=duration>0&&duration<=60?"Shorts":duration>60?"Long Video":"Video";
-  $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode+" · "+ratioLabel+" · "+width+"×"+height;
+  $("meta").textContent=numberFormat(currentVideo.views_count)+" views · "+mode;
  };
- attachNewStarVideoSource(player,currentVideo.video_url);
+ const playbackDuration=Number(currentVideo.duration_seconds)||0;
+ const playbackIsShort=currentVideo.video_type==="short"?true:currentVideo.video_type==="long"?false:(playbackDuration>0?playbackDuration<=60:Number(currentVideo.height)>Number(currentVideo.width));
+ player.loop=playbackIsShort;
+ const hlsPlayback=attachNewStarVideoSource(player,currentVideo.video_url);
  player.onplay=()=>{if(currentVideo&&String(currentVideo.id)===renderingId)startWatchSession(renderingId);};
  player.onpause=()=>{stopWatchSession();};
- player.play().catch(()=>{$("playHint").style.display="block";});
+ if(!hlsPlayback)player.play().catch(error=>{console.warn("Video autoplay deferred:",error);$("playHint").style.display="block";});
  player.onended=()=>{stopWatchSession();};
  const next=filtered[currentIndex+1];if(next?.video_url){const preload=document.createElement("video");preload.preload="metadata";preload.src=next.video_url;}
  const currentDuration=Number(currentVideo.duration_seconds)||0;
   const currentIsShort=currentVideo.video_type==="short"?true:currentVideo.video_type==="long"?false:(currentDuration>0?currentDuration<=60:Number(currentVideo.height)>Number(currentVideo.width));
+  recordFeedImpression(currentVideo.id,currentIsShort);
   player.style.objectFit=currentVideo.frame_fit==="cover"?"cover":"contain";
  const name=currentVideo.username||"New Star Creator";
  $("username").textContent=name.startsWith("@")?name:"@"+name;
+ const creatorIdentityBar=$("creatorIdentityBar");
+ const creatorAvatarButton=$("creatorProfileButton");
+ const creatorAvatar=$("feedCreatorAvatar"),creatorAvatarFallback=$("feedCreatorFallback");
+ const creatorAction=$("creatorActionBtn"),creatorActionAvatar=$("creatorActionAvatar"),creatorActionFallback=$("creatorActionFallback");
+ // Keep the legacy duplicate profile shortcut inside the feed; the inline creator row is the active control.
+ const creatorId=String(currentVideo.user_id||"").trim();
+ creatorIdentityBar.style.display=creatorId?"flex":"none";
+ creatorAction.hidden=!creatorId;
+ creatorAction.style.display=creatorId?"flex":"none";
+ creatorAction.style.visibility=creatorId?"visible":"hidden";
+ creatorAction.disabled=!creatorId;
+ creatorAction.setAttribute("aria-hidden",creatorId?"false":"true");
+ creatorActionFallback.textContent="👤";
+ // Always show a usable profile icon immediately; replace it with the creator avatar only after it loads.
+ creatorActionFallback.style.display="grid";
+ creatorActionAvatar.hidden=true;creatorActionAvatar.removeAttribute("src");
+ creatorActionAvatar.onload=()=>{creatorActionAvatar.hidden=false;creatorActionFallback.style.display="none";};
+ creatorActionAvatar.onerror=()=>{creatorActionAvatar.hidden=true;creatorActionAvatar.removeAttribute("src");creatorActionFallback.style.display="grid";};
+ creatorAvatarButton.classList.toggle("has-creator",!!creatorId);
+ creatorAvatarButton.style.setProperty("display",creatorId?"flex":"none","important");
+ creatorAvatarButton.style.setProperty("visibility",creatorId?"visible":"hidden","important");
+ creatorAvatarButton.style.setProperty("opacity",creatorId?"1":"0","important");
+ creatorAvatarButton.style.setProperty("pointer-events",creatorId?"auto":"none","important");
+ creatorAvatarButton.setAttribute("aria-label","Open "+(name.startsWith("@")?name:"@"+name)+" creator profile");
+ creatorAvatarFallback.textContent=(name.replace(/^@/,"").trim().charAt(0)||"👤").toUpperCase();
+ creatorAvatarFallback.style.display="grid";
+ creatorAvatar.hidden=true;creatorAvatar.removeAttribute("src");
+ creatorAvatar.alt=(name||"Creator")+" profile";
+ creatorAvatar.onerror=()=>{creatorAvatar.hidden=true;creatorAvatar.removeAttribute("src");creatorAvatarFallback.style.display="grid";};
+ creatorAvatar.onload=()=>{creatorAvatar.hidden=false;creatorAvatarFallback.style.display="none";};
+ if(creatorId){
+  const videoId=String(currentVideo.id);
+  Promise.resolve().then(async()=>{
+   const card=await getCreatorPublicCard(creatorId);
+   if(String(currentVideo?.id)!==videoId||String(currentVideo?.user_id)!==creatorId)return;
+   if(card?.avatar_url){creatorAvatar.src=card.avatar_url;creatorActionAvatar.src=card.avatar_url;creatorActionAvatar.hidden=false;creatorActionFallback.style.display="none";}
+   else{creatorAvatar.removeAttribute("src");creatorAvatar.hidden=true;creatorAvatarFallback.style.display="grid";creatorActionAvatar.hidden=true;creatorActionFallback.style.display="grid";}
+  }).catch(error=>{console.warn("Creator avatar unavailable:",error.message);creatorAvatar.hidden=true;creatorAvatarFallback.style.display="grid";creatorActionAvatar.hidden=true;creatorActionFallback.style.display="grid";});
+ }
  refreshCreatorFollowButton(currentVideo);
  $("caption").textContent=currentVideo.caption||"";
  $("meta").textContent=numberFormat(currentVideo.views_count)+" views · Video information loading...";
@@ -1171,18 +1743,100 @@ async function sendGift(){
 document.querySelectorAll(".category").forEach(button=>{
  button.addEventListener("click",async()=>{
   document.querySelectorAll(".category").forEach(b=>b.classList.remove("active"));
-  button.classList.add("active");currentCategory=button.dataset.cat;await applyFilters();
+  button.classList.add("active");currentCategory=button.dataset.cat;
+  if(currentCategory==="Live")await loadLiveRooms();else await loadFeed();
  });
 });
-let searchTimer;
+let searchTimer,creatorSearchTimer=0,creatorSearchSequence=0;
+function hideCreatorSearchResults(){$("creatorSearchResults").hidden=true;$("creatorSearchResults").replaceChildren();}
+function addSearchSection(panel,label){
+ const heading=document.createElement("div");heading.textContent=label;heading.style.cssText="padding:8px 10px 4px;color:#aaa;font-size:11px;font-weight:700;text-transform:uppercase";panel.append(heading);
+}
+async function searchCreatorProfiles(query){
+ const panel=$("creatorSearchResults"),sequence=++creatorSearchSequence;
+ const raw=String(query||"").trim();
+ const term=raw.replace(/^@+/,"").trim();
+ if(term.length<2){hideCreatorSearchResults();return;}
+ panel.replaceChildren();
+ panel.hidden=false;
+ const loading=document.createElement("div");
+ loading.textContent="Creators और videos खोज रहे हैं…";
+ loading.style.cssText="padding:12px;color:#aaa;font-size:12px";
+ panel.append(loading);
+ try{
+  const videoResult=await db.rpc("search_newstar_videos",{p_search:term,p_limit:30});
+  if(sequence!==creatorSearchSequence)return;
+  panel.replaceChildren();
+  let count=0;
+  if(!videoResult.error&&(videoResult.data||[]).length){
+   addSearchSection(panel,"Videos");
+   const videos=videoResult.data||[];
+   const creatorIds=[...new Set(videos.map(video=>String(video.user_id||"")).filter(Boolean))];
+   const creatorMap=new Map();
+   const missingIds=creatorIds.filter(id=>!creatorMap.has(id));
+   if(missingIds.length){
+    const [publicCards,baseProfiles]=await Promise.all([
+     db.from("creator_public_profiles").select("user_id,username,full_name,avatar_url,bio,is_private").in("user_id",missingIds).eq("is_private",false),
+     db.from("profiles").select("user_id,username,full_name,avatar_url,bio,is_private").in("user_id",missingIds).eq("is_private",false)
+    ]);
+    (publicCards.data||[]).forEach(profile=>creatorMap.set(String(profile.user_id),profile));
+    (baseProfiles.data||[]).forEach(profile=>{if(!creatorMap.has(String(profile.user_id)))creatorMap.set(String(profile.user_id),profile);});
+   }
+   videos.forEach(video=>{
+    const creator=creatorMap.get(String(video.user_id))||{};
+    const item=document.createElement("div");item.className="creator-search-video";
+    const openVideo=document.createElement("button");openVideo.type="button";openVideo.className="creator-search-video-open";
+    const thumb=document.createElement("span");thumb.className="creator-search-video-thumb";
+    if(video.thumbnail_url){const img=document.createElement("img");img.src=video.thumbnail_url;img.alt="";img.loading="lazy";img.onerror=()=>{img.remove();thumb.textContent="▶";};thumb.append(img);}
+    else thumb.textContent="▶";
+    const videoCopy=document.createElement("span");videoCopy.className="creator-search-copy";
+    const title=document.createElement("strong");title.textContent=video.caption||"New Star Video";
+    const videoType=String(video.video_type||"").toLowerCase()==="short"||Number(video.duration_seconds)>0&&Number(video.duration_seconds)<=60?"Short Video":"Long Video";
+    const kind=document.createElement("small");kind.textContent=videoType;
+    videoCopy.append(title,kind);openVideo.append(thumb,videoCopy);
+    openVideo.addEventListener("click",async()=>{
+     hideCreatorSearchResults();
+     creatorProfileVideoRows=videos.slice();
+     await openFeedVideoFromProfile(video);
+    });
+    const creatorButton=document.createElement("button");creatorButton.type="button";creatorButton.className="creator-search-video-creator";
+    if(creator.avatar_url){const avatar=document.createElement("img");avatar.src=creator.avatar_url;avatar.alt="";avatar.loading="lazy";avatar.onerror=()=>{const fallback=document.createElement("span");fallback.className="creator-search-fallback";fallback.textContent=(creator.username||video.username||"C").charAt(0).toUpperCase();avatar.replaceWith(fallback);};creatorButton.append(avatar);}
+    else{const avatar=document.createElement("span");avatar.className="creator-search-fallback";avatar.textContent=(creator.username||video.username||"C").charAt(0).toUpperCase();creatorButton.append(avatar);}
+    const creatorCopy=document.createElement("span");creatorCopy.className="creator-search-copy";
+    const creatorName=document.createElement("strong");creatorName.textContent=(creator.full_name?creator.full_name+" · ":"")+"@"+String(creator.username||video.username||"creator").replace(/^@/,"");
+    const creatorSub=document.createElement("small");creatorSub.textContent="Creator Profile खोलें";
+    creatorCopy.append(creatorName,creatorSub);creatorButton.append(creatorCopy);
+    creatorButton.addEventListener("click",()=>{hideCreatorSearchResults();openCreatorProfile({user_id:video.user_id,username:creator.username||video.username});});
+    item.append(openVideo,creatorButton);panel.append(item);count++;
+   });
+  }
+  if(count===0){
+   const empty=document.createElement("div");
+   const videoError=videoResult.error?.message||"";
+   empty.textContent=videoError?"सर्च सेवा अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर कोशिश करें।":"कोई सार्वजनिक Creator या matching Video नहीं मिला।";
+   empty.style.cssText="padding:12px;color:#aaa;font-size:12px";panel.append(empty);
+  }
+ }catch(error){
+  if(sequence!==creatorSearchSequence)return;
+  panel.replaceChildren();
+  const message=document.createElement("div");
+  message.textContent="सर्च पूरा नहीं हो पाया। नेटवर्क कनेक्शन जाँचकर फिर कोशिश करें।";
+  message.style.cssText="padding:12px;color:#aaa;font-size:12px";panel.append(message);
+  console.error("Creator/video search:",error);
+ }
+}
 $("search").addEventListener("input",()=>{
- clearTimeout(searchTimer);searchTimer=setTimeout(()=>applyFilters(),250);
+ const query=$("search").value.trim();
+ clearTimeout(searchTimer);clearTimeout(creatorSearchTimer);
+ creatorSearchTimer=setTimeout(()=>searchCreatorProfiles(query),180);
 });
+$("search").addEventListener("keydown",event=>{if(event.key==="Escape")hideCreatorSearchResults();});
+document.addEventListener("click",event=>{if(!event.target.closest(".search-row")&&!event.target.closest("#creatorSearchResults"))hideCreatorSearchResults();});
 $("voice").addEventListener("click",()=>{
  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SpeechRecognition){showToast("इस Browser में Voice Search उपलब्ध नहीं है।");return;}
  const recognition=new SpeechRecognition();recognition.lang="hi-IN";recognition.interimResults=false;
- recognition.onresult=event=>{$("search").value=event.results[0][0].transcript;applyFilters();};
+ recognition.onresult=event=>{$("search").value=event.results[0][0].transcript;searchCreatorProfiles(event.results[0][0].transcript);};
  recognition.onerror=()=>showToast("Voice Search काम नहीं कर पाया।");
  recognition.start();
 });
@@ -1207,7 +1861,7 @@ function handleFeedSwipe(startX,startY,endX,endY){
  }
 }
 $("feed").addEventListener("pointerdown",event=>{
- if(event.target.closest("button,a,input"))return;
+ if(event.target.closest("button,a,input,.video-info"))return;
  feedPointerStart={id:event.pointerId,x:event.clientX,y:event.clientY};
  try{$("feed").setPointerCapture(event.pointerId);}catch(e){}
 });
@@ -1218,7 +1872,7 @@ $("feed").addEventListener("pointerup",event=>{
 });
 // Android/iOS fallback: native touch events cover WebViews that miss pointerup on video.
 $("feed").addEventListener("touchstart",event=>{
- if(event.target.closest("button,a,input"))return;
+ if(event.target.closest("button,a,input,.video-info"))return;
  const t=event.changedTouches[0];if(t)touchFeedStart={x:t.clientX,y:t.clientY};
 },{passive:true});
 $("feed").addEventListener("touchend",event=>{
@@ -1286,6 +1940,13 @@ async function mixFeedVideo(){if(!feedOwnsVideo())return;const item=currentVideo
 $("feedMixSave").addEventListener("click",mixFeedVideo);
 
 $("followCreatorBtn").addEventListener("click",toggleCreatorFollow);
+$("creatorActionBtn").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
+$("username").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
+$("creatorProfileButton").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openCreatorProfile();});
+$("creatorProfileClose").addEventListener("click",closeCreatorProfile);
+$("creatorProfileRetry").addEventListener("click",()=>{if(activeCreatorProfileItem)openCreatorProfile(activeCreatorProfileItem);});
+$("creatorProfileFollow").addEventListener("click",toggleProfileFollow);
+$("creatorProfileSheet").addEventListener("click",event=>{if(event.target===$("creatorProfileSheet"))closeCreatorProfile();});
 $("likeBtn").addEventListener("click",toggleLike);
 $("commentBtn").addEventListener("click",event=>{event.preventDefault();event.stopPropagation();openComments();});
 $("giftBtn").addEventListener("click",openGift);

@@ -145,6 +145,7 @@ let isSignupMode = false;
 let authBusy = false;
 
 const $ = id => document.getElementById(id);
+const isRecoveryMode = new URLSearchParams(location.search).get("mode") === "recovery";
 
 /* Supabase client */
 function getAuthClient(){
@@ -179,19 +180,19 @@ function showMessage(message,type){
  box.className=type;
 }
 
-/* हर सफल Login का default destination Profile है। */
+/* हर सफल Login का default destination Home Feed है। */
 function getSafeNextPage(){
  const params=new URLSearchParams(location.search);
  const requested=params.get("next");
 
- /* next न हो तो Profile */
- if(!requested)return "profile.html";
+ /* next न हो तो Home Feed */
+ if(!requested)return "index.html";
 
  try{
   const parsed=new URL(requested,location.origin);
 
   /* बाहरी वेबसाइट की अनुमति नहीं */
-  if(parsed.origin!==location.origin)return "profile.html";
+  if(parsed.origin!==location.origin)return "index.html";
 
   const page=parsed.pathname.split("/").pop();
 
@@ -201,12 +202,12 @@ function getSafeNextPage(){
    "monetization.html","live.html","gaming.html","campaign.html","admin.html"
   ];
 
-  if(!allowed.includes(page))return "profile.html";
+  if(!allowed.includes(page))return "index.html";
 
   return page+parsed.search+parsed.hash;
 
  }catch(error){
-  return "profile.html";
+  return "index.html";
  }
 }
 
@@ -231,7 +232,16 @@ async function checkExistingSession(){
   if(error)throw error;
 
   if(data?.session){
-   goAfterLogin();
+   if(isRecoveryMode){
+    $("formTitle").textContent="नया पासवर्ड सेट करें";
+    $("actionBtn").textContent="पासवर्ड बदलें";
+    $("userEmail").style.display="none";
+    $("forgotPassword").style.display="none";
+    $("toggleMode").style.display="none";
+    $("userPassword").autocomplete="new-password";
+    $("userPassword").placeholder="नया पासवर्ड लिखें";
+    showMessage("ईमेल लिंक सत्यापित है। अब नया पासवर्ड दर्ज करें।","success");
+   } else goAfterLogin();
   }
 
  }catch(error){
@@ -278,7 +288,7 @@ async function handleAuthAction(){
  const email=$("userEmail").value.trim();
  const password=$("userPassword").value;
 
- if(!email||!password){
+ if((!isRecoveryMode && !email)||!password){
   showMessage("Email और Password दोनों भरें।","error");
   return;
  }
@@ -294,25 +304,30 @@ async function handleAuthAction(){
 
  try{
 
-  if(isSignupMode){
+  if(isRecoveryMode){
+   const {error}=await client.auth.updateUser({password});
+   if(error)throw error;
+   showMessage("पासवर्ड सफलतापूर्वक बदल गया। अब लॉगिन करें।","success");
+   setTimeout(()=>location.replace("auth.html"),1200);
+  }else if(isSignupMode){
 
    const {data,error}=await client.auth.signUp({
     email,
     password,
     options:{
-     emailRedirectTo:new URL("./profile.html",location.href).href
+     emailRedirectTo:new URL("./index.html",location.href).href
     }
    });
 
    if(error)throw error;
 
    if(data.session){
-    showMessage("Account बन गया! Profile खुल रहा है।","success");
+    showMessage("Account बन गया! Home Feed खुल रहा है।","success");
     setTimeout(goAfterLogin,500);
 
    }else{
     showMessage(
-     "Account बन गया। अपने Email में Confirmation Link खोलें। Verification के बाद Profile पर वापस आएँ और Login करें।",
+     "Account बन गया। अपने Email में Confirmation Link खोलें। Verification के बाद Home Feed पर वापस आएँ और Login करें।",
      "success"
     );
 
@@ -335,7 +350,7 @@ async function handleAuthAction(){
    if(error)throw error;
    if(!data.session)throw new Error("Login session नहीं बना।");
 
-   showMessage("Login सफल! Profile खुल रहा है...","success");
+   showMessage("Login सफल! Home Feed खुल रहा है...","success");
 
    setTimeout(goAfterLogin,400);
   }
@@ -355,8 +370,8 @@ async function handleAuthAction(){
  }
 }
 
-$("forgotPassword").addEventListener("click",async()=>{const client=getAuthClient(),email=$("userEmail").value.trim();if(!client){showMessage("Supabase उपलब्ध नहीं है।","error");return;}if(!email){showMessage("पहले अपना Owner Gmail लिखें।","error");return;}try{const redirectTo=new URL("./auth.html?mode=recovery&next=admin.html",location.href).href;const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo});if(error)throw error;showMessage("यदि इस ईमेल का अकाउंट है, तो पासवर्ड रिकवरी लिंक भेजा गया है। अपने ईमेल में लिंक खोलें।","success");}catch(error){showMessage(error.message||"Recovery email नहीं भेजा जा सका।","error");}});
-if(isRecoveryMode){$("formTitle").textContent="Set a new password";$("actionBtn").textContent="Update Password";$("userEmail").style.display="none";$("forgotPassword").style.display="none";$("userPassword").autocomplete="new-password";$("userPassword").placeholder="Enter new password";}
+$("forgotPassword").addEventListener("click",async()=>{const client=getAuthClient(),email=$("userEmail").value.trim();if(!client){showMessage("Supabase उपलब्ध नहीं है।","error");return;}if(!email){showMessage("पहले अपना Owner Gmail लिखें।","error");return;}try{const redirectTo=new URL("./auth.html?mode=recovery&next=index.html",location.href).href;const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo});if(error)throw error;showMessage("यदि इस ईमेल का अकाउंट है, तो पासवर्ड रिकवरी लिंक भेजा गया है। अपने ईमेल में लिंक खोलें।","success");}catch(error){showMessage(error.message||"Recovery email नहीं भेजा जा सका।","error");}});
+if(isRecoveryMode){$("formTitle").textContent="नया पासवर्ड सेट करें";$("actionBtn").textContent="पासवर्ड बदलें";$("userEmail").style.display="none";$("forgotPassword").style.display="none";$("toggleMode").style.display="none";$("userPassword").autocomplete="new-password";$("userPassword").placeholder="नया पासवर्ड लिखें";}
 $("actionBtn").addEventListener("click",handleAuthAction);
 $("toggleMode").addEventListener("click",toggleAuthMode);
 

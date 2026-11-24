@@ -15,7 +15,7 @@ body{background:#000;color:#fff;padding-bottom:75px}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 button:disabled{opacity:.5;cursor:not-allowed}
-.studio{max-width:600px;margin:auto;min-height:100vh;background:#080808;padding:12px 12px 80px}
+.studio{max-width:600px;margin:auto;min-height:100vh;background:#080808;padding:12px 12px 16px}
 .card,.panel{background:#15151b;border:1px solid #333;border-radius:12px;padding:15px;margin-bottom:12px}
 h2,h3{color:#25f4ee;margin-bottom:12px}
 h2{font-size:19px}
@@ -30,16 +30,27 @@ p,.muted{font-size:12px;color:#aaa;line-height:1.6}
 .input,.select{width:100%;padding:11px;margin:5px 0 10px;background:#08080b;border:1px solid #444;color:#fff;border-radius:8px}
 label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .hidden{display:none!important}
-.preview{width:100%;max-width:640px;height:auto;aspect-ratio:var(--preview-ratio,.5625);max-height:min(90vh,760px);min-height:0;background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #292930;border-radius:12px;margin:0 auto 12px}
-#editorVideo{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;background:#000}
+.preview{width:100%;max-width:820px;height:58vh;min-height:320px;max-height:680px;aspect-ratio:auto;background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #292930;border-radius:14px;margin:0 auto 12px}
+#editorVideo{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;background:#000;transform-origin:center}
 #editorActions{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 14px}
 #editorActions .primary{margin:0}
 .editor-meta{font-size:12px;color:#aeb4bf;text-align:center;padding:7px 4px}
-#editorVideo{width:100%;height:100%;object-fit:contain;transform-origin:center}
 #previewText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;font-size:24px;color:white;text-shadow:2px 2px 5px black;max-width:90%;overflow-wrap:anywhere;z-index:5;pointer-events:none}
-#editorActions .primary{display:block;margin:0}
+.editor-workspace{display:flex;flex-direction:column;gap:10px;width:100%;max-width:820px;margin:0 auto 10px}
+.editor-workspace>.preview{width:100%;max-width:none;min-width:0;height:54vh;min-height:280px;max-height:600px;margin:0 auto;aspect-ratio:auto;align-self:stretch;transition:height .18s ease}
+.editor-tools-rail{display:flex;flex-direction:row;flex-wrap:nowrap;gap:8px;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;overscroll-behavior-y:none;scrollbar-width:none;padding:7px 5px;background:#111116;border:1px solid #303039;border-radius:10px}
+.editor-tools-rail::-webkit-scrollbar{display:none}
+.editor-tools-rail button{display:flex;align-items:center;justify-content:center;flex:0 0 48px;width:48px;height:48px;min-height:48px;padding:0;border:1px solid #35353e;border-radius:12px;background:#222229;color:#f4f4f5;font-size:23px;line-height:1}
+.editor-tools-rail button span{display:none!important}
+.editor-tools-rail button:active,.editor-tools-rail button:focus-visible{background:#3a2630;border-color:#fe2c55;outline:none}
+#editorScreen.has-open-panel .editor-workspace>.preview{height:48vh;min-height:300px}
+#editorScreen.has-open-panel .editor-tools-rail{border-color:#fe2c55}
+#editorScreen .panel{width:100%;max-width:820px;margin:10px auto 12px;scroll-margin-top:8px}
+#editorActions{display:grid;grid-template-columns:1fr;gap:8px;margin:12px auto 14px;width:100%;max-width:820px}
+#editorActions .primary{display:block;width:100%;min-height:50px;margin:0;position:static;inset:auto;transform:none}
+@media(max-width:390px){.editor-workspace>.preview{height:48vh;min-height:260px;max-height:500px}.editor-tools-rail{gap:7px;padding:6px 4px}.editor-tools-rail button{flex-basis:44px;width:44px;height:44px;min-height:44px;font-size:21px}#editorScreen.has-open-panel .editor-workspace>.preview{height:36vh;min-height:220px}}
+@media(min-width:700px){.editor-workspace{max-width:820px}.editor-workspace>.preview{height:60vh;max-height:650px}.editor-tools-rail{justify-content:center}.editor-tools-rail button{flex-basis:52px;width:52px;height:52px;min-height:52px}#editorScreen.has-open-panel .editor-workspace>.preview{height:44vh;min-height:300px}}
 
-.savebar{position:absolute;bottom:12px;left:5%;width:90%;z-index:10}
 .panel{border-radius:10px}
 .panel-head{display:flex;justify-content:space-between;align-items:center}
 .close{background:#333;color:white;border:0;border-radius:50%;padding:6px 10px}
@@ -51,8 +62,124 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 .progress{width:100%;accent-color:#25f4ee}
 #cameraVideo{width:100%;max-height:55vh;background:#000}
 #cameraTimer{margin-top:8px;color:#25f4ee;font-weight:bold;text-align:center}
-#editorScreen.editor-publishing .preview,#editorScreen.editor-publishing #editorActions{display:none!important}
+.upload-meter{margin:12px 0;padding:13px;background:#101014;border:1px solid #34343d;border-radius:12px;color:#fff}.upload-meter-top{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13px;margin-bottom:9px}#uploadPercent{font-size:18px;color:#25f4ee;font-variant-numeric:tabular-nums}#uploadBytes{font-size:11px;color:#c7c7ce;text-align:right}.upload-track{height:10px;background:#303039;border-radius:99px;overflow:hidden}.upload-fill{height:100%;width:0;background:linear-gradient(90deg,#25f4ee,#55d68b);border-radius:99px;transition:width .2s linear}.upload-steps{display:flex;align-items:center;justify-content:space-between;gap:3px;margin-top:14px}.upload-step{width:28px;height:28px;flex:0 0 28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#303039;color:#aaa;font-size:12px;font-weight:800;position:relative}.upload-step small{position:absolute;top:31px;font-size:9px;font-weight:500;white-space:nowrap;color:#999}.upload-step.active{background:#25f4ee;color:#071013;box-shadow:0 0 0 3px rgba(37,244,238,.15)}.upload-step.done{background:#238b68;color:#fff}.upload-arrow{color:#777;font-size:14px;flex:1;text-align:center;display:inline-block;animation:none!important;will-change:auto}
+.upload-arrow:nth-of-type(2),.upload-arrow:nth-of-type(4),.upload-arrow:nth-of-type(6),.upload-arrow:nth-of-type(8){animation:none!important}
+@keyframes uploadArrowFlow{0%,100%{transform:translateX(-3px);color:#777;text-shadow:none}50%{transform:translateX(4px);color:#25f4ee;text-shadow:0 0 9px rgba(37,244,238,.8)}}
+.upload-meter:not(.hidden) .upload-fill{background-size:100% 100%;animation:none!important;background-position:left center}
+@media(prefers-reduced-motion:reduce){.upload-arrow,.upload-meter:not(.hidden) .upload-fill{animation:none!important}}
+.upload-detail{margin-top:25px;font-size:11px;line-height:1.5;color:#d4d4dc;overflow-wrap:anywhere}
+/* Stable preview controls and on-demand editor drawer */
+.editor-workspace>.preview{position:relative;flex:0 0 auto;overflow:hidden;overscroll-behavior:contain;scroll-margin:0}
+#editorScreen:not(.editor-expanded) .editor-tools-rail{display:none}
+#editorScreen.editor-expanded .editor-workspace>.preview{height:44vh;min-height:250px}
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:38vh;min-height:220px}
+#editorExpandButton{position:absolute;z-index:20;top:10px;right:10px;width:42px;height:42px;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:rgba(12,12,16,.78);color:#fff;font-size:30px;line-height:1;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+#editorActions{position:absolute;z-index:15;left:10px;right:10px;bottom:10px;width:auto;max-width:none;margin:0;padding-top:24px;background:linear-gradient(transparent,rgba(0,0,0,.78));}
+#editorActions .primary{width:100%;min-height:48px;margin:0;box-shadow:0 2px 14px rgba(0,0,0,.35)}
+.editor-meta,#editorMeta,#videoInfo{display:none!important}
+#editorScreen .editor-meta,#editorScreen #editorMeta,#editorScreen #videoInfo,#editorScreen #infoPanel,#editorScreen [data-video-meta],#editorScreen .video-metadata{display:none!important;visibility:hidden!important;max-height:0!important;overflow:hidden!important}
+#editorScreen .editor-tools-rail [data-panel="infoPanel"]{display:none!important}
+#editorScreen .editor-tools-rail{touch-action:pan-x;overscroll-behavior-x:contain}
+#editorScreen .panel{scroll-margin-top:10px}
+@media(max-width:390px){#editorScreen.editor-expanded .editor-workspace>.preview{height:50vh;min-height:290px}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:38vh;min-height:230px}#editorExpandButton{width:40px;height:40px}}
+@media(min-width:700px){#editorScreen.editor-expanded .editor-workspace>.preview{height:60vh;max-height:650px}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:48vh;min-height:340px}}
+#editorScreen.editor-publishing .preview,#editorScreen.editor-publishing #editorActions,#editorScreen.editor-publishing .editor-tools-rail{display:none!important}
+#editorScreen.editor-publishing .editor-topbar,#editorScreen.editor-publishing #editorExpandButton{display:none!important}
+#editorScreen.editor-publishing #publishPanel{margin:8px auto 24px!important;padding-top:8px}
+#editorScreen.editor-publishing #publishPanel .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#editorScreen.editor-publishing #backToPreviewButton{flex:0 0 48px;width:48px;min-width:48px;height:48px;padding:0;margin:0;border-radius:50%;font-size:28px;line-height:1}
+#editorScreen.editor-publishing #publishPanel label{margin-top:12px}
+#editorScreen.editor-publishing #publishPanel .primary{margin-top:14px;margin-bottom:12px}
 #ns-ai-launch,#ns-ai-panel{display:none!important}
+
+/* Mobile editor layout repair: keep the source video large and put tools above it. */
+#editorScreen .editor-workspace{width:100%;max-width:none;gap:10px}
+#editorScreen .editor-tools-rail{order:0;display:none;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start}
+#editorScreen.editor-expanded .editor-tools-rail{display:flex}
+#editorScreen .editor-workspace>.preview{order:1;width:100%;height:76vh;min-height:420px;max-height:none;max-width:none;margin:0 auto;flex:0 0 auto}
+#editorScreen.editor-expanded .editor-workspace>.preview,
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:76vh;min-height:420px;max-height:none}
+#editorScreen .preview #editorVideo{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain}
+#editorExpandButton{display:flex;position:absolute;top:10px;right:10px;z-index:30;width:46px;height:46px;font-size:30px;background:rgba(8,8,12,.88);border:2px solid rgba(255,255,255,.65);box-shadow:0 2px 12px rgba(0,0,0,.55)}
+#editorActions{position:absolute;left:10px;right:10px;bottom:10px;z-index:25;width:auto;max-width:none;margin:0;padding:28px 0 0;background:linear-gradient(transparent,rgba(0,0,0,.86))}
+#editorActions .primary{width:100%;min-height:52px;border-radius:12px}
+#editorScreen .panel{width:100%;max-width:none;margin:12px auto}
+@media(max-width:600px){
+ #editorScreen .editor-workspace>.preview,
+ #editorScreen.editor-expanded .editor-workspace>.preview,
+ #editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:76vh;min-height:420px}
+ #editorScreen .editor-tools-rail{padding:8px 5px}
+ #editorExpandButton{top:8px;right:8px;width:46px;height:46px}
+}
+
+
+/* Immersive video playback: show only the video, with a clear Back control. */
+body.video-fullscreen-mode{padding:0!important;overflow:hidden!important;background:#000!important}
+body.video-fullscreen-mode>.studio{display:block!important;position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;padding:0!important;background:#000!important;overflow:hidden!important}
+body.video-fullscreen-mode #editorScreen{display:block!important;position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;padding:0!important;background:#000!important;overflow:hidden!important}
+body.video-fullscreen-mode #editorScreen .editor-workspace{display:block!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important}
+body.video-fullscreen-mode #editorScreen .preview{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;max-width:none!important;margin:0!important;border:0!important;border-radius:0!important;background:#000!important}
+body.video-fullscreen-mode #editorScreen #editorVideo{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;background:#000!important}
+body.video-fullscreen-mode #editorScreen .editor-tools-rail,
+body.video-fullscreen-mode #editorScreen #editorActions,
+body.video-fullscreen-mode #editorScreen>.panel,
+body.video-fullscreen-mode #editorScreen #editorExpandButton,
+body.video-fullscreen-mode #editorScreen .editor-topbar,
+body.video-fullscreen-mode #editorFullscreenButton,\nbody.video-fullscreen-mode #sourceScreen,\nbody.video-fullscreen-mode #cameraScreen{display:none!important}
+#editorFullscreenButton{position:absolute;z-index:40;top:10px;left:10px;width:46px;height:46px;border:1px solid rgba(255,255,255,.65);border-radius:12px;background:rgba(8,8,12,.82);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center}
+#editorFullscreenBack{display:none;position:fixed;z-index:2147483647;top:calc(env(safe-area-inset-top) + 12px);left:12px;min-width:76px;min-height:44px;padding:8px 14px;border:1px solid rgba(255,255,255,.7);border-radius:24px;background:rgba(0,0,0,.72);color:#fff;font-weight:700;font-size:15px}
+body.video-fullscreen-mode #editorFullscreenBack{display:flex;align-items:center;justify-content:center}
+
+
+/* Creator Studio top menu and on-demand editing tools */
+#editorScreen .editor-workspace{position:relative}
+#editorScreen .editor-topbar{order:0;display:flex;align-items:center;justify-content:space-between;width:100%;min-height:58px;padding:4px 6px;background:#111116;border:1px solid #303039;border-radius:12px}
+#editorScreen .editor-topbar-title{font-size:14px;font-weight:700;color:#f4f4f5}
+#editorScreen #editorExpandButton{display:flex!important;position:static!important;visibility:visible!important;opacity:1!important;z-index:50;width:48px!important;height:48px!important;min-width:48px;border-radius:12px!important;font-size:30px!important;background:#24242c!important;border:1px solid #777!important;box-shadow:none!important;align-items:center;justify-content:center}
+#editorScreen:not(.editor-expanded) .editor-tools-rail{display:none!important}
+#editorScreen.editor-expanded .editor-tools-rail{display:flex!important;order:1}
+#editorScreen .editor-workspace>.preview{order:2;margin-top:0!important;height:76vh!important;min-height:420px!important;max-height:none!important}
+#editorScreen.editor-expanded .editor-workspace>.preview{margin-top:0!important;height:68vh!important;min-height:360px!important}
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:52vh!important;min-height:280px!important}
+#editorScreen .editor-workspace>.preview #editorVideo{object-position:center center}
+@media(max-width:600px){
+ #editorScreen .editor-workspace>.preview{height:74vh!important;min-height:400px!important}
+ #editorScreen.editor-expanded .editor-workspace>.preview{height:62vh!important;min-height:340px!important}
+ #editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:48vh!important;min-height:260px!important}
+}
+
+/* Final mobile editor layout: no floating zoom/fullscreen overlay; publish sits below video. */
+#editorFullscreenButton{display:none!important}
+#editorScreen .editor-workspace>.preview{height:66vh!important;min-height:340px!important;max-height:620px!important}
+#editorScreen #editorActions{position:static!important;display:block!important;width:100%!important;max-width:none!important;margin:10px 0 4px!important;padding:0!important;background:none!important}
+#editorScreen #editorActions .primary{position:static!important;width:100%!important;min-height:54px!important;margin:0!important}
+#editorScreen .editor-tools-rail{order:3!important}
+#editorScreen .editor-workspace>.preview{order:2!important}
+#editorScreen #editorActions{order:3!important}
+#editorScreen .editor-tools-rail{order:4!important}
+#editorScreen.editor-expanded .editor-workspace>.preview{height:58vh!important;min-height:300px!important}
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:44vh!important;min-height:240px!important}
+#uploadMeter .upload-steps,#uploadMeter .upload-detail{display:none!important}
+#uploadMeter{padding:12px!important}
+#uploadMeter .upload-meter-top{margin-bottom:8px}
+@media(max-width:600px){#editorScreen .editor-workspace>.preview{height:64vh!important;min-height:320px!important}#editorScreen.editor-expanded .editor-workspace>.preview{height:54vh!important;min-height:280px!important}#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:42vh!important;min-height:220px!important}}
+
+
+/* Final mobile polish: keep video controls out of the picture and remove noisy upload stages. */
+#editorScreen #editorFullscreenButton{display:none!important}
+#editorScreen .editor-workspace>.preview{height:66vh!important;min-height:360px!important;max-height:680px!important}
+#editorScreen #editorActions{position:static!important;display:block!important;width:100%!important;max-width:none!important;margin:10px 0 14px!important;padding:0!important;background:none!important}
+#editorScreen #editorActions .primary{width:100%!important;min-height:54px!important}
+#editorScreen.editor-expanded .editor-workspace>.preview,
+#editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:52vh!important;min-height:280px!important}
+.upload-meter .upload-steps,.upload-meter .upload-detail,#uploadMeter .upload-steps,#uploadMeter #uploadDetail{display:none!important}
+.upload-meter .upload-meter-top{margin-bottom:10px}
+.upload-meter #uploadPercent{font-size:22px}
+@media(max-width:600px){
+ #editorScreen .editor-workspace>.preview{height:64vh!important;min-height:340px!important}
+ #editorScreen.editor-expanded .editor-workspace>.preview,
+ #editorScreen.has-open-panel.editor-expanded .editor-workspace>.preview{height:48vh!important;min-height:260px!important}
+}
 </style>
 
 <link rel="manifest" href="/manifest.json">
@@ -94,16 +221,32 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 </section>
 
 <section id="editorScreen" class="hidden">
- <div class="preview">
-  <video id="editorVideo" playsinline controls></video>
-  <div id="previewText"></div>
-
+ <div class="editor-workspace">
+  <div class="editor-topbar">
+    <span class="editor-topbar-title">Creator Studio Editor</span>
+    <button type="button" id="editorExpandButton" aria-expanded="false" aria-label="Open video editor tools" title="Open editing tools">⋯</button>
+   </div>
+   <div class="preview">
+   <video id="editorVideo" playsinline controls></video>
+   <div id="previewText"></div>
+  </div>
+  <div id="editorActions">
+   <button class="primary" id="saveEditsButton">Save & Continue to Publish</button>
+  </div>
+  <aside class="editor-tools-rail" aria-label="Video editing tools">
+   <button type="button" data-panel="trimPanel" title="Trim" aria-label="Trim">✂️<span>Trim</span></button>
+   <button type="button" id="splitButton" title="Split" aria-label="Split">⚡<span>Split</span></button>
+   <button type="button" data-panel="cropPanel" title="Crop and Rotate" aria-label="Crop and Rotate">📐<span>Crop / Rotate</span></button>
+   <button type="button" data-panel="filterPanel" title="Filters" aria-label="Filters">🎨<span>Filters</span></button>
+   <button type="button" data-panel="speedPanel" title="Speed" aria-label="Speed">⏩<span>Speed</span></button>
+   <button type="button" data-panel="textPanel" title="Text and Subtitles" aria-label="Text and Subtitles">✍️<span>Text / Subs</span></button>
+   <button type="button" data-panel="audioPanel" title="Music and Voice" aria-label="Music and Voice">🎵<span>Music / Voice</span></button>
+   <button type="button" data-panel="copyrightPanel" title="Copyright Scan" aria-label="Copyright Scan">🛡️<span>Copyright Scan</span></button>
+   <button type="button" data-panel="infoPanel" title="Video Info" aria-label="Video Info">📊<span>Video Info</span></button>
+   <button type="button" data-panel="exportPanel" title="Export" aria-label="Export">🎞<span>Export</span></button>
+   <button type="button" id="resetButton" title="Reset" aria-label="Reset">↩️<span>Reset</span></button>
+  </aside>
  </div>
- <div id="editorActions">
-  <div class="editor-meta" id="editorMeta">Video select करें — पूरा frame preview में दिखेगा</div>
-  <button class="primary" id="saveEditsButton">Continue to Upload</button>
- </div>
-
  <section id="trimPanel" class="panel hidden">
   <div class="panel-head"><h3>✂️ Trim Preview</h3><button class="close">✕</button></div>
   <label>Start Time (seconds)</label>
@@ -117,6 +260,10 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
  <section id="cropPanel" class="panel hidden">
   <div class="panel-head"><h3>📐 Crop & Rotate</h3><button class="close">✕</button></div>
   <div class="grid2">
+   <button class="secondary" data-crop-ratio="0">Original Frame</button>
+   <button class="secondary" data-crop-ratio="0.5625">Portrait 9:16</button>
+   <button class="secondary" data-crop-ratio="1">Square 1:1</button>
+   <button class="secondary" data-crop-ratio="1.7777778">Landscape 16:9</button>
    <button class="secondary" data-zoom="1">Fit 1x</button>
    <button class="secondary" data-zoom="1.4">Zoom 1.4x</button>
    <button class="secondary" data-zoom="2">Zoom 2x</button>
@@ -180,8 +327,18 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
 
  <section id="copyrightPanel" class="panel hidden">
   <div class="panel-head"><h3>🛡 Copyright Information</h3><button class="close">✕</button></div>
-  <div class="status" id="copyrightStatus">बाहरी Copyright Content ID सेवा कनेक्ट नहीं है।</div>
-  <button class="primary" id="copyrightButton">Check Video Information</button>
+  <div class="status" id="copyrightStatus">Audio fingerprint scan के लिए ACRCloud credentials server-side configure होने चाहिए। यह जाँच matching audio को पहचान सकती है; पूरे video के visual copyright की गारंटी नहीं देती।</div>
+  <button class="primary" id="copyrightButton">🔎 Scan Audio Fingerprint</button>
+  <p>जाँच के लिए चुने गए वीडियो से छोटा audio sample बनाया जाएगा। परिणाम match / no match / unavailable के रूप में दिखेगा। कोई परिणाम “copyright-free” की कानूनी गारंटी नहीं है।</p>
+ </section>
+
+ <section id="exportPanel" class="panel hidden">
+  <div class="panel-head"><h3>🎞 Export Edited Video</h3><button class="close">✕</button></div>
+  <p>यह Export वीडियो पर Trim, Crop/Rotate, Filter, Speed, Text और Audio Mix लागू करके नई वीडियो फ़ाइल बनाएगा। Export के दौरान पेज खुला रखें।</p>
+  <div class="status" id="exportStatus">Export अभी शुरू नहीं हुआ।</div>
+  <progress id="exportProgress" class="progress hidden" max="100" value="0"></progress>
+  <button class="primary" id="exportButton">🎬 Render & Save Edited Video</button>
+  <a id="exportDownload" class="secondary hidden" style="display:block;text-align:center;text-decoration:none;padding:12px;border-radius:8px;margin-top:8px" download="new-star-edited.webm">⬇ Download Edited Video</a>
  </section>
 
  <section id="infoPanel" class="panel hidden">
@@ -191,7 +348,7 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
  </section>
 
  <section id="publishPanel" class="panel hidden">
-  <div class="panel-head"><h3>🚀 Publish Video</h3><button class="secondary" type="button" id="backToPreviewButton">← Back to Preview</button></div>
+  <div class="panel-head"><h3>🚀 Publish Video</h3><button class="secondary publish-back" type="button" id="backToPreviewButton" aria-label="Back to video preview" title="Back to preview">←</button></div>
   <label>Video Title</label>
   <input class="input" id="videoTitle" maxlength="150" placeholder="वीडियो का Title">
   <label>Description & Hashtags</label>
@@ -232,11 +389,18 @@ label{display:block;color:#ccc;font-size:12px;margin-top:8px}
    <option value="hidden">🔒 Hide exact location from viewers</option>
   </select>
   <div class="status" id="publishStatus">वीडियो Publish करने के लिए Login आवश्यक है।</div>
+  <div id="uploadMeter" class="upload-meter hidden" role="status" aria-live="polite">
+   <div class="upload-meter-top"><strong id="uploadPercent">0% अपलोड</strong><span id="uploadBytes">0 MB / 0 MB</span></div>
+   <div class="upload-track"><div id="uploadFill" class="upload-fill"></div></div>
+   <div class="upload-steps"><span class="upload-step" data-step="1">1<small>तैयारी</small></span><span class="upload-arrow">➜</span><span class="upload-step" data-step="2">2<small>कनेक्ट</small></span><span class="upload-arrow">➜</span><span class="upload-step" data-step="3">3<small>अपलोड</small></span><span class="upload-arrow">➜</span><span class="upload-step" data-step="4">4<small>सेव</small></span><span class="upload-arrow">➜</span><span class="upload-step" data-step="5">5<small>पूरा</small></span></div>
+   <div id="uploadDetail" class="upload-detail">अपलोड शुरू होने की प्रतीक्षा…</div>
+  </div>
   <progress id="uploadProgress" class="progress hidden" max="100"></progress>
   <button class="primary" id="publishButton">🚀 Publish Video</button>
  </section>
 </section>
 </main>
+<button type="button" id="editorFullscreenBack" aria-label="Back to Creator Studio">← Back</button>
 <div id="toast"></div>
 <script src="i18n.js"></script>
 <script src="./navbar.js"></script>
@@ -264,12 +428,20 @@ let musicObjectUrl = null;
 let voiceObjectUrl = null;
 let zoom = 1;
 let rotation = 0;
+let cropRatio = 0;
 let trimEnd = null;
 let publishing = false;
 let sourceMetadata = null;
 let selectedMapboxLocation = null;
 let locationSearchTimer = null;
 let locationSearchSequence = 0;
+let pendingEditorChanges = false;
+let editorAudioContext = null;
+let videoAudioSource = null, videoGainNode = null;
+let musicAudioSource = null, musicGainNode = null;
+let voiceAudioSource = null, voiceGainNode = null;
+let exportInProgress = false;
+let splitMarkers = [];
 
 const CURRENT_VIDEO_BUCKET_LIMIT = 5 * 1024 * 1024 * 1024; // Cloudflare Stream target limit: 5 GiB; provider secrets/quota required
 
@@ -287,13 +459,35 @@ function screen(id) {
 }
 function closePanels() {
  document.querySelectorAll(".panel").forEach(p => p.classList.add("hidden"));
- $("editorScreen").classList.remove("editor-publishing");
+ const editor=$("editorScreen");
+ editor.classList.remove("editor-publishing","has-open-panel","editor-expanded");
+ const toggle=$("editorExpandButton");
+ if(toggle){
+  toggle.setAttribute("aria-expanded","false");
+  toggle.textContent="⋯";
+  toggle.setAttribute("aria-label","Open video editor settings");
+ }
+ applyOutputFrame();
 }
 function openPanel(id) {
+ const target=$(id);
+ if(!target || !target.classList.contains("panel")) {
+  toast("यह सेक्शन कैमरा पेज में नहीं मिला। पेज को अपडेट करके दोबारा खोलें।");
+  console.error("Camera panel missing:",id);
+  return false;
+ }
  closePanels();
  if(id==="publishPanel") $("editorScreen").classList.add("editor-publishing");
- $(id).classList.remove("hidden");
- setTimeout(() => $(id).scrollIntoView({behavior:"smooth",block:"nearest"}),80);
+ else {
+  $("editorScreen").classList.add("has-open-panel","editor-expanded");
+  $("editorExpandButton").setAttribute("aria-expanded","true");
+  $("editorExpandButton").textContent="×";
+  $("editorExpandButton").setAttribute("aria-label","Close video editor tools");
+ }
+ target.classList.remove("hidden");
+ applyOutputFrame();
+ requestAnimationFrame(()=>target.scrollIntoView({behavior:"smooth",block:"start"}));
+ return true;
 }
 function formatClock(seconds) {
  const total = Math.max(0,Math.floor(seconds));
@@ -348,10 +542,28 @@ function readVideoMetadata(file) {
 }
 async function requireUser() {
  if (!db) throw new Error("Supabase Client नहीं मिला। supabase-config.js जाँचें।");
+
+ // पहले सेव किया हुआ session जाँचें। बिना session getUser() से
+ // "Auth session missing" आता है; ऐसे में इसी वेबसाइट पर Login खोलें।
+ const loginUrl = "auth.html?next=" + encodeURIComponent("camera.html");
+ const {data:sessionData,error:sessionError} = await db.auth.getSession();
+ if (sessionError) throw sessionError;
+
+ if (!sessionData?.session?.access_token) {
+  location.replace(loginUrl);
+  throw new Error("पहले Login करें।");
+ }
+
  const {data,error} = await db.auth.getUser();
- if (error) throw error;
- if (!data.user) {
-  location.href = "auth.html?next=" + encodeURIComponent("camera.html");
+ if (error) {
+  if (error.name === "AuthSessionMissingError" || /auth session missing/i.test(error.message || "")) {
+   location.replace(loginUrl);
+   throw new Error("पहले Login करें।");
+  }
+  throw error;
+ }
+ if (!data?.user) {
+  location.replace(loginUrl);
   throw new Error("पहले Login करें।");
  }
  return data.user;
@@ -487,6 +699,10 @@ async function loadVideo(file) {
  videoObjectUrl = URL.createObjectURL(file);
  closePanels();
  screen("editorScreen");
+ $("editorScreen").classList.remove("editor-expanded","has-open-panel","editor-publishing");
+ $("editorExpandButton").textContent="⋯";
+ $("editorExpandButton").setAttribute("aria-expanded","false");
+ $("editorExpandButton").setAttribute("aria-label","Open video editor tools");
  await new Promise((resolve,reject) => {
   const cleanup = () => {
    video.removeEventListener("loadedmetadata",ok);
@@ -504,32 +720,125 @@ async function loadVideo(file) {
  trimEnd = null;
  zoom = 1;
  rotation = 0;
+ cropRatio = 0;
  video.style.transform = "";
  video.style.filter = "none";
  video.style.objectFit="contain";
  applyOutputFrame();
- $("editorMeta").textContent=metadata.width+" × "+metadata.height+" · "+getRatioLabel(metadata.width,metadata.height)+" · "+formatClock(metadata.duration)+" · "+(file.size/1048576).toFixed(1)+" MB";
+ const editorMeta=$("editorMeta");
+ if(editorMeta) editorMeta.textContent="";
  video.playbackRate = 1;
  inspectVideo();
  video.play().catch(() => {});
  toast("वीडियो Editor में खुल गया।");
 }
 
-$("saveEditsButton").onclick = async () => {
+/* Editor tools open on demand; publishing hides the editing workspace. */
+async function continueToUpload() {
  try {
   await requireUser();
   closePanels();
+  if (pendingEditorChanges) {
+   openPanel("exportPanel");
+   $("exportStatus").textContent="Upload से पहले आपके edits render करना जरूरी है।";
+   toast("पहले Edited Video Export करें।");
+   return;
+  }
   applyOutputFrame();
   openPanel("publishPanel");
  } catch(error) {
   if (error.message !== "पहले Login करें।") toast(error.message);
  }
+}
+$("saveEditsButton").onclick = continueToUpload;
+
+/* Fullscreen playback mode. The Back button and Android/browser Back both return
+   to the Creator Studio editor without losing the selected video or edits. */
+let videoFullscreenActive = false;
+let fullscreenHistoryEntry = false;
+async function enterVideoFullscreen() {
+ if (videoFullscreenActive || !video.src) {
+  if (!video.src) toast("पहले वीडियो चुनें।");
+  return;
+ }
+ closePanels();
+ videoFullscreenActive = true;
+ document.body.classList.add("video-fullscreen-mode");
+ $("editorFullscreenButton").setAttribute("aria-pressed","true");
+ try {
+  history.pushState({newStarVideoFullscreen:true},"","#video-fullscreen");
+  fullscreenHistoryEntry = true;
+ } catch (_) {}
+ try {
+  const preview = $("editorScreen").querySelector(".preview");
+  if (preview?.requestFullscreen) await preview.requestFullscreen();
+  else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+ } catch (error) {
+  console.warn("Native fullscreen unavailable; using immersive layout:",error);
+ }
+ try {
+  if (window.screen.orientation?.lock) await window.screen.orientation.lock("landscape");
+ } catch (_) {}
+}
+function exitVideoFullscreen(fromPopState = false) {
+ if (!videoFullscreenActive) return;
+ videoFullscreenActive = false;
+ document.body.classList.remove("video-fullscreen-mode");
+ $("editorFullscreenButton").setAttribute("aria-pressed","false");
+ try {
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+ } catch (_) {}
+ try { if (window.screen.orientation?.unlock) window.screen.orientation.unlock(); } catch (_) {}
+ if (!fromPopState && fullscreenHistoryEntry) {
+  fullscreenHistoryEntry = false;
+  try { history.back(); } catch (_) {}
+ } else {
+  fullscreenHistoryEntry = false;
+ }
+}
+$("editorFullscreenButton").addEventListener("click",enterVideoFullscreen);
+$("editorFullscreenBack").addEventListener("click",()=>exitVideoFullscreen());
+window.addEventListener("popstate",()=>{
+ if(videoFullscreenActive) exitVideoFullscreen(true);
+});
+document.addEventListener("fullscreenchange",()=>{
+ if(videoFullscreenActive && !document.fullscreenElement && !video.webkitDisplayingFullscreen) exitVideoFullscreen(true);
+});
+document.addEventListener("keydown",event=>{
+ if(videoFullscreenActive && (event.key==="Escape" || event.key==="Backspace")) {
+  event.preventDefault();
+  exitVideoFullscreen();
+ }
+});
+
+$("editorExpandButton").onclick = () => {
+ const editor=$("editorScreen");
+ const expanded=!editor.classList.contains("editor-expanded");
+ closePanels();
+ if(expanded){
+  editor.classList.add("editor-expanded");
+  $("editorExpandButton").setAttribute("aria-expanded","true");
+  $("editorExpandButton").textContent="×";
+  $("editorExpandButton").setAttribute("aria-label","Close video editor settings");
+  requestAnimationFrame(()=>window.scrollTo({top:0,behavior:"smooth"}));
+ }
 };
+/* Tap the video preview to close the editing tools and return to clean playback. */
+document.querySelector(".editor-workspace>.preview").addEventListener("click",event=>{
+ const editor=$("editorScreen");
+ if(!editor.classList.contains("editor-expanded") && !editor.classList.contains("has-open-panel")) return;
+ if(event.target.closest("#editorExpandButton,#editorFullscreenButton,#editorActions")) return;
+ closePanels();
+});
+
 document.querySelectorAll("[data-panel]").forEach(button => {
  button.onclick = () => openPanel(button.dataset.panel);
 });
 document.querySelectorAll(".close").forEach(button => button.onclick = closePanels);
-$("backToPreviewButton").onclick = closePanels;
+$("backToPreviewButton").onclick = () => {
+ closePanels();
+ requestAnimationFrame(()=>window.scrollTo({top:0,behavior:"smooth"}));
+};
 document.addEventListener("pointerdown",e=>{
  const openPanel=document.querySelector(".panel:not(.hidden)");
  if(openPanel && !openPanel.contains(e.target)) closePanels();
@@ -543,25 +852,38 @@ $("rotateButton").onclick = () => { rotation = (rotation + 90) % 360; applyTrans
 window.addEventListener("resize",applyOutputFrame);
 function applyTransform() {
  video.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
- toast("Preview Crop/Rotate लागू हुआ।");
+ pendingEditorChanges=true;
+ toast("Preview Crop/Rotate लागू हुआ। Export में लागू होगा।");
 }
 function applyOutputFrame() {
- const preview=document.querySelector(".preview");
- const ratio=sourceMetadata?.width&&sourceMetadata?.height
-  ? sourceMetadata.width/sourceMetadata.height : 9/16;
- preview.style.setProperty("--preview-ratio",String(ratio));
- preview.style.aspectRatio=String(ratio);
- const availableWidth=preview.parentElement?.clientWidth||preview.clientWidth||640;
- const maxPreviewHeight=Math.min(window.innerHeight*0.90,760);
- preview.style.width=Math.max(120,Math.min(availableWidth,maxPreviewHeight*ratio))+"px";
- video.style.objectFit="contain";
+ const preview=document.querySelector(".editor-workspace>.preview");
+ if(!preview) return;
+ preview.style.width="100%";
+ preview.style.aspectRatio="auto";
+ preview.style.maxWidth="none";
+ video.style.width="100%";
+ video.style.height="100%";
+ video.style.objectFit=cropRatio>0?"cover":"contain";
+ video.style.objectPosition="center center";
+ video.style.transform="scale("+zoom+") rotate("+rotation+"deg)";
 }
+
+/* Crop aspect ratios */
+document.querySelectorAll("[data-crop-ratio]").forEach(button=>{
+ button.onclick=()=>{
+  cropRatio=Number(button.dataset.cropRatio)||0;
+  applyOutputFrame();
+  pendingEditorChanges=true;
+  toast(cropRatio===0?"Original video frame selected.": "Crop frame "+button.textContent.trim()+" selected. Export में यही crop लागू होगा।");
+ };
+});
 
 /* Filters */
 document.querySelectorAll("[data-filter]").forEach(button => {
  button.onclick = () => {
   video.style.filter = button.dataset.filter;
-  toast("Preview Filter लागू हुआ।");
+  pendingEditorChanges=true;
+  toast("Preview Filter लागू हुआ। Export करने पर वीडियो में लागू होगा।");
  };
 });
 
@@ -569,7 +891,8 @@ document.querySelectorAll("[data-filter]").forEach(button => {
 document.querySelectorAll("[data-speed]").forEach(button => {
  button.onclick = () => {
   video.playbackRate = Number(button.dataset.speed);
-  toast("Playback Speed " + button.dataset.speed + "x");
+  pendingEditorChanges=true;
+  toast("Playback Speed " + button.dataset.speed + "x · Export में लागू होगा");
  };
 });
 
@@ -581,15 +904,32 @@ $("applyTrim").onclick = () => {
   toast("Trim Range सही नहीं है।"); return;
  }
  trimEnd = end;
+ $("trimStart").value=start;
+ $("trimEnd").value=end;
+ pendingEditorChanges=true;
  video.currentTime = start;
  video.play();
- toast("Trim Preview शुरू।");
+ toast("Trim Preview शुरू। Export में यही हिस्सा सेव होगा।");
 };
 video.ontimeupdate = () => {
  if (trimEnd !== null && video.currentTime >= trimEnd) {
   video.pause();
   trimEnd = null;
  }
+};
+$("splitButton").onclick = () => {
+ const point=Number(video.currentTime.toFixed(2));
+ if(point<=0 || point>=video.duration){toast("Split के लिए वीडियो के बीच में Pause करें।");return;}
+ if(!splitMarkers.includes(point)){splitMarkers.push(point);splitMarkers.sort((a,b)=>a-b);}
+ pendingEditorChanges=true;
+ toast("Split marker जोड़ा: "+point+" sec. यह marker timeline reference है; multi-clip export अभी उपलब्ध नहीं है।");
+};
+$("resetButton").onclick = () => {
+ zoom=1; rotation=0; cropRatio=0; video.style.transform=""; video.style.filter="none"; video.playbackRate=1;
+ $("textInput").value=""; updateText(); $("trimStart").value=0; $("trimEnd").value=video.duration||0; trimEnd=null;
+ splitMarkers=[]; cropRatio=0; applyOutputFrame(); pendingEditorChanges=false;
+ $("videoVolume").value=100; $("musicVolume").value=40; $("voiceVolume").value=100; updateVolumes();
+ toast("Preview settings reset.");
 };
 
 /* Text */
@@ -600,6 +940,7 @@ function updateText() {
  $("previewText").textContent = $("textInput").value;
  $("previewText").style.fontSize = $("textSize").value + "px";
  $("previewText").style.color = $("textColor").value;
+ if (selectedVideoFile) pendingEditorChanges=true;
 }
 $("clearText").onclick = () => { $("textInput").value = ""; updateText(); };
 
@@ -614,13 +955,16 @@ $("musicInput").onchange = e => {
  $("musicAudio").src = musicObjectUrl;
  $("musicAudio").volume = Number($("musicVolume").value) / 100;
  $("musicAudio").play().catch(() => toast("Music Load हो गया। Play करें।"));
+ pendingEditorChanges=true;
 };
 
 /* Volume */
 function updateVolumes() {
- video.volume = Number($("videoVolume").value) / 100;
- $("musicAudio").volume = Number($("musicVolume").value) / 100;
- $("voiceAudio").volume = Number($("voiceVolume").value) / 100;
+ const values={video:Number($("videoVolume").value)/100,music:Number($("musicVolume").value)/100,voice:Number($("voiceVolume").value)/100};
+ if(videoGainNode) videoGainNode.gain.value=values.video; else video.volume=values.video;
+ if(musicGainNode) musicGainNode.gain.value=values.music; else $("musicAudio").volume=values.music;
+ if(voiceGainNode) voiceGainNode.gain.value=values.voice; else $("voiceAudio").volume=values.voice;
+ if(selectedVideoFile) pendingEditorChanges=true;
 }
 ["videoVolume","musicVolume","voiceVolume"].forEach(id => $(id).oninput = updateVolumes);
 
@@ -640,6 +984,7 @@ $("voiceStart").onclick = async () => {
    $("voiceAudio").src = voiceObjectUrl;
    $("voiceAudio").volume = Number($("voiceVolume").value) / 100;
    $("voiceAudio").play().catch(() => {});
+   pendingEditorChanges=true;
    voiceStream?.getTracks().forEach(track => track.stop());
    voiceStream = null;
    toast("Voice Recording तैयार है।");
@@ -652,6 +997,151 @@ $("voiceStop").onclick = () => {
  if (voiceRecorder?.state === "recording") voiceRecorder.stop();
  else toast("Voice Recording चालू नहीं है।");
 };
+
+function ensureEditorAudioGraph() {
+ const AudioCtx=window.AudioContext||window.webkitAudioContext;
+ if(!AudioCtx) throw new Error("इस Browser में Audio Mixer समर्थित नहीं है।");
+ if(!editorAudioContext) editorAudioContext=new AudioCtx();
+ if(!videoAudioSource) {
+  videoAudioSource=editorAudioContext.createMediaElementSource(video);
+  videoGainNode=editorAudioContext.createGain();
+  videoAudioSource.connect(videoGainNode).connect(editorAudioContext.destination);
+ }
+ if(!musicAudioSource) {
+  musicAudioSource=editorAudioContext.createMediaElementSource($("musicAudio"));
+  musicGainNode=editorAudioContext.createGain();
+  musicAudioSource.connect(musicGainNode).connect(editorAudioContext.destination);
+ }
+ if(!voiceAudioSource) {
+  voiceAudioSource=editorAudioContext.createMediaElementSource($("voiceAudio"));
+  voiceGainNode=editorAudioContext.createGain();
+  voiceAudioSource.connect(voiceGainNode).connect(editorAudioContext.destination);
+ }
+ updateVolumes();
+ return editorAudioContext;
+}
+function drawExportFrame(ctx,canvas) {
+ const w=canvas.width,h=canvas.height;
+ ctx.clearRect(0,0,w,h);
+ ctx.save();
+ ctx.filter=video.style.filter||"none";
+ ctx.translate(w/2,h/2);
+ ctx.rotate(rotation*Math.PI/180);
+ const sourceW=rotation%180!==0?video.videoHeight:video.videoWidth;
+ const sourceH=rotation%180!==0?video.videoWidth:video.videoHeight;
+ const scale=Math.max(w/sourceW,h/sourceH)*zoom;
+ const drawW=video.videoWidth*scale,drawH=video.videoHeight*scale;
+ ctx.drawImage(video,-drawW/2,-drawH/2,drawW,drawH);
+ ctx.restore();
+ const text=$("textInput").value.trim();
+ if(text) {
+  const size=Math.max(18,Number($("textSize").value)*canvas.width/Math.max(1,video.videoWidth));
+  ctx.save();ctx.font="bold "+size+"px Arial";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.lineWidth=Math.max(2,size*.12);ctx.strokeStyle="#000";ctx.fillStyle=$("textColor").value;
+  const words=text.split(/\s+/);let lines=[],line="";
+  for(const word of words){const test=line?line+" "+word:word;if(ctx.measureText(test).width>w*.86&&line){lines.push(line);line=word;}else line=test;}
+  if(line)lines.push(line);
+  const lineH=size*1.25,startY=h/2-(lines.length-1)*lineH/2;
+  lines.forEach((v,i)=>{ctx.strokeText(v,w/2,startY+i*lineH,w*.9);ctx.fillText(v,w/2,startY+i*lineH,w*.9);});
+  ctx.restore();
+ }
+}
+async function exportEditedVideo() {
+ if(exportInProgress) return;
+ if(!selectedVideoFile||!video.videoWidth) throw new Error("पहले वीडियो चुनें।");
+ if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream) throw new Error("इस Android Browser में video export समर्थित नहीं है। Chrome/WebView update की जरूरत हो सकती है।");
+ const start=Math.max(0,Number($("trimStart").value)||0);
+ const end=Math.min(video.duration,Number($("trimEnd").value)||video.duration);
+ if(start>=end||end>video.duration) throw new Error("Trim start/end सही नहीं हैं।");
+ exportInProgress=true;
+ const button=$("exportButton"),status=$("exportStatus"),progress=$("exportProgress");
+ button.disabled=true;progress.classList.remove("hidden");progress.value=0;
+ let recorder=null,canvasStream=null,raf=0;
+ try {
+  const ctxAudio=ensureEditorAudioGraph();
+  await ctxAudio.resume();
+  const canvas=document.createElement("canvas");
+  const maxSide=Math.min(1280,Math.max(video.videoWidth,video.videoHeight));
+  const rotated=rotation%180!==0;
+  const sourceW=rotated?video.videoHeight:video.videoWidth;
+  const sourceH=rotated?video.videoWidth:video.videoHeight;
+  const ratio=cropRatio>0?cropRatio:sourceW/sourceH;
+  if(ratio>=1){
+   canvas.width=Math.max(2,Math.round(maxSide/2)*2);
+   canvas.height=Math.max(2,Math.round((maxSide/ratio)/2)*2);
+  }else{
+   canvas.height=Math.max(2,Math.round(maxSide/2)*2);
+   canvas.width=Math.max(2,Math.round((maxSide*ratio)/2)*2);
+  }
+  const ctx=canvas.getContext("2d",{alpha:false});
+  canvasStream=canvas.captureStream(30);
+  const mixDestination=ctxAudio.createMediaStreamDestination();
+  videoGainNode.connect(mixDestination);
+  musicGainNode.connect(mixDestination);
+  voiceGainNode.connect(mixDestination);
+  mixDestination.stream.getAudioTracks().forEach(track=>canvasStream.addTrack(track));
+  const mime=["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(t=>MediaRecorder.isTypeSupported(t));
+  if(!mime) throw new Error("इस Browser में supported WebM encoder नहीं मिला।");
+  const chunks=[];
+  recorder=new MediaRecorder(canvasStream,{mimeType:mime,videoBitsPerSecond:4500000,audioBitsPerSecond:160000});
+  const stopped=new Promise((resolve,reject)=>{
+   recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+   recorder.onerror=()=>reject(new Error("Video render में MediaRecorder error आया।"));
+   recorder.onstop=resolve;
+  });
+  video.pause();video.currentTime=start;
+  await new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>reject(new Error("वीडियो seek timeout")),10000);
+   video.addEventListener("seeked",()=>{clearTimeout(timer);resolve();},{once:true});
+  });
+  if($("musicAudio").src){$("musicAudio").currentTime=0;await $("musicAudio").play().catch(()=>{});}
+  if($("voiceAudio").src){$("voiceAudio").currentTime=0;await $("voiceAudio").play().catch(()=>{});}
+  const speed=Math.max(.25,Math.min(4,Number(video.playbackRate)||1));
+  video.muted=false;
+  recorder.start(1000);
+  let lastProgress=0;
+  const draw=()=>{
+   drawExportFrame(ctx,canvas);
+   const elapsed=Math.max(0,video.currentTime-start);
+   const pct=Math.min(99,Math.floor(elapsed/Math.max(.01,end-start)*100));
+   if(pct!==lastProgress){progress.value=pct;status.textContent="वीडियो render हो रहा है: "+pct+"%";lastProgress=pct;}
+   if(video.currentTime>=end||video.ended){
+    video.pause();if(recorder.state==="recording")recorder.stop();return;
+   }
+   raf=requestAnimationFrame(draw);
+  };
+  video.playbackRate=speed;
+  await video.play();
+  draw();
+  await stopped;
+  cancelAnimationFrame(raf);
+  $("musicAudio").pause();$("voiceAudio").pause();
+  if(!chunks.length) throw new Error("Export file खाली बनी।");
+  const blob=new Blob(chunks,{type:recorder.mimeType||mime});
+  if(blob.size<1000) throw new Error("Export बहुत छोटी/खाली है।");
+  if(videoObjectUrl)URL.revokeObjectURL(videoObjectUrl);
+  selectedVideoFile=new File([blob],(selectedVideoFile.name||"video").replace(/\.[^.]+$/,"")+"-edited.webm",{type:blob.type});
+  videoObjectUrl=URL.createObjectURL(blob);
+  video.src=videoObjectUrl;video.load();
+  await new Promise(resolve=>video.addEventListener("loadedmetadata",resolve,{once:true}));
+  sourceMetadata={duration:video.duration,width:video.videoWidth,height:video.videoHeight};
+  $("trimStart").value=0;$("trimEnd").value=video.duration.toFixed(2);trimEnd=null;
+  zoom=1;rotation=0;cropRatio=0;video.style.transform="";video.style.filter="none";
+  $("textInput").value="";updateText();
+  video.playbackRate=1;pendingEditorChanges=false;
+  applyOutputFrame();inspectVideo();
+  const url=URL.createObjectURL(blob);
+  $("exportDownload").href=url;$("exportDownload").classList.remove("hidden");
+  $("exportStatus").textContent="Export सफल: "+(blob.size/1048576).toFixed(1)+" MB · "+formatClock(video.duration)+" · अब Continue to Upload दबाएँ।";
+  progress.value=100;toast("Edited Video Export सफल हुआ।");
+ } finally {
+  cancelAnimationFrame(raf);
+  if(recorder?.state==="recording")recorder.stop();
+  canvasStream?.getTracks().forEach(t=>t.stop());
+  button.disabled=false;exportInProgress=false;
+ }
+}
+$("exportButton").onclick=()=>exportEditedVideo().catch(error=>{$("exportStatus").textContent="Export पूरा नहीं हुआ: "+error.message;toast(error.message);});
 
 /* Video Information */
 function inspectVideo() {
@@ -673,9 +1163,85 @@ function inspectVideo() {
   " MB<br>Format: " + (file.type || "Unknown") + "<br>Name: " + safeName;
 }
 $("inspectButton").onclick = inspectVideo;
-$("copyrightButton").onclick = () => {
- $("copyrightStatus").textContent = "इस पेज में बाहरी Copyright Content ID Database कनेक्ट नहीं है। Copyright Clearance की पुष्टि नहीं की जा सकती।";
- toast("सामान्य Video Information जाँची गई।");
+async function makeCopyrightSample() {
+ if(!video.captureStream) throw new Error("इस Browser में Video Audio Capture उपलब्ध नहीं है।");
+ const captured=video.captureStream();
+ const audioTrack=captured.getAudioTracks()[0];
+ if(!audioTrack) {captured.getTracks().forEach(t=>t.stop());throw new Error("इस वीडियो में पहचानने योग्य audio track नहीं मिला।");}
+ const sampleStream=new MediaStream([audioTrack]);
+ const mime=["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus"].find(t=>MediaRecorder.isTypeSupported(t));
+ if(!mime){captured.getTracks().forEach(t=>t.stop());throw new Error("इस Browser में audio sample recording समर्थित नहीं है।");}
+ const previousTime=video.currentTime, wasPaused=video.paused, previousRate=video.playbackRate;
+ const chunks=[];
+ try {
+  const recorder=new MediaRecorder(sampleStream,{mimeType:mime});
+  const stopped=new Promise((resolve,reject)=>{
+   recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+   recorder.onerror=()=>reject(new Error("Audio sample record नहीं हो सका।"));
+   recorder.onstop=resolve;
+  });
+  const start=Math.min(Math.max(0,video.duration*0.25),Math.max(0,video.duration-10));
+  video.pause(); video.currentTime=start;
+  await new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>reject(new Error("Sample seek timeout")),8000);
+   video.addEventListener("seeked",()=>{clearTimeout(timer);resolve();},{once:true});
+  });
+  recorder.start();
+  await video.play();
+  await new Promise(resolve=>setTimeout(resolve,10000));
+  video.pause(); recorder.stop(); await stopped;
+  const webmBlob=new Blob(chunks,{type:mime});
+  const audioContext=new (window.AudioContext||window.webkitAudioContext)();
+  try {
+   const decoded=await audioContext.decodeAudioData(await webmBlob.arrayBuffer());
+   const channels=decoded.numberOfChannels, frames=decoded.length;
+   const bytesPerSample=2, dataSize=frames*channels*bytesPerSample;
+   const wav=new ArrayBuffer(44+dataSize), view=new DataView(wav);
+   const write=(offset,value)=>{for(let i=0;i<value.length;i++)view.setUint8(offset+i,value.charCodeAt(i));};
+   write(0,"RIFF");view.setUint32(4,36+dataSize,true);write(8,"WAVE");write(12,"fmt ");
+   view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,channels,true);
+   view.setUint32(24,decoded.sampleRate,true);view.setUint32(28,decoded.sampleRate*channels*bytesPerSample,true);
+   view.setUint16(32,channels*bytesPerSample,true);view.setUint16(34,16,true);write(36,"data");view.setUint32(40,dataSize,true);
+   let offset=44;
+   for(let i=0;i<frames;i++) for(let c=0;c<channels;c++) {
+    const value=Math.max(-1,Math.min(1,decoded.getChannelData(c)[i]));
+    view.setInt16(offset,value<0?value*32768:value*32767,true);offset+=2;
+   }
+   return new Blob([wav],{type:"audio/wav"});
+  } finally {await audioContext.close();}
+ } finally {
+  video.pause(); video.playbackRate=previousRate;
+  try{video.currentTime=previousTime;}catch{}
+  if(!wasPaused) video.play().catch(()=>{});
+  captured.getTracks().forEach(t=>t.stop());
+ }
+}
+async function blobToBase64(blob) {
+ const bytes=new Uint8Array(await blob.arrayBuffer());
+ let binary="";
+ for(let i=0;i<bytes.length;i+=0x8000) binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+ return btoa(binary);
+}
+$("copyrightButton").onclick = async () => {
+ const status=$("copyrightStatus");
+ const button=$("copyrightButton");
+ if(!selectedVideoFile){status.textContent="पहले वीडियो चुनें।";return;}
+ button.disabled=true;button.textContent="Scanning…";status.textContent="वीडियो से छोटा audio sample बनाया जा रहा है…";
+ try {
+  const sample=await makeCopyrightSample();
+  if(sample.size>4*1024*1024) throw new Error("Audio sample सेवा की file-size सीमा से बड़ा है।");
+  status.textContent="Audio fingerprint database में match खोजा जा रहा है…";
+  const {data,error}=await db.functions.invoke("copyright-scan",{body:{sample_base64:await blobToBase64(sample),sample_mime:sample.type}});
+  if(error) throw error;
+  if(data?.configured===false) {status.textContent="Scan सेवा अभी configure नहीं है। Project owner को ACR_CLOUD_HOST, ACR_CLOUD_ACCESS_KEY और ACR_CLOUD_ACCESS_SECRET Supabase Edge Function secrets में जोड़ने होंगे। कोई copyright verdict नहीं दिया गया।";return;}
+  if(data?.matched) {
+   const tracks=Array.isArray(data.matches)?data.matches:[];
+   status.textContent="Audio database match मिला: "+tracks.slice(0,3).map(x=>[x.title,x.artist].filter(Boolean).join(" — ")).join("; ")+". यह संभावित audio match है, कानूनी निर्णय नहीं।";
+  } else if(data?.recognized===false) status.textContent="इस sample के लिए database में कोई audio match नहीं मिला। इसका अर्थ copyright-free होना नहीं है।";
+  else status.textContent="Scan का परिणाम स्पष्ट नहीं है: "+JSON.stringify(data).slice(0,900);
+ } catch(error) {
+  status.textContent="Scan पूरा नहीं हुआ: "+error.message;
+ } finally {button.disabled=false;button.textContent="🔎 Scan Audio Fingerprint";}
 };
 
 /* Publish Panel */
@@ -758,23 +1324,37 @@ async function publishVideo() {
  const button = $("publishButton");
  const status = $("publishStatus");
  const progress = $("uploadProgress");
+ const meter=$("uploadMeter"),meterPercent=$("uploadPercent"),meterBytes=$("uploadBytes"),meterFill=$("uploadFill"),meterDetail=$("uploadDetail");
+ let currentUploadStage=0;
+ let maxProgressPercent=0;
+ let maxUploadedBytes=0;
+ const setUploadStage=(stage,detail)=>{
+  currentUploadStage=Math.max(currentUploadStage,Number(stage)||0);
+  if(meter)meter.classList.remove("hidden");
+  document.querySelectorAll(".upload-step").forEach(el=>{const n=Number(el.dataset.step);el.classList.toggle("done",n<currentUploadStage);el.classList.toggle("active",n===currentUploadStage);});
+  if(meterDetail&&detail)meterDetail.textContent=detail;
+ };
+ const formatUploadBytes=value=>{if(!Number.isFinite(value)||value<=0)return "0 MB";const units=["B","KB","MB","GB","TB"];let n=value,i=0;while(n>=1024&&i<units.length-1){n/=1024;i++;}return n.toFixed(i>=2?2:1)+" "+units[i];};
  publishing = true;
  button.disabled = true;
  button.textContent = "Publishing...";
  progress.classList.remove("hidden");
- progress.removeAttribute("value");
+ progress.max=100;
+ progress.value=0;
+ maxProgressPercent=0;
+ maxUploadedBytes=0;
+ if(meterPercent)meterPercent.textContent="0% अपलोड";
+ meterBytes.textContent="0 MB / "+formatUploadBytes(selectedVideoFile?.size||0);
+ if(meterFill)meterFill.style.width="0%";
+ document.querySelectorAll(".upload-step").forEach(el=>el.classList.remove("done","active"));
+ setUploadStage(1,"1/5 · वीडियो और अपलोड जानकारी तैयार हो रही है…");
  let uploadedPath = null;
  let databaseSaved = false;
  try {
   if (!db) throw new Error("Supabase Client नहीं मिला।");
-  const {data:authData,error:authError} = await db.auth.getUser();
-  if (authError) throw authError;
-  const user = authData?.user;
-  if (!user) {
-   location.href = "auth.html?next=" + encodeURIComponent("camera.html");
-   throw new Error("पहले Login करें।");
-  }
-  if (!selectedVideoFile) throw new Error("पहले Camera या Gallery से वीडियो चुनें।");
+   // Continue और Publish दोनों एक ही session-validation path इस्तेमाल करें।
+   const user = await requireUser();
+   if (!selectedVideoFile) throw new Error("पहले Camera या Gallery से वीडियो चुनें।");
   if (!isVideoFile(selectedVideoFile)) throw new Error("सही Video File चुनें।");
   if (selectedVideoFile.size <= 0) throw new Error("Video File खाली है।");
   if (selectedVideoFile.size > CURRENT_VIDEO_BUCKET_LIMIT) {
@@ -794,7 +1374,8 @@ async function publishVideo() {
   const aspectRatioSetting="original";
   const qualityPreference="original";
   const frameFit="contain";
-  const videoType=mediaInfo.width<mediaInfo.height?"short":"long";
+  // Classify by duration, never by portrait/landscape orientation.
+  const videoType=mediaInfo.duration<=60?"short":"long";
   const affiliate = $("affiliateLink").value.trim();
   if (affiliate) {
    let link;
@@ -804,11 +1385,8 @@ async function publishVideo() {
   const caption = [title,description].filter(Boolean).join("\n\n") || "New Star Video";
   let username = user.user_metadata?.username || user.user_metadata?.full_name ||
    user.email?.split("@")[0] || "New Star Creator";
-  try {
-   const {data:profile,error:profileError} = await db.from("profiles")
-    .select("username,full_name").eq("user_id",user.id).maybeSingle();
-   if (!profileError && profile) username = profile.username || profile.full_name || username;
-  } catch(error) { console.warn("Profile lookup skipped:",error); }
+  // Do not block the start of a large video transfer on a separate profile lookup.
+  // Auth metadata/email provides a safe username fallback for the video record.
 
   const originalName = selectedVideoFile.name || "video.webm";
   const displayName = originalName.slice(0,180);
@@ -818,39 +1396,111 @@ async function publishVideo() {
   if(sessionError)throw sessionError;
   const accessToken=sessionData?.session?.access_token;
   if(!accessToken)throw new Error("Login session समाप्त हो गई। दोबारा Login करें।");
-  let cloudflareVideoId=null;
+  // Persist Stream's media ID beside tus-js-client's resume record. A resumed
+  // TUS session may not repeat the original POST response header containing this ID.
+  const uploadIdentity=[user.id,selectedVideoFile.name||"video",selectedVideoFile.size,selectedVideoFile.lastModified||0].join("|");
+  const pendingUploadKey="newstar:cloudflare-upload:"+encodeURIComponent(uploadIdentity).slice(0,320);
+  let pendingUpload=null;
+  try{
+   const saved=JSON.parse(localStorage.getItem(pendingUploadKey)||"null");
+   if(saved&&saved.userId===user.id&&saved.size===selectedVideoFile.size&&saved.lastModified===(selectedVideoFile.lastModified||0)&&saved.id&&Number(saved.expiresAt)>Date.now())pendingUpload=saved;
+   else if(saved)localStorage.removeItem(pendingUploadKey);
+  }catch(_){try{localStorage.removeItem(pendingUploadKey);}catch(__){}}
+  let cloudflareVideoId=pendingUpload?.id||null;
   const tusEndpoint="https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy";
+  if(pendingUpload?.completed){
+    if(meterPercent)meterPercent.textContent="100% अपलोड";
+    if(meterFill)meterFill.style.width="100%";
+    if(meterBytes)meterBytes.textContent=formatUploadBytes(selectedVideoFile.size)+" / "+formatUploadBytes(selectedVideoFile.size);
+    setUploadStage(3,"3/5 · पहले पूरा हुआ Cloudflare अपलोड मिला; डेटाबेस में सेव किया जा रहा है…");
+  }else{
+  setUploadStage(2,"2/5 · Cloudflare से सुरक्षित कनेक्शन बनाया जा रहा है…");
   await new Promise((resolve,reject)=>{
+   // Adapt chunk size to the browser network estimate. This is a hint (download
+   // estimates do not guarantee upload speed). Smaller chunks reduce long stalls
+   // and the amount that needs retrying when an Android mobile connection drops.
+   const network=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+   const effectiveType=String(network?.effectiveType||"").toLowerCase();
+   const downlinkMbps=Number(network?.downlink)||0;
+   const slowNetwork=!!network?.saveData||["slow-2g","2g","3g"].includes(effectiveType);
+   const strongNetwork=!slowNetwork&&downlinkMbps>=10;
+   // Moderate chunk sizes avoid long stalls and expensive retries on Android mobile links.
+   // Avoid oversized 64 MiB chunks on Android mobile browsers: 8 MiB on
+   // constrained links, 16 MiB normally, and 32 MiB only on strong connections.
+   const uploadChunkSize=slowNetwork?8*1024*1024:(strongNetwork?32*1024*1024:16*1024*1024);
+   const uploadStartedAt=performance.now();
+   let connectionTimer=null;
+   let lastSpeedSampleAt=uploadStartedAt;
+   let lastSpeedSampleBytes=0;
+   let smoothedBytesPerSecond=0;
    const tusUpload=new window.tus.Upload(selectedVideoFile,{
     endpoint:tusEndpoint,
     retryDelays:[0,3000,5000,10000,20000],
     headers:{authorization:"Bearer "+accessToken,apikey:window.SUPABASE_ANON_KEY},
     uploadDataDuringCreation:false,removeFingerprintOnSuccess:true,
-    chunkSize:8*1024*1024,
+    chunkSize:uploadChunkSize,
     metadata:{
      maxDurationSeconds:String(Math.ceil(mediaInfo.duration)),
      name:displayName,
      filetype:selectedVideoFile.type || "video/mp4"
     },
     onAfterResponse(_request,response){
+     if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null;}
      const receivedId=response.getHeader("stream-media-id");
-     if(receivedId)cloudflareVideoId=receivedId;
+     if(receivedId){
+      cloudflareVideoId=receivedId;
+      try{localStorage.setItem(pendingUploadKey,JSON.stringify({id:receivedId,userId:user.id,size:selectedVideoFile.size,lastModified:selectedVideoFile.lastModified||0,completed:false,expiresAt:Date.now()+12*60*60*1000}));}catch(_){}
+     }
     },
-    onError(error){reject(error);},
+    onError(error){if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null;}reject(error);},
     onProgress(bytesUploaded,bytesTotal){
-     const percent=bytesTotal?Math.floor(bytesUploaded/bytesTotal*100):0;
-     const progressEl=$("uploadProgress");if(progressEl)progressEl.value=percent;
-     status.textContent="वीडियो अपलोड हो रहा है: "+percent+"%";
+     if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null;}
+     setUploadStage(3,"3/5 · वीडियो डेटा Cloudflare पर भेजा जा रहा है…");
+     const now=performance.now();
+     const elapsedSeconds=Math.max(0.001,(now-uploadStartedAt)/1000);
+     const sampleSeconds=(now-lastSpeedSampleAt)/1000;
+     if(sampleSeconds>=0.5){
+      const instantSpeed=Math.max(0,(bytesUploaded-lastSpeedSampleBytes)/sampleSeconds);
+      smoothedBytesPerSecond=smoothedBytesPerSecond?smoothedBytesPerSecond*0.7+instantSpeed*0.3:instantSpeed;
+      lastSpeedSampleAt=now;
+      lastSpeedSampleBytes=bytesUploaded;
+     }
+     // Keep the visible meter monotonic across TUS retries/resume callbacks.
+     maxUploadedBytes=Math.max(maxUploadedBytes,Math.min(bytesUploaded,bytesTotal||bytesUploaded));
+     const reportedPercent=bytesTotal?Math.floor(bytesUploaded/bytesTotal*100):0;
+     maxProgressPercent=Math.max(maxProgressPercent,Math.min(100,reportedPercent));
+     const percent=maxProgressPercent;
+     const progressEl=$("uploadProgress");if(progressEl){progressEl.max=100;progressEl.value=percent;}
+     if(meterPercent)meterPercent.textContent=percent+"% अपलोड";
+     if(meterBytes)meterBytes.textContent=formatUploadBytes(maxUploadedBytes)+" / "+formatUploadBytes(bytesTotal);
+     if(meterFill)meterFill.style.width=percent+"%";
+     const speedText=smoothedBytesPerSecond>0?(smoothedBytesPerSecond/1048576).toFixed(2)+" MB/s":"स्पीड मापी जा रही है";
+     const remainingSeconds=smoothedBytesPerSecond>0&&bytesTotal>bytesUploaded?Math.ceil((bytesTotal-bytesUploaded)/smoothedBytesPerSecond):0;
+     const etaText=remainingSeconds>0?" · लगभग "+formatClock(remainingSeconds)+" बाकी":"";
+     status.textContent="वीडियो अपलोड हो रहा है: "+percent+"% · "+speedText+etaText;
     },
-    onSuccess(){resolve();}
+    onSuccess(){
+     if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null;}
+     if(cloudflareVideoId){
+      try{localStorage.setItem(pendingUploadKey,JSON.stringify({id:cloudflareVideoId,userId:user.id,size:selectedVideoFile.size,lastModified:selectedVideoFile.lastModified||0,completed:true,expiresAt:Date.now()+7*24*60*60*1000}));}catch(_){}
+     }
+     resolve();
+    }
    });
+   connectionTimer=setTimeout(()=>{
+    connectionTimer=null;
+    tusUpload.abort().catch(()=>{});
+    reject(new Error("Cloudflare से कनेक्शन नहीं बन पाया। इंटरनेट और अपलोड सेवा जाँचकर फिर कोशिश करें।"));
+   },45000);
    tusUpload.findPreviousUploads().then(previous=>{
     if(previous.length)tusUpload.resumeFromPreviousUpload(previous[0]);
     tusUpload.start();
-   }).catch(reject);
+   }).catch(error=>{if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null;}reject(error);});
   });
-  if(!cloudflareVideoId)throw new Error("Cloudflare upload पूरा हुआ, लेकिन Stream Video ID नहीं मिली। Support के लिए upload session ID सुरक्षित रखें।");
+  }
+  if(!cloudflareVideoId)throw new Error("Cloudflare upload पूरा हुआ, लेकिन Stream Video ID नहीं मिली। Upload को फिर से Resume करें।");
   const videoUrl="cloudflare://"+cloudflareVideoId;
+  setUploadStage(4,"4/5 · अपलोड पूरा हुआ; वीडियो डेटाबेस में सेव हो रहा है…");
   status.textContent="वीडियो सुरक्षित किया जा रहा है...";
   const payload={
    media_kind:mediaKind,aspect_ratio_setting:aspectRatioSetting,frame_fit:frameFit,quality_preference:qualityPreference,
@@ -870,7 +1520,12 @@ async function publishVideo() {
   if(insertError)throw new Error("Cloudflare upload सफल है (Stream ID: "+cloudflareVideoId+"), लेकिन Database Insert असफल: "+insertError.message+". वीडियो Cloudflare में सुरक्षित है; इसे हटाएँ नहीं।");
   if(!inserted?.id)throw new Error("Database से Video ID नहीं मिली। Cloudflare Stream ID: "+cloudflareVideoId);
   databaseSaved=true;
+  try{localStorage.removeItem(pendingUploadKey);}catch(_){}
   progress.value=100;
+  if(meterPercent)meterPercent.textContent="100% पूरा";
+  if(meterFill)meterFill.style.width="100%";
+  if(meterBytes)meterBytes.textContent=formatUploadBytes(selectedVideoFile.size)+" / "+formatUploadBytes(selectedVideoFile.size);
+  setUploadStage(5,"5/5 · ✓ वीडियो सफलतापूर्वक अपलोड और सेव हो गया।");
   status.textContent="वीडियो अपलोड हो गया है। तैयार होते ही आपकी प्रोफ़ाइल पर दिखाई देगा।";
   toast("🌟 वीडियो अपलोड हो गया है।");
   setTimeout(()=>location.href="profile.html",1200);

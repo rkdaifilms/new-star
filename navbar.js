@@ -21,7 +21,8 @@
     "upload.html",
     "settings.html",
     "admin.html",
-    "creator-ai.html"
+    "creator-ai.html",
+    "creator-studio.html"
   ];
 
   const $ = id => document.getElementById(id);
@@ -235,16 +236,7 @@
 
     overlay.innerHTML = `
       <div id="newstar-menu-panel">
-        <a href="camera.html" data-i18n="page.camera">📷 Camera / Create / Upload</a>
-        <a href="creator-ai.html">✨ New Star Creator Studio</a>
-        <a href="profile.html" data-i18n="nav.profile">👤 My Profile</a>
-        <a href="settings.html" data-i18n="settings.title">⚙️ Main Settings</a>
-        <a href="admin.html" id="newstar-owner-dashboard-link" hidden>🛡️ Developer / Owner Dashboard</a>
-        <a href="wallet.html" data-i18n="nav.wallet">💰 Wallet</a>
-        <a href="inbox.html" data-i18n="nav.inbox">✉️ Inbox</a>
-        <a href="monetization.html" data-i18n="page.monetization">💎 Monetization</a>
-         <a href="live.html" data-i18n="page.live">🔴 Live</a>
-        <a href="gaming.html" data-i18n="page.gaming">🎮 Gaming</a>
+        <a href="creator-studio.html">✨ New Star Creator Studio</a>
         <div class="menu-divider"></div>
         <button type="button" id="newstar-logout">
           🚪 <span data-i18n="action.logout">Log Out</span>
@@ -411,7 +403,8 @@
       applyPreferences();
       removeDuplicateNavigation();
       addStyles();
-      createMenu();
+      // The main app menu belongs only to the Profile page's own ⋮ control.
+      // Never inject a duplicate/global menu button on Home, Create, Camera, or editor pages.
 
       // Display the dashboard link only after the server verifies this session's owner role.
       if (user) {
@@ -436,7 +429,7 @@
       }
 
       // Profile page keeps its original profile menu.
-      createTopMenuButton();
+      // No global three-dot button outside Profile. Camera editor owns its own Edit Video menu.
 
       createBottomNavigation();
 

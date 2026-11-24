@@ -15,6 +15,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import android.graphics.Color
@@ -23,6 +24,7 @@ import android.view.ViewGroup
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
+    private lateinit var progressBar: ProgressBar
     private val dashboardUrl = "https://new-star-delta.vercel.app/admin.html"
     private val trustedHost = "new-star-delta.vercel.app"
 
@@ -56,6 +58,13 @@ class MainActivity : Activity() {
         header.addView(refresh)
         root.addView(header)
 
+        progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100
+            progress = 0
+            visibility = View.GONE
+        }
+        root.addView(progressBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 4))
+
         webView = WebView(this).apply {
             setBackgroundColor(Color.rgb(10, 13, 20))
             settings.javaScriptEnabled = true
@@ -68,7 +77,12 @@ class MainActivity : Activity() {
             settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
-            webChromeClient = WebChromeClient()
+            webChromeClient = object : WebChromeClient() {
+                override fun onProgressChanged(view: WebView, newProgress: Int) {
+                    progressBar.progress = newProgress
+                    progressBar.visibility = if (newProgress in 1..99) View.VISIBLE else View.GONE
+                }
+            }
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     val uri = request.url
@@ -99,12 +113,8 @@ class MainActivity : Activity() {
         ))
         setContentView(root)
 
-        val incoming = intent?.data
-        if (incoming?.scheme == "newstardeveloper" && incoming.host == "auth") {
-            webView.loadUrl(dashboardUrl)
-        } else {
-            webView.loadUrl(dashboardUrl)
-        }
+        // Always open the private admin dashboard inside this app, never in Chrome.
+        webView.loadUrl(dashboardUrl)
     }
 
     override fun onBackPressed() {
