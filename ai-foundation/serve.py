@@ -17,7 +17,7 @@ from typing import Any
 import torch
 
 from model import NewStarConfig, NewStarGPT
-from tokenizer import UnicodeCharTokenizer
+from tokenizer import tokenizer_from_dict
 
 
 def format_chat_messages(messages: list[dict[str, str]]) -> str:
@@ -39,13 +39,13 @@ def format_chat_messages(messages: list[dict[str, str]]) -> str:
 def load_engine(checkpoint_path: str, device: str):
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     checkpoint_format = checkpoint.get("format")
-    if checkpoint_format != "new-star-unicode-char-gpt-v1":
-        raise ValueError("the local foundation server requires a New Star Unicode checkpoint")
+    if checkpoint_format not in {"new-star-unicode-char-gpt-v1", "new-star-byte-bpe-gpt-v1"}:
+        raise ValueError("the local foundation server requires a supported New Star tokenizer checkpoint")
     config = NewStarConfig(**checkpoint["config"])
     model = NewStarGPT(config).to(device)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
-    tokenizer = UnicodeCharTokenizer.from_dict(checkpoint["tokenizer"])
+    tokenizer = tokenizer_from_dict(checkpoint["tokenizer"])
     return model, tokenizer
 
 
