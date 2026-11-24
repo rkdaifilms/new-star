@@ -1007,3 +1007,79 @@ def test_byte_bpe_sft_checkpoint_loads_in_native_inference_server(tmp_path, monk
     sample = "नेपाली हिन्दी বাংলা 🌍"
     assert tokenizer.decode(tokenizer.encode(sample)) == sample
     assert model.config.vocab_size == len(tokenizer)
+
+
+
+def test_sft_can_finetune_existing_pretraining_checkpoint_without_retokenizing(tmp_path, monkeypatch):
+    import json
+    import sys
+    from sft_train import main
+    from model import NewStarConfig, NewStarGPT
+    from bpe_tokenizer import ByteBPETokenizer
+
+    tokenizer = ByteBPETokenizer.train(
+        "नमस्ते प्रश्न नमस्कार उत्तर hello question hello answer",
+        max_merges=8,
+    )
+    config = NewStarConfig(
+        vocab_size=len(tokenizer), block_size=64, width=16, layers=1, heads=4
+    )
+    base_model = NewStarGPT(config)
+    base_checkpoint = tmp_path / "pretrained-base.pt"
+    torch.save({
+        "format": "new-star-byte-bpe-gpt-v1",
+        "config": vars(config),
+        "tokenizer": tokenizer.to_dict(),
+        "state_dict": base_model.state_dict(),
+    }, base_checkpoint)
+    original_weights = {
+        key: value.detach().clone()
+        for key, value in base_model.state_dict().items()
+    }
+
+    data = tmp_path / "base-sft-instructions.jsonl"
+    rows = []
+    for language, question, answer in [
+        ("ne", "नमस्ते प्रश्न", "नमस्कार उत्तर"),
+        ("en", "hello question", "hello answer"),
+    ]:
+        for split, marker in [("train", "train"), ("validation", "heldout")]:
+            rows.append({
+                "language": language,
+                "split": split,
+                "messages": [
+                    {"role": "user", "content": f"{question} {marker}"},
+                    {"role": "assistant", "content": f"{answer} {marker}"},
+                ],
+            })
+    data.write_text(
+        "\\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
+        encoding="utf-8",
+    )
+    manifest = tmp_path / "base-sft-manifest.json"
+    manifest.write_text(json.dumps({
+        "dataset_name": "base checkpoint SFT fixture",
+        "source": "locally authored automated test",
+        "license": "CC0-1.0",
+        "permission_basis": "created for automated tests",
+    }), encoding="utf-8")
+    output = tmp_path / "finetuned.pt"
+    monkeypatch.setattr(sys, "argv", [
+        "sft_train.py", "--data", str(data), "--manifest", str(manifest),
+        "--output", str(output), "--steps", "1", "--batch-size", "2",
+        "--block-size", "64", "--eval-interval", "1",
+        "--base-checkpoint", str(base_checkpoint),
+    ])
+    main()
+
+    saved = torch.load(output, map_location="cpu", weights_only=True)
+    assert saved["config"] == vars(config)
+    assert saved["tokenizer"] == tokenizer.to_dict()
+    assert saved["format"] == "new-star-byte-bpe-gpt-v1"
+    assert any(
+        not torch.equal(original_weights[key], saved["state_dict"][key])
+        for key in original_weights
+    )
+    metadata = json.loads(output.with_suffix(".pt.json").read_text(encoding="utf-8"))
+    assert metadata["tokenizer_type"] == ByteBPETokenizer.FORMAT
+    assert metadata["base_checkpoint"] == str(base_checkpoint)
