@@ -285,6 +285,41 @@ async function callNewStarHostedModel(key: string, messages: ChatMessage[], syst
   return answer.trim();
 }
 
+async function probeNewStarHostedModel() {
+  const configuredEndpoint = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
+  const model = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
+  const key = Deno.env.get("NEW_STAR_MODEL_API_KEY")?.trim() || "";
+  if (!configuredEndpoint || !model) {
+    return { configured: false, reachable: false, modelAvailable: false };
+  }
+
+  try {
+    const endpoint = new URL(configuredEndpoint);
+    if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+      return { configured: true, reachable: false, modelAvailable: false };
+    }
+    const base = endpoint.toString().replace(/\\/$/, "");
+    const modelsUrl = base.endsWith("/models") ? base : base.replace(/\\/v1$/, "") + "/v1/models";
+    const headers: Record<string, string> = {};
+    if (key) headers.Authorization = "Bearer " + key;
+    const response = await fetchWithTimeout(modelsUrl, {
+      method: "GET",
+      headers,
+      redirect: "error"
+    }, 5000);
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      return { configured: true, reachable: false, modelAvailable: false };
+    }
+    const data = await response.json().catch(() => ({}));
+    const models = Array.isArray(data?.data) ? data.data : [];
+    const modelAvailable = models.some((item: any) => item?.id === model);
+    return { configured: true, reachable: true, modelAvailable };
+  } catch {
+    return { configured: true, reachable: false, modelAvailable: false };
+  }
+}
+
 async function callOpenRouter(key: string, messages: ChatMessage[], systemPrompt: string) {
   const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -583,15 +618,17 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body?.action === "status") {
+    const newStarModel = await probeNewStarHostedModel();
     return json({
       ok: true,
       status: true,
       providers: {
-        newStarHostedModel: Boolean(Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() && Deno.env.get("NEW_STAR_MODEL_NAME")?.trim()),
+        newStarHostedModel: newStarModel.configured,
         openai: Boolean(firstSecret("OPENAI_API_KEY", "OPENAI_KEY")),
         gemini: Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY")),
         openrouter: Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"))
-      }
+      },
+      health: { newStarHostedModel: newStarModel }
     }, 200, headers);
   }
 
