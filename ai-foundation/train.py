@@ -37,8 +37,8 @@ def main():
     args = parser.parse_args()
     if args.steps < 1 or args.batch_size < 1:
         parser.error("--steps and --batch-size must be positive")
-    if args.max_vocab_size < 2:
-        parser.error("--max-vocab-size must be at least 2")
+    if args.max_vocab_size < 256:
+        parser.error("--max-vocab-size must be at least 256 (UTF-8 fallback vocabulary)")
 
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
@@ -80,7 +80,7 @@ def main():
                 "tokenizer": tokenizer.to_dict(), "state_dict": model.cpu().state_dict()}, output)
     output.with_suffix(output.suffix + ".json").write_text(
         json.dumps({"format": "new-star-unicode-char-gpt-v1", "config": vars(config),
-                    "tokenizer_type": "unicode-codepoint-v1",
+                    "tokenizer_type": "unicode-char-byte-fallback-v1",
                     "training_steps": args.steps, "corpus_characters": len(corpus),
                     "vocabulary_size": len(tokenizer), "seed": args.seed}, indent=2),
         encoding="utf-8",
