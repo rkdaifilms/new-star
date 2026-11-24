@@ -1,6 +1,12 @@
+import sys
+from pathlib import Path
+
 import torch
 
-from ai_foundation.model import NewStarConfig, NewStarGPT
+# The source directory uses a hyphen in its repository path, so expose it
+# explicitly instead of importing a nonexistent ai_foundation package.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from model import NewStarConfig, NewStarGPT
 
 
 def tiny_model():
