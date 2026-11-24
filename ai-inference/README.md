@@ -96,3 +96,8 @@ It checks health and model-list endpoints, then measures time-to-first-token and
 CPU speed and memory use depend heavily on model size, quantization, context length, and host hardware. Start with a small quantized model and measure latency and RAM on the actual host. A CPU service is not unlimited and may be too slow for image/video generation or many concurrent users.
 
 The Compose defaults use two CPU threads and one concurrent generation to avoid overloading a small host. Tune only after measuring the target server. Production also needs TLS, firewall restrictions, token rotation, monitoring, resource limits, backups for configuration, and a plan for model updates.
+
+
+## Gateway capability status
+
+The authenticated Supabase AI Gateway accepts `{ "action": "status" }` and reports each modality separately under `capabilities`. A configured provider key means only that a secret exists; it does not guarantee billing, quota, provider reachability, or a successful generation. The current gateway reports text chat, image generation, speech generation, and speech transcription as supported when their provider paths exist. Video generation and live web search are explicitly reported as unsupported until real provider adapters and end-to-end tests are implemented. Do not present those two features as working based on the chat model's ability to discuss video or research.
