@@ -1,7 +1,7 @@
 (()=>{"use strict";
 const $=id=>document.getElementById(id);
 const form=$("ns-form"),prompt=$("ns-prompt"),output=$("ns-output"),submit=$("ns-submit"),status=$("engine-status"),foot=$("ns-footnote"),fileInput=$("ns-file");
-let mode="chat",busy=false,attachment=null,history=[],abortController=null,recorder=null,recordedChunks=[];
+let mode="chat",busy=false,attachment=null,conversationId=localStorage.getItem("new-star-ai-conversation")||"",abortController=null,recorder=null,recordedChunks=[];
 const cfg=window.NEW_STAR_AI_CONFIG||{};
 const base=(cfg.apiBase||"").replace(/\\/$/,"");
 const modes={chat:["AI Chat","Ask questions, plan and create."],research:["Live Research","Search the web and return source links."],image:["Image Generation","Describe an image, edit an upload, and choose output size."],video:["Video Generation","Describe a video or attach an image to animate."]};
@@ -29,7 +29,7 @@ try{
    const result=await client.functions.invoke("ai-gateway",{body:{messages:[...history.slice(-8),{role:"user",content:sendText}],language:document.documentElement.lang||"en"}});
    if(result.error||!result.data?.ok)throw new Error(result.data?.error||"New Star AI chat service is unavailable.");
    pending.textContent=result.data.answer||"The AI returned an empty response.";
-   history.push({role:"user",content:sendText},{role:"assistant",content:result.data.answer||""});if(history.length>20)history=history.slice(-20);const voiceButton=document.createElement("button");voiceButton.type="button";voiceButton.textContent="▶ Listen";voiceButton.className="ns-listen";voiceButton.addEventListener("click",()=>speakText(result.data.answer||"",voiceButton));pending.append(voiceButton);
+   conversationId=result.data.conversationId||conversationId;if(conversationId)localStorage.setItem("new-star-ai-conversation",conversationId);const voiceButton=document.createElement("button");voiceButton.type="button";voiceButton.textContent="▶ Listen";voiceButton.className="ns-listen";voiceButton.addEventListener("click",()=>speakText(result.data.answer||"",voiceButton));pending.append(voiceButton);
  }else if(mode==="image"){
    if(attachment)throw new Error("Image editing with uploads is not enabled in the current AI gateway yet. Text-to-image is available when a provider is configured.");
    const result=await client.functions.invoke("ai-gateway",{body:{action:"image",prompt:sendText,language:document.documentElement.lang||"auto",imageSize:$("ns-size").value}});
@@ -48,7 +48,9 @@ try{
 }catch(error){pending.textContent=error.message||"AI backend unavailable.";pending.dataset.error="true";}
 finally{busy=false;submit.disabled=false;prompt.focus();}
 }
-$("ns-mic").addEventListener("click",toggleVoice);form.addEventListener("submit",run);prompt.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();form.requestSubmit();}});
+$("ns-mic").addEventListener("click",toggleVoice);
+$("ns-new-chat").addEventListener("click",()=>{if(busy)return;conversationId="";localStorage.removeItem("new-star-ai-conversation");output.replaceChildren();const empty=document.createElement("div");empty.className="ns-empty";empty.innerHTML='<div class="ns-orb">✦</div><b>New conversation</b><p>Start a fresh chat with New Star AI.</p>';output.append(empty);});
+form.addEventListener("submit",run);prompt.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();form.requestSubmit();}});
 window.addEventListener("load",async()=>{const s=await getSession().catch(()=>null);status.textContent=s?"Signed in":"Sign in required";status.style.color=s?"#91e6b0":"#f6c66b";});
 setMode("chat");
 })();
