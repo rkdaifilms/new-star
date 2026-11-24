@@ -53,3 +53,25 @@ Deno.test("rejects malformed JSON", async () => {
   const result = await readBoundedJson(request, 1024);
   if (result.ok || result.status !== 400) throw new Error("Malformed JSON was accepted");
 });
+
+Deno.test("rejects invalid content length and transfer encoding", async () => {
+  const invalidLength = new Request("https://example.test", {
+    method: "POST",
+    headers: { "content-type": "application/json", "content-length": "not-a-number" },
+    body: "{}",
+  });
+  const invalidResult = await readBoundedJson(invalidLength, 1024);
+  if (invalidResult.ok || invalidResult.status !== 400) {
+    throw new Error("Invalid Content-Length was accepted");
+  }
+
+  const transferEncoded = new Request("https://example.test", {
+    method: "POST",
+    headers: { "content-type": "application/json", "transfer-encoding": "chunked" },
+    body: "{}",
+  });
+  const transferResult = await readBoundedJson(transferEncoded, 1024);
+  if (transferResult.ok || transferResult.status !== 400) {
+    throw new Error("Transfer-Encoding request was accepted");
+  }
+});
