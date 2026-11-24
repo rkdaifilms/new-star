@@ -4,11 +4,13 @@ The authenticated Supabase Edge Function `ai-gateway` is deployed with JWT verif
 
 ## Provider failover order
 
-The server checks these provider secrets in this order:
+The server tries production chat providers in this order:
 
-1. `OPENAI_API_KEY`
-2. `GEMINI_API_KEY`
+1. `GEMINI_API_KEY`
+2. `OPENAI_API_KEY`
 3. `OPENROUTER_API_KEY`
+
+The local Qwen model is only a test engine. It is excluded from chat failover unless `NEW_STAR_MODEL_ENABLE_FALLBACK=true` is explicitly set. When enabled, it is tried last, after the production providers.
 
 If a configured provider times out, returns an error, or returns an empty response, the gateway tries the next configured provider. API keys are read only from Supabase Edge Function environment secrets. They must never be placed in HTML, JavaScript, GitHub files, browser storage, or chat messages.
 
@@ -17,7 +19,7 @@ If a configured provider times out, returns an error, or returns an empty respon
 An authorized adult account owner should configure newly rotated provider keys in the Supabase Dashboard under Edge Functions > Secrets. Do not paste keys into GitHub or this repository. Any key previously exposed in a chat or public file should be revoked at its provider and replaced.
 
 The gateway currently calls these chat model identifiers:
-- New Star hosted model: the value configured in `NEW_STAR_MODEL_NAME`
+- New Star local test engine: the value configured in `NEW_STAR_MODEL_NAME`, used only when `NEW_STAR_MODEL_ENABLE_FALLBACK=true`
 - Gemini: `gemini-3.8-flash`, then `gemini-3.5-flash-lite`
 - OpenAI: `gpt-4o-mini`
 - OpenRouter: `openai/gpt-4o-mini`
@@ -54,7 +56,7 @@ A successful response includes `ok`, `provider`, and `answer`. If all providers 
 
 ## Important status
 
-The gateway is now connected to the shared floating AI assistant (`ai-chat.js`), which is loaded on signed-in app pages through `navbar.js`. The Settings page links to the assistant and shows provider readiness as unverified. Provider secrets have not been confirmed as configured, and live provider failover has not been end-to-end tested. The chat UI is integrated, but AI responses must not be advertised as active until an authorized project owner configures secrets and a live test succeeds. The Help Center now displays per-modality support/configuration separately; “configured” is not a live health check. Video generation and live web search are not implemented in this gateway.
+The gateway is connected to the shared floating AI assistant (`ai-chat.js`). Provider secrets and live provider failover have not been end-to-end verified. The Qwen CPU model is an opt-in test engine, not the production ChatGPT/Gemini model. The Help Center reports per-modality support/configuration separately; “configured” is not a live health check. Video generation has a separate Gemini Interactions adapter; live web search is not implemented.
 
 
 ## Video generation
