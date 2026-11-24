@@ -25,3 +25,10 @@ export function normalizeNewStarSearchResults(input: unknown, limit = 5): NewSta
     }
   });
 }
+
+export function formatRetrievedContext(input: unknown, limit = 5): string {
+  const results = normalizeNewStarSearchResults(input, limit);
+  return results.map((item, index) =>
+    `[Source ${index + 1}] ${item.title}\nURL: ${item.url}\nExcerpt: ${item.snippet}`
+  ).join("\n\n").slice(0, 6000);
+}
