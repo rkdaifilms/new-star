@@ -628,7 +628,7 @@ Deno.serve(async (req: Request) => {
     }
     const videoAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: job, error: jobError } = await videoAdmin.from("ai_video_jobs")
-      .select("id, provider_interaction_id, provider_model, status, storage_path, failure_code")
+      .select("id, provider_interaction_id, provider_model, status, storage_path, failure_code, updated_at")
       .eq("id", jobId).eq("user_id", userData.user.id).maybeSingle();
     if (jobError) return json({ ok: false, error: "Could not read video job status." }, 503, headers);
     if (!job) return json({ ok: false, error: "Video job not found." }, 404, headers);
@@ -639,6 +639,10 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, status: "completed", videoUrl: signed.signedUrl, storagePath: job.storage_path, mimeType: "video/mp4", model: job.provider_model, expiresInSeconds: 3600 }, 200, headers);
     }
 
+    if (Date.now() - new Date(job.updated_at).getTime() < 4000) {
+      return json({ ok: true, status: "in_progress", jobId: job.id, model: job.provider_model }, 200, headers);
+    }
+    await videoAdmin.from("ai_video_jobs").update({ updated_at: new Date().toISOString() }).eq("id", job.id);
     const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
     if (!geminiKeys.length) return json({ ok: false, error: "Video provider is not configured." }, 503, headers);
     let interaction: any = null;
