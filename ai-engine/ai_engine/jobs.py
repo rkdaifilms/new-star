@@ -36,6 +36,7 @@ class JobQueue:
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            db.execute("DELETE FROM jobs WHERE status IN ('succeeded','failed') AND updated_at < ?", (now - self.retention_days * 86400,))
             if idempotency_key:
                 old = db.execute("SELECT * FROM jobs WHERE client_id=? AND idempotency_key=?", (client_id,idempotency_key)).fetchone()
                 if old:

@@ -41,6 +41,14 @@ class JobQueueTests(unittest.TestCase):
         self.assertEqual(claimed["attempts"],2)
         self.assertTrue(self.queue.fail(job["id"],"worker-b","permanent"))
         self.assertEqual(self.queue.get(job["id"],"client-a")["status"],"failed")
+    def test_finished_jobs_are_pruned_after_retention_window(self):
+        job,_=self.queue.enqueue("client-a",{"messages":[]})
+        self.queue.claim("worker-a")
+        self.queue.succeed(job["id"],"worker-a",{"ok":True})
+        with self.queue._connect() as db:
+            db.execute("UPDATE jobs SET updated_at=0 WHERE id=?",(job["id"],))
+        self.queue.enqueue("client-b",{"messages":[]})
+        self.assertIsNone(self.queue.get(job["id"],"client-a"))
     def test_expired_lease_can_be_reclaimed(self):
         job,_=self.queue.enqueue("client-a",{"messages":[]})
         self.queue.claim("worker-a")
