@@ -1,0 +1,46 @@
+{
+  "models": [
+    {
+      "model_id": "newstar-chat-primary",
+      "provider": "self-hosted-vllm",
+      "endpoint_url": "http://127.0.0.1:8000",
+      "protocol": "openai_chat",
+      "model_name": "newstar-multilingual-7b",
+      "capabilities": ["chat"],
+      "priority": 10,
+      "weight": 2,
+      "timeout_seconds": 60,
+      "auth_env": "NEW_STAR_LOCAL_MODEL_TOKEN",
+      "enabled": true,
+      "tags": ["self-hosted", "multilingual", "primary"],
+      "health_path": "/health"
+    },
+    {
+      "model_id": "newstar-chat-fallback",
+      "provider": "self-hosted-ollama",
+      "endpoint_url": "http://127.0.0.1:11434",
+      "protocol": "ollama_chat",
+      "model_name": "newstar-local-small",
+      "capabilities": ["chat"],
+      "priority": 20,
+      "weight": 1,
+      "timeout_seconds": 90,
+      "enabled": true,
+      "tags": ["self-hosted", "multilingual", "fallback"],
+      "health_path": "/api/tags"
+    },
+    {
+      "model_id": "newstar-embeddings",
+      "provider": "self-hosted-embedding-server",
+      "endpoint_url": "http://127.0.0.1:8081",
+      "protocol": "custom_json",
+      "model_name": "newstar-embed-multilingual",
+      "capabilities": ["embeddings"],
+      "priority": 10,
+      "weight": 1,
+      "enabled": true,
+      "tags": ["self-hosted", "multilingual"],
+      "health_path": "/health"
+    }
+  ]
+}

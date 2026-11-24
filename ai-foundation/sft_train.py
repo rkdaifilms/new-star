@@ -296,6 +296,7 @@ def main():
         "source_data": str(Path(args.data).name),
         "data_fingerprint": data_fingerprint,
         "tokenizer_fingerprint": tokenizer_fingerprint,
+        "tokenizer_type": tokenizer.to_dict()["type"],
         "base_checkpoint": str(Path(args.base_checkpoint).name) if args.base_checkpoint else None,
         "base_checkpoint_fingerprint": base_checkpoint_fingerprint,
         "evaluation_protocol": "sft-response-only-macro-language-token-ce-v1",
