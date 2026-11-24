@@ -83,3 +83,37 @@ def load_language_validation_corpora(path: str | Path) -> dict[str, str]:
     if not validation:
         raise ValueError("JSONL corpus has no validation records")
     return {language: "\n".join(parts) for language, parts in validation.items()}
+
+
+
+def supported_language_codes(catalog_path: str | Path | None = None) -> set[str]:
+    """Read the canonical gateway language catalog without maintaining a stale copy."""
+    import re
+
+    catalog = Path(catalog_path) if catalog_path else (
+        Path(__file__).resolve().parents[1] /
+        "supabase" / "functions" / "ai-gateway" / "language-catalog.ts"
+    )
+    if not catalog.is_file():
+        raise ValueError(f"canonical language catalog is missing: {catalog}")
+    source = catalog.read_text(encoding="utf-8")
+    codes = set(re.findall(r'^\\s{2}([a-z]{2,3}): "', source, flags=re.MULTILINE))
+    if not codes:
+        raise ValueError("canonical language catalog contains no language entries")
+    return codes
+
+
+def require_complete_language_coverage(validation_by_language: dict[str, str],
+                                       catalog_path: str | Path | None = None) -> None:
+    """Fail closed when a purported all-language evaluation omits catalog languages."""
+    supported = supported_language_codes(catalog_path)
+    provided = set(validation_by_language)
+    missing = sorted(supported - provided)
+    unsupported = sorted(provided - supported)
+    if missing or unsupported:
+        details = []
+        if missing:
+            details.append("missing=" + ",".join(missing))
+        if unsupported:
+            details.append("unsupported=" + ",".join(unsupported))
+        raise ValueError("language evaluation coverage mismatch: " + "; ".join(details))
