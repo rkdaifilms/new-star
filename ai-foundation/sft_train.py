@@ -153,10 +153,12 @@ def main():
             for message in messages
         )
         base_checkpoint = None
+        base_checkpoint_fingerprint = None
         if args.base_checkpoint:
             base_path = Path(args.base_checkpoint)
             if not base_path.is_file():
                 raise ValueError(f"base checkpoint does not exist: {base_path}")
+            base_checkpoint_fingerprint = hashlib.sha256(base_path.read_bytes()).hexdigest()
             try:
                 base_checkpoint = torch.load(base_path, map_location="cpu", weights_only=True)
             except (OSError, RuntimeError, ValueError) as exc:
@@ -201,6 +203,7 @@ def main():
         "seed": args.seed,
         "data_fingerprint": data_fingerprint,
         "tokenizer_fingerprint": tokenizer_fingerprint,
+        "base_checkpoint_fingerprint": base_checkpoint_fingerprint,
         "learning_rate": args.learning_rate,
         "batch_size": args.batch_size,
         "block_size": args.block_size,
@@ -293,6 +296,8 @@ def main():
         "source_data": str(Path(args.data).name),
         "data_fingerprint": data_fingerprint,
         "tokenizer_fingerprint": tokenizer_fingerprint,
+        "base_checkpoint": str(Path(args.base_checkpoint).name) if args.base_checkpoint else None,
+        "base_checkpoint_fingerprint": base_checkpoint_fingerprint,
         "evaluation_protocol": "sft-response-only-macro-language-token-ce-v1",
     }
     output.with_suffix(output.suffix + ".corpus-audit.json").write_text(
