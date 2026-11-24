@@ -19,7 +19,7 @@ REQUIRED_MANIFEST_FIELDS = ("dataset_name", "source", "license", "permission_bas
 
 def normalize_text(value: str) -> str:
     """Normalize whitespace and case for conservative exact-duplicate checks."""
-    return re.sub(r"\\s+", " ", value).strip().casefold()
+    return re.sub(r"\s+", " ", value).strip().casefold()
 
 
 def audit_corpus(
@@ -135,7 +135,7 @@ def main() -> None:
     if args.report_json:
         output = Path(args.report_json)
         output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(rendered + "\\n", encoding="utf-8")
+        output.write_text(rendered + "\n", encoding="utf-8")
     if not report["ok"]:
         raise SystemExit(1)
 
