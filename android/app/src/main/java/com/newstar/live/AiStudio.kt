@@ -50,6 +50,7 @@ internal fun NativeAiStudio(accessToken: String) {
     var listening by remember { mutableStateOf(false) }
     var voiceStatus by remember { mutableStateOf("") }
     var voiceLevel by remember { mutableStateOf(0f) }
+    var voiceDraftPrefix by remember { mutableStateOf("") }
     var speechRecognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
     var imageMode by remember { mutableStateOf(false) }
     var generatedImage by remember { mutableStateOf<Bitmap?>(null) }
@@ -60,17 +61,19 @@ internal fun NativeAiStudio(accessToken: String) {
             return
         }
         runCatching { speechRecognizer?.destroy() }
+        voiceDraftPrefix = draft.trim()
         val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
         speechRecognizer = recognizer
         recognizer.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) { listening = true; voiceLevel = 0f; voiceStatus = "माइक चालू है — अब बोलें।" }
-            override fun onBeginningOfSpeech() { voiceStatus = "आवाज़ सुन रहा है…" }
+            override fun onBeginningOfSpeech() { voiceStatus = "🔴 रिकॉर्डिंग चालू है — बोलें, शब्द नीचे लिखते जाएँगे।" }
             override fun onRmsChanged(rmsdB: Float) { voiceLevel = ((rmsdB + 2f) / 12f).coerceIn(0f, 1f) }
             override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() { listening = false; voiceLevel = 0f; voiceStatus = "आवाज़ रिकॉर्ड हो गई — अब शब्द पहचान रहा है…" }
+            override fun onEndOfSpeech() { voiceLevel = 0f; voiceStatus = "रिकॉर्डिंग रुक गई — बोले गए शब्द टेक्स्ट में तैयार हो रहे हैं…" }
             override fun onError(errorCode: Int) {
                 listening = false
                 voiceLevel = 0f
+                draft = voiceDraftPrefix
                 voiceStatus = when (errorCode) {
                     SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "आवाज़ समझ नहीं आई। फिर बोलें या लिखें।"
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "माइक्रोफोन की अनुमति नहीं मिली।"
@@ -83,26 +86,31 @@ internal fun NativeAiStudio(accessToken: String) {
                 voiceLevel = 0f
                 val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
                 if (spoken.isNotBlank()) {
-                    draft = listOf(draft.trim(), spoken.trim()).filter { it.isNotBlank() }.joinToString(" ")
+                    draft = listOf(voiceDraftPrefix.trim(), spoken.trim()).filter { it.isNotBlank() }.joinToString(" ")
                     error = ""
-                    voiceStatus = "आवाज़ टेक्स्ट में आ गई। अब AI को भेजें।"
+                    voiceStatus = "आवाज़ टेक्स्ट बॉक्स में लिख दी गई है। जाँचकर Send दबाएँ।"
                 } else voiceStatus = "कोई शब्द पहचान में नहीं आया। फिर कोशिश करें।"
             }
             override fun onPartialResults(partialResults: Bundle?) {
                 val partial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                if (!partial.isNullOrBlank()) voiceStatus = "पहचाने गए शब्द: " + partial
+                if (!partial.isNullOrBlank()) {
+                    draft = listOf(voiceDraftPrefix.trim(), partial.trim()).filter { it.isNotBlank() }.joinToString(" ")
+                    voiceStatus = "🔴 रिकॉर्डिंग — टेक्स्ट: " + partial
+                }
             }
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, Locale.getDefault().toLanguageTag())
+            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
         }
         listening = true
         voiceLevel = 0f
-        voiceStatus = "माइक चालू हो रहा है…"
+        voiceStatus = "🔴 माइक चालू हो रहा है — बोलना शुरू करें।"
         runCatching { recognizer.startListening(intent) }.onFailure {
             listening = false
             voiceLevel = 0f
@@ -194,7 +202,7 @@ internal fun NativeAiStudio(accessToken: String) {
             },
             enabled = !sending,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(if (listening) "■ रिकॉर्डिंग रोकें — माइक चालू है" else "🎙️ बोलकर लिखें") }
+        ) { Text(if (listening) "■ रिकॉर्डिंग रोकें" else "🎙️ माइक से बोलें") }
         if (voiceStatus.isNotBlank()) {
             Spacer(Modifier.height(8.dp))
             Card(
