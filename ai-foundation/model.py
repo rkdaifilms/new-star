@@ -17,6 +17,8 @@ class NewStarConfig:
             raise ValueError("width must be divisible by heads")
         if min(vocab_size, block_size, width, layers, heads) < 1:
             raise ValueError("model dimensions must be positive")
+        if not 0.0 <= dropout < 1.0:
+            raise ValueError("dropout must be in the range [0, 1)")
         self.vocab_size = vocab_size
         self.block_size = block_size
         self.width = width
@@ -66,8 +68,17 @@ class NewStarGPT(nn.Module):
         self.language_head.weight = self.token_embedding.weight
 
     def forward(self, tokens: torch.Tensor, targets: torch.Tensor | None = None):
-        if tokens.ndim != 2 or tokens.shape[1] > self.config.block_size:
-            raise ValueError("tokens must be [batch, sequence] within block_size")
+        if tokens.ndim != 2 or tokens.shape[1] < 1 or tokens.shape[1] > self.config.block_size:
+            raise ValueError("tokens must be [batch, sequence] with 1 <= sequence <= block_size")
+        if tokens.dtype != torch.long:
+            raise ValueError("tokens must use torch.long byte-token IDs")
+        if torch.any(tokens < 0) or torch.any(tokens >= self.config.vocab_size):
+            raise ValueError("token IDs must be within the configured vocabulary")
+        if targets is not None:
+            if targets.shape != tokens.shape or targets.dtype != torch.long:
+                raise ValueError("targets must be torch.long and match the token shape")
+            if torch.any(targets < 0) or torch.any(targets >= self.config.vocab_size):
+                raise ValueError("target IDs must be within the configured vocabulary")
         positions = torch.arange(tokens.shape[1], device=tokens.device)
         x = self.dropout(self.token_embedding(tokens) + self.position_embedding(positions))
         mask = torch.triu(
@@ -87,8 +98,16 @@ class NewStarGPT(nn.Module):
     @torch.no_grad()
     def generate(self, tokens: torch.Tensor, max_new_tokens: int = 100,
                  temperature: float = 1.0) -> torch.Tensor:
+        if not isinstance(max_new_tokens, int) or max_new_tokens < 0:
+            raise ValueError("max_new_tokens must be a non-negative integer")
         if temperature <= 0:
             raise ValueError("temperature must be greater than zero")
+        if tokens.ndim != 2 or tokens.shape[1] < 1:
+            raise ValueError("generation prompt must be a non-empty [batch, sequence] tensor")
+        if tokens.dtype != torch.long:
+            raise ValueError("generation tokens must use torch.long byte-token IDs")
+        if torch.any(tokens < 0) or torch.any(tokens >= self.config.vocab_size):
+            raise ValueError("generation token IDs must be within the configured vocabulary")
         self.eval()
         for _ in range(max_new_tokens):
             context = tokens[:, -self.config.block_size:]
