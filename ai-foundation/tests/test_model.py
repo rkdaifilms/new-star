@@ -39,3 +39,31 @@ def test_generation_appends_requested_number_of_tokens():
     result = model.generate(prompt, max_new_tokens=3, temperature=1.0)
     assert result.shape == (1, 5)
     assert result.dtype == torch.long
+
+
+def test_rejects_invalid_dropout_and_token_ids():
+    import pytest
+
+    with pytest.raises(ValueError, match="dropout"):
+        NewStarConfig(dropout=1.0)
+    model = tiny_model()
+    with pytest.raises(ValueError, match="vocabulary"):
+        model(torch.tensor([[256]], dtype=torch.long))
+
+
+def test_rejects_mismatched_targets_and_empty_generation_prompt():
+    import pytest
+
+    model = tiny_model()
+    with pytest.raises(ValueError, match="targets"):
+        model(torch.tensor([[1, 2]], dtype=torch.long),
+              torch.tensor([[1]], dtype=torch.long))
+    with pytest.raises(ValueError, match="non-empty"):
+        model.generate(torch.empty((1, 0), dtype=torch.long), max_new_tokens=1)
+
+
+def test_zero_token_generation_is_a_noop():
+    model = tiny_model()
+    prompt = torch.tensor([[65, 66]], dtype=torch.long)
+    result = model.generate(prompt, max_new_tokens=0)
+    torch.testing.assert_close(result, prompt)
