@@ -197,13 +197,14 @@ internal fun NativeAiStudio(accessToken: String) {
             onClick = {
                 val message = draft.trim()
                 if (message.isNotEmpty() && !sending) {
+                    val wantsImage = imageMode || Regex("(तस्वीर|फोटो|चित्र|इमेज|छवि).*(बना|तैयार|जनरेट)|(?:बना|तैयार|जनरेट).*(तस्वीर|फोटो|चित्र|इमेज|छवि)", RegexOption.IGNORE_CASE).containsMatchIn(message)
                     draft = ""
                     lines.add(AiChatLine("user", message))
                     sending = true
                     error = ""
                     scope.launch {
                         try {
-                            if (imageMode) {
+                            if (wantsImage) {
                                 val result = withContext(Dispatchers.IO) { requestNativeImage(accessToken, message) }
                                 val bytes = Base64.decode(result.first, Base64.DEFAULT)
                                 generatedImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
