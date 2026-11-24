@@ -48,13 +48,13 @@ This is a focused allowlist-based crawler and FTS index, not a complete global s
 
 The lexical SQLite index remains available on port 8081. A separate semantic retrieval service runs on port 8082 and stores vectors in Supabase Postgres using pgvector.
 
-1. Apply `supabase/migrations/20261125000000_new_star_vector_search.sql and `20261125010000_new_star_hybrid_search.sql`` to the Supabase project.
+1. Apply both migrations in order: `supabase/migrations/20261125000000_new_star_vector_search.sql` and `supabase/migrations/20261125010000_new_star_hybrid_search.sql`.
 2. Configure `NEW_STAR_SEARCH_API_KEY` and `NEW_STAR_VECTOR_DATABASE_URL` in the search host environment. The database URL must use a restricted server-side role; never expose it to browser code.
 3. Start the vector service with `docker compose up -d new-star-vector-search`. The service downloads and caches the multilingual FastEmbed ONNX model on first start; its health check verifies database connectivity.
 4. Crawl only domains for which indexing is authorized using the existing `crawl` command.
 5. Backfill the SQLite pages into pgvector:
-   `docker compose run --rm new-star-vector-search python vector_sync.py --sqlite-db /var/lib/new-star-search/index.sqlite3`
-6. Expose port 8082 through an HTTPS reverse proxy with authentication preserved. Configure the Supabase Edge Function's `NEW_STAR_SEARCH_BASE_URL` to that HTTPS origin to route RAG through vector cosine retrieval and the second-stage lexical reranker.
+   `docker compose run --rm --entrypoint python new-star-vector-search vector_sync.py --sqlite-db /var/lib/new-star-search/index.sqlite3`
+6. Expose port 8082 through an HTTPS reverse proxy with authentication preserved. Configure the Supabase Edge Function's `NEW_STAR_SEARCH_BASE_URL` to that HTTPS origin to route RAG through hybrid vector/full-text retrieval and reciprocal-rank fusion.
 
 The encoder is the pretrained `intfloat/multilingual-e5-small` baseline (384 dimensions), not a New Star-trained embedding model. It is local at inference time after model download. The retrieval stage independently fetches vector and PostgreSQL full-text candidates, fuses them with reciprocal-rank fusion (RRF), then reranks using cosine similarity, Unicode token overlap and the fused rank score. Source filtering is applied to both candidate sets. A learned cross-encoder reranker is not included; the current reranker is deterministic and does not require an external model.
 
