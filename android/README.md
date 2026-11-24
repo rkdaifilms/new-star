@@ -17,7 +17,7 @@ Open the [latest New Star Android release](https://github.com/rkdaifilms/new-sta
 - The APK is built and signed by GitHub Actions from a version tag.
 - The release also includes **NewStar.aab** for Google Play publishing and **SHA256SUMS.txt** to verify downloads.
 - Android controls installation and may ask the user to confirm installation from the browser or file manager used to download the APK. Keep Play Protect and other device security checks enabled.
-- Updating an installed app requires the same persistent signing key and a higher Android versionCode. Never publish a replacement APK signed with a different key as an update.
+- Production updates require the same privately managed release signing key and a higher Android versionCode. CI debug APKs use a runner-generated debug key; uninstall an older debug build before installing a new CI debug APK if Android reports a signature conflict. Never commit any keystore or publish a debug key as a production signing key.
 
 ## Publishing a release
 
