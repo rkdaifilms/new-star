@@ -65,7 +65,7 @@ class FakeUpstreamHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 for item in ({"message": {"content": "Ollama "}, "done": False},
                              {"message": {"content": "works"}, "done": True}):
-                    self.wfile.write((json.dumps(item) + "\\n").encode())
+                    self.wfile.write((json.dumps(item) + "\n").encode())
                     self.wfile.flush()
             else:
                 encoded = json.dumps({"message": {"content": "Ollama works"}, "done": True}).encode()
