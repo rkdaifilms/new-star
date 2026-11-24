@@ -54,3 +54,32 @@ def combine_languages(corpora: dict[str, str]) -> str:
     if not corpora:
         raise ValueError("at least one language corpus is required")
     return "\n".join(corpora[key] for key in sorted(corpora))
+
+
+def load_language_validation_corpora(path: str | Path) -> dict[str, str]:
+    """Load only held-out validation records; training records are optional."""
+    validation: dict[str, list[str]] = defaultdict(list)
+    with Path(path).open(encoding="utf-8") as source:
+        for line_number, line in enumerate(source, start=1):
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"invalid JSON on line {line_number}") from exc
+            if not isinstance(record, dict):
+                raise ValueError(f"line {line_number} must be a JSON object")
+            language = record.get("language")
+            split = record.get("split")
+            text = record.get("text")
+            if not isinstance(language, str) or not language.strip():
+                raise ValueError(f"line {line_number} requires a language label")
+            if split not in {"train", "validation"}:
+                raise ValueError(f"line {line_number} split must be train or validation")
+            if not isinstance(text, str) or not text.strip():
+                raise ValueError(f"line {line_number} requires non-empty text")
+            if split == "validation":
+                validation[language.strip()].append(text)
+    if not validation:
+        raise ValueError("JSONL corpus has no validation records")
+    return {language: "\\n".join(parts) for language, parts in validation.items()}
