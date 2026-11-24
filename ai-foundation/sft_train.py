@@ -161,9 +161,13 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
     data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
+    tokenizer_fingerprint = hashlib.sha256(json.dumps(
+        tokenizer.to_dict(), ensure_ascii=False, sort_keys=True
+    ).encode("utf-8")).hexdigest()
     training_config = {
         "seed": args.seed,
         "data_fingerprint": data_fingerprint,
+        "tokenizer_fingerprint": tokenizer_fingerprint,
         "learning_rate": args.learning_rate,
         "batch_size": args.batch_size,
         "block_size": args.block_size,
@@ -253,6 +257,9 @@ def main():
         "validation_examples_by_language": {lang: len(rows) for lang, rows in validation_data.items()},
         "validation_metric": "unweighted macro-average of per-language token-weighted assistant-response cross-entropy",
         "source_data": str(Path(args.data).name),
+        "data_fingerprint": data_fingerprint,
+        "tokenizer_fingerprint": tokenizer_fingerprint,
+        "evaluation_protocol": "sft-response-only-macro-language-token-ce-v1",
     }
     output.with_suffix(output.suffix + ".corpus-audit.json").write_text(
         json.dumps(audit_report, ensure_ascii=False, indent=2), encoding="utf-8"
