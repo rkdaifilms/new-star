@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { base64UrlEncode, privateKeyPemToBytes } from "./google-auth.ts";
 import { buildGeminiVideoRequest } from "./video-provider.ts";
 import { detectReplyScript } from "./language-policy.ts";
+import { normalizeNewStarSearchResults } from "./search-provider.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -307,17 +308,7 @@ async function searchNewStarIndex(query: string, language: string, limit: number
     }, 20000);
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return json({ ok: false, error: "New Star Search service returned " + providerHttpError(response.status, data) }, 502, headers);
-    const raw = Array.isArray(data?.results) ? data.results : [];
-    const results = raw.slice(0, limit).flatMap((item: any) => {
-      if (!item || typeof item.title !== "string" || typeof item.url !== "string") return [];
-      try {
-        const url = new URL(item.url);
-        if (url.protocol !== "https:" || url.username || url.password) return [];
-        return [{ title: item.title.slice(0, 240), url: url.toString(),
-          snippet: typeof item.snippet === "string" ? item.snippet.slice(0, 1200) : "",
-          source: url.hostname, publishedAt: typeof item.publishedAt === "string" ? item.publishedAt.slice(0, 80) : null }];
-      } catch { return []; }
-    });
+    const results = normalizeNewStarSearchResults(data?.results, limit);
     return json({ ok: true, provider: "new-star-search", query, results, count: results.length }, 200, headers);
   } catch {
     return json({ ok: false, error: "New Star Search service is unavailable or timed out." }, 502, headers);
