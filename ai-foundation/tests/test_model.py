@@ -95,3 +95,32 @@ def test_evaluation_rejects_too_short_corpus():
 
     with pytest.raises(ValueError, match="block_size"):
         evaluate_model(tiny_model(), torch.tensor([1, 2, 3], dtype=torch.long))
+
+
+def test_unicode_tokenizer_round_trips_multiple_scripts_and_emoji():
+    from tokenizer import UnicodeCharTokenizer
+
+    training = "नेपाली हिन्दी বাংলা English العربية 中文 日本語"
+    tokenizer = UnicodeCharTokenizer.train(training, max_vocab_size=512)
+    sample = "नेपाली हिन्दी বাংলা English العربية 中文 日本語 🛰️"
+    encoded = tokenizer.encode(sample)
+    assert tokenizer.decode(encoded) == sample
+    assert max(encoded) < len(tokenizer)
+
+
+def test_unicode_tokenizer_uses_byte_fallback_for_unseen_characters():
+    from tokenizer import UnicodeCharTokenizer
+
+    tokenizer = UnicodeCharTokenizer.train("hello", max_vocab_size=300)
+    unseen = "नमस्ते 🌏"
+    encoded = tokenizer.encode(unseen)
+    assert all(0 <= token_id < len(tokenizer) for token_id in encoded)
+    assert tokenizer.decode(encoded) == unseen
+
+
+def test_unicode_tokenizer_serialization_round_trip():
+    from tokenizer import UnicodeCharTokenizer
+
+    tokenizer = UnicodeCharTokenizer.train("नमस्ते hello")
+    restored = UnicodeCharTokenizer.from_dict(tokenizer.to_dict())
+    assert restored.decode(restored.encode("नमस्ते 🌍")) == "नमस्ते 🌍"
