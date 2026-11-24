@@ -88,9 +88,26 @@ class PgVectorSearch:
                        VALUES (%s,%s,%s,%s,%s)""", records)
         return len(records)
 
+    @staticmethod
+    def rerank(query: str, candidates: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+        """Blend cosine relevance with Unicode token overlap for a bounded second-stage rerank."""
+        query_terms = set(re.findall(r"[\\w]+", query.casefold(), flags=re.UNICODE))
+        rescored = []
+        for item in candidates:
+            text_terms = set(re.findall(
+                r"[\\w]+", (str(item.get("title", "")) + " " + str(item.get("snippet", ""))).casefold(),
+                flags=re.UNICODE))
+            overlap = len(query_terms & text_terms) / max(1, len(query_terms))
+            semantic = (max(-1.0, min(1.0, float(item.get("similarity", 0.0)))) + 1.0) / 2.0
+            score = 0.8 * semantic + 0.2 * overlap
+            rescored.append({**item, "rerank_score": round(score, 6)})
+        rescored.sort(key=lambda item: (item["rerank_score"], item["similarity"]), reverse=True)
+        return rescored[:limit]
+
     def search(self, query: str, limit: int = 5, source: str | None = None) -> list[dict[str, Any]]:
         vector = self.embedder.encode(query, passage=False)
         bounded = min(10, max(1, int(limit)))
+        candidate_limit = min(50, bounded * 4)
         with self.connect() as connection:
             with connection.cursor() as cursor:
                 if source:
@@ -98,12 +115,13 @@ class PgVectorSearch:
                         """SELECT title,url,source,content,1-(embedding <=> %s) AS similarity
                            FROM public.new_star_search_chunks WHERE source=%s
                            ORDER BY embedding <=> %s LIMIT %s""",
-                        (vector, source, vector, bounded))
+                        (vector, source, vector, candidate_limit))
                 else:
                     cursor.execute(
                         """SELECT title,url,source,content,1-(embedding <=> %s) AS similarity
                            FROM public.new_star_search_chunks ORDER BY embedding <=> %s LIMIT %s""",
-                        (vector, vector, bounded))
+                        (vector, vector, candidate_limit))
                 rows = cursor.fetchall()
-        return [{"title": row[0], "url": row[1], "source": row[2],
-                 "snippet": row[3][:420], "similarity": round(float(row[4]), 6)} for row in rows]
+        candidates = [{"title": row[0], "url": row[1], "source": row[2],
+                       "snippet": row[3][:420], "similarity": float(row[4])} for row in rows]
+        return self.rerank(query, candidates, bounded)
