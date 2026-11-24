@@ -9,7 +9,7 @@ import torch
 
 from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer
-from corpus import load_language_corpora
+from corpus import load_language_validation_corpora
 
 
 def evaluate_model(model: NewStarGPT, data: torch.Tensor, batch_size: int = 16,
@@ -66,7 +66,7 @@ def main() -> None:
 
     if args.data_format == "jsonl":
         try:
-            _, validation_by_language = load_language_corpora(args.data)
+            validation_by_language = load_language_validation_corpora(args.data)
             language_losses = {}
             for language in sorted(validation_by_language):
                 text = validation_by_language[language]
@@ -83,7 +83,7 @@ def main() -> None:
                   f"perplexity={math.exp(min(loss, 80.0)):.4f}")
         macro_loss = sum(language_losses.values()) / len(language_losses)
         print(f"macro_average_cross_entropy={macro_loss:.4f} {unit}")
-        print(f"macro_average_perplexity={math.exp(min(macro_loss, 80.0)):.4f}")
+        print(f"macro_geometric_mean_perplexity={math.exp(min(macro_loss, 80.0)):.4f}")
     else:
         corpus = Path(args.data).read_text(encoding="utf-8")
         encoded = tokenizer.encode(corpus) if tokenizer else list(corpus.encode("utf-8"))
