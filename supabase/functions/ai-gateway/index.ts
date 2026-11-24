@@ -547,9 +547,19 @@ Deno.serve(async (req: Request) => {
         console.error("AI image provider failed:", "openai", keyIndex + 1, reason);
       }
     }
+    const failureText = failures.join(" ").toUpperCase();
+    const hasQuotaFailure = failureText.includes("RATE_LIMIT_OR_QUOTA_EXCEEDED") || failureText.includes("HTTP_402");
+    const hasInvalidKey = failureText.includes("INVALID_API_KEY") || failureText.includes("HTTP_401") || failureText.includes("HTTP_403");
+    const errorMessage = hasQuotaFailure && hasInvalidKey
+      ? "तस्वीर बनाने की सेवा की सभी उपलब्ध keys में समस्या है: Gemini की quota/limit समाप्त है, OpenRouter खाते में पर्याप्त credits या billing नहीं है, और OpenAI key अमान्य है। Supabase Edge Function Secrets में सही billing वाली Gemini/OpenRouter या मान्य OpenAI key अपडेट करें।"
+      : hasQuotaFailure
+        ? "तस्वीर बनाने की provider quota या credits सीमा पूरी हो गई है। Gemini/OpenRouter खाते की billing या quota ठीक करें।"
+        : hasInvalidKey
+          ? "तस्वीर बनाने की API key अस्वीकार हुई है। Supabase Edge Function Secrets में सही provider key अपडेट करें।"
+          : "तस्वीर बनाने की सभी सेवाएँ अभी उपलब्ध नहीं हैं। Provider configuration और billing जाँचें।";
     return json({
       ok: false,
-      error: "Image generation providers are temporarily unavailable. Please retry shortly.",
+      error: errorMessage,
       code: "ALL_IMAGE_PROVIDERS_FAILED",
       attempted: failures
     }, 503, headers);
