@@ -25,7 +25,7 @@ python ai-foundation/train.py --data ./your-permitted-corpus.txt --steps 4000 --
   --resume-from artifacts/newstar-small.pt.resume.pt
 python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-permitted-corpus.txt
 # For per-language scores, pass a validation-only JSONL file:
-python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-languages.jsonl --data-format jsonl
+python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-languages.jsonl --data-format jsonl --report-json artifacts/multilingual-benchmark.json
 python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120
 ```
 
@@ -46,7 +46,11 @@ separate train/validation records. Each line is one JSON object:
 {"language":"en","split":"validation","text":"Separate English validation material"}
 ```
 
-Run it with `--data-format jsonl`. Training samples each batch row from a
+Run it with `--data-format jsonl`. The evaluation command prints held-out
+cross-entropy and perplexity per language plus a macro-average, and
+`--report-json` optionally saves the same metrics as a JSON artifact. This
+supports repeatable comparisons across checkpoints; it does not establish
+language fluency by itself. Training samples each batch row from a
 uniformly selected language, so a large language corpus does not automatically
 dominate every batch. Every language must have its own held-out validation
 records and enough tokens for the selected block size. Language labels are
