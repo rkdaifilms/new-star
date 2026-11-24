@@ -376,3 +376,21 @@ NEW_STAR_CORPUS_DIR=./data NEW_STAR_ARTIFACTS_DIR=./artifacts docker compose --p
 ```
 
 Set `NEW_STAR_TRAIN_STEPS` and `NEW_STAR_TOKENIZER` before the Compose command to change the run. The GPU image pins PyTorch 2.5.1 with CUDA 12.4 wheels; the host driver must support CUDA 12.4. The training scripts auto-select CUDA when available and report the selected device, precision, CUDA runtime, and GPU memory. CPU mode is FP32. This container setup provides reproducible execution environments; it does not supply GPU hardware, a training corpus, or trained weights. Start with a small authorized corpus and short run, inspect the loss/evaluation report, then scale only on hardware with sufficient memory.
+
+
+## Multilingual generation quality evaluation
+
+For generated-answer evaluation, prepare a reviewed, rights-cleared JSONL file with one case per language:
+
+```json
+{"language":"ne","prompt":"नेपालको राजधानी कहाँ हो?","reference":"नेपालको राजधानी काठमाडौं हो।"}
+{"language":"hi","prompt":"नेपाल की राजधानी क्या है?","reference":"नेपाल की राजधानी काठमांडू है।"}
+```
+
+Run after training a checkpoint:
+
+```bash
+python generation_eval.py --checkpoint artifacts/newstar.pt --cases generation-cases.jsonl --max-new-tokens 96 --report-json artifacts/generation-quality.json
+```
+
+Add `--require-all-supported-languages` to fail unless every language in the gateway catalog has at least one reviewed case. Reports include per-language exact-match rate, character n-gram F1 (chrF-style), non-empty output rate and output length. Character n-gram F1 is a surface metric only; use bilingual human review and task-specific factual/safety tests before making quality claims. Do not treat synthetic CI examples as a quality benchmark.
