@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,33 @@ def load_runs(path: str | Path) -> list[dict[str, Any]]:
     return runs
 
 
+def _compatibility_reasons(left: dict[str, Any], right: dict[str, Any]) -> list[str]:
+    """Explain why two validation losses must not be compared."""
+    checks = (
+        ("data_fingerprint", "dataset fingerprint"),
+        ("tokenizer_fingerprint", "tokenizer fingerprint"),
+        ("languages", "language set"),
+        ("model_config", "model configuration"),
+        ("evaluation_protocol", "evaluation protocol"),
+        ("validation_metric", "validation metric"),
+    )
+    reasons = []
+    for key, label in checks:
+        left_value, right_value = left.get(key), right.get(key)
+        if left_value is None or right_value is None:
+            reasons.append(f"missing {label}")
+        elif key == "languages":
+            if sorted(left_value or []) != sorted(right_value or []):
+                reasons.append(f"different {label}")
+        elif left_value != right_value:
+            reasons.append(f"different {label}")
+    for run, label in ((left, "previous"), (right, "latest")):
+        loss = run.get("final_validation_loss")
+        if not isinstance(loss, (int, float)) or not math.isfinite(loss):
+            reasons.append(f"{label} validation loss is missing or non-finite")
+    return reasons
+
+
 def compare_runs(
     registry_path: str | Path,
     stage: str,
@@ -37,24 +65,27 @@ def compare_runs(
     if not runs:
         raise ValueError(f"no {stage} runs found in registry")
 
-    valid = [run for run in runs if isinstance(run.get("final_validation_loss"), (int, float))]
-    best = min(valid, key=lambda run: run["final_validation_loss"]) if valid else None
     latest = runs[-1]
     previous = runs[-2] if len(runs) > 1 else None
-    comparable = False
-    delta = None
-    if previous is not None:
-        same_data = previous.get("data_fingerprint") == latest.get("data_fingerprint")
-        same_languages = sorted(previous.get("languages") or []) == sorted(latest.get("languages") or [])
-        previous_loss = previous.get("final_validation_loss")
-        latest_loss = latest.get("final_validation_loss")
-        comparable = (
-            same_data and same_languages
-            and isinstance(previous_loss, (int, float))
-            and isinstance(latest_loss, (int, float))
-        )
-        if comparable:
-            delta = latest_loss - previous_loss
+    reasons = _compatibility_reasons(previous, latest) if previous is not None else [
+        "only one run is registered"
+    ]
+    comparable = previous is not None and not reasons
+    delta = (
+        latest["final_validation_loss"] - previous["final_validation_loss"]
+        if comparable else None
+    )
+
+    # A "best" result is meaningful only inside the latest run's exact
+    # evaluation-compatibility group. Never rank unrelated datasets/configs.
+    comparable_runs = [
+        run for run in runs
+        if not _compatibility_reasons(run, latest)
+    ]
+    best = min(
+        comparable_runs,
+        key=lambda run: run["final_validation_loss"],
+    ) if comparable_runs else None
 
     checkpoint_checks = []
     if verify_checkpoints:
@@ -75,13 +106,15 @@ def compare_runs(
         "latest_validation_loss": latest.get("final_validation_loss"),
         "best_run_id": best.get("run_id") if best else None,
         "best_validation_loss": best.get("final_validation_loss") if best else None,
+        "best_scope": "runs matching latest dataset, tokenizer, languages, model config, and evaluation protocol",
         "previous_run_id": previous.get("run_id") if previous else None,
         "comparable_to_previous": comparable,
+        "incompatibility_reasons": reasons,
         "validation_loss_delta_latest_minus_previous": delta,
         "interpretation": (
             "lower validation loss is better; negative delta indicates improvement"
             if comparable else
-            "runs are not directly comparable: require matching dataset fingerprint, languages, and validation metrics"
+            "validation losses are not directly comparable; see incompatibility_reasons"
         ),
         "checkpoint_checks": checkpoint_checks if verify_checkpoints else None,
     }
