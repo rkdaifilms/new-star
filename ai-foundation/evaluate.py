@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -130,6 +131,26 @@ def main() -> None:
         tokenizer = None
         unit = "nats/byte"
 
+    checkpoint_path = Path(args.checkpoint)
+    data_path = Path(args.data)
+    tokenizer_payload = (
+        json.dumps(tokenizer.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        if tokenizer is not None else b"utf8-byte-tokenizer-v1"
+    )
+    report_metadata = {
+        "report_format": "new-star-evaluation-report-v1",
+        "checkpoint": checkpoint_path.name,
+        "checkpoint_sha256": hashlib.sha256(checkpoint_path.read_bytes()).hexdigest(),
+        "checkpoint_format": checkpoint_format,
+        "data": data_path.name,
+        "data_sha256": hashlib.sha256(data_path.read_bytes()).hexdigest(),
+        "tokenizer_sha256": hashlib.sha256(tokenizer_payload).hexdigest(),
+        "model_config": vars(config),
+        "metric_unit": unit,
+        "evaluation_method": "full-corpus-token-weighted",
+        "batch_size": args.batch_size,
+    }
+
     if args.data_format == "jsonl":
         try:
             validation_by_language = load_language_validation_corpora(args.data)
@@ -147,12 +168,8 @@ def main() -> None:
         print(f"macro_geometric_mean_perplexity={report['macro_geometric_mean_perplexity']:.4f}")
         if args.report_json:
             output = {
-                "checkpoint": Path(args.checkpoint).name,
-                "checkpoint_format": checkpoint_format,
-                "metric_unit": unit,
+                **report_metadata,
                 "seed": args.seed,
-                "batch_size": args.batch_size,
-                "evaluation_method": "full-corpus-token-weighted",
                 **report,
             }
             report_path = Path(args.report_json)
@@ -177,10 +194,7 @@ def main() -> None:
         print(f"evaluated_tokens={evaluated_tokens}")
         if args.report_json:
             output = {
-                "checkpoint": Path(args.checkpoint).name,
-                "checkpoint_format": checkpoint_format,
-                "metric_unit": unit,
-                "evaluation_method": "full-corpus-token-weighted",
+                **report_metadata,
                 "heldout_cross_entropy": loss,
                 "heldout_perplexity": perplexity,
                 "evaluated_tokens": evaluated_tokens,
