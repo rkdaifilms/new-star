@@ -10,11 +10,11 @@
 </head>
 <body>
 <div class="ns-shell">
-<header class="ns-top"><a href="creator-ai.html" aria-label="Back">‹</a><div><b>✦ NEW STAR AI ENGINE</b><small>One creative workspace · Your own engine interface</small></div><span id="engine-status" class="ns-status">Checking…</span></header>
+<header class="ns-top"><a href="creator-ai.html" aria-label="Back">‹</a><div><b>✦ NEW STAR AI ENGINE</b><small>New Star AI · connected to your secure account</small></div><span id="engine-status" class="ns-status">Checking…</span></header>
 <main class="ns-main">
-<section class="ns-hero"><div class="ns-kicker">NEW STAR · GENERATIVE AI</div><h1>One place. Every creative workflow.</h1><p>Ask, research, create images and plan videos from one workspace. The engine connects to your own backend when it is installed.</p></section>
+<section class="ns-hero"><div class="ns-kicker">NEW STAR · GENERATIVE AI</div><h1>One place. Every creative workflow.</h1><p>Your New Star AI workspace. Chat, voice and image generation use the connected New Star AI service. Research and video generation are not connected yet.</p></section>
 <nav class="ns-tabs" aria-label="AI tools">
-<button class="active" data-mode="chat">✦ Chat</button><button data-mode="research">⌕ Research</button><button data-mode="image">▧ Image</button><button data-mode="video">▷ Video</button>
+<button class="active" data-mode="chat">✦ Chat</button><button data-mode="research" disabled title="Search service not connected">⌕ Research · soon</button><button data-mode="image">▧ Image</button><button data-mode="video" disabled title="Video model server not connected">▷ Video · soon</button>
 </nav>
 <section class="ns-workspace">
 <div class="ns-panel-head"><div><b id="mode-title">AI Chat</b><small id="mode-help">Ask questions or give the AI a task.</small></div><div class="ns-panel-actions"><button type="button" id="ns-new-chat" class="ns-new-chat">＋ New chat</button><span class="ns-chip">NEW STAR ENGINE</span></div></div>
@@ -24,9 +24,9 @@
 <textarea id="ns-prompt" rows="3" maxlength="12000" placeholder="Ask anything…"></textarea>
 <div class="ns-controls"><label id="ns-upload" class="ns-upload">＋ Attach image<input id="ns-file" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><select id="ns-size" aria-label="Output size"><option value="1K">1K · Standard</option><option value="2K">2K · High</option><option value="4K">4K · Ultra</option></select><button id="ns-mic" type="button" aria-label="Record voice">🎙 Voice</button><button id="ns-submit" type="submit">Send ↗</button></div>
 </form>
-<p class="ns-footnote" id="ns-footnote">Frontend foundation only. Connect the private New Star AI backend to enable generation.</p>
+<p class="ns-footnote" id="ns-footnote">Chat and voice are connected. Image generation requires a configured provider and available quota. Research and video are not yet connected.</p>
 </section>
-<section class="ns-capabilities"><article><b>AI Brain</b><p>Conversation, planning and task routing.</p></article><article><b>Image Engine</b><p>Text-to-image, image editing and size selection.</p></article><article><b>Video Engine</b><p>Text-to-video and image-to-video workflows.</p></article><article><b>Research Engine</b><p>Search-connected answers with source links.</p></article></section>
+<section class="ns-capabilities"><article><b>New Star AI Chat</b><p>Connected chat with private, saved conversations.</p></article><article><b>Voice</b><p>Voice input and spoken replies through the AI gateway.</p></article><article><b>Image Generation</b><p>Text-to-image generation. Uploaded-image editing is not connected yet.</p></article><article><b>Coming later</b><p>Live Research and video generation need their own real providers.</p></article></section>
 </main>
 </div>
 </body></html>
