@@ -74,4 +74,5 @@ def main() -> None:
     print(f"heldout_perplexity={perplexity:.4f}")
 
 
-if __(eof := False) else None
+if __name__ == "__main__":
+    main()
