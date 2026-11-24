@@ -76,7 +76,7 @@ function requestedImageAspectRatio(prompt: string, requested: unknown) {
 async function generateGeminiImage(key: string, prompt: string, aspectRatio: string, imageSize: string) {
   // Gemini 3.1 Flash Image (Nano Banana 2) uses generateContent with
   // responseModalities. Keep Gemini 2.5 Flash Image as compatibility fallback.
-  const models = ["gemini-3.1-flash-image", "gemini-2.5-flash-image"];
+  const models = ["gemini-3-pro-image", "gemini-3.1-flash-image", "gemini-2.5-flash-image"];
   let lastFailure = "GEMINI_IMAGE_UNAVAILABLE";
   for (const model of models) {
     const response = await fetchWithTimeout(
@@ -115,7 +115,7 @@ async function generateOpenAIImage(key: string, prompt: string, aspectRatio: str
   const response = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "gpt-image-1", prompt, size: aspectRatio === "16:9" || aspectRatio === "4:3" ? "1536x1024" : aspectRatio === "9:16" || aspectRatio === "3:4" ? "1024x1536" : "1024x1024", n: 1 })
+    body: JSON.stringify({ model: "gpt-image-2.5-flare", prompt, size: aspectRatio === "16:9" || aspectRatio === "4:3" ? "1536x1024" : aspectRatio === "9:16" || aspectRatio === "3:4" ? "1024x1536" : "1024x1024", n: 1 })
   }, 60000);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
@@ -456,30 +456,32 @@ Deno.serve(async (req: Request) => {
     const imageLanguage = AI_LANGUAGE_NAMES[String(body.language || "")] || "";
     const localizedImagePrompt = imageLanguage ? prompt + "\nIf any visible text is included in the image, write it only in " + imageLanguage + "." : prompt;
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter an image description of up to 1,800 characters." }, 400, headers);
-    const geminiKey = firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    const openaiKey = firstSecret("OPENAI_API_KEY", "OPENAI_KEY");
-    if (!geminiKey && !openaiKey) return json({ ok: false, error: "Image generation is not configured. Add a Gemini or OpenAI provider key on the server." }, 503, headers);
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
+    if (!geminiKeys.length && !openaiKeys.length) return json({ ok: false, error: "Image generation is not configured. Add a Gemini or OpenAI provider key on the server." }, 503, headers);
     const imageAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: imageAllowed, error: imageLimitError } = await imageAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
     if (imageLimitError || imageAllowed !== true) return json({ ok: false, error: imageLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, imageLimitError ? 503 : 429, headers);
 
     const failures: string[] = [];
-    if (geminiKey) {
+    for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
       try {
-        const result = await generateGeminiImage(geminiKey, localizedImagePrompt, aspectRatio, imageSize);
+        const result = await generateGeminiImage(geminiKeys[keyIndex], localizedImagePrompt, aspectRatio, imageSize);
         return json({ ok: true, ...result, aspectRatio, provider: "gemini" }, 200, headers);
       } catch (error) {
-        failures.push("gemini:" + (error instanceof Error ? error.message : "UNKNOWN"));
-        console.error("AI image provider failed:", "gemini", error instanceof Error ? error.message : "unknown");
+        const reason = error instanceof Error ? error.message : "UNKNOWN";
+        failures.push("gemini[" + (keyIndex + 1) + "]:" + reason);
+        console.error("AI image provider failed:", "gemini", keyIndex + 1, reason);
       }
     }
-    if (openaiKey) {
+    for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
       try {
-        const result = await generateOpenAIImage(openaiKey, localizedImagePrompt, aspectRatio);
+        const result = await generateOpenAIImage(openaiKeys[keyIndex], localizedImagePrompt, aspectRatio);
         return json({ ok: true, ...result, aspectRatio, provider: "openai" }, 200, headers);
       } catch (error) {
-        failures.push("openai:" + (error instanceof Error ? error.message : "UNKNOWN"));
-        console.error("AI image provider failed:", "openai", error instanceof Error ? error.message : "unknown");
+        const reason = error instanceof Error ? error.message : "UNKNOWN";
+        failures.push("openai[" + (keyIndex + 1) + "]:" + reason);
+        console.error("AI image provider failed:", "openai", keyIndex + 1, reason);
       }
     }
     return json({
