@@ -728,3 +728,50 @@ def test_experiment_registry_refuses_failed_audit(tmp_path):
 
     with pytest.raises(ValueError, match="failed corpus audit"):
         register_experiment(metadata, tmp_path / "registry.jsonl")
+
+
+
+def test_experiment_comparison_only_compares_matching_data_and_languages(tmp_path):
+    import json
+    from compare_experiments import compare_runs
+
+    registry = tmp_path / "experiments.jsonl"
+    records = [
+        {"run_id": "run-a", "stage": "pretraining", "final_validation_loss": 3.0,
+         "data_fingerprint": "dataset-1", "languages": ["en", "ne"]},
+        {"run_id": "run-b", "stage": "pretraining", "final_validation_loss": 2.5,
+         "data_fingerprint": "dataset-1", "languages": ["ne", "en"]},
+        {"run_id": "run-c", "stage": "pretraining", "final_validation_loss": 1.2,
+         "data_fingerprint": "dataset-2", "languages": ["en", "ne"]},
+        {"run_id": "sft-a", "stage": "sft", "final_validation_loss": 4.0,
+         "data_fingerprint": "dataset-1", "languages": ["en"]},
+    ]
+    registry.write_text("\\n".join(json.dumps(row) for row in records), encoding="utf-8")
+
+    report = compare_runs(registry, "pretraining")
+    assert report["run_count"] == 3
+    assert report["latest_run_id"] == "run-c"
+    assert report["best_run_id"] == "run-c"
+    assert report["comparable_to_previous"] is False
+    assert report["validation_loss_delta_latest_minus_previous"] is None
+
+    comparable = compare_runs(registry, "sft")
+    assert comparable["run_count"] == 1
+    assert comparable["comparable_to_previous"] is False
+
+
+def test_experiment_comparison_reports_delta_for_same_dataset(tmp_path):
+    import json
+    from compare_experiments import compare_runs
+
+    registry = tmp_path / "experiments.jsonl"
+    records = [
+        {"run_id": "older", "stage": "sft", "final_validation_loss": 2.0,
+         "data_fingerprint": "same", "languages": ["en", "ne"]},
+        {"run_id": "newer", "stage": "sft", "final_validation_loss": 1.7,
+         "data_fingerprint": "same", "languages": ["ne", "en"]},
+    ]
+    registry.write_text("\\n".join(json.dumps(row) for row in records), encoding="utf-8")
+    report = compare_runs(registry, "sft")
+    assert report["comparable_to_previous"] is True
+    assert abs(report["validation_loss_delta_latest_minus_previous"] + 0.3) < 1e-8
