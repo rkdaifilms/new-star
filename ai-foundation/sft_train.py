@@ -12,6 +12,7 @@ from audit_corpus import audit_corpus
 from instruction_data import encode_instruction_example, load_instruction_corpora
 from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer
+from bpe_tokenizer import ByteBPETokenizer
 
 
 def encode_corpora(corpora, tokenizer, block_size):
@@ -115,6 +116,7 @@ def main():
     parser.add_argument("--heads", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--max-vocab-size", type=int, default=8192)
+    parser.add_argument("--tokenizer", choices=("char", "bpe"), default="char", help="Tokenizer for new SFT checkpoints; must match the intended base model tokenizer")
     parser.add_argument("--eval-interval", type=int, default=100)
     parser.add_argument("--resume-from", help="Resume optimizer/model/RNG state from a .resume.pt checkpoint")
     parser.add_argument("--seed", type=int, default=1337)
@@ -149,7 +151,11 @@ def main():
             for messages in conversations
             for message in messages
         )
-        tokenizer = UnicodeCharTokenizer.train(tokenizer_text, args.max_vocab_size)
+        tokenizer = (
+            ByteBPETokenizer.train(tokenizer_text, max_merges=args.max_vocab_size - 256)
+            if args.tokenizer == "bpe"
+            else UnicodeCharTokenizer.train(tokenizer_text, args.max_vocab_size)
+        )
         train_data = encode_corpora(train_messages, tokenizer, args.block_size)
         validation_data = encode_corpora(validation_messages, tokenizer, args.block_size)
     except ValueError as exc:
@@ -175,6 +181,7 @@ def main():
         "layers": args.layers,
         "heads": args.heads,
         "max_vocab_size": args.max_vocab_size,
+        "tokenizer_type": args.tokenizer,
         "data_format": "instruction-jsonl",
     }
     start_step = 0
@@ -237,7 +244,7 @@ def main():
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     torch.save({
-        "format": "new-star-unicode-char-gpt-v1",
+        "format": ("new-star-byte-bpe-gpt-v1" if args.tokenizer == "bpe" else "new-star-unicode-char-gpt-v1"),
         "config": vars(config),
         "tokenizer": tokenizer.to_dict(),
         "state_dict": model.cpu().state_dict(),
