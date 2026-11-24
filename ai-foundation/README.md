@@ -260,3 +260,24 @@ A lower validation loss is better only for comparable evaluation setups.
 Changing the validation corpus, tokenizer, evaluation procedure, or model
 objective can make scores incomparable even if the language set matches.
 Keep validation data and evaluation settings fixed when measuring progress.
+
+
+## Local inference benchmark
+
+Measure generation latency and throughput on a saved New Star checkpoint.
+The benchmark performs warmup separately, reports mean/median/p95 latency,
+generated tokens per second, parameter count, runtime versions, and (on CUDA)
+peak allocated device memory. Use identical checkpoints, prompts, token counts,
+thread settings, and hardware when comparing runs.
+
+```sh
+python ai-foundation/benchmark_inference.py \
+  --checkpoint artifacts/newstar-small.pt \
+  --device cpu --threads 2 --warmup 3 --iterations 10 \
+  --max-new-tokens 32 --output artifacts/cpu-benchmark.json
+```
+
+For CUDA, use `--device cuda` and omit `--threads`. This measures local
+autoregressive generation only; it does not claim production serving capacity
+or model quality. The experimental baseline may generate low-quality text
+until trained on suitable, permitted data.
