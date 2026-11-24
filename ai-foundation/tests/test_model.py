@@ -204,3 +204,23 @@ def test_native_inference_server_rejects_invalid_chat_history():
             {"role": "user", "content": "Hello"},
             {"role": "assistant", "content": "Hi"},
         ])
+
+
+def test_generation_supports_top_k_top_p_and_repetition_controls():
+    model = tiny_model()
+    prompt = torch.tensor([[65, 66]], dtype=torch.long)
+    result = model.generate(prompt, max_new_tokens=4, temperature=0.8,
+                            top_k=12, top_p=0.9, repetition_penalty=1.1)
+    assert result.shape == (1, 6)
+
+
+def test_generation_rejects_invalid_sampling_parameters():
+    import pytest
+    model = tiny_model()
+    prompt = torch.tensor([[65, 66]], dtype=torch.long)
+    with pytest.raises(ValueError, match="top_p"):
+        model.generate(prompt, top_p=0)
+    with pytest.raises(ValueError, match="repetition_penalty"):
+        model.generate(prompt, repetition_penalty=0.9)
+    with pytest.raises(ValueError, match="top_k"):
+        model.generate(prompt, top_k=0)
