@@ -272,7 +272,7 @@ async function startRecording(forceRecorder=false){
   voiceStatus.textContent=e.name==="NotAllowedError"?"माइक की अनुमति नहीं मिली। Android/App की microphone permission अनुमति दें।":e.name==="NotFoundError"?"इस डिवाइस पर माइक नहीं मिला।":e.name==="NotReadableError"?"माइक किसी दूसरे ऐप में व्यस्त है।":(e.message||"माइक शुरू नहीं हो सका।");
  }
 }
-voice.addEventListener("click",()=>{if(recording){if(browserRecognition){try{browserRecognition.stop();}catch(_){}}else if(recorder?.state!=="inactive")recorder.stop();return;}startRecording(true);});
+voice.addEventListener("click",()=>{if(recording){if(browserRecognition){try{browserRecognition.stop();}catch(_){}}else if(recorder?.state!=="inactive")recorder.stop();return;}startRecording(false);});
 stopVoice.addEventListener("click",()=>{if(recording){if(browserRecognition){try{browserRecognition.stop();}catch(_){}}else if(recorder?.state!=="inactive")recorder.stop();}});
 
 (async()=>{try{await session();const ready=await invoke({action:"status"});const chatReady=Boolean(ready.providers?.gemini||ready.providers?.openai||ready.providers?.openrouter);const voiceReady=Boolean(ready.providers?.gemini||ready.providers?.openai);status.textContent="";notice.textContent=!chatReady?"AI सेवा अभी तैयार नहीं है। सर्वर पर AI provider सेटअप की जाँच ज़रूरी है.":voiceReady?"AI तैयार है। आप लिखकर या माइक से पूछ सकते हैं और तस्वीर बनाने को भी कह सकते हैं।":"AI चैट तैयार है, लेकिन voice transcription provider उपलब्ध नहीं है।";}catch(e){status.textContent="";notice.textContent=e.message||"AI सेवा अभी उपलब्ध नहीं है। कृपया बाद में फिर कोशिश करें।";}if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};})();
