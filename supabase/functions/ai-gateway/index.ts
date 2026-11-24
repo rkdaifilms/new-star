@@ -515,6 +515,11 @@ Deno.serve(async (req: Request) => {
     if (!name || name.length > 80 || !scopes.length || scopes.some((scope: unknown) => typeof scope !== "string" || !allowedScopes.includes(scope))) {
       return json({ ok: false, error: "Provide a key name and valid API scopes." }, 400, headers);
     }
+    const { count: activeKeyCount, error: countError } = await admin.from("new_star_ai_api_keys")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userData.user.id).is("revoked_at", null);
+    if (countError) return json({ ok: false, error: "Could not check your active API keys." }, 503, headers);
+    if ((activeKeyCount || 0) >= 10) return json({ ok: false, error: "You can have up to 10 active API keys. Revoke an unused key first." }, 429, headers);
     const rateLimit = Number.isInteger(body.rateLimit) ? Math.min(20, Math.max(1, body.rateLimit)) : 20;
     let expiresAt: string | null = null;
     if (body.expiresAt !== undefined && body.expiresAt !== null && body.expiresAt !== "") {
