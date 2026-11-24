@@ -98,7 +98,7 @@ async function invoke(body){
   throw new Error(detail||"AI अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");
  }
  if(!data?.ok){
-  if(body.action==="video-status"&&data?.status==="failed")return data;
+  if(body.action==="video-status"&&(data?.status==="failed"||data?.error==="Video job not found."))return {...data,status:"failed"};
   if(body.action==="image")throw new Error(data?.error||"तस्वीर बनाने की सेवा अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");
   if(body.action==="transcribe")throw new Error(data?.error||"आवाज़ को टेक्स्ट में नहीं बदला जा सका। माइक की अनुमति जाँचकर फिर कोशिश करें।");
   if(body.action==="speak")throw new Error(data?.error||"अभी आवाज़ में जवाब उपलब्ध नहीं है। लिखित जवाब उपलब्ध रहेगा।");
