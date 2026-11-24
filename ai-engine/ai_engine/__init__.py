@@ -11,12 +11,17 @@ from .errors import (
 )
 from .registry import ModelHealth, ModelRegistry, ModelSpec
 from .router import ExecutionResult, ModelRouter, RoutePlan, RoutingRequest
+from .inference import ChatInference
+from .providers import ModelHTTPAdapter
+from .server import create_server, make_handler, validate_chat_request
 
 __all__ = [
+    "ChatInference",
     "ConfigurationError",
     "EngineSettings",
     "ExecutionResult",
     "ModelExecutionError",
+    "ModelHTTPAdapter",
     "ModelHealth",
     "ModelNotFoundError",
     "ModelRegistry",
@@ -27,4 +32,7 @@ __all__ = [
     "RoutePlan",
     "RoutingExhausted",
     "RoutingRequest",
+    "create_server",
+    "make_handler",
+    "validate_chat_request",
 ]

@@ -1,75 +1,95 @@
-# New Star AI Engine — Phase 1 and Phase 2
+# New Star AI Engine — Phases 1, 2, and 3
 
-This package establishes a provider-neutral, self-hostable model registry and deterministic fallback router. It does not require a paid hosted API. Model processes remain separately deployed; this router selects configured endpoints and records health state. Phase 3 will add network inference and streaming; Phase 4 will add application authentication, rate limits, usage logs, and the New Star integration endpoint.
+This Python 3.11+ package provides a provider-neutral model registry, capability/language-aware router, bounded circuit-breaker fallback, and a dependency-free HTTP inference server. The engine calls only endpoints explicitly configured by the operator. It does not require a paid hosted API; actual model weights and model-serving processes are deployed separately.
 
 ## Layout
 
 - `ai_engine/config.py`: environment-backed runtime settings.
-- `ai_engine/errors.py`: typed registry and routing failures.
+- `ai_engine/errors.py`: typed configuration, routing, and execution errors.
 - `ai_engine/registry.py`: validated model definitions, JSON loading, health and circuit-breaker state.
 - `ai_engine/router.py`: capability-aware candidate selection and bounded fallback execution.
-- `config/models.example.json`: self-hosted endpoint configuration example.
-- `tests/test_router.py`: standard-library unit tests.
-
-## Requirements
-
-Python 3.11 or newer. Phase 1 and Phase 2 use only the Python standard library.
+- `ai_engine/providers.py`: OpenAI-compatible, Ollama, and custom JSON HTTP adapters.
+- `ai_engine/inference.py`: chat orchestration, response normalization, and streaming selection.
+- `ai_engine/server.py`: threaded HTTP server, request validation, OpenAI-compatible API, and SSE output.
+- `config/models.example.json`: example self-hosted model registry.
+- `tests/`: standard-library unit and HTTP integration tests.
 
 ## Configure
 
-Copy `config/models.example.json` to a private runtime path and set:
+From the repository root:
 
 ```sh
-export NEW_STAR_AI_MODELS_FILE=/etc/new-star-ai/models.json
+cp ai-engine/config/models.example.json ai-engine/config/models.json
+```
+
+Edit `ai-engine/config/models.json` so each endpoint and model name matches a model server that you operate. For Ollama, set the endpoint to its base URL (for example `http://127.0.0.1:11434`) and protocol to `ollama_chat`. For vLLM, llama.cpp server, LocalAI, or another OpenAI-compatible server, use protocol `openai_chat` and its base URL. For a custom adapter, the server accepts a JSON `POST /generate` request with `model`, `messages`, `prompt`, `stream`, and `parameters` fields and returns an object containing `output`, `text`, `response`, or `content`.
+
+Set:
+
+```sh
+export NEW_STAR_AI_MODELS_FILE="$PWD/ai-engine/config/models.json"
+export NEW_STAR_AI_HOST=127.0.0.1
+export NEW_STAR_AI_PORT=8090
 export NEW_STAR_AI_DEFAULT_TIMEOUT_SECONDS=45
 export NEW_STAR_AI_FAILURE_THRESHOLD=2
 export NEW_STAR_AI_CIRCUIT_COOLDOWN_SECONDS=20
 ```
 
-Set each model's `auth_env` to the name of an environment variable containing its bearer token. The registry stores only the variable name and never reads or logs the secret value. Do not commit private model URLs, credentials, or production config.
+If a model uses `auth_env`, set that named environment variable to its bearer token. Do not put tokens in the JSON file or commit production credentials. Binding the inference server to a non-loopback interface requires `NEW_STAR_AI_SERVER_TOKEN`; clients must send `Authorization: Bearer <token>`. Keep the service behind a trusted reverse proxy/firewall for internet access.
 
-## Run tests
+## Start the server
 
 From the repository root:
+
+```sh
+PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.json serve --host 127.0.0.1 --port 8090
+```
+
+Alternatively, run `PYTHONPATH=ai-engine python -m ai_engine.server` after setting the environment variables. The service uses only the Python standard library.
+
+## API
+
+- `GET /health` and `GET /healthz`: service status and configured model count.
+- `GET /v1/models`: enabled chat models in OpenAI model-list format.
+- `POST /v1/chat/completions` and `POST /chat/completions`: OpenAI-compatible chat completion.
+- Set `"stream": true` to receive Server-Sent Events in OpenAI chat-completion chunk format, ending with `data: [DONE]`.
+
+Example non-streaming request:
+
+```sh
+curl http://127.0.0.1:8090/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"auto","messages":[{"role":"user","content":"नमस्ते"}]}'
+```
+
+Example streaming request:
+
+```sh
+curl -N http://127.0.0.1:8090/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"auto","stream":true,"messages":[{"role":"user","content":"Hello"}]}'
+```
+
+Supported request fields include `model`, `messages`, `stream`, `temperature`, `top_p`, `max_tokens`, `stop`, `seed`, `response_format`, `format`, `user`, and `language`. The server limits request bodies to 1 MiB and validates message roles and common sampling fields.
+
+## Adapters and fallback
+
+- `openai_chat`: sends `POST /v1/chat/completions`; supports OpenAI JSON and SSE responses.
+- `ollama_chat`: sends `POST /api/chat`; supports Ollama JSON and newline-delimited streaming responses.
+- `custom_json`: sends `POST /generate`; accepts JSON output fields `output`, `text`, `response`, or `content`; streaming accepts newline-delimited JSON records.
+
+For non-streaming requests, connection failures, timeouts, non-success HTTP statuses, and invalid upstream payloads trigger the router's bounded fallback. For streaming, fallback is attempted until an upstream has successfully returned response headers; after downstream SSE headers or generated content have been sent, switching models would corrupt the stream, so a mid-stream error is returned as an SSE error event instead. Socket timeouts are set per model.
+
+The API is loopback-only by default. When exposed on another interface, a server bearer token is mandatory. This phase provides basic server-token protection; per-user application authentication, quotas, durable usage logs, and New Star product integration belong to Phase 4.
+
+## Tests
 
 ```sh
 python -m unittest discover -s ai-engine/tests -v
 ```
 
-## Validate and preview routes
+CI compiles the package, runs router and HTTP integration tests, validates the example registry, and previews a Hindi route. Tests use local fake HTTP servers; they do not require paid APIs or download model weights.
 
-```sh
-PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.example.json validate
-PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.example.json plan --capability chat --language hi
-```
+## Important operational boundary
 
-The CLI validates configuration and previews route selection locally. It never calls a model endpoint.
-
-## Minimal usage
-
-```python
-from ai_engine.config import EngineSettings
-from ai_engine.registry import ModelRegistry
-from ai_engine.router import ModelRouter, RoutingRequest
-
-settings = EngineSettings.from_env()
-registry = ModelRegistry.from_json_file(settings.models_file, settings)
-router = ModelRouter(registry)
-plan = router.plan(RoutingRequest(capability="chat", preferred_model="newstar-chat"))
-for model in plan.candidates:
-    print(model.model_id, model.endpoint_url)
-```
-
-The plan contains endpoint metadata only. It does not make network calls. A caller can pass a transport function to `execute_with_fallback`; Phase 3 will provide the production HTTP and streaming transport.
-
-## Routing behavior
-
-1. Disabled, capability-incompatible, tag-incompatible, excluded, or open-circuit models are omitted.
-2. A preferred model is tried first when it is eligible.
-3. Models are filtered by requested language when a model declares language support; an empty language list or `*` means all languages are supported.
-4. Remaining models are ordered by ascending priority, then weighted round-robin within equal-priority groups.
-5. A failed attempt increments that model's failure count and opens its circuit after the configured threshold.
-6. A successful attempt resets its failure count and circuit state.
-7. If every candidate fails, a typed `RoutingExhausted` error is raised with model IDs and safe error messages.
-
-Only endpoints explicitly configured by the operator are contacted. Private-network endpoints are supported for self-hosted models. The router does not discover or call arbitrary user-supplied URLs.
+The inference server is the HTTP orchestration layer, not a trained foundation model. It does not create model weights or provide GPU compute. To generate responses, configure at least one reachable model server with compatible model weights. The independent New Star foundation model remains an experimental training codebase until it has been trained and evaluated on a suitable corpus and hardware.

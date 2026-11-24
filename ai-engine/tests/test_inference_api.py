@@ -27,8 +27,8 @@ class FakeUpstreamHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         length = int(self.headers.get("Content-Length", "0"))
         body = json.loads(self.rfile.read(length))
-        if type(self).fail:
-            self.send_error(503, "model temporarily unavailable")
+        if type(self).fail and self.path.endswith("/v1/chat/completions"):
+            self.send_error(503, "primary model temporarily unavailable")
             return
         if self.path.endswith("/v1/chat/completions"):
             if body.get("stream"):
@@ -67,7 +67,16 @@ class FakeUpstreamHandler(BaseHTTPRequestHandler):
             else:
                 encoded = json.dumps({"message": {"content": "Ollama works"}, "done": True}).encode()
                 self.send_header("Content-Length", str(len(encoded)))
+                self.end_headers()
                 self.wfile.write(encoded)
+            return
+        if self.path == "/generate":
+            encoded = json.dumps({"output": "Custom adapter works"}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
             return
         self.send_error(404)
 
@@ -115,6 +124,17 @@ class InferenceAPITests(unittest.TestCase):
         self.assertEqual(response["choices"][0]["message"]["content"], "Hello New Star")
         self.assertEqual(response["usage"]["total_tokens"], 7)
 
+    def test_custom_json_adapter_completion(self) -> None:
+        custom = ModelSpec(
+            model_id="custom-local", provider="custom", endpoint_url=self.base_url,
+            protocol="custom_json", model_name="custom-model", capabilities=frozenset({"chat"}),
+            timeout_seconds=2,
+        )
+        response = ChatInference(ModelRegistry(self.settings, [custom])).complete({
+            "model": "auto", "messages": [{"role": "user", "content": "Hi"}]
+        })
+        self.assertEqual(response["choices"][0]["message"]["content"], "Custom adapter works")
+
     def test_ollama_adapter_completion(self) -> None:
         self.registry = ModelRegistry(self.settings, [self.ollama])
         response = ChatInference(self.registry).complete({
@@ -154,6 +174,26 @@ class InferenceAPITests(unittest.TestCase):
             with urlopen(req) as response:
                 payload = json.loads(response.read())
             self.assertEqual(payload["object"], "chat.completion")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+    def test_http_server_streams_sse_chunks(self) -> None:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(self.inference))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            body = json.dumps({"stream": True, "model": "openai-local",
+                               "messages": [{"role": "user", "content": "Hi"}]}).encode()
+            req = Request(f"http://127.0.0.1:{server.server_address[1]}/v1/chat/completions",
+                          data=body, headers={"Content-Type": "application/json"})
+            with urlopen(req) as response:
+                payload = response.read().decode()
+                self.assertEqual(response.headers.get_content_type(), "text/event-stream")
+            self.assertIn("Hello", payload)
+            self.assertIn("New Star", payload)
+            self.assertIn("data: [DONE]", payload)
         finally:
             server.shutdown()
             server.server_close()

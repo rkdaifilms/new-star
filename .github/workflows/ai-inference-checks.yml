@@ -130,7 +130,7 @@ jobs:
           python-version: "3.11"
       - name: Compile self-hosted AI engine
         run: python -m compileall -q ai-engine/ai_engine
-      - name: Test model registry and fallback router
+      - name: Test model registry, fallback router, HTTP API, and streaming adapters
         run: python -m unittest discover -s ai-engine/tests -v
       - name: Validate example registry and preview a multilingual route
         run: |
