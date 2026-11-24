@@ -101,7 +101,7 @@ def list_models():
 
 
 @app.post("/v1/chat/completions", dependencies=[Depends(require_token)])
-def chat_completions(payload: ChatRequest, request: Request):
+def chat_completions(payload: ChatRequest):
     if _model is None:
         raise HTTPException(status_code=503, detail="Model is not ready.")
     if payload.stream:
