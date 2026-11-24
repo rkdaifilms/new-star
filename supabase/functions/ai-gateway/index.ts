@@ -515,7 +515,7 @@ Deno.serve(async (req: Request) => {
     if (!name || name.length > 80 || !scopes.length || scopes.some((scope: unknown) => typeof scope !== "string" || !allowedScopes.includes(scope))) {
       return json({ ok: false, error: "Provide a key name and valid API scopes." }, 400, headers);
     }
-    const rateLimit = Number.isInteger(body.rateLimit) ? Math.min(120, Math.max(1, body.rateLimit)) : 20;
+    const rateLimit = Number.isInteger(body.rateLimit) ? Math.min(20, Math.max(1, body.rateLimit)) : 20;
     let expiresAt: string | null = null;
     if (body.expiresAt !== undefined && body.expiresAt !== null && body.expiresAt !== "") {
       const parsedExpiry = new Date(body.expiresAt);
