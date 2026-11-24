@@ -176,7 +176,7 @@ let cachedGoogleAccessTokenExpiresAt = 0;
 function base64UrlEncode(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_");
+  return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
 async function getGoogleCloudAccessToken(): Promise<{ token: string; projectId: string }> {
@@ -202,7 +202,7 @@ async function getGoogleCloudAccessToken(): Promise<{ token: string; projectId: 
     exp: now + 3600
   })));
   const unsigned = header + "." + claims;
-  const pem = account.private_key.replace(/\\n/g, "\n").replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\\s/g, "");
+  const pem = account.private_key.replace(/\\n/g, "\n").replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, "");
   const key = await crypto.subtle.importKey(
     "pkcs8",
     Uint8Array.from(atob(pem), (char) => char.charCodeAt(0)),
