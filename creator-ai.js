@@ -157,7 +157,7 @@ async function generateVideo(overrideDescription){
   if(typeof started.jobId!=="string"||!started.jobId)throw new Error("The video service did not return a job ID.");
   let result=null;
   for(let attempt=0;attempt<60;attempt++){
-   label.textContent="Rendering video… "+Math.round((attempt+1)/60*100)+"% (status check)";
+   label.textContent="Video is rendering in the background… checking progress ("+(attempt+1)+"/60).";
    await new Promise(resolve=>setTimeout(resolve,5000));
    const status=await invoke({action:"video-status",jobId:started.jobId});
    if(status.status==="completed"){result=status;break;}
