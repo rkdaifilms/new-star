@@ -210,3 +210,29 @@ an exact normalized train/validation duplicate audit before optimization. The
 result is saved beside the checkpoint as `.corpus-audit.json`. For SFT, the
 audit uses the role-tagged conversation content. This catches exact overlap,
 not paraphrase or semantic leakage; human review of data rights remains required.
+
+
+## Experiment registry
+
+Each completed checkpoint can be added to an append-only JSONL experiment
+registry. The registry stores a unique run ID, UTC record time, training stage,
+checkpoint SHA-256, selected training metrics/configuration, language list,
+and (when present) the successful corpus-audit provenance summary. It refuses
+to register a checkpoint whose audit sidecar explicitly reports failure.
+
+Register a pretraining or SFT checkpoint after training:
+
+```sh
+python ai-foundation/experiment_registry.py \
+  --metadata artifacts/newstar-small.pt.json \
+  --registry artifacts/experiments.jsonl
+
+python ai-foundation/experiment_registry.py \
+  --metadata artifacts/newstar-sft.pt.json \
+  --registry artifacts/experiments.jsonl \
+  --stage sft
+```
+
+The registry is local experiment bookkeeping, not a remote tracking service or
+a substitute for backing up checkpoint files. Keep the registry and checkpoint
+artifacts together and do not include private dataset text or credentials.
