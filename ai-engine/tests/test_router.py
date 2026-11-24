@@ -108,6 +108,14 @@ class ModelRegistryTests(unittest.TestCase):
                 languages=frozenset({"not a language"}),
             )
 
+    def test_invalid_auth_environment_name_is_rejected(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            ModelSpec(
+                model_id="bad-auth-name", provider="local", endpoint_url="http://127.0.0.1:9000",
+                protocol="openai_chat", model_name="bad", capabilities=frozenset({"chat"}),
+                auth_env="1INVALID",
+            )
+
 
 class ModelRouterTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -172,6 +180,16 @@ class ModelRouterTests(unittest.TestCase):
         registry = ModelRegistry(self.settings, [english, hindi])
         plan = ModelRouter(registry).plan(RoutingRequest(capability="chat", language="hi-IN"))
         self.assertEqual(plan.model_ids, ("hindi",))
+
+    def test_wildcard_language_model_supports_any_language(self) -> None:
+        universal = ModelSpec(
+            model_id="universal", provider="local", endpoint_url="http://127.0.0.1:9003",
+            protocol="openai_chat", model_name="universal", capabilities=frozenset({"chat"}),
+            languages=frozenset({"*"}),
+        )
+        registry = ModelRegistry(self.settings, [universal])
+        plan = ModelRouter(registry).plan(RoutingRequest(capability="chat", language="ne-NP"))
+        self.assertEqual(plan.model_ids, ("universal",))
 
     def test_request_cannot_exceed_configured_fallback_limit(self) -> None:
         registry = ModelRegistry(self.settings, [
