@@ -1,21 +1,9 @@
-import java.util.Base64
-
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose") }
 
 val releaseStoreFile = providers.environmentVariable("ANDROID_KEYSTORE_FILE").orNull
 val releaseStorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
-
-// Stable TEST-ONLY signing identity so successive CI debug APKs can update the same install.
-// This key must never be used for a production Play Store release.
-val stableDebugKeystore = layout.buildDirectory.file("stable-debug.keystore").get().asFile
-if (!stableDebugKeystore.exists()) {
-    stableDebugKeystore.parentFile.mkdirs()
-    stableDebugKeystore.writeBytes(
-        Base64.getDecoder().decode(file("debug-keystore.b64").readText().trim())
-    )
-}
 
 android {
     namespace = "com.newstar.live"
@@ -29,13 +17,9 @@ android {
         versionName = "1.0.2"
     }
 
+    // Use Gradle's generated debug key on CI. Never commit a signing keystore.
+    // CI debug APKs may need the previous app uninstalled before installing a new build.
     signingConfigs {
-        getByName("debug") {
-            storeFile = stableDebugKeystore
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
         if (releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
             create("release") {
                 storeFile = file(releaseStoreFile)
@@ -47,9 +31,6 @@ android {
     }
 
     buildTypes {
-        getByName("debug") {
-            signingConfig = signingConfigs.getByName("debug")
-        }
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
