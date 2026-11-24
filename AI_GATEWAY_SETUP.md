@@ -103,3 +103,13 @@ Creator Studio and the Help Center already call the authenticated ai-gateway fun
 - NEW_STAR_MODEL_ENABLE_FALLBACK: when New Star is not primary, set true only if you want to opt into it as a last-resort test backend.
 
 The gateway verifies HTTPS endpoint syntax and sends the bearer token server-side. The New Star endpoint must be internet-reachable from Supabase Edge Functions; localhost/private-network addresses are not reachable from the hosted gateway. The Creator Studio UI continues to use one authenticated gateway endpoint, so provider credentials never enter browser JavaScript. A configured endpoint does not prove model quality, reachability, or production readiness; run live end-to-end checks after an authorized deployment.
+
+## Optional New Star retrieval-augmented chat
+
+The authenticated chat route can optionally retrieve excerpts from the separately hosted New Star Search index and add them to the model's system context. Enable this only after the search service is deployed and populated:
+
+- `NEW_STAR_RAG_ENABLED=true`
+- `NEW_STAR_SEARCH_BASE_URL=https://your-search-host`
+- `NEW_STAR_SEARCH_API_KEY` (server-side secret only)
+
+When enabled, each chat request attempts one bounded search (up to five results, eight-second timeout). Search failure is non-fatal: ordinary chat continues without retrieved context. Retrieved snippets are explicitly marked untrusted and source URLs are passed to the model. This is lexical SQLite FTS retrieval, not embedding/vector retrieval; quality depends on the pages crawled into the allowlisted index.
