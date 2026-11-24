@@ -49,6 +49,18 @@ provided by the dataset curator; this milestone does not automatically detect
 the language of a user's prompt. Use balanced, licensed, high-quality data for
 each language and evaluate each language separately before claiming support.
 
+
+## Reply-language routing in the hosted gateway
+
+The AI gateway gives an explicitly selected app language priority. If no
+supported language preference is supplied, it uses conservative Unicode-script
+detection on the latest user message to guide the reply language. Shared scripts
+such as Devanagari (Hindi/Nepali), Arabic (Arabic/Urdu/Persian), Han, Latin, and
+Cyrillic are deliberately treated as ambiguous and resolved from wording and
+context by the language model. This is a routing hint, not a standalone
+language-identification model; short or mixed-script messages fall back to
+contextual language identification.
+
 ## Honest capability boundary
 
 This is an architecture and training-pipeline starting point, not a useful ChatGPT/Gemini-level assistant yet. A small character/byte-fallback model trained on a small corpus will produce weak output. High-quality independent models require large, carefully licensed datasets, multilingual tokenizer research, distributed training, extensive evaluation, safety training, and substantial compute. No pretrained weights, image/video generator, speech model, production endpoint, or deployed service is included in this milestone.
