@@ -153,7 +153,17 @@ async function generateVideo(overrideDescription){
   const aspectRatio=$("video-aspect-ratio")?.value||"16:9";
   const resolution=$("video-resolution")?.value||"720p";
   const duration="6s";
-  const result=await invoke({action:"video",prompt:description,aspectRatio,resolution,duration});
+  const started=await invoke({action:"video",prompt:description,aspectRatio,resolution,duration});
+  if(typeof started.jobId!=="string"||!started.jobId)throw new Error("The video service did not return a job ID.");
+  let result=null;
+  for(let attempt=0;attempt<60;attempt++){
+   label.textContent="Rendering video… "+Math.round((attempt+1)/60*100)+"% (status check)";
+   await new Promise(resolve=>setTimeout(resolve,5000));
+   const status=await invoke({action:"video-status",jobId:started.jobId});
+   if(status.status==="completed"){result=status;break;}
+   if(status.status==="failed")throw new Error(status.error||"Video generation failed.");
+  }
+  if(!result)throw new Error("Video is still rendering. Please try checking again shortly.");
   if(typeof result.videoUrl!=="string"||!result.videoUrl.startsWith("https://"))throw new Error("New Star storage did not return a secure video link.");
   const player=document.createElement("video");player.controls=true;player.playsInline=true;player.preload="metadata";player.src=result.videoUrl;player.style.width="100%";player.style.maxWidth="720px";player.style.borderRadius="14px";
   const save=document.createElement("a");save.href=result.videoUrl;save.download="new-star-ai-video.mp4";save.target="_blank";save.rel="noopener";save.textContent="Open / save video";save.style.color="#ff9bb0";
