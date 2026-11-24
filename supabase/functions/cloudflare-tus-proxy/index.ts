@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
   // must not prevent a valid fallback alias from being used.
   const streamTokenNames = ["CLOUDFLARE_STREAM_TOKEN", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_STREAM_API_TOKEN"];
   const streamTokenCandidates = streamTokenNames.flatMap((name) =>
-    ["", "_1", "_2", "_3", "_4", "_5", "_6"].map((suffix) => ({
+    Array.from({ length: 21 }, (_, index) => index === 0 ? "" : "_" + index).map((suffix) => ({
       name: name + suffix,
       value: Deno.env.get(name + suffix),
     }))
