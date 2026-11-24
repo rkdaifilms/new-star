@@ -5,6 +5,7 @@ import argparse
 import torch
 
 from model import NewStarConfig, NewStarGPT
+from tokenizer import UnicodeCharTokenizer
 
 
 def main():
@@ -18,17 +19,25 @@ def main():
     if args.tokens < 0:
         parser.error("--tokens cannot be negative")
     checkpoint = torch.load(args.checkpoint, map_location=args.device, weights_only=True)
-    if checkpoint.get("format") != "new-star-byte-gpt-v1":
+    checkpoint_format = checkpoint.get("format")
+    if checkpoint_format not in {"new-star-byte-gpt-v1", "new-star-unicode-char-gpt-v1"}:
         parser.error("Unsupported checkpoint format")
     config = NewStarConfig(**checkpoint["config"])
     model = NewStarGPT(config).to(args.device)
     model.load_state_dict(checkpoint["state_dict"])
-    prompt = torch.tensor(list(args.prompt.encode("utf-8")), dtype=torch.long,
-                          device=args.device).unsqueeze(0)
-    if prompt.shape[1] == 0:
-        prompt = torch.zeros((1, 1), dtype=torch.long, device=args.device)
+    if checkpoint_format == "new-star-unicode-char-gpt-v1":
+        tokenizer = UnicodeCharTokenizer.from_dict(checkpoint["tokenizer"])
+        encoded = tokenizer.encode(args.prompt)
+        if not encoded:
+            encoded = [0]
+    else:
+        encoded = list(args.prompt.encode("utf-8")) or [0]
+    prompt = torch.tensor(encoded, dtype=torch.long, device=args.device).unsqueeze(0)
     output = model.generate(prompt, args.tokens, args.temperature)[0].tolist()
-    print(bytes(output).decode("utf-8", errors="replace"))
+    if checkpoint_format == "new-star-unicode-char-gpt-v1":
+        print(tokenizer.decode(output))
+    else:
+        print(bytes(output).decode("utf-8", errors="replace"))
 
 
 if __name__ == "__main__":
