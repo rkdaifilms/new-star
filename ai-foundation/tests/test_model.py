@@ -858,5 +858,7 @@ def test_experiment_comparison_rejects_tokenizer_or_model_mismatch(tmp_path):
     report = compare_runs(registry, "pretraining")
     assert report["comparable_to_previous"] is False
     assert report["validation_loss_delta_latest_minus_previous"] is None
-    assert report["best_run_id"] == "baseline"
+    # The final record defines the compatibility group; do not rank the
+    # lower-loss run from a different model configuration against it.
+    assert report["best_run_id"] == "different-model"
     assert "different model configuration" in report["incompatibility_reasons"]
