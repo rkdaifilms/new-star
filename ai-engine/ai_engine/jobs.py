@@ -10,6 +10,7 @@ class JobQueue:
         self.max_pending = max(1, int(os.environ.get('NEW_STAR_AI_QUEUE_MAX_PENDING', max_pending)))
         self.lease_seconds = max(30, int(os.environ.get('NEW_STAR_AI_JOB_LEASE_SECONDS', lease_seconds)))
         self.max_attempts = max(1, int(os.environ.get('NEW_STAR_AI_JOB_MAX_ATTEMPTS', max_attempts)))
+        self.retention_days = max(1, int(os.environ.get('NEW_STAR_AI_JOB_RETENTION_DAYS', '30')))
         self._initialize()
 
     def _connect(self):
