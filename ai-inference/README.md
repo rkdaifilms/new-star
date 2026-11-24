@@ -1,6 +1,6 @@
 # New Star CPU Inference (first milestone)
 
-This is New Star-owned inference-service code, not a newly trained foundation model. It runs a separately obtained, licensed GGUF language model locally through `llama.cpp` on CPU and exposes a small OpenAI-compatible API.
+This is New Star-owned inference-service code, not a newly trained foundation model or the production ChatGPT/Gemini model. It runs a separately obtained, licensed GGUF language model locally through `llama.cpp` on CPU as an opt-in test engine and exposes a small OpenAI-compatible API.
 
 ## What this milestone does
 
@@ -75,15 +75,16 @@ The response uses OpenAI-compatible `data: ...` events and ends with `data: [DON
 
 ## Connect to New Star AI Gateway
 
-This pull request adds a hosted open-model adapter to the New Star AI Gateway source. The adapter becomes usable only after this source is reviewed, merged, and deployed to the active Supabase Edge Function. After the CPU service is deployed behind a reachable HTTPS endpoint and the matching gateway code is deployed, configure these **server-side Supabase Edge Function secrets**:
+This pull request adds an opt-in local test-model adapter to the New Star AI Gateway source. It is not the production ChatGPT/Gemini model and is not enabled by default. After the CPU service is deployed behind a reachable HTTPS endpoint and the matching gateway code is deployed, an authorized project owner may configure these **server-side Supabase Edge Function secrets**:
 
 - `NEW_STAR_MODEL_BASE_URL`: the HTTPS base URL ending in `/v1`, for example `https://your-private-gateway.example/v1`
 - `NEW_STAR_MODEL_NAME`: `new-star-qwen3-0.6b`
 - `NEW_STAR_MODEL_API_KEY`: the exact same secret as `MODEL_TOKEN` in this service
+- `NEW_STAR_MODEL_ENABLE_FALLBACK`: set to `true` only for test sessions; the local model is tried after Gemini, OpenAI, and OpenRouter
 
 The adapter sends requests to `/chat/completions` and checks `/models`, so this service exposes the matching OpenAI-compatible paths. Keep the endpoint behind TLS and authentication. Never put the token in browser JavaScript, HTML, a mobile app bundle, or source control.
 
-The adapter exists in the separately maintained/deployed AI Gateway. Do not redeploy an older Edge Function source branch over the active gateway without first reconciling the newer AI Gateway changes. After secrets are configured, use an authenticated New Star account to test a real chat request and inspect server logs. A successful `/healthz` alone does not prove the hosted gateway can reach the service.
+The adapter exists in the separately maintained/deployed AI Gateway. Do not redeploy an older Edge Function source branch over the active gateway without first reconciling newer AI Gateway changes. Keep `NEW_STAR_MODEL_ENABLE_FALLBACK` unset for normal production provider routing. A successful `/healthz` alone does not prove the gateway can reach the service.
 
 ## Benchmark a deployed service
 
@@ -107,4 +108,4 @@ The Compose defaults use two CPU threads and one concurrent generation to avoid 
 
 ## Gateway capability status
 
-The authenticated Supabase AI Gateway accepts `{ "action": "status" }` and reports each modality separately under `capabilities`. A configured provider key means only that a secret exists; it does not guarantee billing, quota, provider reachability, or a successful generation. The current gateway reports text chat, image generation, speech generation, and speech transcription as supported when their provider paths exist. Video generation and live web search are explicitly reported as unsupported until real provider adapters and end-to-end tests are implemented. Do not present those two features as working based on the chat model's ability to discuss video or research.
+The authenticated Supabase AI Gateway accepts `{ "action": "status" }` and reports each modality separately under `capabilities`. A configured provider key means only that a secret exists; it does not guarantee billing, quota, provider reachability, or a successful generation. The current gateway reports text chat, image generation, speech generation, speech transcription, and a separate video-generation path when their provider paths exist. A configured key does not prove a successful generation. Live web search is explicitly unsupported until a real adapter and end-to-end tests are implemented.
