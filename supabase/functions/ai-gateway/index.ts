@@ -598,18 +598,31 @@ Deno.serve(async (req: Request) => {
 
   if (body?.action === "status") {
     const newStarModel = await probeNewStarHostedModel();
+    const hasOpenAI = Boolean(firstSecret("OPENAI_API_KEY", "OPENAI_KEY"));
+    const hasGemini = Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"));
+    const hasOpenRouter = Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"));
+    const imageConfigured = hasGemini || hasOpenRouter || hasOpenAI;
+    const speechConfigured = hasGemini || hasOpenAI;
     return json({
       ok: true,
       status: true,
       providers: {
         newStarHostedModel: newStarModel.configured,
-        openai: Boolean(firstSecret("OPENAI_API_KEY", "OPENAI_KEY")),
-        gemini: Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY")),
-        openrouter: Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"))
+        openai: hasOpenAI,
+        gemini: hasGemini,
+        openrouter: hasOpenRouter
+      },
+      capabilities: {
+        chat: { supported: true, configured: newStarModel.configured || hasOpenAI || hasGemini || hasOpenRouter },
+        imageGeneration: { supported: true, configured: imageConfigured },
+        speechGeneration: { supported: true, configured: speechConfigured },
+        speechTranscription: { supported: true, configured: speechConfigured },
+        videoGeneration: { supported: false, configured: false, reason: "A video-generation provider adapter is not implemented in this gateway yet." },
+        webSearch: { supported: false, configured: false, reason: "A live search provider adapter is not implemented in this gateway yet." }
       },
       health: {
         newStarHostedModel: newStarModel,
-        note: "Provider presence is not proof of successful inference. The hosted model check verifies the authenticated model-list endpoint only."
+        note: "Configured means a server-side key or endpoint is present; it does not prove provider billing, quota, reachability, or successful generation. The hosted model check verifies the authenticated model-list endpoint only."
       }
     }, 200, headers);
   }
