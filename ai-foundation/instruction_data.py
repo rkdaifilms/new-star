@@ -1,8 +1,4 @@
-"""Validate instruction/chat JSONL and build response-only causal-LM examples.
-
-This module prepares supervised fine-tuning (SFT) records. It does not train a
-model by itself; callers must train on the returned input/label pairs.
-"""
+"""Validate instruction/chat JSONL and build response-only causal-LM examples."""
 from __future__ import annotations
 
 import json
@@ -22,8 +18,7 @@ def validate_messages(messages: Any, line_number: int = 0) -> list[dict[str, str
     for index, message in enumerate(messages):
         if not isinstance(message, dict):
             raise ValueError(prefix + f"message {index} must be an object")
-        role = message.get("role")
-        content = message.get("content")
+        role, content = message.get("role"), message.get("content")
         if role not in ALLOWED_ROLES:
             raise ValueError(prefix + f"message {index} has an unsupported role")
         if not isinstance(content, str) or not content.strip():
@@ -34,8 +29,7 @@ def validate_messages(messages: Any, line_number: int = 0) -> list[dict[str, str
         elif role == "user":
             if expected != "user":
                 raise ValueError(prefix + "messages must alternate user and assistant turns")
-            seen_user = True
-            expected = "assistant"
+            seen_user, expected = True, "assistant"
         else:
             if expected != "assistant":
                 raise ValueError(prefix + "assistant message must follow a user message")
@@ -46,7 +40,7 @@ def validate_messages(messages: Any, line_number: int = 0) -> list[dict[str, str
     return normalized
 
 
-def load_instruction_corpora(path: str | Path) -> tuple[dict[str, list[list[dict[str, str]]]], dict[str, list[list[dict[str, str]]]]]:
+def load_instruction_corpora(path: str | Path):
     """Load JSONL records with language, split, and messages fields."""
     train: dict[str, list[list[dict[str, str]]]] = {}
     validation: dict[str, list[list[dict[str, str]]]] = {}
@@ -60,8 +54,7 @@ def load_instruction_corpora(path: str | Path) -> tuple[dict[str, list[list[dict
                 raise ValueError(f"invalid JSON on line {line_number}") from exc
             if not isinstance(record, dict):
                 raise ValueError(f"line {line_number} must be a JSON object")
-            language = record.get("language")
-            split = record.get("split")
+            language, split = record.get("language"), record.get("split")
             if not isinstance(language, str) or not language.strip():
                 raise ValueError(f"line {line_number} requires a language label")
             if split not in {"train", "validation"}:
@@ -72,38 +65,29 @@ def load_instruction_corpora(path: str | Path) -> tuple[dict[str, list[list[dict
     if not train:
         raise ValueError("instruction JSONL has no training records")
     if set(train) != set(validation):
-        missing = sorted(set(train) - set(validation))
-        extra = sorted(set(validation) - set(train))
+        missing, extra = sorted(set(train) - set(validation)), sorted(set(validation) - set(train))
         raise ValueError(
             f"train/validation languages differ; missing validation={missing}, validation-only={extra}"
         )
     return train, validation
 
 
-def encode_instruction_example(
-    messages: list[dict[str, str]], tokenizer, max_length: int
-) -> tuple[list[int], list[int]]:
-    """Return shifted input IDs and labels; non-assistant targets are -100."""
+def encode_instruction_example(messages, tokenizer, max_length: int):
+    """Return shifted IDs and labels; user/system targets are masked with -100."""
     if max_length < 2:
         raise ValueError("max_length must be at least 2")
     messages = validate_messages(messages)
     token_ids: list[int] = []
-    assistant_target_positions: set[int] = set()
+    target_mask: list[bool] = []
     for message in messages:
-        prefix = f"{message['role']}: "
-        segment = tokenizer.encode(prefix + message["content"] + "\n")
-        start = len(token_ids)
+        segment = tokenizer.encode(f"{message['role']}: {message['content']}\\n")
         token_ids.extend(segment)
-        if message["role"] == "assistant":
-            assistant_target_positions.update(range(start, len(token_ids)))
-    token_ids = token_ids[-(max_length + 1):]
-    offset = max(0, sum(len(tokenizer.encode(f"{m['role']}: {m['content']}\n")) for m in messages) - len(token_ids))
-    # The prefix above includes a space after the role; account for it exactly.
-    if offset:
-        assistant_target_positions = {p - offset for p in assistant_target_positions if p >= offset}
+        target_mask.extend([message["role"] == "assistant"] * len(segment))
+    start = max(0, len(token_ids) - (max_length + 1))
+    token_ids, target_mask = token_ids[start:], target_mask[start:]
     inputs = token_ids[:-1]
     labels = [
-        token_ids[index + 1] if index + 1 in assistant_target_positions else -100
+        token_ids[index + 1] if target_mask[index + 1] else -100
         for index in range(len(inputs))
     ]
     if not any(label != -100 for label in labels):
