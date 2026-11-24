@@ -124,7 +124,7 @@ class PgVectorSearch:
             overlap = len(query_terms & text_terms) / max(1, len(query_terms))
             semantic = (max(-1.0, min(1.0, float(item.get("similarity", 0.0)))) + 1.0) / 2.0
             rrf = min(1.0, float(item.get("rrf_score", 0.0)) * 30.0)
-            score = 0.65 * semantic + 0.20 * overlap + 0.15 * rrf
+            score = 0.45 * semantic + 0.40 * overlap + 0.15 * rrf
             rescored.append({**item, "rerank_score": round(score, 6)})
         rescored.sort(key=lambda item: (item["rerank_score"], item.get("similarity", 0.0)), reverse=True)
         return rescored[:limit]
