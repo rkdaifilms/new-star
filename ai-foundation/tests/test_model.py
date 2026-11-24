@@ -491,3 +491,53 @@ def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeyp
         httpd.shutdown()
         httpd.server_close()
         worker.join(timeout=5)
+
+
+
+def test_pretraining_cli_saves_and_resumes_training_state(tmp_path, monkeypatch):
+    import json
+    import sys
+    import pytest
+    from train import main
+
+    corpus = tmp_path / "permitted.txt"
+    corpus.write_text(("नेपाली भाषा नमूना सामग्री English training text. " * 40), encoding="utf-8")
+    checkpoint = tmp_path / "pretrain.pt"
+    base_args = [
+        "train.py", "--data", str(corpus), "--output", str(checkpoint),
+        "--batch-size", "2", "--block-size", "8", "--width", "16",
+        "--layers", "1", "--heads", "4", "--max-vocab-size", "512",
+        "--seed", "23",
+    ]
+    monkeypatch.setattr(sys, "argv", base_args + ["--steps", "1"])
+    main()
+
+    resume_path = checkpoint.with_suffix(".pt.resume.pt")
+    assert resume_path.is_file()
+    first_meta = json.loads(
+        checkpoint.with_suffix(".pt.json").read_text(encoding="utf-8")
+    )
+    assert first_meta["training_steps"] == 1
+    assert first_meta["resumed_from_step"] == 0
+    assert first_meta["final_validation_loss"] is not None
+
+    monkeypatch.setattr(
+        sys, "argv",
+        base_args + ["--steps", "2", "--resume-from", str(resume_path)],
+    )
+    main()
+    resumed_meta = json.loads(
+        checkpoint.with_suffix(".pt.json").read_text(encoding="utf-8")
+    )
+    assert resumed_meta["training_steps"] == 2
+    assert resumed_meta["resumed_from_step"] == 1
+    assert resumed_meta["final_validation_loss"] is not None
+
+    # A changed corpus must not silently reuse the old optimizer/model state.
+    corpus.write_text(corpus.read_text(encoding="utf-8") + "changed", encoding="utf-8")
+    monkeypatch.setattr(
+        sys, "argv",
+        base_args + ["--steps", "3", "--resume-from", str(resume_path)],
+    )
+    with pytest.raises(SystemExit):
+        main()
