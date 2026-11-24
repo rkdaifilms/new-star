@@ -46,11 +46,12 @@ separate train/validation records. Each line is one JSON object:
 {"language":"en","split":"validation","text":"Separate English validation material"}
 ```
 
-Run it with `--data-format jsonl`. The evaluation command prints held-out
-cross-entropy and perplexity per language plus a macro-average, and
-`--report-json` optionally saves the same metrics as a JSON artifact. This
-supports repeatable comparisons across checkpoints; it does not establish
-language fluency by itself. Training samples each batch row from a
+Run it with `--data-format jsonl`. The evaluation command scans every next-token target in each held-out
+language corpus (rather than estimating quality from a random sample), prints
+token-weighted cross-entropy and perplexity per language plus a macro-average,
+and `--report-json` optionally saves the metrics and evaluated-token counts
+as a JSON artifact. This supports repeatable comparisons across checkpoints;
+it does not establish language fluency by itself. Training samples each batch row from a
 uniformly selected language, so a large language corpus does not automatically
 dominate every batch. Every language must have its own held-out validation
 records and enough tokens for the selected block size. Language labels are
