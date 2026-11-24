@@ -6,6 +6,8 @@ on:
       - "ai-inference/**"
       - "ai-chat.js"
       - "creator-ai.js"
+      - "creator-ai.html"
+      - "AI_GATEWAY_SETUP.md"
       - "supabase/functions/ai-gateway/**"
       - "supabase/migrations/**"
       - ".github/workflows/ai-inference-checks.yml"
