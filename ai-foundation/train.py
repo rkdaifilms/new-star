@@ -196,6 +196,7 @@ def main():
         "block_size": args.block_size,
         "vocabulary_size": len(tokenizer),
         "seed": args.seed,
+        "data_fingerprint": data_fingerprint,
         "languages": sorted(train_by_language),
         "training_characters_by_language": {lang: len(text) for lang, text in train_by_language.items()},
         "validation_characters_by_language": {lang: len(text) for lang, text in validation_by_language.items()},
