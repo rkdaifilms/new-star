@@ -38,7 +38,7 @@ The UI labels these as unavailable rather than pretending to complete them.
 ## Deployment and verification
 - Supabase AI Gateway version 75 is active.
 - The conversation-memory migration applied successfully.
-- A database verification query confirmed both conversation tables exist with RLS enabled.
+- A database verification query confirmed both conversation tables exist with RLS enabled. Current row counts are zero, so the version-75 conversation-memory path has not yet been proven by a real chat turn.\n- Historical Supabase logs from version 72 on 24 Nov 2026 showed image generation provider failures: Gemini quota/rate limit, OpenRouter HTTP 402 (billing/credits), and OpenAI invalid API key. These are provider-account/configuration failures, not a frontend fix. No version-75 end-to-end image test is recorded yet.\n- The page status indicator reports only whether provider keys are present; it deliberately does not label them healthy or claim a successful provider test.
 - Security advisors were run. They reported existing project-wide findings (including private tables with no policies, security-definer RPC exposure warnings, and leaked-password protection disabled). These were not introduced or modified as part of this AI feature and should be reviewed separately.
 - Frontend changes are committed to GitHub branch `new-star-ai-engine-foundation`.
 - A fresh Vercel deployment is not part of this architecture. The existing app hosting setup still needs to publish the latest branch frontend files before users can access the updated page.
