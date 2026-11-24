@@ -67,16 +67,28 @@ async function refreshEngineStatus(){
  const session=await getSession().catch(()=>null);
  if(!session){status.textContent="Sign in required";status.style.color="#f6c66b";return;}
  if(!client?.functions){status.textContent="Backend unavailable";status.style.color="#ff9b9b";return;}
- status.textContent="Checking AI…";
+ status.textContent="Checking AI providers…";
  try{
   const result=await client.functions.invoke("ai-gateway",{body:{action:"status"}});
   if(result.error||!result.data?.ok)throw new Error(result.data?.error||"Gateway status check failed");
-  const health=result.data.health?.newStarHostedModel;
-  const fallbackProviders=Object.entries(result.data.providers||{}).filter(([name,enabled])=>enabled&&name!=="newStarHostedModel").map(([name])=>name);
-  if(health?.reachable&&health?.modelAvailable){status.textContent="New Star model online"+(fallbackProviders.length?" · fallback providers configured":"");status.style.color="#91e6b0";}
-  else if(health?.configured){status.textContent=health.reachable?"New Star server reachable · configured model not found":"New Star model configured · server offline";status.style.color="#f6c66b";}
-  else if(fallbackProviders.length){status.textContent="Fallback providers configured (not health-tested) · "+fallbackProviders.join(", ");status.style.color="#f6c66b";}
-  else{status.textContent="No AI model configured";status.style.color="#f6c66b";}
+  const health=result.data.health||{};
+  const model=health.newStarHostedModel;
+  const names={gemini:"Gemini",openai:"OpenAI",openrouter:"OpenRouter"};
+  const descriptions={not_configured:"not configured",invalid_key:"invalid key",access_denied:"access denied",provider_rate_limited:"provider rate-limited",provider_unreachable:"unreachable",credits_exhausted:"credits exhausted",credits_available:"credits available",key_valid_inference_not_tested:"key valid · inference not tested",key_valid_credit_balance_unknown:"key valid · credits unknown",key_valid_credit_check_unreachable:"credit check unavailable"};
+  const providerSummary=Object.entries(names).map(([key,label])=>{
+   const item=health[key];
+   if(!item?.configured)return label+": not configured";
+   const detail=descriptions[item.status]||item.status||"check unavailable";
+   return label+": "+detail;
+  }).join(" · ");
+  if(model?.reachable&&model?.modelAvailable){
+   status.textContent="New Star model online · "+providerSummary;
+   status.style.color="#91e6b0";
+  }else{
+   status.textContent=providerSummary;
+   status.style.color=Object.values(health).some(item=>item?.status==="invalid_key"||item?.status==="credits_exhausted")?"#ff9b9b":"#f6c66b";
+  }
+  foot.textContent="Provider checks do not generate content or charge inference. Gemini/OpenAI quota is not tested.";
  }catch(error){status.textContent="AI service unavailable";status.style.color="#ff9b9b";foot.textContent=error.message||"Could not check New Star AI service status.";}
 }
 window.addEventListener("load",refreshEngineStatus);
