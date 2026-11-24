@@ -39,8 +39,8 @@ python -m unittest discover -s ai-engine/tests -v
 ## Validate and preview routes
 
 ```sh
-python -m ai_engine --models-file ai-engine/config/models.example.json validate
-python -m ai_engine --models-file ai-engine/config/models.example.json plan --capability chat --language hi
+PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.example.json validate
+PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.example.json plan --capability chat --language hi
 ```
 
 The CLI validates configuration and previews route selection locally. It never calls a model endpoint.
