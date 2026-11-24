@@ -14,11 +14,13 @@ This folder contains New Star's own experimental decoder-only Transformer archit
 
 ## Experimental byte-level BPE tokenizer
 
-A separate research tokenizer is available in `bpe_tokenizer.py`. It learns
-deterministic byte-pair merges from UTF-8 text, retains byte fallback for every
-Unicode script and emoji, and supports JSON-compatible serialization. It is
-covered by multilingual round-trip, unseen-text, vocabulary-growth, and
-serialization tests.
+The deterministic byte-level BPE tokenizer in `bpe_tokenizer.py` learns merges
+from UTF-8 text, retains byte fallback for every Unicode script and emoji, and
+supports JSON-compatible serialization. It can now be selected by both
+pretraining and SFT, is saved in a distinct checkpoint format, and is loaded by
+the native generation, evaluation, and HTTP inference paths. Automated tests
+cover multilingual round trips, unseen text, serialization, and a tiny
+pretraining-to-inference checkpoint flow.
 
 Train a small experimental vocabulary from a permitted corpus:
 
@@ -35,12 +37,17 @@ restored = ByteBPETokenizer.from_dict(payload)
 assert restored.decode(restored.encode("नमस्ते 🌍")) == "नमस्ते 🌍"
 ```
 
-This BPE implementation is a standalone experiment and is **not yet wired into
-the existing model checkpoint/training format**. The current foundation-model
-trainer still uses the Unicode character/byte-fallback tokenizer. Benchmark
-token compression, training speed, memory use, and multilingual quality before
-choosing a tokenizer for future checkpoints. This simple implementation is
-intended for small research corpora, not large-scale production training.
+Select BPE for a new pretraining checkpoint with `--tokenizer bpe`; use
+`--tokenizer char` (the default) to preserve the legacy character-tokenizer
+behavior. The `--max-vocab-size` option sets the total target vocabulary ceiling;
+for BPE, the available merge count is that value minus the 256 raw-byte IDs.
+The tokenizer type and fingerprint are included in checkpoints and resume
+validation, so a run cannot silently resume with a different tokenizer. BPE
+checkpoints use `new-star-byte-bpe-gpt-v1` and are supported by `generate.py`,
+`evaluate.py`, and `serve.py`. Benchmark token compression, training speed,
+memory use, and multilingual quality before choosing a tokenizer for serious
+training. This simple implementation is intended for small research corpora,
+not large-scale production training.
 
 ## Run a tiny experiment
 
