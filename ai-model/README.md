@@ -6,8 +6,9 @@ gateway and this runtime serves model inference.
 
 ## Current status
 
-- The gateway adapter is implemented and deployed in Supabase AI Gateway v77.
+- The gateway adapter is implemented and deployed in Supabase AI Gateway v80.
 - The adapter expects an OpenAI-compatible `/chat/completions` endpoint.
+- The gateway status action now performs non-billable credential/access probes for configured providers; it does not run paid inference or verify inference quota.
 - This directory contains the GPU runtime deployment files.
 - No GPU host is provisioned or running yet. Therefore New Star's independent model
   is **not online or tested**.
