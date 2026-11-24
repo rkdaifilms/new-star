@@ -6,6 +6,7 @@ on:
       - "ai-inference/**"
       - "ai-foundation/**"
       - "ai-engine/**"
+      - "ai-search/**"
       - "ai-chat.js"
       - "creator-ai.js"
       - "creator-ai.html"
@@ -110,12 +111,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build CPU inference container
         run: docker build --tag new-star-cpu-inference:ci ./ai-inference
-      - name: Build New Star Search container
+      - name: Build New Star Search and vector retrieval container
         run: docker build --tag new-star-search:ci ./ai-search
       - name: Validate Compose deployment manifests
         run: |
           NEW_STAR_AI_SERVER_TOKEN=ci-test-token docker compose -f ai-engine/docker-compose.yml config --quiet
-          NEW_STAR_SEARCH_API_KEY=ci-test-token docker compose -f ai-search/docker-compose.yml config --quiet
+          NEW_STAR_SEARCH_API_KEY=ci-test-token NEW_STAR_VECTOR_DATABASE_URL=postgresql://ci:ci@localhost:5432/ci docker compose -f ai-search/docker-compose.yml config --quiet
           MODEL_TOKEN=ci-test-token docker compose -f ai-inference/docker-compose.yml --profile gpu config --quiet
           docker compose -f ai-foundation/docker-compose.yml --profile cpu config --quiet
           docker compose -f ai-foundation/docker-compose.yml --profile gpu config --quiet
@@ -144,11 +145,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Compile self-hosted AI engine
+      - name: Compile self-hosted AI engine and search services
         run: python -m compileall -q ai-engine/ai_engine ai-search
       - name: Test model registry, fallback router, HTTP API, and streaming adapters
         run: python -m unittest discover -s ai-engine/tests -v
-      - name: Test New Star Search index and API
+      - name: Test New Star lexical and vector search APIs
         run: python -m unittest discover -s ai-search/tests -v
       - name: Validate example registry and preview a multilingual route
         run: |
