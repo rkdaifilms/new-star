@@ -11,7 +11,7 @@ import torch
 
 from model import NewStarConfig, NewStarGPT
 from tokenizer import tokenizer_from_dict
-from corpus import load_language_validation_corpora
+from corpus import load_language_validation_corpora, require_complete_language_coverage
 
 
 def evaluate_model(model: NewStarGPT, data: torch.Tensor, batch_size: int = 16,
@@ -107,6 +107,7 @@ def main() -> None:
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--data", required=True, help="Held-out UTF-8 text corpus or language-tagged JSONL")
     parser.add_argument("--data-format", choices=("text", "jsonl"), default="text")
+    parser.add_argument("--require-all-supported-languages", action="store_true", help="Fail unless validation JSONL contains every language in the canonical gateway catalog")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--batches", type=int, default=50, help="Deprecated compatibility option; evaluation now covers the full corpus")
     parser.add_argument("--seed", type=int, default=1234)
@@ -154,6 +155,8 @@ def main() -> None:
     if args.data_format == "jsonl":
         try:
             validation_by_language = load_language_validation_corpora(args.data)
+            if args.require_all_supported_languages:
+                require_complete_language_coverage(validation_by_language)
             report = evaluate_language_corpora(
                 model, validation_by_language, tokenizer, args.batch_size,
                 args.batches, args.device, args.seed,
