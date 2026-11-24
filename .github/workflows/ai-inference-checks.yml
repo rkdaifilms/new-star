@@ -117,6 +117,7 @@ jobs:
           NEW_STAR_AI_SERVER_TOKEN=ci-test-token docker compose -f ai-engine/docker-compose.yml config --quiet
           NEW_STAR_SEARCH_API_KEY=ci-test-token docker compose -f ai-search/docker-compose.yml config --quiet
           MODEL_TOKEN=ci-test-token docker compose -f ai-inference/docker-compose.yml config --quiet
+          docker compose -f ai-foundation/docker-compose.yml --profile cpu config --quiet
 
   foundation-model-tests:
     runs-on: ubuntu-latest
