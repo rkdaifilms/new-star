@@ -52,21 +52,30 @@ def sample_instruction_batch(corpora, batch_size, block_size, device, generator=
 
 
 def evaluate_sft(model, corpora, batch_size, block_size, device):
+    """Return a macro-average of per-language token-weighted validation losses."""
+    if batch_size < 1 or block_size < 1:
+        raise ValueError("batch_size and block_size must be positive")
+    if not corpora or any(not examples for examples in corpora.values()):
+        raise ValueError("each validation language must contain at least one example")
     model.eval()
     language_losses = []
-    with torch.no_grad():
+    with torch.inference_mode():
         for language in sorted(corpora):
             examples = corpora[language]
-            losses = []
+            weighted_loss = 0.0
+            token_count = 0
             for start in range(0, len(examples), batch_size):
                 indices = list(range(start, min(start + batch_size, len(examples))))
                 x, y = collate_examples(examples, indices, block_size, device)
+                supervised_tokens = int((y != -100).sum().item())
+                if supervised_tokens == 0:
+                    raise ValueError(f"validation batch has no assistant targets for {language}")
                 _, loss = model(x, y)
-                if loss is not None and torch.isfinite(loss):
-                    losses.append(float(loss.item()))
-                else:
+                if loss is None or not torch.isfinite(loss):
                     raise RuntimeError(f"non-finite validation loss for {language}")
-            language_losses.append(sum(losses) / len(losses))
+                weighted_loss += float(loss.item()) * supervised_tokens
+                token_count += supervised_tokens
+            language_losses.append(weighted_loss / token_count)
     return sum(language_losses) / len(language_losses)
 
 
