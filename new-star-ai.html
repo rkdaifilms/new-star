@@ -27,6 +27,20 @@
 <p class="ns-footnote" id="ns-footnote">Chat, voice and image generation depend on configured providers. Research uses Gemini Google Search grounding and may incur provider charges. Video is not connected yet.</p>
 </section>
 <section class="ns-capabilities"><article><b>New Star AI Chat</b><p>Connected chat with private, saved conversations.</p></article><article><b>Voice</b><p>Voice input and spoken replies through the AI gateway.</p></article><article><b>Image Generation</b><p>Text-to-image generation. Uploaded-image editing is not connected yet.</p></article><article><b>Live Research</b><p>Search-grounded answers with source links when Gemini Search grounding is available.</p></article><article><b>Coming later</b><p>Video generation will be added after the image and research workflows are verified.</p></article></section>
+<section class="ns-api-keys" aria-labelledby="ns-api-title">
+  <div class="ns-api-head"><div><b id="ns-api-title">Developer API keys</b><p>Create keys for your own apps and scripts. Keep each key private.</p></div><button type="button" id="ns-api-refresh">Refresh</button></div>
+  <form id="ns-api-form">
+    <label>Key name<input id="ns-api-name" maxlength="80" required placeholder="My private integration"></label>
+    <label>Permissions<select id="ns-api-scopes" multiple size="4" aria-label="API permissions">
+      <option value="chat" selected>Chat</option><option value="image">Image generation</option><option value="vision">Image understanding</option><option value="transcribe">Voice transcription</option><option value="speak">Voice output</option><option value="research">Research</option><option value="status">Provider status</option>
+    </select><small>Choose only the permissions this integration needs.</small></label>
+    <div class="ns-api-row"><label>Requests per minute<input id="ns-api-limit" type="number" min="1" max="120" value="20"></label><label>Expires (optional)<input id="ns-api-expiry" type="date"></label></div>
+    <button type="submit" id="ns-api-create">Create API key</button>
+  </form>
+  <div id="ns-api-new" hidden></div>
+  <div id="ns-api-list" aria-live="polite"><p>Sign in to manage your API keys.</p></div>
+  <p class="ns-api-note">A new key is shown only once. The server stores only its SHA-256 hash. Revoke any key you no longer use. Never share a key in public code or messages.</p>
+</section>
 </main>
 </div>
 </body></html>
