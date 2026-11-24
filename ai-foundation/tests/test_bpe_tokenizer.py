@@ -56,3 +56,21 @@ def test_byte_bpe_training_skips_duplicate_merge_outputs():
     assert len(outputs) == len(set(outputs))
     sample = "abc abc ab c a bc"
     assert tokenizer.decode(tokenizer.encode(sample)) == sample
+
+
+def test_byte_bpe_benchmark_reports_compression_and_round_trip():
+    from benchmark_tokenizer import benchmark
+
+    report = benchmark(
+        "नमस्ते संसार hello world नमस्ते संसार",
+        max_merges=32,
+        min_frequency=2,
+        iterations=2,
+    )
+    assert report["round_trip_verified"] is True
+    assert report["characters"] > 0
+    assert report["utf8_bytes"] > 0
+    assert report["tokens"] > 0
+    assert report["vocabulary_size"] >= 256
+    assert report["encode_seconds_mean"] >= 0
+    assert report["decode_seconds_mean"] >= 0
