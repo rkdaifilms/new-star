@@ -26,7 +26,7 @@ main{width:min(900px,100%);margin:0 auto;padding:14px;flex:1;display:flex;flex-d
 .composer-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.composer-row button{border:0;border-radius:10px;padding:11px 14px;background:var(--accent);color:white;font-weight:700}.composer-row button.secondary{background:#272731;border:1px solid #494956}.composer-row button:disabled{opacity:.55}
 #voice-status,#notice{color:var(--muted);font-size:12px;margin:7px 2px}
 #image-result img{width:100%;max-width:640px;border-radius:14px;border:1px solid var(--line)}
-#image-result{display:grid;gap:8px}
+#image-result,#video-result{display:grid;gap:8px}#video-result video{background:#000}
 .toggle{display:flex;align-items:center;gap:7px;color:#ddd;font-size:13px}
 small.hint{color:var(--muted)}
 @media(min-width:760px){main{padding:20px}.welcome{padding:20px}#prompt{min-height:90px}}
@@ -40,7 +40,7 @@ small.hint{color:var(--muted)}
 </head>
 <body>
 <div id="creator-ai-app">
-<header class="top"><a class="back" href="index.html" aria-label="Back" data-i18n-aria-label="ai.back">‹</a><div class="brand"><strong data-i18n="ai.title">✦ New Star Creator Studio</strong><small data-i18n="ai.subtitle">Creative assistant · Chat · Voice · Images</small></div><span id="gateway-status" class="status">Connecting…</span></header>
+<header class="top"><a class="back" href="index.html" aria-label="Back" data-i18n-aria-label="ai.back">‹</a><div class="brand"><strong data-i18n="ai.title">✦ New Star Creator Studio</strong><small data-i18n="ai.subtitle">Creative assistant · Chat · Voice · Images · Video</small></div><span id="gateway-status" class="status">Connecting…</span></header>
 <main>
 <section class="welcome"><h1 data-i18n="ai.welcomeTitle">Your ideas, in your language.</h1><p data-i18n="ai.welcomeText">Ask questions, write stories and scripts, create video titles, descriptions and hashtags, plan content, or generate an original image. The AI follows the language you type or speak.</p></section>
 <div class="tools" aria-label="Creator tools" data-i18n-aria-label="ai.tools">
