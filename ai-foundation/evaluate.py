@@ -1,4 +1,4 @@
-"""Evaluate a New Star byte-GPT checkpoint on a held-out UTF-8 corpus."""
+"""Evaluate New Star checkpoints on a held-out UTF-8 corpus."""
 from __future__ import annotations
 
 import argparse
@@ -8,19 +8,19 @@ from pathlib import Path
 import torch
 
 from model import NewStarConfig, NewStarGPT
+from tokenizer import UnicodeCharTokenizer
 
 
 def evaluate_model(model: NewStarGPT, data: torch.Tensor, batch_size: int = 16,
                    batches: int = 20, device: str = "cpu", seed: int = 1234) -> float:
-    """Return mean next-byte cross-entropy over deterministic random windows."""
+    """Return mean next-token cross-entropy over deterministic random windows."""
     block_size = model.config.block_size
     if data.ndim != 1 or data.dtype != torch.long:
         raise ValueError("evaluation data must be a one-dimensional torch.long tensor")
     if len(data) <= block_size + 1:
-        raise ValueError("evaluation corpus must contain more bytes than block_size + 1")
+        raise ValueError("evaluation corpus must contain more tokens than block_size + 1")
     if batch_size < 1 or batches < 1:
         raise ValueError("batch_size and batches must be positive")
-
     generator = torch.Generator(device="cpu").manual_seed(seed)
     model.eval()
     losses = []
@@ -48,23 +48,30 @@ def main() -> None:
         parser.error("--batch-size and --batches must be positive")
 
     checkpoint = torch.load(args.checkpoint, map_location=args.device, weights_only=True)
-    if checkpoint.get("format") != "new-star-byte-gpt-v1":
+    checkpoint_format = checkpoint.get("format")
+    if checkpoint_format not in {"new-star-byte-gpt-v1", "new-star-unicode-char-gpt-v1"}:
         parser.error("Unsupported checkpoint format")
     config = NewStarConfig(**checkpoint["config"])
     model = NewStarGPT(config).to(args.device)
     model.load_state_dict(checkpoint["state_dict"])
 
     corpus = Path(args.data).read_text(encoding="utf-8")
-    data = torch.tensor(list(corpus.encode("utf-8")), dtype=torch.long)
+    if checkpoint_format == "new-star-unicode-char-gpt-v1":
+        tokenizer = UnicodeCharTokenizer.from_dict(checkpoint["tokenizer"])
+        encoded = tokenizer.encode(corpus)
+        unit = "nats/token"
+    else:
+        encoded = list(corpus.encode("utf-8"))
+        unit = "nats/byte"
+    data = torch.tensor(encoded, dtype=torch.long)
     try:
         loss = evaluate_model(model, data, args.batch_size, args.batches,
                               args.device, args.seed)
     except ValueError as exc:
         parser.error(str(exc))
     perplexity = math.exp(min(loss, 80.0))
-    print(f"heldout_cross_entropy={loss:.4f} nats_per_byte")
+    print(f"heldout_cross_entropy={loss:.4f} {unit}")
     print(f"heldout_perplexity={perplexity:.4f}")
 
 
-if __name__ == "__main__":
-    main()
+if __(eof := False) else None
