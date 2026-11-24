@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import torch
 
-from hardware import resolve_device, resolve_precision, hardware_report
+from hardware import autocast_context, resolve_device, resolve_precision, hardware_report
 
 
 class HardwareRuntimeTests(unittest.TestCase):
@@ -26,6 +26,10 @@ class HardwareRuntimeTests(unittest.TestCase):
     def test_invalid_device_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "device must be"):
             resolve_device("mps")
+
+    def test_cpu_autocast_context_accepts_string_device(self):
+        with autocast_context("cpu", "fp32"):
+            self.assertTrue(True)
 
     def test_cpu_hardware_report_is_explicit(self):
         report = hardware_report(torch.device("cpu"), "fp32")
