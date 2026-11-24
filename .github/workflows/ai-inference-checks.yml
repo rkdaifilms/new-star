@@ -54,6 +54,10 @@ jobs:
           grep -F 'NEW_STAR_MODEL_ENABLE_FALLBACK' "$FILE"
           grep -F 'newStarTestFallbackEnabled' "$FILE"
           grep -F 'async function startGeminiVideo' "$FILE"
+          grep -F 'https://generativelanguage.googleapis.com/v1beta/interactions' "$FILE"
+          grep -F 'background: true' "$FILE"
+          grep -F 'body?.action === "video-status"' "$FILE"
+          grep -F 'pendingVideoJobId' creator-ai.js
           grep -F 'async function getGeminiVideoInteraction' "$FILE"
           grep -F 'background: true' "$FILE"
           grep -F 'body?.action === "video-status"' "$FILE"
