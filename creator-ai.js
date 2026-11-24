@@ -108,8 +108,8 @@ async function invoke(body){
 }
 function isVideoRequest(text){
  const value=String(text||"").trim();
- const hasVideo=/\\b(?:video|clip|movie|animation|reel)\\b/i.test(value)||/(?:वीडियो|चलचित्र|भिडियो|चलती तस्वीर)/u.test(value);
- const hasIntent=/\\b(?:generate|create|make|animate|render|produce|bana\\w*|banau\\w*|banai\\w*|chahiye)\\b/i.test(value)||/(?:बना|बनाओ|बनाइ|तैयार|जनरेट|चाहिए)/u.test(value);
+ const hasVideo=/\b(?:video|clip|movie|animation|reel)\b/i.test(value)||/(?:वीडियो|चलचित्र|भिडियो|चलती तस्वीर)/u.test(value);
+ const hasIntent=/\b(?:generate|create|make|animate|render|produce|bana\w*|banau\w*|banai\w*|chahiye)\b/i.test(value)||/(?:बना|बनाओ|बनाइ|तैयार|जनरेट|चाहिए)/u.test(value);
  return hasVideo&&hasIntent;
 }
 function isImageRequest(text){
