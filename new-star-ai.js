@@ -60,9 +60,11 @@ async function refreshEngineStatus(){
  try{
   const result=await client.functions.invoke("ai-gateway",{body:{action:"status"}});
   if(result.error||!result.data?.ok)throw new Error(result.data?.error||"Gateway status check failed");
-  const labels={newStarHostedModel:"New Star hosted model",gemini:"Gemini",openai:"OpenAI",openrouter:"OpenRouter"};
-  const providers=Object.entries(result.data.providers||{}).filter(([,enabled])=>enabled).map(([name])=>labels[name]||name);
-  if(providers.length){status.textContent="Configured (not health-tested) · "+providers.join(", ");status.style.color="#91e6b0";}
+  const health=result.data.health?.newStarHostedModel;
+  const fallbackProviders=Object.entries(result.data.providers||{}).filter(([name,enabled])=>enabled&&name!=="newStarHostedModel").map(([name])=>name);
+  if(health?.reachable&&health?.modelAvailable){status.textContent="New Star model online"+(fallbackProviders.length?" · fallback providers configured":"");status.style.color="#91e6b0";}
+  else if(health?.configured){status.textContent=health.reachable?"New Star server reachable · configured model not found":"New Star model configured · server offline";status.style.color="#f6c66b";}
+  else if(fallbackProviders.length){status.textContent="Fallback providers configured (not health-tested) · "+fallbackProviders.join(", ");status.style.color="#f6c66b";}
   else{status.textContent="No AI model configured";status.style.color="#f6c66b";}
  }catch(error){status.textContent="AI service unavailable";status.style.color="#ff9b9b";foot.textContent=error.message||"Could not check New Star AI service status.";}
 }
