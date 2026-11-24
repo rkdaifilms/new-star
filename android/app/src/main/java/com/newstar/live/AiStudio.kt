@@ -49,6 +49,7 @@ internal fun NativeAiStudio(accessToken: String) {
     val context = LocalContext.current
     var listening by remember { mutableStateOf(false) }
     var voiceStatus by remember { mutableStateOf("") }
+    var voiceLevel by remember { mutableStateOf(0f) }
     var speechRecognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
     var imageMode by remember { mutableStateOf(false) }
     var generatedImage by remember { mutableStateOf<Bitmap?>(null) }
@@ -62,13 +63,14 @@ internal fun NativeAiStudio(accessToken: String) {
         val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
         speechRecognizer = recognizer
         recognizer.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) { listening = true; voiceStatus = "सुन रहा है… अब बोलें।" }
+            override fun onReadyForSpeech(params: Bundle?) { listening = true; voiceLevel = 0f; voiceStatus = "माइक चालू है — अब बोलें।" }
             override fun onBeginningOfSpeech() { voiceStatus = "आवाज़ सुन रहा है…" }
-            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onRmsChanged(rmsdB: Float) { voiceLevel = ((rmsdB + 2f) / 12f).coerceIn(0f, 1f) }
             override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() { listening = false; voiceStatus = "आवाज़ को टेक्स्ट में बदल रहा है…" }
+            override fun onEndOfSpeech() { listening = false; voiceLevel = 0f; voiceStatus = "आवाज़ रिकॉर्ड हो गई — अब शब्द पहचान रहा है…" }
             override fun onError(errorCode: Int) {
                 listening = false
+                voiceLevel = 0f
                 voiceStatus = when (errorCode) {
                     SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "आवाज़ समझ नहीं आई। फिर बोलें या लिखें।"
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "माइक्रोफोन की अनुमति नहीं मिली।"
@@ -78,6 +80,7 @@ internal fun NativeAiStudio(accessToken: String) {
             }
             override fun onResults(results: Bundle?) {
                 listening = false
+                voiceLevel = 0f
                 val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
                 if (spoken.isNotBlank()) {
                     draft = listOf(draft.trim(), spoken.trim()).filter { it.isNotBlank() }.joinToString(" ")
@@ -97,8 +100,12 @@ internal fun NativeAiStudio(accessToken: String) {
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
         }
+        listening = true
+        voiceLevel = 0f
+        voiceStatus = "माइक चालू हो रहा है…"
         runCatching { recognizer.startListening(intent) }.onFailure {
             listening = false
+            voiceLevel = 0f
             voiceStatus = it.message ?: "माइक्रोफोन शुरू नहीं हो सका।"
         }
     }
@@ -124,7 +131,7 @@ internal fun NativeAiStudio(accessToken: String) {
                 Column(Modifier.padding(16.dp)) {
                     Text("नमस्ते! मैं New Star Creator AI हूँ।", color = Color.White, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(6.dp))
-                    Text("अपना सवाल लिखें—मैं उसी भाषा में जवाब दूँगा।", color = Color.LightGray, fontSize = 13.sp)
+                    Text("कुछ भी पूछें, या तस्वीर बनाने को कहें। माइक दबाकर बोलें—रिकॉर्डिंग की स्थिति नीचे साफ़ दिखेगी।", color = Color.LightGray, fontSize = 13.sp)
                 }
             }
         }
@@ -177,8 +184,8 @@ internal fun NativeAiStudio(accessToken: String) {
         OutlinedButton(
             onClick = {
                 if (listening) {
+                    voiceStatus = "रिकॉर्डिंग रोक रहे हैं — आवाज़ के शब्द तैयार हो रहे हैं…"
                     runCatching { speechRecognizer?.stopListening() }
-                    listening = false
                 } else if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                     startVoiceRecognition()
                 } else {
@@ -187,17 +194,48 @@ internal fun NativeAiStudio(accessToken: String) {
             },
             enabled = !sending,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(if (listening) "■ आवाज़ रोकें" else "🎙️ बोलकर लिखें") }
+        ) { Text(if (listening) "■ रिकॉर्डिंग रोकें — माइक चालू है" else "🎙️ बोलकर लिखें") }
         if (voiceStatus.isNotBlank()) {
-            Spacer(Modifier.height(6.dp))
-            Text(voiceStatus, color = Color(0xFF25F4EE), fontSize = 12.sp)
+            Spacer(Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = if (listening) Color(0xFF351D25) else Color(0xFF1B2630)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(if (listening) "🔴" else "🎙️", fontSize = 17.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (listening) "माइक LIVE — आपकी आवाज़ सुन रहा है" else voiceStatus,
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    if (listening) {
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = voiceLevel,
+                            modifier = Modifier.fillMaxWidth(),
+                            color = Color(0xFFFF526F),
+                            trackColor = Color(0xFF68404A)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text("बोलते समय यह पट्टी आवाज़ के साथ हिलेगी। रोकने पर शब्द टेक्स्ट बॉक्स में आएँगे।", color = Color.LightGray, fontSize = 11.sp)
+                    }
+                }
+            }
         }
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = {
                 val message = draft.trim()
                 if (message.isNotEmpty() && !sending) {
-                    val wantsImage = imageMode || Regex("(तस्वीर|फोटो|चित्र|इमेज|छवि).*(बना|तैयार|जनरेट)|(?:बना|तैयार|जनरेट).*(तस्वीर|फोटो|चित्र|इमेज|छवि)", RegexOption.IGNORE_CASE).containsMatchIn(message)
+                    val wantsImage = imageMode || Regex(
+                        "(तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|image|picture|photo|illustration|thumbnail|logo).*(बना|बनाओ|बनाइ|बनाइदे|तैयार|जनरेट|create|make|draw|generate)|(?:बना|बनाओ|बनाइ|बनाइदे|तैयार|जनरेट|create|make|draw|generate).*(तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|image|picture|photo|illustration|thumbnail|logo)",
+                        RegexOption.IGNORE_CASE
+                    ).containsMatchIn(message)
                     draft = ""
                     lines.add(AiChatLine("user", message))
                     sending = true
