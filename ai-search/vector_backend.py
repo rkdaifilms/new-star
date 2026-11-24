@@ -115,11 +115,11 @@ class PgVectorSearch:
     @staticmethod
     def rerank(query: str, candidates: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
         """Blend cosine relevance, RRF and Unicode token overlap."""
-        query_terms = set(re.findall(r"[\\w]+", query.casefold(), flags=re.UNICODE))
+        query_terms = set(re.findall(r"[\w]+", query.casefold(), flags=re.UNICODE))
         rescored = []
         for item in candidates:
             text_terms = set(re.findall(
-                r"[\\w]+", (str(item.get("title", "")) + " " + str(item.get("snippet", ""))).casefold(),
+                r"[\w]+", (str(item.get("title", "")) + " " + str(item.get("snippet", ""))).casefold(),
                 flags=re.UNICODE))
             overlap = len(query_terms & text_terms) / max(1, len(query_terms))
             semantic = (max(-1.0, min(1.0, float(item.get("similarity", 0.0)))) + 1.0) / 2.0
