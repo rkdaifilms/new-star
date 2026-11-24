@@ -548,6 +548,108 @@ Deno.serve(async (req: Request) => {
     }
     return json({ ok: false, error: "Voice transcription providers failed: " + failures.join("; "), attempted: failures }, 502, headers);
   }
+
+  if (body?.action === "research") {
+    const query = typeof body.query === "string" ? body.query.trim() : "";
+    if (!query || query.length > 1800) return json({ ok: false, error: "Enter a research question of up to 1,800 characters." }, 400, headers);
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    if (!geminiKeys.length) return json({ ok: false, error: "Live Research needs a configured Gemini server key. No live search was performed." }, 503, headers);
+    const researchAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: researchAllowed, error: researchLimitError } = await researchAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
+    if (researchLimitError || researchAllowed !== true) return json({ ok: false, error: researchLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, researchLimitError ? 503 : 429, headers);
+    const failures: string[] = [];
+    for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
+      for (const model of ["gemini-3.8-flash", "gemini-3.5-flash-lite"]) {
+        try {
+          const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
+            method: "POST",
+            headers: { "x-goog-api-key": geminiKeys[keyIndex], "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: "Research this question using Google Search. Give a clear, accurate answer in the same language as the question. Distinguish confirmed facts from uncertainty, include dates where relevant, and do not invent facts. Question: " + query }] }],
+              tools: [{ google_search: {} }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 1800 }
+            })
+          }, 60000);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const reason = providerHttpError(response.status, data);
+            failures.push(model + ":" + reason);
+            if (response.status === 404) continue;
+            break;
+          }
+          const candidate = data?.candidates?.[0];
+          const answer = candidate?.content?.parts?.map((part: any) => part.text || "").join("").trim();
+          if (!answer) { failures.push(model + ":EMPTY_RESPONSE"); continue; }
+          const chunks = candidate?.groundingMetadata?.groundingChunks || candidate?.grounding_metadata?.grounding_chunks || [];
+          const seen = new Set<string>();
+          const sources = chunks.map((chunk: any) => {
+            const web = chunk?.web || {};
+            const url = typeof web.uri === "string" ? web.uri : "";
+            if (!/^https:\/\//i.test(url) || seen.has(url)) return null;
+            seen.add(url);
+            return { title: String(web.title || url).slice(0, 240), url };
+          }).filter(Boolean).slice(0, 8);
+          return json({ ok: true, answer, sources, provider: "gemini-google-search", grounded: sources.length > 0 }, 200, headers);
+        } catch (error) {
+          failures.push(model + ":" + (error instanceof Error ? error.message : "RESEARCH_FAILED"));
+        }
+      }
+    }
+    console.error("New Star research failed:", failures.join("; ").slice(0, 1000));
+    return json({ ok: false, error: "Live Research is temporarily unavailable. Check Gemini access and Google Search grounding availability.", attempted: failures }, 502, headers);
+  }
+
+  if (body?.action === "vision") {
+    const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "Describe this image and identify its main contents.";
+    const image = body.image;
+    const mimeType = typeof body.mimeType === "string" ? body.mimeType.toLowerCase() : "";
+    if (typeof image !== "string" || image.length < 100 || image.length > 9000000 || !["image/png", "image/jpeg", "image/webp"].includes(mimeType)) {
+      return json({ ok: false, error: "Choose a PNG, JPEG, or WebP image smaller than 6 MB." }, 400, headers);
+    }
+    if (prompt.length > 1800) return json({ ok: false, error: "Image question is too long." }, 400, headers);
+    const visionAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: visionAllowed, error: visionLimitError } = await visionAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
+    if (visionLimitError || visionAllowed !== true) return json({ ok: false, error: visionLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, visionLimitError ? 503 : 429, headers);
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
+    const failures: string[] = [];
+    for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
+      for (const model of ["gemini-3.8-flash", "gemini-3.5-flash-lite"]) {
+        try {
+          const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
+            method: "POST",
+            headers: { "x-goog-api-key": geminiKeys[keyIndex], "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt || "Describe this image accurately. Do not guess details that are not visible." }, { inline_data: { mime_type: mimeType, data: image } }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 1400 } })
+          }, 60000);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            failures.push(model + ":" + providerHttpError(response.status, data));
+            if (response.status === 404) continue;
+            break;
+          }
+          const answer = data?.candidates?.[0]?.content?.parts?.map((part: any) => part.text || "").join("").trim();
+          if (answer) return json({ ok: true, answer, provider: "gemini-vision" }, 200, headers);
+          failures.push(model + ":EMPTY_RESPONSE");
+        } catch (error) { failures.push(model + ":" + (error instanceof Error ? error.message : "VISION_FAILED")); }
+      }
+    }
+    for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
+      try {
+        const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + openaiKeys[keyIndex], "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: [{ type: "text", text: prompt || "Describe this image accurately. Do not guess details that are not visible." }, { type: "image_url", image_url: { url: "data:" + mimeType + ";base64," + image } }] }], max_tokens: 1400 })
+        }, 60000);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) { failures.push("openai:" + providerHttpError(response.status, data)); continue; }
+        const answer = data?.choices?.[0]?.message?.content;
+        if (typeof answer === "string" && answer.trim()) return json({ ok: true, answer: answer.trim(), provider: "openai-vision" }, 200, headers);
+        failures.push("openai:EMPTY_RESPONSE");
+      } catch (error) { failures.push("openai:" + (error instanceof Error ? error.message : "VISION_FAILED")); }
+    }
+    return json({ ok: false, error: "Image understanding is unavailable. Check configured vision providers.", attempted: failures }, 502, headers);
+  }
+
   if (body?.action === "image") {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = requestedImageAspectRatio(prompt, body.aspectRatio);
@@ -626,7 +728,8 @@ Deno.serve(async (req: Request) => {
         newStarHostedModel: newStarModel.configured,
         openai: Boolean(firstSecret("OPENAI_API_KEY", "OPENAI_KEY")),
         gemini: Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY")),
-        openrouter: Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"))
+        openrouter: Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY")),
+        research: Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"))
       },
       health: { newStarHostedModel: newStarModel }
     }, 200, headers);
