@@ -313,6 +313,33 @@ def test_sft_batch_sampler_and_macro_validation_are_finite():
     assert torch.isfinite(torch.tensor(score))
 
 
+def test_sft_validation_weights_tokens_then_macro_averages_languages():
+    from sft_train import evaluate_sft
+
+    class ControlledModel:
+        def eval(self):
+            return self
+
+        def __call__(self, tokens, labels):
+            losses = {1: 2.0, 3: 4.0, 7: 10.0}
+            return None, torch.tensor(losses[int(tokens[0, 0])])
+
+    corpora = {
+        "en": [
+            ([1, 2], [-100, 2]),
+            ([3, 4, 5, 6], [-100, 4, 5, 6]),
+        ],
+        "ne": [
+            ([7, 8], [-100, 8]),
+        ],
+    }
+    # English loss = (2*1 + 4*3) / 4 = 3.5; macro with Nepali 10 = 6.75.
+    score = evaluate_sft(
+        ControlledModel(), corpora, batch_size=1, block_size=8, device="cpu"
+    )
+    assert score == 6.75
+
+
 def test_sft_collation_masks_padding_and_preserves_response_labels():
     from sft_train import collate_examples
 
