@@ -61,3 +61,6 @@ jobs:
           grep -F 'body?.action === "image"' "$FILE"
           grep -F 'new_star_ai_conversations' "$FILE"
           grep -F 'new_star_ai_messages' "$FILE"
+          grep -F 'callNewStarHostedModel' "$FILE"
+          grep -F 'NEW_STAR_MODEL_BASE_URL' "$FILE"
+          grep -F 'NEW_STAR_MODEL_NAME' "$FILE"
