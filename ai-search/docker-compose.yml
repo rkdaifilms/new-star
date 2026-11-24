@@ -29,6 +29,7 @@ services:
       HF_HOME: /var/cache/huggingface
     volumes:
       - new-star-model-cache:/var/cache/huggingface
+      - new-star-search-data:/var/lib/new-star-search:ro
     ports:
       - "127.0.0.1:8082:8082"
     healthcheck:
