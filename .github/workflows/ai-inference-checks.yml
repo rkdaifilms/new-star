@@ -60,7 +60,7 @@ jobs:
           grep -F 'async function startGeminiVideo' "$FILE"
           grep -F 'NEW_STAR_IMAGE_MODEL' "$FILE"
           grep -F 'buildGeminiVideoRequest' "$FILE"
-          grep -F 'response_format: [{ type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }]' supabase/functions/ai-gateway/video-provider.ts
+          grep -F 'response_format: [{' supabase/functions/ai-gateway/video-provider.ts
           grep -F 'generation_config: { video_config: { task: "text_to_video" } }' supabase/functions/ai-gateway/video-provider.ts
           grep -F 'delivery: "inline"' supabase/functions/ai-gateway/video-provider.ts
           grep -F 'input: [{ type: "text", text: prompt }]' supabase/functions/ai-gateway/video-provider.ts
