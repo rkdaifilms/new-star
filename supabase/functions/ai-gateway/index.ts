@@ -76,7 +76,8 @@ function requestedImageAspectRatio(prompt: string, requested: unknown) {
 async function generateGeminiImage(key: string, prompt: string, aspectRatio: string, imageSize: string) {
   // Try fast native image generation first, then compatible higher-quality and
   // lightweight models. Quota/model access failures must not stop model fallback.
-  const models = ["gemini-3.1-flash-image", "gemini-3-pro-image", "gemini-3.1-flash-lite-image", "gemini-2.5-flash-image"];
+  const configuredImageModel = Deno.env.get("NEW_STAR_IMAGE_MODEL")?.trim();
+  const models = Array.from(new Set([configuredImageModel, "gemini-3.1-flash-image", "gemini-3-pro-image", "gemini-3.1-flash-lite-image", "gemini-2.5-flash-image"].filter((value): value is string => Boolean(value))));
   let lastFailure = "GEMINI_IMAGE_UNAVAILABLE";
   for (const model of models) {
     try {
