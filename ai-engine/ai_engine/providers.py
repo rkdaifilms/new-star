@@ -45,6 +45,8 @@ class UpstreamResponse:
                 item = json.loads(payload)
             except json.JSONDecodeError as exc:
                 raise ModelExecutionError("upstream sent malformed SSE JSON") from exc
+            if not isinstance(item, dict):
+                raise ModelExecutionError("upstream SSE event must contain a JSON object")
             if item.get("error"):
                 raise ModelExecutionError(str(item["error"])[:500])
             choices = item.get("choices") or []
@@ -67,6 +69,8 @@ class UpstreamResponse:
                 item = json.loads(line)
             except json.JSONDecodeError as exc:
                 raise ModelExecutionError("upstream sent malformed JSON stream line") from exc
+            if not isinstance(item, dict):
+                raise ModelExecutionError("upstream stream line must contain a JSON object")
             if item.get("error"):
                 raise ModelExecutionError(str(item["error"])[:500])
             if self.protocol == "ollama_chat":

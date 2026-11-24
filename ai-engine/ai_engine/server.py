@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import secrets
 import signal
@@ -33,7 +34,7 @@ def validate_chat_request(payload: Any) -> dict[str, Any]:
             raise ValueError(f"messages[{index}] must be an object")
         role = message.get("role")
         content = message.get("content")
-        if role not in ALLOWED_ROLES:
+        if not isinstance(role, str) or role not in ALLOWED_ROLES:
             raise ValueError(f"messages[{index}].role is invalid")
         if not isinstance(content, (str, list)):
             raise ValueError(f"messages[{index}].content must be a string or content-part array")
@@ -50,10 +51,14 @@ def validate_chat_request(payload: Any) -> dict[str, Any]:
     for key in ("temperature", "top_p", "presence_penalty", "frequency_penalty"):
         if key in payload:
             value = payload[key]
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
-                raise ValueError(f"{key} must be numeric")
-            if key in ("temperature", "top_p") and not 0 <= value <= 2:
-                raise ValueError(f"{key} must be between 0 and 2")
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError(f"{key} must be a finite number")
+            if key == "temperature" and not 0 <= value <= 2:
+                raise ValueError("temperature must be between 0 and 2")
+            if key == "top_p" and not 0 <= value <= 1:
+                raise ValueError("top_p must be between 0 and 1")
+            if key in ("presence_penalty", "frequency_penalty") and not -2 <= value <= 2:
+                raise ValueError(f"{key} must be between -2 and 2")
             result[key] = value
     if "max_tokens" in payload:
         value = payload["max_tokens"]
@@ -66,7 +71,12 @@ def validate_chat_request(payload: Any) -> dict[str, Any]:
                 1 <= len(stop) <= 4 and all(isinstance(item, str) for item in stop)):
             raise ValueError("stop must be a string or an array of 1 to 4 strings")
         result["stop"] = stop
-    for key in ("seed", "response_format", "format", "user", "language"):
+    if "language" in payload:
+        language = payload["language"]
+        if not isinstance(language, str) or not language.strip():
+            raise ValueError("language must be a non-empty string")
+        result["language"] = language
+    for key in ("seed", "response_format", "format", "user"):
         if key in payload:
             result[key] = payload[key]
     return result
