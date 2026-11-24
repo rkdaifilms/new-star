@@ -746,7 +746,7 @@ def test_experiment_comparison_only_compares_matching_data_and_languages(tmp_pat
         {"run_id": "sft-a", "stage": "sft", "final_validation_loss": 4.0,
          "data_fingerprint": "dataset-1", "languages": ["en"]},
     ]
-    registry.write_text("\\n".join(json.dumps(row) for row in records), encoding="utf-8")
+    registry.write_text("\n".join(json.dumps(row) for row in records), encoding="utf-8")
 
     report = compare_runs(registry, "pretraining")
     assert report["run_count"] == 3
@@ -771,7 +771,7 @@ def test_experiment_comparison_reports_delta_for_same_dataset(tmp_path):
         {"run_id": "newer", "stage": "sft", "final_validation_loss": 1.7,
          "data_fingerprint": "same", "languages": ["ne", "en"]},
     ]
-    registry.write_text("\\n".join(json.dumps(row) for row in records), encoding="utf-8")
+    registry.write_text("\n".join(json.dumps(row) for row in records), encoding="utf-8")
     report = compare_runs(registry, "sft")
     assert report["comparable_to_previous"] is True
     assert abs(report["validation_loss_delta_latest_minus_previous"] + 0.3) < 1e-8
