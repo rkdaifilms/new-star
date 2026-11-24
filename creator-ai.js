@@ -5,8 +5,8 @@ const SUPPORTED_LANGUAGES={hi:"Hindi",ne:"Nepali",en:"English",zh:"Chinese (Simp
 function selectedAppLanguage(){try{const p=JSON.parse(localStorage.getItem("newstar_preferences")||"{}");return Object.prototype.hasOwnProperty.call(SUPPORTED_LANGUAGES,p.language)?p.language:"hi";}catch(_){return "hi";}}
 const uiText=(key,fallback)=>window.NewStarTranslations?.[selectedAppLanguage()]?.[key]||fallback;
 
-const log=$("chat-log"),prompt=$("prompt"),send=$("send"),voice=$("voice"),stopVoice=$("stop-voice"),status=$("gateway-status"),voiceStatus=$("voice-status"),notice=$("notice"),imageResult=$("image-result");
-let history=[],busy=false,recorder=null,stream=null,chunks=[],recording=false,pendingSendAfterTranscription=false,lastLanguage="en",imageMode=false,browserRecognition=null,browserTranscript="",browserInterimTranscript="",voiceDraftPrefix="";
+const log=$("chat-log"),prompt=$("prompt"),send=$("send"),voice=$("voice"),stopVoice=$("stop-voice"),status=$("gateway-status"),voiceStatus=$("voice-status"),notice=$("notice"),imageResult=$("image-result"),videoResult=$("video-result");
+let history=[],busy=false,recorder=null,stream=null,chunks=[],recording=false,pendingSendAfterTranscription=false,lastLanguage="en",imageMode=false,videoMode=false,browserRecognition=null,browserTranscript="",browserInterimTranscript="",voiceDraftPrefix="";
 const langMap={"ह":"hi","अ":"hi","क":"hi","ख":"hi","ग":"hi","घ":"hi","च":"hi","ज":"hi","ट":"hi","ड":"hi","त":"hi","द":"hi","न":"hi","प":"hi","ब":"hi","म":"hi","य":"hi","र":"hi","ल":"hi","व":"hi","श":"hi","स":"hi","क्ष":"hi","ज्ञ":"hi","ँ":"hi","ं":"hi","ः":"hi","ि":"hi","ा":"hi","े":"hi","ो":"hi","्":"hi","़":"hi","়":"bn","অ":"bn","আ":"bn","ই":"bn","উ":"bn","এ":"bn","ও":"bn","ক":"bn","খ":"bn","গ":"bn","চ":"bn","জ":"bn","ট":"bn","ড":"bn","ত":"bn","দ":"bn","ন":"bn","প":"bn","ব":"bn","ম":"bn","য":"bn","র":"bn","ল":"bn","শ":"bn","স":"bn","ং":"bn","ঃ":"bn","ા":"gu","ક":"gu","મ":"gu","ત":"gu","પ":"gu","ર":"gu","ન":"gu","અ":"gu","આ":"gu","ಕ":"kn","ತ":"kn","ನ":"kn","ಮ":"kn","ಪ":"kn","ಅ":"kn","ആ":"ml","ക":"ml","മ":"ml","ന":"ml","പ":"ml","த":"ta","ம":"ta","ந":"ta","ப":"ta","அ":"ta","త":"te","మ":"te","న":"te","క":"te","అ":"te","ಅ":"kn","ಅ":"kn","ಕ":"kn","ಮ":"kn","ತ":"kn","ಪ":"kn","ಯ":"kn","ಖ":"kn","ก":"th","ข":"th","ค":"th","ง":"th","จ":"th","ส":"th","ร":"th","ม":"th","ย":"th","ว":"th","ه":"ar","ا":"ar","ل":"ar","م":"ar","ن":"ar","ي":"ar","ع":"ar","ك":"ar","و":"ar","پ":"fa","چ":"fa","ژ":"fa","گ":"fa","ی":"fa","ا":"fa","ب":"fa","ت":"fa","ث":"fa","ج":"fa","ح":"fa","خ":"fa","د":"fa","ر":"fa","ز":"fa","س":"fa","ش":"fa","ص":"fa","ض":"fa","ط":"fa","ظ":"fa","ع":"fa","غ":"fa","ف":"fa","ق":"fa","ک":"fa","ل":"fa","م":"fa","ن":"fa","و":"fa","ھ":"ur","ے":"ur","ٹ":"ur","ڈ":"ur","ڑ":"ur","ں":"ur","گ":"ur","چ":"ur","پ":"ur","ک":"ur","ا":"ur","ب":"ur","ت":"ur","ث":"ur","ج":"ur","ح":"ur","خ":"ur","د":"ur","ر":"ur","ز":"ur","س":"ur","ش":"ur","ص":"ur","ض":"ur","ط":"ur","ظ":"ur","ع":"ur","غ":"ur","ف":"ur","ق":"ur","ل":"ur","م":"ur","ن":"ur","و":"ur","ي":"ur","ی":"ur","ئ":"ur","ء":"ur","ؤ":"ur","إ":"ar","أ":"ar","ة":"ar","ى":"ar","я":"ru","ы":"ru","э":"ru","ё":"ru","ж":"ru","щ":"ru","ф":"ru","ц":"ru","й":"ru","ш":"ru","ю":"ru","д":"ru","г":"ru","п":"ru","л":"ru","о":"ru","р":"ru","а":"ru","в":"ru","к":"ru","м":"ru","с":"ru","т":"ru","н":"ru","е":"ru","и":"ru","у":"ru","б":"ru","з":"ru","х":"ru","ч":"ru","ъ":"ru","ь":"ru","ў":"uk","і":"uk","є":"uk","ґ":"uk","ї":"uk","あ":"ja","い":"ja","う":"ja","え":"ja","お":"ja","か":"ja","き":"ja","く":"ja","け":"ja","こ":"ja","さ":"ja","し":"ja","す":"ja","せ":"ja","そ":"ja","た":"ja","ち":"ja","つ":"ja","て":"ja","と":"ja","な":"ja","に":"ja","ぬ":"ja","ね":"ja","の":"ja","は":"ja","ひ":"ja","ふ":"ja","へ":"ja","ほ":"ja","ア":"ja","イ":"ja","ウ":"ja","エ":"ja","オ":"ja","カ":"ja","キ":"ja","ク":"ja","ケ":"ja","コ":"ja","サ":"ja","シ":"ja","ス":"ja","セ":"ja","ソ":"ja","タ":"ja","チ":"ja","ツ":"ja","テ":"ja","ト":"ja","ニ":"ja","ヌ":"ja","ネ":"ja","ノ":"ja","ハ":"ja","ヒ":"ja","フ":"ja","ヘ":"ja","ホ":"ja","ン":"ja","가":"ko","나":"ko","다":"ko","라":"ko","마":"ko","바":"ko","사":"ko","아":"ko","자":"ko","차":"ko","카":"ko","타":"ko","파":"ko","하":"ko","는":"ko","을":"ko","에":"ko","의":"ko","한":"ko","글":"ko","어":"ko"};
 function detectLanguage(text){
  const value=String(text||"").trim(), lower=value.toLowerCase(), app=selectedAppLanguage();
@@ -106,6 +106,12 @@ async function invoke(body){
  }
  return data;
 }
+function isVideoRequest(text){
+ const value=String(text||"").trim();
+ const hasVideo=/\\b(?:video|clip|movie|animation|reel)\\b/i.test(value)||/(?:वीडियो|चलचित्र|भिडियो|चलती तस्वीर)/u.test(value);
+ const hasIntent=/\\b(?:generate|create|make|animate|render|produce|bana\\w*|banau\\w*|banai\\w*|chahiye)\\b/i.test(value)||/(?:बना|बनाओ|बनाइ|तैयार|जनरेट|चाहिए)/u.test(value);
+ return hasVideo&&hasIntent;
+}
 function isImageRequest(text){
  const value=String(text||"").trim();
  if(!value)return false;
@@ -119,7 +125,7 @@ function isImageRequest(text){
  return /\b(generate|create|make|draw|paint|render|show)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|thumbnail|logo)\b/i.test(value) ||
   /(?:तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|लोगो).*(?:बना|बनाओ|बनाइ|तैयार|जनरेट|दिखा|चाहिए)|(?:बना|बनाओ|बनाइ|तैयार|जनरेट|दिखा|चाहिए).*(?:तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|लोगो)/u.test(value);
 }
-async function sendMessage(){const text=prompt.value.trim();if(!text||busy)return;if(imageMode||isImageRequest(text)){await generateImage(text);return;}busy=true;send.disabled=true;voice.disabled=true;lastLanguage=detectLanguage(text);addMessage(text,"user");prompt.value="";const pending=addMessage("…","assistant");try{const result=await invoke({messages:[...history.slice(-8),{role:"user",content:text}],language:"auto"});pending.textContent=result.answer;history.push({role:"user",content:text},{role:"assistant",content:result.answer});if(history.length>10)history=history.slice(-10);if($("speak-replies").checked)speak(result.answer,lastLanguage);}catch(e){pending.textContent=e.message||"AI unavailable. Please try again.";if(!prompt.value.trim())prompt.value=text;}finally{busy=false;send.disabled=false;voice.disabled=false;prompt.focus();}}
+async function sendMessage(){const text=prompt.value.trim();if(!text||busy)return;if(videoMode||isVideoRequest(text)){await generateVideo(text);return;}if(imageMode||isImageRequest(text)){await generateImage(text);return;}busy=true;send.disabled=true;voice.disabled=true;lastLanguage=detectLanguage(text);addMessage(text,"user");prompt.value="";const pending=addMessage("…","assistant");try{const result=await invoke({messages:[...history.slice(-8),{role:"user",content:text}],language:"auto"});pending.textContent=result.answer;history.push({role:"user",content:text},{role:"assistant",content:result.answer});if(history.length>10)history=history.slice(-10);if($("speak-replies").checked)speak(result.answer,lastLanguage);}catch(e){pending.textContent=e.message||"AI unavailable. Please try again.";if(!prompt.value.trim())prompt.value=text;}finally{busy=false;send.disabled=false;voice.disabled=false;prompt.focus();}}
 function requestedImageAspectRatio(description){
  const allowed=["1:1","3:4","4:3","9:16","16:9"];
  const match=description.match(/\b(\d{2,5})\s*[x×]\s*(\d{2,5})\b/i)||description.match(/\b(\d{1,2})\s*:\s*(\d{1,2})\b/);
@@ -135,6 +141,26 @@ function requestedImageAspectRatio(description){
  return allowed.includes(picker?.value)?picker.value:"1:1";
 }
 async function generateImage(overrideDescription){const description=(typeof overrideDescription==="string"?overrideDescription:prompt.value).trim();if(busy)return;if(!description){notice.textContent="पहले तस्वीर का विवरण लिखें, फिर Generate image दबाएँ।";prompt.focus();return;}busy=true;send.disabled=true;voice.disabled=true;lastLanguage=detectLanguage(description);addMessage("🎨 "+description,"user");prompt.value="";imageResult.hidden=false;imageResult.replaceChildren();const label=document.createElement("p");label.textContent="Creating your image…";imageResult.append(label);try{const aspectRatio=requestedImageAspectRatio(description);const imageSize=$("image-resolution")?.value||"1K";const result=await invoke({action:"image",prompt:description,language:"auto",aspectRatio,imageSize});if(typeof result.image!=="string"||result.image.length<100)throw new Error("Image provider returned no usable image data.");const mime=/^image\/(png|jpeg|webp)$/i.test(result.mimeType||"")?result.mimeType:"image/png";const img=document.createElement("img");img.alt="AI generated creator image";img.src="data:"+mime+";base64,"+result.image;img.onerror=()=>{label.textContent="Image returned, but this device could not display it. Please retry.";};const save=document.createElement("a");save.href=img.src;save.download="new-star-creator-image."+({"image/jpeg":"jpg","image/webp":"webp"}[mime]||"png");save.textContent="Save image";save.style.color="#ff9bb0";imageResult.replaceChildren(img,save);}catch(e){label.textContent=e.message||"Image generation failed.";}finally{busy=false;send.disabled=false;voice.disabled=false;}}
+async function generateVideo(overrideDescription){
+ const description=(typeof overrideDescription==="string"?overrideDescription:prompt.value).trim();
+ if(busy)return;
+ if(!description){notice.textContent="पहले वीडियो का विवरण लिखें, फिर Generate video दबाएँ।";prompt.focus();return;}
+ busy=true;send.disabled=true;voice.disabled=true;
+ lastLanguage=detectLanguage(description);addMessage("🎬 "+description,"user");prompt.value="";
+ videoResult.hidden=false;videoResult.replaceChildren();
+ const label=document.createElement("p");label.textContent="Creating your video… इसमें कुछ समय लग सकता है।";videoResult.append(label);
+ try{
+  const aspectRatio=$("video-aspect-ratio")?.value||"16:9";
+  const resolution=$("video-resolution")?.value||"720p";
+  const result=await invoke({action:"video",prompt:description,aspectRatio,resolution});
+  if(typeof result.videoUrl!=="string"||!result.videoUrl.startsWith("https://"))throw new Error("New Star storage did not return a secure video link.");
+  const player=document.createElement("video");player.controls=true;player.playsInline=true;player.preload="metadata";player.src=result.videoUrl;player.style.width="100%";player.style.maxWidth="720px";player.style.borderRadius="14px";
+  const save=document.createElement("a");save.href=result.videoUrl;save.download="new-star-ai-video.mp4";save.target="_blank";save.rel="noopener";save.textContent="Open / save video";save.style.color="#ff9bb0";
+  const expiry=document.createElement("small");expiry.textContent="Secure video link is available for about 1 hour. Save the video before the link expires.";
+  videoResult.replaceChildren(player,save,expiry);
+ }catch(e){label.textContent=e.message||"Video generation failed. Please try again."; }
+ finally{busy=false;send.disabled=false;voice.disabled=false;}
+}
 async function handleSendAction(){
  if(recording&&browserRecognition){
   pendingSendAfterTranscription=true;send.disabled=true;
@@ -148,12 +174,13 @@ async function handleSendAction(){
   recorder.stop();
   return;
  }
- if(imageMode) await generateImage(); else await sendMessage();
+ if(videoMode) await generateVideo(); else if(imageMode) await generateImage(); else await sendMessage();
 }
 send.addEventListener("click",handleSendAction);
 prompt.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSendAction();}});
-$("image-mode").addEventListener("click",()=>{imageMode=!imageMode;$("image-mode").classList.toggle("active",imageMode);send.textContent=imageMode?uiText("ai.generateImage","Generate image"):uiText("ai.send","Send");prompt.placeholder=imageMode?uiText("ai.imagePlaceholder","Describe the image you want to create…"):uiText("ai.askPlaceholder","Ask anything or describe your video idea…");notice.textContent=imageMode?uiText("ai.imageNotice","Image generation uses the configured image provider."):uiText("ai.signinNotice","Sign in required. Do not enter passwords, OTPs, API keys or private financial details.");});
-document.querySelectorAll("[data-starter]").forEach(btn=>btn.addEventListener("click",()=>{imageMode=false;$("image-mode").classList.remove("active");send.textContent="Send";prompt.value=btn.dataset.starter;prompt.focus();}));
+$("image-mode").addEventListener("click",()=>{imageMode=!imageMode;videoMode=false;$("image-mode").classList.toggle("active",imageMode);$("video-mode").classList.remove("active");$("video-options").hidden=true;send.textContent=imageMode?uiText("ai.generateImage","Generate image"):uiText("ai.send","Send");prompt.placeholder=imageMode?uiText("ai.imagePlaceholder","Describe the image you want to create…"):uiText("ai.askPlaceholder","Ask anything or describe your video idea…");notice.textContent=imageMode?uiText("ai.imageNotice","Image generation uses the configured image provider."):uiText("ai.signinNotice","Sign in required. Do not enter passwords, OTPs, API keys or private financial details.");});
+$("video-mode").addEventListener("click",()=>{videoMode=!videoMode;imageMode=false;$("video-mode").classList.toggle("active",videoMode);$("image-mode").classList.remove("active");$("video-options").hidden=!videoMode;send.textContent=videoMode?"Generate video":uiText("ai.send","Send");prompt.placeholder=videoMode?"Describe the video you want to create…":uiText("ai.askPlaceholder","Ask anything or describe your video idea…");notice.textContent=videoMode?"Video generation uses a separate video model and may consume paid provider quota.":"Sign in required. Do not enter passwords, OTPs, API keys or private financial details.";});
+document.querySelectorAll("[data-starter]").forEach(btn=>btn.addEventListener("click",()=>{imageMode=false;videoMode=false;$("image-mode").classList.remove("active");$("video-mode").classList.remove("active");$("video-options").hidden=true;send.textContent="Send";prompt.value=btn.dataset.starter;prompt.focus();}));
 async function startRecording(forceRecorder=false){
  if(busy||recording)return;
  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
