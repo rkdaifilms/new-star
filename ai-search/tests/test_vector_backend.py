@@ -32,6 +32,15 @@ class VectorBackendTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "dimension mismatch"):
             encoder.encode("नमस्ते")
 
+    def test_reranker_uses_semantic_and_unicode_lexical_signals(self):
+        candidates = [
+            {"title": "Unrelated page", "snippet": "general information", "similarity": 0.95},
+            {"title": "नेपाली भाषा खोज", "snippet": "भाषा र खोज प्रणाली", "similarity": 0.72},
+        ]
+        ranked = PgVectorSearch.rerank("नेपाली भाषा", candidates, 1)
+        self.assertEqual(ranked[0]["title"], "नेपाली भाषा खोज")
+        self.assertIn("rerank_score", ranked[0])
+
     def test_database_url_required(self):
         with patch.dict("os.environ", {}, clear=True):
             with self.assertRaisesRegex(RuntimeError, "NEW_STAR_VECTOR_DATABASE_URL"):
