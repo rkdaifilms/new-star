@@ -58,11 +58,11 @@ class FakeUpstreamHandler(BaseHTTPRequestHandler):
         if self.path == "/api/chat":
             self.send_response(200)
             self.send_header("Content-Type", "application/x-ndjson")
-            self.end_headers()
             if body.get("stream"):
+                self.end_headers()
                 for item in ({"message": {"content": "Ollama "}, "done": False},
                              {"message": {"content": "works"}, "done": True}):
-                    self.wfile.write((json.dumps(item) + "\n").encode())
+                    self.wfile.write((json.dumps(item) + "\\n").encode())
                     self.wfile.flush()
             else:
                 encoded = json.dumps({"message": {"content": "Ollama works"}, "done": True}).encode()
