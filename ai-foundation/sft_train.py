@@ -162,6 +162,7 @@ def main():
     generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
     training_config = {
         "seed": args.seed,
+        "data_fingerprint": data_fingerprint,
         "learning_rate": args.learning_rate,
         "batch_size": args.batch_size,
         "block_size": args.block_size,
