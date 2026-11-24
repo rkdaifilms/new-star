@@ -915,3 +915,40 @@ def test_experiment_comparison_rejects_tokenizer_or_model_mismatch(tmp_path):
     # lower-loss run from a different model configuration against it.
     assert report["best_run_id"] == "different-model"
     assert "different model configuration" in report["incompatibility_reasons"]
+
+
+
+def test_byte_bpe_pretraining_checkpoint_loads_in_native_inference_server(tmp_path, monkeypatch):
+    import json
+    import sys
+    from train import main
+    from serve import load_engine
+    from bpe_tokenizer import ByteBPETokenizer
+
+    corpus = tmp_path / "bpe-permitted.txt"
+    corpus.write_text(
+        ("नमस्ते संसार new star multilingual नमस्ते संसार " * 50),
+        encoding="utf-8",
+    )
+    checkpoint = tmp_path / "bpe-model.pt"
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", "--data", str(corpus), "--output", str(checkpoint),
+        "--steps", "1", "--batch-size", "2", "--block-size", "8",
+        "--width", "16", "--layers", "1", "--heads", "4",
+        "--max-vocab-size", "320", "--tokenizer", "bpe", "--seed", "19",
+    ])
+    main()
+
+    saved = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    assert saved["format"] == "new-star-byte-bpe-gpt-v1"
+    assert saved["tokenizer"]["type"] == ByteBPETokenizer.FORMAT
+    metadata = json.loads(
+        checkpoint.with_suffix(".pt.json").read_text(encoding="utf-8")
+    )
+    assert metadata["tokenizer_type"] == ByteBPETokenizer.FORMAT
+    assert metadata["vocabulary_size"] == saved["config"]["vocab_size"]
+
+    model, tokenizer = load_engine(str(checkpoint), "cpu")
+    sample = "नेपाली हिन्दी বাংলা 🌍"
+    assert tokenizer.decode(tokenizer.encode(sample)) == sample
+    assert model.config.vocab_size == len(tokenizer)
