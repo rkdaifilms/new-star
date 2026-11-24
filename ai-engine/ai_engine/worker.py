@@ -12,10 +12,13 @@ def run_worker(once=False, poll_seconds=1.0, idle_timeout=0.0):
     inference = ChatInference(registry)
     queue = JobQueue()
     worker_id = f"{socket.gethostname()}-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+    idle_since = time.monotonic()
     while True:
         job = queue.claim(worker_id)
         if job is None:
             if once:
+                return 0
+            if idle_timeout > 0 and time.monotonic() - idle_since >= idle_timeout:
                 return 0
             time.sleep(max(0.1,poll_seconds))
             continue
