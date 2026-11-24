@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -51,6 +52,27 @@ def sample_instruction_batch(corpora, batch_size, block_size, device, generator=
     return collate_examples(rows, list(range(batch_size)), block_size, device)
 
 
+def save_training_state(path, model, optimizer, generator, step, seed,
+                       data_fingerprint, training_config):
+    """Atomically persist all state needed to resume an SFT run."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    torch.save({
+        "format": "new-star-sft-resume-v1",
+        "step": step,
+        "model_state": model.state_dict(),
+        "optimizer_state": optimizer.state_dict(),
+        "batch_generator_state": generator.get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+        "cuda_rng_states": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+        "seed": seed,
+        "data_fingerprint": data_fingerprint,
+        "training_config": training_config,
+    }, temporary)
+    temporary.replace(path)
+
+
 def evaluate_sft(model, corpora, batch_size, block_size, device):
     """Return a macro-average of per-language token-weighted validation losses."""
     if batch_size < 1 or block_size < 1:
@@ -92,6 +114,7 @@ def main():
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--max-vocab-size", type=int, default=8192)
     parser.add_argument("--eval-interval", type=int, default=100)
+    parser.add_argument("--resume-from", help="Resume optimizer/model/RNG state from a .resume.pt checkpoint")
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
@@ -132,8 +155,46 @@ def main():
     model = NewStarGPT(config).to(args.device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
+    training_config = {
+        "seed": args.seed,
+        "learning_rate": args.learning_rate,
+        "batch_size": args.batch_size,
+        "block_size": args.block_size,
+        "width": args.width,
+        "layers": args.layers,
+        "heads": args.heads,
+        "max_vocab_size": args.max_vocab_size,
+        "data_format": args.data_format,
+    }
+    data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
+    start_step = 0
+    if args.resume_from:
+        resume_path = Path(args.resume_from)
+        if not resume_path.is_file():
+            parser.error(f"resume checkpoint does not exist: {resume_path}")
+        try:
+            resume = torch.load(resume_path, map_location=args.device, weights_only=True)
+        except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(f"could not load resume checkpoint: {exc}")
+        if resume.get("format") != "new-star-sft-resume-v1":
+            parser.error("unsupported SFT resume checkpoint format")
+        if resume.get("data_fingerprint") != data_fingerprint:
+            parser.error("resume data does not match the original training dataset")
+        if resume.get("training_config") != training_config:
+            parser.error("resume training configuration must match the original run")
+        if resume.get("seed") != args.seed:
+            parser.error("resume seed does not match the original run")
+        start_step = int(resume.get("step", 0))
+        if start_step < 0 or start_step >= args.steps:
+            parser.error("--steps must be greater than the saved resume step")
+        model.load_state_dict(resume["model_state"])
+        optimizer.load_state_dict(resume["optimizer_state"])
+        generator.set_state(resume["batch_generator_state"])
+        torch.set_rng_state(resume["torch_rng_state"].cpu())
+        if torch.cuda.is_available() and resume.get("cuda_rng_states") is not None:
+            torch.cuda.set_rng_state_all(resume["cuda_rng_states"])
     final_validation_loss = None
-    for step in range(1, args.steps + 1):
+    for step in range(start_step + 1, args.steps + 1):
         model.train()
         x, y = sample_instruction_batch(
             train_data, args.batch_size, args.block_size, args.device, generator
@@ -150,6 +211,11 @@ def main():
                 model, validation_data, args.batch_size, args.block_size, args.device
             )
             final_validation_loss = validation_loss
+            resume_path = Path(args.output).with_suffix(Path(args.output).suffix + ".resume.pt")
+            save_training_state(
+                resume_path, model, optimizer, generator, step, args.seed,
+                data_fingerprint, training_config,
+            )
             print(
                 f"step={step} train_loss={loss.item():.4f} "
                 f"macro_language_val_loss={validation_loss:.4f}",
@@ -173,6 +239,7 @@ def main():
         "block_size": args.block_size,
         "model_config": vars(config),
         "final_validation_loss": final_validation_loss,
+        "resumed_from_step": start_step,
         "languages": sorted(train_data),
         "train_examples_by_language": {lang: len(rows) for lang, rows in train_data.items()},
         "validation_examples_by_language": {lang: len(rows) for lang, rows in validation_data.items()},
