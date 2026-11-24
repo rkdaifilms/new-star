@@ -124,3 +124,47 @@ def test_unicode_tokenizer_serialization_round_trip():
     tokenizer = UnicodeCharTokenizer.train("नमस्ते hello")
     restored = UnicodeCharTokenizer.from_dict(tokenizer.to_dict())
     assert restored.decode(restored.encode("नमस्ते 🌍")) == "नमस्ते 🌍"
+
+
+def test_language_corpus_loader_keeps_train_and_validation_separate(tmp_path):
+    import json
+    from corpus import load_language_corpora
+
+    path = tmp_path / "multilingual.jsonl"
+    records = [
+        {"language": "ne", "split": "train", "text": "नेपाली प्रशिक्षण सामग्री " * 12},
+        {"language": "ne", "split": "validation", "text": "नेपाली जाँच सामग्री " * 12},
+        {"language": "en", "split": "train", "text": "English training material " * 12},
+        {"language": "en", "split": "validation", "text": "English validation material " * 12},
+    ]
+    path.write_text("\\n".join(json.dumps(row, ensure_ascii=False) for row in records), encoding="utf-8")
+    train, validation = load_language_corpora(path)
+    assert set(train) == {"ne", "en"}
+    assert "जाँच" not in train["ne"]
+    assert "प्रशिक्षण" not in validation["ne"]
+
+
+def test_language_corpus_loader_rejects_missing_validation_language(tmp_path):
+    import json
+    import pytest
+    from corpus import load_language_corpora
+
+    path = tmp_path / "incomplete.jsonl"
+    path.write_text(json.dumps({"language": "hi", "split": "train", "text": "नमस्ते " * 20}, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="languages differ"):
+        load_language_corpora(path)
+
+
+def test_balanced_batch_samples_from_all_declared_languages():
+    from train import sample_balanced_batch
+
+    corpora = {
+        "en": torch.arange(300, dtype=torch.long),
+        "ne": torch.arange(300, dtype=torch.long) + 1,
+    }
+    generator = torch.Generator(device="cpu").manual_seed(17)
+    x, y = sample_balanced_batch(corpora, batch_size=32, block_size=8,
+                                 device="cpu", generator=generator)
+    assert x.shape == (32, 8)
+    assert y.shape == (32, 8)
+    assert torch.all(y[:, :-1] == x[:, 1:])
