@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -44,6 +45,7 @@ def main():
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--max-vocab-size", type=int, default=8192)
     parser.add_argument("--seed", type=int, default=1337)
+    parser.add_argument("--resume-from", help="Resume model/optimizer/RNG state from a .resume.pt checkpoint")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
     if args.steps < 1 or args.batch_size < 1 or args.block_size < 1:
@@ -82,7 +84,52 @@ def main():
     model = NewStarGPT(config).to(args.device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     batch_generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
-    for step in range(1, args.steps + 1):
+    training_config = {
+        "seed": args.seed,
+        "data_format": args.data_format,
+        "learning_rate": args.learning_rate,
+        "batch_size": args.batch_size,
+        "block_size": args.block_size,
+        "width": args.width,
+        "layers": args.layers,
+        "heads": args.heads,
+        "max_vocab_size": args.max_vocab_size,
+    }
+    data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
+    tokenizer_fingerprint = hashlib.sha256(json.dumps(
+        tokenizer.to_dict(), ensure_ascii=False, sort_keys=True
+    ).encode("utf-8")).hexdigest()
+    start_step = 0
+    if args.resume_from:
+        resume_path = Path(args.resume_from)
+        if not resume_path.is_file():
+            parser.error(f"resume checkpoint does not exist: {resume_path}")
+        try:
+            resume = torch.load(resume_path, map_location=args.device, weights_only=True)
+        except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(f"could not load resume checkpoint: {exc}")
+        if resume.get("format") != "new-star-pretrain-resume-v1":
+            parser.error("unsupported pretraining resume checkpoint format")
+        if resume.get("data_fingerprint") != data_fingerprint:
+            parser.error("resume data does not match the original training dataset")
+        if resume.get("tokenizer_fingerprint") != tokenizer_fingerprint:
+            parser.error("resume tokenizer does not match the original training dataset")
+        if resume.get("training_config") != training_config:
+            parser.error("resume training configuration must match the original run")
+        start_step = int(resume.get("step", 0))
+        if start_step < 0 or start_step >= args.steps:
+            parser.error("--steps must be greater than the saved resume step")
+        model.load_state_dict(resume["model_state"])
+        optimizer.load_state_dict(resume["optimizer_state"])
+        batch_generator.set_state(resume["batch_generator_state"])
+        torch.set_rng_state(resume["torch_rng_state"].cpu())
+        if torch.cuda.is_available() and resume.get("cuda_rng_states") is not None:
+            torch.cuda.set_rng_state_all(
+                [state.cpu() for state in resume["cuda_rng_states"]]
+            )
+
+    final_validation_loss = None
+    for step in range(start_step + 1, args.steps + 1):
         model.train()
         x, y = sample_balanced_batch(train_data, args.batch_size, args.block_size,
                                      args.device, batch_generator)
@@ -102,8 +149,26 @@ def main():
                     )
                     _, val_loss = model(vx, vy)
                     val_losses.append(float(val_loss.item()))
+            final_validation_loss = sum(val_losses) / len(val_losses)
+            resume_path = Path(args.output).with_suffix(Path(args.output).suffix + ".resume.pt")
+            resume_path.parent.mkdir(parents=True, exist_ok=True)
+            temporary = resume_path.with_name(resume_path.name + ".tmp")
+            torch.save({
+                "format": "new-star-pretrain-resume-v1",
+                "step": step,
+                "model_state": model.state_dict(),
+                "optimizer_state": optimizer.state_dict(),
+                "batch_generator_state": batch_generator.get_state(),
+                "torch_rng_state": torch.get_rng_state(),
+                "cuda_rng_states": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+                "seed": args.seed,
+                "data_fingerprint": data_fingerprint,
+                "tokenizer_fingerprint": tokenizer_fingerprint,
+                "training_config": training_config,
+            }, temporary)
+            temporary.replace(resume_path)
             print(f"step={step} train_loss={loss.item():.4f} "
-                  f"balanced_val_loss={sum(val_losses) / len(val_losses):.4f}", flush=True)
+                  f"balanced_val_loss={final_validation_loss:.4f}", flush=True)
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -114,6 +179,11 @@ def main():
         "config": vars(config),
         "tokenizer_type": "unicode-char-byte-fallback-v1",
         "training_steps": args.steps,
+        "resumed_from_step": start_step,
+        "final_validation_loss": final_validation_loss,
+        "learning_rate": args.learning_rate,
+        "batch_size": args.batch_size,
+        "block_size": args.block_size,
         "vocabulary_size": len(tokenizer),
         "seed": args.seed,
         "languages": sorted(train_by_language),
