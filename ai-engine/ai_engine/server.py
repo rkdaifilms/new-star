@@ -181,8 +181,9 @@ def make_handler(inference: ChatInference, server_token: str | None = None):
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")
             self.send_header("Cache-Control", "no-cache, no-transform")
-            self.send_header("Connection", "keep-alive")
+            self.send_header("Connection", "close")
             self.send_header("X-Accel-Buffering", "no")
+            self.close_connection = True
             self.send_header("X-New-Star-Model", model_id)
             self.end_headers()
             try:

@@ -152,6 +152,14 @@ class InferenceAPITests(unittest.TestCase):
         self.assertEqual(model_id, "openai-local")
         self.assertEqual("".join(chunks), "Hello New Star")
 
+    def test_ollama_streaming_adapter_yields_text(self) -> None:
+        registry = ModelRegistry(self.settings, [self.ollama])
+        _, model_id, chunks = ChatInference(registry).stream({
+            "model": "auto", "messages": [{"role": "user", "content": "Hi"}]
+        })
+        self.assertEqual(model_id, "ollama-local")
+        self.assertEqual("".join(chunks), "Ollama works")
+
     def test_fallback_uses_ollama_after_primary_http_failure(self) -> None:
         FakeUpstreamHandler.fail = True
         response = self.inference.complete({"model": "openai-local",
