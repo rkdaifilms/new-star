@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import torch
 from torch import nn
+from torch.utils.checkpoint import checkpoint
 
 
 class NewStarConfig:
@@ -91,7 +92,7 @@ class NewStarGPT(nn.Module):
         )
         for block in self.blocks:
             if self.training and self.config.gradient_checkpointing and x.requires_grad:
-                x = torch.utils.checkpoint.checkpoint(block, x, mask, use_reentrant=False)
+                x = checkpoint(block, x, mask, use_reentrant=False)
             else:
                 x = block(x, mask)
         logits = self.language_head(self.final_norm(x))
