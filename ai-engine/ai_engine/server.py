@@ -149,14 +149,20 @@ def make_handler(inference: ChatInference, server_token: str | None = None, api_
                 self._send_json(401, {"error": {"message": "unauthorized", "type": "authentication_error"}})
                 return
             path = urlsplit(self.path).path
+            started = __import__("time").monotonic()
+            request_id = self.headers.get("X-Request-ID", "")[:100] or str(uuid.uuid4())
+            status = 200
+            if not self._rate_allowed():
+                audit.record(request_id, self.client_id, path, 429,
+                             (__import__("time").monotonic() - started) * 1000)
+                return
             if path in ("/health", "/healthz"):
                 self._send_json(200, {
                     "status": "ok",
                     "service": "new-star-ai",
                     "models_configured": len(inference.registry.list_models(enabled_only=True)),
                 })
-                return
-            if path == "/v1/models":
+            elif path == "/v1/models":
                 models = [
                     {
                         "id": model.model_id,
@@ -168,8 +174,11 @@ def make_handler(inference: ChatInference, server_token: str | None = None, api_
                     if "chat" in model.capabilities
                 ]
                 self._send_json(200, {"object": "list", "data": models})
-                return
-            self._send_json(404, {"error": {"message": "not found", "type": "not_found_error"}})
+            else:
+                status = 404
+                self._send_json(404, {"error": {"message": "not found", "type": "not_found_error"}})
+            audit.record(request_id, self.client_id, path, status,
+                         (__import__("time").monotonic() - started) * 1000)
 
         def do_POST(self) -> None:
             if not self._authorized():

@@ -11,6 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -185,6 +186,64 @@ class InferenceAPITests(unittest.TestCase):
             with urlopen(req) as response:
                 payload = json.loads(response.read())
             self.assertEqual(payload["object"], "chat.completion")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+    def test_api_key_auth_new_star_alias_and_get_rate_limit(self) -> None:
+        with patch.dict(os.environ, {
+            "NEW_STAR_AI_RATE_LIMIT_CAPACITY": "1",
+            "NEW_STAR_AI_RATE_LIMIT_REFILL_PER_SECOND": "0.001",
+        }):
+            server = ThreadingHTTPServer(
+                ("127.0.0.1", 0),
+                make_handler(self.inference, api_keys={"mobile": "test-secret"}),
+            )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base = f"http://127.0.0.1:{server.server_address[1]}"
+            with self.assertRaises(HTTPError) as missing:
+                urlopen(base + "/health")
+            self.assertEqual(missing.exception.code, 401)
+
+            models_req = Request(base + "/v1/models", headers={"Authorization": "Bearer test-secret"})
+            with urlopen(models_req) as response:
+                self.assertEqual(response.status, 200)
+                self.assertEqual(json.loads(response.read())["object"], "list")
+
+            body = json.dumps({"messages": [{"role": "user", "content": "Hi"}]}).encode()
+            alias_req = Request(
+                base + "/v1/new-star/chat",
+                data=body,
+                headers={"Authorization": "Bearer test-secret", "Content-Type": "application/json"},
+            )
+            with self.assertRaises(HTTPError) as limited:
+                urlopen(alias_req)
+            self.assertEqual(limited.exception.code, 429)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+    def test_api_key_is_required_even_when_server_token_is_also_configured(self) -> None:
+        server = ThreadingHTTPServer(
+            ("127.0.0.1", 0),
+            make_handler(self.inference, "legacy-token", {"mobile": "client-secret"}),
+        )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            url = f"http://127.0.0.1:{server.server_address[1]}/health"
+            for token in ("legacy-token", "wrong-token"):
+                req = Request(url, headers={"Authorization": f"Bearer {token}"})
+                with self.assertRaises(HTTPError) as caught:
+                    urlopen(req)
+                self.assertEqual(caught.exception.code, 401)
+            req = Request(url, headers={"Authorization": "Bearer client-secret"})
+            with urlopen(req) as response:
+                self.assertEqual(response.status, 200)
         finally:
             server.shutdown()
             server.server_close()
