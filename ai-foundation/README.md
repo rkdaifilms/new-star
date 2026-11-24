@@ -26,6 +26,29 @@ python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --promp
 
 The scripts import their model directly from the same source folder. Keep evaluation data separate from training data: use a held-out corpus that was not included in the training file. Evaluation uses deterministic sampling so repeated runs with the same checkpoint, data, and seed produce the same reported loss. The first experiments should use a small, curated corpus and a small model on CPU. A GPU substantially reduces training time. The corpus must be lawfully obtained and suitable for the intended use; do not scrape private data or include secrets or personal records.
 
+
+### Balanced multilingual corpus (JSONL)
+
+For multiple languages, prefer a JSONL file with explicit language labels and
+separate train/validation records. Each line is one JSON object:
+
+```json
+{"language":"ne","split":"train","text":"यहाँ अनुमति प्राप्त नेपाली प्रशिक्षण सामग्री"}
+{"language":"ne","split":"validation","text":"अलग नेपाली validation सामग्री"}
+{"language":"hi","split":"train","text":"यहाँ अनुमति प्राप्त हिंदी प्रशिक्षण सामग्री"}
+{"language":"hi","split":"validation","text":"अलग हिंदी validation सामग्री"}
+{"language":"en","split":"train","text":"Permitted English training material"}
+{"language":"en","split":"validation","text":"Separate English validation material"}
+```
+
+Run it with `--data-format jsonl`. Training samples each batch row from a
+uniformly selected language, so a large language corpus does not automatically
+dominate every batch. Every language must have its own held-out validation
+records and enough tokens for the selected block size. Language labels are
+provided by the dataset curator; this milestone does not automatically detect
+the language of a user's prompt. Use balanced, licensed, high-quality data for
+each language and evaluate each language separately before claiming support.
+
 ## Honest capability boundary
 
 This is an architecture and training-pipeline starting point, not a useful ChatGPT/Gemini-level assistant yet. A small character/byte-fallback model trained on a small corpus will produce weak output. High-quality independent models require large, carefully licensed datasets, multilingual tokenizer research, distributed training, extensive evaluation, safety training, and substantial compute. No pretrained weights, image/video generator, speech model, production endpoint, or deployed service is included in this milestone.
