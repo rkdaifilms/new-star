@@ -12,7 +12,7 @@ Vercel is not required for the AI backend. The live AI gateway runs as a Supabas
 - Provider adapters support configured Gemini, OpenAI and OpenRouter keys for chat/image where supported by the existing gateway.
 - A New Star hosted open-model adapter is deployed. It can route chat to a New Star-managed OpenAI-compatible inference endpoint using server-only `NEW_STAR_MODEL_BASE_URL`, `NEW_STAR_MODEL_NAME`, and optional `NEW_STAR_MODEL_API_KEY` secrets. It runs before fallback providers when configured and accepts HTTPS endpoints only. GPU runtime deployment files are in `ai-model/`; no GPU host is currently provisioned.
 - This adapter is the connection point for a self-hosted open-weight model (for example, a model served by vLLM or another OpenAI-compatible runtime). It does not include model weights or GPU hosting; those are separate infrastructure and must be provisioned before New Star can run an independent model.
-- Per-user request limiting is enforced through the existing `consume_ai_gateway_rate_limit` RPC.
+- Per-account request limiting is enforced through the existing `consume_ai_gateway_rate_limit` RPC; API keys share the owning account's limit.
 - The system prompt is owned by New Star and switches language based on the user's latest message or saved language preference.
 
 ## New Star conversation memory
@@ -32,7 +32,7 @@ The New Star AI page remembers the current conversation ID in the browser so a c
 
 ## Research and image understanding
 - **Live Research:** the branch adds a `research` action using Gemini Google Search grounding and returning source links from grounding metadata. It requires a configured Gemini key and model access; Google Search grounding may incur charges when a user runs a research request. The action is deployed; live provider availability still requires an authenticated user request.
-- **Image understanding:** the branch adds a `vision` action accepting PNG/JPEG/WebP uploads up to 6 MB and using configured Gemini vision first, then OpenAI vision. This is image analysis, not image editing. The new action is not live until the Edge Function is deployed.
+- **Image understanding:** the branch adds a `vision` action accepting PNG/JPEG/WebP uploads up to 6 MB and using configured Gemini vision first, then OpenAI vision. This is image analysis, not image editing. The vision action is deployed; live provider availability still requires an authenticated request.
 - **Video generation:** not connected yet. The 10-second prompt-to-video, asynchronous job, private storage, and voiceover/export architecture is documented in `ai-video/README.md`. A model runtime, worker, storage setup, and end-to-end verification are still required.
 
 The UI labels these as unavailable rather than pretending to complete them.
@@ -46,6 +46,14 @@ The UI labels these as unavailable rather than pretending to complete them.
 - Security advisors were run. They reported existing project-wide findings (including private tables with no policies, security-definer RPC exposure warnings, and leaked-password protection disabled). These were not introduced or modified as part of this AI feature and should be reviewed separately.
 - Frontend changes are committed to GitHub branch `new-star-ai-engine-foundation`.
 - A fresh Vercel deployment is not part of this architecture. The existing app hosting setup still needs to publish the latest branch frontend files before users can access the updated page.
+
+## New Star developer API keys
+- Migration `20261124075022_new_star_ai_api_key_management` is applied. The table stores only a SHA-256 hash and short prefix; RLS is enabled and direct client table access is revoked.
+- Signed-in users can create, list, and revoke their own keys from the Developer API keys panel on the New Star AI page.
+- Keys are generated with 256 bits of cryptographic randomness, shown once, scoped to chat/image/vision/voice/research/status, and may expire within one year. The server validates revocation, expiry, scope, and the owner's account request limit.
+- Programmatic requests send the key in the `x-new-star-api-key` header to the Supabase `/functions/v1/ai-gateway` endpoint. Keep keys in a private server environment; never put them in browser JavaScript or public mobile bundles.
+- API-key management requires the user's normal signed-in Supabase session. The API key itself cannot create, list, or revoke keys. Account-level request limits are shared by that user's keys.
+- The frontend manager is committed to the feature branch; it will appear in the deployed app only after the branch frontend is published by the app host.
 
 ## Security
 - Never place provider keys or service-role keys in browser code.
