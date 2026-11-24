@@ -66,7 +66,7 @@ class ModelSpec:
             not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0
         ):
             raise ConfigurationError("timeout_seconds must be a finite positive number")
-        if self.auth_env is not None and not self.auth_env.replace("_", "").isalnum():
+        if self.auth_env is not None and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.auth_env):
             raise ConfigurationError("auth_env must be an environment variable name")
         if not self.health_path.startswith("/") or ".." in self.health_path.split("/"):
             raise ConfigurationError("health_path must be an absolute path without traversal segments")
