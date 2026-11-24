@@ -8,6 +8,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognitionListener
@@ -18,6 +21,8 @@ import androidx.core.content.ContextCompat
 import java.util.Locale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.Image
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,6 +50,8 @@ internal fun NativeAiStudio(accessToken: String) {
     var listening by remember { mutableStateOf(false) }
     var voiceStatus by remember { mutableStateOf("") }
     var speechRecognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
+    var imageMode by remember { mutableStateOf(false) }
+    var generatedImage by remember { mutableStateOf<Bitmap?>(null) }
 
     fun startVoiceRecognition() {
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
@@ -135,6 +142,10 @@ internal fun NativeAiStudio(accessToken: String) {
                 }
             }
         }
+        generatedImage?.let { bitmap ->
+            Spacer(Modifier.height(12.dp))
+            Image(bitmap = bitmap.asImageBitmap(), contentDescription = "AI द्वारा बनाई गई तस्वीर", modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp))
+        }
         if (sending) {
             Spacer(Modifier.height(10.dp))
             Row {
@@ -158,6 +169,11 @@ internal fun NativeAiStudio(accessToken: String) {
             enabled = !sending
         )
         Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = { imageMode = !imageMode; generatedImage = null },
+            enabled = !sending,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (imageMode) "🖼️ तस्वीर बनाने का मोड चालू है" else "🖼️ तस्वीर बनाएँ") }
         OutlinedButton(
             onClick = {
                 if (listening) {
@@ -187,9 +203,17 @@ internal fun NativeAiStudio(accessToken: String) {
                     error = ""
                     scope.launch {
                         try {
-                            val history = lines.takeLast(10).map { it.role to it.content }
-                            val answer = withContext(Dispatchers.IO) { requestNativeAi(accessToken, history) }
-                            lines.add(AiChatLine("assistant", answer))
+                            if (imageMode) {
+                                val result = withContext(Dispatchers.IO) { requestNativeImage(accessToken, message) }
+                                val bytes = Base64.decode(result.first, Base64.DEFAULT)
+                                generatedImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                    ?: throw IllegalStateException("AI image data को तस्वीर में नहीं बदला जा सका।")
+                                lines.add(AiChatLine("assistant", "आपकी तस्वीर तैयार है।"))
+                            } else {
+                                val history = lines.takeLast(10).map { it.role to it.content }
+                                val answer = withContext(Dispatchers.IO) { requestNativeAi(accessToken, history) }
+                                lines.add(AiChatLine("assistant", answer))
+                            }
                         } catch (e: Exception) {
                             error = e.message ?: "AI से जवाब नहीं मिला। कृपया फिर कोशिश करें।"
                             if (lines.lastOrNull()?.role == "user") lines.removeAt(lines.lastIndex)
@@ -201,6 +225,28 @@ internal fun NativeAiStudio(accessToken: String) {
             enabled = !sending && draft.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) { Text(if (sending) "जवाब आ रहा है…" else "AI को भेजें") }
+    }
+}
+
+private fun requestNativeImage(accessToken: String, prompt: String): Pair<String, String> {
+    check(accessToken.isNotBlank()) { "तस्वीर बनाने के लिए पहले लॉगिन करें।" }
+    val payload = JSONObject().put("action", "image").put("prompt", prompt).put("language", Locale.getDefault().language).put("aspectRatio", "1:1").put("imageSize", "1K")
+    val client = OkHttpClient.Builder().connectTimeout(20, TimeUnit.SECONDS).readTimeout(90, TimeUnit.SECONDS).writeTimeout(20, TimeUnit.SECONDS).build()
+    val request = Request.Builder()
+        .url("https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/ai-gateway")
+        .post(payload.toString().toRequestBody("application/json".toMediaType()))
+        .header("apikey", "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr")
+        .header("Authorization", "Bearer $accessToken")
+        .build()
+    client.newCall(request).execute().use { response ->
+        val raw = response.body?.string().orEmpty()
+        val data = runCatching { JSONObject(raw) }.getOrElse { JSONObject() }
+        if (!response.isSuccessful || !data.optBoolean("ok", false)) {
+            throw IllegalStateException(data.optString("error").ifBlank { "तस्वीर नहीं बन पाई (" + response.code + ")।" })
+        }
+        val image = data.optString("image")
+        check(image.isNotBlank()) { "AI ने तस्वीर डेटा नहीं भेजा।" }
+        return image to data.optString("mimeType", "image/png")
     }
 }
 
