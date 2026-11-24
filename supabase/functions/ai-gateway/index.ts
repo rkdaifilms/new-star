@@ -281,6 +281,49 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 1600
   }
 }
 
+
+async function searchNewStarIndex(query: string, language: string, limit: number, userId: string, supabaseUrl: string, serviceKey: string, headers: Record<string, string>) {
+  const configured = Deno.env.get("NEW_STAR_SEARCH_BASE_URL")?.trim() || "";
+  if (!configured) return json({ ok: false, error: "New Star Search is not configured yet." }, 503, headers);
+  let endpoint: URL;
+  try { endpoint = new URL(configured); } catch { return json({ ok: false, error: "New Star Search endpoint is invalid." }, 503, headers); }
+  if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+    return json({ ok: false, error: "New Star Search endpoint must be a clean HTTPS URL." }, 503, headers);
+  }
+  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: allowed, error: limitError } = await admin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userId, p_limit: 20 });
+  if (limitError || allowed !== true) {
+    return json({ ok: false, error: limitError ? "Security rate-limit check unavailable." : "Search request limit reached. Please wait before trying again." }, limitError ? 503 : 429, headers);
+  }
+  const base = endpoint.toString().replace(/\/$/, "");
+  const searchUrl = base.endsWith("/search") ? base : base + "/search";
+  const token = Deno.env.get("NEW_STAR_SEARCH_API_KEY")?.trim() || "";
+  const requestHeaders: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) requestHeaders.Authorization = "Bearer " + token;
+  try {
+    const response = await fetchWithTimeout(searchUrl, {
+      method: "POST", headers: requestHeaders,
+      body: JSON.stringify({ query, language, limit })
+    }, 20000);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return json({ ok: false, error: "New Star Search service returned " + providerHttpError(response.status, data) }, 502, headers);
+    const raw = Array.isArray(data?.results) ? data.results : [];
+    const results = raw.slice(0, limit).flatMap((item: any) => {
+      if (!item || typeof item.title !== "string" || typeof item.url !== "string") return [];
+      try {
+        const url = new URL(item.url);
+        if (url.protocol !== "https:" || url.username || url.password) return [];
+        return [{ title: item.title.slice(0, 240), url: url.toString(),
+          snippet: typeof item.snippet === "string" ? item.snippet.slice(0, 1200) : "",
+          source: url.hostname, publishedAt: typeof item.publishedAt === "string" ? item.publishedAt.slice(0, 80) : null }];
+      } catch { return []; }
+    });
+    return json({ ok: true, provider: "new-star-search", query, results, count: results.length }, 200, headers);
+  } catch {
+    return json({ ok: false, error: "New Star Search service is unavailable or timed out." }, 502, headers);
+  }
+}
+
 async function callOpenAI(key: string, messages: ChatMessage[], systemPrompt: string) {
   const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -797,6 +840,14 @@ Deno.serve(async (req: Request) => {
     }, 503, headers);
   }
 
+  if (body?.action === "search") {
+    const query = typeof body.query === "string" ? body.query.trim() : "";
+    const language = typeof body.language === "string" ? body.language.slice(0, 16) : "auto";
+    const limit = Number.isInteger(body.limit) ? Math.min(10, Math.max(1, body.limit)) : 5;
+    if (!query || query.length > 500) return json({ ok: false, error: "Search query must contain 1 to 500 characters." }, 400, headers);
+    return await searchNewStarIndex(query, language, limit, userData.user.id, supabaseUrl, serviceKey, headers);
+  }
+
   if (body?.action === "status") {
     const newStarModel = await probeNewStarHostedModel();
     const newStarTestFallbackEnabled = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true" && newStarModel.configured;
@@ -821,7 +872,7 @@ Deno.serve(async (req: Request) => {
         speechGeneration: { supported: true, configured: speechConfigured },
         speechTranscription: { supported: true, configured: speechConfigured },
         videoGeneration: { supported: true, configured: Boolean(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON")?.trim()), provider: "google-vertex-ai", model: Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim() || "gemini-omni-1.2-flash", reason: "A configured service account does not verify Vertex AI permissions, model access, billing, quota, or successful video generation." },
-        webSearch: { supported: false, configured: false, reason: "A live search provider adapter is not implemented in this gateway yet." }
+        webSearch: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SEARCH_BASE_URL")?.trim()), provider: "new-star-search", reason: "Adapter to the separately deployed New Star Search service; its crawler and index must be deployed separately." }
       },
       health: {
         newStarHostedModel: newStarModel,
