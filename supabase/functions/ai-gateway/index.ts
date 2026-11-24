@@ -703,9 +703,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const encodedVideo = extractGeminiVideoData(interaction);
-    if (!encodedVideo || encodedVideo.length > 70000000) {
-      await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "GEMINI_VIDEO_OUTPUT_MISSING_OR_TOO_LARGE", updated_at: new Date().toISOString() }).eq("id", job.id);
+    if (!encodedVideo) {
+      await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "GEMINI_VIDEO_OUTPUT_MISSING", updated_at: new Date().toISOString() }).eq("id", job.id);
       return json({ ok: false, status: "failed", error: "The provider completed the job but returned no supported inline MP4 data.", code: "GEMINI_VIDEO_OUTPUT_MISSING" }, 200, headers);
+    }
+    if (encodedVideo.length > 70000000) {
+      await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "VIDEO_OUTPUT_TOO_LARGE", updated_at: new Date().toISOString() }).eq("id", job.id);
+      return json({ ok: false, status: "failed", error: "The generated video exceeds New Star's 50 MB storage limit.", code: "VIDEO_OUTPUT_TOO_LARGE" }, 200, headers);
     }
     const videoBytes = Uint8Array.from(atob(encodedVideo), (character) => character.charCodeAt(0));
     if (videoBytes.byteLength > 50 * 1024 * 1024) {
