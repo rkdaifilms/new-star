@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { base64UrlEncode, privateKeyPemToBytes } from "./google-auth.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -173,12 +174,6 @@ async function generateOpenRouterImage(key: string, prompt: string, aspectRatio:
 let cachedGoogleAccessToken = "";
 let cachedGoogleAccessTokenExpiresAt = 0;
 
-function base64UrlEncode(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-
 async function getGoogleCloudAccessToken(): Promise<{ token: string; projectId: string }> {
   if (cachedGoogleAccessToken && Date.now() < cachedGoogleAccessTokenExpiresAt - 60000) {
     const cachedAccount = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || "{}");
@@ -202,10 +197,9 @@ async function getGoogleCloudAccessToken(): Promise<{ token: string; projectId: 
     exp: now + 3600
   })));
   const unsigned = header + "." + claims;
-  const pem = account.private_key.replace(/\\n/g, "\n").replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, "");
   const key = await crypto.subtle.importKey(
     "pkcs8",
-    Uint8Array.from(atob(pem), (char) => char.charCodeAt(0)),
+    privateKeyPemToBytes(account.private_key),
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
     ["sign"]
