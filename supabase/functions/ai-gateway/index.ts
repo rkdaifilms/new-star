@@ -691,6 +691,10 @@ Deno.serve(async (req: Request) => {
     let lastFailure = "VERTEX_VIDEO_STATUS_UNAVAILABLE";
     try { interaction = await getGeminiVideoInteraction(job.provider_interaction_id); }
     catch (error) { lastFailure = error instanceof Error ? error.message : lastFailure; }
+    if (!interaction && /HTTP_404|NOT_FOUND|not found|does not exist/i.test(lastFailure)) {
+      await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "VERTEX_INTERACTION_EXPIRED_OR_MISSING", updated_at: new Date().toISOString() }).eq("id", job.id);
+      return json({ ok: false, status: "failed", error: "The video provider no longer has this job. Start a new video.", code: "VERTEX_INTERACTION_EXPIRED_OR_MISSING" }, 200, headers);
+    }
     if (!interaction) return json({ ok: false, error: /GOOGLE_SERVICE_ACCOUNT_JSON|Google Cloud service account/i.test(lastFailure) ? "Video status needs a valid Google Cloud service account configuration." : "Could not check video progress. Please retry.", code: lastFailure }, /GOOGLE_SERVICE_ACCOUNT_JSON|Google Cloud service account/i.test(lastFailure) ? 503 : 502, headers);
     if (interaction.status === "in_progress") return json({ ok: true, status: "in_progress", jobId: job.id, model: job.provider_model }, 200, headers);
     if (interaction.status !== "completed") {
