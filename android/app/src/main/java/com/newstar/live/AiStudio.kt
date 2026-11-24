@@ -55,13 +55,13 @@ internal fun NativeAiStudio(accessToken: String) {
     var imageMode by remember { mutableStateOf(false) }
     var generatedImage by remember { mutableStateOf<Bitmap?>(null) }
 
-    fun startVoiceRecognition() {
+    fun startVoiceRecognition(language: Locale = Locale.getDefault(), allowHindiRetry: Boolean = true, preserveDraftPrefix: Boolean = false) {
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             voiceStatus = "इस Android डिवाइस पर speech recognition उपलब्ध नहीं है।"
             return
         }
         runCatching { speechRecognizer?.destroy() }
-        voiceDraftPrefix = draft.trim()
+        if (!preserveDraftPrefix) voiceDraftPrefix = draft.trim()
         val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
         speechRecognizer = recognizer
         recognizer.setRecognitionListener(object : RecognitionListener {
@@ -73,11 +73,22 @@ internal fun NativeAiStudio(accessToken: String) {
             override fun onError(errorCode: Int) {
                 listening = false
                 voiceLevel = 0f
+                val retryInHindi = allowHindiRetry &&
+                    language.language != "hi" &&
+                    (errorCode == SpeechRecognizer.ERROR_NO_MATCH ||
+                     errorCode == SpeechRecognizer.ERROR_SPEECH_TIMEOUT ||
+                     errorCode == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED)
+                if (retryInHindi) {
+                    voiceStatus = "आवाज़ नहीं पहचानी गई। अब हिन्दी पहचान से एक बार फिर कोशिश करें…"
+                    startVoiceRecognition(Locale("hi", "IN"), allowHindiRetry = false, preserveDraftPrefix = true)
+                    return
+                }
                 draft = voiceDraftPrefix
                 voiceStatus = when (errorCode) {
-                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "आवाज़ समझ नहीं आई। फिर बोलें या लिखें।"
+                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "आवाज़ समझ नहीं आई। भाषा/माइक जाँचकर फिर बोलें।"
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "माइक्रोफोन की अनुमति नहीं मिली।"
                     SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Speech recognition के लिए नेटवर्क उपलब्ध नहीं है।"
+                    SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "इस डिवाइस पर चुनी हुई भाषा की speech recognition उपलब्ध नहीं है।"
                     else -> "Voice recognition रुक गया। दोबारा कोशिश करें।"
                 }
             }
@@ -102,8 +113,8 @@ internal fun NativeAiStudio(accessToken: String) {
         })
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, Locale.getDefault().toLanguageTag())
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, language.toLanguageTag())
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, language.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
