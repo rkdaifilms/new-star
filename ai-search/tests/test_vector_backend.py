@@ -57,6 +57,31 @@ class VectorBackendTests(unittest.TestCase):
         ranked = PgVectorSearch.rerank("नेपाली भाषा", candidates, 2)
         self.assertEqual(ranked[0]["title"], "नेपाली भाषा खोज")
 
+    def test_reciprocal_rank_fusion_combines_vector_and_lexical_results(self):
+        vector = [
+            {"id": 1, "title": "semantic result", "url": "https://a.example", "source": "a", "snippet": "meaning", "similarity": 0.8},
+            {"id": 2, "title": "vector only", "url": "https://b.example", "source": "b", "snippet": "nearby", "similarity": 0.7},
+        ]
+        lexical = [
+            {"id": 2, "title": "exact keyword result", "url": "https://b.example", "source": "b", "snippet": "exact", "similarity": 0.0},
+            {"id": 3, "title": "lexical only", "url": "https://c.example", "source": "c", "snippet": "word match", "similarity": 0.0},
+        ]
+        fused = PgVectorSearch.fuse_rankings(vector, lexical, 10)
+        self.assertEqual({item["id"] for item in fused}, {1, 2, 3})
+        self.assertEqual(fused[0]["id"], 2)
+        self.assertIn("vector_rank", fused[0])
+        self.assertIn("lexical_rank", fused[0])
+
+    def test_hybrid_reranker_returns_bounded_scores(self):
+        candidates = [
+            {"id": 1, "title": "exact match", "snippet": "नेपाली भाषा", "similarity": 0.5, "rrf_score": 0.03},
+            {"id": 2, "title": "other", "snippet": "unrelated", "similarity": 0.7, "rrf_score": 0.01},
+        ]
+        ranked = PgVectorSearch.rerank("नेपाली भाषा", candidates, 1)
+        self.assertEqual(len(ranked), 1)
+        self.assertGreaterEqual(ranked[0]["rerank_score"], 0.0)
+        self.assertLessEqual(ranked[0]["rerank_score"], 1.0)
+
     def test_database_url_required(self):
         with patch.dict("os.environ", {}, clear=True):
             with self.assertRaisesRegex(RuntimeError, "NEW_STAR_VECTOR_DATABASE_URL"):
