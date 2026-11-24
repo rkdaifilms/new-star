@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "ai-inference/**"
+      - "ai-chat.js"
+      - "creator-ai.js"
       - "supabase/functions/ai-gateway/**"
       - ".github/workflows/ai-inference-checks.yml"
 
@@ -48,6 +50,16 @@ jobs:
           grep -F 'NEW_STAR_MODEL_NAME' "$FILE"
           grep -F 'NEW_STAR_MODEL_API_KEY' "$FILE"
           grep -F 'new-star-hosted-model' "$FILE"
+
+
+  frontend-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check browser AI scripts syntax
+        run: |
+          node --check ai-chat.js
+          node --check creator-ai.js
 
   container-build:
     runs-on: ubuntu-latest
