@@ -140,10 +140,10 @@ send.addEventListener("click",handleSendAction);
 prompt.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSendAction();}});
 $("image-mode").addEventListener("click",()=>{imageMode=!imageMode;$("image-mode").classList.toggle("active",imageMode);send.textContent=imageMode?uiText("ai.generateImage","Generate image"):uiText("ai.send","Send");prompt.placeholder=imageMode?uiText("ai.imagePlaceholder","Describe the image you want to create…"):uiText("ai.askPlaceholder","Ask anything or describe your video idea…");notice.textContent=imageMode?uiText("ai.imageNotice","Image generation uses the configured image provider."):uiText("ai.signinNotice","Sign in required. Do not enter passwords, OTPs, API keys or private financial details.");});
 document.querySelectorAll("[data-starter]").forEach(btn=>btn.addEventListener("click",()=>{imageMode=false;$("image-mode").classList.remove("active");send.textContent="Send";prompt.value=btn.dataset.starter;prompt.focus();}));
-async function startRecording(){
+async function startRecording(forceRecorder=false){
  if(busy||recording)return;
  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(SpeechRecognition){
+ if(!forceRecorder&&SpeechRecognition){
   try{
    browserRecognition=new SpeechRecognition();
    browserRecognition.lang=selectedAppLanguage()==="ne"?"ne-NP":selectedAppLanguage()==="hi"?"hi-IN":selectedAppLanguage()==="en"?"en-US":selectedAppLanguage();
@@ -161,8 +161,16 @@ async function startRecording(){
     voiceStatus.textContent="🔴 रिकॉर्डिंग चालू — टेक्स्ट बॉक्स में: "+liveText;
    };
    browserRecognition.onerror=event=>{
-    voiceStatus.textContent=event.error==="not-allowed"?"माइक की अनुमति नहीं मिली। Chrome की Site settings में Microphone अनुमति दें।":"आवाज़ पहचानने में समस्या: "+event.error;
-    recording=false;browserRecognition=null;pendingSendAfterTranscription=false;send.disabled=false;voice.disabled=false;stopVoice.hidden=true;
+    const reason=event.error||"unknown";
+    recording=false;browserRecognition=null;pendingSendAfterTranscription=false;stopVoice.hidden=true;voice.textContent="🎙️";
+    if(reason==="not-allowed"||reason==="service-not-allowed"){
+     voiceStatus.textContent="माइक की अनुमति नहीं मिली। Android/Chrome की Site settings में Microphone अनुमति दें।";
+     send.disabled=false;voice.disabled=false;
+     return;
+    }
+    voiceStatus.textContent="ब्राउज़र voice recognition उपलब्ध नहीं हुआ ("+reason+") — रिकॉर्डिंग मोड से कोशिश कर रहे हैं…";
+    send.disabled=false;voice.disabled=false;
+    setTimeout(()=>startRecording(true),150);
    };
    browserRecognition.onend=async()=>{
     const transcript=browserTranscript.trim();
