@@ -41,6 +41,22 @@ class VectorBackendTests(unittest.TestCase):
         self.assertEqual(ranked[0]["title"], "नेपाली भाषा खोज")
         self.assertIn("rerank_score", ranked[0])
 
+    def test_reranker_tokenizes_ascii_words(self):
+        candidates = [
+            {"title": "Unrelated page", "snippet": "weather forecast", "similarity": 0.90},
+            {"title": "vector search guide", "snippet": "semantic vector retrieval", "similarity": 0.72},
+        ]
+        ranked = PgVectorSearch.rerank("vector search", candidates, 2)
+        self.assertEqual(ranked[0]["title"], "vector search guide")
+
+    def test_reranker_handles_unicode_word_boundaries(self):
+        candidates = [
+            {"title": "असंबंधित पृष्ठ", "snippet": "सामान्य जानकारी", "similarity": 0.90},
+            {"title": "नेपाली भाषा खोज", "snippet": "भाषा र खोज प्रणाली", "similarity": 0.72},
+        ]
+        ranked = PgVectorSearch.rerank("नेपाली भाषा", candidates, 2)
+        self.assertEqual(ranked[0]["title"], "नेपाली भाषा खोज")
+
     def test_database_url_required(self):
         with patch.dict("os.environ", {}, clear=True):
             with self.assertRaisesRegex(RuntimeError, "NEW_STAR_VECTOR_DATABASE_URL"):
