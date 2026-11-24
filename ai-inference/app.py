@@ -124,13 +124,13 @@ def chat_completions(payload: ChatRequest):
                 for chunk in chunks:
                     # Keep the public model identifier stable and emit OpenAI-compatible SSE.
                     chunk["model"] = MODEL_ID
-                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\\n\\n"
-                yield "data: [DONE]\\n\\n"
+                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
             except Exception:
                 # Headers may already be sent; never expose prompts, paths, or credentials.
                 error = {"error": {"message": "Local model streaming failed.", "type": "server_error"}}
-                yield f"data: {json.dumps(error)}\\n\\n"
-                yield "data: [DONE]\\n\\n"
+                yield f"data: {json.dumps(error)}\n\n"
+                yield "data: [DONE]\n\n"
             finally:
                 _slots.release()
 
