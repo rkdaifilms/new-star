@@ -58,3 +58,15 @@ window.NEW_STAR_AI_CONFIG = {
 };
 ```
 Do not put provider keys in this object. It is public browser configuration only.
+
+
+## Current integration status (branch foundation)
+The New Star AI page now calls the existing authenticated Supabase Edge Function `ai-gateway` directly for:
+- Chat: `functions.invoke("ai-gateway", { body: { messages, language } })`
+- Text-to-image: `functions.invoke("ai-gateway", { body: { action: "image", prompt, language } })`
+
+The gateway response for image generation is base64 image data in `image` plus `mimeType`; the page renders it and provides a save link. Chat and image requests require a signed-in Supabase session and server-side provider configuration. The existing gateway enforces a per-user rate limit.
+
+Research is deliberately marked unavailable until a real search provider is integrated. Video is deliberately marked unavailable until a video inference server and job queue are deployed. The previous Vercel `/api/new-star-ai/*` routes are not used by these two modes.
+
+The latest source changes are committed on `new-star-ai-engine-foundation`. A fresh Vercel deployment could not be created because the Vercel API returned HTTP 402 `api-deployments-free-per-day` (daily deployment limit); the earlier READY preview does not contain these latest commits.
