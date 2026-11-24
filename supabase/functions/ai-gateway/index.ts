@@ -169,16 +169,14 @@ async function generateOpenRouterImage(key: string, prompt: string, aspectRatio:
 }
 
 
-async function startGeminiVideo(key: string, prompt: string, aspectRatio: string, resolution: string, duration: string) {
-  const model = Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim() || "gemini-omni-1.2-flash";
+async function startGeminiVideo(key: string, model: string, prompt: string, aspectRatio: string, resolution: string, duration: string) {
   const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
     headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
       input: [{ type: "text", text: prompt }],
-      generation_config: { video_config: { task: "text_to_video" } },
-      response_format: { type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration },
+      response_format: { type: "video", aspect_ratio: aspectRatio, resolution, duration },
       background: true,
       store: true
     })
@@ -589,27 +587,31 @@ Deno.serve(async (req: Request) => {
     const { data: videoAllowed, error: videoLimitError } = await videoAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 3 });
     if (videoLimitError || videoAllowed !== true) return json({ ok: false, error: videoLimitError ? "Security rate-limit check unavailable." : "Video request limit reached. Please wait before trying again." }, videoLimitError ? 503 : 429, headers);
 
+    const configuredVideoModel = Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim();
+    const videoModels = Array.from(new Set([configuredVideoModel, "gemini-omni-1.1-flash"].filter((value): value is string => Boolean(value))));
     const failures: string[] = [];
-    for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
-      try {
-        const result = await startGeminiVideo(geminiKeys[keyIndex], prompt, aspectRatio, resolution, duration);
-        const { data: job, error: jobError } = await videoAdmin.from("ai_video_jobs").insert({
-          user_id: userData.user.id,
-          provider_interaction_id: result.interactionId,
-          provider_model: result.model,
-          status: result.status
-        }).select("id").single();
-        if (jobError || !job?.id) {
-          await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions/" + encodeURIComponent(result.interactionId) + "/cancel", {
-            method: "POST", headers: { "x-goog-api-key": geminiKeys[keyIndex] }
-          }, 10000).catch(() => {});
-          throw new Error("VIDEO_JOB_SAVE_FAILED");
+    for (const model of videoModels) {
+      for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
+        try {
+          const result = await startGeminiVideo(geminiKeys[keyIndex], model, prompt, aspectRatio, resolution, duration);
+          const { data: job, error: jobError } = await videoAdmin.from("ai_video_jobs").insert({
+            user_id: userData.user.id,
+            provider_interaction_id: result.interactionId,
+            provider_model: result.model,
+            status: result.status
+          }).select("id").single();
+          if (jobError || !job?.id) {
+            await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions/" + encodeURIComponent(result.interactionId) + "/cancel", {
+              method: "POST", headers: { "x-goog-api-key": geminiKeys[keyIndex] }
+            }, 10000).catch(() => {});
+            throw new Error("VIDEO_JOB_SAVE_FAILED");
+          }
+          return json({ ok: true, jobId: job.id, status: result.status, provider: "gemini", model: result.model }, 202, headers);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : "VIDEO_START_FAILED";
+          failures.push(model + "/gemini[" + (keyIndex + 1) + "]:" + reason);
+          console.error("AI video job start failed:", model, "gemini", keyIndex + 1, reason);
         }
-        return json({ ok: true, jobId: job.id, status: result.status, provider: "gemini", model: result.model }, 202, headers);
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : "VIDEO_START_FAILED";
-        failures.push("gemini[" + (keyIndex + 1) + "]:" + reason);
-        console.error("AI video job start failed:", "gemini", keyIndex + 1, reason);
       }
     }
     const failureText = failures.join(" ").toUpperCase();
