@@ -192,7 +192,7 @@ def test_native_inference_server_formats_chat_messages():
         {"role": "system", "content": "You are New Star."},
         {"role": "user", "content": "नमस्ते"},
     ])
-    assert prompt == "system: You are New Star.\\nuser: नमस्ते\\nassistant:"
+    assert prompt == "system: You are New Star.\nuser: नमस्ते\nassistant:"
 
 
 def test_native_inference_server_rejects_invalid_chat_history():
