@@ -83,9 +83,8 @@ The adapter exists in the separately maintained/deployed AI Gateway. Do not rede
 After the model is loaded and the service is reachable, run the standard-library benchmark from the repository root:
 
 ```sh
-python ai-inference/scripts/benchmark.py \
+MODEL_TOKEN="$MODEL_TOKEN" python ai-inference/scripts/benchmark.py \
   --base-url https://your-inference-host.example \
-  --token "$MODEL_TOKEN" \
   --requests 5 \
   --max-tokens 128
 ```
