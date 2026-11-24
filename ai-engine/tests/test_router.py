@@ -22,7 +22,7 @@ from ai_engine.router import ModelRouter, RoutingRequest
 
 
 def make_model(model_id: str, priority: int = 10, capabilities: tuple[str, ...] = ("chat",),
-               enabled: bool = True, tags: tuple[str, ...] = ()) -> ModelSpec:
+               enabled: bool = True, tags: tuple[str, ...] = (), weight: int = 1) -> ModelSpec:
     return ModelSpec(
         model_id=model_id,
         provider="test-self-hosted",
@@ -31,6 +31,7 @@ def make_model(model_id: str, priority: int = 10, capabilities: tuple[str, ...] 
         model_name=model_id,
         capabilities=frozenset(capabilities),
         priority=priority,
+        weight=weight,
         enabled=enabled,
         tags=frozenset(tags),
     )
@@ -112,12 +113,8 @@ class ModelRouterTests(unittest.TestCase):
 
     def test_weighted_round_robin_distributes_primary_selection(self) -> None:
         weighted = ModelRegistry(self.settings, [
-            make_model("heavy", priority=10),
-            ModelSpec(
-                model_id="light", provider="test", endpoint_url="http://127.0.0.1:9001/light",
-                protocol="openai_chat", model_name="light", capabilities=frozenset({"chat"}),
-                priority=10, weight=1,
-            ),
+            make_model("heavy", priority=10, weight=2),
+            make_model("light", priority=10, weight=1),
         ])
         weighted.get("heavy")
         heavy_count = 0
