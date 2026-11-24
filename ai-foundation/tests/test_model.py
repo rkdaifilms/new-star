@@ -638,6 +638,59 @@ def test_text_evaluation_cli_writes_json_report(tmp_path, monkeypatch):
 
 
 
+def test_multilingual_evaluation_cli_writes_reproducible_language_report(tmp_path, monkeypatch):
+    import hashlib
+    import json
+    import sys
+    from evaluate import main
+    from tokenizer import UnicodeCharTokenizer
+
+    tokenizer = UnicodeCharTokenizer.train("English heldout text नेपाली परीक्षण सामग्री", 512)
+    config = NewStarConfig(
+        vocab_size=len(tokenizer), block_size=8, width=16,
+        layers=1, heads=4, dropout=0.0,
+    )
+    model = NewStarGPT(config)
+    checkpoint = tmp_path / "multilingual-checkpoint.pt"
+    torch.save({
+        "format": "new-star-unicode-char-gpt-v1",
+        "config": vars(config),
+        "tokenizer": tokenizer.to_dict(),
+        "state_dict": model.state_dict(),
+    }, checkpoint)
+    corpus = tmp_path / "heldout-languages.jsonl"
+    rows = [
+        {"language": "en", "split": "validation", "text": "English heldout text " * 5},
+        {"language": "ne", "split": "validation", "text": "नेपाली परीक्षण सामग्री " * 5},
+    ]
+    corpus.write_text(
+        "\\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
+        encoding="utf-8",
+    )
+    report_path = tmp_path / "metrics" / "multilingual.json"
+    monkeypatch.setattr(sys, "argv", [
+        "evaluate.py", "--checkpoint", str(checkpoint),
+        "--data", str(corpus), "--data-format", "jsonl",
+        "--report-json", str(report_path), "--batch-size", "2",
+    ])
+    main()
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["report_format"] == "new-star-evaluation-report-v1"
+    assert report["data_sha256"] == hashlib.sha256(corpus.read_bytes()).hexdigest()
+    assert set(report["languages"]) == {"en", "ne"}
+    assert report["seed"] == 1234
+    for row in rows:
+        language = row["language"]
+        expected_tokens = len(tokenizer.encode(row["text"])) - 1
+        assert report["languages"][language]["evaluated_tokens"] == expected_tokens
+        assert report["languages"][language]["cross_entropy"] > 0
+    expected_macro = sum(
+        item["cross_entropy"] for item in report["languages"].values()
+    ) / 2
+    assert report["macro_average_cross_entropy"] == expected_macro
+
+
 def test_corpus_audit_detects_cross_split_duplicates_and_reports(tmp_path):
     import json
     from audit_corpus import audit_corpus
