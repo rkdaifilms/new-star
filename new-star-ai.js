@@ -51,6 +51,20 @@ finally{busy=false;submit.disabled=false;prompt.focus();}
 $("ns-mic").addEventListener("click",toggleVoice);
 $("ns-new-chat").addEventListener("click",()=>{if(busy)return;conversationId="";localStorage.removeItem("new-star-ai-conversation");output.replaceChildren();const empty=document.createElement("div");empty.className="ns-empty";empty.innerHTML='<div class="ns-orb">✦</div><b>New conversation</b><p>Start a fresh chat with New Star AI.</p>';output.append(empty);});
 form.addEventListener("submit",run);prompt.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();form.requestSubmit();}});
-window.addEventListener("load",async()=>{const s=await getSession().catch(()=>null);status.textContent=s?"Signed in":"Sign in required";status.style.color=s?"#91e6b0":"#f6c66b";});
+async function refreshEngineStatus(){
+ const client=window.supabaseClient||window.cloudClient;
+ const session=await getSession().catch(()=>null);
+ if(!session){status.textContent="Sign in required";status.style.color="#f6c66b";return;}
+ if(!client?.functions){status.textContent="Backend unavailable";status.style.color="#ff9b9b";return;}
+ status.textContent="Checking AI…";
+ try{
+  const result=await client.functions.invoke("ai-gateway",{body:{action:"status"}});
+  if(result.error||!result.data?.ok)throw new Error(result.data?.error||"Gateway status check failed");
+  const providers=Object.entries(result.data.providers||{}).filter(([,enabled])=>enabled).map(([name])=>name);
+  if(providers.length){status.textContent="AI ready · "+providers.join(", ");status.style.color="#91e6b0";}
+  else{status.textContent="No AI provider";status.style.color="#f6c66b";}
+ }catch(error){status.textContent="AI service unavailable";status.style.color="#ff9b9b";foot.textContent=error.message||"Could not check New Star AI service status.";}
+}
+window.addEventListener("load",refreshEngineStatus);
 setMode("chat");
 })();
