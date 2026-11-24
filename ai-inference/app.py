@@ -22,6 +22,8 @@ MODEL_ID = os.getenv("MODEL_ID", "new-star-local")
 MODEL_TOKEN = os.getenv("MODEL_TOKEN", "")
 N_CTX = int(os.getenv("N_CTX", "4096"))
 N_THREADS = max(1, int(os.getenv("N_THREADS", str(os.cpu_count() or 2))))
+N_GPU_LAYERS = int(os.getenv("N_GPU_LAYERS", "0"))
+N_BATCH = max(1, int(os.getenv("N_BATCH", "512")))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2048"))
 MAX_CONCURRENT = max(1, int(os.getenv("MAX_CONCURRENT", "1")))
 
@@ -69,7 +71,8 @@ async def lifespan(_: FastAPI):
                 model_path=str(MODEL_PATH),
                 n_ctx=N_CTX,
                 n_threads=N_THREADS,
-                n_gpu_layers=0,
+                n_gpu_layers=N_GPU_LAYERS,
+                n_batch=N_BATCH,
                 verbose=False,
             )
             _model_error = None
@@ -79,16 +82,18 @@ async def lifespan(_: FastAPI):
     _model = None
 
 
-app = FastAPI(title="New Star CPU Inference", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="New Star Local Inference", version="0.2.0", lifespan=lifespan)
 
 
 @app.get("/healthz")
 def healthz():
     return {
         "ok": _model is not None,
-        "service": "new-star-cpu-inference",
+        "service": "new-star-local-inference",
         "engine": "llama.cpp",
-        "device": "cpu",
+        "device": "gpu-offload-configured" if N_GPU_LAYERS != 0 else "cpu",
+        "gpu_layers": N_GPU_LAYERS,
+        "batch_size": N_BATCH,
         "model": MODEL_ID,
         "model_loaded": _model is not None,
         "reason": _model_error,

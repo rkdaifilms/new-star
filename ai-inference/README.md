@@ -5,7 +5,7 @@ This is New Star-owned inference-service code, not a newly trained foundation mo
 ## What this milestone does
 
 - Loads one GGUF model from a mounted file.
-- Runs CPU-only inference (`n_gpu_layers=0`).
+- Runs CPU inference by default; `N_GPU_LAYERS` and `N_BATCH` configure optional GPU offload when the installed `llama-cpp-python` build has CUDA support.
 - Provides authenticated `POST /v1/chat/completions` and `GET /v1/models` endpoints.
 - Streams chat tokens over Server-Sent Events when `stream: true` is requested, so the UI can show the first tokens before the full answer is ready.
 - Provides unauthenticated `GET /healthz` for deployment health checks.
@@ -103,7 +103,7 @@ It checks health and model-list endpoints, then measures time-to-first-token and
 
 CPU speed and memory use depend heavily on model size, quantization, context length, and host hardware. Start with a small quantized model and measure latency and RAM on the actual host. A CPU service is not unlimited and may be too slow for image/video generation or many concurrent users.
 
-The Compose defaults use two CPU threads and one concurrent generation to avoid overloading a small host. Tune only after measuring the target server. Production also needs TLS, firewall restrictions, token rotation, monitoring, resource limits, backups for configuration, and a plan for model updates.
+The Compose defaults use two CPU threads, zero GPU layers, and one concurrent generation to avoid overloading a small host. For GPU offload, install/build `llama-cpp-python` with CUDA support, provide a compatible NVIDIA driver and NVIDIA Container Toolkit, then set `N_GPU_LAYERS` to a positive number. The standard Dockerfile in this folder is CPU/OpenBLAS-oriented; setting GPU layers alone does not add CUDA support and the app will fail to load if the installed backend lacks it. Set `N_GPU_LAYERS=-1` only when you intentionally want llama.cpp to offload all eligible layers and have verified sufficient VRAM. Measure actual memory and latency before increasing concurrency. Production also needs TLS, firewall restrictions, token rotation, monitoring, resource limits, backups for configuration, and a plan for model updates.
 
 
 ## Gateway capability status

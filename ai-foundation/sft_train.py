@@ -13,6 +13,7 @@ from instruction_data import encode_instruction_example, load_instruction_corpor
 from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer, tokenizer_from_dict
 from bpe_tokenizer import ByteBPETokenizer
+from hardware import autocast_context, create_grad_scaler, hardware_report, resolve_device, resolve_precision
 
 
 def encode_corpora(corpora, tokenizer, block_size):
@@ -75,7 +76,7 @@ def save_training_state(path, model, optimizer, generator, step, seed,
     temporary.replace(path)
 
 
-def evaluate_sft(model, corpora, batch_size, block_size, device):
+def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32"):
     """Return a macro-average of per-language token-weighted validation losses."""
     if batch_size < 1 or block_size < 1:
         raise ValueError("batch_size and block_size must be positive")
@@ -94,7 +95,8 @@ def evaluate_sft(model, corpora, batch_size, block_size, device):
                 supervised_tokens = int((y != -100).sum().item())
                 if supervised_tokens == 0:
                     raise ValueError(f"validation batch has no assistant targets for {language}")
-                _, loss = model(x, y)
+                with autocast_context(device, precision):
+                    _, loss = model(x, y)
                 if loss is None or not torch.isfinite(loss):
                     raise RuntimeError(f"non-finite validation loss for {language}")
                 weighted_loss += float(loss.item()) * supervised_tokens
@@ -121,7 +123,8 @@ def main():
     parser.add_argument("--eval-interval", type=int, default=100)
     parser.add_argument("--resume-from", help="Resume optimizer/model/RNG state from a .resume.pt checkpoint")
     parser.add_argument("--seed", type=int, default=1337)
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--device", default="auto", help="auto, cpu, cuda, or cuda:N")
+    parser.add_argument("--precision", choices=("auto", "fp32", "fp16", "bf16"), default="auto")
     args = parser.parse_args()
     if min(args.steps, args.batch_size, args.block_size, args.width,
            args.layers, args.heads, args.eval_interval) < 1:
@@ -130,8 +133,14 @@ def main():
         parser.error("--max-vocab-size must be at least 256")
     if args.width % args.heads:
         parser.error("--width must be divisible by --heads")
-    if args.device.startswith("cuda") and not torch.cuda.is_available():
-        parser.error("CUDA was requested but is not available in this PyTorch environment")
+    try:
+        device = resolve_device(args.device)
+        precision = resolve_precision(device, args.precision)
+    except (ValueError, RuntimeError) as exc:
+        parser.error(str(exc))
+    scaler = create_grad_scaler(device, precision)
+    runtime_info = hardware_report(device, precision)
+    print("Training hardware: " + json.dumps(runtime_info, ensure_ascii=False), flush=True)
 
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
@@ -187,7 +196,7 @@ def main():
     except ValueError as exc:
         parser.error(str(exc))
 
-    model = NewStarGPT(config).to(args.device)
+    model = NewStarGPT(config).to(device)
     if args.base_checkpoint:
         try:
             model.load_state_dict(base_checkpoint["state_dict"], strict=True)
@@ -213,6 +222,7 @@ def main():
         "max_vocab_size": args.max_vocab_size,
         "tokenizer_type": tokenizer.to_dict()["type"],
         "data_format": "instruction-jsonl",
+        "precision": precision,
     }
     start_step = 0
     if args.resume_from:
@@ -220,7 +230,7 @@ def main():
         if not resume_path.is_file():
             parser.error(f"resume checkpoint does not exist: {resume_path}")
         try:
-            resume = torch.load(resume_path, map_location=args.device, weights_only=True)
+            resume = torch.load(resume_path, map_location=device, weights_only=True)
         except (OSError, RuntimeError, ValueError) as exc:
             parser.error(f"could not load resume checkpoint: {exc}")
         if resume.get("format") != "new-star-sft-resume-v1":
@@ -246,18 +256,21 @@ def main():
     for step in range(start_step + 1, args.steps + 1):
         model.train()
         x, y = sample_instruction_batch(
-            train_data, args.batch_size, args.block_size, args.device, generator
+            train_data, args.batch_size, args.block_size, device, generator
         )
-        _, loss = model(x, y)
+        with autocast_context(device, precision):
+            _, loss = model(x, y)
         if loss is None or not torch.isfinite(loss):
             raise RuntimeError("training produced a non-finite loss")
         optimizer.zero_grad(set_to_none=True)
-        loss.backward()
+        scaler.scale(loss).backward()
+        scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
+        scaler.step(optimizer)
+        scaler.update()
         if step == 1 or step % args.eval_interval == 0 or step == args.steps:
             validation_loss = evaluate_sft(
-                model, validation_data, args.batch_size, args.block_size, args.device
+                model, validation_data, args.batch_size, args.block_size, device, precision
             )
             final_validation_loss = validation_loss
             resume_path = Path(args.output).with_suffix(Path(args.output).suffix + ".resume.pt")
@@ -300,6 +313,7 @@ def main():
         "base_checkpoint": str(Path(args.base_checkpoint).name) if args.base_checkpoint else None,
         "base_checkpoint_fingerprint": base_checkpoint_fingerprint,
         "evaluation_protocol": "sft-response-only-macro-language-token-ce-v1",
+        "hardware": runtime_info,
     }
     output.with_suffix(output.suffix + ".corpus-audit.json").write_text(
         json.dumps(audit_report, ensure_ascii=False, indent=2), encoding="utf-8"

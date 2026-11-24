@@ -13,6 +13,7 @@ from corpus import combine_languages, load_language_corpora
 from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer
 from bpe_tokenizer import ByteBPETokenizer
+from hardware import autocast_context, create_grad_scaler, hardware_report, resolve_device, resolve_precision
 
 
 def sample_balanced_batch(corpora: dict[str, torch.Tensor], batch_size: int,
@@ -50,12 +51,21 @@ def main():
     parser.add_argument("--tokenizer", choices=("char", "bpe"), default="char", help="Tokenizer for new checkpoints; char preserves legacy behavior")
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--resume-from", help="Resume model/optimizer/RNG state from a .resume.pt checkpoint")
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--device", default="auto", help="auto, cpu, cuda, or cuda:N")
+    parser.add_argument("--precision", choices=("auto", "fp32", "fp16", "bf16"), default="auto")
     args = parser.parse_args()
     if args.steps < 1 or args.batch_size < 1 or args.block_size < 1:
         parser.error("--steps, --batch-size, and --block-size must be positive")
     if args.max_vocab_size < 256:
         parser.error("--max-vocab-size must be at least 256 (UTF-8 fallback vocabulary)")
+    try:
+        device = resolve_device(args.device)
+        precision = resolve_precision(device, args.precision)
+    except (ValueError, RuntimeError) as exc:
+        parser.error(str(exc))
+    scaler = create_grad_scaler(device, precision)
+    runtime_info = hardware_report(device, precision)
+    print("Training hardware: " + json.dumps(runtime_info, ensure_ascii=False), flush=True)
 
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
@@ -98,7 +108,7 @@ def main():
 
     config = NewStarConfig(vocab_size=len(tokenizer), block_size=args.block_size,
                            width=args.width, layers=args.layers, heads=args.heads)
-    model = NewStarGPT(config).to(args.device)
+    model = NewStarGPT(config).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     batch_generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
     training_config = {
@@ -112,6 +122,7 @@ def main():
         "heads": args.heads,
         "max_vocab_size": args.max_vocab_size,
         "tokenizer_type": args.tokenizer,
+        "precision": precision,
     }
     data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
     tokenizer_fingerprint = hashlib.sha256(json.dumps(
@@ -123,7 +134,7 @@ def main():
         if not resume_path.is_file():
             parser.error(f"resume checkpoint does not exist: {resume_path}")
         try:
-            resume = torch.load(resume_path, map_location=args.device, weights_only=True)
+            resume = torch.load(resume_path, map_location=device, weights_only=True)
         except (OSError, RuntimeError, ValueError) as exc:
             parser.error(f"could not load resume checkpoint: {exc}")
         if resume.get("format") != "new-star-pretrain-resume-v1":
@@ -150,12 +161,15 @@ def main():
     for step in range(start_step + 1, args.steps + 1):
         model.train()
         x, y = sample_balanced_batch(train_data, args.batch_size, args.block_size,
-                                     args.device, batch_generator)
-        _, loss = model(x, y)
+                                     device, batch_generator)
+        with autocast_context(device, precision):
+            _, loss = model(x, y)
         optimizer.zero_grad(set_to_none=True)
-        loss.backward()
+        scaler.scale(loss).backward()
+        scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
+        scaler.step(optimizer)
+        scaler.update()
         if step == 1 or step % 100 == 0 or step == args.steps:
             model.eval()
             val_losses = []
@@ -163,9 +177,10 @@ def main():
                 for language in sorted(validation_data):
                     vx, vy = sample_balanced_batch(
                         {language: validation_data[language]}, args.batch_size,
-                        args.block_size, args.device, batch_generator,
+                        args.block_size, device, batch_generator,
                     )
-                    _, val_loss = model(vx, vy)
+                    with autocast_context(device, precision):
+                        _, val_loss = model(vx, vy)
                     val_losses.append(float(val_loss.item()))
             final_validation_loss = sum(val_losses) / len(val_losses)
             resume_path = Path(args.output).with_suffix(Path(args.output).suffix + ".resume.pt")
@@ -214,6 +229,7 @@ def main():
         "training_characters_by_language": {lang: len(text) for lang, text in train_by_language.items()},
         "validation_characters_by_language": {lang: len(text) for lang, text in validation_by_language.items()},
         "sampling": "uniform language selection per batch row",
+        "hardware": runtime_info,
     }
     if audit_report is not None:
         output.with_suffix(output.suffix + ".corpus-audit.json").write_text(
