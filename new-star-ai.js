@@ -91,6 +91,56 @@ async function refreshEngineStatus(){
   foot.textContent="Provider checks do not generate content or charge inference. Gemini/OpenAI quota is not tested.";
  }catch(error){status.textContent="AI service unavailable";status.style.color="#ff9b9b";foot.textContent=error.message||"Could not check New Star AI service status.";}
 }
-window.addEventListener("load",refreshEngineStatus);
+window.addEventListener("load",()=>{refreshEngineStatus();loadApiKeys();});
+async function apiKeyRequest(body){
+ const client=window.supabaseClient||window.cloudClient;
+ if(!client?.functions)throw new Error("New Star connection is not ready.");
+ const {data:sessionData}=await client.auth.getSession();
+ if(!sessionData?.session)throw new Error("Sign in to New Star to manage API keys.");
+ const result=await client.functions.invoke("ai-gateway",{body});
+ if(result.error||!result.data?.ok)throw new Error(result.data?.error||"API key request failed.");
+ return result.data;
+}
+function apiKeyMessage(text,isError=false){
+ const box=$("ns-api-new");box.hidden=false;box.replaceChildren();
+ const p=document.createElement("p");p.textContent=text;p.style.color=isError?"#ffaaaa":"#a8e7bf";box.append(p);
+}
+async function loadApiKeys(){
+ const list=$("ns-api-list");list.textContent="Loading API keys…";
+ try{
+  const data=await apiKeyRequest({action:"api_key_list"});
+  list.replaceChildren();
+  if(!data.keys.length){const p=document.createElement("p");p.textContent="No API keys created yet.";list.append(p);return;}
+  for(const key of data.keys){
+   const card=document.createElement("div");card.className="ns-api-key-item";
+   const info=document.createElement("div");
+   const name=document.createElement("b");name.textContent=key.name+" · "+key.key_prefix+"…";
+   const meta=document.createElement("small");meta.textContent=(key.scopes||[]).join(", ")+" · "+key.rate_limit+"/min · "+(key.revoked_at?"Revoked":key.expires_at?"Expires "+new Date(key.expires_at).toLocaleDateString():"No expiry");
+   info.append(name,meta);card.append(info);
+   if(!key.revoked_at){const revoke=document.createElement("button");revoke.type="button";revoke.textContent="Revoke";revoke.addEventListener("click",async()=>{
+    if(!confirm("Revoke this API key? Any app using it will stop working."))return;
+    revoke.disabled=true;try{await apiKeyRequest({action:"api_key_revoke",keyId:key.id});apiKeyMessage("API key revoked.");await loadApiKeys();}catch(error){apiKeyMessage(error.message,true);revoke.disabled=false;}
+   });card.append(revoke);}
+   list.append(card);
+  }
+ }catch(error){list.textContent=error.message||"Could not load API keys.";}
+}
+$("ns-api-form").addEventListener("submit",async event=>{
+ event.preventDefault();const button=$("ns-api-create");button.disabled=true;
+ try{
+  const scopes=Array.from($("ns-api-scopes").selectedOptions).map(option=>option.value);
+  if(!scopes.length)throw new Error("Choose at least one permission.");
+  const expiry=$("ns-api-expiry").value;
+  const result=await apiKeyRequest({action:"api_key_create",name:$("ns-api-name").value,scopes,rateLimit:Number($("ns-api-limit").value),expiresAt:expiry?new Date(expiry+"T23:59:59").toISOString():null});
+  const box=$("ns-api-new");box.hidden=false;box.replaceChildren();
+  const title=document.createElement("b");title.textContent="Copy your new API key now — it will not be shown again.";
+  const value=document.createElement("code");value.className="ns-api-secret";value.textContent=result.key;
+  const copy=document.createElement("button");copy.type="button";copy.textContent="Copy key";copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(result.key);copy.textContent="Copied";}catch{apiKeyMessage("Clipboard unavailable. Select and copy the key manually.",true);}});
+  box.append(title,value,copy);$("ns-api-name").value="";await loadApiKeys();
+ }catch(error){apiKeyMessage(error.message||"Could not create API key.",true);}
+ finally{button.disabled=false;}
+});
+$("ns-api-refresh").addEventListener("click",loadApiKeys);
+
 setMode("chat");
 })();
