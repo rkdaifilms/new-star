@@ -56,7 +56,8 @@ jobs:
           grep -F 'async function startGeminiVideo' "$FILE"
           grep -F 'response_format: { type: "video", aspect_ratio: aspectRatio, resolution, duration }' "$FILE"
           grep -F 'gemini-omni-1.1-flash' "$FILE"
-          ! grep -F 'generation_config: { video_config: { task: "text_to_video" } }' "$FILE"
+          grep -F 'generation_config: { video_config: { task: "text_to_video" } }' "$FILE"
+          grep -F 'delivery: "inline"' "$FILE"
           grep -F 'newstar_pending_video_job' creator-ai.js
           grep -F 'https://generativelanguage.googleapis.com/v1beta/interactions' "$FILE"
           grep -F 'background: true' "$FILE"
