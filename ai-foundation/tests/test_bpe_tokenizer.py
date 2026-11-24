@@ -40,3 +40,19 @@ def test_byte_bpe_rejects_invalid_inputs():
         ByteBPETokenizer.train("abc", max_merges=-1)
     with pytest.raises(ValueError, match="outside"):
         ByteBPETokenizer([]).decode([256])
+
+
+
+def test_byte_bpe_rejects_ambiguous_duplicate_merge_outputs():
+    with pytest.raises(ValueError, match="outputs must be unique"):
+        ByteBPETokenizer([(b"a", b"bc"), (b"ab", b"c")])
+
+
+def test_byte_bpe_training_skips_duplicate_merge_outputs():
+    # Both (a, bc) and (ab, c) can produce b"abc"; only one may enter
+    # the vocabulary so decoding remains unambiguous.
+    tokenizer = ByteBPETokenizer.train("abc abc ab c a bc", max_merges=20, min_frequency=1)
+    outputs = [left + right for left, right in tokenizer.merges]
+    assert len(outputs) == len(set(outputs))
+    sample = "abc abc ab c a bc"
+    assert tokenizer.decode(tokenizer.encode(sample)) == sample
