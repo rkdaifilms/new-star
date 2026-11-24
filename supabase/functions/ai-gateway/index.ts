@@ -559,7 +559,7 @@ Deno.serve(async (req: Request) => {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = ["16:9", "9:16"].includes(String(body.aspectRatio || "")) ? String(body.aspectRatio) : "16:9";
     const resolution = ["360p", "720p", "1080p"].includes(String(body.resolution || "")) ? String(body.resolution) : "720p";
-    const duration = ["5s", "10s", "15s"].includes(String(body.duration || "")) ? String(body.duration) : "5s";
+    const duration = "6s";
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter a video description of up to 1,800 characters." }, 400, headers);
     const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
     if (!geminiKeys.length) return json({ ok: false, error: "Video generation is not configured. An authorized project owner must configure the Gemini API key on the server." }, 503, headers);
