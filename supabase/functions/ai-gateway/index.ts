@@ -3,8 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
+  "https://star-delta.vercel.app",
   "https://new-star-delta.vercel.app",
-  "https://new-star-rkdaifilms-8858.vercel.app"
+  "https://new-star-rkdaifilms-8858.vercel.app",
+  "https://new-star.rkdaifilms.workers.dev",
+  "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app",
+  "https://new-star-git-new-star-ai-engine-foundation-rkdaifilms-8858.vercel.app"
 ]);
 
 function corsHeaders(origin: string) {
@@ -26,15 +30,23 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 
 const NEW_STAR_AI_SYSTEM_PROMPT = "You are New Star Creator Studio, the full-service creative, learning, research, and technical assistant for creators. Help with whatever safe creator-related task the user asks: story ideas and full original stories, scripts, scene-by-scene storyboards, image concepts and generated images when the image tool is invoked, thumbnails, titles, descriptions, captions, hashtags, voiceover text, editing instructions, video concepts, channel strategy, content calendars, livestream planning, audience engagement, and creator education. Also help write, explain, debug, and improve code, including HTML, CSS, JavaScript, React, SQL, API integrations, and app/website features; provide complete code when asked and clearly state required files, setup, and limitations. Answer broader questions when useful. If the user asks to search or research current information, use a real connected search/retrieval capability if one is available in this product flow; never pretend to have browsed or claim live results when no search tool was used. Clearly distinguish researched facts, general knowledge, and suggestions. For image requests, use the available image-generation action and explain if it fails; do not claim an image was generated unless the action returned one. Reply in the user's latest language and script, switching immediately when they switch. Never invent trends, stats, monetization, copyright permissions, or actions completed in the app. Do not claim to upload, publish, edit files, change settings, access private data, or deploy code unless a verified tool actually did it. Respect copyright and offer original alternatives. Never ask for passwords, OTPs, API keys, bank/card details, or secrets. For payments, payouts, identity checks, and account ownership, direct users to official support and an eligible adult account owner. Be capable, creative, accurate, practical, and concise.";
 
+const AI_LANGUAGE_NAMES: Record<string,string> = {hi:"Hindi",ne:"Nepali",en:"English",zh:"Simplified Chinese",es:"Spanish",fr:"French",ar:"Arabic",ja:"Japanese",de:"German",ru:"Russian",pt:"Portuguese",it:"Italian",ko:"Korean",tr:"Turkish",bn:"Bengali",ur:"Urdu",id:"Indonesian",vi:"Vietnamese",th:"Thai",fa:"Persian",sw:"Swahili",nl:"Dutch",pl:"Polish",uk:"Ukrainian",el:"Greek"};
+
 const NEW_STAR_HELP_SYSTEM_PROMPT = "You are New Star Help Center AI, the app's limited Creator Support, Safety, Reports, and Moderation assistant. You are NOT a general-purpose creative studio and must not replace New Star Creator Studio. Your scope is only New Star account and app support, creator protection, community rules, reports, warnings, moderation notices, safety notifications, upload/playback problems, profiles, settings, privacy, and help using creator features. Act like a careful support and safety desk: explain how to submit a report, collect and organize information supplied by the user, identify which app rule may be relevant when the rules are provided, explain report steps and warning notices, and guide creators on how to protect their accounts and use the appeal/support process. Help review reported behavior neutrally; do not assume the reporter is always right, do not declare guilt from an allegation, and do not invent evidence, report status, warnings, or notification records. You may prepare a warning recommendation or draft for an authorized human moderator, but you must never independently issue a warning, suspend/ban a user, remove content, change account access, or send a notification unless a verified moderation tool and authorized workflow explicitly permit that action. Explain that protection cannot guarantee nobody will ever violate rules; use reporting, evidence review, moderation, and appeals to respond fairly. If a user asks for scripts, stories, images, thumbnails, titles, hashtags, coding, broad research, or other creative production, politely direct them to New Star Creator Studio. Keep responses focused, clear, brief, and step-by-step. Reply in the user's latest language and script. Never claim to see private account data or perform actions without verified app data/tool results. Never ask for passwords, OTPs, API keys, bank/card details, or secrets. Distinguish available, planned, configured, deployed, and tested features. Be safe, neutral, fair, and respectful.";
 
-function firstSecret(...names: string[]) {
+function secretCandidates(...names: string[]) {
+  const values = new Set<string>();
   for (const name of names) {
-    const value = Deno.env.get(name);
-
-    if (value && value.trim()) return value.trim();
+    for (const suffix of Array.from({ length: 21 }, (_, index) => index === 0 ? "" : "_" + index)) {
+      const value = Deno.env.get(name + suffix);
+      if (value && value.trim()) values.add(value.trim());
+    }
   }
-  return "";
+  return [...values];
+}
+
+function firstSecret(...names: string[]) {
+  return secretCandidates(...names)[0] || "";
 }
 
 function providerHttpError(status: number, data: any) {
@@ -47,55 +59,114 @@ function providerHttpError(status: number, data: any) {
   return `HTTP_${status}`;
 }
 
-async function generateGeminiImage(key: string, prompt: string) {
-  // Gemini 3.1 Flash Image (Nano Banana 2) uses generateContent with
-  // responseModalities. Keep Gemini 2.5 Flash Image as compatibility fallback.
-  const models = ["gemini-3.1-flash-image", "gemini-2.5-flash-image"];
+function requestedImageAspectRatio(prompt: string, requested: unknown) {
+  const allowed = ["1:1", "3:4", "4:3", "9:16", "16:9"];
+  if (typeof requested === "string" && allowed.includes(requested)) return requested;
+  const match = prompt.match(/(\d{2,5})\s*[x×]\s*(\d{2,5})/i) || prompt.match(/(\d{1,2})\s*:\s*(\d{1,2})/);
+  if (!match) return "1:1";
+  const width = Number(match[1]), height = Number(match[2]);
+  if (!width || !height) return "1:1";
+  const ratio = width / height;
+  return allowed.reduce((best, item) => {
+    const [w, h] = item.split(":").map(Number);
+    const [bestW, bestH] = best.split(":").map(Number);
+    return Math.abs(Math.log(ratio / (w / h))) < Math.abs(Math.log(ratio / (bestW / bestH))) ? item : best;
+  }, "1:1");
+}
+
+async function generateGeminiImage(key: string, prompt: string, aspectRatio: string, imageSize: string) {
+  // Try fast native image generation first, then compatible higher-quality and
+  // lightweight models. Quota/model access failures must not stop model fallback.
+  const models = imageSize === "1K" ? ["gemini-3.1-flash-lite-image", "gemini-3.1-flash-image"] : ["gemini-3.1-flash-image"];
   let lastFailure = "GEMINI_IMAGE_UNAVAILABLE";
   for (const model of models) {
-    const response = await fetchWithTimeout(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: "Generate one image based on this description. Return an image, not only text: " + prompt }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
-        })
-      },
-      60000
-    );
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      lastFailure = model + ":" + providerHttpError(response.status, data);
-      if (response.status === 404 && model !== models[models.length - 1]) continue;
-      throw new Error(lastFailure);
+    try {
+      const response = await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: "Generate one image based on this description. Return an image, not only text: " + prompt }] }],
+            generationConfig: { responseModalities: ["TEXT", "IMAGE"], imageConfig: { aspectRatio, imageSize: model === "gemini-3.1-flash-lite-image" ? "1K" : imageSize } }
+          })
+        },
+        60000
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        lastFailure = model + ":" + providerHttpError(response.status, data);
+        if (response.status === 401) throw new Error(lastFailure);
+        console.warn("Gemini image model fallback:", model, lastFailure);
+        continue;
+      }
+      const parts = data?.candidates?.[0]?.content?.parts || [];
+      const imagePart = parts.find((part: any) =>
+        (typeof part?.inlineData?.data === "string" && part.inlineData.data.length > 0) ||
+        (typeof part?.inline_data?.data === "string" && part.inline_data.data.length > 0)
+      );
+      const image = imagePart?.inlineData?.data || imagePart?.inline_data?.data;
+      if (image) {
+        return { image, mimeType: imagePart?.inlineData?.mimeType || imagePart?.inline_data?.mime_type || "image/png" };
+      }
+      lastFailure = model + ":GEMINI_RETURNED_NO_IMAGE:" + (data?.candidates?.[0]?.finishReason || "UNKNOWN");
+    } catch (error) {
+      lastFailure = model + ":" + (error instanceof Error ? error.message : "REQUEST_FAILED");
+      if (lastFailure.includes("INVALID_API_KEY")) throw error;
+      console.warn("Gemini image model request failed; trying fallback:", model, lastFailure);
     }
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    const imagePart = parts.find((part: any) =>
-      (typeof part?.inlineData?.data === "string" && part.inlineData.data.length > 0) ||
-      (typeof part?.inline_data?.data === "string" && part.inline_data.data.length > 0)
-    );
-    const image = imagePart?.inlineData?.data || imagePart?.inline_data?.data;
-    if (!image) {
-      const finishReason = data?.candidates?.[0]?.finishReason || "UNKNOWN";
-      throw new Error(model + ":GEMINI_RETURNED_NO_IMAGE:" + finishReason);
-    }
-    return { image, mimeType: imagePart?.inlineData?.mimeType || imagePart?.inline_data?.mime_type || "image/png" };
   }
   throw new Error(lastFailure);
 }
-async function generateOpenAIImage(key: string, prompt: string) {
+async function generateOpenAIImage(key: string, prompt: string, aspectRatio: string) {
   const response = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "gpt-image-1", prompt, size: "1024x1024", n: 1 })
+    body: JSON.stringify({ model: "gpt-image-1", prompt, size: aspectRatio === "16:9" || aspectRatio === "4:3" ? "1536x1024" : aspectRatio === "9:16" || aspectRatio === "3:4" ? "1024x1536" : "1024x1024", n: 1 })
   }, 60000);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
   const image = data?.data?.[0]?.b64_json;
   if (typeof image !== "string" || !image) throw new Error("OPENAI_RETURNED_NO_IMAGE");
   return { image, mimeType: "image/png" };
+}
+
+async function generateOpenRouterImage(key: string, prompt: string, aspectRatio: string) {
+  const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${key}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://new-star-delta.vercel.app",
+      "X-Title": "New Star Creator Studio"
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3.1-flash-lite-image",
+      modalities: ["text", "image"],
+      image_config: { aspect_ratio: aspectRatio },
+      messages: [{ role: "user", content: "Generate one image, not just a description. Create this image: " + prompt }]
+    })
+  }, 90000);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
+  const imageItem = data?.choices?.[0]?.message?.images?.find((item: any) =>
+    typeof item?.image_url?.url === "string" && item.image_url.url.length > 20
+  );
+  const imageUrl = imageItem?.image_url?.url;
+  if (!imageUrl) throw new Error("OPENROUTER_RETURNED_NO_IMAGE");
+  const dataMatch = imageUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/i);
+  if (dataMatch) return { image: dataMatch[2], mimeType: dataMatch[1] };
+  if (/^https:\/\//i.test(imageUrl)) {
+    const imageResponse = await fetchWithTimeout(imageUrl, {}, 60000);
+    if (!imageResponse.ok) throw new Error("OPENROUTER_IMAGE_DOWNLOAD_HTTP_" + imageResponse.status);
+    const mimeType = imageResponse.headers.get("content-type")?.split(";")[0] || "image/png";
+    if (!/^image\/(png|jpeg|webp)$/i.test(mimeType)) throw new Error("OPENROUTER_UNSUPPORTED_IMAGE_FORMAT");
+    const bytes = new Uint8Array(await imageResponse.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return { image: btoa(binary), mimeType };
+  }
+  throw new Error("OPENROUTER_INVALID_IMAGE_DATA");
 }
 
 function normalizeGeminiContents(messages: ChatMessage[]) {
@@ -128,7 +199,7 @@ async function callOpenAI(key: string, messages: ChatMessage[], systemPrompt: st
       model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }, ...messages.map(m => ({ role: m.role, content: m.content }))],
       temperature: 0.4,
-      max_tokens: 900
+      max_tokens: 1400
     })
   });
   const data = await response.json().catch(() => ({}));
@@ -141,23 +212,41 @@ async function callOpenAI(key: string, messages: ChatMessage[], systemPrompt: st
 async function callGemini(key: string, messages: ChatMessage[], systemPrompt: string) {
   const contents = normalizeGeminiContents(messages);
   if (!contents.length || contents[contents.length - 1].role !== "user") throw new Error("INVALID_GEMINI_TURN_SEQUENCE");
-  const response = await fetchWithTimeout(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-    {
-      method: "POST",
-      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { temperature: 0.4, maxOutputTokens: 900 }
-      })
+
+  const models = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+  let lastFailure = "GEMINI_UNAVAILABLE";
+  for (const model of models) {
+    try {
+      const response = await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents,
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            generationConfig: { temperature: 0.4, maxOutputTokens: 1400 }
+          })
+        },
+        30000
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        lastFailure = providerHttpError(response.status, data);
+        if (response.status === 401) throw new Error(lastFailure);
+        console.warn("Gemini chat model fallback:", model, lastFailure);
+        continue;
+      }
+      const answer = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
+      if (typeof answer === "string" && answer.trim()) return answer;
+      lastFailure = model + ":EMPTY_RESPONSE";
+    } catch (error) {
+      lastFailure = error instanceof Error ? error.message : "GEMINI_REQUEST_FAILED";
+      if (lastFailure === "INVALID_API_KEY") throw error;
+      console.warn("Gemini chat request failed; trying fallback:", model, lastFailure);
     }
-  );
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(providerHttpError(response.status, data));
-  const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("");
-  if (typeof text !== "string" || !text.trim()) throw new Error("EMPTY_RESPONSE");
-  return text;
+  }
+  throw new Error(lastFailure);
 }
 
 async function callOpenRouter(key: string, messages: ChatMessage[], systemPrompt: string) {
@@ -186,13 +275,42 @@ async function callOpenRouter(key: string, messages: ChatMessage[], systemPrompt
   return text;
 }
 
+
+async function transcribeWithOpenAI(key: string, audio: string, mimeType: string) {
+  const binary = atob(audio);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const cleanMime = mimeType.split(";")[0].toLowerCase();
+  const extension = cleanMime === "audio/mp4" || cleanMime === "audio/m4a" ? "m4a"
+    : cleanMime === "audio/ogg" ? "ogg"
+    : cleanMime === "audio/wav" ? "wav"
+    : cleanMime === "audio/mpeg" || cleanMime === "audio/mp3" ? "mp3"
+    : "webm";
+  const form = new FormData();
+  form.append("file", new Blob([bytes], { type: cleanMime }), "new-star-voice." + extension);
+  form.append("model", "gpt-4o-mini-transcribe");
+  form.append("response_format", "json");
+  form.append("prompt", "Transcribe the speech exactly in the original language. Do not translate, summarize, or add words.");
+  const response = await fetchWithTimeout("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${key}` },
+    body: form
+  }, 60000);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
+  if (typeof data?.text !== "string" || !data.text.trim()) throw new Error("EMPTY_TRANSCRIPTION");
+  return data.text.trim();
+}
+
 Deno.serve(async (req: Request) => {
   try {
   const origin = req.headers.get("Origin") || "";
   const headers = corsHeaders(origin);
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405, headers);
-  if (!ALLOWED_ORIGINS.has(origin)) return json({ ok: false, error: "Origin not allowed" }, 403, headers);
+  // Browser calls must come from an approved site. Native Android requests have no
+  // Origin header; they are authenticated immediately below with Supabase auth.getUser().
+  if (origin && !ALLOWED_ORIGINS.has(origin)) return json({ ok: false, error: "Origin not allowed" }, 403, headers);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
@@ -225,131 +343,204 @@ Deno.serve(async (req: Request) => {
   if (body?.action === "speak") {
     const spokenText = typeof body.text === "string" ? body.text.trim() : "";
     if (!spokenText || spokenText.length > 3500) return json({ ok: false, error: "Text for speech must be between 1 and 3,500 characters." }, 400, headers);
-    const geminiKey = firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    const openaiKey = firstSecret("OPENAI_API_KEY", "OPENAI_KEY");
-    if (!geminiKey && !openaiKey) return json({ ok: false, error: "Multilingual AI voice is not configured. Written replies remain available." }, 503, headers);
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
+    if (!geminiKeys.length && !openaiKeys.length) return json({ ok: false, error: "Multilingual AI voice is not configured. Written replies remain available." }, 503, headers);
     const speechAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: speechAllowed, error: speechLimitError } = await speechAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
     if (speechLimitError || speechAllowed !== true) return json({ ok: false, error: speechLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, speechLimitError ? 503 : 429, headers);
 
-    if (geminiKey) {
-      try {
-        const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions", {
-          method: "POST",
-          headers: { "x-goog-api-key": geminiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "gemini-3.8-flash-tts",
-            input: [{ type: "user_input", content: [{
-              type: "text",
-              text: spokenText,
-              annotations: [{ type: "speech_metadata", style: "warm, clear, natural conversational delivery. Speak the text exactly in its original language; do not translate." }]
-            }]}],
-            response_format: { type: "audio" },
-            generation_config: { speech_config: [{ voice: "Kore" }] }
-          })
-        }, 60000);
-        const data = await response.json().catch(() => ({}));
-        const audio = data?.output_audio?.data || data?.steps?.filter((step: any) => step?.type === "model_output").flatMap((step: any) => step?.content || []).filter((part: any) => part?.type === "audio").at(-1)?.data;
-        if (response.ok && typeof audio === "string" && audio) {
-          return json({ ok: true, audio, mimeType: "audio/wav", provider: "gemini" }, 200, headers);
+    const failures: string[] = [];
+    const speechModels = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"];
+    for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
+      for (const model of speechModels) {
+        try {
+          const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+            method: "POST",
+            headers: { "x-goog-api-key": geminiKeys[keyIndex], "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: "Speak the following text naturally and clearly in the same language. Do not translate or add words: " + spokenText }] }],
+              generationConfig: {
+                responseModalities: ["AUDIO"],
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+              }
+            })
+          }, 60000);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const reason = providerHttpError(response.status, data);
+            failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":" + reason);
+            if (response.status === 404) continue;
+            break;
+          }
+          const audioPart = data?.candidates?.[0]?.content?.parts?.find((part: any) =>
+            typeof part?.inlineData?.data === "string" && part.inlineData.data.length > 0
+          );
+          if (audioPart?.inlineData?.data) {
+            return json({ ok: true, audio: audioPart.inlineData.data, mimeType: audioPart.inlineData.mimeType || "audio/wav", provider: "gemini" }, 200, headers);
+          }
+          failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":GEMINI_RETURNED_NO_AUDIO");
+          break;
+        } catch (error) {
+          failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":" + (error instanceof Error ? error.message : "GEMINI_TTS_UNAVAILABLE"));
+          break;
         }
-        if (!openaiKey) return json({ ok: false, error: response.ok ? "Gemini voice returned no audio." : providerHttpError(response.status, data) }, 502, headers);
-      } catch (error) {
-        if (!openaiKey) return json({ ok: false, error: error instanceof Error ? error.message : "Gemini voice service unavailable." }, 502, headers);
       }
     }
 
-    if (openaiKey) {
-      const response = await fetchWithTimeout("https://api.openai.com/v1/audio/speech", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${openaiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-4o-mini-tts",
-          voice: "alloy",
-          input: spokenText,
-          instructions: "Speak the input text naturally in exactly the same language as the input. Do not translate, summarize, or add words.",
-          response_format: "mp3"
-        })
-      }, 60000);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return json({ ok: false, error: providerHttpError(response.status, errorData) }, 502, headers);
+    for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
+      try {
+        const response = await fetchWithTimeout("https://api.openai.com/v1/audio/speech", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${openaiKeys[keyIndex]}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gpt-4o-mini-tts",
+            voice: "alloy",
+            input: spokenText,
+            instructions: "Speak the input text naturally in exactly the same language as the input. Do not translate, summarize, or add words.",
+            response_format: "mp3"
+          })
+        }, 60000);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          failures.push("openai[" + (keyIndex + 1) + "]:" + providerHttpError(response.status, errorData));
+          continue;
+        }
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        return json({ ok: true, audio: btoa(binary), mimeType: "audio/mpeg", provider: "openai" }, 200, headers);
+      } catch (error) {
+        failures.push("openai[" + (keyIndex + 1) + "]:" + (error instanceof Error ? error.message : "OPENAI_TTS_UNAVAILABLE"));
       }
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      let binary = "";
-      for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-      return json({ ok: true, audio: btoa(binary), mimeType: "audio/mpeg", provider: "openai" }, 200, headers);
     }
-    return json({ ok: false, error: "AI voice providers are unavailable." }, 503, headers);
+    console.error("AI speech providers exhausted:", failures.join("; ").slice(0, 1200));
+    return json({ ok: false, error: "AI voice providers are unavailable. Written AI replies remain available.", attempted: failures }, 502, headers);
   }
 
   if (body?.action === "transcribe") {
     const audio = body.audio;
-    const mimeType = typeof body.mimeType === "string" ? body.mimeType : "audio/webm";
-    if (typeof audio !== "string" || audio.length < 100 || audio.length > 11000000 ||
-        !/^audio\/(webm|ogg|mp4|mpeg|wav|mp3|m4a)/i.test(mimeType)) {
-      return json({ ok: false, error: "Voice recording is missing, too large, or uses an unsupported format." }, 400, headers);
-    }
-    const geminiKey = firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    if (!geminiKey) return json({ ok: false, error: "Multilingual voice transcription is not configured. Gemini provider key is missing." }, 503, headers);
+    const rawMimeType = typeof body.mimeType === "string" ? body.mimeType : "audio/webm";
+    const mimeType = rawMimeType.split(";")[0].trim().toLowerCase();
+    const extensions: Record<string, string> = { "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a", "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/wav": "wav", "audio/m4a": "m4a" };
+    if (typeof audio !== "string" || audio.length < 100 || audio.length > 11000000 || !extensions[mimeType]) return json({ ok: false, error: "Voice recording is missing, too large, or uses an unsupported format." }, 400, headers);
     const voiceAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: allowedVoice, error: voiceLimitError } = await voiceAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
     if (voiceLimitError || allowedVoice !== true) return json({ ok: false, error: voiceLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, voiceLimitError ? 503 : 429, headers);
-    const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
-      method: "POST",
-      headers: { "x-goog-api-key": geminiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [
-          { text: "Transcribe this recording exactly in the language spoken. Detect the language automatically. Do not translate. Return only valid JSON with keys language (BCP-47 language tag, best effort) and transcript (verbatim text). If speech is unclear, use the closest accurate transcript and do not invent words." },
-          { inline_data: { mime_type: mimeType, data: audio } }
-        ] }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 1200 }
-      })
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) return json({ ok: false, error: providerHttpError(response.status, data) }, 502, headers);
-    const output = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
-    try {
-      const parsed = JSON.parse(output);
-      if (typeof parsed.transcript !== "string" || !parsed.transcript.trim()) throw new Error("empty");
-      return json({ ok: true, transcript: parsed.transcript.trim(), language: String(parsed.language || "und") }, 200, headers);
-    } catch {
-      return json({ ok: false, error: "Voice transcription returned an unreadable result. Please try again." }, 502, headers);
+    const failures: string[] = [];
+    const audioBytes = Uint8Array.from(atob(audio), (character) => character.charCodeAt(0));
+    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
+    for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
+      try {
+        const form = new FormData();
+        form.append("file", new File([audioBytes], "new-star-voice." + extensions[mimeType], { type: mimeType }));
+        form.append("model", "gpt-4o-mini-transcribe");
+        form.append("prompt", "Transcribe the speech exactly in the original language. Do not translate, summarize, or add words.");
+        form.append("response_format", "json");
+        const response = await fetchWithTimeout("https://api.openai.com/v1/audio/transcriptions", { method: "POST", headers: { "Authorization": "Bearer " + openaiKeys[keyIndex] }, body: form }, 105000);
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && typeof data.text === "string" && data.text.trim()) return json({ ok: true, transcript: data.text.trim(), language: "und", provider: "openai" }, 200, headers);
+        const reason = response.ok ? "EMPTY_TRANSCRIPTION" : providerHttpError(response.status, data);
+        failures.push("openai[" + (keyIndex + 1) + "]:" + reason);
+        console.error("AI voice transcription provider failed:", "openai", keyIndex + 1, reason);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "OPENAI_TRANSCRIPTION_FAILED";
+        failures.push("openai[" + (keyIndex + 1) + "]:" + reason);
+        console.error("AI voice transcription provider failed:", "openai", keyIndex + 1, reason);
+      }
     }
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const transcriptionModels = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+    for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
+      for (const model of transcriptionModels) {
+        try {
+          const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
+            method: "POST", headers: { "x-goog-api-key": geminiKeys[keyIndex], "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "Transcribe this recording exactly in the language spoken. Detect the language automatically. Do not translate. Return only JSON with language and transcript." }, { inline_data: { mime_type: mimeType, data: audio } }] }], generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 1200 } })
+          }, 105000);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const reason = providerHttpError(response.status, data); failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":" + reason);
+            console.error("AI voice transcription provider failed:", "gemini", keyIndex + 1, model, reason);
+            if (response.status === 401) break; continue;
+          }
+          const output = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
+          const parsed = JSON.parse(output);
+          if (typeof parsed.transcript === "string" && parsed.transcript.trim()) return json({ ok: true, transcript: parsed.transcript.trim(), language: String(parsed.language || "und"), provider: "gemini" }, 200, headers);
+          failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":EMPTY_TRANSCRIPTION");
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : "GEMINI_TRANSCRIPTION_FAILED";
+          failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":" + reason);
+          console.error("AI voice transcription provider failed:", "gemini", keyIndex + 1, model, reason); break;
+        }
+      }
+    }
+    return json({ ok: false, error: "Voice transcription providers failed: " + failures.join("; "), attempted: failures }, 502, headers);
   }
-
   if (body?.action === "image") {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+    const aspectRatio = requestedImageAspectRatio(prompt, body.aspectRatio);
+    const imageSize = ["1K", "2K", "4K"].includes(String(body.imageSize || "")) ? String(body.imageSize) : "1K";
+    const requestedLanguage = String(body.language || "");
+    const imageLanguage = AI_LANGUAGE_NAMES[requestedLanguage] || "";
+    const localizedImagePrompt = imageLanguage
+      ? prompt + "\nIf visible text is requested, write it only in " + imageLanguage + " using its native script."
+      : requestedLanguage === "auto"
+        ? prompt + "\nIf visible text is requested, use the same language and writing system as the user's image description. Do not translate the requested wording."
+        : prompt;
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter an image description of up to 1,800 characters." }, 400, headers);
-    const geminiKey = firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    const openaiKey = firstSecret("OPENAI_API_KEY", "OPENAI_KEY");
-    if (!geminiKey && !openaiKey) return json({ ok: false, error: "Image generation is not configured. Add a Gemini or OpenAI provider key on the server." }, 503, headers);
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const openrouterKeys = secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY");
+    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
+    if (!geminiKeys.length && !openrouterKeys.length && !openaiKeys.length) return json({ ok: false, error: "Image generation is not configured. Add a Gemini, OpenRouter, or OpenAI provider key on the server." }, 503, headers);
     const imageAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: imageAllowed, error: imageLimitError } = await imageAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
     if (imageLimitError || imageAllowed !== true) return json({ ok: false, error: imageLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, imageLimitError ? 503 : 429, headers);
 
     const failures: string[] = [];
-    if (geminiKey) {
+    for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
       try {
-        const result = await generateGeminiImage(geminiKey, prompt);
-        return json({ ok: true, ...result, provider: "gemini" }, 200, headers);
+        const result = await generateGeminiImage(geminiKeys[keyIndex], localizedImagePrompt, aspectRatio, imageSize);
+        return json({ ok: true, ...result, aspectRatio, provider: "gemini" }, 200, headers);
       } catch (error) {
-        failures.push("gemini:" + (error instanceof Error ? error.message : "UNKNOWN"));
-        console.error("AI image provider failed:", "gemini", error instanceof Error ? error.message : "unknown");
+        const reason = error instanceof Error ? error.message : "UNKNOWN";
+        failures.push("gemini[" + (keyIndex + 1) + "]:" + reason);
+        console.error("AI image provider failed:", "gemini", keyIndex + 1, reason);
       }
     }
-    if (openaiKey) {
+    for (let keyIndex = 0; keyIndex < openrouterKeys.length; keyIndex++) {
       try {
-        const result = await generateOpenAIImage(openaiKey, prompt);
-        return json({ ok: true, ...result, provider: "openai" }, 200, headers);
+        const result = await generateOpenRouterImage(openrouterKeys[keyIndex], localizedImagePrompt, aspectRatio);
+        return json({ ok: true, ...result, aspectRatio, provider: "openrouter" }, 200, headers);
       } catch (error) {
-        failures.push("openai:" + (error instanceof Error ? error.message : "UNKNOWN"));
-        console.error("AI image provider failed:", "openai", error instanceof Error ? error.message : "unknown");
+        const reason = error instanceof Error ? error.message : "UNKNOWN";
+        failures.push("openrouter[" + (keyIndex + 1) + "]:" + reason);
+        console.error("AI image provider failed:", "openrouter", keyIndex + 1, reason);
       }
     }
+    for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
+      try {
+        const result = await generateOpenAIImage(openaiKeys[keyIndex], localizedImagePrompt, aspectRatio);
+        return json({ ok: true, ...result, aspectRatio, provider: "openai" }, 200, headers);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "UNKNOWN";
+        failures.push("openai[" + (keyIndex + 1) + "]:" + reason);
+        console.error("AI image provider failed:", "openai", keyIndex + 1, reason);
+      }
+    }
+    const failureText = failures.join(" ").toUpperCase();
+    const hasQuotaFailure = failureText.includes("RATE_LIMIT_OR_QUOTA_EXCEEDED") || failureText.includes("HTTP_402");
+    const hasInvalidKey = failureText.includes("INVALID_API_KEY") || failureText.includes("HTTP_401") || failureText.includes("HTTP_403");
+    const errorMessage = hasQuotaFailure && hasInvalidKey
+      ? "तस्वीर बनाने की सेवा की सभी उपलब्ध keys में समस्या है: Gemini की quota/limit समाप्त है, OpenRouter खाते में पर्याप्त credits या billing नहीं है, और OpenAI key अमान्य है। Supabase Edge Function Secrets में सही billing वाली Gemini/OpenRouter या मान्य OpenAI key अपडेट करें।"
+      : hasQuotaFailure
+        ? "तस्वीर बनाने की provider quota या credits सीमा पूरी हो गई है। Gemini/OpenRouter खाते की billing या quota ठीक करें।"
+        : hasInvalidKey
+          ? "तस्वीर बनाने की API key अस्वीकार हुई है। Supabase Edge Function Secrets में सही provider key अपडेट करें।"
+          : "तस्वीर बनाने की सभी सेवाएँ अभी उपलब्ध नहीं हैं। Provider configuration और billing जाँचें।";
     return json({
       ok: false,
-      error: "Image generation providers are temporarily unavailable. Please retry shortly.",
+      error: errorMessage,
       code: "ALL_IMAGE_PROVIDERS_FAILED",
       attempted: failures
     }, 503, headers);
@@ -399,10 +590,10 @@ Deno.serve(async (req: Request) => {
   }
 
   const providers = [
-    { name: "gemini", key: firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"), run: callGemini },
-    { name: "openrouter", key: firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter },
-    { name: "openai", key: firstSecret("OPENAI_API_KEY", "OPENAI_KEY"), run: callOpenAI }
-  ].filter((p): p is { name: string; key: string; run: (key: string, messages: ChatMessage[], systemPrompt: string) => Promise<string> } => Boolean(p.key));
+    { name: "gemini", keys: secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"), run: callGemini },
+    { name: "openai", keys: secretCandidates("OPENAI_API_KEY", "OPENAI_KEY"), run: callOpenAI },
+    { name: "openrouter", keys: secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter }
+  ].filter((p): p is { name: string; keys: string[]; run: (key: string, messages: ChatMessage[], systemPrompt: string) => Promise<string> } => p.keys.length > 0);
 
   if (providers.length === 0) {
     return json({
@@ -412,17 +603,34 @@ Deno.serve(async (req: Request) => {
     }, 503, headers);
   }
 
-  const systemPrompt = body.mode === "help" ? NEW_STAR_HELP_SYSTEM_PROMPT : NEW_STAR_AI_SYSTEM_PROMPT;
+  const baseSystemPrompt = body.mode === "help" ? NEW_STAR_HELP_SYSTEM_PROMPT : NEW_STAR_AI_SYSTEM_PROMPT;
+  let selectedLanguageCode = typeof body.language === "string" ? body.language : "";
+  const automaticLanguage = !selectedLanguageCode || selectedLanguageCode === "auto";
+  if (!automaticLanguage && !AI_LANGUAGE_NAMES[selectedLanguageCode]) {
+    try {
+      const { data: savedPreference } = await userClient.from("user_preferences").select("preferences").eq("user_id", userData.user.id).maybeSingle();
+      const savedLanguage = savedPreference?.preferences?.language;
+      if (typeof savedLanguage === "string" && AI_LANGUAGE_NAMES[savedLanguage]) selectedLanguageCode = savedLanguage;
+    } catch { /* Continue with automatic language detection. */ }
+  }
+  const selectedLanguage = AI_LANGUAGE_NAMES[selectedLanguageCode] || "";
+  const systemPrompt = selectedLanguage
+    ? baseSystemPrompt + "\n\nLANGUAGE SETTING: The app user explicitly selected " + selectedLanguage + ". Write every user-facing response entirely in " + selectedLanguage + " using its native script, unless their latest message explicitly requests another language."
+    : baseSystemPrompt + "\n\nAUTOMATIC LANGUAGE MODE: Detect the language and script of the LATEST user message (including romanized Nepali, Hindi, and other languages). Reply naturally in that same language and script. Do not default to Hindi or English because of the app interface or previous messages. If the user switches language, switch immediately. If the message is short or ambiguous, ask a brief clarification in the language most likely used."; 
+
 
   const failedProviders: string[] = [];
   for (const provider of providers) {
-    try {
-      const answer = await provider.run(provider.key, messages, systemPrompt);
-      return json({ ok: true, provider: provider.name, answer }, 200, headers);
-    } catch (error) {
-      // Never log prompts, provider responses, or API keys.
-      failedProviders.push(`${provider.name}:${error instanceof Error ? error.message : "UNKNOWN"}`);
-      console.error("AI provider failed:", provider.name, error instanceof Error ? error.message : "unknown");
+    for (let keyIndex = 0; keyIndex < provider.keys.length; keyIndex++) {
+      try {
+        const answer = await provider.run(provider.keys[keyIndex], messages, systemPrompt);
+        return json({ ok: true, provider: provider.name, answer }, 200, headers);
+      } catch (error) {
+        // Never log prompts, provider responses, or API keys.
+        const reason = error instanceof Error ? error.message : "UNKNOWN";
+        failedProviders.push(`${provider.name}[${keyIndex + 1}]:${reason}`);
+        console.error("AI provider failed:", provider.name, keyIndex + 1, reason);
+      }
     }
   }
 
