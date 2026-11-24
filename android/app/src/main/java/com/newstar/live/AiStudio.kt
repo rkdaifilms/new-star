@@ -11,11 +11,8 @@ import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
-import android.content.Intent
-import android.os.Bundle
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
+import android.media.MediaRecorder
+import java.io.File
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import java.util.Locale
@@ -48,95 +45,91 @@ internal fun NativeAiStudio(accessToken: String) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var listening by remember { mutableStateOf(false) }
+    var voiceProcessing by remember { mutableStateOf(false) }
     var voiceStatus by remember { mutableStateOf("") }
-    var voiceLevel by remember { mutableStateOf(0f) }
-    var voiceDraftPrefix by remember { mutableStateOf("") }
-    var speechRecognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
+    var recorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var recordingFile by remember { mutableStateOf<File?>(null) }
     var imageMode by remember { mutableStateOf(false) }
     var generatedImage by remember { mutableStateOf<Bitmap?>(null) }
 
-    fun startVoiceRecognition(language: Locale = Locale.getDefault(), allowHindiRetry: Boolean = true, preserveDraftPrefix: Boolean = false) {
-        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            voiceStatus = "इस Android डिवाइस पर speech recognition उपलब्ध नहीं है।"
+    fun startVoiceRecording() {
+        val file = File(context.cacheDir, "new-star-voice-${System.currentTimeMillis()}.m4a")
+        val active = MediaRecorder()
+        try {
+            active.setAudioSource(MediaRecorder.AudioSource.MIC)
+            active.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            active.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            active.setAudioSamplingRate(16000)
+            active.setAudioEncodingBitRate(64000)
+            active.setAudioChannels(1)
+            active.setMaxDuration(120000)
+            active.setOutputFile(file.absolutePath)
+            active.setOnInfoListener { _, what, _ ->
+                if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+                    voiceStatus = "दो मिनट की रिकॉर्डिंग सीमा पूरी हुई — अब टेक्स्ट तैयार होगा।"
+                }
+            }
+            active.prepare()
+            active.start()
+            recorder = active
+            recordingFile = file
+            listening = true
+            voiceStatus = "🔴 रिकॉर्डिंग चालू है — बोलें, फिर रिकॉर्डिंग रोकें।"
+        } catch (failure: Exception) {
+            runCatching { active.reset(); active.release() }
+            runCatching { file.delete() }
+            listening = false
+            voiceStatus = "माइक शुरू नहीं हुआ: " + (failure.message ?: "Android microphone error")
+        }
+    }
+
+    fun stopVoiceRecording() {
+        val active = recorder
+        val file = recordingFile
+        recorder = null
+        recordingFile = null
+        listening = false
+        if (active == null || file == null) {
+            voiceStatus = "कोई सक्रिय रिकॉर्डिंग नहीं मिली।"
             return
         }
-        runCatching { speechRecognizer?.destroy() }
-        if (!preserveDraftPrefix) voiceDraftPrefix = draft.trim()
-        val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
-        speechRecognizer = recognizer
-        recognizer.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) { listening = true; voiceLevel = 0f; voiceStatus = "माइक चालू है — अब बोलें।" }
-            override fun onBeginningOfSpeech() { voiceStatus = "🔴 रिकॉर्डिंग चालू है — बोलें, शब्द नीचे लिखते जाएँगे।" }
-            override fun onRmsChanged(rmsdB: Float) { voiceLevel = ((rmsdB + 2f) / 12f).coerceIn(0f, 1f) }
-            override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() { voiceLevel = 0f; voiceStatus = "रिकॉर्डिंग रुक गई — बोले गए शब्द टेक्स्ट में तैयार हो रहे हैं…" }
-            override fun onError(errorCode: Int) {
-                listening = false
-                voiceLevel = 0f
-                val retryInHindi = allowHindiRetry &&
-                    language.language != "hi" &&
-                    (errorCode == SpeechRecognizer.ERROR_NO_MATCH ||
-                     errorCode == SpeechRecognizer.ERROR_SPEECH_TIMEOUT ||
-                     errorCode == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED)
-                if (retryInHindi) {
-                    voiceStatus = "आवाज़ नहीं पहचानी गई। अब हिन्दी पहचान से एक बार फिर कोशिश करें…"
-                    startVoiceRecognition(Locale("hi", "IN"), allowHindiRetry = false, preserveDraftPrefix = true)
-                    return
-                }
-                draft = voiceDraftPrefix
-                voiceStatus = when (errorCode) {
-                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "आवाज़ समझ नहीं आई। भाषा/माइक जाँचकर फिर बोलें।"
-                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "माइक्रोफोन की अनुमति नहीं मिली।"
-                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Speech recognition के लिए नेटवर्क उपलब्ध नहीं है।"
-                    SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "इस डिवाइस पर चुनी हुई भाषा की speech recognition उपलब्ध नहीं है।"
-                    else -> "Voice recognition रुक गया। दोबारा कोशिश करें।"
-                }
-            }
-            override fun onResults(results: Bundle?) {
-                listening = false
-                voiceLevel = 0f
-                val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
-                if (spoken.isNotBlank()) {
-                    draft = listOf(voiceDraftPrefix.trim(), spoken.trim()).filter { it.isNotBlank() }.joinToString(" ")
-                    error = ""
-                    voiceStatus = "आवाज़ टेक्स्ट बॉक्स में लिख दी गई है। जाँचकर Send दबाएँ।"
-                } else voiceStatus = "कोई शब्द पहचान में नहीं आया। फिर कोशिश करें।"
-            }
-            override fun onPartialResults(partialResults: Bundle?) {
-                val partial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                if (!partial.isNullOrBlank()) {
-                    draft = listOf(voiceDraftPrefix.trim(), partial.trim()).filter { it.isNotBlank() }.joinToString(" ")
-                    voiceStatus = "🔴 रिकॉर्डिंग — टेक्स्ट: " + partial
-                }
-            }
-            override fun onEvent(eventType: Int, params: Bundle?) {}
-        })
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, language.toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, language.toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        val stopped = runCatching { active.stop() }.isSuccess
+        runCatching { active.reset(); active.release() }
+        if (!stopped || !file.exists() || file.length() < 256L) {
+            runCatching { file.delete() }
+            voiceStatus = "रिकॉर्डिंग खाली या अधूरी है। कृपया फिर बोलें।"
+            return
         }
-        listening = true
-        voiceLevel = 0f
-        voiceStatus = "🔴 माइक चालू हो रहा है — बोलना शुरू करें।"
-        runCatching { recognizer.startListening(intent) }.onFailure {
-            listening = false
-            voiceLevel = 0f
-            voiceStatus = it.message ?: "माइक्रोफोन शुरू नहीं हो सका।"
+        voiceProcessing = true
+        voiceStatus = "रिकॉर्डिंग सुरक्षित है — AI उसे टेक्स्ट में बदल रहा है…"
+        scope.launch {
+            try {
+                val transcript = withContext(Dispatchers.IO) {
+                    requestNativeTranscription(accessToken, file.readBytes(), "audio/mp4")
+                }
+                draft = listOf(draft.trim(), transcript.trim()).filter { it.isNotBlank() }.joinToString(" ")
+                error = ""
+                voiceStatus = "आवाज़ टेक्स्ट बॉक्स में लिख दी गई है। अब Send दबाएँ।"
+            } catch (failure: Exception) {
+                voiceStatus = failure.message ?: "आवाज़ को टेक्स्ट में नहीं बदला जा सका।"
+            } finally {
+                runCatching { file.delete() }
+                voiceProcessing = false
+            }
         }
     }
 
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) startVoiceRecognition() else voiceStatus = "AI voice input के लिए microphone permission आवश्यक है।"
+        if (granted) startVoiceRecording()
+        else voiceStatus = "AI voice input के लिए microphone permission आवश्यक है।"
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            runCatching { speechRecognizer?.cancel(); speechRecognizer?.destroy() }
-            speechRecognizer = null
+            runCatching { recorder?.stop(); recorder?.reset(); recorder?.release() }
+            recorder = null
+            recordingFile?.let { runCatching { it.delete() } }
+            recordingFile = null
         }
     }
 
@@ -203,18 +196,17 @@ internal fun NativeAiStudio(accessToken: String) {
         OutlinedButton(
             onClick = {
                 if (listening) {
-                    voiceStatus = "रिकॉर्डिंग रोक रहे हैं — आवाज़ के शब्द तैयार हो रहे हैं…"
-                    runCatching { speechRecognizer?.stopListening() }
+                    voiceStatus = "रिकॉर्डिंग रोकी जा रही है…"
+                    stopVoiceRecording()
                 } else if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                    startVoiceRecognition()
+                    startVoiceRecording()
                 } else {
                     micPermission.launch(Manifest.permission.RECORD_AUDIO)
                 }
             },
-            enabled = !sending,
+            enabled = !sending && !voiceProcessing,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(if (listening) "■ रिकॉर्डिंग रोकें" else "🎙️ माइक से बोलें") }
-        if (voiceStatus.isNotBlank()) {
+        ) { Text(when { listening -> "■ रिकॉर्डिंग रोकें"; voiceProcessing -> "आवाज़ टेक्स्ट में बदल रही है…"; else -> "🎙        if (voiceStatus.isNotBlank()) {
             Spacer(Modifier.height(8.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -222,26 +214,10 @@ internal fun NativeAiStudio(accessToken: String) {
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(Modifier.padding(12.dp)) {
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Text(if (listening) "🔴" else "🎙️", fontSize = 17.sp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            if (listening) "माइक LIVE — आपकी आवाज़ सुन रहा है" else voiceStatus,
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    if (listening) {
+                    Text(if (listening) "🔴 माइक LIVE — रिकॉर्डिंग हो रही है" else voiceStatus, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    if (listening || voiceProcessing) {
                         Spacer(Modifier.height(8.dp))
-                        LinearProgressIndicator(
-                            progress = voiceLevel,
-                            modifier = Modifier.fillMaxWidth(),
-                            color = Color(0xFFFF526F),
-                            trackColor = Color(0xFF68404A)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text("बोलते समय यह पट्टी आवाज़ के साथ हिलेगी। रोकने पर शब्द टेक्स्ट बॉक्स में आएँगे।", color = Color.LightGray, fontSize = 11.sp)
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFFFF526F))
                     }
                 }
             }
@@ -305,6 +281,35 @@ private fun requestNativeImage(accessToken: String, prompt: String): Pair<String
         val image = data.optString("image")
         check(image.isNotBlank()) { "AI ने तस्वीर डेटा नहीं भेजा।" }
         return image to data.optString("mimeType", "image/png")
+    }
+}
+
+private fun requestNativeTranscription(accessToken: String, audioBytes: ByteArray, mimeType: String): String {
+    check(accessToken.isNotBlank()) { "आवाज़ टेक्स्ट में बदलने के लिए पहले लॉगिन करें।" }
+    check(audioBytes.isNotEmpty() && audioBytes.size <= 8 * 1024 * 1024) { "रिकॉर्डिंग खाली है या बहुत बड़ी है।" }
+    val payload = JSONObject()
+        .put("action", "transcribe")
+        .put("mimeType", mimeType)
+        .put("audio", Base64.encodeToString(audioBytes, Base64.NO_WRAP))
+    val client = OkHttpClient.Builder()
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(90, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+    val request = Request.Builder()
+        .url("https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/ai-gateway")
+        .post(payload.toString().toRequestBody("application/json".toMediaType()))
+        .header("apikey", "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr")
+        .header("Authorization", "Bearer $accessToken")
+        .build()
+    client.newCall(request).execute().use { response ->
+        val raw = response.body?.string().orEmpty()
+        val data = runCatching { JSONObject(raw) }.getOrElse { JSONObject() }
+        if (!response.isSuccessful || !data.optBoolean("ok", false)) {
+            throw IllegalStateException(data.optString("error").ifBlank { "आवाज़ पहचान सेवा उपलब्ध नहीं है (" + response.code + ")।" })
+        }
+        return data.optString("transcript").takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("आवाज़ से कोई टेक्स्ट नहीं मिला।")
     }
 }
 
