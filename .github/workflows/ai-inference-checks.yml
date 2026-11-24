@@ -110,6 +110,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build CPU inference container
         run: docker build --tag new-star-cpu-inference:ci ./ai-inference
+      - name: Build New Star Search container
+        run: docker build --tag new-star-search:ci ./ai-search
 
   foundation-model-tests:
     runs-on: ubuntu-latest
@@ -136,9 +138,11 @@ jobs:
         with:
           python-version: "3.11"
       - name: Compile self-hosted AI engine
-        run: python -m compileall -q ai-engine/ai_engine
+        run: python -m compileall -q ai-engine/ai_engine ai-search
       - name: Test model registry, fallback router, HTTP API, and streaming adapters
         run: python -m unittest discover -s ai-engine/tests -v
+      - name: Test New Star Search index and API
+        run: python -m unittest discover -s ai-search/tests -v
       - name: Validate example registry and preview a multilingual route
         run: |
           PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.example.json validate

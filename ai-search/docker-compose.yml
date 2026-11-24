@@ -1,0 +1,22 @@
+services:
+  new-star-search:
+    build: .
+    restart: unless-stopped
+    environment:
+      NEW_STAR_SEARCH_API_KEY: \${NEW_STAR_SEARCH_API_KEY:?Set NEW_STAR_SEARCH_API_KEY}
+      NEW_STAR_SEARCH_DB: /var/lib/new-star-search/index.sqlite3
+      NEW_STAR_SEARCH_ALLOWED_DOMAINS: \${NEW_STAR_SEARCH_ALLOWED_DOMAINS:-}
+      NEW_STAR_SEARCH_USER_AGENT: \${NEW_STAR_SEARCH_USER_AGENT:-NewStarSearchBot/1.0}
+      NEW_STAR_SEARCH_MAX_PAGE_BYTES: \${NEW_STAR_SEARCH_MAX_PAGE_BYTES:-2000000}
+      NEW_STAR_SEARCH_FETCH_TIMEOUT: \${NEW_STAR_SEARCH_FETCH_TIMEOUT:-12}
+    volumes:
+      - new-star-search-data:/var/lib/new-star-search
+    ports:
+      - "127.0.0.1:8081:8081"
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/healthz',timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+volumes:
+  new-star-search-data:
