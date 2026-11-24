@@ -18,11 +18,11 @@ Use Python 3.10+ and install the separate training dependency:
 python -m venv .venv
 . .venv/bin/activate
 pip install -r ai-foundation/requirements.txt
-python -m ai_foundation.train --data ./your-permitted-corpus.txt --steps 2000
-python -m ai_foundation.generate --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120
+python ai-foundation/train.py --data ./your-permitted-corpus.txt --steps 2000
+python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120
 ```
 
-The first experiments should use a small, curated corpus and a small model on CPU. A GPU substantially reduces training time. The corpus must be lawfully obtained and suitable for the intended use; do not scrape private data or include secrets or personal records.
+The scripts import their model directly from the same source folder. The first experiments should use a small, curated corpus and a small model on CPU. A GPU substantially reduces training time. The corpus must be lawfully obtained and suitable for the intended use; do not scrape private data or include secrets or personal records.
 
 ## Honest capability boundary
 
