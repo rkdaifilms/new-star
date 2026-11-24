@@ -112,4 +112,16 @@ The authenticated chat route can optionally retrieve excerpts from the separatel
 - `NEW_STAR_SEARCH_BASE_URL=https://your-search-host`
 - `NEW_STAR_SEARCH_API_KEY` (server-side secret only)
 
-When enabled, each chat request attempts one bounded search (up to five results, eight-second timeout). Search failure is non-fatal: ordinary chat continues without retrieved context. Retrieved snippets are explicitly marked untrusted and source URLs are passed to the model. This is lexical SQLite FTS retrieval, not embedding/vector retrieval; quality depends on the pages crawled into the allowlisted index.
+When enabled, each chat request attempts one bounded search (up to five results, eight-second timeout). Search failure is non-fatal: ordinary chat continues without retrieved context. Retrieved snippets are explicitly marked untrusted and source URLs are passed to the model.
+
+### Multilingual vector retrieval
+
+The pgvector semantic retrieval service is defined in `ai-search/docker-compose.yml`:
+- Migration `supabase/migrations/20261125000000_new_star_vector_search.sql` creates a private 384-dimensional pgvector table and HNSW cosine index.
+- The local FastEmbed ONNX encoder uses `intfloat/multilingual-e5-small` as a multilingual pretrained baseline. It is not a New Star-trained embedding model.
+- `vector_server.py` exposes authenticated `POST /search` and `GET /healthz` on port 8082. Search results retain the gateway's title/url/snippet/source contract and include cosine similarity.
+- After crawling pages into SQLite, backfill them with `docker compose -f ai-search/docker-compose.yml run --rm new-star-vector-search python vector_sync.py --sqlite-db /var/lib/new-star-search/index.sqlite3`. Repeat after each crawl batch.
+- Point `NEW_STAR_SEARCH_BASE_URL` at the public HTTPS reverse-proxy origin for port 8082 to use vector retrieval for gateway RAG. Keep lexical search on port 8081.
+- Set `NEW_STAR_VECTOR_DATABASE_URL` as a server-side secret only, using a restricted database role. Apply the migration before starting the vector service.
+
+The vector service chunks pages, generates multilingual embeddings, stores them in pgvector, and ranks results by cosine similarity. The current reranking is cosine ordering plus bounded gateway context normalization; a separately trained cross-encoder reranker and hybrid lexical/vector reciprocal-rank fusion are not yet implemented.
