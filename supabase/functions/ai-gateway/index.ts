@@ -169,26 +169,48 @@ async function generateOpenRouterImage(key: string, prompt: string, aspectRatio:
 }
 
 
-async function generateGeminiVideo(key: string, prompt: string, aspectRatio: string, resolution: string, duration: string) {
+async function startGeminiVideo(key: string, prompt: string, aspectRatio: string, resolution: string, duration: string) {
   const model = Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim() || "gemini-omni-1.2-flash";
-  const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions", {
+  const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1/interactions", {
     method: "POST",
     headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
-      input: prompt,
-      response_format: { type: "video", aspect_ratio: aspectRatio, resolution, duration }
+      input: [{ type: "text", text: prompt }],
+      generation_config: { video_config: { task: "text_to_video" } },
+      response_format: [{ type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }],
+      background: true,
+      store: true
     })
-  }, 125000);
+  }, 30000);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
-  const videoPart = data?.steps?.find((step: any) => step?.type === "model_output")
-    ?.content?.find((part: any) => part?.type === "video" && typeof part?.data === "string" && part.data.length > 100);
-  const video = data?.output_video?.data || videoPart?.data;
-  if (typeof video !== "string" || video.length < 100) {
-    throw new Error("GEMINI_RETURNED_NO_VIDEO");
+  if (typeof data?.id !== "string" || !data.id || !["in_progress", "completed"].includes(data?.status)) {
+    throw new Error("GEMINI_INVALID_VIDEO_INTERACTION");
   }
-  return { video, model };
+  return { interactionId: data.id, status: data.status, model };
+}
+
+async function getGeminiVideoInteraction(key: string, interactionId: string) {
+  const response = await fetchWithTimeout(
+    "https://generativelanguage.googleapis.com/v1/interactions/" + encodeURIComponent(interactionId),
+    { method: "GET", headers: { "x-goog-api-key": key } },
+    25000
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
+  return data;
+}
+
+function extractGeminiVideoData(interaction: any): string | null {
+  const steps = Array.isArray(interaction?.steps) ? interaction.steps : [];
+  for (const step of steps) {
+    if (step?.type !== "model_output" || !Array.isArray(step?.content)) continue;
+    for (const part of step.content) {
+      if (part?.type === "video" && typeof part?.data === "string" && part.data.length > 100) return part.data;
+    }
+  }
+  return null;
 }
 
 function normalizeGeminiContents(messages: ChatMessage[]) {
@@ -569,52 +591,96 @@ Deno.serve(async (req: Request) => {
 
     const failures: string[] = [];
     for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
-      let uploadedPath = "";
       try {
-        const result = await generateGeminiVideo(geminiKeys[keyIndex], prompt, aspectRatio, resolution, duration);
-        if (result.video.length > 70000000) throw new Error("VIDEO_OUTPUT_TOO_LARGE");
-        const videoBytes = Uint8Array.from(atob(result.video), (character) => character.charCodeAt(0));
-        if (videoBytes.byteLength > 50 * 1024 * 1024) throw new Error("VIDEO_OUTPUT_TOO_LARGE");
-        uploadedPath = userData.user.id + "/" + crypto.randomUUID() + ".mp4";
-        const { error: uploadError } = await videoAdmin.storage.from("new-star-ai-videos").upload(uploadedPath, videoBytes, {
-          contentType: "video/mp4",
-          cacheControl: "3600",
-          upsert: false
-        });
-        if (uploadError) throw new Error("VIDEO_STORAGE_UPLOAD_FAILED");
-        const { data: signed, error: signedError } = await videoAdmin.storage.from("new-star-ai-videos").createSignedUrl(uploadedPath, 3600);
-        if (signedError || !signed?.signedUrl) {
-          await videoAdmin.storage.from("new-star-ai-videos").remove([uploadedPath]);
-          throw new Error("VIDEO_STORAGE_LINK_FAILED");
+        const result = await startGeminiVideo(geminiKeys[keyIndex], prompt, aspectRatio, resolution, duration);
+        const { data: job, error: jobError } = await videoAdmin.from("ai_video_jobs").insert({
+          user_id: userData.user.id,
+          provider_interaction_id: result.interactionId,
+          provider_model: result.model,
+          status: result.status
+        }).select("id").single();
+        if (jobError || !job?.id) {
+          await fetchWithTimeout("https://generativelanguage.googleapis.com/v1/interactions/" + encodeURIComponent(result.interactionId) + "/cancel", {
+            method: "POST", headers: { "x-goog-api-key": geminiKeys[keyIndex] }
+          }, 10000).catch(() => {});
+          throw new Error("VIDEO_JOB_SAVE_FAILED");
         }
-        return json({
-          ok: true,
-          videoUrl: signed.signedUrl,
-          storagePath: uploadedPath,
-          mimeType: "video/mp4",
-          provider: "gemini",
-          model: result.model,
-          expiresInSeconds: 3600
-        }, 200, headers);
+        return json({ ok: true, jobId: job.id, status: result.status, provider: "gemini", model: result.model }, 202, headers);
       } catch (error) {
-        const reason = error instanceof Error ? error.message : "VIDEO_GENERATION_FAILED";
+        const reason = error instanceof Error ? error.message : "VIDEO_START_FAILED";
         failures.push("gemini[" + (keyIndex + 1) + "]:" + reason);
-        console.error("AI video provider failed:", "gemini", keyIndex + 1, reason);
-        if (uploadedPath) await videoAdmin.storage.from("new-star-ai-videos").remove([uploadedPath]).catch(() => {});
+        console.error("AI video job start failed:", "gemini", keyIndex + 1, reason);
       }
     }
     const failureText = failures.join(" ").toUpperCase();
     const message = failureText.includes("HTTP_402") || failureText.includes("RATE_LIMIT_OR_QUOTA_EXCEEDED")
-      ? "Video provider quota or billing limit reached. No video was returned; an authorized account owner can check provider usage."
+      ? "Video provider quota or billing limit reached. An authorized account owner can check provider usage."
       : failureText.includes("INVALID_API_KEY") || failureText.includes("HTTP_403")
         ? "The video provider rejected its server-side key or project access."
-        : failureText.includes("VIDEO_STORAGE")
-          ? "The video was generated but could not be saved to New Star storage. Please retry later."
-          : "Video generation failed or timed out. Check provider access and try again.";
-    return json({ ok: false, error: message, code: "ALL_VIDEO_PROVIDERS_FAILED", attempted: failures }, 502, headers);
+        : "Could not start the video job. Check provider access and try again.";
+    return json({ ok: false, error: message, code: "VIDEO_JOB_START_FAILED", attempted: failures }, 502, headers);
   }
 
-  if (body?.action === "image") {
+  if (body?.action === "video-status") {
+    const jobId = typeof body.jobId === "string" ? body.jobId.trim() : "";
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(jobId)) {
+      return json({ ok: false, error: "A valid video job ID is required." }, 400, headers);
+    }
+    const videoAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: job, error: jobError } = await videoAdmin.from("ai_video_jobs")
+      .select("id, provider_interaction_id, provider_model, status, storage_path, failure_code")
+      .eq("id", jobId).eq("user_id", userData.user.id).maybeSingle();
+    if (jobError) return json({ ok: false, error: "Could not read video job status." }, 503, headers);
+    if (!job) return json({ ok: false, error: "Video job not found." }, 404, headers);
+    if (job.status === "failed") return json({ ok: false, status: "failed", error: "Video generation failed. Check provider access and try again.", code: job.failure_code || "VIDEO_JOB_FAILED" }, 200, headers);
+    if (job.status === "completed" && job.storage_path) {
+      const { data: signed, error: signedError } = await videoAdmin.storage.from("new-star-ai-videos").createSignedUrl(job.storage_path, 3600);
+      if (signedError || !signed?.signedUrl) return json({ ok: false, error: "The video is saved, but a secure playback link could not be created." }, 503, headers);
+      return json({ ok: true, status: "completed", videoUrl: signed.signedUrl, storagePath: job.storage_path, mimeType: "video/mp4", model: job.provider_model, expiresInSeconds: 3600 }, 200, headers);
+    }
+
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    if (!geminiKeys.length) return json({ ok: false, error: "Video provider is not configured." }, 503, headers);
+    let interaction: any = null;
+    let lastFailure = "GEMINI_VIDEO_STATUS_UNAVAILABLE";
+    for (const key of geminiKeys) {
+      try { interaction = await getGeminiVideoInteraction(key, job.provider_interaction_id); break; }
+      catch (error) { lastFailure = error instanceof Error ? error.message : lastFailure; }
+    }
+    if (!interaction) return json({ ok: false, error: "Could not check video progress. Please retry.", code: lastFailure }, 502, headers);
+    if (interaction.status === "in_progress") return json({ ok: true, status: "in_progress", jobId: job.id, model: job.provider_model }, 200, headers);
+    if (interaction.status !== "completed") {
+      await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "GEMINI_" + String(interaction.status || "FAILED").toUpperCase(), updated_at: new Date().toISOString() }).eq("id", job.id);
+      return json({ ok: false, status: "failed", error: "The video provider could not complete this video.", code: "GEMINI_VIDEO_" + String(interaction.status || "FAILED").toUpperCase() }, 200, headers);
+    }
+
+    const encodedVideo = extractGeminiVideoData(interaction);
+    if (!encodedVideo || encodedVideo.length > 70000000) {
+      await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "GEMINI_VIDEO_OUTPUT_MISSING_OR_TOO_LARGE", updated_at: new Date().toISOString() }).eq("id", job.id);
+      return json({ ok: false, status: "failed", error: "The provider completed the job but returned no supported inline MP4 data.", code: "GEMINI_VIDEO_OUTPUT_MISSING" }, 200, headers);
+    }
+    const videoBytes = Uint8Array.from(atob(encodedVideo), (character) => character.charCodeAt(0));
+    if (videoBytes.byteLength > 50 * 1024 * 1024) {
+      await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "VIDEO_OUTPUT_TOO_LARGE", updated_at: new Date().toISOString() }).eq("id", job.id);
+      return json({ ok: false, status: "failed", error: "The generated video exceeds New Star's 50 MB storage limit." }, 200, headers);
+    }
+    const storagePath = userData.user.id + "/" + crypto.randomUUID() + ".mp4";
+    const { error: uploadError } = await videoAdmin.storage.from("new-star-ai-videos").upload(storagePath, videoBytes, { contentType: "video/mp4", cacheControl: "3600", upsert: false });
+    if (uploadError) {
+      await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "VIDEO_STORAGE_UPLOAD_FAILED", updated_at: new Date().toISOString() }).eq("id", job.id);
+      return json({ ok: false, status: "failed", error: "The video finished but could not be saved to New Star storage." }, 503, headers);
+    }
+    const { error: updateError } = await videoAdmin.from("ai_video_jobs").update({ status: "completed", storage_path: storagePath, updated_at: new Date().toISOString() }).eq("id", job.id);
+    if (updateError) {
+      await videoAdmin.storage.from("new-star-ai-videos").remove([storagePath]);
+      return json({ ok: false, error: "The video was uploaded but its job record could not be finalized." }, 503, headers);
+    }
+    const { data: signed, error: signedError } = await videoAdmin.storage.from("new-star-ai-videos").createSignedUrl(storagePath, 3600);
+    if (signedError || !signed?.signedUrl) return json({ ok: false, error: "The video is saved, but a secure playback link could not be created." }, 503, headers);
+    return json({ ok: true, status: "completed", videoUrl: signed.signedUrl, storagePath, mimeType: "video/mp4", model: job.provider_model, expiresInSeconds: 3600 }, 200, headers);
+  }
+
+    if (body?.action === "image") {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = requestedImageAspectRatio(prompt, body.aspectRatio);
     const imageSize = ["1K", "2K", "4K"].includes(String(body.imageSize || "")) ? String(body.imageSize) : "1K";
