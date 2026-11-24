@@ -168,6 +168,29 @@ async function generateOpenRouterImage(key: string, prompt: string, aspectRatio:
   throw new Error("OPENROUTER_INVALID_IMAGE_DATA");
 }
 
+
+async function generateGeminiVideo(key: string, prompt: string, aspectRatio: string, resolution: string) {
+  const model = Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim() || "gemini-omni-1.2-flash";
+  const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions", {
+    method: "POST",
+    headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      input: prompt,
+      response_format: { type: "video", aspect_ratio: aspectRatio, resolution }
+    })
+  }, 125000);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
+  const videoPart = data?.steps?.find((step: any) => step?.type === "model_output")
+    ?.content?.find((part: any) => part?.type === "video" && typeof part?.data === "string" && part.data.length > 100);
+  const video = data?.output_video?.data || videoPart?.data;
+  if (typeof video !== "string" || video.length < 100) {
+    throw new Error("GEMINI_RETURNED_NO_VIDEO");
+  }
+  return { video, model };
+}
+
 function normalizeGeminiContents(messages: ChatMessage[]) {
   const contents: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }> = [];
   for (const message of messages) {
@@ -532,6 +555,64 @@ Deno.serve(async (req: Request) => {
     }
     return json({ ok: false, error: "Voice transcription providers failed: " + failures.join("; "), attempted: failures }, 502, headers);
   }
+  if (body?.action === "video") {
+    const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+    const aspectRatio = ["16:9", "9:16"].includes(String(body.aspectRatio || "")) ? String(body.aspectRatio) : "16:9";
+    const resolution = ["360p", "720p", "1080p"].includes(String(body.resolution || "")) ? String(body.resolution) : "720p";
+    if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter a video description of up to 1,800 characters." }, 400, headers);
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    if (!geminiKeys.length) return json({ ok: false, error: "Video generation is not configured. An authorized project owner must configure the Gemini API key on the server." }, 503, headers);
+    const videoAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: videoAllowed, error: videoLimitError } = await videoAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 3 });
+    if (videoLimitError || videoAllowed !== true) return json({ ok: false, error: videoLimitError ? "Security rate-limit check unavailable." : "Video request limit reached. Please wait before trying again." }, videoLimitError ? 503 : 429, headers);
+
+    const failures: string[] = [];
+    for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
+      let uploadedPath = "";
+      try {
+        const result = await generateGeminiVideo(geminiKeys[keyIndex], prompt, aspectRatio, resolution);
+        if (result.video.length > 70000000) throw new Error("VIDEO_OUTPUT_TOO_LARGE");
+        const videoBytes = Uint8Array.from(atob(result.video), (character) => character.charCodeAt(0));
+        if (videoBytes.byteLength > 50 * 1024 * 1024) throw new Error("VIDEO_OUTPUT_TOO_LARGE");
+        uploadedPath = userData.user.id + "/" + crypto.randomUUID() + ".mp4";
+        const { error: uploadError } = await videoAdmin.storage.from("new-star-ai-videos").upload(uploadedPath, videoBytes, {
+          contentType: "video/mp4",
+          cacheControl: "3600",
+          upsert: false
+        });
+        if (uploadError) throw new Error("VIDEO_STORAGE_UPLOAD_FAILED");
+        const { data: signed, error: signedError } = await videoAdmin.storage.from("new-star-ai-videos").createSignedUrl(uploadedPath, 3600);
+        if (signedError || !signed?.signedUrl) {
+          await videoAdmin.storage.from("new-star-ai-videos").remove([uploadedPath]);
+          throw new Error("VIDEO_STORAGE_LINK_FAILED");
+        }
+        return json({
+          ok: true,
+          videoUrl: signed.signedUrl,
+          storagePath: uploadedPath,
+          mimeType: "video/mp4",
+          provider: "gemini",
+          model: result.model,
+          expiresInSeconds: 3600
+        }, 200, headers);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "VIDEO_GENERATION_FAILED";
+        failures.push("gemini[" + (keyIndex + 1) + "]:" + reason);
+        console.error("AI video provider failed:", "gemini", keyIndex + 1, reason);
+        if (uploadedPath) await videoAdmin.storage.from("new-star-ai-videos").remove([uploadedPath]).catch(() => {});
+      }
+    }
+    const failureText = failures.join(" ").toUpperCase();
+    const message = failureText.includes("HTTP_402") || failureText.includes("RATE_LIMIT_OR_QUOTA_EXCEEDED")
+      ? "Video provider quota or billing limit reached. No video was returned; an authorized account owner can check provider usage."
+      : failureText.includes("INVALID_API_KEY") || failureText.includes("HTTP_403")
+        ? "The video provider rejected its server-side key or project access."
+        : failureText.includes("VIDEO_STORAGE")
+          ? "The video was generated but could not be saved to New Star storage. Please retry later."
+          : "Video generation failed or timed out. Check provider access and try again.";
+    return json({ ok: false, error: message, code: "ALL_VIDEO_PROVIDERS_FAILED", attempted: failures }, 502, headers);
+  }
+
   if (body?.action === "image") {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = requestedImageAspectRatio(prompt, body.aspectRatio);
@@ -617,7 +698,7 @@ Deno.serve(async (req: Request) => {
         imageGeneration: { supported: true, configured: imageConfigured },
         speechGeneration: { supported: true, configured: speechConfigured },
         speechTranscription: { supported: true, configured: speechConfigured },
-        videoGeneration: { supported: false, configured: false, reason: "A video-generation provider adapter is not implemented in this gateway yet." },
+        videoGeneration: { supported: true, configured: hasGemini, provider: "gemini", model: Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim() || "gemini-omni-1.2-flash", reason: "A configured key does not verify model access, paid-tier eligibility, quota, or successful video generation." },
         webSearch: { supported: false, configured: false, reason: "A live search provider adapter is not implemented in this gateway yet." }
       },
       health: {
