@@ -6,7 +6,7 @@ from .inference import ChatInference
 from .jobs import JobQueue
 from .registry import ModelRegistry
 
-def run_worker(once=False, poll_seconds=1.0):
+def run_worker(once=False, poll_seconds=1.0, idle_timeout=0.0):
     settings = EngineSettings.from_env()
     registry = ModelRegistry.from_json_file(settings.models_file, settings)
     inference = ChatInference(registry)
@@ -19,6 +19,7 @@ def run_worker(once=False, poll_seconds=1.0):
                 return 0
             time.sleep(max(0.1,poll_seconds))
             continue
+        idle_since = time.monotonic()
         try:
             if job["kind"] != "chat":
                 raise ValueError("unsupported background job kind")
@@ -49,8 +50,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--once",action="store_true")
     parser.add_argument("--poll-seconds",type=float,default=float(os.environ.get("NEW_STAR_AI_WORKER_POLL_SECONDS","1")))
+    parser.add_argument("--idle-timeout",type=float,default=0.0)
     args = parser.parse_args()
-    return run_worker(args.once,args.poll_seconds)
+    return run_worker(args.once,args.poll_seconds,args.idle_timeout)
 
 if __name__ == "__main__":
     raise SystemExit(main())
