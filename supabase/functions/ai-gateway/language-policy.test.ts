@@ -34,7 +34,7 @@ Deno.test("treats Arabic script as language-ambiguous", () => {
 
 Deno.test("detects additional South Asian and world scripts", () => {
   const cases = [
-    ["Punjabi", "ਸਤ ਸ੍ਰੀ ਅਕਾਲ ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ"],
+    ["Gurmukhi", "ਸਤ ਸ੍ਰੀ ਅਕਾਲ ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ"],
     ["Gujarati", "નમસ્તે તમે કેમ છો આજે"],
     ["Tamil", "வணக்கம் நீங்கள் எப்படி இருக்கிறீர்கள்"],
     ["Telugu", "నమస్కారం మీరు ఎలా ఉన్నారు"],
