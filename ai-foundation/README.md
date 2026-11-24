@@ -20,6 +20,9 @@ python -m venv .venv
 . .venv/bin/activate
 pip install -r ai-foundation/requirements.txt
 python ai-foundation/train.py --data ./your-permitted-corpus.txt --steps 2000 --seed 1337
+# If interrupted, resume toward a larger total step count:
+python ai-foundation/train.py --data ./your-permitted-corpus.txt --steps 4000 --seed 1337 \\
+  --resume-from artifacts/newstar-small.pt.resume.pt
 python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-permitted-corpus.txt
 # For per-language scores, pass a validation-only JSONL file:
 python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-languages.jsonl --data-format jsonl
@@ -136,8 +139,7 @@ The resume file includes model weights, optimizer state, batch-sampling RNG,
 and PyTorch RNG state. The trainer rejects a changed dataset or incompatible
 training configuration rather than silently resuming a different experiment.
 The `--steps` value is the desired total step count, not additional steps.
-This resume support currently applies to SFT; pretraining resume is not yet
-implemented.
+The pretraining and SFT resume files are separate formats. Both trainers reject a changed dataset or incompatible training configuration. For pretraining, the resume file also verifies the tokenizer fingerprint. The `--steps` value is the desired total step count, not additional steps.
 
 The SFT loop trains only on assistant response targets; system/user tokens and
 padding positions are ignored by the loss. Each batch row selects a language
