@@ -271,8 +271,7 @@ def test_instruction_loader_rejects_invalid_turn_order_and_split_leakage(tmp_pat
         load_instruction_corpora(path)
 
 
-def test_instruction_encoder_rejects_examples_truncated_before_answer():
-    import pytest
+def test_instruction_encoder_keeps_assistant_targets_when_truncating_long_prompt():
     from instruction_data import encode_instruction_example
     from tokenizer import UnicodeCharTokenizer
 
@@ -281,10 +280,9 @@ def test_instruction_encoder_rejects_examples_truncated_before_answer():
         {"role": "assistant", "content": "short answer"},
     ]
     tokenizer = UnicodeCharTokenizer.train("".join(m["content"] for m in messages), 512)
-    with pytest.raises(ValueError, match="no assistant response"):
-        encode_instruction_example(messages, tokenizer, max_length=8)
-
-
+    inputs, labels = encode_instruction_example(messages, tokenizer, max_length=8)
+    assert len(inputs) <= 8
+    assert any(label != -100 for label in labels)
 
 def test_sft_batch_sampler_and_macro_validation_are_finite():
     from instruction_data import encode_instruction_example
