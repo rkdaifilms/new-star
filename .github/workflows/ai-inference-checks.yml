@@ -56,11 +56,14 @@ jobs:
           grep -F 'async function startGeminiVideo' "$FILE"
           grep -F 'NEW_STAR_IMAGE_MODEL' "$FILE"
           grep -F 'response_format: { type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }' "$FILE"
-          grep -F 'gemini-omni-1.1-flash' "$FILE"
           grep -F 'generation_config: { video_config: { task: "text_to_video" } }' "$FILE"
           grep -F 'delivery: "inline"' "$FILE"
           grep -F 'newstar_pending_video_job' creator-ai.js
-          grep -F 'https://generativelanguage.googleapis.com/v1beta/interactions' "$FILE"
+          grep -F 'https://aiplatform.googleapis.com/v1beta1/projects/' "$FILE"
+          grep -F 'GOOGLE_SERVICE_ACCOUNT_JSON' "$FILE"
+          grep -F 'oauth2.googleapis.com/token' "$FILE"
+          grep -F 'gemini-omni-1.2-flash' "$FILE"
+          grep -F 'gemini-omni-1.1-flash-preview' "$FILE"
           grep -F 'background: true' "$FILE"
           grep -F 'body?.action === "video-status"' "$FILE"
           grep -F 'pendingVideoJobId' creator-ai.js
