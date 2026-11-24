@@ -7,7 +7,7 @@ from pathlib import Path
 
 import torch
 
-from ai_foundation.model import NewStarConfig, NewStarGPT
+from model import NewStarConfig, NewStarGPT
 
 
 def batches(data: torch.Tensor, batch_size: int, block_size: int, device: str):
