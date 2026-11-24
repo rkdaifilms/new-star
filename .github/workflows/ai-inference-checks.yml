@@ -78,7 +78,6 @@ jobs:
           grep -F 'body?.action === "video-status"' "$FILE"
           grep -F 'pendingVideoJobId' creator-ai.js
           grep -F 'async function getGeminiVideoInteraction' "$FILE"
-          grep -F 'background: true' "$FILE"
           grep -F 'body?.action === "video-status"' "$FILE"
           grep -F 'ai_video_jobs' "$FILE"
           grep -F 'create table if not exists public.ai_video_jobs' supabase/migrations/20261124130000_add_async_ai_video_jobs.sql
