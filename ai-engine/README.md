@@ -36,6 +36,15 @@ From the repository root:
 python -m unittest discover -s ai-engine/tests -v
 ```
 
+## Validate and preview routes
+
+```sh
+python -m ai_engine --models-file ai-engine/config/models.example.json validate
+python -m ai_engine --models-file ai-engine/config/models.example.json plan --capability chat --language hi
+```
+
+The CLI validates configuration and previews route selection locally. It never calls a model endpoint.
+
 ## Minimal usage
 
 ```python
