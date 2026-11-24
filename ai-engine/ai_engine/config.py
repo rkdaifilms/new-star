@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,12 +20,14 @@ class EngineSettings:
     max_fallback_attempts: int = 4
 
     def __post_init__(self) -> None:
-        if self.default_timeout_seconds <= 0:
-            raise ConfigurationError("default_timeout_seconds must be positive")
+        if not math.isfinite(self.default_timeout_seconds) or self.default_timeout_seconds <= 0:
+            raise ConfigurationError("default_timeout_seconds must be finite and positive")
         if self.failure_threshold < 1:
             raise ConfigurationError("failure_threshold must be at least one")
-        if self.circuit_cooldown_seconds <= 0:
-            raise ConfigurationError("circuit_cooldown_seconds must be positive")
+        if not math.isfinite(self.circuit_cooldown_seconds) or self.circuit_cooldown_seconds <= 0:
+            raise ConfigurationError("circuit_cooldown_seconds must be finite and positive")
+        if not math.isfinite(self.max_circuit_cooldown_seconds):
+            raise ConfigurationError("max circuit cooldown must be finite")
         if self.max_circuit_cooldown_seconds < self.circuit_cooldown_seconds:
             raise ConfigurationError("max circuit cooldown must be >= base cooldown")
         if self.max_fallback_attempts < 1:

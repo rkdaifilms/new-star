@@ -73,6 +73,15 @@ class ModelSpec:
         try:
             caps = data["capabilities"]
             tags = data.get("tags", [])
+            endpoint_url = data["endpoint_url"]
+            enabled = data.get("enabled", True)
+            auth_env = data.get("auth_env")
+            if not isinstance(endpoint_url, str):
+                raise ConfigurationError("endpoint_url must be a string")
+            if not isinstance(enabled, bool):
+                raise ConfigurationError("enabled must be a JSON boolean")
+            if auth_env is not None and not isinstance(auth_env, str):
+                raise ConfigurationError("auth_env must be a string when provided")
             if not isinstance(caps, list) or not all(isinstance(x, str) for x in caps):
                 raise ConfigurationError("capabilities must be an array of strings")
             if not isinstance(tags, list) or not all(isinstance(x, str) for x in tags):
@@ -81,15 +90,15 @@ class ModelSpec:
             return cls(
                 model_id=data["model_id"],
                 provider=data["provider"],
-                endpoint_url=data["endpoint_url"].rstrip("/"),
+                endpoint_url=endpoint_url.rstrip("/"),
                 protocol=data["protocol"],
                 model_name=data["model_name"],
                 capabilities=frozenset(caps),
                 priority=int(data.get("priority", 100)),
                 weight=int(data.get("weight", 1)),
                 timeout_seconds=float(timeout),
-                auth_env=data.get("auth_env"),
-                enabled=bool(data.get("enabled", True)),
+                auth_env=auth_env,
+                enabled=enabled,
                 tags=frozenset(tags),
                 health_path=data.get("health_path", "/health"),
             )

@@ -52,6 +52,10 @@ class EngineSettingsTests(unittest.TestCase):
         with self.assertRaises(ConfigurationError):
             EngineSettings.from_env({"NEW_STAR_AI_FAILURE_THRESHOLD": "two"})
 
+    def test_non_finite_timeout_is_rejected(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            EngineSettings(models_file=Path("unused.json"), default_timeout_seconds=float("nan"))
+
 
 class ModelRegistryTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -72,6 +76,14 @@ class ModelRegistryTests(unittest.TestCase):
                 model_id="bad", provider="local", endpoint_url="http://user:pass@localhost:8000",
                 protocol="openai_chat", model_name="bad", capabilities=frozenset({"chat"})
             )
+
+    def test_json_enabled_field_must_be_boolean(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            ModelSpec.from_dict({
+                "model_id": "bad", "provider": "local", "endpoint_url": "http://127.0.0.1:9000",
+                "protocol": "openai_chat", "model_name": "bad", "capabilities": ["chat"],
+                "enabled": "false",
+            }, 30.0)
 
     def test_registry_loads_json_and_applies_default_timeout(self) -> None:
         payload = {"models": [{
@@ -137,6 +149,15 @@ class ModelRouterTests(unittest.TestCase):
             excluded_models=frozenset({"primary"})
         ))
         self.assertEqual(plan.model_ids, ("secondary",))
+
+    def test_request_cannot_exceed_configured_fallback_limit(self) -> None:
+        registry = ModelRegistry(self.settings, [
+            make_model("a", priority=1), make_model("b", priority=2),
+            make_model("c", priority=3), make_model("d", priority=4),
+            make_model("e", priority=5),
+        ])
+        plan = ModelRouter(registry).plan(RoutingRequest(capability="chat", max_candidates=50))
+        self.assertEqual(len(plan.candidates), self.settings.max_fallback_attempts)
 
     def test_failure_falls_back_and_marks_primary_unhealthy(self) -> None:
         def execute(model: ModelSpec) -> str:

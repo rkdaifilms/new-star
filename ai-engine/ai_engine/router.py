@@ -92,7 +92,9 @@ class ModelRouter:
         if preferred is not None:
             ordered = ([preferred] + [model for model in ordered if model.model_id != preferred.model_id]
                        if preferred in eligible else ordered)
-        limit = request.max_candidates or self.registry.settings.max_fallback_attempts
+        configured_limit = self.registry.settings.max_fallback_attempts
+        requested_limit = request.max_candidates or configured_limit
+        limit = min(requested_limit, configured_limit)
         candidates = tuple(ordered[:limit])
         if not candidates:
             raise NoEligibleModelError(
