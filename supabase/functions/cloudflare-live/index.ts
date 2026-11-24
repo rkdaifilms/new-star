@@ -51,7 +51,7 @@ Deno.serve(async (req: Request) => {
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
   const tokenNames = ["CLOUDFLARE_STREAM_TOKEN", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_STREAM_API_TOKEN"];
   const tokenCandidates = tokenNames.flatMap((name) =>
-    ["", "_1", "_2", "_3", "_4", "_5", "_6"].map((suffix) => ({
+    Array.from({ length: 21 }, (_, index) => index === 0 ? "" : "_" + index).map((suffix) => ({
       name: name + suffix,
       value: Deno.env.get(name + suffix),
     }))
