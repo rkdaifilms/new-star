@@ -17,6 +17,9 @@ on:
       - main
     paths:
       - "new-star-ai.js"
+      - "new-star-ai.html"
+      - "new-star-ai.css"
+      - "ai-video/**"
       - "supabase/functions/ai-gateway/**"
       - "ai-model/**"
       - ".github/workflows/new-star-ai-checks.yml"
