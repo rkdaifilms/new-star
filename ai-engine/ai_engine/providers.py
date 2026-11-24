@@ -178,10 +178,13 @@ class ModelHTTPAdapter:
 
     def open(self, model: ModelSpec, request: dict[str, Any], stream: bool = False) -> Any:
         body = json.dumps(self._payload(model, request, stream), ensure_ascii=False).encode("utf-8")
+        headers = self._headers(model)
+        if stream:
+            headers["Accept"] = "text/event-stream" if model.protocol == "openai_chat" else "application/x-ndjson"
         outbound = urllib.request.Request(
             self._url(model),
             data=body,
-            headers=self._headers(model),
+            headers=headers,
             method="POST",
         )
         timeout = model.timeout_seconds or 45.0
