@@ -5,11 +5,11 @@ This folder contains New Star's own experimental decoder-only Transformer archit
 ## What is implemented
 
 - A decoder-only causal Transformer using PyTorch's multi-head attention.
-- A byte-level vocabulary (all 256 byte values), so there is no external tokenizer dependency.
+- A multilingual hybrid tokenizer: frequent Unicode characters become compact tokens, while UTF-8 byte fallback preserves every unseen character across scripts and emoji.
 - Learned token and position embeddings, causal attention masking, feed-forward blocks, residual paths, and tied input/output embeddings.
-- A next-byte prediction training loop with validation loss, AdamW, and gradient clipping.
+- A next-token prediction training loop with validation loss, AdamW, and gradient clipping.
 - Local checkpoint saving and text generation.
-- A deterministic held-out evaluation command reporting cross-entropy (nats/byte) and perplexity.
+- A deterministic held-out evaluation command reporting cross-entropy (nats/token or nats/byte depending on checkpoint) and perplexity.
 
 ## Run a tiny experiment
 
@@ -28,7 +28,7 @@ The scripts import their model directly from the same source folder. Keep evalua
 
 ## Honest capability boundary
 
-This is an architecture and training-pipeline starting point, not a useful ChatGPT/Gemini-level assistant yet. A tiny byte-level model trained on a small corpus will produce weak output. High-quality independent models require large, carefully licensed datasets, tokenizer research, distributed training, extensive evaluation, safety training, and substantial compute. No pretrained weights, image/video generator, speech model, production endpoint, or deployed service is included in this milestone.
+This is an architecture and training-pipeline starting point, not a useful ChatGPT/Gemini-level assistant yet. A small character/byte-fallback model trained on a small corpus will produce weak output. High-quality independent models require large, carefully licensed datasets, multilingual tokenizer research, distributed training, extensive evaluation, safety training, and substantial compute. No pretrained weights, image/video generator, speech model, production endpoint, or deployed service is included in this milestone.
 
 ## Separation from bootstrap inference
 
