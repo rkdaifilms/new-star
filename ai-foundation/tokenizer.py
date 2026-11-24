@@ -4,6 +4,8 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
+from bpe_tokenizer import ByteBPETokenizer
+
 
 @dataclass
 class UnicodeCharTokenizer:
@@ -17,6 +19,7 @@ class UnicodeCharTokenizer:
     tokens: list[str]
     BYTE_VOCAB_SIZE = 256
     CHAR_OFFSET = 256
+    FORMAT = "unicode-char-byte-fallback-v1"
 
     def __post_init__(self) -> None:
         if len(set(self.tokens)) != len(self.tokens):
@@ -36,12 +39,12 @@ class UnicodeCharTokenizer:
 
     @classmethod
     def from_dict(cls, payload: dict) -> "UnicodeCharTokenizer":
-        if payload.get("type") != "unicode-char-byte-fallback-v1":
+        if payload.get("type") != cls.FORMAT:
             raise ValueError("unsupported tokenizer format")
         return cls(list(payload["tokens"]))
 
     def to_dict(self) -> dict:
-        return {"type": "unicode-char-byte-fallback-v1", "tokens": self.tokens}
+        return {"type": self.FORMAT, "tokens": self.tokens}
 
     def encode(self, text: str) -> list[int]:
         lookup = {token: index + self.CHAR_OFFSET for index, token in enumerate(self.tokens)}
@@ -76,3 +79,15 @@ class UnicodeCharTokenizer:
 
     def __len__(self) -> int:
         return self.BYTE_VOCAB_SIZE + len(self.tokens)
+
+
+def tokenizer_from_dict(payload: dict):
+    """Load a supported New Star tokenizer from a checkpoint payload."""
+    if not isinstance(payload, dict):
+        raise ValueError("tokenizer payload must be an object")
+    tokenizer_type = payload.get("type")
+    if tokenizer_type == UnicodeCharTokenizer.FORMAT:
+        return UnicodeCharTokenizer.from_dict(payload)
+    if tokenizer_type == ByteBPETokenizer.FORMAT:
+        return ByteBPETokenizer.from_dict(payload)
+    raise ValueError("unsupported New Star tokenizer format")
