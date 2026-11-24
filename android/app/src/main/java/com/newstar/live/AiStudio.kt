@@ -310,7 +310,7 @@ private fun requestNativeTranscription(accessToken: String, audioBytes: ByteArra
         .put("audio", Base64.encodeToString(audioBytes, Base64.NO_WRAP))
     val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(90, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
     val request = Request.Builder()
