@@ -1,0 +1,42 @@
+import sys
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from vector_backend import MultilingualEmbedder, PgVectorSearch
+
+
+class FakeEmbedder:
+    def encode(self, text, passage=False):
+        return [0.0] * 384
+
+
+class VectorBackendTests(unittest.TestCase):
+    def test_chunking_preserves_text_and_bounds_chunks(self):
+        text = "नेपाली भाषा " * 500
+        chunks = PgVectorSearch.chunks(text, size=200, overlap=20)
+        self.assertGreater(len(chunks), 1)
+        self.assertTrue(all(len(chunk) <= 200 for chunk in chunks))
+        self.assertTrue(all(chunk.strip() for chunk in chunks))
+
+    def test_empty_text_has_no_chunks(self):
+        self.assertEqual(PgVectorSearch.chunks("   "), [])
+
+    def test_embedding_dimension_is_enforced(self):
+        class WrongModel:
+            def embed(self, values):
+                yield [0.1, 0.2]
+        encoder = object.__new__(MultilingualEmbedder)
+        encoder.model = WrongModel()
+        with self.assertRaisesRegex(RuntimeError, "dimension mismatch"):
+            encoder.encode("नमस्ते")
+
+    def test_database_url_required(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "NEW_STAR_VECTOR_DATABASE_URL"):
+                PgVectorSearch(database_url="", embedder=FakeEmbedder())
+
+
+if __name__ == "__main__":
+    unittest.main()
