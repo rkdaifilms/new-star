@@ -68,6 +68,9 @@ def register_experiment(
         "languages": metadata.get("languages", []),
         "model_config": metadata.get("model_config", metadata.get("config")),
         "data_fingerprint": metadata.get("data_fingerprint"),
+        "tokenizer_fingerprint": metadata.get("tokenizer_fingerprint"),
+        "evaluation_protocol": metadata.get("evaluation_protocol"),
+        "validation_metric": metadata.get("validation_metric"),
         "corpus_audit": {
             "ok": audit.get("ok"),
             "provenance": audit.get("provenance"),
