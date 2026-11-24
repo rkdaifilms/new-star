@@ -23,11 +23,14 @@ class ByteBPETokenizer:
             raise ValueError("BPE merge parts must be non-empty")
         if len(set(normalized)) != len(normalized):
             raise ValueError("BPE merge rules must be unique")
+        outputs = [left + right for left, right in normalized]
+        if len(set(outputs)) != len(outputs):
+            raise ValueError("BPE merge outputs must be unique")
         self.merges = normalized
         self._merge_ranks = {pair: rank for rank, pair in enumerate(self.merges)}
         self._token_to_id = {
-            left + right: self.BYTE_VOCAB_SIZE + rank
-            for rank, (left, right) in enumerate(self.merges)
+            output: self.BYTE_VOCAB_SIZE + rank
+            for rank, output in enumerate(outputs)
         }
 
     @classmethod
@@ -47,8 +50,15 @@ class ByteBPETokenizer:
             pairs = Counter(zip(sequence, sequence[1:]))
             if not pairs:
                 break
+            known_outputs = {left + right for left, right in merges}
+            eligible = [
+                (pair, frequency) for pair, frequency in pairs.items()
+                if pair[0] + pair[1] not in known_outputs
+            ]
+            if not eligible:
+                break
             best, frequency = min(
-                pairs.items(), key=lambda item: (-item[1], item[0])
+                eligible, key=lambda item: (-item[1], item[0])
             )
             if frequency < min_frequency:
                 break
