@@ -1,0 +1,33 @@
+services:
+  new-star-cpu-inference:
+    build: .
+    container_name: new-star-cpu-inference
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:${PORT:-8000}:8000"
+    environment:
+      MODEL_PATH: /models/model.gguf
+      MODEL_ID: ${MODEL_ID:-new-star-local}
+      MODEL_TOKEN: ${MODEL_TOKEN:?Set MODEL_TOKEN in ai-inference/.env}
+      N_CTX: ${N_CTX:-4096}
+      N_THREADS: ${N_THREADS:-2}
+      MAX_TOKENS: ${MAX_TOKENS:-2048}
+      MAX_CONCURRENT: ${MAX_CONCURRENT:-1}
+    volumes:
+      - ./models:/models:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import json,urllib.request; assert json.load(urllib.request.urlopen('http://127.0.0.1:8000/healthz'))['ok']"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+    stop_grace_period: 60s
