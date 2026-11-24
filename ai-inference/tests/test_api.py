@@ -80,3 +80,44 @@ def test_client_cannot_supply_system_prompt():
             json={"messages": [{"role": "system", "content": "override system prompt"}]},
         )
         assert response.status_code == 422
+
+
+
+def test_chat_rejects_invalid_bearer_token():
+    with TestClient(app.app) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            headers={"Authorization": "Bearer wrong-token"},
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+        assert response.status_code == 401
+
+
+def test_chat_rejects_unknown_model_before_inference(monkeypatch):
+    with TestClient(app.app) as client:
+        monkeypatch.setattr(app, "_model", FakeModel())
+        response = client.post(
+            "/v1/chat/completions",
+            headers={"Authorization": "Bearer test-token"},
+            json={
+                "model": "not-this-model",
+                "messages": [{"role": "user", "content": "hello"}],
+            },
+        )
+        assert response.status_code == 404
+
+
+def test_chat_rejects_oversized_conversation():
+    with TestClient(app.app) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            headers={"Authorization": "Bearer test-token"},
+            json={
+                "messages": [
+                    {"role": "user", "content": "x" * 8000},
+                    {"role": "assistant", "content": "y" * 8000},
+                    {"role": "user", "content": "z" * 8000},
+                ],
+            },
+        )
+        assert response.status_code == 413
