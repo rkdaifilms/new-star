@@ -6,7 +6,7 @@ function selectedAppLanguage(){try{const p=JSON.parse(localStorage.getItem("news
 const uiText=(key,fallback)=>window.NewStarTranslations?.[selectedAppLanguage()]?.[key]||fallback;
 
 const log=$("chat-log"),prompt=$("prompt"),send=$("send"),voice=$("voice"),stopVoice=$("stop-voice"),status=$("gateway-status"),voiceStatus=$("voice-status"),notice=$("notice"),imageResult=$("image-result"),videoResult=$("video-result");
-let history=[],busy=false,recorder=null,stream=null,chunks=[],recording=false,pendingSendAfterTranscription=false,lastLanguage="en",imageMode=false,videoMode=false,browserRecognition=null,browserTranscript="",browserInterimTranscript="",voiceDraftPrefix="";
+let history=[],busy=false,recorder=null,stream=null,chunks=[],recording=false,pendingSendAfterTranscription=false,lastLanguage="en",imageMode=false,videoMode=false,pendingVideoJobId=null,browserRecognition=null,browserTranscript="",browserInterimTranscript="",voiceDraftPrefix="";
 const langMap={"ह":"hi","अ":"hi","क":"hi","ख":"hi","ग":"hi","घ":"hi","च":"hi","ज":"hi","ट":"hi","ड":"hi","त":"hi","द":"hi","न":"hi","प":"hi","ब":"hi","म":"hi","य":"hi","र":"hi","ल":"hi","व":"hi","श":"hi","स":"hi","क्ष":"hi","ज्ञ":"hi","ँ":"hi","ं":"hi","ः":"hi","ि":"hi","ा":"hi","े":"hi","ो":"hi","्":"hi","़":"hi","়":"bn","অ":"bn","আ":"bn","ই":"bn","উ":"bn","এ":"bn","ও":"bn","ক":"bn","খ":"bn","গ":"bn","চ":"bn","জ":"bn","ট":"bn","ড":"bn","ত":"bn","দ":"bn","ন":"bn","প":"bn","ব":"bn","ম":"bn","য":"bn","র":"bn","ল":"bn","শ":"bn","স":"bn","ং":"bn","ঃ":"bn","ા":"gu","ક":"gu","મ":"gu","ત":"gu","પ":"gu","ર":"gu","ન":"gu","અ":"gu","આ":"gu","ಕ":"kn","ತ":"kn","ನ":"kn","ಮ":"kn","ಪ":"kn","ಅ":"kn","ആ":"ml","ക":"ml","മ":"ml","ന":"ml","പ":"ml","த":"ta","ம":"ta","ந":"ta","ப":"ta","அ":"ta","త":"te","మ":"te","న":"te","క":"te","అ":"te","ಅ":"kn","ಅ":"kn","ಕ":"kn","ಮ":"kn","ತ":"kn","ಪ":"kn","ಯ":"kn","ಖ":"kn","ก":"th","ข":"th","ค":"th","ง":"th","จ":"th","ส":"th","ร":"th","ม":"th","ย":"th","ว":"th","ه":"ar","ا":"ar","ل":"ar","م":"ar","ن":"ar","ي":"ar","ع":"ar","ك":"ar","و":"ar","پ":"fa","چ":"fa","ژ":"fa","گ":"fa","ی":"fa","ا":"fa","ب":"fa","ت":"fa","ث":"fa","ج":"fa","ح":"fa","خ":"fa","د":"fa","ر":"fa","ز":"fa","س":"fa","ش":"fa","ص":"fa","ض":"fa","ط":"fa","ظ":"fa","ع":"fa","غ":"fa","ف":"fa","ق":"fa","ک":"fa","ل":"fa","م":"fa","ن":"fa","و":"fa","ھ":"ur","ے":"ur","ٹ":"ur","ڈ":"ur","ڑ":"ur","ں":"ur","گ":"ur","چ":"ur","پ":"ur","ک":"ur","ا":"ur","ب":"ur","ت":"ur","ث":"ur","ج":"ur","ح":"ur","خ":"ur","د":"ur","ر":"ur","ز":"ur","س":"ur","ش":"ur","ص":"ur","ض":"ur","ط":"ur","ظ":"ur","ع":"ur","غ":"ur","ف":"ur","ق":"ur","ل":"ur","م":"ur","ن":"ur","و":"ur","ي":"ur","ی":"ur","ئ":"ur","ء":"ur","ؤ":"ur","إ":"ar","أ":"ar","ة":"ar","ى":"ar","я":"ru","ы":"ru","э":"ru","ё":"ru","ж":"ru","щ":"ru","ф":"ru","ц":"ru","й":"ru","ш":"ru","ю":"ru","д":"ru","г":"ru","п":"ru","л":"ru","о":"ru","р":"ru","а":"ru","в":"ru","к":"ru","м":"ru","с":"ru","т":"ru","н":"ru","е":"ru","и":"ru","у":"ru","б":"ru","з":"ru","х":"ru","ч":"ru","ъ":"ru","ь":"ru","ў":"uk","і":"uk","є":"uk","ґ":"uk","ї":"uk","あ":"ja","い":"ja","う":"ja","え":"ja","お":"ja","か":"ja","き":"ja","く":"ja","け":"ja","こ":"ja","さ":"ja","し":"ja","す":"ja","せ":"ja","そ":"ja","た":"ja","ち":"ja","つ":"ja","て":"ja","と":"ja","な":"ja","に":"ja","ぬ":"ja","ね":"ja","の":"ja","は":"ja","ひ":"ja","ふ":"ja","へ":"ja","ほ":"ja","ア":"ja","イ":"ja","ウ":"ja","エ":"ja","オ":"ja","カ":"ja","キ":"ja","ク":"ja","ケ":"ja","コ":"ja","サ":"ja","シ":"ja","ス":"ja","セ":"ja","ソ":"ja","タ":"ja","チ":"ja","ツ":"ja","テ":"ja","ト":"ja","ニ":"ja","ヌ":"ja","ネ":"ja","ノ":"ja","ハ":"ja","ヒ":"ja","フ":"ja","ヘ":"ja","ホ":"ja","ン":"ja","가":"ko","나":"ko","다":"ko","라":"ko","마":"ko","바":"ko","사":"ko","아":"ko","자":"ko","차":"ko","카":"ko","타":"ko","파":"ko","하":"ko","는":"ko","을":"ko","에":"ko","의":"ko","한":"ko","글":"ko","어":"ko"};
 function detectLanguage(text){
  const value=String(text||"").trim(), lower=value.toLowerCase(), app=selectedAppLanguage();
@@ -98,6 +98,7 @@ async function invoke(body){
   throw new Error(detail||"AI अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");
  }
  if(!data?.ok){
+  if(body.action==="video-status"&&data?.status==="failed")return data;
   if(body.action==="image")throw new Error(data?.error||"तस्वीर बनाने की सेवा अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।");
   if(body.action==="transcribe")throw new Error(data?.error||"आवाज़ को टेक्स्ट में नहीं बदला जा सका। माइक की अनुमति जाँचकर फिर कोशिश करें।");
   if(body.action==="speak")throw new Error(data?.error||"अभी आवाज़ में जवाब उपलब्ध नहीं है। लिखित जवाब उपलब्ध रहेगा।");
@@ -144,32 +145,35 @@ async function generateImage(overrideDescription){const description=(typeof over
 async function generateVideo(overrideDescription){
  const description=(typeof overrideDescription==="string"?overrideDescription:prompt.value).trim();
  if(busy)return;
- if(!description){notice.textContent="पहले वीडियो का विवरण लिखें, फिर Generate video दबाएँ।";prompt.focus();return;}
+ if(!description&&!pendingVideoJobId){notice.textContent="पहले वीडियो का विवरण लिखें, फिर Generate video दबाएँ।";prompt.focus();return;}
  busy=true;send.disabled=true;voice.disabled=true;
- lastLanguage=detectLanguage(description);addMessage("🎬 "+description,"user");prompt.value="";
+ if(description){lastLanguage=detectLanguage(description);addMessage("🎬 "+description,"user");prompt.value="";}
  videoResult.hidden=false;videoResult.replaceChildren();
  const label=document.createElement("p");label.textContent="Creating your video… इसमें कुछ समय लग सकता है।";videoResult.append(label);
  try{
-  const aspectRatio=$("video-aspect-ratio")?.value||"16:9";
-  const resolution=$("video-resolution")?.value||"720p";
-  const duration="6s";
-  const started=await invoke({action:"video",prompt:description,aspectRatio,resolution,duration});
-  if(typeof started.jobId!=="string"||!started.jobId)throw new Error("The video service did not return a job ID.");
+  let jobId=pendingVideoJobId;
+  if(!jobId){
+   const aspectRatio=$("video-aspect-ratio")?.value||"16:9";
+   const resolution=$("video-resolution")?.value||"720p";
+   const started=await invoke({action:"video",prompt:description,aspectRatio,resolution,duration:"6s"});
+   if(typeof started.jobId!=="string"||!started.jobId)throw new Error("The video service did not return a job ID.");
+   jobId=started.jobId;pendingVideoJobId=jobId;
+  }
   let result=null;
   for(let attempt=0;attempt<60;attempt++){
    label.textContent="Video is rendering in the background… checking progress ("+(attempt+1)+"/60).";
    await new Promise(resolve=>setTimeout(resolve,5000));
-   const status=await invoke({action:"video-status",jobId:started.jobId});
-   if(status.status==="completed"){result=status;break;}
-   if(status.status==="failed")throw new Error(status.error||"Video generation failed.");
+   const status=await invoke({action:"video-status",jobId});
+   if(status.status==="completed"){result=status;pendingVideoJobId=null;break;}
+   if(status.status==="failed"){pendingVideoJobId=null;throw new Error(status.error||"Video generation failed.");}
   }
-  if(!result)throw new Error("Video is still rendering. Please try checking again shortly.");
+  if(!result)throw new Error("Video is still rendering. Press Generate video again to continue checking this same job.");
   if(typeof result.videoUrl!=="string"||!result.videoUrl.startsWith("https://"))throw new Error("New Star storage did not return a secure video link.");
   const player=document.createElement("video");player.controls=true;player.playsInline=true;player.preload="metadata";player.src=result.videoUrl;player.style.width="100%";player.style.maxWidth="720px";player.style.borderRadius="14px";
   const save=document.createElement("a");save.href=result.videoUrl;save.download="new-star-ai-video.mp4";save.target="_blank";save.rel="noopener";save.textContent="Open / save video";save.style.color="#ff9bb0";
   const expiry=document.createElement("small");expiry.textContent="Secure video link is available for about 1 hour. Save the video before the link expires.";
   videoResult.replaceChildren(player,save,expiry);
- }catch(e){label.textContent=e.message||"Video generation failed. Please try again."; }
+ }catch(e){label.textContent=e.message||"Video generation failed. Please try again.";}
  finally{busy=false;send.disabled=false;voice.disabled=false;}
 }
 async function handleSendAction(){
