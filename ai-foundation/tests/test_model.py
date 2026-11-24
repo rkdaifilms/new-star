@@ -933,7 +933,7 @@ def test_byte_bpe_pretraining_checkpoint_loads_in_native_inference_server(tmp_pa
     checkpoint = tmp_path / "bpe-model.pt"
     monkeypatch.setattr(sys, "argv", [
         "train.py", "--data", str(corpus), "--output", str(checkpoint),
-        "--steps", "1", "--batch-size", "2", "--block-size", "8",
+        "--steps", "1", "--batch-size", "2", "--block-size", "2",
         "--width", "16", "--layers", "1", "--heads", "4",
         "--max-vocab-size", "320", "--tokenizer", "bpe", "--seed", "19",
     ])
