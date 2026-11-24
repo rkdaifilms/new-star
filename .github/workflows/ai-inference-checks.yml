@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "ai-inference/**"
+      - "supabase/functions/ai-gateway/**"
       - ".github/workflows/ai-inference-checks.yml"
   push:
     branches:
       - new-star-own-ai-engine-cpu
     paths:
       - "ai-inference/**"
+      - "supabase/functions/ai-gateway/**"
       - ".github/workflows/ai-inference-checks.yml"
 
 jobs:
@@ -31,6 +33,28 @@ jobs:
         run: python -m compileall -q app.py tests
       - name: Run API tests
         run: pytest -q
+
+  gateway-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check the hosted-model gateway adapter
+        run: deno check --no-lock supabase/functions/ai-gateway/index.ts
+      - name: Verify local model adapter and provider priority
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="supabase/functions/ai-gateway/index.ts"
+          grep -F 'async function callNewStarHostedModel' "$FILE"
+          grep -F 'async function probeNewStarHostedModel' "$FILE"
+          grep -F 'NEW_STAR_MODEL_BASE_URL' "$FILE"
+          grep -F 'NEW_STAR_MODEL_NAME' "$FILE"
+          grep -F 'NEW_STAR_MODEL_API_KEY' "$FILE"
+          grep -F 'new-star-hosted-model' "$FILE"
 
   container-build:
     runs-on: ubuntu-latest
