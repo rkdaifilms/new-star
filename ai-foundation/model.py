@@ -71,13 +71,15 @@ class NewStarGPT(nn.Module):
         if tokens.ndim != 2 or tokens.shape[1] < 1 or tokens.shape[1] > self.config.block_size:
             raise ValueError("tokens must be [batch, sequence] with 1 <= sequence <= block_size")
         if tokens.dtype != torch.long:
-            raise ValueError("tokens must use torch.long byte-token IDs")
+            raise ValueError("tokens must use torch.long token IDs")
         if torch.any(tokens < 0) or torch.any(tokens >= self.config.vocab_size):
             raise ValueError("token IDs must be within the configured vocabulary")
         if targets is not None:
             if targets.shape != tokens.shape or targets.dtype != torch.long:
                 raise ValueError("targets must be torch.long and match the token shape")
             valid_targets = targets != -100
+            if not torch.any(valid_targets):
+                raise ValueError("targets must contain at least one non-masked token")
             if torch.any(targets[valid_targets] < 0) or torch.any(targets[valid_targets] >= self.config.vocab_size):
                 raise ValueError("target IDs must be -100 (ignored) or within the configured vocabulary")
         positions = torch.arange(tokens.shape[1], device=tokens.device)
@@ -114,7 +116,7 @@ class NewStarGPT(nn.Module):
         if tokens.ndim != 2 or tokens.shape[1] < 1:
             raise ValueError("generation prompt must be a non-empty [batch, sequence] tensor")
         if tokens.dtype != torch.long:
-            raise ValueError("generation tokens must use torch.long byte-token IDs")
+            raise ValueError("generation tokens must use torch.long token IDs")
         if torch.any(tokens < 0) or torch.any(tokens >= self.config.vocab_size):
             raise ValueError("generation tokens must be within the configured vocabulary")
         self.eval()
