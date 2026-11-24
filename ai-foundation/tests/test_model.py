@@ -137,7 +137,7 @@ def test_language_corpus_loader_keeps_train_and_validation_separate(tmp_path):
         {"language": "en", "split": "train", "text": "English training material " * 12},
         {"language": "en", "split": "validation", "text": "English validation material " * 12},
     ]
-    path.write_text("\\n".join(json.dumps(row, ensure_ascii=False) for row in records), encoding="utf-8")
+    path.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in records), encoding="utf-8")
     train, validation = load_language_corpora(path)
     assert set(train) == {"ne", "en"}
     assert "जाँच" not in train["ne"]
