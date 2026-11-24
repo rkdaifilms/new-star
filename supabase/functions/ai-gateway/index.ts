@@ -275,6 +275,63 @@ async function callOpenRouter(key: string, messages: ChatMessage[], systemPrompt
 }
 
 
+async function callNewStarHostedModel(key: string, messages: ChatMessage[], systemPrompt: string) {
+  const configuredEndpoint = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
+  const model = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
+  if (!configuredEndpoint || !model) throw new Error("NEW_STAR_MODEL_NOT_CONFIGURED");
+  let endpoint: URL;
+  try { endpoint = new URL(configuredEndpoint); }
+  catch { throw new Error("NEW_STAR_MODEL_INVALID_ENDPOINT"); }
+  if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+    throw new Error("NEW_STAR_MODEL_ENDPOINT_MUST_BE_HTTPS");
+  }
+  const base = endpoint.toString().replace(/\/$/, "");
+  const requestUrl = base.endsWith("/chat/completions") ? base : base + "/chat/completions";
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (key && key !== "local-no-key") headers.Authorization = "Bearer " + key;
+  const response = await fetchWithTimeout(requestUrl, {
+    method: "POST", headers,
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "system", content: systemPrompt }, ...messages.map(m => ({ role: m.role, content: m.content }))],
+      temperature: 0.4, max_tokens: 1400
+    })
+  }, 45000);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(providerHttpError(response.status, data));
+  const answer = data?.choices?.[0]?.message?.content;
+  if (typeof answer !== "string" || !answer.trim()) throw new Error("NEW_STAR_MODEL_EMPTY_RESPONSE");
+  return answer.trim();
+}
+
+async function probeNewStarHostedModel() {
+  const configuredEndpoint = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
+  const model = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
+  const key = Deno.env.get("NEW_STAR_MODEL_API_KEY")?.trim() || "";
+  if (!configuredEndpoint || !model) return { configured: false, reachable: false, modelAvailable: false };
+  try {
+    const endpoint = new URL(configuredEndpoint);
+    if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+      return { configured: true, reachable: false, modelAvailable: false };
+    }
+    const base = endpoint.toString().replace(/\/$/, "");
+    const modelsUrl = base.endsWith("/models") ? base : base.replace(/\/v1$/, "") + "/v1/models";
+    const headers: Record<string, string> = {};
+    if (key) headers.Authorization = "Bearer " + key;
+    const response = await fetchWithTimeout(modelsUrl, { method: "GET", headers, redirect: "error" }, 5000);
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      return { configured: true, reachable: false, modelAvailable: false };
+    }
+    const data = await response.json().catch(() => ({}));
+    const models = Array.isArray(data?.data) ? data.data : [];
+    return { configured: true, reachable: true, modelAvailable: models.some((item: any) => item?.id === model) };
+  } catch {
+    return { configured: true, reachable: false, modelAvailable: false };
+  }
+}
+
+
 async function transcribeWithOpenAI(key: string, audio: string, mimeType: string) {
   const binary = atob(audio);
   const bytes = new Uint8Array(binary.length);
@@ -540,13 +597,19 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body?.action === "status") {
+    const newStarModel = await probeNewStarHostedModel();
     return json({
       ok: true,
       status: true,
       providers: {
+        newStarHostedModel: newStarModel.configured,
         openai: Boolean(firstSecret("OPENAI_API_KEY", "OPENAI_KEY")),
         gemini: Boolean(firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY")),
         openrouter: Boolean(firstSecret("OPENROUTER_API_KEY", "OPENROUTER_KEY"))
+      },
+      health: {
+        newStarHostedModel: newStarModel,
+        note: "Provider presence is not proof of successful inference. The hosted model check verifies the authenticated model-list endpoint only."
       }
     }, 200, headers);
   }
@@ -582,7 +645,11 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "Too many requests. Please wait one minute and try again." }, 429, headers);
   }
 
+  const newStarModelUrl = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
+  const newStarModelName = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
+  const newStarModelKey = Deno.env.get("NEW_STAR_MODEL_API_KEY")?.trim() || "local-no-key";
   const providers = [
+    ...(newStarModelUrl && newStarModelName ? [{ name: "new-star-hosted-model", keys: [newStarModelKey], run: callNewStarHostedModel }] : []),
     { name: "gemini", keys: secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"), run: callGemini },
     { name: "openai", keys: secretCandidates("OPENAI_API_KEY", "OPENAI_KEY"), run: callOpenAI },
     { name: "openrouter", keys: secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter }
