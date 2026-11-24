@@ -90,3 +90,20 @@ This is an architecture and training-pipeline starting point, not a useful ChatG
 ## Separation from bootstrap inference
 
 `ai-inference/` remains a separate CPU inference test service for the small third-party Qwen GGUF bootstrap model. It is not silently relabeled as New Star's trained foundation model. The from-scratch model in this folder is experimental until it has reproducible training, benchmark results, safety evaluation, and a separately implemented serving adapter.
+
+
+## Instruction-tuning data preparation (SFT)
+
+The experimental instruction-data module validates JSONL chat examples and
+creates causal next-token targets that train **only on assistant response
+tokens**. System and user text remains in the context but is masked with the
+PyTorch `-100` ignore label. Each record must contain `language`, `split`
+(`train` or `validation`), and a `messages` array using `system`,
+`user`, and `assistant` roles. Conversations must alternate user/assistant
+turns and end with an assistant response; an optional system message may appear
+only first. Every language needs both training and held-out validation records.
+
+This is data preparation, not a completed fine-tuning run. Review source
+permissions, quality, privacy, safety, and language balance before training.
+Do not mix validation conversations into training. The current baseline does
+not yet include an SFT optimizer loop or a production assistant-quality claim.
