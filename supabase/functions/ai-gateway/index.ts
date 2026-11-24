@@ -913,9 +913,7 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "Request is too large or the last message is invalid." }, 400, headers);
   }
 
-  const admin = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
+
   const { data: allowed, error: limitError } = await admin
     .rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
 
