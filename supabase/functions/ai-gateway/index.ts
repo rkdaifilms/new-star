@@ -5,6 +5,7 @@ import { buildGeminiVideoRequest } from "./video-provider.ts";
 import { detectReplyScript } from "./language-policy.ts";
 import { normalizeNewStarSearchResults } from "./search-provider.ts";
 import { AI_LANGUAGE_NAMES } from "./language-catalog.ts";
+import { readBoundedJson } from "./request-body.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -515,12 +516,11 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "Your session is invalid. Please sign in again." }, 401, headers);
   }
 
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return json({ ok: false, error: "Invalid request body" }, 400, headers);
+  const parsedBody = await readBoundedJson(req, 12 * 1024 * 1024);
+  if (!parsedBody.ok) {
+    return json({ ok: false, error: parsedBody.error }, parsedBody.status, headers);
   }
+  const body: any = parsedBody.value;
 
   if (body?.action === "speak") {
     const spokenText = typeof body.text === "string" ? body.text.trim() : "";
