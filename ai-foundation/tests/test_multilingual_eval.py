@@ -35,7 +35,7 @@ class MultilingualEvaluationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             dataset = Path(directory) / "cases.jsonl"
             dataset.write_text(
-                '{"language":"ne","prompt":"नमस्ते","reference":"नमस्ते"}\\n',
+                '{"language":"ne","prompt":"नमस्ते","reference":"नमस्ते"}\n',
                 encoding="utf-8",
             )
             cases = load_cases(dataset)
