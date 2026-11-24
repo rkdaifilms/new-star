@@ -45,6 +45,8 @@ class UpstreamResponse:
                 item = json.loads(payload)
             except json.JSONDecodeError as exc:
                 raise ModelExecutionError("upstream sent malformed SSE JSON") from exc
+            if item.get("error"):
+                raise ModelExecutionError(str(item["error"])[:500])
             choices = item.get("choices") or []
             if choices:
                 delta = choices[0].get("delta") or {}
