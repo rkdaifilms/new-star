@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import deque
 import ipaddress
 import json
 import os
@@ -222,12 +223,17 @@ class SafeCrawler:
         return parser.can_fetch(USER_AGENT, url)
 
     def crawl(self, seeds: list[str]) -> dict[str, int]:
-        queue = []
+        queue = deque()
+        queued: set[str] = set()
         for seed in seeds:
-            queue.append((self._check_url(seed), 0))
+            canonical = self._check_url(seed)
+            if canonical not in queued and canonical not in self.visited:
+                queue.append((canonical, 0))
+                queued.add(canonical)
         indexed = failed = 0
         while queue and len(self.visited) < self.max_pages:
-            url, depth = queue.pop(0)
+            url, depth = queue.popleft()
+            queued.discard(url)
             if url in self.visited:
                 continue
             self.visited.add(url)
@@ -243,8 +249,10 @@ class SafeCrawler:
                     indexed += 1
                 if depth < 2:
                     for link in links:
-                        if link not in self.visited and host_is_allowed(urllib.parse.urlsplit(link).hostname or "", self.domains):
+                        if (link not in self.visited and link not in queued
+                                and host_is_allowed(urllib.parse.urlsplit(link).hostname or "", self.domains)):
                             queue.append((link,depth+1))
+                            queued.add(link)
             except Exception:
                 failed += 1
             if queue:
