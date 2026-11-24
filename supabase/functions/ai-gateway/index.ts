@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { base64UrlEncode, privateKeyPemToBytes } from "./google-auth.ts";
+import { buildGeminiVideoRequest } from "./video-provider.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -227,14 +228,7 @@ async function startGeminiVideo(model: string, prompt: string, aspectRatio: stri
   const response = await fetchWithTimeout(endpoint, {
     method: "POST",
     headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      input: prompt,
-      generation_config: { video_config: { task: "text_to_video" } },
-      response_format: [{ type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration }],
-      background: true,
-      store: true
-    })
+    body: JSON.stringify(buildGeminiVideoRequest(model, prompt, aspectRatio, resolution, duration))
   }, 30000);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
