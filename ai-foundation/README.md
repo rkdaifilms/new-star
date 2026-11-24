@@ -159,3 +159,40 @@ a sidecar JSON with training metadata. This script has not been run on a
 large-scale licensed dataset in CI; passing unit tests verifies the pipeline
 mechanics, not assistant quality or model readiness. Keep the validation set
 strictly held out and review privacy, licensing, and safety before training.
+
+
+## Pre-training corpus audit
+
+Before training on multilingual text JSONL, run the corpus audit. It checks
+that every declared language has train and validation records, enforces
+minimum character counts, detects exact duplicates after whitespace/case
+normalization across the train/validation boundary, and requires a provenance
+manifest. It also reports within-split duplicates as warnings.
+
+Create a manifest with the dataset identity and reviewable rights information:
+
+```json
+{
+  "dataset_name": "your dataset name",
+  "source": "where the material came from",
+  "license": "the applicable license",
+  "permission_basis": "why you are authorized to use it"
+}
+```
+
+Run the audit before training:
+
+```sh
+python ai-foundation/audit_corpus.py \\
+  --data ./permitted-multilingual.jsonl \\
+  --manifest ./dataset-manifest.json \\
+  --min-train-chars 1000 --min-validation-chars 200 \\
+  --report-json ./artifacts/corpus-audit.json
+```
+
+The command exits non-zero when required checks fail. Character counts are a
+basic size guard, not a measure of linguistic quality. Duplicate detection
+does not detect paraphrases, translations, or semantic overlap, and the tool
+cannot verify that a claimed license or permission is genuine. A human must
+review source terms and rights before training; never include private records,
+secrets, or material you are not authorized to use.
