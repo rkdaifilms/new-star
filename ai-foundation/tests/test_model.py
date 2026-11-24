@@ -626,7 +626,12 @@ def test_text_evaluation_cli_writes_json_report(tmp_path, monkeypatch):
     ])
     main()
     report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["report_format"] == "new-star-evaluation-report-v1"
     assert report["evaluation_method"] == "full-corpus-token-weighted"
+    assert len(report["checkpoint_sha256"]) == 64
+    assert len(report["data_sha256"]) == 64
+    assert len(report["tokenizer_sha256"]) == 64
+    assert report["model_config"] == vars(config)
     assert report["evaluated_tokens"] == len(tokenizer.encode(corpus.read_text(encoding="utf-8"))) - 1
     assert report["heldout_cross_entropy"] > 0
     assert report["heldout_perplexity"] > 0
