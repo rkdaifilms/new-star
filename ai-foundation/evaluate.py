@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import math
 from pathlib import Path
 
@@ -118,7 +119,7 @@ def main() -> None:
             report_path = Path(args.report_json)
             report_path.parent.mkdir(parents=True, exist_ok=True)
             report_path.write_text(
-                __import__("json").dumps(output, ensure_ascii=False, indent=2),
+                json.dumps(output, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
     else:
