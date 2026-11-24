@@ -176,7 +176,8 @@ async function startGeminiVideo(key: string, model: string, prompt: string, aspe
     body: JSON.stringify({
       model,
       input: [{ type: "text", text: prompt }],
-      response_format: { type: "video", aspect_ratio: aspectRatio, resolution, duration },
+      generation_config: { video_config: { task: "text_to_video" } },
+      response_format: { type: "video", delivery: "inline", aspect_ratio: aspectRatio, resolution, duration },
       background: true,
       store: true
     })
