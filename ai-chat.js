@@ -71,9 +71,16 @@ async function checkProviderStatus(force=false){
   if(!sessionData?.session){providerStatus.textContent="AI इस्तेमाल करने के लिए पहले Login करें।";return;}
   const {data,error}=await db.functions.invoke("ai-gateway",{body:{action:"status"}});
   if(error||!data?.ok)throw error||new Error(data?.error||"Status unavailable");
-  const names=[["openai","OpenAI"],["gemini","Gemini"],["openrouter","OpenRouter"]];
+  const names=[["newStarHostedModel","New Star hosted model"],["openai","OpenAI"],["gemini","Gemini"],["openrouter","OpenRouter"]];
   const ready=names.filter(([key])=>data.providers?.[key]).map(([,label])=>label);
-  providerStatus.textContent=ready.length?"Server पर configured AI keys: "+ready.join(" · ")+" · यह केवल key की मौजूदगी बताता है, provider की live validity नहीं।":"AI अभी चालू नहीं है: Server पर OpenAI, Gemini या OpenRouter की API Key नहीं मिली। अधिकृत Owner Supabase → Edge Functions → Secrets में Provider Key सेट करे।";
+  const capabilityNames=[["chat","Chat"],["imageGeneration","Image"],["speechGeneration","Voice"],["speechTranscription","Voice input"],["videoGeneration","Video"],["webSearch","Live search"]];
+  const capabilitySummary=capabilityNames.map(([key,label])=>{
+   const item=data.capabilities?.[key];
+   if(!item?.supported)return label+": not integrated";
+   return label+": "+(item.configured?"configured":"not configured");
+  }).join(" · ");
+  const configured=ready.length?ready.join(" · "):"कोई AI provider key/hosted model configured नहीं है";
+  providerStatus.textContent="Configured: "+configured+". Capabilities (configuration only): "+capabilitySummary+". Configuration provider की live validity, quota या successful generation साबित नहीं करती।";
  }catch(error){providerStatus.textContent="AI status जाँच नहीं हो सकी। Login और network connection जाँचें।";}
 }
 let aiHistoryEntry=false;const previousBodyOverflow=document.body.style.overflow;
