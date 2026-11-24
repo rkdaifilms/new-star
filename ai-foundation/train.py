@@ -8,7 +8,7 @@ from pathlib import Path
 
 import torch
 
-from corpus import combine_languages, load_language_corpora
+from audit_corpus import audit_corpus\nfrom corpus import combine_languages, load_language_corpora
 from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer
 
@@ -34,7 +34,7 @@ def sample_balanced_batch(corpora: dict[str, torch.Tensor], batch_size: int,
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", required=True, help="Permitted UTF-8 text file or language-tagged JSONL corpus")
-    parser.add_argument("--data-format", choices=("text", "jsonl"), default="text")
+    parser.add_argument("--data-format", choices=("text", "jsonl"), default="text")\n    parser.add_argument("--manifest", help="required provenance JSON for multilingual JSONL data")
     parser.add_argument("--output", default="artifacts/newstar-small.pt")
     parser.add_argument("--steps", type=int, default=2000)
     parser.add_argument("--batch-size", type=int, default=16)
