@@ -107,3 +107,25 @@ This is data preparation, not a completed fine-tuning run. Review source
 permissions, quality, privacy, safety, and language balance before training.
 Do not mix validation conversations into training. The current baseline does
 not yet include an SFT optimizer loop or a production assistant-quality claim.
+
+
+## Run response-only multilingual supervised fine-tuning
+
+After preparing a permitted JSONL chat dataset with both `train` and
+`validation` records for every language, run the separate SFT training loop:
+
+```sh
+python ai-foundation/sft_train.py --data ./permitted-instructions.jsonl \
+  --steps 1000 --batch-size 8 --block-size 256 --eval-interval 100 \
+  --output artifacts/newstar-sft.pt
+```
+
+The SFT loop trains only on assistant response targets; system/user tokens and
+padding positions are ignored by the loss. Each batch row selects a language
+uniformly, and validation reports an unweighted macro-average of per-language
+losses. The tokenizer is learned from training conversations only. The output
+checkpoint uses the same native format as the pretraining checkpoint and writes
+a sidecar JSON with training metadata. This script has not been run on a
+large-scale licensed dataset in CI; passing unit tests verifies the pipeline
+mechanics, not assistant quality or model readiness. Keep the validation set
+strictly held out and review privacy, licensing, and safety before training.
