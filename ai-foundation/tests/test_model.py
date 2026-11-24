@@ -332,3 +332,50 @@ def test_model_rejects_batch_with_no_unmasked_training_targets():
     labels = torch.full_like(tokens, -100)
     with pytest.raises(ValueError, match="at least one non-masked token"):
         model(tokens, labels)
+
+
+
+def test_sft_cli_runs_one_step_and_saves_reloadable_checkpoint(tmp_path, monkeypatch):
+    import json
+    import sys
+    from sft_train import main
+    from model import NewStarGPT
+    from tokenizer import UnicodeCharTokenizer
+
+    path = tmp_path / "tiny-instructions.jsonl"
+    rows = []
+    for language, user_text, assistant_text in [
+        ("ne", "नमस्ते प्रश्न", "नमस्कार उत्तर"),
+        ("en", "hello question", "hello answer"),
+    ]:
+        for split, suffix in [("train", "train"), ("validation", "heldout")]:
+            rows.append({
+                "language": language,
+                "split": split,
+                "messages": [
+                    {"role": "user", "content": f"{user_text} {suffix}"},
+                    {"role": "assistant", "content": f"{assistant_text} {suffix}"},
+                ],
+            })
+    path.write_text(
+        "\\n".join(json.dumps(row, ensure_ascii=False) for row in rows),
+        encoding="utf-8",
+    )
+    checkpoint = tmp_path / "tiny-sft.pt"
+    monkeypatch.setattr(sys, "argv", [
+        "sft_train.py", "--data", str(path), "--output", str(checkpoint),
+        "--steps", "1", "--batch-size", "2", "--block-size", "64",
+        "--width", "16", "--layers", "1", "--heads", "4",
+        "--eval-interval", "1", "--max-vocab-size", "512",
+    ])
+    main()
+
+    assert checkpoint.is_file()
+    metadata = json.loads(checkpoint.with_suffix(".pt.json").read_text(encoding="utf-8"))
+    assert metadata["training_method"] == "supervised-fine-tuning-response-only"
+    assert metadata["languages"] == ["en", "ne"]
+    saved = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    tokenizer = UnicodeCharTokenizer.from_dict(saved["tokenizer"])
+    restored = NewStarGPT(NewStarConfig(**saved["config"]))
+    restored.load_state_dict(saved["state_dict"])
+    assert tokenizer.decode(tokenizer.encode("नमस्ते 🌍")) == "नमस्ते 🌍"
