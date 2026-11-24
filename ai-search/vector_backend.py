@@ -56,6 +56,12 @@ class PgVectorSearch:
         self.register_vector(connection, schema="extensions")
         return connection
 
+    def health(self) -> bool:
+        with self.connect() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                return cursor.fetchone()[0] == 1
+
     @staticmethod
     def chunks(text: str, size: int = 1100, overlap: int = 140) -> list[str]:
         clean = re.sub(r"\s+", " ", text).strip()
