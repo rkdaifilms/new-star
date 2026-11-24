@@ -12,6 +12,7 @@ from audit_corpus import audit_corpus
 from corpus import combine_languages, load_language_corpora
 from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer
+from bpe_tokenizer import ByteBPETokenizer
 
 
 def sample_balanced_batch(corpora: dict[str, torch.Tensor], batch_size: int,
@@ -46,6 +47,7 @@ def main():
     parser.add_argument("--heads", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--max-vocab-size", type=int, default=8192)
+    parser.add_argument("--tokenizer", choices=("char", "bpe"), default="char", help="Tokenizer for new checkpoints; char preserves legacy behavior")
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--resume-from", help="Resume model/optimizer/RNG state from a .resume.pt checkpoint")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
@@ -83,7 +85,12 @@ def main():
     for language, text in train_by_language.items():
         if len(text) <= args.block_size + 1 or len(validation_by_language[language]) <= args.block_size + 1:
             parser.error(f"language {language!r} needs enough train and validation text for block-size")
-    tokenizer = UnicodeCharTokenizer.train(combine_languages(train_by_language), args.max_vocab_size)
+    training_text = combine_languages(train_by_language)
+    tokenizer = (
+        ByteBPETokenizer.train(training_text, max_merges=args.max_vocab_size - 256)
+        if args.tokenizer == "bpe"
+        else UnicodeCharTokenizer.train(training_text, args.max_vocab_size)
+    )
     train_data = {lang: torch.tensor(tokenizer.encode(text), dtype=torch.long)
                   for lang, text in train_by_language.items()}
     validation_data = {lang: torch.tensor(tokenizer.encode(text), dtype=torch.long)
@@ -104,6 +111,7 @@ def main():
         "layers": args.layers,
         "heads": args.heads,
         "max_vocab_size": args.max_vocab_size,
+        "tokenizer_type": args.tokenizer,
     }
     data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
     tokenizer_fingerprint = hashlib.sha256(json.dumps(
@@ -182,12 +190,14 @@ def main():
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"format": "new-star-unicode-char-gpt-v1", "config": vars(config),
+    checkpoint_format = ("new-star-byte-bpe-gpt-v1" if args.tokenizer == "bpe"
+                         else "new-star-unicode-char-gpt-v1")
+    torch.save({"format": checkpoint_format, "config": vars(config),
                 "tokenizer": tokenizer.to_dict(), "state_dict": model.cpu().state_dict()}, output)
     metadata = {
-        "format": "new-star-unicode-char-gpt-v1",
+        "format": checkpoint_format,
         "config": vars(config),
-        "tokenizer_type": "unicode-char-byte-fallback-v1",
+        "tokenizer_type": tokenizer.to_dict()["type"],
         "training_steps": args.steps,
         "resumed_from_step": start_step,
         "final_validation_loss": final_validation_loss,
