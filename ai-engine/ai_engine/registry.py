@@ -43,6 +43,8 @@ class ModelSpec:
                             ("model_name", self.model_name)):
             if not isinstance(value, str) or not value.strip():
                 raise ConfigurationError(f"{name} must be a non-empty string")
+        if not isinstance(self.endpoint_url, str):
+            raise ConfigurationError("endpoint_url must be a string")
         parsed = urlsplit(self.endpoint_url)
         if parsed.scheme not in {"http", "https"} or not parsed.hostname:
             raise ConfigurationError(f"model {self.model_id!r} endpoint_url must be an absolute HTTP(S) URL")
@@ -50,25 +52,38 @@ class ModelSpec:
             raise ConfigurationError("credentials must not be embedded in endpoint_url")
         if parsed.fragment:
             raise ConfigurationError("endpoint_url must not contain a URL fragment")
-        if self.protocol not in SUPPORTED_PROTOCOLS:
+        if not isinstance(self.protocol, str) or self.protocol not in SUPPORTED_PROTOCOLS:
             raise ConfigurationError(f"unsupported protocol {self.protocol!r}")
-        if not self.capabilities or not self.capabilities.issubset(SUPPORTED_CAPABILITIES):
+        if (not isinstance(self.capabilities, (set, frozenset))
+                or not self.capabilities
+                or not all(isinstance(item, str) for item in self.capabilities)):
+            raise ConfigurationError("capabilities must be a non-empty set of strings")
+        if not self.capabilities.issubset(SUPPORTED_CAPABILITIES):
             invalid = sorted(self.capabilities - SUPPORTED_CAPABILITIES)
-            raise ConfigurationError(f"invalid or empty model capabilities: {invalid}")
+            raise ConfigurationError(f"invalid model capabilities: {invalid}")
+        if not isinstance(self.tags, (set, frozenset)) or not all(isinstance(item, str) for item in self.tags):
+            raise ConfigurationError("tags must be a set of strings")
+        if not isinstance(self.languages, (set, frozenset)):
+            raise ConfigurationError("languages must be a set of strings")
         if any(not isinstance(language, str) or not re.fullmatch(r"(?:\*|[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*)", language)
                for language in self.languages):
             raise ConfigurationError("languages must contain valid language tags or '*'")
-        if self.priority < 0:
-            raise ConfigurationError("priority must be zero or greater")
-        if self.weight < 1:
-            raise ConfigurationError("weight must be at least one")
+        if isinstance(self.priority, bool) or not isinstance(self.priority, int) or self.priority < 0:
+            raise ConfigurationError("priority must be a non-negative integer")
+        if isinstance(self.weight, bool) or not isinstance(self.weight, int) or self.weight < 1:
+            raise ConfigurationError("weight must be a positive integer")
         if self.timeout_seconds is not None and (
-            not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0
+            isinstance(self.timeout_seconds, bool)
+            or not isinstance(self.timeout_seconds, (int, float))
+            or not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0
         ):
             raise ConfigurationError("timeout_seconds must be a finite positive number")
-        if self.auth_env is not None and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.auth_env):
+        if self.auth_env is not None and (
+            not isinstance(self.auth_env, str)
+            or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.auth_env)
+        ):
             raise ConfigurationError("auth_env must be an environment variable name")
-        if not self.health_path.startswith("/") or ".." in self.health_path.split("/"):
+        if not isinstance(self.health_path, str) or not self.health_path.startswith("/") or ".." in self.health_path.split("/"):
             raise ConfigurationError("health_path must be an absolute path without traversal segments")
 
     @classmethod
