@@ -549,7 +549,10 @@ def test_multilingual_benchmark_reports_per_language_and_macro_metrics():
     from tokenizer import UnicodeCharTokenizer
 
     tokenizer = UnicodeCharTokenizer.train("नेपाली सामग्री English text", 512)
-    model = tiny_model()
+    model = NewStarGPT(NewStarConfig(
+        vocab_size=len(tokenizer), block_size=16, width=16,
+        layers=2, heads=4, dropout=0.0,
+    ))
     validation = {
         "ne": "नेपाली validation सामग्री " * 20,
         "en": "English heldout validation text " * 20,
