@@ -541,3 +541,30 @@ def test_pretraining_cli_saves_and_resumes_training_state(tmp_path, monkeypatch)
     )
     with pytest.raises(SystemExit):
         main()
+
+
+
+def test_multilingual_benchmark_reports_per_language_and_macro_metrics():
+    from evaluate import evaluate_language_corpora
+    from tokenizer import UnicodeCharTokenizer
+
+    tokenizer = UnicodeCharTokenizer.train("नेपाली सामग्री English text", 512)
+    model = tiny_model()
+    validation = {
+        "ne": "नेपाली validation सामग्री " * 20,
+        "en": "English heldout validation text " * 20,
+    }
+    first = evaluate_language_corpora(
+        model, validation, tokenizer, batch_size=2, batches=3, seed=31
+    )
+    second = evaluate_language_corpora(
+        model, validation, tokenizer, batch_size=2, batches=3, seed=31
+    )
+    assert first == second
+    assert set(first["languages"]) == {"en", "ne"}
+    assert all(item["cross_entropy"] >= 0 for item in first["languages"].values())
+    expected_macro = sum(
+        item["cross_entropy"] for item in first["languages"].values()
+    ) / 2
+    assert first["macro_average_cross_entropy"] == expected_macro
+    assert first["macro_geometric_mean_perplexity"] > 0
