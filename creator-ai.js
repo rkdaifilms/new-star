@@ -103,7 +103,7 @@ async function invoke(body){
  }
  return data;
 }
-function isImageRequest(text){return /\b(generate|create|make|draw|paint|render)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|thumbnail)\b/i.test(text)||/(?:तस्वीर|फोटो|चित्र|इमेज|छवि).*(?:बना|तैयार|जनरेट|दिखा)|(?:बना|तैयार|जनरेट).*(?:तस्वीर|फोटो|चित्र|इमेज|छवि)/u.test(text);}
+function isImageRequest(text){return /\b(generate|create|make|draw|paint|render|show)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|thumbnail|logo)\b/i.test(text)||/(?:तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|लोगो).*(?:बना|बनाओ|बनाइ|तैयार|जनरेट|दिखा|चाहिए)|(?:बना|बनाओ|बनाइ|तैयार|जनरेट|दिखा|चाहिए).*(?:तस्वीर|तस्बिर|फोटो|चित्र|इमेज|छवि|लोगो)/u.test(text);}
 async function sendMessage(){const text=prompt.value.trim();if(!text||busy)return;if(imageMode||isImageRequest(text)){await generateImage(text);return;}busy=true;send.disabled=true;voice.disabled=true;lastLanguage=detectLanguage(text);addMessage(text,"user");prompt.value="";const pending=addMessage("…","assistant");try{const result=await invoke({messages:[...history.slice(-8),{role:"user",content:text}],language:lastLanguage});pending.textContent=result.answer;history.push({role:"user",content:text},{role:"assistant",content:result.answer});if(history.length>10)history=history.slice(-10);if($("speak-replies").checked)speak(result.answer,lastLanguage);}catch(e){pending.textContent=e.message||"AI unavailable. Please try again.";if(!prompt.value.trim())prompt.value=text;}finally{busy=false;send.disabled=false;voice.disabled=false;prompt.focus();}}
 function requestedImageAspectRatio(description){
  const allowed=["1:1","3:4","4:3","9:16","16:9"];
