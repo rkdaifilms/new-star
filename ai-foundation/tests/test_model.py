@@ -183,3 +183,24 @@ def test_validation_corpus_loader_accepts_validation_only_jsonl(tmp_path):
     result = load_language_validation_corpora(path)
     assert set(result) == {"ne", "en"}
     assert "नेपाली" in result["ne"]
+
+
+def test_native_inference_server_formats_chat_messages():
+    from serve import format_chat_messages
+
+    prompt = format_chat_messages([
+        {"role": "system", "content": "You are New Star."},
+        {"role": "user", "content": "नमस्ते"},
+    ])
+    assert prompt == "system: You are New Star.\\nuser: नमस्ते\\nassistant:"
+
+
+def test_native_inference_server_rejects_invalid_chat_history():
+    import pytest
+    from serve import format_chat_messages
+
+    with pytest.raises(ValueError, match="final chat message"):
+        format_chat_messages([
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi"},
+        ])
