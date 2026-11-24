@@ -188,10 +188,12 @@ def make_handler(inference: ChatInference, server_token: str | None = None, api_
             if path not in ("/v1/chat/completions", "/chat/completions", "/v1/new-star/chat"):
                 self._send_json(404, {"error": {"message": "not found", "type": "not_found_error"}})
                 return
-            if not self._rate_allowed():
-                return
             started = __import__("time").monotonic()
             request_id = self.headers.get("X-Request-ID", "")[:100] or str(uuid.uuid4())
+            if not self._rate_allowed():
+                audit.record(request_id, self.client_id, path, 429,
+                             (__import__("time").monotonic() - started) * 1000)
+                return
             status, model_id = 200, ""
             try:
                 request = validate_chat_request(self._read_json())
