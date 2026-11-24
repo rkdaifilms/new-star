@@ -36,6 +36,31 @@ def evaluate_model(model: NewStarGPT, data: torch.Tensor, batch_size: int = 16,
     return sum(losses) / len(losses)
 
 
+def evaluate_language_corpora(model, validation_by_language, tokenizer=None,
+                              batch_size=16, batches=50, device="cpu", seed=1234):
+    """Return reproducible per-language held-out metrics and macro aggregates."""
+    if not validation_by_language:
+        raise ValueError("at least one validation language is required")
+    metrics = {}
+    for language in sorted(validation_by_language):
+        text = validation_by_language[language]
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError(f"validation corpus for {language!r} is empty")
+        encoded = tokenizer.encode(text) if tokenizer else list(text.encode("utf-8"))
+        data = torch.tensor(encoded, dtype=torch.long)
+        loss = evaluate_model(model, data, batch_size, batches, device, seed)
+        metrics[language] = {
+            "cross_entropy": loss,
+            "perplexity": math.exp(min(loss, 80.0)),
+        }
+    macro_loss = sum(item["cross_entropy"] for item in metrics.values()) / len(metrics)
+    return {
+        "languages": metrics,
+        "macro_average_cross_entropy": macro_loss,
+        "macro_geometric_mean_perplexity": math.exp(min(macro_loss, 80.0)),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", required=True)
@@ -44,6 +69,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--batches", type=int, default=50)
     parser.add_argument("--seed", type=int, default=1234)
+    parser.add_argument("--report-json", help="Optional path to save machine-readable evaluation metrics")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
     if args.batch_size < 1 or args.batches < 1:
@@ -67,23 +93,34 @@ def main() -> None:
     if args.data_format == "jsonl":
         try:
             validation_by_language = load_language_validation_corpora(args.data)
-            language_losses = {}
-            for language in sorted(validation_by_language):
-                text = validation_by_language[language]
-                encoded = tokenizer.encode(text) if tokenizer else list(text.encode("utf-8"))
-                data = torch.tensor(encoded, dtype=torch.long)
-                language_losses[language] = evaluate_model(
-                    model, data, args.batch_size, args.batches,
-                    args.device, args.seed,
-                )
+            report = evaluate_language_corpora(
+                model, validation_by_language, tokenizer, args.batch_size,
+                args.batches, args.device, args.seed,
+            )
         except ValueError as exc:
             parser.error(str(exc))
-        for language, loss in language_losses.items():
-            print(f"language={language} heldout_cross_entropy={loss:.4f} {unit} "
-                  f"perplexity={math.exp(min(loss, 80.0)):.4f}")
-        macro_loss = sum(language_losses.values()) / len(language_losses)
+        for language, metrics in report["languages"].items():
+            print(f"language={language} heldout_cross_entropy={metrics['cross_entropy']:.4f} {unit} "
+                  f"perplexity={metrics['perplexity']:.4f}")
+        macro_loss = report["macro_average_cross_entropy"]
         print(f"macro_average_cross_entropy={macro_loss:.4f} {unit}")
-        print(f"macro_geometric_mean_perplexity={math.exp(min(macro_loss, 80.0)):.4f}")
+        print(f"macro_geometric_mean_perplexity={report['macro_geometric_mean_perplexity']:.4f}")
+        if args.report_json:
+            output = {
+                "checkpoint": Path(args.checkpoint).name,
+                "checkpoint_format": checkpoint_format,
+                "metric_unit": unit,
+                "seed": args.seed,
+                "batch_size": args.batch_size,
+                "batches_per_language": args.batches,
+                **report,
+            }
+            report_path = Path(args.report_json)
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            report_path.write_text(
+                __import__("json").dumps(output, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
     else:
         corpus = Path(args.data).read_text(encoding="utf-8")
         encoded = tokenizer.encode(corpus) if tokenizer else list(corpus.encode("utf-8"))
