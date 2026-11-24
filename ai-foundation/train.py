@@ -24,6 +24,7 @@ def main():
     parser.add_argument("--data", required=True, help="Path to a UTF-8 text corpus you are allowed to use")
     parser.add_argument("--output", default="artifacts/newstar-small.pt")
     parser.add_argument("--steps", type=int, default=2000)
+    parser.add_argument("--seed", type=int, default=1337, help="Random seed for reproducible initialization and sampling")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--block-size", type=int, default=128)
     parser.add_argument("--width", type=int, default=128)
@@ -34,6 +35,10 @@ def main():
     args = parser.parse_args()
     if args.steps < 1 or args.batch_size < 1:
         parser.error("--steps and --batch-size must be positive")
+
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
 
     corpus = Path(args.data).read_text(encoding="utf-8")
     encoded = torch.tensor(list(corpus.encode("utf-8")), dtype=torch.long)
@@ -69,7 +74,7 @@ def main():
                 "state_dict": model.cpu().state_dict()}, output)
     output.with_suffix(output.suffix + ".json").write_text(
         json.dumps({"format": "new-star-byte-gpt-v1", "config": vars(config),
-                    "training_steps": args.steps, "corpus_bytes": len(encoded)}, indent=2),
+                    "training_steps": args.steps, "corpus_bytes": len(encoded), "seed": args.seed}, indent=2),
         encoding="utf-8",
     )
     print(f"Saved New Star checkpoint: {output}")
