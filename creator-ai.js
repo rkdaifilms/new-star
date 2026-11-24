@@ -92,6 +92,7 @@ async function invoke(body){
     detail=String(payload?.error||payload?.message||"");
    }
   }catch(_){}
+  if(body.action==="video-status"&&/video job not found/i.test(detail))return {ok:false,status:"failed",error:"यह वीडियो Job अब उपलब्ध नहीं है। नया वीडियो बनाएँ।"};
   if(body.action==="image")throw new Error(detail||"अभी तस्वीर नहीं बन पाई। थोड़ी देर बाद फिर कोशिश करें।");
   if(body.action==="transcribe")throw new Error(detail||"आवाज़ समझ नहीं आई। माइक की अनुमति जाँचकर दोबारा बोलें या संदेश लिखें।");
   if(body.action==="speak")throw new Error(detail||"अभी आवाज़ में जवाब उपलब्ध नहीं है। लिखित जवाब उपलब्ध रहेगा।");
