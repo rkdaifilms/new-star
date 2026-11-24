@@ -298,8 +298,8 @@ async function probeNewStarHostedModel() {
     if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
       return { configured: true, reachable: false, modelAvailable: false };
     }
-    const base = endpoint.toString().replace(/\\/$/, "");
-    const modelsUrl = base.endsWith("/models") ? base : base.replace(/\\/v1$/, "") + "/v1/models";
+    const base = endpoint.toString().replace(/\/$/, "");
+    const modelsUrl = base.endsWith("/models") ? base : base.replace(/\/v1$/, "") + "/v1/models";
     const headers: Record<string, string> = {};
     if (key) headers.Authorization = "Bearer " + key;
     const response = await fetchWithTimeout(modelsUrl, {
