@@ -290,21 +290,21 @@ Deno.serve(async (req: Request) => {
   if (body?.action === "speak") {
     const spokenText = typeof body.text === "string" ? body.text.trim() : "";
     if (!spokenText || spokenText.length > 3500) return json({ ok: false, error: "Text for speech must be between 1 and 3,500 characters." }, 400, headers);
-    const geminiKey = firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    const openaiKey = firstSecret("OPENAI_API_KEY", "OPENAI_KEY");
-    if (!geminiKey && !openaiKey) return json({ ok: false, error: "Multilingual AI voice is not configured. Written replies remain available." }, 503, headers);
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
+    if (!geminiKeys.length && !openaiKeys.length) return json({ ok: false, error: "Multilingual AI voice is not configured. Written replies remain available." }, 503, headers);
     const speechAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: speechAllowed, error: speechLimitError } = await speechAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 20 });
     if (speechLimitError || speechAllowed !== true) return json({ ok: false, error: speechLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, speechLimitError ? 503 : 429, headers);
 
-    if (geminiKey) {
-      const models = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"];
-      let geminiSpeechFailure = "";
-      for (const model of models) {
+    const failures: string[] = [];
+    const speechModels = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"];
+    for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
+      for (const model of speechModels) {
         try {
           const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
             method: "POST",
-            headers: { "x-goog-api-key": geminiKey, "Content-Type": "application/json" },
+            headers: { "x-goog-api-key": geminiKeys[keyIndex], "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ role: "user", parts: [{ text: "Speak the following text naturally and clearly in the same language. Do not translate or add words: " + spokenText }] }],
               generationConfig: {
@@ -315,7 +315,8 @@ Deno.serve(async (req: Request) => {
           }, 60000);
           const data = await response.json().catch(() => ({}));
           if (!response.ok) {
-            geminiSpeechFailure = providerHttpError(response.status, data);
+            const reason = providerHttpError(response.status, data);
+            failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":" + reason);
             if (response.status === 404) continue;
             break;
           }
@@ -325,37 +326,43 @@ Deno.serve(async (req: Request) => {
           if (audioPart?.inlineData?.data) {
             return json({ ok: true, audio: audioPart.inlineData.data, mimeType: audioPart.inlineData.mimeType || "audio/wav", provider: "gemini" }, 200, headers);
           }
-          geminiSpeechFailure = "GEMINI_RETURNED_NO_AUDIO";
+          failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":GEMINI_RETURNED_NO_AUDIO");
+          break;
         } catch (error) {
-          geminiSpeechFailure = error instanceof Error ? error.message : "GEMINI_TTS_UNAVAILABLE";
+          failures.push("gemini[" + (keyIndex + 1) + "]/" + model + ":" + (error instanceof Error ? error.message : "GEMINI_TTS_UNAVAILABLE"));
           break;
         }
       }
-      if (!openaiKey) return json({ ok: false, error: geminiSpeechFailure || "Gemini voice service unavailable." }, 502, headers);
     }
 
-    if (openaiKey) {
-      const response = await fetchWithTimeout("https://api.openai.com/v1/audio/speech", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${openaiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-4o-mini-tts",
-          voice: "alloy",
-          input: spokenText,
-          instructions: "Speak the input text naturally in exactly the same language as the input. Do not translate, summarize, or add words.",
-          response_format: "mp3"
-        })
-      }, 60000);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return json({ ok: false, error: providerHttpError(response.status, errorData) }, 502, headers);
+    for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
+      try {
+        const response = await fetchWithTimeout("https://api.openai.com/v1/audio/speech", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${openaiKeys[keyIndex]}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gpt-4o-mini-tts",
+            voice: "alloy",
+            input: spokenText,
+            instructions: "Speak the input text naturally in exactly the same language as the input. Do not translate, summarize, or add words.",
+            response_format: "mp3"
+          })
+        }, 60000);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          failures.push("openai[" + (keyIndex + 1) + "]:" + providerHttpError(response.status, errorData));
+          continue;
+        }
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        return json({ ok: true, audio: btoa(binary), mimeType: "audio/mpeg", provider: "openai" }, 200, headers);
+      } catch (error) {
+        failures.push("openai[" + (keyIndex + 1) + "]:" + (error instanceof Error ? error.message : "OPENAI_TTS_UNAVAILABLE"));
       }
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      let binary = "";
-      for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-      return json({ ok: true, audio: btoa(binary), mimeType: "audio/mpeg", provider: "openai" }, 200, headers);
     }
-    return json({ ok: false, error: "AI voice providers are unavailable." }, 503, headers);
+    console.error("AI speech providers exhausted:", failures.join("; ").slice(0, 1200));
+    return json({ ok: false, error: "AI voice providers are unavailable. Written AI replies remain available.", attempted: failures }, 502, headers);
   }
 
   if (body?.action === "transcribe") {
