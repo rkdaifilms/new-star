@@ -5,6 +5,7 @@ Model weights are intentionally not bundled. Mount a licensed GGUF model at MODE
 from __future__ import annotations
 
 import hmac
+import json
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -12,6 +13,7 @@ from threading import BoundedSemaphore
 from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
@@ -104,14 +106,40 @@ def list_models():
 def chat_completions(payload: ChatRequest):
     if _model is None:
         raise HTTPException(status_code=503, detail="Model is not ready.")
-    if payload.stream:
-        raise HTTPException(status_code=400, detail="Streaming is not enabled in this first CPU release.")
     if payload.model and payload.model != MODEL_ID:
         raise HTTPException(status_code=404, detail="Requested model is not available.")
     if sum(len(message.content) for message in payload.messages) > 20000:
         raise HTTPException(status_code=413, detail="Conversation is too large.")
     if not _slots.acquire(blocking=False):
         raise HTTPException(status_code=429, detail="CPU inference is busy. Retry shortly.")
+    if payload.stream:
+        def stream_events():
+            try:
+                chunks = _model.create_chat_completion(
+                    messages=[message.model_dump() for message in payload.messages],
+                    temperature=payload.temperature,
+                    max_tokens=payload.max_tokens,
+                    stream=True,
+                )
+                for chunk in chunks:
+                    # Keep the public model identifier stable and emit OpenAI-compatible SSE.
+                    chunk["model"] = MODEL_ID
+                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\\n\\n"
+                yield "data: [DONE]\\n\\n"
+            except Exception:
+                # Headers may already be sent; never expose prompts, paths, or credentials.
+                error = {"error": {"message": "Local model streaming failed.", "type": "server_error"}}
+                yield f"data: {json.dumps(error)}\\n\\n"
+                yield "data: [DONE]\\n\\n"
+            finally:
+                _slots.release()
+
+        return StreamingResponse(
+            stream_events(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
     try:
         result = _model.create_chat_completion(
             messages=[message.model_dump() for message in payload.messages],
