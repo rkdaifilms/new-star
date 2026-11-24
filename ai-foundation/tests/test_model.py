@@ -325,3 +325,12 @@ def test_sft_collation_masks_padding_and_preserves_response_labels():
     x, y = collate_examples(examples, [0, 1], block_size=8, device="cpu")
     assert x.tolist() == [[1, 2, 3], [6, 7, 0]]
     assert y.tolist() == [[-100, 4, 5], [-100, 8, -100]]
+
+
+def test_model_rejects_batch_with_no_unmasked_training_targets():
+    import pytest
+    model = tiny_model()
+    tokens = torch.tensor([[65, 66, 67]], dtype=torch.long)
+    labels = torch.full_like(tokens, -100)
+    with pytest.raises(ValueError, match="at least one non-masked token"):
+        model(tokens, labels)
