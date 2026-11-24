@@ -6,7 +6,7 @@ gateway and this runtime serves model inference.
 
 ## Current status
 
-- The gateway adapter is implemented and deployed in Supabase AI Gateway v81.
+- The gateway adapter is implemented and deployed in Supabase AI Gateway v82.
 - The adapter expects an OpenAI-compatible `/chat/completions` endpoint.
 - The gateway status action now performs non-billable credential/access probes for configured providers. Gemini and OpenAI use model-list endpoints so checks do not depend on one specific model; it does not run paid inference or verify inference quota.
 - This directory contains the GPU runtime deployment files.
@@ -34,8 +34,7 @@ a host. A compatible NVIDIA GPU and NVIDIA Container Toolkit are required.
    - `NEW_STAR_MODEL_NAME`: `new-star-model`
    - `NEW_STAR_MODEL_API_KEY`: the same random secret configured in this runtime
 7. After secrets are configured, test with a signed-in New Star account and inspect
-   Supabase function logs. The gateway's status response only reports configuration;
-   it does not perform a model health check.
+   Supabase function logs. The gateway status response checks the model-list endpoint when configured; it does not run paid inference.
 
 ## Security and cost
 
