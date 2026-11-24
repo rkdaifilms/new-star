@@ -30,3 +30,22 @@ Deno.test("treats Arabic script as language-ambiguous", () => {
   if (result?.confidence !== "low") throw new Error("Arabic script must remain ambiguous");
   if (result && !result.instruction.includes("Do not assume Arabic")) throw new Error("Arabic/Urdu/Persian ambiguity warning missing");
 });
+
+
+Deno.test("detects additional South Asian and world scripts", () => {
+  const cases = [
+    ["Punjabi", "ਸਤ ਸ੍ਰੀ ਅਕਾਲ ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ"],
+    ["Gujarati", "નમસ્તે તમે કેમ છો આજે"],
+    ["Tamil", "வணக்கம் நீங்கள் எப்படி இருக்கிறீர்கள்"],
+    ["Telugu", "నమస్కారం మీరు ఎలా ఉన్నారు"],
+    ["Kannada", "ನಮಸ್ಕಾರ ನೀವು ಹೇಗಿದ್ದೀರಿ"],
+    ["Malayalam", "നമസ്കാരം നിങ്ങൾക്ക് സുഖമാണോ"],
+    ["Hebrew", "שלום מה שלומך היום"],
+    ["Greek", "Γειά σου τι κάνεις σήμερα"],
+    ["Ethiopic", "ሰላም እንዴት ነህ ዛሬ"]
+  ];
+  for (const [expected, sample] of cases) {
+    const result = detectReplyScript(sample);
+    if (result?.script !== expected) throw new Error("Expected " + expected + " script, received " + String(result?.script));
+  }
+});
