@@ -31,14 +31,14 @@ The New Star AI page remembers the current conversation ID in the browser so a c
 - **Text-to-image:** calls the image action, sends the chosen 1K/2K/4K size, and renders the returned image. Actual success depends on provider availability and quota.
 
 ## Research and image understanding
-- **Live Research:** the `research` action uses Gemini Google Search grounding and returns source links from grounding metadata. It requires a configured Gemini key and model access; provider search usage may be billable.
-- **Image understanding:** the `vision` action accepts PNG/JPEG/WebP uploads up to 6 MB and uses configured Gemini vision first, then OpenAI vision. This is image analysis, not image editing.
+- **Live Research:** the branch adds a `research` action using Gemini Google Search grounding and returning source links from grounding metadata. It requires a configured Gemini key and model access; Google Search grounding may incur charges when a user runs a research request. The new action is not live until the Edge Function is deployed.
+- **Image understanding:** the branch adds a `vision` action accepting PNG/JPEG/WebP uploads up to 6 MB and using configured Gemini vision first, then OpenAI vision. This is image analysis, not image editing. The new action is not live until the Edge Function is deployed.
 - **Video generation:** no video inference runtime or job queue is connected.
 
 The UI labels these as unavailable rather than pretending to complete them.
 
 ## Deployment and verification
-- Supabase AI Gateway version 78 is active. The New Star hosted-model adapter is deployed, but no inference endpoint or GPU host has been provisioned.
+- Supabase AI Gateway version 77 remains deployed. The branch contains pending version 78 source changes; no deployment or live inference test was performed. The New Star hosted-model adapter is deployed, but no inference endpoint or GPU host has been provisioned.
 - The conversation-memory migration applied successfully.
 - The page status indicator reports configured providers and explicitly says they are not health-tested; configuration is not proof of a successful inference call.
 - Conversation creation now happens only after an AI provider successfully answers, preventing failed first requests from leaving empty conversation rows. The UI also warns when a reply succeeds but its memory could not be saved.
