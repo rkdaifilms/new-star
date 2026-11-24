@@ -820,7 +820,7 @@ Deno.serve(async (req: Request) => {
         imageGeneration: { supported: true, configured: imageConfigured },
         speechGeneration: { supported: true, configured: speechConfigured },
         speechTranscription: { supported: true, configured: speechConfigured },
-        videoGeneration: { supported: true, configured: hasGemini, provider: "gemini", model: Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim() || "gemini-omni-1.2-flash", reason: "A configured key does not verify model access, paid-tier eligibility, quota, or successful video generation." },
+        videoGeneration: { supported: true, configured: Boolean(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON")?.trim()), provider: "google-vertex-ai", model: Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim() || "gemini-omni-1.2-flash", reason: "A configured service account does not verify Vertex AI permissions, model access, billing, quota, or successful video generation." },
         webSearch: { supported: false, configured: false, reason: "A live search provider adapter is not implemented in this gateway yet." }
       },
       health: {
