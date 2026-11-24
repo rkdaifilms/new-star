@@ -637,37 +637,32 @@ Deno.serve(async (req: Request) => {
     const resolution = ["360p", "720p", "1080p"].includes(String(body.resolution || "")) ? String(body.resolution) : "720p";
     const duration = "6s";
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter a video description of up to 1,800 characters." }, 400, headers);
-    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    if (!geminiKeys.length) return json({ ok: false, error: "Video generation is not configured. An authorized project owner must configure the Gemini API key on the server." }, 503, headers);
+    if (!Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON")?.trim()) {
+      return json({ ok: false, error: "Video generation requires Google Cloud Vertex AI access. An authorized project owner must configure GOOGLE_SERVICE_ACCOUNT_JSON and enable the Vertex AI API." }, 503, headers);
+    }
     const videoAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: videoAllowed, error: videoLimitError } = await videoAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userData.user.id, p_limit: 3 });
     if (videoLimitError || videoAllowed !== true) return json({ ok: false, error: videoLimitError ? "Security rate-limit check unavailable." : "Video request limit reached. Please wait before trying again." }, videoLimitError ? 503 : 429, headers);
 
     const configuredVideoModel = Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim();
-    const videoModels = Array.from(new Set([configuredVideoModel, "gemini-omni-1.1-flash"].filter((value): value is string => Boolean(value))));
+    const videoModels = Array.from(new Set([configuredVideoModel, "gemini-omni-1.2-flash", "gemini-omni-1.1-flash-preview"].filter((value): value is string => Boolean(value))));
     const failures: string[] = [];
     for (const model of videoModels) {
-      for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
-        try {
-          const result = await startGeminiVideo(geminiKeys[keyIndex], model, prompt, aspectRatio, resolution, duration);
-          const { data: job, error: jobError } = await videoAdmin.from("ai_video_jobs").insert({
-            user_id: userData.user.id,
-            provider_interaction_id: result.interactionId,
-            provider_model: result.model,
-            status: result.status
-          }).select("id").single();
-          if (jobError || !job?.id) {
-            await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions/" + encodeURIComponent(result.interactionId) + "/cancel", {
-              method: "POST", headers: { "x-goog-api-key": geminiKeys[keyIndex] }
-            }, 10000).catch(() => {});
-            throw new Error("VIDEO_JOB_SAVE_FAILED");
-          }
-          return json({ ok: true, jobId: job.id, status: result.status, provider: "gemini", model: result.model }, 202, headers);
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : "VIDEO_START_FAILED";
-          failures.push(model + "/gemini[" + (keyIndex + 1) + "]:" + reason);
-          console.error("AI video job start failed:", model, "gemini", keyIndex + 1, reason);
-        }
+      try {
+        const result = await startGeminiVideo(model, prompt, aspectRatio, resolution, duration);
+        const { data: job, error: jobError } = await videoAdmin.from("ai_video_jobs").insert({
+          user_id: userData.user.id,
+          provider_interaction_id: result.interactionId,
+          provider_model: result.model,
+          status: result.status
+        }).select("id").single();
+        if (jobError || !job?.id) throw new Error("VIDEO_JOB_SAVE_FAILED");
+        return json({ ok: true, jobId: job.id, status: result.status, provider: "google-vertex-ai", model: result.model }, 202, headers);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "VIDEO_START_FAILED";
+        failures.push(model + ":" + reason);
+        console.error("AI video job start failed:", model, reason);
+        if (/GOOGLE_SERVICE_ACCOUNT_JSON|OAuth token exchange|private key|client_email|project_id/i.test(reason)) break;
       }
     }
     const failureText = failures.join(" ").toUpperCase();
@@ -701,14 +696,10 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, status: "in_progress", jobId: job.id, model: job.provider_model }, 200, headers);
     }
     await videoAdmin.from("ai_video_jobs").update({ updated_at: new Date().toISOString() }).eq("id", job.id);
-    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    if (!geminiKeys.length) return json({ ok: false, error: "Video provider is not configured." }, 503, headers);
     let interaction: any = null;
-    let lastFailure = "GEMINI_VIDEO_STATUS_UNAVAILABLE";
-    for (const key of geminiKeys) {
-      try { interaction = await getGeminiVideoInteraction(key, job.provider_interaction_id); break; }
-      catch (error) { lastFailure = error instanceof Error ? error.message : lastFailure; }
-    }
+    let lastFailure = "VERTEX_VIDEO_STATUS_UNAVAILABLE";
+    try { interaction = await getGeminiVideoInteraction(job.provider_interaction_id); }
+    catch (error) { lastFailure = error instanceof Error ? error.message : lastFailure; }
     if (!interaction) return json({ ok: false, error: "Could not check video progress. Please retry.", code: lastFailure }, 502, headers);
     if (interaction.status === "in_progress") return json({ ok: true, status: "in_progress", jobId: job.id, model: job.provider_model }, 200, headers);
     if (interaction.status !== "completed") {
