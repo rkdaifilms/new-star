@@ -18,5 +18,25 @@ services:
       interval: 20s
       timeout: 5s
       retries: 3
+  new-star-vector-search:
+    build: .
+    command: ["python","vector_server.py"]
+    restart: unless-stopped
+    environment:
+      NEW_STAR_SEARCH_API_KEY: ${NEW_STAR_SEARCH_API_KEY:?Set NEW_STAR_SEARCH_API_KEY}
+      NEW_STAR_VECTOR_DATABASE_URL: ${NEW_STAR_VECTOR_DATABASE_URL:?Set NEW_STAR_VECTOR_DATABASE_URL}
+      NEW_STAR_EMBEDDING_MODEL: ${NEW_STAR_EMBEDDING_MODEL:-intfloat/multilingual-e5-small}
+      HF_HOME: /var/cache/huggingface
+    volumes:
+      - new-star-model-cache:/var/cache/huggingface
+    ports:
+      - "127.0.0.1:8082:8082"
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/healthz',timeout=5)"]
+      interval: 30s
+      timeout: 8s
+      retries: 5
+      start_period: 180s
 volumes:
   new-star-search-data:
+  new-star-model-cache:
