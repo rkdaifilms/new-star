@@ -169,7 +169,7 @@ async function generateOpenRouterImage(key: string, prompt: string, aspectRatio:
 }
 
 
-async function generateGeminiVideo(key: string, prompt: string, aspectRatio: string, resolution: string) {
+async function generateGeminiVideo(key: string, prompt: string, aspectRatio: string, resolution: string, duration: string) {
   const model = Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim() || "gemini-omni-1.2-flash";
   const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
@@ -177,7 +177,7 @@ async function generateGeminiVideo(key: string, prompt: string, aspectRatio: str
     body: JSON.stringify({
       model,
       input: prompt,
-      response_format: { type: "video", aspect_ratio: aspectRatio, resolution }
+      response_format: { type: "video", aspect_ratio: aspectRatio, resolution, duration }
     })
   }, 125000);
   const data = await response.json().catch(() => ({}));
@@ -559,6 +559,7 @@ Deno.serve(async (req: Request) => {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = ["16:9", "9:16"].includes(String(body.aspectRatio || "")) ? String(body.aspectRatio) : "16:9";
     const resolution = ["360p", "720p", "1080p"].includes(String(body.resolution || "")) ? String(body.resolution) : "720p";
+    const duration = ["5s", "10s", "15s"].includes(String(body.duration || "")) ? String(body.duration) : "5s";
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter a video description of up to 1,800 characters." }, 400, headers);
     const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
     if (!geminiKeys.length) return json({ ok: false, error: "Video generation is not configured. An authorized project owner must configure the Gemini API key on the server." }, 503, headers);
@@ -570,7 +571,7 @@ Deno.serve(async (req: Request) => {
     for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
       let uploadedPath = "";
       try {
-        const result = await generateGeminiVideo(geminiKeys[keyIndex], prompt, aspectRatio, resolution);
+        const result = await generateGeminiVideo(geminiKeys[keyIndex], prompt, aspectRatio, resolution, duration);
         if (result.video.length > 70000000) throw new Error("VIDEO_OUTPUT_TOO_LARGE");
         const videoBytes = Uint8Array.from(atob(result.video), (character) => character.charCodeAt(0));
         if (videoBytes.byteLength > 50 * 1024 * 1024) throw new Error("VIDEO_OUTPUT_TOO_LARGE");
