@@ -678,3 +678,53 @@ def test_corpus_audit_checks_minimum_sizes_and_manifest(tmp_path):
     manifest.write_text(json.dumps({"dataset_name": "missing provenance"}), encoding="utf-8")
     with pytest.raises(ValueError, match="manifest missing"):
         audit_corpus(data, manifest)
+
+
+
+def test_experiment_registry_records_checkpoint_hash_and_audit_provenance(tmp_path):
+    import hashlib
+    import json
+    from experiment_registry import register_experiment
+
+    checkpoint = tmp_path / "model.pt"
+    checkpoint.write_bytes(b"tiny checkpoint bytes")
+    metadata = tmp_path / "model.pt.json"
+    metadata.write_text(json.dumps({
+        "training_steps": 12,
+        "final_validation_loss": 2.5,
+        "seed": 7,
+        "languages": ["en", "ne"],
+        "model_config": {"width": 16},
+    }), encoding="utf-8")
+    audit = tmp_path / "model.pt.corpus-audit.json"
+    audit.write_text(json.dumps({
+        "ok": True,
+        "provenance": {"dataset_name": "test corpus", "license": "CC0-1.0"},
+        "languages": {"en": {}, "ne": {}},
+    }), encoding="utf-8")
+    registry = tmp_path / "runs" / "experiments.jsonl"
+
+    record = register_experiment(metadata, registry)
+    stored = json.loads(registry.read_text(encoding="utf-8").splitlines()[0])
+    assert record == stored
+    assert record["stage"] == "pretraining"
+    assert record["checkpoint_sha256"] == hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    assert record["corpus_audit"]["ok"] is True
+    assert record["corpus_audit"]["language_count"] == 2
+    assert record["corpus_audit"]["provenance"]["dataset_name"] == "test corpus"
+
+
+def test_experiment_registry_refuses_failed_audit(tmp_path):
+    import json
+    import pytest
+    from experiment_registry import register_experiment
+
+    checkpoint = tmp_path / "model.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    metadata = tmp_path / "model.pt.json"
+    metadata.write_text(json.dumps({"training_steps": 1}), encoding="utf-8")
+    audit = tmp_path / "model.pt.corpus-audit.json"
+    audit.write_text(json.dumps({"ok": False, "languages": {}}), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="failed corpus audit"):
+        register_experiment(metadata, tmp_path / "registry.jsonl")
