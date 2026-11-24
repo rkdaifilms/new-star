@@ -635,7 +635,7 @@ Deno.serve(async (req: Request) => {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = ["16:9", "9:16"].includes(String(body.aspectRatio || "")) ? String(body.aspectRatio) : "16:9";
     const resolution = ["360p", "720p", "1080p"].includes(String(body.resolution || "")) ? String(body.resolution) : "720p";
-    const duration = "6s";
+    const duration = ["6s", "10s", "15s"].includes(String(body.duration || "")) ? String(body.duration) : "6s";
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter a video description of up to 1,800 characters." }, 400, headers);
     if (!Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON")?.trim()) {
       return json({ ok: false, error: "Video generation requires Google Cloud Vertex AI access. An authorized project owner must configure GOOGLE_SERVICE_ACCOUNT_JSON and enable the Vertex AI API." }, 503, headers);
@@ -645,7 +645,7 @@ Deno.serve(async (req: Request) => {
     if (videoLimitError || videoAllowed !== true) return json({ ok: false, error: videoLimitError ? "Security rate-limit check unavailable." : "Video request limit reached. Please wait before trying again." }, videoLimitError ? 503 : 429, headers);
 
     const configuredVideoModel = Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim();
-    const videoModels = Array.from(new Set([configuredVideoModel, "gemini-omni-1.2-flash", "gemini-omni-1.1-flash-preview"].filter((value): value is string => Boolean(value))));
+    const videoModels = Array.from(new Set([configuredVideoModel, "gemini-omni-1.2-flash", ...(duration === "15s" ? [] : ["gemini-omni-1.1-flash-preview"])].filter((value): value is string => Boolean(value))));
     const failures: string[] = [];
     for (const model of videoModels) {
       try {
