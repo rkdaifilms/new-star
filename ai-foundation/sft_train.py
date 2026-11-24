@@ -204,11 +204,11 @@ def main():
         "learning_rate": args.learning_rate,
         "batch_size": args.batch_size,
         "block_size": args.block_size,
-        "width": args.width,
-        "layers": args.layers,
-        "heads": args.heads,
+        "width": config.width,
+        "layers": config.layers,
+        "heads": config.heads,
         "max_vocab_size": args.max_vocab_size,
-        "tokenizer_type": args.tokenizer,
+        "tokenizer_type": tokenizer.to_dict()["type"],
         "data_format": "instruction-jsonl",
     }
     start_step = 0
@@ -271,7 +271,7 @@ def main():
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     torch.save({
-        "format": ("new-star-byte-bpe-gpt-v1" if args.tokenizer == "bpe" else "new-star-unicode-char-gpt-v1"),
+        "format": ("new-star-byte-bpe-gpt-v1" if tokenizer.to_dict()["type"] == ByteBPETokenizer.FORMAT else "new-star-unicode-char-gpt-v1"),
         "config": vars(config),
         "tokenizer": tokenizer.to_dict(),
         "state_dict": model.cpu().state_dict(),
