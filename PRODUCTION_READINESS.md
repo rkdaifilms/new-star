@@ -44,10 +44,10 @@ Install a supported NVIDIA driver and NVIDIA Container Toolkit on a host with an
 ```bash
 docker compose -f ai-foundation/docker-compose.yml --profile gpu build train-gpu
 docker compose -f ai-foundation/docker-compose.yml --profile gpu run --rm train-gpu --help
-docker compose -f ai-foundation/docker-compose.yml --profile gpu run --rm train-gpu python3 gpu_validate.py --device cuda --report-json /artifacts/gpu-validation.json
+docker compose -f ai-foundation/docker-compose.yml --profile gpu run --rm --entrypoint python3 train-gpu gpu_validate.py --device cuda --report-json /artifacts/gpu-validation.json
 ```
 
-The final command above is illustrative only if the image entrypoint is overridden; for the current image use a one-off container command override, or run `python3 gpu_validate.py --device cuda` inside the built image. The validation script fails when CUDA is unavailable and records device, precision, peak allocated/reserved memory and synthetic-token throughput. It is a smoke test, not a model-quality benchmark. Run a separate licensed-corpus training experiment and record validation loss before production use.
+The last command overrides the training entrypoint so the GPU smoke test runs instead of starting a training job. The validation script fails when CUDA is unavailable and records device, precision, peak allocated/reserved memory and synthetic-token throughput. It is a smoke test, not a model-quality benchmark. Run a separate licensed-corpus training experiment and record validation loss before production use.
 
 For inference, build `ai-inference/Dockerfile.cuda`, enable the Compose `gpu` profile, verify `/healthz` reports the loaded model and GPU offload requested, then run `ai-inference/scripts/benchmark.py` with `MODEL_TOKEN` in the environment. A GPU layer request alone does not prove that the model is actually offloaded; inspect runtime logs and GPU utilization.
 
