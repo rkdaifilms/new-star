@@ -11,6 +11,37 @@ This folder contains New Star's own experimental decoder-only Transformer archit
 - Local checkpoint saving and text generation.
 - A deterministic held-out evaluation command reporting cross-entropy (nats/token or nats/byte depending on checkpoint) and perplexity.
 
+
+## Experimental byte-level BPE tokenizer
+
+A separate research tokenizer is available in `bpe_tokenizer.py`. It learns
+deterministic byte-pair merges from UTF-8 text, retains byte fallback for every
+Unicode script and emoji, and supports JSON-compatible serialization. It is
+covered by multilingual round-trip, unseen-text, vocabulary-growth, and
+serialization tests.
+
+Train a small experimental vocabulary from a permitted corpus:
+
+```python
+from bpe_tokenizer import ByteBPETokenizer
+
+tokenizer = ByteBPETokenizer.train(
+    "permitted multilingual training text",
+    max_merges=2000,
+    min_frequency=2,
+)
+payload = tokenizer.to_dict()
+restored = ByteBPETokenizer.from_dict(payload)
+assert restored.decode(restored.encode("नमस्ते 🌍")) == "नमस्ते 🌍"
+```
+
+This BPE implementation is a standalone experiment and is **not yet wired into
+the existing model checkpoint/training format**. The current foundation-model
+trainer still uses the Unicode character/byte-fallback tokenizer. Benchmark
+token compression, training speed, memory use, and multilingual quality before
+choosing a tokenizer for future checkpoints. This simple implementation is
+intended for small research corpora, not large-scale production training.
+
 ## Run a tiny experiment
 
 Use Python 3.10+ and install the separate training dependency:
