@@ -64,6 +64,8 @@ jobs:
           grep -F 'body?.action === "transcribe"' "$FILE"
           grep -F 'body?.action === "speak"' "$FILE"
           grep -F 'body?.action === "image"' "$FILE"
+          grep -F 'body?.action === "research"' "$FILE"
+          grep -F 'body?.action === "vision"' "$FILE"
           grep -F 'new_star_ai_conversations' "$FILE"
           grep -F 'new_star_ai_messages' "$FILE"
           grep -F 'callNewStarHostedModel' "$FILE"
