@@ -152,7 +152,8 @@ async function generateVideo(overrideDescription){
  try{
   const aspectRatio=$("video-aspect-ratio")?.value||"16:9";
   const resolution=$("video-resolution")?.value||"720p";
-  const result=await invoke({action:"video",prompt:description,aspectRatio,resolution});
+  const duration=$("video-duration")?.value||"5s";
+  const result=await invoke({action:"video",prompt:description,aspectRatio,resolution,duration});
   if(typeof result.videoUrl!=="string"||!result.videoUrl.startsWith("https://"))throw new Error("New Star storage did not return a secure video link.");
   const player=document.createElement("video");player.controls=true;player.playsInline=true;player.preload="metadata";player.src=result.videoUrl;player.style.width="100%";player.style.maxWidth="720px";player.style.borderRadius="14px";
   const save=document.createElement("a");save.href=result.videoUrl;save.download="new-star-ai-video.mp4";save.target="_blank";save.rel="noopener";save.textContent="Open / save video";save.style.color="#ff9bb0";
