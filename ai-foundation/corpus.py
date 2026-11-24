@@ -82,4 +82,4 @@ def load_language_validation_corpora(path: str | Path) -> dict[str, str]:
                 validation[language.strip()].append(text)
     if not validation:
         raise ValueError("JSONL corpus has no validation records")
-    return {language: "\\n".join(parts) for language, parts in validation.items()}
+    return {language: "\n".join(parts) for language, parts in validation.items()}
