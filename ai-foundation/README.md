@@ -43,11 +43,19 @@ behavior. The `--max-vocab-size` option sets the total target vocabulary ceiling
 for BPE, the available merge count is that value minus the 256 raw-byte IDs.
 The tokenizer type and fingerprint are included in checkpoints and resume
 validation, so a run cannot silently resume with a different tokenizer. BPE
-checkpoints use `new-star-byte-bpe-gpt-v1` and are supported by `generate.py`,
-`evaluate.py`, and `serve.py`. Benchmark token compression, training speed,
-memory use, and multilingual quality before choosing a tokenizer for serious
-training. This simple implementation is intended for small research corpora,
-not large-scale production training.
+checkpoints use `new-star-byte-bpe-gpt-v1` and are supported by
+`generate.py`, `evaluate.py`, and `serve.py`.
+
+Benchmark tokenizer compression and throughput on a permitted UTF-8 sample:
+```sh
+python ai-foundation/benchmark_tokenizer.py --data ./permitted-benchmark.txt \
+  --max-merges 2000 --iterations 3 --output artifacts/bpe-benchmark.json
+```
+The report records the input fingerprint, vocabulary size, tokens per character,
+tokens per UTF-8 byte, compression ratio, encode/decode throughput, and a
+verified round trip. Compare the same held-out multilingual sample and settings
+across experiments; compression alone does not measure language quality. This
+small implementation is intended for research corpora, not production training.
 
 ## Run a tiny experiment
 
