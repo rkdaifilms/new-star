@@ -206,7 +206,16 @@ internal fun NativeAiStudio(accessToken: String) {
             },
             enabled = !sending && !voiceProcessing,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(when { listening -> "■ रिकॉर्डिंग रोकें"; voiceProcessing -> "आवाज़ टेक्स्ट में बदल रही है…"; else -> "🎙        if (voiceStatus.isNotBlank()) {
+        ) {
+            Text(
+                when {
+                    listening -> "■ रिकॉर्डिंग रोकें"
+                    voiceProcessing -> "आवाज़ टेक्स्ट में बदल रही है…"
+                    else -> "🎙️ माइक से बोलें"
+                }
+            )
+        }
+        if (voiceStatus.isNotBlank()) {
             Spacer(Modifier.height(8.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -214,10 +223,18 @@ internal fun NativeAiStudio(accessToken: String) {
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(if (listening) "🔴 माइक LIVE — रिकॉर्डिंग हो रही है" else voiceStatus, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (listening) "🔴 माइक LIVE — रिकॉर्डिंग हो रही है" else voiceStatus,
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                     if (listening || voiceProcessing) {
                         Spacer(Modifier.height(8.dp))
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFFFF526F))
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = Color(0xFFFF526F)
+                        )
                     }
                 }
             }
