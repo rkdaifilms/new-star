@@ -53,7 +53,7 @@ For inference, build `ai-inference/Dockerfile.cuda`, enable the Compose `gpu` pr
 
 ## Multilingual evaluation
 
-Use a language-tagged JSONL corpus with separate `train` and `validation` records per language. Keep validation text disjoint from training text. Run the corpus audit, train, then run `evaluate.py --data-format jsonl` against held-out validation data. Store per-language cross-entropy/perplexity reports and compare regressions across runs. The included CI regression set covers eight Unicode scripts/languages and verifies that the canonical gateway catalog (90+ language entries) can be checked for complete validation-corpus coverage. CI uses synthetic smoke data only; it is not a claim of translation quality or proficiency. For a genuine all-language quality run, provide reviewed, rights-cleared held-out validation text for every catalog language and run `python evaluate.py --checkpoint artifacts/newstar.pt --data validation.jsonl --data-format jsonl --require-all-supported-languages --report-json artifacts/multilingual-report.json`.
+Use a language-tagged JSONL corpus with separate `train` and `validation` records per language. Keep validation text disjoint from training text. Run the corpus audit, train, then run `evaluate.py --data-format jsonl` against held-out validation data. Store per-language cross-entropy/perplexity reports and compare regressions across runs. The included CI regression set covers eight Unicode scripts/languages and verifies that the canonical gateway catalog (90+ language entries) can be checked for complete validation-corpus coverage. CI uses synthetic smoke data only; it is not a claim of translation quality or proficiency. For held-out language-model metrics, provide reviewed, rights-cleared validation text for every catalog language and run `python evaluate.py --checkpoint artifacts/newstar.pt --data validation.jsonl --data-format jsonl --require-all-supported-languages --report-json artifacts/multilingual-report.json`. For generated-output quality, provide a separate reviewed JSONL with `language`, `prompt`, and `reference` per case, then run `python generation_eval.py --checkpoint artifacts/newstar.pt --cases generation-cases.jsonl --require-all-supported-languages --report-json artifacts/generation-quality.json`. The latter reports exact match and chrF-style character n-gram F1; human bilingual review and task-specific factual checks remain required.
 
 ## Operations, security and monitoring
 
@@ -69,7 +69,7 @@ Use a language-tagged JSONL corpus with separate `train` and `validation` record
 
 ## Known production blockers / honest status
 
-- No evidence in this repository alone proves a live Supabase migration, populated vector index, real external HTTPS route or production deployment.
+- The two pgvector/hybrid migrations have been applied to the connected New Star Supabase project and verified with a temporary insert/query/delete smoke test. The semantic index is still empty (no authorized crawl/backfill yet), and no public HTTPS route or production service deployment has been performed.
 - No real NVIDIA host validation is possible from ordinary GitHub Actions CPU runners. The CUDA smoke test must be run on the operator's GPU host.
 - The own foundation Transformer is randomly initialized until trained. It is not currently comparable to ChatGPT/Gemini and cannot be described as a completed frontier model.
 - Multimodal generation is provider-adapter integration today; New Star-owned image/video/audio foundation models and training datasets are not present.
