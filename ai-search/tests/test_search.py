@@ -65,7 +65,7 @@ class SearchIndexTests(unittest.TestCase):
         def fake_read(url, accepted_types=("text/html",)):
             calls.append(url)
             return (page_a if url.endswith("/a") else page_b), "utf-8"
-        with patch.object(crawler,"_robots_allowed",return_value=True), patch.object(crawler,"_read",side_effect=fake_read):
+        with patch("new_star_search.resolve_public_host"), patch.object(crawler,"_robots_allowed",return_value=True), patch.object(crawler,"_read",side_effect=fake_read):
             stats=crawler.crawl(["https://example.org/a","https://example.org/a"])
         self.assertEqual(stats["visited"],2)
         self.assertEqual(stats["indexed"],2)
