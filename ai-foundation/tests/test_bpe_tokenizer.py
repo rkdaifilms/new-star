@@ -93,3 +93,38 @@ def test_unicode_char_tokenizer_rejects_lone_surrogates():
     tokenizer = UnicodeCharTokenizer.train("valid multilingual नमस्ते")
     with pytest.raises(ValueError, match="valid Unicode scalar"):
         tokenizer.encode("invalid-" + chr(0xDFFF))
+
+def test_heap_bpe_encoder_matches_reference_ranked_leftmost_merging():
+    import random
+
+    rng = random.Random(20261125)
+    corpus = "abracadabra banana bandana " * 8
+    tokenizer = ByteBPETokenizer.train(corpus, max_merges=80, min_frequency=2)
+
+    def reference_encode(text):
+        sequence = [bytes([value]) for value in text.encode("utf-8")]
+        while len(sequence) > 1:
+            candidates = [
+                (tokenizer._merge_ranks[(sequence[index], sequence[index + 1])], index)
+                for index in range(len(sequence) - 1)
+                if (sequence[index], sequence[index + 1]) in tokenizer._merge_ranks
+            ]
+            if not candidates:
+                break
+            _, index = min(candidates)
+            sequence[index:index + 2] = [sequence[index] + sequence[index + 1]]
+        return [
+            tokenizer._token_to_id[token] if len(token) > 1 else token[0]
+            for token in sequence
+        ]
+
+    alphabet = "abracadabra नमस्ते 🌍"
+    samples = [corpus, "", "a", "unseen multilingual नमस्ते"]
+    samples.extend(
+        "".join(rng.choice(alphabet) for _ in range(rng.randrange(0, 90)))
+        for _ in range(100)
+    )
+    for sample in samples:
+        assert tokenizer.encode(sample) == reference_encode(sample)
+        assert tokenizer.decode(tokenizer.encode(sample)) == sample
+
