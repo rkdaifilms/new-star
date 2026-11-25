@@ -1172,3 +1172,32 @@ def test_generation_rejects_non_boolean_sampling_mode():
     prompt = torch.tensor([[65]], dtype=torch.long)
     with pytest.raises(ValueError, match="do_sample"):
         model.generate(prompt, max_new_tokens=1, do_sample=1)
+
+
+def test_seeded_sampling_is_reproducible_and_isolated_from_global_rng():
+    model = tiny_model().eval()
+    prompt = torch.tensor([[65, 66, 67]], dtype=torch.long)
+    global_state = torch.random.get_rng_state().clone()
+    first_generator = torch.Generator(device="cpu").manual_seed(2026)
+    first = model.generate(
+        prompt, max_new_tokens=16, temperature=0.9, top_k=32,
+        top_p=0.95, generator=first_generator,
+    )
+    torch.testing.assert_close(torch.random.get_rng_state(), global_state)
+    second_generator = torch.Generator(device="cpu").manual_seed(2026)
+    second = model.generate(
+        prompt, max_new_tokens=16, temperature=0.9, top_k=32,
+        top_p=0.95, generator=second_generator,
+    )
+    torch.testing.assert_close(first, second)
+
+
+def test_generation_rejects_generator_on_different_device_type():
+    import pytest
+    model = tiny_model()
+    prompt = torch.tensor([[65]], dtype=torch.long)
+    with pytest.raises(ValueError, match="generator"):
+        model.generate(
+            prompt, max_new_tokens=1,
+            generator=torch.Generator(device="meta"),
+        )
