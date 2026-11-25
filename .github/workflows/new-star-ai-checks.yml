@@ -68,7 +68,7 @@ jobs:
         run: deno check --no-lock supabase/functions/ai-gateway/index.ts
 
       - name: Validate self-hosted model runtime configuration
-        run: ruby -e 'require "yaml"; config = YAML.load_file("ai-engine/self-hosted/compose.yaml"); services = config.fetch("services"); abort "missing new-star-model service" unless services["new-star-model"]; abort "missing private embedding service" unless services["new-star-embeddings"]; abort "missing optional private speech service" unless services["new-star-speech"]; abort "missing optional private image service" unless services["new-star-image"]; abort "missing optional private video service" unless services["new-star-video"]'
+        run: ruby -e 'require "yaml"; config = YAML.load_file("ai-engine/self-hosted/compose.yaml"); services = config.fetch("services"); abort "missing new-star-model service" unless services["new-star-model"]; abort "missing private embedding service" unless services["new-star-embeddings"]; abort "missing optional private speech service" unless services["new-star-speech"]; abort "missing optional private image service" unless services["new-star-image"]; abort "missing optional private video service" unless services["new-star-video"]; abort "missing optional private search service" unless services["new-star-search"]; abort "missing optional private vision service" unless services["new-star-vision"]'
 
       - name: Verify required AI actions and authentication guards
         shell: bash
@@ -117,6 +117,9 @@ jobs:
           grep -F 'body?.action === "video-status"' "$FILE"
           grep -F 'privateVideoStart' "$FILE"
           grep -F 'privateVideoStatus' "$FILE"
+          grep -F 'privateSearch' "$FILE"
+          grep -F 'privateCrawl' "$FILE"
+          grep -F 'privateVision' "$FILE"
           grep -F 'store: false' "$FILE"
           grep -F 'apiKeyRateLimit, 60' "$FILE"
           grep -F '"4K": {' "$FILE"
