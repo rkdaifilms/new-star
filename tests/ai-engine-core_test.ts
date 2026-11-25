@@ -5,6 +5,7 @@ import { readBoundedJson } from "../supabase/functions/ai-gateway/request-body.t
 import { splitIntoChunks } from "../scripts/new-star-search-ingest.ts";
 import { buildChatProviderPlan } from "../supabase/functions/ai-gateway/provider-routing.ts";
 import { privateSpeechEndpoint } from "../supabase/functions/ai-gateway/private-speech.ts";
+import { privateImageEndpoint } from "../supabase/functions/ai-gateway/private-image.ts";
 
 
 Deno.test("self-hosted chat provider plan contains only the private New Star model", () => {
@@ -520,4 +521,21 @@ Deno.test("private speech worker is wired only in self-hosted voice paths", asyn
   if (!frontend.includes('speakText(result.data.answer||"",voiceButton,responseLanguage)')) {
     throw new Error("Spoken AI replies must use the language captured for the user's request");
   }
+});
+
+
+Deno.test("private image adapter requires an authenticated HTTPS endpoint", () => {
+  if (privateImageEndpoint("https://image.internal.example") !== "https://image.internal.example/v1/images/generations") throw new Error("Valid private HTTPS image endpoint was rejected");
+  for (const unsafe of ["http://image.internal.example", "https://user:pass@image.internal.example", "https://image.internal.example/?key=secret", "not-a-url"]) {
+    if (privateImageEndpoint(unsafe) !== null) throw new Error("Unsafe private image endpoint was accepted");
+  }
+});
+
+Deno.test("private image worker is wired only for self-hosted text-to-image", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/image-worker/main.py", import.meta.url));
+  const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
+  if (!gateway.includes("privateImageGeneration(") || !gateway.includes("NEW_STAR_IMAGE_BASE_URL") || !gateway.includes("NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE")) throw new Error("Self-hosted image action must call the private worker and fail closed");
+  if (!worker.includes("/v1/images/generations") || !worker.includes("require_auth") || !worker.includes("torch.cuda.is_available")) throw new Error("Image worker must expose authenticated GPU-backed generation");
+  if (!compose.includes('profiles: ["image"]') || !compose.includes('127.0.0.1:8091:8091')) throw new Error("Image worker must be optional and bound to loopback");
 });
