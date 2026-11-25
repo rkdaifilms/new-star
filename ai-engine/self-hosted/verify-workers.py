@@ -29,7 +29,7 @@ WORKERS = {
     "vision": ("NEW_STAR_VISION_BASE_URL", "NEW_STAR_VISION_API_KEY", "/v1/vision/analyze"),
 }
 PNG_1X1 = (
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j4WQAAAAASUVORK5CYII="
+    "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGPUSNnCQApgIkn1qIZRDUNKAwAFQAFgfUuIBgAAAABJRU5ErkJggg=="
 )
 failures: list[str] = []
 passed = 0
@@ -186,7 +186,7 @@ def infer_video(base: str, key: str) -> None:
                 headers={"Authorization": "Bearer " + key})
             with urllib.request.urlopen(out, timeout=120) as response:
                 payload = response.read(50 * 1024 * 1024 + 1)
-                if response.headers.get_content_type() != "video/mp4" or not payload.startswith(b"\x00\x00\x00"):
+                if response.headers.get_content_type() != "video/mp4" or len(payload) < 12 or payload[4:8] != b"ftyp":
                     raise RuntimeError("video worker returned an invalid MP4 response")
                 if len(payload) > 50 * 1024 * 1024:
                     raise RuntimeError("video output exceeded 50 MiB")
