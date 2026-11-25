@@ -110,12 +110,12 @@ class VisionFixtureTests(unittest.TestCase):
 
 class DeploymentDocumentationTests(unittest.TestCase):
     def test_caddy_systemd_drop_in_writes_two_real_lines(self):
-        readme = MODULE_PATH.parents[1] / "README.md"
+        readme = MODULE_PATH.parents[2] / "ai-engine" / "self-hosted" / "README.md"
         text = readme.read_text(encoding="utf-8")
         command = next((line.strip() for line in text.splitlines() if "new-star.conf" in line), "")
-        self.assertIn("printf '%s\\\\n'", command)
+        self.assertIn("printf '%s\\n'", command)
         self.assertIn("'[Service]' 'EnvironmentFile=/etc/caddy/new-star-domains.env'", command)
-        self.assertNotIn("\\\\\\\\n", command)
+        self.assertNotIn("\\\\n", command)
 
 
 if __name__ == "__main__":
