@@ -16,11 +16,11 @@ export async function privateSearch(baseUrl:string,key:string,query:string,limit
  return{ok:true,results};
  }catch(error){return{ok:false,status:503,error:error instanceof Error&&error.name==="AbortError"?"Private search timed out.":"Private search worker is unreachable."};}
 }
-export async function privateCrawl(baseUrl:string,key:string,url:string):Promise<{ok:true;title:string;url:string;charactersIndexed:number}|{ok:false;status:number;error:string}>{
+export async function privateCrawl(baseUrl:string,key:string,url:string):Promise<{ok:true;title:string;url:string;charactersIndexed:number;pagesIndexed:number}|{ok:false;status:number;error:string}>{
  const endpoint=base(baseUrl);if(!endpoint||key.trim().length<32)return{ok:false,status:503,error:"Private search HTTPS endpoint or API key is not configured."};
  try{const response=await request(endpoint,key,"/v1/crawl",{url});const data=await response.json().catch(()=>({}));
  if(!response.ok)return{ok:false,status:response.status,error:typeof data?.detail==="string"?data.detail.slice(0,300):"Private crawler rejected the URL."};
  if(typeof data?.title!=="string"||typeof data?.url!=="string"||!Number.isFinite(data?.characters_indexed))return{ok:false,status:502,error:"Private crawler returned an invalid result."};
- return{ok:true,title:data.title,url:data.url,charactersIndexed:data.characters_indexed};
+ return{ok:true,title:data.title,url:data.url,charactersIndexed:data.characters_indexed,pagesIndexed:Number(data.pages_indexed)||1};
  }catch(error){return{ok:false,status:503,error:error instanceof Error&&error.name==="AbortError"?"Private crawler timed out.":"Private crawler is unreachable."};}
 }
