@@ -129,7 +129,9 @@ jobs:
           grep -F 'action:"vision"' new-star-ai.js
           grep -F 'async function toggleVoice()' new-star-ai.js
           grep -F 'transcribeVoice(blob)' new-star-ai.js
-          grep -F 'selectedAppLanguage()||lastTranscriptionLanguage||"auto"' new-star-ai.js
+          grep -F 'language:"auto"' new-star-ai.js
+          grep -F 'form.append("response_format", "verbose_json")' supabase/functions/ai-gateway/index.ts
+          grep -F 'Ignore saved app/profile language when language is auto' supabase/functions/ai-gateway/index.ts
           grep -F 'pendingSendAfterTranscription' creator-ai.js
           grep -F 'creator-ai-conversation' creator-ai.js
           grep -F 'gatewayErrorMessage' new-star-ai.js
