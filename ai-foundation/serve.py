@@ -118,6 +118,9 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
                 top_k_raw = body.get("top_k", 50)
                 top_p_raw = body.get("top_p", 0.95)
                 repetition_raw = body.get("repetition_penalty", 1.0)
+                do_sample_raw = body.get("do_sample", True)
+                if not isinstance(do_sample_raw, bool):
+                    raise ValueError("do_sample must be a boolean")
                 numeric_values = (temperature_raw, max_tokens_raw, top_p_raw, repetition_raw)
                 if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in numeric_values):
                     raise ValueError("sampling parameters must be numeric values")
@@ -148,7 +151,10 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
                 input_ids = torch.tensor(encoded, dtype=torch.long, device=device).unsqueeze(0)
                 started = time.time()
                 with inference_lock, torch.inference_mode():
-                    generated = model.generate(input_ids, max_tokens, temperature, top_k, top_p, repetition_penalty)[0].tolist()
+                    generated = model.generate(
+                        input_ids, max_tokens, temperature, top_k, top_p,
+                        repetition_penalty, do_sample=do_sample_raw,
+                    )[0].tolist()
                 answer = tokenizer.decode(generated[len(encoded):])
                 completion_id = "ns-" + uuid.uuid4().hex
                 usage = {
