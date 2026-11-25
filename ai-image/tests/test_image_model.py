@@ -430,3 +430,54 @@ def test_image_training_rejects_non_finite_or_invalid_hyperparameters(flag, valu
         train_main()
     assert error.value.code == 2
 
+
+
+def test_image_checkpoint_loader_rejects_invalid_structure_and_weights(tmp_path):
+    valid_model = NewStarImageUNet(base_channels=8)
+    valid = {
+        "format": "new-star-ddpm-image-v1",
+        "model_config": {
+            "base_channels": 8,
+            "image_size": 32,
+            "diffusion_steps": 2,
+        },
+        "state_dict": valid_model.state_dict(),
+        "ema_state_dict": valid_model.state_dict(),
+        "dataset_audit": {"images": []},
+    }
+    valid_path = tmp_path / "valid.pt"
+    torch.save(valid, valid_path)
+    loaded, schedule, config = load_checkpoint(valid_path, "cpu")
+    assert config["weights_source"] == "ema"
+    assert schedule.steps == 2
+    assert loaded.training is False
+
+    malformed = [
+        [],
+        {**valid, "model_config": []},
+        {**valid, "model_config": {**valid["model_config"], "base_channels": True}},
+        {**valid, "model_config": {**valid["model_config"], "image_size": 31}},
+        {**valid, "model_config": {**valid["model_config"], "diffusion_steps": 1}},
+        {**valid, "state_dict": {"unexpected": torch.zeros(1)}},
+        {**valid, "ema_state_dict": {"unexpected": torch.zeros(1)}},
+        {**valid, "dataset_audit": {"images": [{"sha256": "not-a-digest"}]}},
+        {
+            **valid,
+            "state_dict": {
+                **valid["state_dict"],
+                "input.weight": torch.full_like(valid["state_dict"]["input.weight"], float("nan")),
+            },
+        },
+    ]
+    for index, payload in enumerate(malformed):
+        path = tmp_path / f"malformed-{index}.pt"
+        torch.save(payload, path)
+        with pytest.raises(ValueError):
+            load_checkpoint(path, "cpu")
+
+
+def test_image_checkpoint_loader_rejects_unreadable_file(tmp_path):
+    path = tmp_path / "not-a-checkpoint.pt"
+    path.write_text("not a torch checkpoint", encoding="utf-8")
+    with pytest.raises(ValueError, match="safely load"):
+        load_checkpoint(path, "cpu")
