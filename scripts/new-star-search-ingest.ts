@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read --allow-env
+#/usr/bin/env -S deno run --allow-read --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,NEW_STAR_EMBEDDING_BASE_URL,NEW_STAR_EMBEDDING_API_KEY
 type InputDocument = {
   url: string;
   title: string;
@@ -47,7 +47,7 @@ function validateDocument(value: unknown, line: number): InputDocument {
   return { url: url.toString(), title, source, content, language, published_at: publishedAt };
 }
 
-function splitIntoChunks(content: string, maxLength = 1200, overlap = 160): string[] {
+export function splitIntoChunks(content: string, maxLength = 1200, overlap = 160): string[] {
   const normalized = content.replace(/\s+/g, " ").trim();
   if (!normalized) return [];
   const chunks: string[] = [];
