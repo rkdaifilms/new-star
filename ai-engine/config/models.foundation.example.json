@@ -1,0 +1,20 @@
+{
+  "models": [
+    {
+      "model_id": "newstar-native-foundation",
+      "provider": "new-star-native-foundation",
+      "endpoint_url": "http://127.0.0.1:8765",
+      "protocol": "openai_chat",
+      "model_name": "new-star-foundation-experimental",
+      "capabilities": ["chat"],
+      "priority": 10,
+      "weight": 1,
+      "timeout_seconds": 120,
+      "auth_env": "NEW_STAR_FOUNDATION_API_KEY",
+      "enabled": true,
+      "tags": ["new-star-owned", "experimental", "foundation"],
+      "languages": ["*"],
+      "health_path": "/health"
+    }
+  ]
+}
