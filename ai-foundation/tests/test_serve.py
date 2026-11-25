@@ -49,6 +49,17 @@ class FoundationServerTests(unittest.TestCase):
         self.server.server_close()
         self.thread.join(timeout=2)
 
+    def get(self, path):
+        request = Request(self.base + path, method="GET")
+        return urlopen(request)
+
+    def test_model_list_is_openai_compatible(self):
+        with self.get("/v1/models") as response:
+            result = json.loads(response.read())
+        self.assertEqual(result["object"], "list")
+        self.assertEqual(result["data"][0]["id"], "test-model")
+        self.assertEqual(result["data"][0]["owned_by"], "new-star")
+
     def post(self, payload, content_type="application/json"):
         request = Request(
             self.base + "/v1/chat/completions",
