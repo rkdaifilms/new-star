@@ -1403,3 +1403,39 @@ def test_native_inference_server_rejects_non_finite_sampling_parameters():
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_instruction_validation_returns_value_errors_for_unhashable_fields(tmp_path):
+    import json
+    import pytest
+    from instruction_data import load_instruction_corpora, validate_messages
+
+    with pytest.raises(ValueError, match="unsupported role"):
+        validate_messages([{"role": [], "content": "hello"}])
+    path = tmp_path / "bad-split.jsonl"
+    path.write_text(json.dumps({
+        "language": "en", "split": ["train"],
+        "messages": [
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "hi"},
+        ],
+    }), encoding="utf-8")
+    with pytest.raises(ValueError, match="split must be"):
+        load_instruction_corpora(path)
+
+
+def test_instruction_encoder_rejects_invalid_length_and_tokenizer():
+    import pytest
+    from instruction_data import encode_instruction_example
+    from tokenizer import UnicodeCharTokenizer
+
+    messages = [
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": "hi"},
+    ]
+    tokenizer = UnicodeCharTokenizer.train("hello hi")
+    for invalid_length in (True, 1.5, "16", 1):
+        with pytest.raises(ValueError, match="max_length"):
+            encode_instruction_example(messages, tokenizer, invalid_length)
+    with pytest.raises(ValueError, match="encode"):
+        encode_instruction_example(messages, object(), 16)
