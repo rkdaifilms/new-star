@@ -1,5 +1,5 @@
 import { buildGeminiVideoRequest } from "../supabase/functions/ai-gateway/video-provider.ts";
-import { normalizeNewStarSearchResults, normalizePrivateIndexRows, formatRetrievedContext } from "../supabase/functions/ai-gateway/search-provider.ts";
+import { normalizeNewStarSearchResults, normalizePrivateIndexRows, normalizeEmbeddingVector, toPgVectorLiteral, formatRetrievedContext } from "../supabase/functions/ai-gateway/search-provider.ts";
 import { detectReplyScript } from "../supabase/functions/ai-gateway/language-policy.ts";
 import { readBoundedJson } from "../supabase/functions/ai-gateway/request-body.ts";
 import { splitIntoChunks } from "../scripts/new-star-search-ingest.ts";
@@ -125,6 +125,23 @@ Deno.test("private search ingestion chunks long content with overlap and no data
   }
   if (!chunks.some((chunk, index) => index > 0 && chunks[index - 1].slice(-5).split(" ").some(word => chunk.startsWith(word)))) {
     throw new Error("Chunk overlap was not preserved");
+  }
+});
+
+
+Deno.test("private hybrid search validates and serializes exactly 384 embedding dimensions", () => {
+  const vector = Array.from({ length: 384 }, (_, index) => index === 0 ? 1 : 0);
+  const normalized = normalizeEmbeddingVector(vector);
+  if (!normalized || normalized.length !== 384) throw new Error("Valid 384-dimensional embedding was rejected");
+  const literal = toPgVectorLiteral(vector);
+  if (!literal || !literal.startsWith("[1,0,0") || !literal.endsWith("0]")) {
+    throw new Error("Embedding was not serialized as a PostgreSQL vector literal");
+  }
+  if (normalizeEmbeddingVector(vector.slice(0, 383)) !== null) {
+    throw new Error("Incorrect embedding dimension was accepted");
+  }
+  if (normalizeEmbeddingVector([...vector.slice(0, 383), Number.NaN]) !== null) {
+    throw new Error("Non-finite embedding value was accepted");
   }
 });
 
