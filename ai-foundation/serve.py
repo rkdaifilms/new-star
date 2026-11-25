@@ -70,6 +70,16 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
         def do_GET(self):
             if self.path == "/health":
                 self._send(200, {"ok": True, "model": model_name, "engine": "new-star-from-scratch"})
+            elif self.path == "/v1/models":
+                self._send(200, {
+                    "object": "list",
+                    "data": [{
+                        "id": model_name,
+                        "object": "model",
+                        "created": int(time.time()),
+                        "owned_by": "new-star",
+                    }],
+                })
             else:
                 self._send(404, {"error": {"message": "Not found", "type": "not_found"}})
 
