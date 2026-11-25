@@ -89,7 +89,7 @@ def test_unicode_char_tokenizer_rejects_lone_surrogates():
     from tokenizer import UnicodeCharTokenizer
 
     with pytest.raises(ValueError, match="valid Unicode scalar"):
-        UnicodeCharTokenizer.train("invalid-\\ud800")
+        UnicodeCharTokenizer.train("invalid-" + chr(0xD800))
     tokenizer = UnicodeCharTokenizer.train("valid multilingual नमस्ते")
     with pytest.raises(ValueError, match="valid Unicode scalar"):
-        tokenizer.encode("invalid-\\udfff")
+        tokenizer.encode("invalid-" + chr(0xDFFF))
