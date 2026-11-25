@@ -219,6 +219,20 @@ Deno.test("private llama.cpp compose uses documented authentication and parallel
   }
 });
 
+Deno.test("private model smoke checks validate readiness and safe API key formats", async () => {
+  const chat = await Deno.readTextFile(new URL("../ai-engine/self-hosted/verify.sh", import.meta.url));
+  const embeddings = await Deno.readTextFile(new URL("../ai-engine/self-hosted/verify-embeddings.sh", import.meta.url));
+  if (!chat.includes("NEW_STAR_PRIVATE_MODEL_READY") || !chat.includes("URL-safe random characters")) {
+    throw new Error("Chat smoke test must validate the readiness marker and reject unsafe API key characters");
+  }
+  if (!embeddings.includes("URL-safe random characters") || !embeddings.includes("isfinite(value)")) {
+    throw new Error("Embedding smoke test must validate safe API keys and finite numeric vector values");
+  }
+  if (!embeddings.includes("/v1/embeddings") || !chat.includes("/v1/chat/completions")) {
+    throw new Error("Private model smoke tests must call the documented authenticated API endpoints");
+  }
+});
+
 Deno.test("self-hosted model deployment has one canonical Compose source", async () => {
   const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
   const workflow = await Deno.readTextFile(new URL("../.github/workflows/new-star-ai-checks.yml", import.meta.url));
