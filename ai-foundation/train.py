@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 
 import torch
@@ -78,6 +79,8 @@ def main():
         parser.error("--steps, --batch-size, and --block-size must be positive")
     if args.max_vocab_size < 256:
         parser.error("--max-vocab-size must be at least 256 (UTF-8 fallback vocabulary)")
+    if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
+        parser.error("--learning-rate must be a finite positive number")
     try:
         device = resolve_device(args.device)
         precision = resolve_precision(device, args.precision)
