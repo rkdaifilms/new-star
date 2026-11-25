@@ -124,5 +124,5 @@ jobs:
           grep -F 'Developer API keys' new-star-ai.html
           grep -F 'new-star-ai.html' creator-ai.html
           grep -F 'Google Cloud Vertex AI' ai-video/README.md
-          grep -F 'end-to-end generation test' ai-video/README.md
+          grep -F 'No end-to-end provider generation has been verified' ai-video/README.md
           grep -F 'ns_live_YOUR_KEY' new-star-ai.html
