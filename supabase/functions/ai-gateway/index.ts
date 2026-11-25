@@ -1019,11 +1019,11 @@ Deno.serve(async (req: Request) => {
       try {
         const form = new FormData();
         form.append("file", new File([audioBytes], "new-star-voice." + extensions[mimeType], { type: mimeType }));
-        form.append("model", "gpt-transcribe");
-        form.append("response_format", "json");
+        form.append("model", "whisper-1");
+        form.append("response_format", "verbose_json");
         const response = await fetchWithTimeout("https://api.openai.com/v1/audio/transcriptions", { method: "POST", headers: { "Authorization": "Bearer " + openaiKeys[keyIndex] }, body: form }, 105000);
         const data = await response.json().catch(() => ({}));
-        if (response.ok && typeof data.text === "string" && data.text.trim()) return json({ ok: true, transcript: data.text.trim(), language: "und", provider: "openai" }, 200, headers);
+        if (response.ok && typeof data.text === "string" && data.text.trim()) return json({ ok: true, transcript: data.text.trim(), language: typeof data.language === "string" ? data.language : "und", provider: "openai" }, 200, headers);
         const reason = response.ok ? "EMPTY_TRANSCRIPTION" : providerHttpError(response.status, data);
         failures.push("openai[" + (keyIndex + 1) + "]:" + reason);
         console.error("AI voice transcription provider failed:", "openai", keyIndex + 1, reason);
@@ -1382,7 +1382,7 @@ Deno.serve(async (req: Request) => {
 
   const baseSystemPrompt = body.mode === "help" ? NEW_STAR_HELP_SYSTEM_PROMPT : NEW_STAR_AI_SYSTEM_PROMPT;
   let selectedLanguageCode = typeof body.language === "string" ? body.language : "";
-  if (!AI_LANGUAGE_NAMES[selectedLanguageCode]) {
+  if (!AI_LANGUAGE_NAMES[selectedLanguageCode] && selectedLanguageCode.toLowerCase() !== "auto") {
     try {
       const { data: savedPreference } = await userClient.from("user_preferences").select("preferences").eq("user_id", userId).maybeSingle();
       const savedLanguage = savedPreference?.preferences?.language;
@@ -1401,8 +1401,8 @@ Deno.serve(async (req: Request) => {
   let systemPrompt = selectedLanguage
     ? baseSystemPrompt + "\n\nLANGUAGE SETTING: The app user has selected " + selectedLanguage + ". Write every user-facing response entirely in " + selectedLanguage + " using its native script. Do not answer in Hindi or English unless that is the selected language. Keep names, code, URLs, and technical identifiers unchanged where necessary. If the user explicitly asks for translation into another language, follow that request for that answer only."
     : detectedScript
-    ? baseSystemPrompt + "\n\nAUTOMATIC REPLY LANGUAGE GUIDANCE: " + detectedScript.instruction + " This is script-based guidance, not guaranteed language identification. If the wording clearly identifies a more specific language, use that language. If the message is too ambiguous, ask a brief clarification rather than guessing."
-    : baseSystemPrompt + "\n\nAUTOMATIC REPLY LANGUAGE GUIDANCE: Identify the language of the latest user message from its words and context, then reply in that language. If uncertain, ask a brief clarification rather than defaulting to English.";
+    ? baseSystemPrompt + "\n\nAUTOMATIC REPLY LANGUAGE GUIDANCE: " + detectedScript.instruction + " Detect the actual language of the latest user message, not the user profile or app setting. This script is only a clue: distinguish languages that share a script using vocabulary and grammar. Reply immediately in the same language and its normal writing system. Never default to English or Hindi. If the input is mixed-language, answer in the dominant language while naturally preserving code-switching."
+    : baseSystemPrompt + "\n\nAUTOMATIC REPLY LANGUAGE GUIDANCE: Identify the actual language of the latest user message from its words, grammar, and context, including languages written in Latin script. Ignore saved app/profile language when language is auto. Reply immediately in that same language and its normal writing system. Never default to English or Hindi. For mixed-language input, use the dominant language and preserve natural code-switching.";
 
   const ragContext = await retrieveNewStarRagContext(messages[messages.length - 1].content);
   if (ragContext) {
