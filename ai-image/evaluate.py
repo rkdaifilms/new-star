@@ -72,6 +72,10 @@ def evaluate(checkpoint_path: str | Path, data_path: str | Path,
     training_fingerprint = config.get("training_dataset_fingerprint")
     if training_fingerprint and evaluation_fingerprint == training_fingerprint:
         raise ValueError("evaluation dataset fingerprint matches the training dataset; provide a separate held-out dataset")
+    training_hashes = config.get("training_image_hashes", set())
+    evaluation_hashes = {item["sha256"] for item in audit["images"]}
+    if training_hashes.intersection(evaluation_hashes):
+        raise ValueError("evaluation dataset contains image files used for training; provide non-overlapping held-out images")
     dataset = ImageFolderDataset(data_path, config["image_size"])
     generator = torch.Generator(device=device).manual_seed(seed)
     squared_error = 0.0
@@ -91,6 +95,8 @@ def evaluate(checkpoint_path: str | Path, data_path: str | Path,
         noise = torch.randn(clean.shape, device=device, generator=generator)
         noisy = schedule.add_noise(clean, timesteps, noise)
         predicted = model(noisy, timesteps)
+        if not torch.isfinite(predicted).all():
+            raise RuntimeError("image model produced non-finite predictions during evaluation")
         squared_error += float(torch.sum((predicted - noise).square()).item())
         element_count += noise.numel()
         sample_count += clean.shape[0]
