@@ -69,7 +69,7 @@ main{max-width:920px;margin:auto;padding:20px 14px 40px}.top{display:flex;align-
 (()=>{'use strict';
 const $=id=>document.getElementById(id);const client=()=>window.supabaseClient||window.cloudClient;
 let busy=false,recording=null,recorder=null,chunks=[],messages=[];
-function status(el,text,kind=''){el.innerHTML='<i class="dot '+kind+'"></i>'+text}
+function status(el,text,kind=''){const dot=document.createElement('i');dot.className='dot'+(kind?' '+kind:'');const label=document.createTextNode(String(text??''));el.replaceChildren(dot,label)}
 function bubble(text,who='assistant',error=false){const el=document.createElement('div');el.className='bubble '+who+(error?' error':'');el.textContent=text;$('chat').appendChild(el);$('chat').scrollTop=$('chat').scrollHeight;return el}
 async function signedClient(){const c=client();if(!c?.auth||!c?.functions)throw Error('Supabase client is not initialized. Reload this page.');const {data,error}=await c.auth.getSession();if(error||!data?.session)throw Error('Please sign in to your New Star account first.');return c}
 async function invoke(body){const c=await signedClient();const {data,error}=await c.functions.invoke('ai-gateway',{body});if(error){let detail='';try{const p=await error.context.clone().json();detail=p?.error||p?.message||''}catch(_){}throw Error(detail||error.message||'AI service request failed.')}if(!data?.ok)throw Error(data?.error||'AI service returned an unsuccessful response.');return data}
@@ -86,7 +86,7 @@ $('speak').onclick=async()=>{const text=$('transcript').value.trim()||$('prompt'
 $('use-transcript').onclick=()=>{if($('transcript').value.trim()){$('prompt').value=$('transcript').value;document.querySelector('[data-tab="chat"]').click()}};
 $('send').onclick=sendChat;$('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}});
 $('make-image').onclick=makeImage;$('research').onclick=research;$('make-video').onclick=makeVideo;$('refresh').onclick=checkServices;
-$('own-check').onclick=async()=>{const endpoint=$('own-endpoint').value.trim().replace(/\/+$/,'');if(!endpoint){status($('own-status'),'Enter your own inference server URL first.','bad');return}try{const r=await fetch(endpoint+'/health',{headers:$('own-key').value?{Authorization:'Bearer '+$('own-key').value}:{}});if(!r.ok)throw Error('HTTP '+r.status);const d=await r.json();status($('own-status'),'Connected: '+(d.model||d.engine||'healthy'),'good')}catch(e){status($('own-status'),'Connection failed: '+e.message,'bad')}};
+$('own-check').onclick=async()=>{const endpoint=$('own-endpoint').value.trim().replace(/\/+$/,'');if(!endpoint){status($('own-status'),'Enter your own inference server URL first.','bad');return}try{const parsed=new URL(endpoint);if(parsed.protocol!=='https:'&&parsed.hostname!=='localhost'&&parsed.hostname!=='127.0.0.1')throw Error('Use HTTPS for a remote own-model server.');const r=await fetch(parsed.origin+'/health',{headers:$('own-key').value?{Authorization:'Bearer '+$('own-key').value}:{}});if(!r.ok)throw Error('HTTP '+r.status);const d=await r.json();status($('own-status'),'Connected: '+(d.model||d.engine||'healthy'),'good')}catch(e){status($('own-status'),'Connection failed: '+e.message,'bad')}};
 document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('active',x.id==='tool-'+btn.dataset.tab))}));
 checkServices();
 })();
