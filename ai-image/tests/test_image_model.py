@@ -568,3 +568,58 @@ def test_caption_audit_requires_exact_image_coverage(tmp_path):
     }), encoding="utf-8")
     with pytest.raises(ValueError, match="exactly one caption"):
         audit_image_dataset(root, manifest)
+
+
+def test_text_conditioned_image_http_api_accepts_prompt(tmp_path):
+    model = NewStarImageUNet(base_channels=8, text_vocab_size=8192).eval()
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        create_handler(model, DDPMSchedule(steps=2), 8, "cpu", "caption-secret"),
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = Request(
+            f"http://127.0.0.1:{server.server_address[1]}/v1/images/generations",
+            data=json.dumps({"n": 1, "prompt": "a small blue house", "seed": 12}).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer caption-secret",
+            },
+        )
+        with urlopen(request) as response:
+            payload = json.loads(response.read())
+        assert payload["model"] == "new-star-ddpm-text-conditioned"
+        assert len(payload["data"]) == 1
+        decoded = base64.b64decode(payload["data"][0]["b64_json"])
+        assert decoded.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_text_conditioned_image_http_api_requires_prompt():
+    model = NewStarImageUNet(base_channels=8, text_vocab_size=8192).eval()
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        create_handler(model, DDPMSchedule(steps=2), 8, "cpu", "caption-secret"),
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = Request(
+            f"http://127.0.0.1:{server.server_address[1]}/v1/images/generations",
+            data=json.dumps({"n": 1}).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer caption-secret",
+            },
+        )
+        with pytest.raises(HTTPError) as error:
+            urlopen(request)
+        assert error.value.code == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
