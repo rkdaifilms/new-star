@@ -1907,3 +1907,48 @@ def test_sft_validation_restores_training_mode_when_forward_raises(monkeypatch):
         evaluate_sft(model, corpora, batch_size=1, block_size=8, device="cpu")
     assert model.training
 
+
+
+
+def test_sft_resume_checkpoint_persists_gradient_scaler_state(tmp_path):
+    from sft_train import save_training_state
+
+    class TestScaler:
+        def state_dict(self):
+            return {"scale": 32768.0, "growth_tracker": 7}
+
+    model = tiny_model()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+    generator = torch.Generator(device="cpu").manual_seed(19)
+    path = tmp_path / "sft.resume.pt"
+    save_training_state(
+        path, model, optimizer, generator, step=12, seed=23,
+        data_fingerprint="dataset-sha256",
+        training_config={"precision": "fp16"},
+        scaler=TestScaler(),
+    )
+
+    checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+    assert checkpoint["format"] == "new-star-sft-resume-v1"
+    assert checkpoint["step"] == 12
+    assert checkpoint["grad_scaler_state"] == {
+        "scale": 32768.0,
+        "growth_tracker": 7,
+    }
+
+
+def test_sft_resume_checkpoint_without_scaler_remains_compatible(tmp_path):
+    from sft_train import save_training_state
+
+    model = tiny_model()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+    generator = torch.Generator(device="cpu").manual_seed(29)
+    path = tmp_path / "sft-no-scaler.resume.pt"
+    save_training_state(
+        path, model, optimizer, generator, step=3, seed=31,
+        data_fingerprint="dataset-sha256",
+        training_config={"precision": "fp32"},
+    )
+
+    checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+    assert checkpoint["grad_scaler_state"] is None
