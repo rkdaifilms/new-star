@@ -1569,3 +1569,20 @@ def test_sft_evaluator_rejects_invalid_batch_settings_and_validation_examples():
         evaluate_sft(model, {"en": [([1, 2], [-100, -100])]}, 1, 4, "cpu")
     with pytest.raises(ValueError, match="precision"):
         evaluate_sft(model, valid, 1, 4, "cpu", precision="fp8")
+
+
+def test_sft_cli_rejects_non_finite_or_non_positive_learning_rate(monkeypatch):
+    import pytest
+    from sft_train import main
+
+    for learning_rate in ("0", "-0.001", "nan", "inf", "-inf"):
+        monkeypatch.setattr(sys, "argv", [
+            "sft_train.py",
+            "--data", "unused.jsonl",
+            "--manifest", "unused-manifest.json",
+            "--learning-rate", learning_rate,
+        ])
+        with pytest.raises(SystemExit) as error:
+            main()
+        assert error.value.code == 2
+
