@@ -29,7 +29,7 @@ def evaluate_model(model: NewStarGPT, data: torch.Tensor, batch_size: int = 16,
     losses = []
     with torch.inference_mode():
         for _ in range(batches):
-            starts = torch.randint(0, len(data) - block_size - 1,
+            starts = torch.randint(0, len(data) - block_size,
                                    (batch_size,), generator=generator)
             x = torch.stack([data[i:i + block_size] for i in starts]).to(device)
             y = torch.stack([data[i + 1:i + block_size + 1] for i in starts]).to(device)
