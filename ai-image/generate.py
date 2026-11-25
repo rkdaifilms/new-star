@@ -9,6 +9,7 @@ import torch
 from PIL import Image
 
 from model import DDPMSchedule, NewStarImageUNet
+from text_conditioning import MAX_TEXT_TOKENS, TEXT_VOCAB_SIZE, encode_caption
 
 
 def load_checkpoint(path: str | Path, device: str):
@@ -33,12 +34,17 @@ def load_checkpoint(path: str | Path, device: str):
         raise ValueError("image checkpoint base_channels must be at least 8")
     if raw_config["image_size"] not in {32, 64}:
         raise ValueError("image checkpoint image_size must be 32 or 64 pixels")
+    text_vocab_size = raw_config.get("text_vocab_size", 0)
+    if not isinstance(text_vocab_size, int) or isinstance(text_vocab_size, bool) or text_vocab_size not in {0, TEXT_VOCAB_SIZE}:
+        raise ValueError("image checkpoint text_vocab_size is unsupported")
     if raw_config["diffusion_steps"] < 2:
         raise ValueError("image checkpoint diffusion_steps must be at least 2")
     if not isinstance(raw_state, dict):
         raise ValueError("image checkpoint is missing a model state dictionary")
     try:
-        model = NewStarImageUNet(raw_config["base_channels"]).to(device)
+        model = NewStarImageUNet(
+            raw_config["base_channels"], text_vocab_size=text_vocab_size
+        ).to(device)
     except (TypeError, ValueError) as exc:
         raise ValueError("image checkpoint model configuration is invalid") from exc
     selected_weights = checkpoint.get("ema_state_dict", raw_state)
@@ -107,6 +113,7 @@ def main() -> None:
     parser.add_argument("--output", default="artifacts/newstar-generated.png")
     parser.add_argument("--count", type=int, default=4)
     parser.add_argument("--seed", type=int, default=2026)
+    parser.add_argument("--prompt", help="Caption prompt; requires a text-conditioned checkpoint")
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args()
     if not 1 <= args.count <= 16:
@@ -114,8 +121,18 @@ def main() -> None:
     if not 0 <= args.seed <= 2**63 - 1:
         parser.error("--seed must be between 0 and 2^63-1")
     model, schedule, config = load_checkpoint(args.checkpoint, args.device)
+    text_tokens = None
+    if args.prompt is not None:
+        if model.text_vocab_size == 0:
+            parser.error("--prompt requires a text-conditioned checkpoint")
+        encoded = encode_caption(args.prompt)
+        text_tokens = torch.zeros((args.count, MAX_TEXT_TOKENS), dtype=torch.long, device=args.device)
+        text_tokens[:, :len(encoded)] = torch.tensor(encoded, dtype=torch.long, device=args.device)
+    elif model.text_vocab_size > 0:
+        parser.error("a --prompt is required for a text-conditioned checkpoint")
     images = schedule.sample(
-        model, args.count, config["image_size"], args.device, seed=args.seed
+        model, args.count, config["image_size"], args.device,
+        seed=args.seed, text_tokens=text_tokens,
     )
     save_image_grid(images, args.output)
     print(f"Saved {args.count} unconditional image(s) to {args.output}")
