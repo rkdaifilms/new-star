@@ -51,6 +51,26 @@ bash verify.sh
 
 `deploy-workers.sh` validates the host, distinct worker secrets, the local GGUF file, and every configured Piper voice/config pair; validates all Compose profiles; builds and starts chat plus speech, image, video, search, and vision workers; waits for each worker health endpoint; and confirms each protected worker rejects an invalid bearer token. It keeps all service ports bound to loopback. The script does not expose ports publicly, configure DNS/TLS, set Supabase secrets, or claim successful media generation. Image/video/vision model weights may be downloaded by their model runtimes on first inference and require sufficient GPU memory and disk space.
 
+### HTTPS reverse proxy (Caddy)
+
+The Supabase Edge Function requires public HTTPS endpoints; Compose deliberately binds all model/worker ports to loopback. The included `Caddyfile` terminates TLS and forwards each hostname only to its matching loopback service.
+
+1. Create six DNS A records (and AAAA records only if IPv6 is correctly configured) for model, image, video, speech, search, and vision, all pointing to the GPU host.
+2. Copy `caddy-domains.env.example` to a private environment file and replace every example hostname with a real domain you control.
+3. Install Caddy on the GPU host, load those six variables into the Caddy service environment, and validate/reload:
+   ```sh
+   cd ai-engine/self-hosted
+   set -a
+   source ./caddy-domains.env
+   set +a
+   caddy validate --config ./Caddyfile
+   sudo caddy reload --config ./Caddyfile
+   ```
+4. Confirm DNS resolves to the host and that inbound TCP 80/443 is available for automatic certificate issuance. Do not open ports 8080–8094 to the internet.
+5. Set the matching `NEW_STAR_*_BASE_URL` values in the private host `.env` to the HTTPS hostnames, then run the Supabase secret configurator below.
+
+Caddy automatically obtains and renews certificates for real DNS names. The example `.example` hostnames are documentation-only and will not issue certificates. The workers still require their own bearer API keys; HTTPS does not replace worker authentication.
+
 ### Configure the Supabase gateway secrets safely
 
 Set `SUPABASE_PROJECT_REF` in the private host environment (or export it in the deployment shell), make sure the matching private HTTPS endpoints and distinct API keys are present in the local `.env`, then run:
