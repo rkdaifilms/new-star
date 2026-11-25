@@ -457,6 +457,7 @@ def test_image_checkpoint_loader_rejects_invalid_structure_and_weights(tmp_path)
         {**valid, "model_config": []},
         {**valid, "model_config": {**valid["model_config"], "base_channels": True}},
         {**valid, "model_config": {**valid["model_config"], "image_size": 31}},
+        {**valid, "model_config": {**valid["model_config"], "image_size": 8}},
         {**valid, "model_config": {**valid["model_config"], "diffusion_steps": 1}},
         {**valid, "state_dict": {"unexpected": torch.zeros(1)}},
         {**valid, "ema_state_dict": {"unexpected": torch.zeros(1)}},
