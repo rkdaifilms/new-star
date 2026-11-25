@@ -8,6 +8,8 @@ on:
       - "ai-image/**"
       - "ai-engine/**"
       - "ai-search/**"
+      - "ai-engine.html"
+      - "ai-engine/tests/**"
       - "ai-chat.js"
       - "creator-ai.js"
       - "creator-ai.html"
@@ -104,6 +106,7 @@ jobs:
         run: |
           node --check ai-chat.js
           node --check creator-ai.js
+          python ai-engine/tests/check_html.py ai-engine.html
 
   container-build:
     runs-on: ubuntu-latest
