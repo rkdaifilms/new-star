@@ -14,6 +14,7 @@ from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer
 from bpe_tokenizer import ByteBPETokenizer
 from hardware import autocast_context, create_grad_scaler, hardware_report, resolve_device, resolve_precision
+from artifact_io import atomic_torch_save, atomic_write_json
 
 
 def sample_balanced_batch(corpora: dict[str, torch.Tensor], batch_size: int,
@@ -187,9 +188,7 @@ def main():
                     val_losses.append(float(val_loss.item()))
             final_validation_loss = sum(val_losses) / len(val_losses)
             resume_path = Path(args.output).with_suffix(Path(args.output).suffix + ".resume.pt")
-            resume_path.parent.mkdir(parents=True, exist_ok=True)
-            temporary = resume_path.with_name(resume_path.name + ".tmp")
-            torch.save({
+            atomic_torch_save({
                 "format": "new-star-pretrain-resume-v1",
                 "step": step,
                 "model_state": model.state_dict(),
@@ -201,8 +200,7 @@ def main():
                 "data_fingerprint": data_fingerprint,
                 "tokenizer_fingerprint": tokenizer_fingerprint,
                 "training_config": training_config,
-            }, temporary)
-            temporary.replace(resume_path)
+            }, resume_path)
             print(f"step={step} train_loss={loss.item():.4f} "
                   f"balanced_val_loss={final_validation_loss:.4f}", flush=True)
 
@@ -210,8 +208,8 @@ def main():
     output.parent.mkdir(parents=True, exist_ok=True)
     checkpoint_format = ("new-star-byte-bpe-gpt-v1" if args.tokenizer == "bpe"
                          else "new-star-unicode-char-gpt-v1")
-    torch.save({"format": checkpoint_format, "config": vars(config),
-                "tokenizer": tokenizer.to_dict(), "state_dict": model.cpu().state_dict()}, output)
+    atomic_torch_save({"format": checkpoint_format, "config": vars(config),
+                       "tokenizer": tokenizer.to_dict(), "state_dict": model.cpu().state_dict()}, output)
     metadata = {
         "format": checkpoint_format,
         "config": vars(config),
@@ -235,12 +233,8 @@ def main():
         "hardware": runtime_info,
     }
     if audit_report is not None:
-        output.with_suffix(output.suffix + ".corpus-audit.json").write_text(
-            json.dumps(audit_report, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-    output.with_suffix(output.suffix + ".json").write_text(
-        json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+        atomic_write_json(audit_report, output.with_suffix(output.suffix + ".corpus-audit.json"))
+    atomic_write_json(metadata, output.with_suffix(output.suffix + ".json"))
     print(f"Saved New Star checkpoint: {output}")
 
 
