@@ -49,7 +49,9 @@ jobs:
       - name: Run AI engine regression tests
         run: deno test --allow-read tests/ai-engine-core_test.ts
       - name: Validate private model startup scripts
-        run: bash -n ai-engine/self-hosted/verify.sh ai-engine/self-hosted/verify-embeddings.sh
+        run: |
+          bash -n ai-engine/self-hosted/verify.sh ai-engine/self-hosted/verify-embeddings.sh ai-engine/self-hosted/deploy-workers.sh
+          bash -c 'set -a; source ai-engine/self-hosted/.env.example; python3 -c "import json,os; v=json.loads(os.environ[\\"NEW_STAR_PIPER_VOICES\\"]); assert isinstance(v,dict) and v"'
       - name: Type-check private search ingestion tool
         run: deno check scripts/new-star-search-ingest.ts
       - name: Type-check private gateway adapters
