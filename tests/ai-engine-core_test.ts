@@ -425,7 +425,7 @@ Deno.test("every external media and search route fails closed before provider ac
   if (searchStart < 0) throw new Error("Missing search route");
   const searchEnd = source.indexOf('if (body?.action === "vision")', searchStart);
   const searchBlock = source.slice(searchStart, searchEnd < 0 ? source.length : searchEnd);
-  const searchGuard = searchBlock.indexOf("NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED");
+  const searchGuard = searchBlock.indexOf("NEW_STAR_PRIVATE_SEARCH_UNAVAILABLE");
   const externalSearch = searchBlock.indexOf("searchWithGeminiGrounding(");
   if (searchGuard < 0 || externalSearch < 0 || searchGuard > externalSearch) {
     throw new Error("Search must fail closed before invoking external grounding in self-hosted mode");
