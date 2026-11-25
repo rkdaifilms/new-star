@@ -53,4 +53,4 @@ jobs:
       - name: Type-check private search ingestion tool
         run: deno check scripts/new-star-search-ingest.ts
       - name: Validate private speech and image worker Python syntax
-        run: python3 -m py_compile ai-engine/self-hosted/speech-worker/main.py ai-engine/self-hosted/image-worker/main.py ai-engine/self-hosted/video-worker/main.py
+        run: python3 -m py_compile ai-engine/self-hosted/speech-worker/main.py ai-engine/self-hosted/image-worker/main.py ai-engine/self-hosted/video-worker/main.py ai-engine/self-hosted/search-worker/main.py ai-engine/self-hosted/vision-worker/main.py
