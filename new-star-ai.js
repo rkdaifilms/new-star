@@ -65,7 +65,7 @@ try{
      if(!state?.ok)throw new Error(state?.error||"Video generation could not be completed.");
      if(state.status==="failed")throw new Error(state.error||"Video generation failed.");
      if(state.status==="completed"){completed=state;break;}
-     pending.textContent="Video is rendering on Google Cloud Vertex AI. Please keep this page open…";
+     pending.textContent="Video is rendering on "+(started.data.provider==="new_star_private"?"New Star private GPU":"the configured video provider")+". Please keep this page open…";
    }
    if(!completed)throw new Error("Video generation is taking longer than expected. The server job may still be running; check again later.");
    const videoUrl=mediaUrl(completed.videoUrl);if(!videoUrl)throw new Error("The video finished, but no valid playback URL was returned.");
