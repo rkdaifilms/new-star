@@ -85,6 +85,8 @@ jobs:
           grep -F 'NEW_STAR_MODEL_BASE_URL' "$FILE"
           grep -F 'NEW_STAR_MODEL_NAME' "$FILE"
           grep -F 'async function probeApiProvider' "$FILE"
+          grep -F 'async function probeOpenRouterProvider' "$FILE"
+          grep -F 'credits_exhausted' "$FILE"
           grep -F 'providerHealth' "$FILE"
           grep -F 'searchWithGeminiGrounding' "$FILE"
           grep -F 'type: "google_search"' "$FILE"
