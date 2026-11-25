@@ -89,8 +89,9 @@ python ai-image/evaluate.py \
 The report includes held-out dataset and manifest fingerprints, sample counts,
 and noise-prediction MSE. MSE is a denoising diagnostic only; it is not a
 perceptual metric such as FID and does not establish that generated images are
-visually useful. Evaluation data must be separate from the training folder for
-the result to be a meaningful held-out measurement.
+visually useful. The evaluator compares the full image-and-manifest fingerprint with the training
+checkpoint and rejects an exact match. Evaluation data must be separate from the
+training folder for the result to be a meaningful held-out measurement.
 
 ## Local image API
 
