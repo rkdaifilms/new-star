@@ -64,7 +64,7 @@ Video generation is a separate, expensive six-second GPU job and is not run by t
 python3 verify-workers.py --video
 ```
 
-The video test waits up to `NEW_STAR_SMOKE_VIDEO_TIMEOUT` seconds (default 1800). A successful health check only proves that the worker responds; only the `--infer`/ `--video` runs prove actual model inference. A skipped worker is not counted as passed. Use `--require-all` in a release environment where every worker must be deployed.
+The verifier checks that protected endpoints reject an invalid bearer token, never follows HTTP redirects (so credentials cannot be forwarded to another host), and does not print configured secrets. Its tests are run in AI Engine CI. The vision smoke test uses a valid PNG fixture that meets the worker's request-size validation, and video output validation checks the MP4 `ftyp` signature. The video test waits up to `NEW_STAR_SMOKE_VIDEO_TIMEOUT` seconds (default 1800). A successful health check only proves that the worker responds; only the `--infer`/ `--video` runs prove actual model inference. A skipped worker is not counted as passed. Use `--require-all` in a release environment where every worker must be deployed.
 
 ## Connect the New Star gateway
 
