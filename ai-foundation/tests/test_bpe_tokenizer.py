@@ -47,6 +47,11 @@ def test_byte_bpe_rejects_invalid_inputs():
 
 
 
+def test_byte_bpe_rejects_merge_parts_not_defined_by_prior_rules():
+    with pytest.raises(ValueError, match="earlier merge outputs"):
+        ByteBPETokenizer([(b"ab", b"c")])
+
+
 def test_byte_bpe_rejects_ambiguous_duplicate_merge_outputs():
     with pytest.raises(ValueError, match="outputs must be unique"):
         ByteBPETokenizer([(b"a", b"bc"), (b"ab", b"c")])
