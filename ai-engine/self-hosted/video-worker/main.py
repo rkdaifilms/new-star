@@ -126,6 +126,25 @@ def queue_worker() -> None:
             _queue.task_done()
 
 
+def restore_jobs() -> None:
+    JOB_DIR.mkdir(parents=True, exist_ok=True)
+    for saved in JOB_DIR.glob("*.json"):
+        try:
+            job = json.loads(saved.read_text(encoding="utf-8"))
+            job_id = str(uuid.UUID(str(job.get("id", ""))))
+            if saved.name != job_id + ".json":
+                continue
+            if job.get("status") in {"queued", "in_progress"}:
+                job.update({"status": "failed", "failure_code": "VIDEO_WORKER_RESTARTED", "updated_at": int(time.time())})
+                temporary = JOB_DIR / (job_id + ".json.tmp")
+                temporary.write_text(json.dumps(job), encoding="utf-8")
+                temporary.replace(saved)
+            _jobs[job_id] = job
+        except Exception:
+            continue
+
+
+restore_jobs()
 threading.Thread(target=queue_worker, daemon=True, name="new-star-video-queue").start()
 
 
