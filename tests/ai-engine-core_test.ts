@@ -417,3 +417,20 @@ Deno.test("every external media and search route fails closed before provider ac
     throw new Error("Search must fail closed before invoking external grounding in self-hosted mode");
   }
 });
+
+Deno.test("Creator Studio UI does not advertise removed external video dependencies or unreachable legacy fallbacks", async () => {
+  const app = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  const html = await Deno.readTextFile(new URL("../new-star-ai.html", import.meta.url));
+  if (app.includes("Live Research needs a connected search provider")) {
+    throw new Error("Obsolete unreachable research error branch must be removed");
+  }
+  if (app.includes("Video generation needs a video model server and job queue")) {
+    throw new Error("Obsolete unreachable video error branch must be removed");
+  }
+  if (html.includes("Video generation uses Google Cloud Vertex AI")) {
+    throw new Error("Creator Studio must not advertise external Vertex AI as its video engine");
+  }
+  if (!html.includes("Private-only mode never silently switches to external AI providers")) {
+    throw new Error("Creator Studio must explain private-only provider isolation");
+  }
+});
