@@ -207,7 +207,8 @@ class NewStarGPT(nn.Module):
     def generate(self, tokens: torch.Tensor, max_new_tokens: int = 100,
                  temperature: float = 1.0, top_k: int | None = 50,
                  top_p: float = 0.95, repetition_penalty: float = 1.0,
-                 do_sample: bool = True) -> torch.Tensor:
+                 do_sample: bool = True,
+                 generator: torch.Generator | None = None) -> torch.Tensor:
         """Sample continuations using per-layer KV-state caching and bounded context."""
         if not isinstance(max_new_tokens, int) or isinstance(max_new_tokens, bool) or max_new_tokens < 0:
             raise ValueError("max_new_tokens must be a non-negative integer")
@@ -221,6 +222,16 @@ class NewStarGPT(nn.Module):
             raise ValueError("repetition_penalty must be at least 1")
         if not isinstance(do_sample, bool):
             raise ValueError("do_sample must be a boolean")
+        if generator is not None:
+            if not isinstance(generator, torch.Generator):
+                raise ValueError("generator must be a torch.Generator or None")
+            if generator.device.type != tokens.device.type:
+                raise ValueError("generator device type must match generation token device")
+            if (generator.device.type == "cuda"
+                    and generator.device.index is not None
+                    and tokens.device.index is not None
+                    and generator.device.index != tokens.device.index):
+                raise ValueError("generator CUDA device must match generation token device")
         if tokens.ndim != 2 or tokens.shape[1] < 1:
             raise ValueError("generation prompt must be a non-empty [batch, sequence] tensor")
         if tokens.dtype != torch.long:
@@ -257,7 +268,9 @@ class NewStarGPT(nn.Module):
                     filtered = torch.full_like(next_logits, float("-inf"))
                     next_logits = filtered.scatter(1, sorted_indices, sorted_logits)
                 probabilities = torch.softmax(next_logits, dim=-1)
-                next_token = torch.multinomial(probabilities, num_samples=1)
+                next_token = torch.multinomial(
+                    probabilities, num_samples=1, generator=generator
+                )
             else:
                 next_token = torch.argmax(next_logits, dim=-1, keepdim=True)
             tokens = torch.cat((tokens, next_token), dim=1)
