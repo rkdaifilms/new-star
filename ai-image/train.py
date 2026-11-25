@@ -35,6 +35,7 @@ def atomic_save(payload: dict, destination: str | Path) -> None:
 
 def dataset_fingerprint(audit: dict) -> str:
     digest = hashlib.sha256()
+    digest.update(audit["manifest_sha256"].encode("ascii"))
     for item in audit["images"]:
         digest.update(item["file"].encode("utf-8"))
         digest.update(item["sha256"].encode("ascii"))
@@ -141,7 +142,7 @@ def train(args) -> dict:
         resume_path = Path(args.resume_from)
         if not resume_path.is_file():
             raise ValueError("resume checkpoint does not exist")
-        resume = torch.load(resume_path, map_location=device, weights_only=True)
+        resume = torch.load(resume_path, map_location="cpu", weights_only=True)
         if not isinstance(resume, dict) or resume.get("format") != "new-star-ddpm-image-resume-v1":
             raise ValueError("unsupported image training resume checkpoint")
         if resume.get("dataset_fingerprint") != fingerprint:
