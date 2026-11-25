@@ -106,10 +106,37 @@ def save_training_state(path, model, optimizer, generator, step, seed,
 
 def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32"):
     """Return a macro-average of per-language token-weighted validation losses."""
-    if batch_size < 1 or block_size < 1:
-        raise ValueError("batch_size and block_size must be positive")
-    if not corpora or any(not examples for examples in corpora.values()):
-        raise ValueError("each validation language must contain at least one example")
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size < 1:
+        raise ValueError("batch_size must be a positive integer")
+    if not isinstance(block_size, int) or isinstance(block_size, bool) or block_size < 1:
+        raise ValueError("block_size must be a positive integer")
+    if not isinstance(corpora, dict) or not corpora:
+        raise ValueError("at least one validation language is required")
+    if any(not isinstance(language, str) or not language.strip() for language in corpora):
+        raise ValueError("validation language keys must be non-empty strings")
+    for language, examples in corpora.items():
+        if not isinstance(examples, list) or not examples:
+            raise ValueError(f"validation language {language!r} must contain at least one example")
+        for example in examples:
+            if not isinstance(example, (tuple, list)) or len(example) != 2:
+                raise ValueError(f"validation language {language!r} contains a malformed example")
+            inputs, labels = example
+            if not isinstance(inputs, list) or not isinstance(labels, list) or not inputs:
+                raise ValueError(f"validation language {language!r} contains empty token sequences")
+            if len(inputs) != len(labels) or len(inputs) > block_size:
+                raise ValueError(f"validation language {language!r} contains mismatched or oversized sequences")
+            if any(not isinstance(token, int) or isinstance(token, bool) or token < 0 for token in inputs):
+                raise ValueError(f"validation language {language!r} contains invalid input token IDs")
+            if any(not isinstance(token, int) or isinstance(token, bool) or (token < 0 and token != -100) for token in labels):
+                raise ValueError(f"validation language {language!r} contains invalid target token IDs")
+            if not any(token != -100 for token in labels):
+                raise ValueError(f"validation language {language!r} contains no assistant targets")
+    try:
+        target_device = torch.device(device)
+    except (TypeError, RuntimeError) as exc:
+        raise ValueError("device must identify a valid PyTorch device") from exc
+    if precision not in {"auto", "fp32", "fp16", "bf16"}:
+        raise ValueError("precision must be auto, fp32, fp16, or bf16")
     model.eval()
     language_losses = []
     with torch.inference_mode():
@@ -119,7 +146,7 @@ def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32
             token_count = 0
             for start in range(0, len(examples), batch_size):
                 indices = list(range(start, min(start + batch_size, len(examples))))
-                x, y = collate_examples(examples, indices, block_size, device)
+                x, y = collate_examples(examples, indices, block_size, target_device)
                 supervised_tokens = int((y != -100).sum().item())
                 if supervised_tokens == 0:
                     raise ValueError(f"validation batch has no assistant targets for {language}")
