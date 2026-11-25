@@ -341,8 +341,8 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
     "NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE",
     "NEW_STAR_PRIVATE_SPEECH_UNAVAILABLE",
     "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE",
-    "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED",
+    "NEW_STAR_PRIVATE_VIDEO_UNAVAILABLE",
+    "NEW_STAR_PRIVATE_VIDEO_STATUS_UNAVAILABLE",
     "NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED"
   ];
   const missingGuards = requiredSelfHostedGuards.filter((guard) => !source.includes(guard));
@@ -397,8 +397,8 @@ Deno.test("every external media and search route fails closed before provider ac
     { action: "vision", guard: "NEW_STAR_VISION_MODEL_NOT_DEPLOYED" },
     { action: "speak", guard: "NEW_STAR_PRIVATE_SPEECH_UNAVAILABLE" },
     { action: "transcribe", guard: "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE" },
-    { action: "video", guard: "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED" },
-    { action: "video-status", guard: "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED" },
+    { action: "video", guard: "NEW_STAR_PRIVATE_VIDEO_UNAVAILABLE" },
+    { action: "video-status", guard: "NEW_STAR_PRIVATE_VIDEO_STATUS_UNAVAILABLE" },
     { action: "image", guard: "NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE" }
   ];
   for (const route of routes) {
@@ -538,4 +538,33 @@ Deno.test("private image worker is wired only for self-hosted text-to-image", as
   if (!gateway.includes("privateImageGeneration(") || !gateway.includes("NEW_STAR_IMAGE_BASE_URL") || !gateway.includes("NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE")) throw new Error("Self-hosted image action must call the private worker and fail closed");
   if (!worker.includes("/v1/images/generations") || !worker.includes("require_auth") || !worker.includes("torch.cuda.is_available")) throw new Error("Image worker must expose authenticated GPU-backed generation");
   if (!compose.includes('profiles: ["image"]') || !compose.includes('127.0.0.1:8091:8091')) throw new Error("Image worker must be optional and bound to loopback");
+});
+
+
+Deno.test("private video adapter accepts only protected HTTPS and supported job settings", async () => {
+  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-video.ts", import.meta.url));
+  if (!source.includes('endpoint.protocol !== "https:"') || !source.includes('resolution !== "480p"') || !source.includes('duration !== "6s"')) {
+    throw new Error("Private video adapter must validate HTTPS and enforce supported generation settings");
+  }
+  for (const required of ["redirect: \"error\"", "/v1/videos/generations", "/v1/videos/jobs/", "video/mp4", "50 * 1024 * 1024"]) {
+    if (!source.includes(required)) throw new Error("Private video adapter is missing " + required);
+  }
+});
+
+Deno.test("private video worker persists jobs and rejects unauthenticated or unsupported requests", async () => {
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/video-worker/main.py", import.meta.url));
+  const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
+  for (const required of ["require_auth", "CogVideoXPipeline", "/v1/videos/generations", "/v1/videos/jobs/{job_id}", "restore_jobs", "VIDEO_WORKER_RESTARTED", "torch.cuda.is_available", "FRAME_COUNT = 49"]) {
+    if (!worker.includes(required)) throw new Error("Private video worker is missing " + required);
+  }
+  if (!compose.includes('profiles: ["video"]') || !compose.includes('127.0.0.1:8092:8092') || !compose.includes("new-star-video-jobs:")) {
+    throw new Error("Private video worker must use an optional profile, loopback binding, and persistent job storage");
+  }
+});
+
+Deno.test("Creator Studio exposes only the private worker's supported video settings", async () => {
+  const html = await Deno.readTextFile(new URL("../new-star-ai.html", import.meta.url));
+  if (!html.includes('value="480p"') || !html.includes('value="6s"') || html.includes('value="15s"')) {
+    throw new Error("Video controls must not advertise unsupported private worker resolutions or durations");
+  }
 });
