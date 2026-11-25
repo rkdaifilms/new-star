@@ -18,6 +18,7 @@ const ALLOWED_ORIGINS = new Set([
   "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app",
   "https://new-star-git-new-star-own-ai-engine-cpu-rkdaifilms-8858.vercel.app",
   "https://new-star-git-new-star-ai-engine-foundation-rkdaifilms-8858.vercel.app",
+  "https://new-star-ai-engine-rkdaifilms-8858.vercel.app",
   "https://new-star-mok7k84no-rkdaifilms-8858.vercel.app"
 ]);
 
