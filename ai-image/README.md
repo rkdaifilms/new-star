@@ -47,7 +47,7 @@ python ai-image/generate.py --checkpoint ./artifacts/newstar-image-ddpm.pt \
   --output ./artifacts/newstar-generated.png --count 4 --seed 2026 --device cpu
 ```
 
-The output is an image grid saved as PNG. The same checkpoint and seed reproduce the same sample on the same compatible runtime. Different hardware or library versions can produce small numeric differences.
+The output is an image grid saved as PNG. The same checkpoint and seed reproduce the same sample on the same compatible runtime. Different hardware or library versions can produce small numeric differences.\n\n## Local image API\n\nStart the local service after training:\n\n```sh\npython ai-image/serve.py --checkpoint ./artifacts/newstar-image-ddpm.pt --host 127.0.0.1 --port 8780\n```\n\nIt exposes `GET /health`, `GET /v1/models`, and `POST /v1/images/generations`. The generation endpoint accepts `n` (1–4), optional `seed`, and the checkpoint-native `size`; it returns PNG bytes as base64 in the `data[].b64_json` field. It intentionally rejects `prompt`: this first model is unconditional, not text-to-image. Set `NEW_STAR_IMAGE_API_KEY` before binding beyond loopback; clients must send a bearer token. Do not expose the experimental service directly to the public internet.
 
 ## Model boundary
 
