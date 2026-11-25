@@ -51,6 +51,21 @@ bash verify.sh
 
 `deploy-workers.sh` validates the host, distinct worker secrets, the local GGUF file, and every configured Piper voice/config pair; validates all Compose profiles; builds and starts chat plus speech, image, video, search, and vision workers; waits for each worker health endpoint; and confirms each protected worker rejects an invalid bearer token. It keeps all service ports bound to loopback. The script does not expose ports publicly, configure DNS/TLS, set Supabase secrets, or claim successful media generation. Image/video/vision model weights may be downloaded by their model runtimes on first inference and require sufficient GPU memory and disk space.
 
+### Configure the Supabase gateway secrets safely
+
+Set `SUPABASE_PROJECT_REF` in the private host environment (or export it in the deployment shell), make sure the matching private HTTPS endpoints and distinct API keys are present in the local `.env`, then run:
+
+```sh
+cd ai-engine/self-hosted
+set -a
+source .env
+set +a
+export SUPABASE_PROJECT_REF=your20characterprojectref
+bash configure-supabase-secrets.sh
+```
+
+The script validates HTTPS endpoint formats, project-ref format, model name, and minimum key lengths, then sets `NEW_STAR_AI_MODE=self_hosted` and the private chat/image/video/speech/search/vision secrets using the Supabase CLI. Embeddings are configured only when both embedding URL and key are supplied. It never prints secret values. The Supabase CLI must already be authenticated and the project ref must identify the intended project. Supabase accepting the secret upload is not a health or inference test; run the authenticated worker verifier and actual inference smoke tests separately.
+
 After deploying a protected HTTPS reverse proxy for each worker, configure the matching server-side Supabase Edge Function secrets and run `python3 verify-workers.py --infer` plus `python3 verify-workers.py --video` to prove actual inference. Keep `.env` and all keys off Git and out of frontend code.
 
 ## Verify every private worker
