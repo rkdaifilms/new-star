@@ -19,7 +19,7 @@ def validate_messages(messages: Any, line_number: int = 0) -> list[dict[str, str
         if not isinstance(message, dict):
             raise ValueError(prefix + f"message {index} must be an object")
         role, content = message.get("role"), message.get("content")
-        if role not in ALLOWED_ROLES:
+        if not isinstance(role, str) or role not in ALLOWED_ROLES:
             raise ValueError(prefix + f"message {index} has an unsupported role")
         if not isinstance(content, str) or not content.strip():
             raise ValueError(prefix + f"message {index} requires non-empty content")
@@ -57,7 +57,7 @@ def load_instruction_corpora(path: str | Path):
             language, split = record.get("language"), record.get("split")
             if not isinstance(language, str) or not language.strip():
                 raise ValueError(f"line {line_number} requires a language label")
-            if split not in {"train", "validation"}:
+            if not isinstance(split, str) or split not in {"train", "validation"}:
                 raise ValueError(f"line {line_number} split must be train or validation")
             messages = validate_messages(record.get("messages"), line_number)
             target = train if split == "train" else validation
@@ -74,8 +74,10 @@ def load_instruction_corpora(path: str | Path):
 
 def encode_instruction_example(messages, tokenizer, max_length: int):
     """Return shifted IDs and labels; user/system targets are masked with -100."""
-    if max_length < 2:
-        raise ValueError("max_length must be at least 2")
+    if not isinstance(max_length, int) or isinstance(max_length, bool) or max_length < 2:
+        raise ValueError("max_length must be an integer of at least 2")
+    if not callable(getattr(tokenizer, "encode", None)):
+        raise ValueError("tokenizer must provide an encode(text) method")
     messages = validate_messages(messages)
     token_ids: list[int] = []
     target_mask: list[bool] = []
