@@ -1201,3 +1201,34 @@ def test_generation_rejects_generator_on_different_device_type():
             prompt, max_new_tokens=1,
             generator="cpu",
         )
+
+
+def test_unicode_tokenizer_rejects_malformed_vocabulary_payloads():
+    import pytest
+    from tokenizer import UnicodeCharTokenizer
+
+    invalid_payloads = [
+        None,
+        [],
+        {"type": UnicodeCharTokenizer.FORMAT, "tokens": "not-a-list"},
+        {"type": UnicodeCharTokenizer.FORMAT, "tokens": ["two characters"]},
+        {"type": UnicodeCharTokenizer.FORMAT, "tokens": ["a", "a"]},
+        {"type": UnicodeCharTokenizer.FORMAT, "tokens": ["\\ud800"]},
+    ]
+    for payload in invalid_payloads:
+        with pytest.raises(ValueError):
+            UnicodeCharTokenizer.from_dict(payload)
+
+
+def test_unicode_tokenizer_rejects_invalid_vocab_limits_and_non_string_input():
+    import pytest
+    from tokenizer import UnicodeCharTokenizer
+
+    for limit in (True, 255, 256.5, "512"):
+        with pytest.raises(ValueError, match="max_vocab_size"):
+            UnicodeCharTokenizer.train("valid text", limit)
+    tokenizer = UnicodeCharTokenizer.train("valid text")
+    with pytest.raises(ValueError, match="string"):
+        tokenizer.encode(123)
+    with pytest.raises(ValueError, match="token ID"):
+        tokenizer.decode([True])
