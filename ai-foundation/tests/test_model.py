@@ -1353,3 +1353,16 @@ def test_incremental_cache_rejects_invalid_position_and_cache_dtype():
     ]
     with pytest.raises(ValueError, match="dtype"):
         model.forward_incremental(tokens[:, 1:2], 1, bad_caches)
+
+
+def test_generation_rejects_non_finite_repetition_penalty_and_bad_prompt_type():
+    import pytest
+
+    model = tiny_model()
+    prompt = torch.tensor([[65, 66]], dtype=torch.long)
+    for penalty in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(ValueError, match="repetition_penalty"):
+            model.generate(prompt, repetition_penalty=penalty)
+    generator = torch.Generator(device="cpu")
+    with pytest.raises(ValueError, match="torch.Tensor"):
+        model.generate("not a tensor", generator=generator)
