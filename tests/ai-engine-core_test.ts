@@ -208,6 +208,32 @@ Deno.test("private llama.cpp compose uses documented authentication and parallel
   }
 });
 
+Deno.test("self-hosted model deployment has one canonical Compose source", async () => {
+  const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
+  const workflow = await Deno.readTextFile(new URL("../.github/workflows/new-star-ai-checks.yml", import.meta.url));
+  const docs = await Deno.readTextFile(new URL("../NEW-STAR-AI-ENGINE.md", import.meta.url));
+  if (!compose.includes("new-star-model:") || !compose.includes("new-star-embeddings:")) {
+    throw new Error("Canonical Compose file must define chat and embedding services");
+  }
+  if (!compose.includes("127.0.0.1:8080:8080") || !compose.includes("127.0.0.1:8081:8081")) {
+    throw new Error("Private model and embedding ports must remain loopback-only");
+  }
+  if (!workflow.includes('YAML.load_file("ai-engine/self-hosted/compose.yaml")') || workflow.includes("ai-model/docker-compose.yml")) {
+    throw new Error("CI must validate the single canonical self-hosted Compose file");
+  }
+  if (!docs.includes("only model runtime deployment directory is `ai-engine/self-hosted/`")) {
+    throw new Error("Architecture documentation must identify the canonical runtime");
+  }
+  let legacyRuntimeExists = false;
+  try {
+    await Deno.stat(new URL("../ai-model/docker-compose.yml", import.meta.url));
+    legacyRuntimeExists = true;
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound)) throw error;
+  }
+  if (legacyRuntimeExists) throw new Error("Duplicate legacy ai-model runtime must not be reintroduced");
+});
+
 Deno.test("AI gateway has no duplicate local functions or duplicate search route", async () => {
   const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
   const functionNames = [...source.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*\(/g)].map((match) => match[1]);
