@@ -39,6 +39,7 @@ export async function privateSpeechSynthesis(
   try {
     const response = await fetch(endpoint, {
       method: "POST",
+      redirect: "error",
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
       body: JSON.stringify({ input: text, language }),
       signal: controller.signal,
@@ -82,6 +83,7 @@ export async function privateSpeechTranscription(
   try {
     const response = await fetch(endpoint, {
       method: "POST",
+      redirect: "error",
       headers: { Authorization: "Bearer " + key },
       body: form,
       signal: controller.signal,
