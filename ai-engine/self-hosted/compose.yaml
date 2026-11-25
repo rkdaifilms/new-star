@@ -72,6 +72,30 @@ services:
               count: all
               capabilities: [gpu]
 
+  new-star-video:
+    build:
+      context: ./video-worker
+    container_name: new-star-private-video
+    restart: unless-stopped
+    profiles: ["video"]
+    ports:
+      - "127.0.0.1:8092:8092"
+    environment:
+      NEW_STAR_VIDEO_API_KEY: ${NEW_STAR_VIDEO_API_KEY:?Set NEW_STAR_VIDEO_API_KEY in .env}
+      NEW_STAR_VIDEO_MODEL: ${NEW_STAR_VIDEO_MODEL:-THUDM/CogVideoX-2b}
+      NEW_STAR_VIDEO_CACHE: /models/huggingface
+      NEW_STAR_VIDEO_JOBS: /data/jobs
+    volumes:
+      - new-star-video-cache:/models/huggingface
+      - new-star-video-jobs:/data/jobs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
   new-star-speech:
     build:
       context: ./speech-worker
@@ -103,3 +127,5 @@ services:
 volumes:
   new-star-speech-cache:
   new-star-image-cache:
+  new-star-video-cache:
+  new-star-video-jobs:
