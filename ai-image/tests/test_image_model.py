@@ -180,3 +180,12 @@ def test_image_http_api_requires_authentication():
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_diffusion_schedule_rejects_out_of_range_timesteps_and_mismatched_noise():
+    schedule = DDPMSchedule(steps=3)
+    clean = torch.zeros(1, 3, 8, 8)
+    with pytest.raises(ValueError, match="within the diffusion schedule"):
+        schedule.add_noise(clean, torch.tensor([3]), torch.ones_like(clean))
+    with pytest.raises(ValueError, match="share"):
+        schedule.add_noise(clean, torch.tensor([1]), torch.ones(1, 3, 4, 4))
