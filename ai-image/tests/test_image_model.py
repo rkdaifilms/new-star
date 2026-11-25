@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from data import ImageFolderDataset, audit_image_dataset
 from generate import load_checkpoint, save_image_grid
+from evaluate import atomic_write_json, evaluate as evaluate_checkpoint
 from model import DDPMSchedule, NewStarImageUNet
 from serve import create_handler
 from train import main as train_main
@@ -320,3 +321,37 @@ def test_image_training_resume_rejects_changed_permission_manifest(tmp_path, mon
     ])
     with pytest.raises(SystemExit):
         train_main()
+
+
+
+def test_image_checkpoint_evaluation_is_reproducible_and_writes_report(tmp_path, monkeypatch):
+    training_root = create_dataset(tmp_path / "training-images")
+    training_manifest = create_manifest(tmp_path / "training-manifest.json")
+    heldout_root = create_dataset(tmp_path / "heldout-images", count=3)
+    heldout_manifest = create_manifest(tmp_path / "heldout-manifest.json")
+    checkpoint = tmp_path / "image-model.pt"
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", "--data", str(training_root), "--manifest", str(training_manifest),
+        "--output", str(checkpoint), "--steps", "1", "--batch-size", "1",
+        "--image-size", "32", "--base-channels", "8", "--diffusion-steps", "2",
+        "--log-interval", "1",
+    ])
+    train_main()
+
+    first = evaluate_checkpoint(
+        checkpoint, heldout_root, heldout_manifest, "cpu", batch_size=2, seed=72
+    )
+    second = evaluate_checkpoint(
+        checkpoint, heldout_root, heldout_manifest, "cpu", batch_size=2, seed=72
+    )
+    assert first["weights"] == "ema"
+    assert first["evaluation_dataset"]["image_count"] == 3
+    assert first["metrics"]["samples_evaluated"] == 3
+    assert first["metrics"]["noise_prediction_mse"] == second["metrics"]["noise_prediction_mse"]
+    assert first["evaluation_dataset"]["fingerprint"] == second["evaluation_dataset"]["fingerprint"]
+
+    report_path = tmp_path / "reports" / "evaluation.json"
+    atomic_write_json(first, report_path)
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["format"] == "new-star-image-evaluation-v1"
+    assert report["metrics"]["batches_evaluated"] == 2
