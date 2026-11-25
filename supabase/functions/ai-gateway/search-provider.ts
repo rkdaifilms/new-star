@@ -32,3 +32,13 @@ export function formatRetrievedContext(input: unknown, limit = 5): string {
     `[Source ${index + 1}] ${item.title}\nURL: ${item.url}\nExcerpt: ${item.snippet}`
   ).join("\n\n").slice(0, 6000);
 }
+
+export function normalizePrivateIndexRows(input: unknown, limit = 5): NewStarSearchResult[] {
+  if (!Array.isArray(input)) return [];
+  return normalizeNewStarSearchResults(input.slice(0, limit).map((item: any) => ({
+    title: item?.title,
+    url: item?.url,
+    snippet: item?.snippet,
+    publishedAt: item?.published_at
+  })), limit);
+}
