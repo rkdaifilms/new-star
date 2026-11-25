@@ -7,6 +7,11 @@
   reverse_proxy 127.0.0.1:8080
 }
 
+{$NEW_STAR_EMBEDDING_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:8081
+}
+
 {$NEW_STAR_IMAGE_DOMAIN} {
   encode zstd gzip
   reverse_proxy 127.0.0.1:8091
