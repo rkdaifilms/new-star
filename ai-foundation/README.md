@@ -237,7 +237,10 @@ Before training on multilingual text JSONL, run the corpus audit. It checks
 that every declared language has train and validation records, enforces
 minimum character counts, detects exact duplicates after whitespace/case
 normalization across the train/validation boundary, and requires a provenance
-manifest. It also reports within-split duplicates as warnings.
+manifest. It also reports within-split duplicates as warnings. Automated tests cover
+multilingual split loading, validation-only loading, incomplete language splits,
+provenance requirements, role-tagged SFT records, and normalized cross-split
+duplicate detection.
 
 Create a manifest with the dataset identity and reviewable rights information:
 
