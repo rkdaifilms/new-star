@@ -227,11 +227,19 @@ class NewStarGPT(nn.Module):
                 raise ValueError("generator must be a torch.Generator or None")
             if generator.device.type != tokens.device.type:
                 raise ValueError("generator device type must match generation token device")
-            if (generator.device.type == "cuda"
-                    and generator.device.index is not None
-                    and tokens.device.index is not None
-                    and generator.device.index != tokens.device.index):
-                raise ValueError("generator CUDA device must match generation token device")
+            if generator.device.type == "cuda":
+                generator_index = (
+                    torch.cuda.current_device()
+                    if generator.device.index is None else generator.device.index
+                )
+                token_index = (
+                    torch.cuda.current_device()
+                    if tokens.device.index is None else tokens.device.index
+                )
+                if generator_index != token_index:
+                    raise ValueError("generator CUDA device must match generation token device")
+        if not isinstance(tokens, torch.Tensor):
+            raise ValueError("generation prompt must be a torch.Tensor")
         if tokens.ndim != 2 or tokens.shape[1] < 1:
             raise ValueError("generation prompt must be a non-empty [batch, sequence] tensor")
         if tokens.dtype != torch.long:
