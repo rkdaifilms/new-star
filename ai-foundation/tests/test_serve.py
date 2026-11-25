@@ -53,8 +53,9 @@ class FoundationServerTests(unittest.TestCase):
         self.server.server_close()
         self.thread.join(timeout=2)
 
-    def get(self, path):
-        request = Request(self.base + path, method="GET")
+    def get(self, path, authenticated=True):
+        headers = {"Authorization": "Bearer test-secret"} if authenticated else {}
+        request = Request(self.base + path, headers=headers, method="GET")
         return urlopen(request)
 
     def test_model_list_is_openai_compatible(self):
@@ -63,6 +64,19 @@ class FoundationServerTests(unittest.TestCase):
         self.assertEqual(result["object"], "list")
         self.assertEqual(result["data"][0]["id"], "test-model")
         self.assertEqual(result["data"][0]["owned_by"], "new-star")
+
+    def test_model_list_rejects_missing_or_invalid_api_key(self):
+        for headers in ({}, {"Authorization": "Bearer wrong-secret"}):
+            with self.subTest(headers=headers):
+                request = Request(self.base + "/v1/models", headers=headers, method="GET")
+                with self.assertRaises(HTTPError) as error:
+                    urlopen(request)
+                self.assertEqual(error.exception.code, 401)
+
+    def test_health_probe_remains_public(self):
+        with self.get("/health", authenticated=False) as response:
+            result = json.loads(response.read())
+        self.assertTrue(result["ok"])
 
     def post(self, payload, content_type="application/json"):
         request = Request(
