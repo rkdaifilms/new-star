@@ -36,6 +36,23 @@ in the upstream [llama.cpp server options](https://github.com/ggml-org/llama.cpp
 The service binds to loopback only. Put it behind a TLS reverse proxy or private network before connecting Supabase. Do not expose port 8080 publicly.
 
 
+## Deploy all private workers on the GPU host
+
+After installing NVIDIA drivers, NVIDIA Container Toolkit, Docker Compose v2, the GGUF chat model, and the licensed Piper voice files named in `.env`, run this from the repository root:
+
+```sh
+cd ai-engine/self-hosted
+cp .env.example .env
+# Edit .env locally: use distinct random secrets, a real GGUF filename,
+# and licensed Piper .onnx plus matching .onnx.json voice files.
+bash deploy-workers.sh
+bash verify.sh
+```
+
+`deploy-workers.sh` validates the host, distinct worker secrets, the local GGUF file, and every configured Piper voice/config pair; validates all Compose profiles; builds and starts chat plus speech, image, video, search, and vision workers; waits for each worker health endpoint; and confirms each protected worker rejects an invalid bearer token. It keeps all service ports bound to loopback. The script does not expose ports publicly, configure DNS/TLS, set Supabase secrets, or claim successful media generation. Image/video/vision model weights may be downloaded by their model runtimes on first inference and require sufficient GPU memory and disk space.
+
+After deploying a protected HTTPS reverse proxy for each worker, configure the matching server-side Supabase Edge Function secrets and run `python3 verify-workers.py --infer` plus `python3 verify-workers.py --video` to prove actual inference. Keep `.env` and all keys off Git and out of frontend code.
+
 ## Verify every private worker
 
 The repository includes `verify-workers.py` to check the deployed worker HTTPS endpoints without printing secrets. Configure the five `NEW_STAR_*_BASE_URL` values and matching API keys in the environment of a trusted GPU/operations host. Each URL must point to a TLS reverse proxy that forwards to the worker's loopback-only Compose port; do not expose ports 8090–8094 publicly.
