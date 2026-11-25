@@ -43,17 +43,48 @@ def collate_examples(examples, indices, block_size, device):
 
 
 def sample_instruction_batch(corpora, batch_size, block_size, device, generator=None):
-    languages = sorted(corpora)
-    if not languages:
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size < 1:
+        raise ValueError("batch_size must be a positive integer")
+    if not isinstance(block_size, int) or isinstance(block_size, bool) or block_size < 1:
+        raise ValueError("block_size must be a positive integer")
+    if not isinstance(corpora, dict) or not corpora:
         raise ValueError("at least one language corpus is required")
+    if generator is not None and (
+        not isinstance(generator, torch.Generator) or generator.device.type != "cpu"
+    ):
+        raise ValueError("generator must be a CPU torch.Generator or None")
+    try:
+        target_device = torch.device(device)
+    except (TypeError, RuntimeError) as exc:
+        raise ValueError("device must identify a valid PyTorch device") from exc
+    if any(not isinstance(language, str) or not language.strip() for language in corpora):
+        raise ValueError("language corpus keys must be non-empty strings")
+    languages = sorted(corpora)
+    for language in languages:
+        examples = corpora[language]
+        if not isinstance(examples, list) or not examples:
+            raise ValueError(f"language {language!r} must contain at least one encoded example")
+        for example in examples:
+            if not isinstance(example, (tuple, list)) or len(example) != 2:
+                raise ValueError(f"language {language!r} contains a malformed encoded example")
+            inputs, labels = example
+            if not isinstance(inputs, list) or not isinstance(labels, list) or not inputs:
+                raise ValueError(f"language {language!r} contains empty or invalid token sequences")
+            if len(inputs) != len(labels) or len(inputs) > block_size:
+                raise ValueError(f"language {language!r} contains mismatched or oversized token sequences")
+            if any(not isinstance(token, int) or isinstance(token, bool) or token < 0 for token in inputs):
+                raise ValueError(f"language {language!r} contains invalid input token IDs")
+            if any(not isinstance(token, int) or isinstance(token, bool) or (token < 0 and token != -100) for token in labels):
+                raise ValueError(f"language {language!r} contains invalid target token IDs")
+            if not any(token != -100 for token in labels):
+                raise ValueError(f"language {language!r} contains an example without assistant targets")
     selected = []
     for _ in range(batch_size):
         lang_index = int(torch.randint(len(languages), (1,), generator=generator).item())
         examples = corpora[languages[lang_index]]
         example_index = int(torch.randint(len(examples), (1,), generator=generator).item())
-        selected.append((examples, example_index))
-    rows = [selected[i][0][selected[i][1]] for i in range(batch_size)]
-    return collate_examples(rows, list(range(batch_size)), block_size, device)
+        selected.append(examples[example_index])
+    return collate_examples(selected, list(range(batch_size)), block_size, target_device)
 
 
 def save_training_state(path, model, optimizer, generator, step, seed,
