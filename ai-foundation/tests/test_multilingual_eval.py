@@ -104,8 +104,11 @@ class MultilingualEvaluationTests(unittest.TestCase):
         actual = evaluate_sft(
             model, corpora, batch_size=2, block_size=8, device="cpu"
         )
+        self.assertTrue(model.training)
 
         model.eval()
+        evaluate_sft(model, corpora, batch_size=2, block_size=8, device="cpu")
+        self.assertFalse(model.training)
         expected_language_losses = []
         with torch.inference_mode():
             for language in sorted(corpora):
