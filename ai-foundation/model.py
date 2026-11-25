@@ -6,6 +6,7 @@ frontier model. It starts with byte tokens so no external tokenizer/model is nee
 from __future__ import annotations
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.utils.checkpoint import checkpoint
 
@@ -53,27 +54,56 @@ class CausalBlock(nn.Module):
         x = x + attended
         return x + self.feed_forward(self.norm2(x))
 
-    def forward_with_cache(self, x: torch.Tensor, causal_mask: torch.Tensor):
-        """Run a prompt and retain each layer's normalized K/V input states."""
-        normalized = self.norm1(x)
-        attended, _ = self.attention(
-            normalized, normalized, normalized, attn_mask=causal_mask,
-            need_weights=False,
+    def _project_qkv(self, x: torch.Tensor):
+        width = self.attention.embed_dim
+        projected = F.linear(
+            x, self.attention.in_proj_weight, self.attention.in_proj_bias
         )
-        output = x + attended
-        output = output + self.feed_forward(self.norm2(output))
-        return output, normalized
+        query, key, value = projected.split(width, dim=-1)
+        batch, sequence, _ = query.shape
+        heads = self.attention.num_heads
+        head_width = width // heads
+        reshape = lambda tensor: tensor.view(
+            batch, sequence, heads, head_width
+        ).transpose(1, 2)
+        return reshape(query), reshape(key), reshape(value)
 
-    def forward_incremental(self, x: torch.Tensor, past_states: torch.Tensor):
-        """Process one token while attending to cached states and the current token."""
-        normalized = self.norm1(x)
-        all_states = torch.cat((past_states, normalized), dim=1)
-        attended, _ = self.attention(
-            normalized, all_states, all_states, need_weights=False,
+    def _finish_attention(self, attended: torch.Tensor) -> torch.Tensor:
+        batch, _, sequence, head_width = attended.shape
+        merged = attended.transpose(1, 2).contiguous().view(
+            batch, sequence, self.attention.embed_dim
         )
-        output = x + attended
+        return self.attention.out_proj(merged)
+
+    def forward_with_cache(self, x: torch.Tensor, causal_mask: torch.Tensor):
+        """Prefill a prompt and retain projected per-head keys and values."""
+        normalized = self.norm1(x)
+        query, key, value = self._project_qkv(normalized)
+        attended = F.scaled_dot_product_attention(
+            query, key, value,
+            dropout_p=self.attention.dropout if self.training else 0.0,
+            is_causal=True,
+        )
+        output = x + self._finish_attention(attended)
         output = output + self.feed_forward(self.norm2(output))
-        return output, all_states
+        return output, (key, value)
+
+    def forward_incremental(self, x: torch.Tensor, past_cache):
+        """Process one token using projected per-head key/value cache tensors."""
+        normalized = self.norm1(x)
+        query, key, value = self._project_qkv(normalized)
+        past_key, past_value = past_cache
+        all_key = torch.cat((past_key, key), dim=2)
+        all_value = torch.cat((past_value, value), dim=2)
+        attended = F.scaled_dot_product_attention(
+            query, all_key, all_value,
+            dropout_p=self.attention.dropout if self.training else 0.0,
+            is_causal=False,
+        )
+        output = x + self._finish_attention(attended)
+        output = output + self.feed_forward(self.norm2(output))
+        return output, (all_key, all_value)
+
 
 
 class NewStarGPT(nn.Module):
@@ -157,11 +187,14 @@ class NewStarGPT(nn.Module):
         if torch.any(token < 0) or torch.any(token >= self.config.vocab_size):
             raise ValueError("token IDs must be within the configured vocabulary")
         for cache in caches:
-            if (not isinstance(cache, torch.Tensor) or cache.ndim != 3
-                    or cache.shape[0] != token.shape[0]
-                    or cache.shape[1] != position
-                    or cache.shape[2] != self.config.width
-                    or cache.device != token.device):
+            if (not isinstance(cache, (tuple, list)) or len(cache) != 2):
+                raise ValueError("each attention cache must contain key and value tensors")
+            key, value = cache
+            expected = (token.shape[0], self.config.heads, position,
+                        self.config.width // self.config.heads)
+            if (not isinstance(key, torch.Tensor) or not isinstance(value, torch.Tensor)
+                    or tuple(key.shape) != expected or tuple(value.shape) != expected
+                    or key.device != token.device or value.device != token.device):
                 raise ValueError("attention cache shape/device does not match token batch and position")
         x = self.dropout(self.token_embedding(token) + self.position_embedding.weight[position:position + 1])
         next_caches = []
