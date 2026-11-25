@@ -48,20 +48,40 @@ function validateDocument(value: unknown, line: number): InputDocument {
 }
 
 export function splitIntoChunks(content: string, maxLength = 1200, overlap = 160): string[] {
-  const normalized = content.replace(/\s+/g, " ").trim();
-  if (!normalized) return [];
+  if (!Number.isInteger(maxLength) || maxLength < 1 || !Number.isInteger(overlap) || overlap < 0 || overlap >= maxLength) {
+    throw new Error("Chunk size and overlap configuration is invalid");
+  }
+  const words = content.replace(/\\s+/g, " ").trim().split(" ").filter(Boolean);
+  if (!words.length) return [];
   const chunks: string[] = [];
   let start = 0;
-  while (start < normalized.length) {
-    let end = Math.min(normalized.length, start + maxLength);
-    if (end < normalized.length) {
-      const boundary = normalized.lastIndexOf(" ", end);
-      if (boundary > start + Math.floor(maxLength * 0.6)) end = boundary;
+  while (start < words.length) {
+    let end = start;
+    let length = 0;
+    while (end < words.length) {
+      const nextLength = length + (end === start ? 0 : 1) + words[end].length;
+      if (end > start && nextLength > maxLength) break;
+      if (end === start && words[end].length > maxLength) {
+        length = words[end].length;
+        end++;
+        break;
+      }
+      length = nextLength;
+      end++;
     }
-    const chunk = normalized.slice(start, end).trim();
-    if (chunk) chunks.push(chunk);
-    if (end >= normalized.length) break;
-    start = Math.max(start + 1, end - overlap);
+    if (end === start) end++;
+    chunks.push(words.slice(start, end).join(" "));
+    if (end >= words.length) break;
+    let overlapStart = end;
+    let overlapChars = 0;
+    while (overlapStart > start) {
+      const word = words[overlapStart - 1];
+      const addition = word.length + (overlapChars ? 1 : 0);
+      if (overlapChars + addition > overlap) break;
+      overlapChars += addition;
+      overlapStart--;
+    }
+    start = overlapStart > start ? overlapStart : end;
   }
   return chunks;
 }
