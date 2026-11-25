@@ -50,9 +50,14 @@ class TimeResidualBlock(nn.Module):
 
 
 class NewStarImageUNet(nn.Module):
-    """Small image-space denoiser; no pretrained weights or text conditioning."""
+    """Image-space DDPM denoiser with optional pooled caption-token conditioning."""
 
-    def __init__(self, base_channels: int = 32, time_width: int | None = None):
+    def __init__(
+        self,
+        base_channels: int = 32,
+        time_width: int | None = None,
+        text_vocab_size: int = 0,
+    ):
         super().__init__()
         if not isinstance(base_channels, int) or isinstance(base_channels, bool) or base_channels < 8:
             raise ValueError("base_channels must be an integer of at least 8")
@@ -60,8 +65,15 @@ class NewStarImageUNet(nn.Module):
             time_width = base_channels * 4
         if not isinstance(time_width, int) or isinstance(time_width, bool) or time_width < 1:
             raise ValueError("time_width must be a positive integer")
+        if not isinstance(text_vocab_size, int) or isinstance(text_vocab_size, bool) or text_vocab_size < 0:
+            raise ValueError("text_vocab_size must be a non-negative integer")
         self.base_channels = base_channels
         self.time_width = time_width
+        self.text_vocab_size = text_vocab_size
+        self.text_embedding = (
+            nn.Embedding(text_vocab_size, time_width, padding_idx=0)
+            if text_vocab_size > 0 else None
+        )
         self.time_mlp = nn.Sequential(
             nn.Linear(base_channels, time_width),
             nn.SiLU(),
@@ -81,7 +93,12 @@ class NewStarImageUNet(nn.Module):
         self.output_norm = nn.GroupNorm(group_count(base_channels), base_channels)
         self.output = nn.Conv2d(base_channels, 3, 3, padding=1)
 
-    def forward(self, images: torch.Tensor, timesteps: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        images: torch.Tensor,
+        timesteps: torch.Tensor,
+        text_tokens: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         if images.ndim != 4 or images.shape[1] != 3:
             raise ValueError("images must have shape [batch, 3, height, width]")
         if images.shape[-2] < 8 or images.shape[-1] < 8:
@@ -95,6 +112,27 @@ class NewStarImageUNet(nn.Module):
         if not torch.isfinite(images).all():
             raise ValueError("images must contain only finite values")
         time = self.time_mlp(timestep_embedding(timesteps, self.base_channels))
+        if self.text_embedding is None:
+            if text_tokens is not None:
+                raise ValueError("this image model checkpoint does not support text conditioning")
+        else:
+            if text_tokens is None:
+                text_tokens = torch.zeros(
+                    (images.shape[0], 1), dtype=torch.long, device=images.device
+                )
+            if (
+                text_tokens.ndim != 2
+                or text_tokens.shape[0] != images.shape[0]
+                or text_tokens.dtype != torch.long
+                or text_tokens.device != images.device
+            ):
+                raise ValueError("text_tokens must be a same-device torch.long matrix with one row per image")
+            if torch.any(text_tokens < 0) or torch.any(text_tokens >= self.text_vocab_size):
+                raise ValueError("text token IDs are outside the configured vocabulary")
+            embedded = self.text_embedding(text_tokens)
+            mask = text_tokens.ne(0).unsqueeze(-1)
+            pooled = (embedded * mask).sum(dim=1) / mask.sum(dim=1).clamp_min(1)
+            time = time + pooled
         first = self.down1(self.input(images), time)
         second = self.down2(self.downsample1(first), time)
         hidden = self.downsample2(second)
