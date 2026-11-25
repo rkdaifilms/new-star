@@ -13,7 +13,7 @@ services:
       LLAMA_ARG_CTX_SIZE: ${NEW_STAR_CONTEXT_SIZE:-8192}
       LLAMA_ARG_N_PARALLEL: ${NEW_STAR_PARALLEL:-2}
       LLAMA_API_KEY: ${NEW_STAR_MODEL_API_KEY:?Set a long random API key in .env}
-      LLAMA_ARG_NO_WEBUI: "true"
+      LLAMA_ARG_UI: "false"
     volumes:
       - ./models:/models:ro
     deploy:
