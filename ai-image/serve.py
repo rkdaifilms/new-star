@@ -94,7 +94,7 @@ def create_handler(model, schedule, image_size: int, device: str, api_key: str):
                     raise ValueError("this checkpoint is unconditional and does not support text prompts")
                 if model.text_vocab_size and ("prompt" not in payload or not isinstance(payload["prompt"], str)):
                     raise ValueError("a non-empty prompt is required by this text-conditioned checkpoint")
-                unsupported = sorted(set(payload) - {"n", "seed", "size", "prompt"})
+                unsupported = sorted(set(payload) - {"n", "seed", "size", "prompt", "guidance_scale"})
                 if unsupported:
                     raise ValueError("unsupported request fields: " + ", ".join(unsupported))
                 count = payload.get("n", 1)
@@ -109,6 +109,11 @@ def create_handler(model, schedule, image_size: int, device: str, api_key: str):
                     or not 0 <= seed <= 2**63 - 1
                 ):
                     raise ValueError("seed must be an integer between 0 and 2^63-1")
+                guidance_scale = payload.get("guidance_scale", 1.0)
+                if isinstance(guidance_scale, bool) or not isinstance(guidance_scale, (int, float)) or not math.isfinite(float(guidance_scale)) or not 0.0 <= float(guidance_scale) <= 10.0:
+                    raise ValueError("guidance_scale must be a finite number from 0 to 10")
+                if not model.text_vocab_size and guidance_scale != 1.0:
+                    raise ValueError("guidance_scale requires a text-conditioned checkpoint")
                 text_tokens = None
                 if model.text_vocab_size:
                     encoded = encode_caption(payload["prompt"])
@@ -117,7 +122,8 @@ def create_handler(model, schedule, image_size: int, device: str, api_key: str):
                 started = time.time()
                 with generation_lock, torch.inference_mode():
                     generated = schedule.sample(
-                        model, count, image_size, device, seed=seed, text_tokens=text_tokens
+                        model, count, image_size, device, seed=seed, text_tokens=text_tokens,
+                        guidance_scale=guidance_scale
                     )
                 data = [{"b64_json": encode_png(image)} for image in generated]
                 self.send_json(200, {
