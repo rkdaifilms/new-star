@@ -5,6 +5,8 @@ frontier model. It starts with byte tokens so no external tokenizer/model is nee
 """
 from __future__ import annotations
 
+import math
+
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -232,10 +234,14 @@ class NewStarGPT(nn.Module):
             raise ValueError("top_k must be None or a positive integer")
         if not isinstance(top_p, (int, float)) or isinstance(top_p, bool) or not 0 < top_p <= 1:
             raise ValueError("top_p must be greater than 0 and at most 1")
-        if not isinstance(repetition_penalty, (int, float)) or isinstance(repetition_penalty, bool) or repetition_penalty < 1:
-            raise ValueError("repetition_penalty must be at least 1")
+        if (not isinstance(repetition_penalty, (int, float))
+                or isinstance(repetition_penalty, bool)
+                or not math.isfinite(repetition_penalty) or repetition_penalty < 1):
+            raise ValueError("repetition_penalty must be a finite number of at least 1")
         if not isinstance(do_sample, bool):
             raise ValueError("do_sample must be a boolean")
+        if not isinstance(tokens, torch.Tensor):
+            raise ValueError("generation prompt must be a torch.Tensor")
         if generator is not None:
             if not isinstance(generator, torch.Generator):
                 raise ValueError("generator must be a torch.Generator or None")
