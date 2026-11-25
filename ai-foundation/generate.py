@@ -24,12 +24,21 @@ def main():
     if not math.isfinite(args.temperature) or not 0 < args.temperature <= 2:
         parser.error("--temperature must be finite, greater than 0, and at most 2")
     checkpoint = torch.load(args.checkpoint, map_location=args.device, weights_only=True)
+    if not isinstance(checkpoint, dict):
+        parser.error("Checkpoint must be a dictionary containing model metadata and weights")
     checkpoint_format = checkpoint.get("format")
     if checkpoint_format not in {"new-star-byte-gpt-v1", "new-star-unicode-char-gpt-v1", "new-star-byte-bpe-gpt-v1"}:
         parser.error("Unsupported checkpoint format")
-    config = NewStarConfig(**checkpoint["config"])
-    model = NewStarGPT(config).to(args.device)
-    model.load_state_dict(checkpoint["state_dict"])
+    if not isinstance(checkpoint.get("config"), dict):
+        parser.error("Checkpoint config must be a dictionary")
+    if not isinstance(checkpoint.get("state_dict"), dict):
+        parser.error("Checkpoint state_dict must be a dictionary")
+    try:
+        config = NewStarConfig(**checkpoint["config"])
+        model = NewStarGPT(config).to(args.device)
+        model.load_state_dict(checkpoint["state_dict"], strict=True)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        parser.error(f"Checkpoint model configuration or weights are invalid: {exc}")
     if checkpoint_format in {"new-star-unicode-char-gpt-v1", "new-star-byte-bpe-gpt-v1"}:
         tokenizer = tokenizer_from_dict(checkpoint["tokenizer"])
         encoded = tokenizer.encode(args.prompt)
