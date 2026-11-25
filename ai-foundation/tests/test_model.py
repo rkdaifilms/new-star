@@ -1138,3 +1138,14 @@ def test_incremental_forward_rejects_invalid_cache_and_position():
         _, caches = model.forward_with_cache(token)
     with pytest.raises(ValueError, match="position"):
         model.forward_incremental(token, model.config.block_size, caches)
+
+
+def test_incremental_forward_rejects_malformed_key_value_cache():
+    import pytest
+    model = tiny_model().eval()
+    token = torch.tensor([[65]], dtype=torch.long)
+    _, caches = model.forward_with_cache(token)
+    malformed = list(caches)
+    malformed[0] = (torch.zeros(1, 4, 1, 4), torch.zeros(1, 4, 1, 4))
+    with pytest.raises(ValueError, match="cache shape/device"):
+        model.forward_incremental(token, 1, malformed)
