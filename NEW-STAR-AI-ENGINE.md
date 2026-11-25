@@ -1,62 +1,60 @@
 # New Star AI Engine
 
-## Architecture and ownership
-New Star now has its own AI orchestration layer, conversation storage, prompt policy, session checks, rate limiting, and model adapters in its Supabase backend. This is an application-owned AI engine; it is not a newly trained foundation model. Running an independent model without third-party inference APIs requires separately provisioned open-weight model files and GPU inference infrastructure.
+## Current architecture
 
-Vercel is not required for the AI backend. The live AI gateway runs as a Supabase Edge Function in the existing New Star Supabase project.
+New Star has an application-owned AI orchestration layer running in Supabase. It owns authentication checks, prompts, conversation persistence, provider routing, request limits, API-key management, and model adapters. This is New Star's own AI application layer; it is **not** a foundation model trained from scratch by New Star.
 
-## Connected backend
-- Supabase Edge Function: `ai-gateway` (active deployment version 83).
-- Supabase auth: validates either a signed-in Supabase user session or a scoped New Star API key before AI operations.
-- Provider keys remain in server-side Supabase secrets; no provider keys are sent to the browser.
-- Provider adapters support configured Gemini, OpenAI and OpenRouter keys for chat/image where supported by the existing gateway.
-- A New Star hosted open-model adapter is deployed. It can route chat to a New Star-managed OpenAI-compatible inference endpoint using server-only `NEW_STAR_MODEL_BASE_URL`, `NEW_STAR_MODEL_NAME`, and optional `NEW_STAR_MODEL_API_KEY` secrets. It runs before fallback providers when configured and accepts HTTPS endpoints only. GPU runtime deployment files are in `ai-model/`; no GPU host is currently provisioned.
-- This adapter is the connection point for a self-hosted open-weight model (for example, a model served by vLLM or another OpenAI-compatible runtime). It does not include model weights or GPU hosting; those are separate infrastructure and must be provisioned before New Star can run an independent model.
-- Per-account request limiting is enforced through the existing `consume_ai_gateway_rate_limit` RPC; API keys share the owning account's limit.
-- The system prompt is owned by New Star and switches language based on the user's latest message or saved language preference.
+- Supabase Edge Function: `ai-gateway`, active deployment version **96**.
+- Frontend workspace: `new-star-ai.html`, linked from Creator Studio.
+- Provider credentials remain in server-side Supabase secrets.
+- Vercel hosts app previews; Supabase runs the AI backend independently of Vercel.
 
-## New Star conversation memory
-Migration `new_star_ai_conversation_memory` created:
-- `public.new_star_ai_conversations`
-- `public.new_star_ai_messages`
+## Connected capabilities
 
-Both tables have RLS enabled. Authenticated users can read/delete only their own conversations and read only their own messages. Writes are performed server-side by the authenticated Edge Function using its service role after verifying the caller's session and ownership. The gateway loads the previous messages for the owned conversation, appends the latest user message, sends context to the model, and stores the user/assistant exchange.
+- **Chat and conversation memory:** OpenAI, Gemini, and OpenRouter provider routing; conversations and messages are stored in user-owned Supabase tables. The browser remembers the conversation ID for continuation.
+- **Language handling:** selected app language and latest message language guide replies. Creator AI also detects common Nepali image-generation phrasing.
+- **Voice input:** browser microphone recording and gateway transcription.
+- **Voice output:** gateway text-to-speech and browser audio playback.
+- **Image generation:** Gemini, OpenAI, and OpenRouter image adapters. The workspace exposes 1K, 2K, and 4K choices and aspect ratios; actual support depends on the selected provider/model and its quota.
+- **Image understanding:** authenticated vision action for supported image uploads.
+- **Search:** New Star Search index results, with Gemini Google Search grounding as a live-web fallback when configured and available. Search results must not be represented as live web results unless grounding actually returns them.
+- **Video generation:** a Google Cloud Vertex AI Gemini Omni adapter submits background jobs, checks job status, stores completed MP4 files in the private `new-star-ai-videos` bucket, and returns short-lived signed playback URLs after checking job ownership. This integration is provider-connected but not yet end-to-end verified.
+- **Developer API:** signed-in users can create, list, and revoke scoped API keys. Keys are shown once and stored as SHA-256 hashes. Programmatic calls use `x-new-star-api-key` plus the Supabase publishable `apikey` header. Per-key request counters are isolated from account-level counters.
 
-The New Star AI page remembers the current conversation ID in the browser so a chat can continue after a page reload. A New chat action starts a separate conversation.
+## Security and limits
 
-## Connected user features
-- **Chat:** uses New Star's own system prompt and saved conversation context.
-- **Voice input:** records in the browser and calls the gateway transcription action; the transcript is inserted for review before sending.
-- **Voice output:** calls the gateway speech action and plays returned audio.
-- **Text-to-image:** calls the image action, sends the chosen 1K/2K/4K size, and renders the returned image. Actual success depends on provider availability and quota.
+- Browser requests require an allowed origin and authenticated Supabase session, or a valid scoped developer API key.
+- Developer keys support chat, image, vision, transcription, speech, research, and status scopes. Video remains signed-in-session only.
+- Per-key rate limits are enforced through a private counter table and a service-role-only RPC. Signed-in user requests use the existing account rate-limit RPC.
+- Search requests use `store: false` for the grounded provider request.
+- Video output is private, capped at 50 MB, and signed playback URLs expire after one hour.
+- Provider status checks validate credential/access endpoints; they do not prove inference quota or successful image/audio/video generation.
 
-## Research and image understanding
-- **Live Research:** the branch adds a `research` action using Gemini Google Search grounding and returning source links from grounding metadata. It requires a configured Gemini key and model access; Google Search grounding may incur charges when a user runs a research request. The action is deployed; live provider availability still requires an authenticated user request.
-- **Image understanding:** the branch adds a `vision` action accepting PNG/JPEG/WebP uploads up to 6 MB and using configured Gemini vision first, then OpenAI vision. This is image analysis, not image editing. The vision action is deployed; live provider availability still requires an authenticated request.
-- **Video generation:** not connected yet. The 10-second prompt-to-video, asynchronous job, private storage, and voiceover/export architecture is documented in `ai-video/README.md`. A model runtime, worker, storage setup, and end-to-end verification are still required.
+## Self-hosted New Star model
 
-The UI labels these as unavailable rather than pretending to complete them.
+The gateway has an adapter for an OpenAI-compatible New Star-hosted model endpoint. The `ai-model/` directory contains a vLLM deployment blueprint using Qwen3-8B as an open-weight starting point. No GPU host is provisioned, no model weights are hosted by New Star, and no New Star foundation-model training or fine-tuning has been completed. Hosting open weights would not by itself make those weights a New Star-trained model.
 
-## Deployment and verification
-- Supabase AI Gateway version 83 is active. Research and vision actions, non-billable provider diagnostics, and scoped New Star API-key authentication/management and the active-key cap are deployed. No live provider inference request was made, so successful live search and image understanding remain unverified. The New Star hosted-model adapter is deployed, but no inference endpoint or GPU host has been provisioned.
-- The conversation-memory migration applied successfully.
-- The status action now performs non-billable credential/access probes for Gemini and OpenAI using model-independent model-list endpoints, and checks OpenRouter key/credit endpoints. It does not run paid inference; Gemini/OpenAI inference quota is not tested. The New Star hosted-model check verifies the model-list endpoint only.
-- Conversation creation now happens only after an AI provider successfully answers, preventing failed first requests from leaving empty conversation rows. The UI also warns when a reply succeeds but its memory could not be saved.
-- GitHub Actions validation previously passed for JavaScript syntax, Deno type-checking of the Edge Function, and required auth/rate-limit/action guards. The hosted-model adapter passed CI after its endpoint normalization fix. The runtime Compose files are configuration artifacts and have not been run on a GPU host. Static validation is not a live provider or signed-in user test.
-- Security advisors were run. They reported existing project-wide findings (including private tables with no policies, security-definer RPC exposure warnings, and leaked-password protection disabled). These were not introduced or modified as part of this AI feature and should be reviewed separately.
-- Frontend changes are committed to GitHub branch `new-star-ai-engine-foundation`.
-- A fresh Vercel deployment is not part of this architecture. The existing app hosting setup still needs to publish the latest branch frontend files before users can access the updated page.
+## Video verification gate
 
-## New Star developer API keys
-- Migration `20261124075022_new_star_ai_api_key_management` is applied. The table stores only a SHA-256 hash and short prefix; RLS is enabled and direct `anon`/`authenticated` table access is revoked. The Security Advisor's no-policy notice for this table is intentional: only the server-side service role accesses it.
-- Signed-in users can create, list, and revoke their own keys from the Developer API keys panel on the New Star AI page.
-- Keys are generated with 256 bits of cryptographic randomness, shown once, scoped to chat/image/vision/voice/research/status, and may expire within one year. The server validates revocation, expiry, scope, and the owner's account request limit.
-- Programmatic requests send the key in the `x-new-star-api-key` header to the Supabase `/functions/v1/ai-gateway` endpoint; include the project's publishable `apikey` header when calling the Supabase endpoint directly. Keep New Star keys in a private server environment; never put them in browser JavaScript or public mobile bundles. Do not send the New Star key as a Bearer token.
-- API-key management requires the user's normal signed-in Supabase session. The API key itself cannot create, list, or revoke keys. Account-level request limits are shared by that user's keys.
-- The frontend manager is committed to the feature branch; it will appear in the deployed app only after the branch frontend is published by the app host.
+The Vertex AI video request path is implemented, but an authorized end-to-end test still needs to confirm all of the following:
+1. The Google Cloud project has the Vertex AI API, model access, billing, and quota enabled.
+2. A real request creates a provider interaction and a corresponding owned job.
+3. The job reaches completion and a real MP4 is saved to the private bucket.
+4. The signed playback URL plays for the owner and is not accessible to a different user.
 
+Do not claim a video was generated until these checks pass.
 
-Example server-side request (keep both environment variables on your server, not in browser code):
+## Deployment and release status
+
+- Supabase AI Gateway v96 is active.
+- GitHub Actions validation passes for browser JavaScript syntax, Deno type-checking, model Compose configuration, required backend routes, API-key security, and Creator Studio controls.
+- The latest feature branch commit is published as a Netlify deploy preview. Vercel reported its preview build quota/rate limit and Cloudflare's connected build reported an authentication failure; neither failure changes the active Supabase AI Gateway.
+- The feature branch is proposed in pull request #6. Production has not been merged or released from this pull request.
+- Real authenticated provider inference tests for image, voice, live search, and video remain separate release checks.
+
+## Developer API request example
+
+Keep both credentials in a private server environment, never in browser JavaScript or a public mobile bundle:
 
 ```js
 const response = await fetch(
@@ -76,8 +74,6 @@ const response = await fetch(
 const result = await response.json();
 ```
 
-## Security
-- Never place provider keys or service-role keys in browser code.
-- Keep user verification, conversation ownership checks, and rate limits in the Edge Function.
-- Do not expose conversations across users.
-- Do not claim a generation or live search succeeded unless a real backend response confirms it.
+## Operational rule
+
+Distinguish configured, deployed, provider-connected, and end-to-end tested features. Never claim successful generation, search, upload, playback, or deployment without a verified result.
