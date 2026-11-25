@@ -93,9 +93,18 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
             self.wfile.write(raw)
 
         def do_GET(self):
+            # Keep the health probe public for load balancers, but protect model
+            # metadata just like inference endpoints when an API key is set.
             if self.path == "/health":
                 self._send(200, {"ok": True, "model": model_name, "engine": "new-star-from-scratch"})
-            elif self.path == "/v1/models":
+                return
+            if self.path == "/v1/models" and api_key:
+                supplied = self.headers.get("Authorization", "")
+                expected = "Bearer " + api_key
+                if not secrets.compare_digest(supplied, expected):
+                    self._send(401, {"error": {"message": "Unauthorized", "type": "authentication_error"}})
+                    return
+            if self.path == "/v1/models":
                 self._send(200, {
                     "object": "list",
                     "data": [{
