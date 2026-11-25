@@ -6,6 +6,7 @@ This package is New Star's first independent image-model training path. It conta
 
 - Unconditional image generation from a permitted local image dataset.
 - Experimental caption-conditioned image generation: an optional per-image caption map is hashed into deterministic token IDs and pooled into the denoiser conditioning path. This is a small from-scratch baseline, not a semantic pretrained text encoder.
+- Classifier-free guidance: caption dropout during training teaches a null-caption path; sampling can combine conditional and unconditional predictions with a bounded guidance scale.
 - RGB image loading, resizing, normalization, dataset SHA-256 audit, and a required provenance/permission manifest.
 - Training from random initialization, gradient clipping, exponential moving average (EMA) weights, atomic checkpoint writing, seeded sampling, and PNG output.
 - CPU support for small experiments and optional CUDA execution when a compatible PyTorch runtime is installed.
@@ -50,7 +51,7 @@ To train the experimental caption-conditioned variant, add a `captions` object t
 ```sh
 python ai-image/train.py --data ./permitted-images --manifest ./image-manifest.json \\
   --output ./artifacts/newstar-image-text-ddpm.pt --image-size 32 --steps 10000 \\
-  --text-conditioned --device cpu
+  --text-conditioned --caption-dropout 0.1 --device cpu
 ```
 
 Caption tokens use a deterministic BLAKE2 hash into a fixed 8,192-entry vocabulary. This makes training and inference reproducible without downloading an external text model, but hash collisions and lack of learned word semantics limit prompt understanding. The training manifest is audited to ensure there is exactly one caption per image. Do not describe this baseline as a high-quality general-purpose text-to-image model.
@@ -119,7 +120,7 @@ Start the local service after training:
 python ai-image/serve.py --checkpoint ./artifacts/newstar-image-ddpm.pt --host 127.0.0.1 --port 8780
 ```
 
-It exposes `GET /health`, `GET /v1/models`, and `POST /v1/images/generations`. The generation endpoint accepts `n` (1–4), optional `seed`, and the checkpoint-native `size`; it returns PNG bytes as base64 in the `data[].b64_json` field. For an unconditional checkpoint it rejects `prompt`; for a caption-conditioned checkpoint it requires a non-empty `prompt` and routes its deterministic token IDs through the U-Net. The text-conditioned baseline is experimental and may not reliably follow natural-language prompts. Set `NEW_STAR_IMAGE_API_KEY` before binding beyond loopback; clients must send a bearer token. Do not expose the experimental service directly to the public internet.
+It exposes `GET /health`, `GET /v1/models`, and `POST /v1/images/generations`. The generation endpoint accepts `n` (1–4), optional `seed`, and the checkpoint-native `size`; it returns PNG bytes as base64 in the `data[].b64_json` field. For an unconditional checkpoint it rejects `prompt`; for a caption-conditioned checkpoint it requires a non-empty `prompt` and routes its deterministic token IDs through the U-Net. The text-conditioned baseline is experimental and may not reliably follow natural-language prompts. Guidance scale defaults to 1.0 (no guidance); values from 0 to 10 are accepted. Values above 1 trade diversity for stronger caption conditioning, but do not overcome the hashed-token representation’s limited semantic understanding. Set `NEW_STAR_IMAGE_API_KEY` before binding beyond loopback; clients must send a bearer token. Do not expose the experimental service directly to the public internet.
 
 ## CPU container and Compose
 
