@@ -1,44 +1,39 @@
 # New Star Video Engine
 
-## Goal
-A New Star-owned asynchronous video-generation service for creator workflows. Initial target: 10-second clips, prompt-to-video first, image-to-video later, followed by creator voiceover and export.
+## Current implementation status
 
-## Important current status
-This is an implementation plan and integration contract, not a running video generator. The repository currently has no video model runtime, provider credentials, GPU host, job worker, or video storage bucket. Do not enable a Generate Video control as if generation works until a provider adapter and worker pass a real end-to-end test.
+New Star AI Gateway now has a real Google Cloud Vertex AI adapter for Gemini Omni text-to-video interactions. It submits background jobs, stores job ownership and provider interaction IDs in the Supabase `ai_video_jobs` table, checks provider progress, saves completed MP4 output to the private `new-star-ai-videos` bucket, and returns a one-hour signed playback URL after checking the signed-in user's job ownership.
 
-## Architecture
+This is a provider-backed integration, not a New Star-trained video foundation model. A successful code deployment and a configured service account do not prove that the Google Cloud project has the required Vertex AI API access, model availability, billing, quota, or successful generation. The complete generation path still needs a real end-to-end test with an authorized project.
+
+## Implemented request path
+
 1. Creator Studio sends an authenticated request to the New Star AI Gateway.
-2. Gateway validates session, ownership, prompt length, duration (initially 10 seconds), aspect ratio, and per-user quotas.
-3. Gateway creates a durable queued job in new_star_video_jobs and returns a job ID.
-4. A private worker claims jobs, calls the configured video inference runtime, and updates progress/status.
-5. Completed output is uploaded to a private Supabase Storage bucket; the API returns a short-lived signed URL after checking ownership.
-6. Creator records or uploads voiceover. A media worker muxes voiceover with the generated clip, preserves/normalizes audio levels, and exports a final MP4. Keep the original silent clip and voice track separately for re-editing.
+2. Gateway validates the user session, prompt length, duration, aspect ratio, resolution, and rate limit.
+3. Gateway requests a background Gemini Omni interaction from Vertex AI and stores the provider interaction ID against the authenticated user's job row.
+4. Creator Studio polls the status endpoint. The gateway checks job ownership before contacting Vertex AI.
+5. When the interaction completes, the gateway validates the inline MP4 payload and enforces the 50 MB private-storage limit.
+6. The gateway stores the MP4 under a user-specific path in the private Supabase bucket and returns a short-lived signed URL.
 
-## Initial creator settings
-- Duration: 10 seconds (hard cap for first release).
-- Prompt-to-video: required for first release.
-- Image-to-video: optional second step.
+## Current limits
+
+- Text-to-video is connected through Gemini Omni 1.2 Flash, with a 1.1 preview fallback for supported durations.
 - Aspect ratios: 16:9 and 9:16.
-- Output: MP4/H.264 with AAC audio after voiceover.
-- Voiceover: browser recording or user-uploaded audio; explicit preview before applying.
-- Job states: queued, processing, finalizing, completed, failed, cancelled.
-- Show progress and useful errors. Never return a fabricated preview or mark a job complete before the output file exists.
+- Resolutions: 360p, 720p, and 1080p.
+- Durations exposed by Creator Studio: 6, 10, and 15 seconds.
+- Output: MP4, stored privately in Supabase.
+- Maximum stored output: 50 MB.
+- Signed playback URL lifetime: one hour.
+- Video generation requires `GOOGLE_SERVICE_ACCOUNT_JSON`, a valid Google Cloud project, Vertex AI API access, model permissions, and available billing/quota.
 
-## Runtime contract
-The worker must implement submitVideo({ prompt, durationSeconds, aspectRatio, imageInput? }) -> { providerJobId }; getVideoStatus(providerJobId) -> { status, progress?, outputUrl?, error? }; downloadAndValidateOutput(outputUrl) -> MP4 bytes; muxVoiceover(videoBytes, audioBytes) -> MP4 bytes.
+## Not yet implemented or verified
 
-Use a private server-side adapter. Do not expose provider keys or raw worker endpoints in browser code. The model provider is replaceable behind this interface; New Star owns authentication, jobs, quotas, storage, creator workflow and API contract.
-
-## Infrastructure required before live generation
-- A selected video model/runtime with documented API and commercial/use rights reviewed.
-- GPU capacity or a video inference provider, plus explicit budget/usage limits.
-- Private worker/queue deployment and retry/idempotency handling.
-- Supabase migration for jobs, RLS policies, private Storage bucket and cleanup policy.
-- Voiceover muxing worker (FFmpeg or equivalent) with file size/duration limits.
-- End-to-end tests: submit 10s job, poll, verify MP4, attach voiceover, export, and verify owner-only access.
-
-## Cost and reliability
-Video inference is resource-intensive. Unlimited generation cannot be promised. Enforce per-user quotas, concurrent-job limits, maximum upload sizes, retention limits and transparent usage estimates. Do not start paid infrastructure or paid provider requests without explicit approval.
+- No New Star-owned trained video model or GPU inference cluster.
+- No image-to-video input workflow.
+- No creator voiceover recording, muxing, or final export worker.
+- No end-to-end provider generation has been verified in this deployment session.
+- No guarantee of generation time or unlimited generation. Provider processing may take more than a minute and may fail because of access, quota, or billing.
 
 ## Release gate
-Keep the Video tab marked Coming soon until the whole path above is deployed and verified with an actual generated clip and voiceover export. The existing AI chat, image and research workflows must remain unaffected.
+
+Treat the video path as provider-connected but not end-to-end verified until an authorized account successfully generates a real clip, the job reaches completed, the MP4 is stored in the private bucket, and the signed playback URL plays for the job owner but not for another account. Keep provider access and usage limits explicit. Do not show a fabricated preview or claim success before the actual MP4 exists.
