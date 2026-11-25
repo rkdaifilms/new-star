@@ -102,6 +102,8 @@ jobs:
           grep -F 'consumeAiGatewayRateLimit' "$FILE"
           grep -F 'consume_ai_gateway_api_key_rate_limit' "$FILE"
           grep -F 'apiKeyId' "$FILE"
+          grep -F 'x-new-star-api-key' "$FILE"
+          grep -F 'suppliedApiKey' "$FILE"
           grep -F 'private.ai_gateway_api_key_rate_limits' supabase/migrations/20261125000000_ai_gateway_api_key_rate_limits.sql
           grep -F 'sha256Hex' "$FILE"
           grep -F 'body?.action === "video"' "$FILE"
