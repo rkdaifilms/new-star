@@ -129,9 +129,9 @@ async function generateGeminiImage(key: string, prompt: string, aspectRatio: str
 }
 async function generateOpenAIImage(key: string, prompt: string, aspectRatio: string, imageSize: string) {
   const dimensions: Record<string, Record<string, string>> = {
-    "1K": { "1:1": "1024x1024", "16:9": "1024x576", "9:16": "576x1024", "4:3": "1024x768", "3:4": "768x1024" },
+    "1K": { "1:1": "1024x1024", "16:9": "1280x720", "9:16": "720x1280", "4:3": "1024x768", "3:4": "768x1024" },
     "2K": { "1:1": "2048x2048", "16:9": "2048x1152", "9:16": "1152x2048", "4:3": "2048x1536", "3:4": "1536x2048" },
-    "4K": { "1:1": "3840x3840", "16:9": "3840x2160", "9:16": "2160x3840", "4:3": "3840x2880", "3:4": "2880x3840" }
+    "4K": { "1:1": "2880x2880", "16:9": "3840x2160", "9:16": "2160x3840", "4:3": "3072x2304", "3:4": "2304x3072" }
   };
   const size = dimensions[imageSize]?.[aspectRatio] || dimensions["1K"]["1:1"];
   const response = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
