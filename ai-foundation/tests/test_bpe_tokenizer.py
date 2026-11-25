@@ -83,3 +83,13 @@ def test_byte_bpe_benchmark_reports_compression_and_round_trip():
     assert report["vocabulary_size"] >= 256
     assert report["encode_seconds_mean"] >= 0
     assert report["decode_seconds_mean"] >= 0
+
+
+def test_unicode_char_tokenizer_rejects_lone_surrogates():
+    from tokenizer import UnicodeCharTokenizer
+
+    with pytest.raises(ValueError, match="valid Unicode scalar"):
+        UnicodeCharTokenizer.train("invalid-\\ud800")
+    tokenizer = UnicodeCharTokenizer.train("valid multilingual नमस्ते")
+    with pytest.raises(ValueError, match="valid Unicode scalar"):
+        tokenizer.encode("invalid-\\udfff")
