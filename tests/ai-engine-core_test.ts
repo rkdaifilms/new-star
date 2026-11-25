@@ -376,3 +376,44 @@ Deno.test("Creator Studio clearly distinguishes private-only mode from external 
     throw new Error("Self-hosted status must not display or evaluate external provider health");
   }
 });
+
+Deno.test("every external media and search route fails closed before provider access in self-hosted mode", async () => {
+  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const routes = [
+    { action: "vision", guard: "NEW_STAR_VISION_MODEL_NOT_DEPLOYED" },
+    { action: "speak", guard: "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED" },
+    { action: "transcribe", guard: "NEW_STAR_STT_MODEL_NOT_DEPLOYED" },
+    { action: "video", guard: "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED" },
+    { action: "video-status", guard: "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED" },
+    { action: "image", guard: "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED" }
+  ];
+  for (const route of routes) {
+    const marker = 'if (body?.action === "' + route.action + '")';
+    const start = source.indexOf(marker);
+    if (start < 0) throw new Error("Missing " + route.action + " route");
+    const next = source.indexOf('if (body?.action === "', start + marker.length);
+    const block = source.slice(start, next < 0 ? source.length : next);
+    const guard = block.indexOf(route.guard);
+    if (guard < 0) throw new Error(route.action + " route is missing its self-hosted fail-closed guard");
+    const firstProviderAccess = [
+      block.indexOf("secretCandidates("),
+      block.indexOf("fetchWithTimeout("),
+      block.indexOf("generateGemini"),
+      block.indexOf("generateOpenAI"),
+      block.indexOf("getGeminiVideoInteraction(")
+    ].filter((index) => index >= 0).sort((a, b) => a - b)[0];
+    if (firstProviderAccess !== undefined && guard > firstProviderAccess) {
+      throw new Error(route.action + " route accesses an external provider before its self-hosted guard");
+    }
+  }
+
+  const searchStart = source.indexOf('if (body?.action === "search")');
+  if (searchStart < 0) throw new Error("Missing search route");
+  const searchEnd = source.indexOf('if (body?.action === "vision")', searchStart);
+  const searchBlock = source.slice(searchStart, searchEnd < 0 ? source.length : searchEnd);
+  const searchGuard = searchBlock.indexOf("NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED");
+  const externalSearch = searchBlock.indexOf("searchWithGeminiGrounding(");
+  if (searchGuard < 0 || externalSearch < 0 || searchGuard > externalSearch) {
+    throw new Error("Search must fail closed before invoking external grounding in self-hosted mode");
+  }
+});
