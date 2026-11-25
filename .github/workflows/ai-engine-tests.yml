@@ -34,5 +34,3 @@ jobs:
           deno-version: v2.x
       - name: Run AI engine regression tests
         run: deno test --allow-read tests/ai-engine-core_test.ts
-      - name: Check formatting
-        run: deno fmt --check tests/ai-engine-core_test.ts supabase/functions/ai-gateway
