@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import tempfile
 from pathlib import Path
@@ -102,10 +103,10 @@ def train(args) -> dict:
         raise ValueError("image_size must be at least 8 and divisible by 4")
     if args.base_channels < 8 or args.diffusion_steps < 2:
         raise ValueError("base_channels must be >= 8 and diffusion_steps must be >= 2")
-    if args.learning_rate <= 0:
-        raise ValueError("learning_rate must be positive")
-    if not 0.0 <= args.ema_decay < 1.0:
-        raise ValueError("ema_decay must be in the range [0, 1)")
+    if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
+        raise ValueError("learning_rate must be a finite positive number")
+    if not math.isfinite(args.ema_decay) or not 0.0 <= args.ema_decay < 1.0:
+        raise ValueError("ema_decay must be finite and in the range [0, 1)")
     if not isinstance(args.seed, int) or isinstance(args.seed, bool) or not 0 <= args.seed <= 2**63 - 1:
         raise ValueError("seed must be an integer between 0 and 2^63-1")
     if args.checkpoint_interval < 1:
