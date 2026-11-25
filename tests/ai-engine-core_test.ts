@@ -105,7 +105,7 @@ Deno.test("search normalization accepts safe HTTPS results and rejects unsafe UR
 
 Deno.test("private search ingestion CLI is import-safe and atomically replaces existing chunks", async () => {
   const source = await Deno.readTextFile(new URL("../scripts/new-star-search-ingest.ts", import.meta.url));
-  const migration = await Deno.readTextFile(new URL("../supabase/migrations/20261125133500_harden_search_chunk_replacement_rpc.sql", import.meta.url));
+  const migration = await Deno.readTextFile(new URL("../supabase/migrations/20261125131209_harden_search_chunk_replacement_rpc.sql", import.meta.url));
   if (!source.includes("if (import.meta.main)")) {
     throw new Error("Importing the ingestion utility must not execute its CLI");
   }
