@@ -127,7 +127,7 @@ Deno.test("private search ingestion CLI is import-safe and atomically replaces e
 Deno.test("private search ingestion chunks long content with overlap and no data loss", () => {
   const content = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu";
   const chunks = splitIntoChunks(content, 24, 5);
-  const normalized = splitIntoChunks("alpha\\t beta\\n gamma", 100, 10);
+  const normalized = splitIntoChunks("alpha\t beta\n gamma", 100, 10);
   if (normalized.length !== 1 || normalized[0] !== "alpha beta gamma") {
     throw new Error("Chunker must normalize tabs and newlines before splitting");
   }
