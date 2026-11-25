@@ -141,7 +141,7 @@ def test_image_http_api_generates_png_and_rejects_text_prompt():
         with urlopen(request) as response:
             result = json.loads(response.read())
         png = base64.b64decode(result["data"][0]["b64_json"])
-        assert png.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+        assert png[:8] == bytes((137, 80, 78, 71, 13, 10, 26, 10))
         prompt_request = Request(
             base + "/v1/images/generations",
             data=json.dumps({"prompt": "a mountain"}).encode(),
