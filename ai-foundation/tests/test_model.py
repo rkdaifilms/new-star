@@ -1857,3 +1857,35 @@ def test_generation_kv_cache_matches_full_recompute_after_context_window_rollove
 
     torch.testing.assert_close(cached, reference)
     assert cached.shape[1] == prompt.shape[1] + 7
+
+
+def test_gradient_checkpointing_preserves_forward_loss_and_parameter_gradients():
+    torch.manual_seed(314159)
+    standard = NewStarGPT(NewStarConfig(
+        vocab_size=256, block_size=16, width=16, layers=2, heads=4,
+        dropout=0.0, gradient_checkpointing=False,
+    ))
+    checkpointed = NewStarGPT(NewStarConfig(
+        vocab_size=256, block_size=16, width=16, layers=2, heads=4,
+        dropout=0.0, gradient_checkpointing=True,
+    ))
+    checkpointed.load_state_dict(standard.state_dict())
+    tokens = torch.tensor([[3, 8, 13, 21, 34], [5, 9, 14, 22, 35]], dtype=torch.long)
+    targets = torch.tensor([[8, 13, 21, 34, 55], [9, 14, 22, 35, 56]], dtype=torch.long)
+
+    standard_logits, standard_loss = standard(tokens, targets)
+    checkpointed_logits, checkpointed_loss = checkpointed(tokens, targets)
+    torch.testing.assert_close(checkpointed_logits, standard_logits, rtol=1e-5, atol=1e-6)
+    torch.testing.assert_close(checkpointed_loss, standard_loss, rtol=1e-6, atol=1e-7)
+
+    standard_loss.backward()
+    checkpointed_loss.backward()
+    standard_parameters = dict(standard.named_parameters())
+    checkpointed_parameters = dict(checkpointed.named_parameters())
+    assert standard_parameters.keys() == checkpointed_parameters.keys()
+    for name in standard_parameters:
+        left = standard_parameters[name].grad
+        right = checkpointed_parameters[name].grad
+        assert left is not None, name
+        assert right is not None, name
+        torch.testing.assert_close(right, left, rtol=1e-5, atol=1e-7, msg=name)
