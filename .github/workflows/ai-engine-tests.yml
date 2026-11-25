@@ -6,7 +6,7 @@ on:
       - new-star-ai-engine-foundation
     paths:
       - "supabase/functions/ai-gateway/**"
-      - "tests/ai-engine-core_test.ts"
+      - "tests/**"
       - "ai-engine/self-hosted/**"
       - "scripts/new-star-search-ingest.ts"
       - "supabase/migrations/20261125125100_new_star_private_search.sql"
@@ -18,7 +18,7 @@ on:
   pull_request:
     paths:
       - "supabase/functions/ai-gateway/**"
-      - "tests/ai-engine-core_test.ts"
+      - "tests/**"
       - "ai-engine/self-hosted/**"
       - "scripts/new-star-search-ingest.ts"
       - "supabase/migrations/20261125125100_new_star_private_search.sql"
