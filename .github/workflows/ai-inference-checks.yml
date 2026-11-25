@@ -121,6 +121,7 @@ jobs:
           MODEL_TOKEN=ci-test-token docker compose -f ai-inference/docker-compose.yml --profile gpu config --quiet
           docker compose -f ai-foundation/docker-compose.yml --profile cpu config --quiet
           docker compose -f ai-foundation/docker-compose.yml --profile gpu config --quiet
+          NEW_STAR_IMAGE_API_KEY=ci-test-token docker compose -f ai-image/docker-compose.yml --profile serve config --quiet
 
   foundation-model-tests:
     runs-on: ubuntu-latest
