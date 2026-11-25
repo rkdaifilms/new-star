@@ -121,6 +121,16 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
                 do_sample_raw = body.get("do_sample", True)
                 if not isinstance(do_sample_raw, bool):
                     raise ValueError("do_sample must be a boolean")
+                seed_raw = body.get("seed")
+                if seed_raw is not None and (
+                    isinstance(seed_raw, bool) or not isinstance(seed_raw, int)
+                    or not 0 <= seed_raw <= 2**63 - 1
+                ):
+                    raise ValueError("seed must be an integer between 0 and 2^63-1")
+                generation_rng = (
+                    torch.Generator(device=torch.device(device)).manual_seed(seed_raw)
+                    if seed_raw is not None else None
+                )
                 numeric_values = (temperature_raw, max_tokens_raw, top_p_raw, repetition_raw)
                 if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in numeric_values):
                     raise ValueError("sampling parameters must be numeric values")
@@ -154,6 +164,7 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
                     generated = model.generate(
                         input_ids, max_tokens, temperature, top_k, top_p,
                         repetition_penalty, do_sample=do_sample_raw,
+                        generator=generation_rng,
                     )[0].tolist()
                 answer = tokenizer.decode(generated[len(encoded):])
                 completion_id = "ns-" + uuid.uuid4().hex
