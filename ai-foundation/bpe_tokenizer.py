@@ -10,6 +10,16 @@ from collections import Counter
 from dataclasses import dataclass
 
 
+def _encode_unicode_text(text: str) -> bytes:
+    """Encode Unicode scalar text and normalize lone-surrogate failures."""
+    if not isinstance(text, str):
+        raise ValueError("text to encode must be a string")
+    try:
+        return text.encode("utf-8", errors="strict")
+    except UnicodeEncodeError as exc:
+        raise ValueError("text must contain only valid Unicode scalar values") from exc
+
+
 @dataclass
 class ByteBPETokenizer:
     merges: list[tuple[bytes, bytes]]
@@ -46,6 +56,7 @@ class ByteBPETokenizer:
               min_frequency: int = 2) -> "ByteBPETokenizer":
         if not isinstance(text, str) or not text:
             raise ValueError("training text must be a non-empty string")
+        encoded_text = _encode_unicode_text(text)
         if (not isinstance(max_merges, int) or isinstance(max_merges, bool)
                 or max_merges < 0):
             raise ValueError("max_merges must be a non-negative integer")
@@ -54,7 +65,7 @@ class ByteBPETokenizer:
             raise ValueError("min_frequency must be a positive integer")
 
         # Keep whitespace and punctuation: BPE learns from the exact UTF-8 stream.
-        sequence = [bytes([value]) for value in text.encode("utf-8")];
+        sequence = [bytes([value]) for value in encoded_text]
         merges: list[tuple[bytes, bytes]] = []
         for _ in range(max_merges):
             pairs = Counter(zip(sequence, sequence[1:]))
@@ -90,9 +101,8 @@ class ByteBPETokenizer:
         return cls(merges)
 
     def encode(self, text: str) -> list[int]:
-        if not isinstance(text, str):
-            raise ValueError("text to encode must be a string")
-        sequence: list[bytes] = [bytes([value]) for value in text.encode("utf-8")]
+        encoded_text = _encode_unicode_text(text)
+        sequence: list[bytes] = [bytes([value]) for value in encoded_text]
         while len(sequence) > 1:
             candidates = [
                 (self._merge_ranks[(sequence[i], sequence[i + 1])], i)
