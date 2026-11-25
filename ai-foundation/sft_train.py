@@ -142,7 +142,6 @@ def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32
     model.eval()
     language_losses = []
     try:
-        language_losses = []
         with torch.inference_mode():
             for language in sorted(corpora):
                 examples = corpora[language]
@@ -161,7 +160,6 @@ def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32
                     weighted_loss += float(loss.item()) * supervised_tokens
                     token_count += supervised_tokens
                 language_losses.append(weighted_loss / token_count)
-        model.train(was_training)
         return sum(language_losses) / len(language_losses)
     finally:
         model.train(was_training)
