@@ -4,6 +4,7 @@ import { detectReplyScript } from "../supabase/functions/ai-gateway/language-pol
 import { readBoundedJson } from "../supabase/functions/ai-gateway/request-body.ts";
 import { splitIntoChunks } from "../scripts/new-star-search-ingest.ts";
 import { buildChatProviderPlan } from "../supabase/functions/ai-gateway/provider-routing.ts";
+import { privateSpeechEndpoint } from "../supabase/functions/ai-gateway/private-speech.ts";
 
 
 Deno.test("self-hosted chat provider plan contains only the private New Star model", () => {
@@ -481,5 +482,36 @@ Deno.test("Creator Studio discards stale speech language after transcript edits 
   }
   if (!source.includes('function setMode(next){if(next!=="chat"){lastInputWasVoice=false;lastTranscriptionLanguage="";}')) {
     throw new Error("Switching away from chat must clear stale voice-language state");
+  }
+});
+
+Deno.test("private speech adapter requires a protected HTTPS endpoint", () => {
+  if (privateSpeechEndpoint("https://speech.internal.example", "/v1/audio/speech") !== "https://speech.internal.example/v1/audio/speech") {
+    throw new Error("Valid private HTTPS speech endpoint was rejected");
+  }
+  for (const unsafe of [
+    "http://speech.internal.example",
+    "https://user:pass@speech.internal.example",
+    "https://speech.internal.example/?token=secret",
+    "not-a-url",
+  ]) {
+    if (privateSpeechEndpoint(unsafe, "/v1/audio/speech") !== null) {
+      throw new Error("Unsafe private speech endpoint was accepted: " + unsafe);
+    }
+  }
+});
+
+Deno.test("private speech worker is wired only in self-hosted voice paths", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/speech-worker/main.py", import.meta.url));
+  const frontend = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  if (!gateway.includes("privateSpeechSynthesis(") || !gateway.includes("privateSpeechTranscription(")) {
+    throw new Error("Private-mode speech and transcription must call the New Star worker adapter");
+  }
+  if (!worker.includes("/v1/audio/transcriptions") || !worker.includes("/v1/audio/speech") || !worker.includes("require_auth")) {
+    throw new Error("Private speech worker must expose authenticated STT and TTS endpoints");
+  }
+  if (!frontend.includes('body:{action:"speak",text,language}')) {
+    throw new Error("Creator Studio must pass its active language into private speech synthesis");
   }
 });
