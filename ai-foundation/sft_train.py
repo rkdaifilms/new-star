@@ -14,6 +14,7 @@ from model import NewStarConfig, NewStarGPT
 from tokenizer import UnicodeCharTokenizer, tokenizer_from_dict
 from bpe_tokenizer import ByteBPETokenizer
 from hardware import autocast_context, create_grad_scaler, hardware_report, resolve_device, resolve_precision
+from artifact_io import atomic_torch_save, atomic_write_json
 
 
 def encode_corpora(corpora, tokenizer, block_size):
@@ -58,10 +59,7 @@ def sample_instruction_batch(corpora, batch_size, block_size, device, generator=
 def save_training_state(path, model, optimizer, generator, step, seed,
                        data_fingerprint, training_config):
     """Atomically persist all state needed to resume an SFT run."""
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
-    torch.save({
+    atomic_torch_save({
         "format": "new-star-sft-resume-v1",
         "step": step,
         "model_state": model.state_dict(),
@@ -72,8 +70,7 @@ def save_training_state(path, model, optimizer, generator, step, seed,
         "seed": seed,
         "data_fingerprint": data_fingerprint,
         "training_config": training_config,
-    }, temporary)
-    temporary.replace(path)
+    }, path)
 
 
 def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32"):
@@ -286,7 +283,7 @@ def main():
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({
+    atomic_torch_save({
         "format": ("new-star-byte-bpe-gpt-v1" if tokenizer.to_dict()["type"] == ByteBPETokenizer.FORMAT else "new-star-unicode-char-gpt-v1"),
         "config": vars(config),
         "tokenizer": tokenizer.to_dict(),
@@ -315,12 +312,8 @@ def main():
         "evaluation_protocol": "sft-response-only-macro-language-token-ce-v1",
         "hardware": runtime_info,
     }
-    output.with_suffix(output.suffix + ".corpus-audit.json").write_text(
-        json.dumps(audit_report, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    output.with_suffix(output.suffix + ".json").write_text(
-        json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    atomic_write_json(audit_report, output.with_suffix(output.suffix + ".corpus-audit.json"))
+    atomic_write_json(metadata, output.with_suffix(output.suffix + ".json"))
     print(f"Saved New Star SFT checkpoint: {output}")
 
 
