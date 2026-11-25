@@ -52,6 +52,13 @@ Never put the model API key in frontend JavaScript. The Edge Function reads it s
 
 This server provides text chat only. Image generation, video generation, speech recognition, speech synthesis, web crawling, and model training require separate models/workers and are not implemented by this service. In self-hosted mode the gateway must report those capabilities as unavailable until their private workers are deployed. A successful container health check alone does not prove model inference; run the authenticated chat test above.
 
+## Canonical runtime
+
+This directory is the repository's single self-hosted model runtime. The old
+`ai-model/` vLLM blueprint was removed to avoid maintaining two competing
+chat-model configurations. Chat and the optional embedding service are defined
+together in `compose.yaml`.
+
 ## New Star private search index
 
 New Star already had `public.new_star_search_chunks` with `vector(384)`,
@@ -62,7 +69,7 @@ adds language and chunk metadata and installs a service-role-only full-text
 search RPC. Anonymous and signed-in browser roles cannot read the chunks or
 execute the private search function.
 
-The search index is empty until authorized content is ingested. The ingestion utility calls the service-role-only `replace_new_star_search_chunks` RPC, which atomically deletes previous chunks for each submitted source and inserts its replacement set. This prevents stale trailing chunks when a source document becomes shorter. Prepare a
+The search index is empty until authorized content is ingested. The ingestion utility calls the service-role-only `replace_new_star_search_chunks` RPC, defined by migrations `20261125131109_replace_new_star_search_chunks_rpc.sql` and `20261125131209_harden_search_chunk_replacement_rpc.sql`, which atomically deletes previous chunks for each submitted source and inserts its replacement set. This prevents stale trailing chunks when a source document becomes shorter. Prepare a
 UTF-8 JSONL file with one source document per line:
 
 ```json
