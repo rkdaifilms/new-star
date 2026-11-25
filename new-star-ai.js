@@ -33,10 +33,15 @@ try{
    if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"Image analysis is unavailable."));
    pending.textContent=result.data.answer||"The image model returned an empty response.";
  }else if(mode==="research"){
-   const result=await client.functions.invoke("ai-gateway",{body:{action:"search",query:sendText,language:responseLanguage,limit:8}});
-   if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"Live research is unavailable."));
-   pending.textContent=typeof result.data.answer==="string"&&result.data.answer.trim()?result.data.answer:(result.data.count?"Search found "+result.data.count+" source(s).":"Search returned no results.");const countNote=document.createElement("small");countNote.textContent=(result.data.count||0)+" verified source link(s) · "+(result.data.provider||"Search");countNote.style.display="block";countNote.style.marginTop="10px";countNote.style.opacity=".75";pending.append(countNote);
+   const crawlUrl=/^https?:\/\/[^\s]+$/i.test(sendText.trim());
+   const result=await client.functions.invoke("ai-gateway",{body:crawlUrl?{action:"crawl",url:sendText.trim()}:{action:"search",query:sendText,language:responseLanguage,limit:8}});
+   if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,crawlUrl?"Private website indexing is unavailable.":"Live research is unavailable."));
+   if(crawlUrl){
+     pending.textContent="Page indexed in the New Star private search library: "+(result.data.title||result.data.url)+" · "+(result.data.charactersIndexed||0)+" characters. You can now search for information from this page.";
+   }else{
+     pending.textContent=typeof result.data.answer==="string"&&result.data.answer.trim()?result.data.answer:(result.data.count?"Search found "+result.data.count+" source(s).":"No matching pages were found in the private crawl index yet. Paste a public page URL to index it first.");const countNote=document.createElement("small");countNote.textContent=(result.data.count||0)+" verified source link(s) · "+(result.data.provider||"Search");countNote.style.display="block";countNote.style.marginTop="10px";countNote.style.opacity=".75";pending.append(countNote);
    const sources=Array.isArray(result.data.results)?result.data.results:[];
+   }
    if(sources.length){const heading=document.createElement("strong");heading.textContent="Sources";heading.style.display="block";heading.style.marginTop="12px";pending.append(heading);for(const source of sources){const url=mediaUrl(source.url);if(!url)continue;const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.title||url;link.style.display="block";link.style.marginTop="6px";pending.append(link);}}
  }else if(mode==="chat"){
    const result=await client.functions.invoke("ai-gateway",{body:{messages:[{role:"user",content:sendText}],conversationId:conversationId||undefined,language:responseLanguage}});
