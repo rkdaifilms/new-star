@@ -50,7 +50,8 @@
       Create:{hi:"बनाएँ",ne:"सिर्जना",en:"Create",zh:"创建",es:"Crear",fr:"Créer",ar:"إنشاء",ja:"作成",de:"Erstellen",ru:"Создать",pt:"Criar",it:"Crea",ko:"만들기",tr:"Oluştur",bn:"তৈরি",ur:"بنائیں",id:"Buat",vi:"Tạo",th:"สร้าง",fa:"ایجاد",sw:"Unda",nl:"Maken",pl:"Utwórz",uk:"Створити",el:"Δημιουργία",sv:"Skapa"},
       Inbox:{hi:"इनबॉक्स",ne:"इनबक्स",en:"Inbox",zh:"收件箱",es:"Bandeja",fr:"Boîte",ar:"الوارد",ja:"受信箱",de:"Postfach",ru:"Входящие",pt:"Caixa",it:"Posta",ko:"받은편지함",tr:"Gelen Kutusu",bn:"ইনবক্স",ur:"پیغامات",id:"Kotak Masuk",vi:"Hộp thư",th:"กล่องข้อความ",fa:"صندوق ورودی",sw:"Kikasha",nl:"Inbox",pl:"Skrzynka",uk:"Вхідні",el:"Εισερχόμενα",sv:"Inkorg"},
       Admin:{hi:"एडमिन",ne:"एडमिन",en:"Admin",zh:"管理",es:"Admin",fr:"Admin",ar:"المشرف",ja:"管理",de:"Admin",ru:"Админ",pt:"Admin",it:"Admin",ko:"관리자",tr:"Yönetici",bn:"অ্যাডমিন",ur:"منتظم",id:"Admin",vi:"Quản trị",th:"ผู้ดูแล",fa:"مدیر",sw:"Msimamizi",nl:"Beheer",pl:"Admin",uk:"Адмін",el:"Διαχειριστής",sv:"Admin"},
-      Profile:{hi:"प्रोफाइल",ne:"प्रोफाइल",en:"Profile",zh:"个人资料",es:"Perfil",fr:"Profil",ar:"الملف الشخصي",ja:"プロフィール",de:"Profil",ru:"Профиль",pt:"Perfil",it:"Profilo",ko:"프로필",tr:"Profil",bn:"প্রোফাইল",ur:"پروفائل",id:"Profil",vi:"Hồ sơ",th:"โปรไฟล์",fa:"نمایه",sw:"Wasifu",nl:"Profiel",pl:"Profil",uk:"Профіль",el:"Προφίλ",sv:"Profil"}
+      Profile:{hi:"प्रोफाइल",ne:"प्रोफाइल",en:"Profile",zh:"个人资料",es:"Perfil",fr:"Profil",ar:"الملف الشخصي",ja:"プロフィール",de:"Profil",ru:"Профиль",pt:"Perfil",it:"Profilo",ko:"프로필",tr:"Profil",bn:"প্রোফাইল",ur:"پروفائل",id:"Profil",vi:"Hồ sơ",th:"โปรไฟล์",fa:"نمایه",sw:"Wasifu",nl:"Profiel",pl:"Profil",uk:"Профіль",el:"Προφίλ",sv:"Profil"},
+      AI:{hi:"AI सिस्टम",ne:"AI प्रणाली",en:"AI",zh:"人工智能",es:"IA",fr:"IA",ar:"الذكاء الاصطناعي",ja:"AI",de:"KI",ru:"ИИ",pt:"IA",it:"IA",ko:"AI",tr:"Yapay Zekâ",bn:"AI",ur:"AI",id:"AI",vi:"AI",th:"AI",fa:"هوش مصنوعی",sw:"AI",nl:"AI",pl:"AI",uk:"ШІ",el:"ΤΝ",sv:"AI"}
     };
     return words[key]?.[lang]||words[key]?.en||key;
   }
@@ -352,6 +353,7 @@
 
     const items = [
       { page: "index.html", icon: "🏠", label: navText("Home") },
+      { page: "new-star-ai.html", icon: "✦", label: navText("AI") },
       { page: "wallet.html", icon: "💰", label: navText("Wallet") },
       { page: "camera.html", icon: "+", label: navText("Create"), plus: true },
       { page: "inbox.html", icon: "✉️", label: navText("Inbox") },
