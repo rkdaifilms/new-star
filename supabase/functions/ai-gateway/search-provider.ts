@@ -42,3 +42,14 @@ export function normalizePrivateIndexRows(input: unknown, limit = 5): NewStarSea
     publishedAt: item?.published_at
   })), limit);
 }
+
+export function normalizeEmbeddingVector(input: unknown): number[] | null {
+  if (!Array.isArray(input) || input.length !== 384) return null;
+  if (input.some((value) => typeof value !== "number" || !Number.isFinite(value))) return null;
+  return input as number[];
+}
+
+export function toPgVectorLiteral(input: unknown): string | null {
+  const vector = normalizeEmbeddingVector(input);
+  return vector ? "[" + vector.join(",") + "]" : null;
+}
