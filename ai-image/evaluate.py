@@ -12,6 +12,7 @@ import torch
 
 from data import ImageFolderDataset, audit_image_dataset
 from generate import load_checkpoint
+from text_conditioning import MAX_TEXT_TOKENS, encode_caption
 
 
 def fingerprint_dataset(audit: dict) -> str:
@@ -76,7 +77,11 @@ def evaluate(checkpoint_path: str | Path, data_path: str | Path,
     evaluation_hashes = {item["sha256"] for item in audit["images"]}
     if training_hashes.intersection(evaluation_hashes):
         raise ValueError("evaluation dataset contains image files used for training; provide non-overlapping held-out images")
-    dataset = ImageFolderDataset(data_path, config["image_size"])
+    manifest_payload = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+    captions = manifest_payload.get("captions") if model.text_vocab_size else None
+    if model.text_vocab_size and captions is None:
+        raise ValueError("text-conditioned checkpoint evaluation requires captions for every held-out image")
+    dataset = ImageFolderDataset(data_path, config["image_size"], captions=captions)
     generator = torch.Generator(device=device).manual_seed(seed)
     squared_error = 0.0
     element_count = 0
@@ -88,13 +93,19 @@ def evaluate(checkpoint_path: str | Path, data_path: str | Path,
         if max_batches is not None and batch_count >= max_batches:
             break
         stop = min(start + batch_size, len(dataset))
-        clean = torch.stack([dataset[index] for index in range(start, stop)]).to(device)
+        samples = [dataset[index] for index in range(start, stop)]
+        if model.text_vocab_size:
+            clean = torch.stack([sample[0] for sample in samples]).to(device)
+            text_tokens = torch.stack([sample[1] for sample in samples]).to(device)
+        else:
+            clean = torch.stack(samples).to(device)
+            text_tokens = None
         timesteps = torch.randint(
             0, schedule.steps, (clean.shape[0],), device=device, generator=generator
         )
         noise = torch.randn(clean.shape, device=device, generator=generator)
         noisy = schedule.add_noise(clean, timesteps, noise)
-        predicted = model(noisy, timesteps)
+        predicted = model(noisy, timesteps, text_tokens=text_tokens)
         if not torch.isfinite(predicted).all():
             raise RuntimeError("image model produced non-finite predictions during evaluation")
         squared_error += float(torch.sum((predicted - noise).square()).item())
@@ -107,7 +118,7 @@ def evaluate(checkpoint_path: str | Path, data_path: str | Path,
     return {
         "format": "new-star-image-evaluation-v1",
         "checkpoint": str(Path(checkpoint_path)),
-        "model": "new-star-ddpm-unconditional",
+        "model": "new-star-ddpm-text-conditioned" if model.text_vocab_size else "new-star-ddpm-unconditional",
         "weights": config["weights_source"],
         "image_size": config["image_size"],
         "diffusion_steps": config["diffusion_steps"],
