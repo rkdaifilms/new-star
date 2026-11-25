@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import torch
 
 from model import NewStarConfig, NewStarGPT
@@ -20,6 +21,8 @@ def main():
     args = parser.parse_args()
     if args.tokens < 0:
         parser.error("--tokens cannot be negative")
+    if not math.isfinite(args.temperature) or not 0 < args.temperature <= 2:
+        parser.error("--temperature must be finite, greater than 0, and at most 2")
     checkpoint = torch.load(args.checkpoint, map_location=args.device, weights_only=True)
     checkpoint_format = checkpoint.get("format")
     if checkpoint_format not in {"new-star-byte-gpt-v1", "new-star-unicode-char-gpt-v1", "new-star-byte-bpe-gpt-v1"}:
