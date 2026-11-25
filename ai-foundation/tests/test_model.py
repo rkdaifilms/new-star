@@ -1149,3 +1149,26 @@ def test_incremental_forward_rejects_malformed_key_value_cache():
     malformed[0] = (torch.zeros(1, 4, 2, 4), torch.zeros(1, 4, 2, 4))
     with pytest.raises(ValueError, match="cache shape/device"):
         model.forward_incremental(token, 1, malformed)
+
+
+def test_greedy_generation_is_deterministic_and_ignores_sampling_filters():
+    model = tiny_model().eval()
+    prompt = torch.tensor([[65, 66, 67]], dtype=torch.long)
+    first = model.generate(
+        prompt, max_new_tokens=12, temperature=0.7, top_k=1,
+        top_p=0.01, repetition_penalty=1.0, do_sample=False,
+    )
+    second = model.generate(
+        prompt, max_new_tokens=12, temperature=1.8, top_k=None,
+        top_p=1.0, repetition_penalty=1.0, do_sample=False,
+    )
+    torch.testing.assert_close(first, second)
+    assert first.shape == (1, 15)
+
+
+def test_generation_rejects_non_boolean_sampling_mode():
+    import pytest
+    model = tiny_model()
+    prompt = torch.tensor([[65]], dtype=torch.long)
+    with pytest.raises(ValueError, match="do_sample"):
+        model.generate(prompt, max_new_tokens=1, do_sample=1)
