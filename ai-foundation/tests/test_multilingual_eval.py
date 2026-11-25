@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from evaluate import evaluate_language_corpora
+from sft_train import evaluate_sft
 from corpus import require_complete_language_coverage, supported_language_codes
 from generation_eval import char_ngram_f1, load_cases
 from model import NewStarConfig, NewStarGPT
@@ -83,6 +84,45 @@ class MultilingualEvaluationTests(unittest.TestCase):
         for metrics in report["languages"].values():
             self.assertGreater(metrics["evaluated_tokens"], 0)
             self.assertGreater(metrics["perplexity"], 1)
+
+
+    def test_sft_validation_macro_average_weights_languages_equally(self):
+        model = NewStarGPT(NewStarConfig(
+            vocab_size=256, block_size=8, width=16, layers=1, heads=2,
+            dropout=0.0,
+        ))
+        corpora = {
+            "en": [
+                ([1, 2, 3], [2, 3, 4]),
+                ([5, 6, 7], [6, 7, 8]),
+                ([9, 10, 11], [10, 11, 12]),
+            ],
+            "ne": [
+                ([13, 14, 15], [14, 15, 16]),
+            ],
+        }
+        actual = evaluate_sft(
+            model, corpora, batch_size=2, block_size=8, device="cpu"
+        )
+
+        model.eval()
+        expected_language_losses = []
+        with torch.inference_mode():
+            for language in sorted(corpora):
+                weighted_loss = 0.0
+                supervised_tokens = 0
+                for inputs, labels in corpora[language]:
+                    x = torch.tensor([inputs], dtype=torch.long)
+                    y = torch.tensor([labels], dtype=torch.long)
+                    _, loss = model(x, y)
+                    count = len(labels)
+                    weighted_loss += float(loss.item()) * count
+                    supervised_tokens += count
+                expected_language_losses.append(
+                    weighted_loss / supervised_tokens
+                )
+        expected = sum(expected_language_losses) / len(expected_language_losses)
+        self.assertAlmostEqual(actual, expected, places=6)
 
 
 if __name__ == "__main__":
