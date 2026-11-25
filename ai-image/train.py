@@ -132,8 +132,8 @@ def train(args) -> dict:
         if resume.get("training_config") != config:
             raise ValueError("resume training configuration does not match the current run")
         completed_steps = resume.get("completed_steps")
-        if not isinstance(completed_steps, int) or completed_steps < 0 or completed_steps > args.steps:
-            raise ValueError("resume completed_steps must be between zero and the requested total steps")
+        if not isinstance(completed_steps, int) or completed_steps < 1 or completed_steps > args.steps:
+            raise ValueError("resume completed_steps must be between one and the requested total steps")
         model.load_state_dict(resume["state_dict"])
         optimizer.load_state_dict(resume["optimizer_state"])
         losses = resume.get("losses")
