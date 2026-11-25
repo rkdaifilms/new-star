@@ -2,6 +2,7 @@ import { buildGeminiVideoRequest } from "../supabase/functions/ai-gateway/video-
 import { normalizeNewStarSearchResults, normalizePrivateIndexRows, formatRetrievedContext } from "../supabase/functions/ai-gateway/search-provider.ts";
 import { detectReplyScript } from "../supabase/functions/ai-gateway/language-policy.ts";
 import { readBoundedJson } from "../supabase/functions/ai-gateway/request-body.ts";
+import { splitIntoChunks } from "../scripts/new-star-search-ingest.ts";
 import { buildChatProviderPlan } from "../supabase/functions/ai-gateway/provider-routing.ts";
 
 
@@ -100,6 +101,19 @@ Deno.test("search normalization accepts safe HTTPS results and rejects unsafe UR
   }
 });
 
+
+
+Deno.test("private search ingestion chunks long content with overlap and no data loss", () => {
+  const content = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu";
+  const chunks = splitIntoChunks(content, 24, 5);
+  if (chunks.length < 2) throw new Error("Long content was not split into multiple chunks");
+  if (!chunks[0].startsWith("alpha") || !chunks[chunks.length - 1].endsWith("mu")) {
+    throw new Error("Chunking dropped the beginning or end of the source content");
+  }
+  if (!chunks.some((chunk, index) => index > 0 && chunks[index - 1].slice(-5).split(" ").some(word => chunk.startsWith(word)))) {
+    throw new Error("Chunk overlap was not preserved");
+  }
+});
 
 Deno.test("private search index rows share HTTPS validation and result limits", () => {
   const rows = normalizePrivateIndexRows([
