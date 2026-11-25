@@ -922,6 +922,7 @@ Deno.serve(async (req: Request) => {
     return await searchWithGeminiGrounding(query, language, limit, headers);
   }
   if (body?.action === "vision") {
+    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private image-understanding model is not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_VISION_MODEL_NOT_DEPLOYED" }, 503, headers);
     const image = typeof body.image === "string" ? body.image : "";
     const rawMimeType = typeof body.mimeType === "string" ? body.mimeType.split(";")[0].trim().toLowerCase() : "";
     const mimeType = ["image/png", "image/jpeg", "image/webp"].includes(rawMimeType) ? rawMimeType : "";
@@ -1277,18 +1278,6 @@ Deno.serve(async (req: Request) => {
       code: "ALL_IMAGE_PROVIDERS_FAILED",
       attempted: failures
     }, 503, headers);
-  }
-
-  if (body?.action === "search") {
-    const query = typeof body.query === "string" ? body.query.trim() : "";
-    const language = typeof body.language === "string" ? body.language.slice(0, 16) : "auto";
-    const limit = Number.isInteger(body.limit) ? Math.min(10, Math.max(1, body.limit)) : 5;
-    if (!query || query.length > 500) return json({ ok: false, error: "Search query must contain 1 to 500 characters." }, 400, headers);
-    const { data: searchAllowed, error: searchLimitError } = await consumeAiGatewayRateLimit(adminClient, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
-    if (searchLimitError || searchAllowed !== true) return json({ ok: false, error: searchLimitError ? "Security rate-limit check unavailable." : "Search request limit reached. Please wait before trying again." }, searchLimitError ? 503 : 429, headers);
-    const indexed = await searchNewStarIndex(query, language, limit, headers);
-    if (indexed) return indexed;
-    return await searchWithGeminiGrounding(query, language, limit, headers);
   }
 
   if (body?.action === "status") {
