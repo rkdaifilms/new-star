@@ -16,7 +16,7 @@ def load_checkpoint(path: str | Path, device: str):
         raise ValueError("unsupported New Star image checkpoint format")
     config = checkpoint["model_config"]
     model = NewStarImageUNet(config["base_channels"]).to(device)
-    model.load_state_dict(checkpoint["state_dict"])
+    model.load_state_dict(checkpoint.get("ema_state_dict", checkpoint["state_dict"]))
     model.eval()
     schedule = DDPMSchedule(config["diffusion_steps"]).to(device)
     return model, schedule, config
