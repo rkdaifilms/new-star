@@ -52,5 +52,5 @@ jobs:
         run: bash -n ai-engine/self-hosted/verify.sh ai-engine/self-hosted/verify-embeddings.sh
       - name: Type-check private search ingestion tool
         run: deno check scripts/new-star-search-ingest.ts
-      - name: Validate private speech worker Python syntax
-        run: python3 -m py_compile ai-engine/self-hosted/speech-worker/main.py
+      - name: Validate private speech and image worker Python syntax
+        run: python3 -m py_compile ai-engine/self-hosted/speech-worker/main.py ai-engine/self-hosted/image-worker/main.py
