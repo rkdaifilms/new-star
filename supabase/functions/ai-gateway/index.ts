@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { base64UrlEncode, privateKeyPemToBytes } from "./google-auth.ts";
 import { buildGeminiVideoRequest } from "./video-provider.ts";
 import { detectReplyScript } from "./language-policy.ts";
-import { formatRetrievedContext, normalizeNewStarSearchResults, normalizePrivateIndexRows } from "./search-provider.ts";
+import { formatRetrievedContext, normalizeNewStarSearchResults, normalizePrivateIndexRows, normalizeEmbeddingVector, toPgVectorLiteral } from "./search-provider.ts";
 import { AI_LANGUAGE_NAMES } from "./language-catalog.ts";
 import { readBoundedJson } from "./request-body.ts";
 import { buildChatProviderPlan } from "./provider-routing.ts";
@@ -296,13 +296,40 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 1600
 }
 
 
+async function createNewStarSearchEmbedding(query: string): Promise<number[] | null> {
+  const configured = Deno.env.get("NEW_STAR_EMBEDDING_BASE_URL")?.trim() || "";
+  const token = Deno.env.get("NEW_STAR_EMBEDDING_API_KEY")?.trim() || "";
+  if (!configured || token.length < 32) return null;
+  try {
+    const endpoint = new URL(configured);
+    if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) return null;
+    const base = endpoint.toString().replace(/\/$/, "");
+    const embeddingUrl = base.endsWith("/v1") ? base + "/embeddings" : base + "/v1/embeddings";
+    const response = await fetchWithTimeout(embeddingUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({
+        model: Deno.env.get("NEW_STAR_EMBEDDING_MODEL_NAME")?.trim() || "local-model",
+        input: query.slice(0, 4000)
+      })
+    }, 12000);
+    if (!response.ok) return null;
+    const data = await response.json().catch(() => ({}));
+    return normalizeEmbeddingVector(data?.data?.[0]?.embedding);
+  } catch {
+    return null;
+  }
+}
+
 async function retrieveNewStarRagContext(query: string, adminClient: any): Promise<string> {
   const ragSetting = Deno.env.get("NEW_STAR_RAG_ENABLED");
   const selfHostedRag = Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted";
   if (ragSetting === "false" || (ragSetting !== "true" && !selfHostedRag)) return "";
   try {
+    const embedding = await createNewStarSearchEmbedding(query);
     const { data, error } = await adminClient.rpc("search_new_star_private_index", {
-      p_query: query.slice(0, 500), p_limit: 5, p_language: "auto"
+      p_query: query.slice(0, 500), p_limit: 5, p_language: "auto",
+      p_embedding: toPgVectorLiteral(embedding)
     });
     if (!error && Array.isArray(data) && data.length) {
       const localContext = formatRetrievedContext(normalizePrivateIndexRows(data, 5), 5);
@@ -335,8 +362,10 @@ async function retrieveNewStarRagContext(query: string, adminClient: any): Promi
 
 async function searchNewStarIndex(query: string, language: string, limit: number, headers: Record<string, string>, adminClient: any) {
   try {
+    const embedding = await createNewStarSearchEmbedding(query);
     const { data, error } = await adminClient.rpc("search_new_star_private_index", {
-      p_query: query.slice(0, 500), p_limit: limit, p_language: language
+      p_query: query.slice(0, 500), p_limit: limit, p_language: language,
+      p_embedding: toPgVectorLiteral(embedding)
     });
     if (!error && Array.isArray(data) && data.length) {
       const results = normalizePrivateIndexRows(data, limit);
