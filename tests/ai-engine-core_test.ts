@@ -642,3 +642,20 @@ Deno.test("private crawler requires the developer API research permission", asyn
     throw new Error("Both private search and crawl actions must require the research API scope");
   }
 });
+
+
+Deno.test("New Star private image UI exposes only the worker's supported 1K size", async () => {
+  const frontend = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  const privateMode = frontend.indexOf('if(result.data.mode==="self_hosted")');
+  const externalMode = frontend.indexOf('setPrivateImageSizeMode(false)');
+  const helper = frontend.indexOf("function setPrivateImageSizeMode(privateOnly)");
+  if (helper < 0 || privateMode < 0 || externalMode < 0) {
+    throw new Error("Image size controls must react to the active AI mode");
+  }
+  if (!frontend.slice(privateMode, externalMode).includes("setPrivateImageSizeMode(true)")) {
+    throw new Error("Self-hosted mode must restrict image output to 1K");
+  }
+  if (!frontend.slice(helper, privateMode).includes('option.value==="1K"')) {
+    throw new Error("Private image-size helper must disable unsupported 2K and 4K outputs");
+  }
+});
