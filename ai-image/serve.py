@@ -91,6 +91,9 @@ def create_handler(model, schedule, image_size: int, device: str, api_key: str):
                     raise ValueError("request body must be a JSON object")
                 if "prompt" in payload:
                     raise ValueError("this checkpoint is unconditional and does not support text prompts")
+                unsupported = sorted(set(payload) - {"n", "seed", "size", "prompt"})
+                if unsupported:
+                    raise ValueError("unsupported request fields: " + ", ".join(unsupported))
                 count = payload.get("n", 1)
                 if isinstance(count, bool) or not isinstance(count, int) or not 1 <= count <= 4:
                     raise ValueError("n must be an integer from 1 to 4")
