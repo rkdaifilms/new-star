@@ -48,6 +48,30 @@ PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.j
 
 Alternatively, run `PYTHONPATH=ai-engine python -m ai_engine.server` after setting the environment variables. The service uses only the Python standard library.
 
+## Route requests to the New Star-owned experimental foundation checkpoint
+
+The separate native checkpoint server can be registered as an OpenAI-compatible chat
+upstream for this router. This is a real integration path, but the checkpoint must
+first be trained locally and its output quality depends on the dataset and hardware.
+It is not equivalent to the Qwen bootstrap model or a frontier assistant.
+
+From the repository root, after creating `artifacts/newstar-small.pt` with the
+`ai-foundation/train.py` workflow, run both local services in one shell:
+
+```sh
+export NEW_STAR_FOUNDATION_API_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+python ai-foundation/serve.py --checkpoint artifacts/newstar-small.pt --host 127.0.0.1 --port 8765 &
+FOUNDATION_PID=$!
+trap 'kill "$FOUNDATION_PID" 2>/dev/null || true' EXIT
+PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.foundation.example.json serve --host 127.0.0.1 --port 8090
+```
+
+The same environment variable authenticates the foundation server and the router's
+upstream requests. The registry points only to loopback and does not expose the
+checkpoint directly to the internet. The native foundation adapter currently supports
+non-streaming chat requests; send `"stream": false` until SSE generation is implemented.
+The router's own streaming endpoint cannot make a non-streaming upstream stream.
+
 ## API
 
 - `GET /health` and `GET /healthz`: service status and configured model count.
