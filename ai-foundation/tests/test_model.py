@@ -1725,3 +1725,42 @@ def test_chat_prompt_formatter_returns_consistent_role_error_for_unhashable_valu
 
     with pytest.raises(ValueError, match="supported role"):
         format_chat_messages([{"role": ["user"], "content": "hello"}])
+
+
+
+def test_incremental_kv_cache_logits_match_full_causal_forward():
+    model = tiny_model().eval()
+    prompt = torch.tensor([[4, 17, 29, 31]], dtype=torch.long)
+    continuation = torch.tensor([[43, 57]], dtype=torch.long)
+
+    with torch.inference_mode():
+        _, caches = model.forward_with_cache(prompt)
+        context = prompt.clone()
+        for index in range(continuation.shape[1]):
+            token = continuation[:, index:index + 1]
+            cached_logits, caches = model.forward_incremental(
+                token, context.shape[1], caches
+            )
+            context = torch.cat((context, token), dim=1)
+            full_logits, _ = model(context)
+            torch.testing.assert_close(
+                cached_logits[:, -1, :],
+                full_logits[:, -1, :],
+                rtol=1e-4,
+                atol=1e-5,
+            )
+
+
+def test_incremental_kv_cache_rejects_wrong_cache_batch_shape():
+    import pytest
+
+    model = tiny_model().eval()
+    prompt = torch.tensor([[4, 17, 29]], dtype=torch.long)
+    token = torch.tensor([[31]], dtype=torch.long)
+    _, caches = model.forward_with_cache(prompt)
+    wrong_batch_cache = [
+        (key.expand(2, -1, -1, -1), value.expand(2, -1, -1, -1))
+        for key, value in caches
+    ]
+    with pytest.raises(ValueError, match="shape/device/dtype"):
+        model.forward_incremental(token, prompt.shape[1], wrong_batch_cache)
