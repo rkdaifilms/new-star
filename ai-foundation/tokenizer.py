@@ -22,6 +22,12 @@ class UnicodeCharTokenizer:
     FORMAT = "unicode-char-byte-fallback-v1"
 
     def __post_init__(self) -> None:
+        if not isinstance(self.tokens, list) or any(
+            not isinstance(token, str) or len(token) != 1
+            or 0xD800 <= ord(token) <= 0xDFFF
+            for token in self.tokens
+        ):
+            raise ValueError("character vocabulary must contain only valid single Unicode scalar values")
         if len(set(self.tokens)) != len(self.tokens):
             raise ValueError("token vocabulary must not contain duplicates")
 
@@ -29,8 +35,11 @@ class UnicodeCharTokenizer:
     def train(cls, text: str, max_vocab_size: int | None = None) -> "UnicodeCharTokenizer":
         if not isinstance(text, str) or not text:
             raise ValueError("training text must be a non-empty string")
-        if max_vocab_size is not None and max_vocab_size < cls.BYTE_VOCAB_SIZE:
-            raise ValueError("max_vocab_size must be at least 256 for byte fallback")
+        if max_vocab_size is not None and (
+            not isinstance(max_vocab_size, int) or isinstance(max_vocab_size, bool)
+            or max_vocab_size < cls.BYTE_VOCAB_SIZE
+        ):
+            raise ValueError("max_vocab_size must be an integer of at least 256 for byte fallback")
         counts = Counter(text)
         ordered = sorted(counts, key=lambda char: (-counts[char], ord(char)))
         if max_vocab_size is not None:
@@ -39,14 +48,22 @@ class UnicodeCharTokenizer:
 
     @classmethod
     def from_dict(cls, payload: dict) -> "UnicodeCharTokenizer":
-        if payload.get("type") != cls.FORMAT:
+        if not isinstance(payload, dict) or payload.get("type") != cls.FORMAT:
             raise ValueError("unsupported tokenizer format")
-        return cls(list(payload["tokens"]))
+        tokens = payload.get("tokens")
+        if not isinstance(tokens, list):
+            raise ValueError("character tokenizer payload must contain a token list")
+        try:
+            return cls(tokens)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("invalid character tokenizer vocabulary") from exc
 
     def to_dict(self) -> dict:
         return {"type": self.FORMAT, "tokens": self.tokens}
 
     def encode(self, text: str) -> list[int]:
+        if not isinstance(text, str):
+            raise ValueError("text to encode must be a string")
         lookup = {token: index + self.CHAR_OFFSET for index, token in enumerate(self.tokens)}
         ids: list[int] = []
         for char in text:
@@ -67,7 +84,7 @@ class UnicodeCharTokenizer:
                 pending_bytes.clear()
 
         for token_id in token_ids:
-            if not isinstance(token_id, int) or token_id < 0 or token_id >= len(self):
+            if not isinstance(token_id, int) or isinstance(token_id, bool) or token_id < 0 or token_id >= len(self):
                 raise ValueError("token ID is outside the tokenizer vocabulary")
             if token_id < self.BYTE_VOCAB_SIZE:
                 pending_bytes.append(token_id)
