@@ -121,12 +121,15 @@ def main() -> None:
     parser.add_argument("--count", type=int, default=4)
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--prompt", help="Caption prompt; requires a text-conditioned checkpoint")
+    parser.add_argument("--guidance-scale", type=float, default=1.0, help="Classifier-free guidance scale from 0 to 10")
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args()
     if not 1 <= args.count <= 16:
         parser.error("--count must be from 1 to 16")
     if not 0 <= args.seed <= 2**63 - 1:
         parser.error("--seed must be between 0 and 2^63-1")
+    if not math.isfinite(args.guidance_scale) or not 0.0 <= args.guidance_scale <= 10.0:
+        parser.error("--guidance-scale must be finite and between 0 and 10")
     model, schedule, config = load_checkpoint(args.checkpoint, args.device)
     text_tokens = None
     if args.prompt is not None:
@@ -139,7 +142,7 @@ def main() -> None:
         parser.error("a --prompt is required for a text-conditioned checkpoint")
     images = schedule.sample(
         model, args.count, config["image_size"], args.device,
-        seed=args.seed, text_tokens=text_tokens,
+        seed=args.seed, text_tokens=text_tokens, guidance_scale=args.guidance_scale,
     )
     save_image_grid(images, args.output)
     print(f"Saved {args.count} generated image(s) to {args.output}")
