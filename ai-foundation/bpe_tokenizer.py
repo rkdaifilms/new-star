@@ -105,23 +105,67 @@ class ByteBPETokenizer:
         return cls(merges)
 
     def encode(self, text: str) -> list[int]:
+        """Apply learned merges with a heap and linked token positions.
+
+        Heap ordering preserves BPE priority (lowest learned rank first) and
+        left-to-right tie breaking, while avoiding a full sequence scan after
+        every merge.
+        """
+        import heapq
+
         encoded_text = _encode_unicode_text(text)
-        sequence: list[bytes] = [bytes([value]) for value in encoded_text]
-        while len(sequence) > 1:
-            candidates = [
-                (self._merge_ranks[(sequence[i], sequence[i + 1])], i)
-                for i in range(len(sequence) - 1)
-                if (sequence[i], sequence[i + 1]) in self._merge_ranks
-            ]
-            if not candidates:
-                break
-            _, index = min(candidates)
-            sequence[index:index + 2] = [sequence[index] + sequence[index + 1]]
-        return [
-            self._token_to_id.get(token, token[0])
-            if len(token) == 1 else self._token_to_id[token]
-            for token in sequence
-        ]
+        tokens: list[bytes] = [bytes([value]) for value in encoded_text]
+        if not tokens:
+            return []
+
+        previous = [index - 1 for index in range(len(tokens))]
+        following = [index + 1 for index in range(len(tokens))]
+        following[-1] = -1
+        active = [True] * len(tokens)
+        candidates: list[tuple[int, int]] = []
+
+        def add_candidate(index: int) -> None:
+            if index < 0 or not active[index]:
+                return
+            right = following[index]
+            if right < 0:
+                return
+            rank = self._merge_ranks.get((tokens[index], tokens[right]))
+            if rank is not None:
+                heapq.heappush(candidates, (rank, index))
+
+        for index in range(len(tokens) - 1):
+            add_candidate(index)
+
+        while candidates:
+            rank, index = heapq.heappop(candidates)
+            if not active[index]:
+                continue
+            right = following[index]
+            if right < 0 or not active[right]:
+                continue
+            if self._merge_ranks.get((tokens[index], tokens[right])) != rank:
+                continue
+
+            tokens[index] += tokens[right]
+            active[right] = False
+            after = following[right]
+            following[index] = after
+            if after >= 0:
+                previous[after] = index
+
+            add_candidate(previous[index])
+            add_candidate(index)
+
+        result: list[int] = []
+        index = 0
+        while index >= 0:
+            token = tokens[index]
+            result.append(
+                self._token_to_id[token] if len(token) > 1 else token[0]
+            )
+            index = following[index]
+        return result
 
     def decode(self, token_ids: list[int]) -> str:
         expanded = bytearray()
