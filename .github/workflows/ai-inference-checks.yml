@@ -5,6 +5,7 @@ on:
     paths:
       - "ai-inference/**"
       - "ai-foundation/**"
+      - "ai-image/**"
       - "ai-engine/**"
       - "ai-search/**"
       - "ai-chat.js"
@@ -132,11 +133,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install --index-url https://download.pytorch.org/whl/cpu torch
-          pip install pytest
-      - name: Compile foundation model
-        run: python -m compileall -q ai-foundation
+          pip install pytest "Pillow>=10,<13"
+      - name: Compile foundation and image models
+        run: python -m compileall -q ai-foundation ai-image
       - name: Test New Star Transformer
         run: PYTHONPATH=. pytest -q ai-foundation/tests
+      - name: Test New Star from-scratch image diffusion model
+        run: PYTHONPATH=ai-image pytest -q ai-image/tests
       - name: Verify multilingual generation evaluator CLI
         run: PYTHONPATH=ai-foundation python ai-foundation/generation_eval.py --help
 
