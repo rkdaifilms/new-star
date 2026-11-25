@@ -893,7 +893,7 @@ Deno.serve(async (req: Request) => {
       : action === "transcribe" ? "transcribe"
       : action === "image" ? "image"
       : action === "vision" ? "vision"
-      : action === "search" ? "research"
+      : action === "search" || action === "crawl" ? "research"
       : action === "status" ? "status"
       : action === "video" || action === "video-status" ? "video"
       : "chat";
