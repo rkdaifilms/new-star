@@ -55,10 +55,11 @@ async function check(){
   const data=result.data,mode=data.mode||"provider";
   const providers=data.providers||{},health=data.health||{},caps=data.capabilities||{},model=health.newStarHostedModel||{};
   state.textContent="Authenticated · "+mode;metric.textContent="Online";
-  const activeExternal=mode==="self_hosted"?0:[providers.openai,providers.gemini,providers.openrouter].filter(Boolean).length;
-  providerMetric.textContent=String(activeExternal);
-  privateMetric.textContent=model.configured?(model.reachable&&model.modelAvailable?"Online":"Configured"):"Not set";
   const providerHealth=health.providers||{};
+  const activeExternal=mode==="self_hosted"?0:[providerHealth.openai,providerHealth.gemini,providerHealth.openrouter]
+   .filter(provider=>provider?.configured===true&&provider?.reachable===true).length;
+  providerMetric.textContent=String(activeExternal);
+  privateMetric.textContent=model.configured?(model.reachable&&model.modelAvailable?"Online":"Configured · unreachable"):"Not set";
   const detail={
    mode,
    gateway:"authenticated and responding",
