@@ -41,6 +41,20 @@
   <div id="ns-api-new" hidden></div>
   <div id="ns-api-list" aria-live="polite"><p>Sign in to manage your API keys.</p></div>
   <p class="ns-api-note">A new key is shown only once. The server stores only its SHA-256 hash. Revoke any key you no longer use. Never share a key in public code or messages.</p>
+  <details class="ns-api-docs"><summary>How to call the New Star API</summary>
+    <p>Call this endpoint from your own server. Keep the New Star key out of browser JavaScript, mobile app bundles, public repositories, and screenshots.</p>
+    <pre><code>POST https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/ai-gateway
+Authorization: Bearer ns_live_YOUR_KEY
+apikey: YOUR_SUPABASE_ANON_KEY
+Content-Type: application/json
+
+{
+  "messages": [
+    { "role": "user", "content": "Write a short video description." }
+  ]
+}</code></pre>
+    <p>Use only the permissions granted to that key. Chat uses the <code>messages</code> field; image generation uses <code>action: "image"</code>; live search uses <code>action: "search"</code>; image understanding uses <code>action: "vision"</code>.</p>
+  </details>
 </section>
 </main>
 </div>
