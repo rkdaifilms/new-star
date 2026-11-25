@@ -259,6 +259,24 @@ Deno.test("self-hosted model deployment has one canonical Compose source", async
   if (legacyRuntimeExists) throw new Error("Duplicate legacy ai-model runtime must not be reintroduced");
 });
 
+Deno.test("private index returns an empty success response when the index has no matching documents", async () => {
+  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const start = source.indexOf("async function searchNewStarIndex(");
+  const end = source.indexOf("\\nasync function searchWithGeminiGrounding", start);
+  if (start < 0 || end < 0) throw new Error("Private search function boundaries are missing");
+  const implementation = source.slice(start, end);
+  if (!implementation.includes("if (!error && Array.isArray(data))")) {
+    throw new Error("A healthy empty private index must be treated as a successful search response");
+  }
+  if (!implementation.includes('provider: "new-star-private-index"') ||
+      !implementation.includes("results, count: results.length")) {
+    throw new Error("Private search must return an empty result list and count zero when there are no matches");
+  }
+  if (implementation.includes("data.length) {")) {
+    throw new Error("An empty successful RPC response must not be mislabeled as a missing search worker");
+  }
+});
+
 Deno.test("AI gateway has no duplicate local functions or duplicate search route", async () => {
   const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
   const functionNames = [...source.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*\(/g)].map((match) => match[1]);
