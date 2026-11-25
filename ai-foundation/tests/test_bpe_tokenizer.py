@@ -40,6 +40,10 @@ def test_byte_bpe_rejects_invalid_inputs():
         ByteBPETokenizer.train("abc", max_merges=-1)
     with pytest.raises(ValueError, match="outside"):
         ByteBPETokenizer([]).decode([256])
+    with pytest.raises(ValueError, match="Unicode scalar"):
+        ByteBPETokenizer.train("valid" + chr(0xD800) + "invalid")
+    with pytest.raises(ValueError, match="Unicode scalar"):
+        ByteBPETokenizer([]).encode("invalid" + chr(0xDFFF) + "text")
 
 
 
