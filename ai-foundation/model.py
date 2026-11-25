@@ -88,7 +88,7 @@ class CausalBlock(nn.Module):
         output = output + self.feed_forward(self.norm2(output))
         return output, (key, value)
 
-    def forward_incremental(self, x: torch.Tensor, past_cache):
+    def forward_incremental(self, x: torch.Tensor, past_cache: tuple[torch.Tensor, torch.Tensor]):
         """Process one token using projected per-head key/value cache tensors."""
         normalized = self.norm1(x)
         query, key, value = self._project_qkv(normalized)
@@ -176,7 +176,7 @@ class NewStarGPT(nn.Module):
         return self.language_head(self.final_norm(x)), caches
 
     def forward_incremental(self, token: torch.Tensor, position: int,
-                            caches: list[torch.Tensor]):
+                            caches: list[tuple[torch.Tensor, torch.Tensor]]):
         """Advance cached decoding by exactly one token at its absolute window position."""
         if token.ndim != 2 or token.shape[1] != 1 or token.dtype != torch.long:
             raise ValueError("incremental token must be a [batch, 1] torch.long tensor")
