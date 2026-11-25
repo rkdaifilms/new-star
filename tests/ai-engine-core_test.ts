@@ -514,4 +514,10 @@ Deno.test("private speech worker is wired only in self-hosted voice paths", asyn
   if (!frontend.includes('body:{action:"speak",text,language}')) {
     throw new Error("Creator Studio must pass its active language into private speech synthesis");
   }
+  if (!frontend.includes("const sendText=text;const responseLanguage=requestLanguage();")) {
+    throw new Error("Creator Studio must capture the detected voice language before clearing transient voice state");
+  }
+  if (!frontend.includes('speakText(result.data.answer||"",voiceButton,responseLanguage)')) {
+    throw new Error("Spoken AI replies must use the language captured for the user's request");
+  }
 });
