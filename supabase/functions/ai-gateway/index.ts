@@ -9,6 +9,8 @@ import { readBoundedJson } from "./request-body.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
+  "https://new-star-2h8betscn-rkdaifilms-8858.vercel.app",
+  "https://deploy-preview-6--new-star-nepal.netlify.app",
   "https://star-delta.vercel.app",
   "https://new-star-delta.vercel.app",
   "https://new-star-rkdaifilms-8858.vercel.app",
