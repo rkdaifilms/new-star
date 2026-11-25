@@ -214,6 +214,9 @@ Deno.test("private llama.cpp compose uses documented authentication and parallel
   if (!compose.includes("LLAMA_ARG_N_PARALLEL:") || compose.includes("LLAMA_ARG_PARALLEL:")) {
     throw new Error("Chat server must use the documented LLAMA_ARG_N_PARALLEL variable");
   }
+  if (!compose.includes('LLAMA_ARG_UI: "false"') || compose.includes("LLAMA_ARG_NO_WEBUI:")) {
+    throw new Error("llama.cpp Web UI must be disabled with the documented LLAMA_ARG_UI environment variable");
+  }
 });
 
 Deno.test("self-hosted model deployment has one canonical Compose source", async () => {
