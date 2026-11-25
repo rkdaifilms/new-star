@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 import secrets
+import threading
 import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -50,6 +51,10 @@ def load_engine(checkpoint_path: str, device: str):
 
 
 def create_handler(model, tokenizer, model_name: str, device: str, api_key: str):
+    # A single model instance is shared by ThreadingHTTPServer workers. Serialize
+    # generation to bound peak memory and avoid concurrent GPU allocation spikes.
+    inference_lock = threading.Lock()
+
     class Handler(BaseHTTPRequestHandler):
         server_version = "NewStarFoundation/0.1"
 
@@ -79,6 +84,11 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
                 self._send(404, {"error": {"message": "Not found", "type": "not_found"}})
                 return
             try:
+                content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+                if content_type != "application/json":
+                    raise ValueError("Content-Type must be application/json")
+                if self.headers.get("Transfer-Encoding"):
+                    raise ValueError("transfer-encoded request bodies are not supported")
                 length = int(self.headers.get("Content-Length", "0"))
                 if length < 2 or length > 128_000:
                     raise ValueError("request body must be between 2 bytes and 128 KB")
@@ -93,12 +103,23 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
                     prompt = body.get("prompt")
                     if not isinstance(prompt, str) or not prompt.strip():
                         raise ValueError("prompt must be non-empty text")
-                temperature = float(body.get("temperature", 0.8))
-                max_tokens = int(body.get("max_tokens", 96))
-                top_k = body.get("top_k", 50)
-                top_k = int(top_k) if top_k is not None else None
-                top_p = float(body.get("top_p", 0.95))
-                repetition_penalty = float(body.get("repetition_penalty", 1.0))
+                temperature_raw = body.get("temperature", 0.8)
+                max_tokens_raw = body.get("max_tokens", 96)
+                top_k_raw = body.get("top_k", 50)
+                top_p_raw = body.get("top_p", 0.95)
+                repetition_raw = body.get("repetition_penalty", 1.0)
+                numeric_values = (temperature_raw, max_tokens_raw, top_p_raw, repetition_raw)
+                if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in numeric_values):
+                    raise ValueError("sampling parameters must be numeric values")
+                if not isinstance(max_tokens_raw, int):
+                    raise ValueError("max_tokens must be an integer")
+                if top_k_raw is not None and (isinstance(top_k_raw, bool) or not isinstance(top_k_raw, int)):
+                    raise ValueError("top_k must be null or an integer")
+                temperature = float(temperature_raw)
+                max_tokens = max_tokens_raw
+                top_k = top_k_raw
+                top_p = float(top_p_raw)
+                repetition_penalty = float(repetition_raw)
                 if not 0 < temperature <= 2:
                     raise ValueError("temperature must be greater than 0 and at most 2")
                 if not 1 <= max_tokens <= 512:
@@ -116,7 +137,7 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
                     raise ValueError(f"prompt is too long; maximum is {model.config.block_size} tokens")
                 input_ids = torch.tensor(encoded, dtype=torch.long, device=device).unsqueeze(0)
                 started = time.time()
-                with torch.inference_mode():
+                with inference_lock, torch.inference_mode():
                     generated = model.generate(input_ids, max_tokens, temperature, top_k, top_p, repetition_penalty)[0].tolist()
                 answer = tokenizer.decode(generated[len(encoded):])
                 completion_id = "ns-" + uuid.uuid4().hex
