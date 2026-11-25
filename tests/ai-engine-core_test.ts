@@ -103,22 +103,34 @@ Deno.test("search normalization accepts safe HTTPS results and rejects unsafe UR
 
 
 
-Deno.test("private search ingestion CLI is import-safe and validates 384-dimensional embeddings", async () => {
+Deno.test("private search ingestion CLI is import-safe and atomically replaces existing chunks", async () => {
   const source = await Deno.readTextFile(new URL("../scripts/new-star-search-ingest.ts", import.meta.url));
+  const migration = await Deno.readTextFile(new URL("../supabase/migrations/20261125133500_harden_search_chunk_replacement_rpc.sql", import.meta.url));
   if (!source.includes("if (import.meta.main)")) {
     throw new Error("Importing the ingestion utility must not execute its CLI");
   }
   if (!source.includes("vector.length !== 384")) {
     throw new Error("The ingestion utility must enforce the existing 384-dimensional vector schema");
   }
-  if (!source.includes("new_star_search_chunks?on_conflict=url,chunk_index")) {
-    throw new Error("The ingestion utility must reuse the existing vector chunk table");
+  if (!source.includes("/rpc/replace_new_star_search_chunks") || !source.includes("p_chunks: chunks")) {
+    throw new Error("Ingestion must use the atomic replacement RPC");
+  }
+  if (source.includes("/new_star_search_chunks?on_conflict")) {
+    throw new Error("Ingestion must not write directly to the chunk table and leave stale chunks behind");
+  }
+  if (!migration.includes("delete from public.new_star_search_chunks") ||
+      !migration.includes("grant execute on function public.replace_new_star_search_chunks(jsonb) to service_role")) {
+    throw new Error("Atomic replacement migration must replace rows and restrict execution to service_role");
   }
 });
 
 Deno.test("private search ingestion chunks long content with overlap and no data loss", () => {
   const content = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu";
   const chunks = splitIntoChunks(content, 24, 5);
+  const normalized = splitIntoChunks("alpha\\t beta\\n gamma", 100, 10);
+  if (normalized.length !== 1 || normalized[0] !== "alpha beta gamma") {
+    throw new Error("Chunker must normalize tabs and newlines before splitting");
+  }
   if (chunks.length < 2) throw new Error("Long content was not split into multiple chunks");
   if (!chunks[0].startsWith("alpha") || !chunks[chunks.length - 1].endsWith("mu")) {
     throw new Error("Chunking dropped the beginning or end of the source content");
