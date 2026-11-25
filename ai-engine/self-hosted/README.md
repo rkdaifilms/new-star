@@ -114,3 +114,22 @@ that loopback address. Expose the embedding service only through a protected
 TLS reverse proxy/private network with the separate embedding API key, and
 never expose the raw model port publicly. If the embedding worker is not
 configured, the gateway continues to use the existing full-text GIN index.
+
+## Private speech recognition and synthesis worker
+
+A separate, authenticated GPU worker is now included under `speech-worker/`. It provides:
+- `POST /v1/audio/transcriptions`: Whisper-based automatic language detection and transcription for WebM, OGG, MP4/M4A, MP3, and WAV.
+- `POST /v1/audio/speech`: Piper speech synthesis using a voice model explicitly configured for the requested language.
+- `GET /health`: process health only; it does not prove the model weights or voices are installed.
+
+The worker is optional and is not started with the default profile:
+
+```sh
+docker compose --profile speech build new-star-speech
+docker compose --profile speech up -d new-star-speech
+curl http://127.0.0.1:8090/health
+```
+
+Place the Whisper model cache in the persistent Docker volume (the first run downloads the selected model), and place licensed Piper `.onnx` voice files plus their matching `.onnx.json` config files in `models/`. Set `NEW_STAR_PIPER_VOICES` to a JSON map from language codes to exact filenames. Only configured voices are available; the worker returns an explicit error instead of silently speaking with the wrong language. The example Hindi voice filename is illustrative: verify that the corresponding licensed model and config are actually present before enabling it.
+
+The speech worker binds to host loopback only and requires a separate random bearer key. For Supabase Edge Function access, put it behind an authenticated TLS reverse proxy/private network; never expose port 8090 directly. Configure the gateway integration with that private HTTPS endpoint and the same key only after its authenticated smoke tests pass. This worker is source code, not a running service: the GPU host, models, voice files, and deployment are still required.
