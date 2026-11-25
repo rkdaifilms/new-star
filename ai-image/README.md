@@ -6,7 +6,7 @@ This package is New Star's first independent image-model training path. It conta
 
 - Unconditional image generation: the model learns the visual distribution of a permitted local image dataset.
 - RGB image loading, resizing, normalization, dataset SHA-256 audit, and a required provenance/permission manifest.
-- Training from random initialization, gradient clipping, atomic checkpoint writing, seeded sampling, and PNG output.
+- Training from random initialization, gradient clipping, exponential moving average (EMA) weights, atomic checkpoint writing, seeded sampling, and PNG output.
 - CPU support for small experiments and optional CUDA execution when a compatible PyTorch runtime is installed.
 
 This is not text-to-image: prompts, semantic conditioning, inpainting, high-resolution synthesis, video, and a production image API are not implemented here. A useful model requires a sufficiently large, diverse, high-quality dataset and substantial training. The automated tests use tiny synthetic images only to verify the code path; they do not create a useful image generator.
@@ -35,7 +35,7 @@ python -m venv .venv
 . .venv/bin/activate
 pip install -r ai-image/requirements.txt
 python ai-image/train.py --data ./permitted-images --manifest ./image-manifest.json \
-  --output ./artifacts/newstar-image-ddpm.pt --image-size 32 --steps 10000 --device cpu
+  --output ./artifacts/newstar-image-ddpm.pt --image-size 32 --steps 10000 --ema-decay 0.999 --device cpu
 ```
 
 For CUDA, install a PyTorch build compatible with the selected NVIDIA driver and use `--device cuda`. Begin with 32×32 images and a small test run to measure memory and throughput before increasing image size, model width, batch size, or training steps.
@@ -43,8 +43,9 @@ For CUDA, install a PyTorch build compatible with the selected NVIDIA driver and
 Training writes an atomic resumable state file beside the final checkpoint at each
 checkpoint interval (default: 100 optimizer steps), named
 `newstar-image-ddpm.pt.resume.pt`. The resume state includes model and optimizer
-weights, the exact shuffled-dataset position, independent random-generator
-states, the dataset fingerprint, and the training configuration. To resume,
+weights, EMA weights, the exact shuffled-dataset position, independent random-generator
+states, the dataset fingerprint, and the training configuration. Generation loads EMA weights
+when available; the raw model weights are retained for further training and evaluation. To resume,
 keep the same dataset, batch size, image size, model width, diffusion steps,
 learning rate, and seed, and set `--steps` to the desired **total** optimizer
 step count:
@@ -58,7 +59,7 @@ python ai-image/train.py --data ./permitted-images --manifest ./image-manifest.j
 
 A changed dataset fingerprint or incompatible training configuration is rejected.
 The CPU resume test compares a two-step uninterrupted run with a one-step run
-resumed to two steps and checks that their model weights match exactly. This
+resumed to two steps and checks that both raw and EMA model weights match exactly. This
 verifies restart mechanics, not image quality.
 
 ## Generate
