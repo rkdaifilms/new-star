@@ -7,6 +7,15 @@ from dataclasses import dataclass
 from bpe_tokenizer import ByteBPETokenizer
 
 
+def _validate_unicode_text(text: str) -> None:
+    if not isinstance(text, str):
+        raise ValueError("text to encode must be a string")
+    try:
+        text.encode("utf-8", errors="strict")
+    except UnicodeEncodeError as exc:
+        raise ValueError("text must contain only valid Unicode scalar values") from exc
+
+
 @dataclass
 class UnicodeCharTokenizer:
     """Use frequent Unicode code points as single tokens and UTF-8 bytes otherwise.
@@ -40,6 +49,7 @@ class UnicodeCharTokenizer:
             or max_vocab_size < cls.BYTE_VOCAB_SIZE
         ):
             raise ValueError("max_vocab_size must be an integer of at least 256 for byte fallback")
+        _validate_unicode_text(text)
         counts = Counter(text)
         ordered = sorted(counts, key=lambda char: (-counts[char], ord(char)))
         if max_vocab_size is not None:
@@ -62,8 +72,7 @@ class UnicodeCharTokenizer:
         return {"type": self.FORMAT, "tokens": self.tokens}
 
     def encode(self, text: str) -> list[int]:
-        if not isinstance(text, str):
-            raise ValueError("text to encode must be a string")
+        _validate_unicode_text(text)
         lookup = {token: index + self.CHAR_OFFSET for index, token in enumerate(self.tokens)}
         ids: list[int] = []
         for char in text:
