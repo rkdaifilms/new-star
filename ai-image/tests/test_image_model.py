@@ -370,3 +370,31 @@ def test_image_evaluation_rejects_training_dataset_leakage(tmp_path, monkeypatch
     train_main()
     with pytest.raises(ValueError, match="matches the training dataset"):
         evaluate_checkpoint(checkpoint, root, manifest, "cpu", batch_size=1, seed=9)
+
+
+
+def test_image_evaluation_rejects_overlapping_images_under_new_filenames(tmp_path, monkeypatch):
+    training_root = create_dataset(tmp_path / "training")
+    training_manifest = create_manifest(tmp_path / "training-manifest.json")
+    checkpoint = tmp_path / "image-model.pt"
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", "--data", str(training_root), "--manifest", str(training_manifest),
+        "--output", str(checkpoint), "--steps", "1", "--batch-size", "1",
+        "--image-size", "32", "--base-channels", "8", "--diffusion-steps", "2",
+    ])
+    train_main()
+
+    heldout_root = tmp_path / "renamed-heldout"
+    heldout_root.mkdir()
+    (heldout_root / "renamed-sample.png").write_bytes(
+        (training_root / "sample-0.png").read_bytes()
+    )
+    heldout_manifest = tmp_path / "heldout-manifest.json"
+    heldout_manifest.write_text(json.dumps({
+        "dataset_name": "incorrectly relabeled training image",
+        "source": "test fixture",
+        "license": "CC0-1.0",
+        "permission_basis": "created by test suite",
+    }), encoding="utf-8")
+    with pytest.raises(ValueError, match="contains image files used for training"):
+        evaluate_checkpoint(checkpoint, heldout_root, heldout_manifest, "cpu")
