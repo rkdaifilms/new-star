@@ -1524,3 +1524,33 @@ def test_balanced_sampler_validates_arguments_and_accepts_minimum_valid_corpus()
         sample_balanced_batch(
             {"en": exact}, 1, 2, "cpu", generator="not-a-generator"
         )
+
+
+def test_sft_sampler_validates_language_examples_and_batches():
+    import pytest
+    from sft_train import sample_instruction_batch
+
+    valid = {"en": [([10, 11, 12], [-100, 11, 12])]}
+    x, y = sample_instruction_batch(
+        valid, 2, 4, "cpu", torch.Generator(device="cpu").manual_seed(9)
+    )
+    assert x.shape == (2, 3)
+    assert y.shape == (2, 3)
+    assert torch.all(y[:, 0] == -100)
+
+    invalid = [
+        ({}, 1, 4),
+        (valid, True, 4),
+        (valid, 1, False),
+        ({"en": []}, 1, 4),
+        ({"en": [([1, 2], [-100])]}, 1, 4),
+        ({"en": [([1, 2, 3, 4, 5], [-100, 2, 3, 4, 5])]}, 1, 4),
+        ({"en": [([1, True], [-100, 2])]}, 1, 4),
+        ({"en": [([1, 2], [-100, -101])]}, 1, 4),
+        ({"en": [([1, 2], [-100, -100])]}, 1, 4),
+    ]
+    for corpora, batch_size, block_size in invalid:
+        with pytest.raises(ValueError):
+            sample_instruction_batch(corpora, batch_size, block_size, "cpu")
+    with pytest.raises(ValueError, match="generator"):
+        sample_instruction_batch(valid, 1, 4, "cpu", generator="invalid")
