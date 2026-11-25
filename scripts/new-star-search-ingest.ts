@@ -160,21 +160,24 @@ async function main() {
     }
   }
 
-  const response = await fetch(supabaseBase + "/rest/v1/new_star_search_chunks?on_conflict=url,chunk_index", {
+  const response = await fetch(supabaseBase + "/rest/v1/rpc/replace_new_star_search_chunks", {
     method: "POST",
     headers: {
       apikey: serviceKey,
       Authorization: "Bearer " + serviceKey,
-      "Content-Type": "application/json",
-      Prefer: "resolution=merge-duplicates,return=minimal"
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify(chunks)
+    body: JSON.stringify({ p_chunks: chunks })
   });
   if (!response.ok) {
     const message = (await response.text()).slice(0, 1200);
-    throw new Error("Supabase ingestion failed with HTTP " + response.status + ": " + message);
+    throw new Error("Supabase atomic search replacement failed with HTTP " + response.status + ": " + message);
   }
-  console.log("Indexed " + documents.length + " source documents into " + chunks.length + " vector + full-text chunks.");
+  const replacedCount = await response.json().catch(() => null);
+  if (replacedCount !== chunks.length) {
+    throw new Error("Supabase confirmed " + String(replacedCount) + " replaced chunks; expected " + chunks.length);
+  }
+  console.log("Atomically replaced " + documents.length + " source documents with " + replacedCount + " vector + full-text chunks.");
 }
 
 if (import.meta.main) {
