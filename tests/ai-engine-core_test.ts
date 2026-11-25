@@ -611,3 +611,11 @@ Deno.test("self-hosted search uses private crawl index and never calls Gemini gr
   }
   if (!gateway.includes('body?.action === "crawl"') || !gateway.includes("privateCrawl(")) throw new Error("Authenticated crawl action must be connected");
 });
+
+
+Deno.test("Creator Studio Search mode can index a public URL before querying its private crawl index", async () => {
+  const frontend = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  if (!frontend.includes('const crawlUrl=/^https?:\\/\\/[^\\s]+$/i.test(sendText.trim())')) throw new Error("Search mode must recognize a pasted URL for private indexing");
+  if (!frontend.includes('crawlUrl?{action:"crawl",url:sendText.trim()}:{action:"search"')) throw new Error("Search mode must call the private crawler for URLs and the private index for queries");
+  if (!frontend.includes("Paste a public page URL to index it first.")) throw new Error("Empty private search results must explain how to add a source");
+});
