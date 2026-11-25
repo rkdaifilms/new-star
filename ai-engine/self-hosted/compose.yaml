@@ -96,6 +96,42 @@ services:
               count: all
               capabilities: [gpu]
 
+  new-star-search:
+    build:
+      context: ./search-worker
+    container_name: new-star-private-search
+    restart: unless-stopped
+    profiles: ["search"]
+    ports:
+      - "127.0.0.1:8093:8093"
+    environment:
+      NEW_STAR_SEARCH_API_KEY: ${NEW_STAR_SEARCH_API_KEY:?Set NEW_STAR_SEARCH_API_KEY in .env}
+      NEW_STAR_SEARCH_DB: /data/search.sqlite3
+    volumes:
+      - new-star-search-data:/data
+
+  new-star-vision:
+    build:
+      context: ./vision-worker
+    container_name: new-star-private-vision
+    restart: unless-stopped
+    profiles: ["vision"]
+    ports:
+      - "127.0.0.1:8094:8094"
+    environment:
+      NEW_STAR_VISION_API_KEY: ${NEW_STAR_VISION_API_KEY:?Set NEW_STAR_VISION_API_KEY in .env}
+      NEW_STAR_VISION_MODEL: ${NEW_STAR_VISION_MODEL:-HuggingFaceTB/SmolVLM2-2.2B-Instruct}
+      NEW_STAR_VISION_CACHE: /models/huggingface
+    volumes:
+      - new-star-vision-cache:/models/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
   new-star-speech:
     build:
       context: ./speech-worker
@@ -129,3 +165,5 @@ volumes:
   new-star-image-cache:
   new-star-video-cache:
   new-star-video-jobs:
+  new-star-search-data:
+  new-star-vision-cache:
