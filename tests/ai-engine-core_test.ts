@@ -668,3 +668,14 @@ Deno.test("private speech requests refuse redirects before forwarding worker cre
     throw new Error("Both private speech synthesis and transcription must reject HTTP redirects");
   }
 });
+
+
+Deno.test("private chat model requests refuse HTTP redirects", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const start = gateway.indexOf("async function runNewStarHostedModel");
+  const end = gateway.indexOf("\nasync function probeApiProvider", start);
+  const request = gateway.slice(start, end);
+  if (start < 0 || end < 0 || !request.includes('redirect: "error"')) {
+    throw new Error("The authenticated private model request must reject redirects");
+  }
+});
