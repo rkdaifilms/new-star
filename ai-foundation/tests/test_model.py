@@ -1952,3 +1952,23 @@ def test_sft_resume_checkpoint_without_scaler_remains_compatible(tmp_path):
 
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
     assert checkpoint["grad_scaler_state"] is None
+
+
+
+def test_pretraining_resume_checkpoint_persists_gradient_scaler_state(tmp_path):
+    from artifact_io import atomic_torch_save
+
+    model = tiny_model()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+    scaler = torch.amp.GradScaler("cuda", enabled=False)
+    checkpoint = {
+        "format": "new-star-pretrain-resume-v1",
+        "model_state": model.state_dict(),
+        "optimizer_state": optimizer.state_dict(),
+        "grad_scaler_state": scaler.state_dict(),
+    }
+    path = tmp_path / "pretrain.resume.pt"
+    atomic_torch_save(checkpoint, path)
+
+    restored = torch.load(path, map_location="cpu", weights_only=True)
+    assert restored["grad_scaler_state"] == scaler.state_dict()
