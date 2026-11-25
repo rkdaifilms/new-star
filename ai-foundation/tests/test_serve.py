@@ -19,9 +19,10 @@ class FakeModel:
     config = FakeConfig()
 
     def generate(self, input_ids, max_tokens, temperature, top_k, top_p,
-                 repetition_penalty, do_sample=True):
+                 repetition_penalty, do_sample=True, generator=None):
         import torch
         self.last_do_sample = do_sample
+        self.last_seed = generator.initial_seed() if generator is not None else None
         return torch.cat(
             [input_ids, torch.tensor([[65]], dtype=torch.long, device=input_ids.device)],
             dim=1,
@@ -82,6 +83,25 @@ class FoundationServerTests(unittest.TestCase):
         }) as response:
             self.assertEqual(json.loads(response.read())["object"], "chat.completion")
         self.assertFalse(self.model.last_do_sample)
+
+    def test_request_seed_is_forwarded_as_isolated_generator(self):
+        with self.post({
+            "messages": [{"role": "user", "content": "hello"}],
+            "max_tokens": 1,
+            "seed": 2026,
+        }) as response:
+            self.assertEqual(json.loads(response.read())["object"], "chat.completion")
+        self.assertEqual(self.model.last_seed, 2026)
+
+    def test_rejects_invalid_seed_values(self):
+        for value in (True, 1.5, -1, 2**63, "2026"):
+            with self.subTest(value=value):
+                with self.assertRaises(HTTPError) as error:
+                    self.post({
+                        "messages": [{"role": "user", "content": "hello"}],
+                        "seed": value,
+                    })
+                self.assertEqual(error.exception.code, 400)
 
     def test_rejects_non_boolean_do_sample(self):
         for value in (1, "false", None):
