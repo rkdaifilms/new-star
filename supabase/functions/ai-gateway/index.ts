@@ -10,6 +10,8 @@ import { buildChatProviderPlan } from "./provider-routing.ts";
 import { privateSpeechSynthesis, privateSpeechTranscription } from "./private-speech.ts";
 import { privateImageGeneration } from "./private-image.ts";
 import { privateVideoStart, privateVideoStatus } from "./private-video.ts";
+import { privateSearch, privateCrawl } from "./private-search.ts";
+import { privateVision } from "./private-vision.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -967,13 +969,28 @@ Deno.serve(async (req: Request) => {
     if (!query || query.length > 500) return json({ ok: false, error: "Enter a search query of up to 500 characters." }, 400, headers);
     const { data: searchAllowed, error: searchLimitError } = await consumeAiGatewayRateLimit(adminClient, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (searchLimitError || searchAllowed !== true) return json({ ok: false, error: searchLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, searchLimitError ? 503 : 429, headers);
+    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") {
+      const result = await privateSearch(Deno.env.get("NEW_STAR_SEARCH_BASE_URL") || "", Deno.env.get("NEW_STAR_SEARCH_API_KEY") || "", query, limit);
+      if (!result.ok) return json({ ok: false, error: result.error, code: "NEW_STAR_PRIVATE_SEARCH_UNAVAILABLE" }, result.status, headers);
+      return json({ ok: true, provider: "new-star-private-search", query, answer: "", results: result.results, count: result.results.length }, 200, headers);
+    }
     const indexed = await searchNewStarIndex(query, language, limit, headers, adminClient);
     if (indexed) return indexed;
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private web-crawl and search-index workers are not deployed yet. External search providers are disabled in self-hosted mode.", code: "NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED" }, 503, headers);
     return await searchWithGeminiGrounding(query, language, limit, headers);
   }
+  if (body?.action === "crawl") {
+    const url = typeof body.url === "string" ? body.url.trim() : "";
+    if (!url || url.length > 2048) return json({ ok: false, error: "Provide a public website URL up to 2,048 characters." }, 400, headers);
+    const { data: crawlAllowed, error: crawlLimitError } = await consumeAiGatewayRateLimit(adminClient, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 10);
+    if (crawlLimitError || crawlAllowed !== true) return json({ ok: false, error: crawlLimitError ? "Security rate-limit check unavailable." : "Crawler request limit reached." }, crawlLimitError ? 503 : 429, headers);
+    if (Deno.env.get("NEW_STAR_AI_MODE") !== "self_hosted") return json({ ok: false, error: "The crawl action is reserved for New Star private search mode." }, 409, headers);
+    const result = await privateCrawl(Deno.env.get("NEW_STAR_SEARCH_BASE_URL") || "", Deno.env.get("NEW_STAR_SEARCH_API_KEY") || "", url);
+    if (!result.ok) return json({ ok: false, error: result.error, code: "NEW_STAR_PRIVATE_CRAWL_UNAVAILABLE" }, result.status, headers);
+    return json({ ok: true, provider: "new-star-private-search", ...result }, 200, headers);
+  }
+
   if (body?.action === "vision") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private image-understanding model is not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_VISION_MODEL_NOT_DEPLOYED" }, 503, headers);
+    const selfHostedVision = Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted";
     const image = typeof body.image === "string" ? body.image : "";
     const rawMimeType = typeof body.mimeType === "string" ? body.mimeType.split(";")[0].trim().toLowerCase() : "";
     const mimeType = ["image/png", "image/jpeg", "image/webp"].includes(rawMimeType) ? rawMimeType : "";
@@ -984,6 +1001,11 @@ Deno.serve(async (req: Request) => {
     if (!prompt || prompt.length > 3000) return json({ ok: false, error: "Image question must contain 1 to 3,000 characters." }, 400, headers);
     const { data: allowed, error: limitError } = await consumeAiGatewayRateLimit(adminClient, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (limitError || allowed !== true) return json({ ok: false, error: limitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, limitError ? 503 : 429, headers);
+    if (selfHostedVision) {
+      const result = await privateVision(Deno.env.get("NEW_STAR_VISION_BASE_URL") || "", Deno.env.get("NEW_STAR_VISION_API_KEY") || "", image, mimeType, prompt);
+      if (!result.ok) return json({ ok: false, error: result.error, code: "NEW_STAR_PRIVATE_VISION_UNAVAILABLE" }, result.status, headers);
+      return json({ ok: true, answer: result.answer, provider: "new_star_private", model: result.model }, 200, headers);
+    }
     const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
     const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
     const failures: string[] = [];
@@ -1395,7 +1417,7 @@ Deno.serve(async (req: Request) => {
     if (statusLimitError || statusAllowed !== true) return json({ ok: false, error: statusLimitError ? "Security rate-limit check unavailable." : "Provider status check limit reached. Wait before checking again." }, statusLimitError ? 503 : 429, headers);
     if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") {
       const hosted = await probeNewStarHostedModel();
-      return json({ ok: true, status: true, mode: "self_hosted", providers: { newStarHostedModelConfigured: hosted.configured, newStarApiPrimary: true, openai: false, gemini: false, openrouter: false }, capabilities: { chat: { supported: true, configured: hosted.configured && hosted.reachable && hosted.modelAvailable }, imageGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_IMAGE_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_IMAGE_API_KEY")?.trim() || "").length >= 32), reason: "Private GPU image worker endpoint and key must be configured and verified" }, imageUnderstanding: { supported: false, configured: false, reason: "Private vision model not deployed" }, developerApiKeys: { supported: true, configured: true }, speechGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SPEECH_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_SPEECH_API_KEY")?.trim() || "").length >= 32), reason: "Private speech worker and licensed language voices must be installed and verified" }, speechTranscription: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SPEECH_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_SPEECH_API_KEY")?.trim() || "").length >= 32), reason: "Private speech worker endpoint and key must be configured and verified" }, videoGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_VIDEO_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_VIDEO_API_KEY")?.trim() || "").length >= 32), reason: "Private GPU video worker endpoint and key must be configured and verified; current output is 480p, 6 seconds" }, webSearch: { supported: false, configured: false, reason: "Private search worker not deployed" } }, health: { newStarHostedModel: hosted, providers: { openai: { configured: false }, gemini: { configured: false }, openrouter: { configured: false } }, note: "Self-hosted-only mode. No external model providers are contacted." } }, 200, headers);
+      return json({ ok: true, status: true, mode: "self_hosted", providers: { newStarHostedModelConfigured: hosted.configured, newStarApiPrimary: true, openai: false, gemini: false, openrouter: false }, capabilities: { chat: { supported: true, configured: hosted.configured && hosted.reachable && hosted.modelAvailable }, imageGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_IMAGE_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_IMAGE_API_KEY")?.trim() || "").length >= 32), reason: "Private GPU image worker endpoint and key must be configured and verified" }, imageUnderstanding: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_VISION_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_VISION_API_KEY")?.trim() || "").length >= 32), reason: "Private vision worker endpoint and key must be configured and verified" }, developerApiKeys: { supported: true, configured: true }, speechGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SPEECH_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_SPEECH_API_KEY")?.trim() || "").length >= 32), reason: "Private speech worker and licensed language voices must be installed and verified" }, speechTranscription: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SPEECH_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_SPEECH_API_KEY")?.trim() || "").length >= 32), reason: "Private speech worker endpoint and key must be configured and verified" }, videoGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_VIDEO_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_VIDEO_API_KEY")?.trim() || "").length >= 32), reason: "Private GPU video worker endpoint and key must be configured and verified; current output is 480p, 6 seconds" }, webSearch: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SEARCH_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_SEARCH_API_KEY")?.trim() || "").length >= 32), reason: "Private crawler/search worker endpoint and key must be configured; only pages crawled into its local index are searchable" } }, health: { newStarHostedModel: hosted, providers: { openai: { configured: false }, gemini: { configured: false }, openrouter: { configured: false } }, note: "Self-hosted-only mode. No external model providers are contacted." } }, 200, headers);
     }
     const newStarModel = await probeNewStarHostedModel();
     const newStarTestFallbackEnabled = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true" && newStarModel.configured;
