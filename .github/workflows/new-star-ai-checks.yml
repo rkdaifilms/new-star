@@ -96,6 +96,7 @@ jobs:
           grep -F 'consumeAiGatewayRateLimit' "$FILE"
           grep -F 'consume_ai_gateway_api_key_rate_limit' "$FILE"
           grep -F 'apiKeyId' "$FILE"
+          grep -F 'private.ai_gateway_api_key_rate_limits' supabase/migrations/20261125000000_ai_gateway_api_key_rate_limits.sql
           grep -F 'sha256Hex' "$FILE"
           grep -F 'body?.action === "video"' "$FILE"
           grep -F 'body?.action === "video-status"' "$FILE"
@@ -124,4 +125,4 @@ jobs:
           grep -F 'new-star-ai.html' creator-ai.html
           grep -F 'Google Cloud Vertex AI' ai-video/README.md
           grep -F 'end-to-end generation test' ai-video/README.md
-          grep -F 'ns_live_' new-star-ai.js
+          grep -F 'ns_live_YOUR_KEY' new-star-ai.html
