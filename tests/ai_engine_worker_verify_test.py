@@ -95,7 +95,7 @@ class VisionFixtureTests(unittest.TestCase):
         encoded = verify.PNG_1X1
         raw = base64.b64decode(encoded, validate=True)
         self.assertGreaterEqual(len(encoded), 100)
-        self.assertTrue(raw.startswith(b"\\x89PNG\\r\\n\\x1a\\n"))
+        self.assertTrue(raw.startswith(bytes((137, 80, 78, 71, 13, 10, 26, 10))))
 
 
 if __name__ == "__main__":
