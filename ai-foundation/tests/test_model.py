@@ -1439,3 +1439,23 @@ def test_instruction_encoder_rejects_invalid_length_and_tokenizer():
             encode_instruction_example(messages, tokenizer, invalid_length)
     with pytest.raises(ValueError, match="encode"):
         encode_instruction_example(messages, object(), 16)
+
+
+def test_model_forward_and_cache_paths_reject_empty_batches_and_non_tensors():
+    import pytest
+
+    model = tiny_model().eval()
+    with pytest.raises(ValueError, match="torch.Tensor"):
+        model("not a tensor")
+    with pytest.raises(ValueError, match="batch >= 1"):
+        model(torch.empty((0, 3), dtype=torch.long))
+    with pytest.raises(ValueError, match="torch.Tensor"):
+        model.forward_with_cache([1, 2])
+    with pytest.raises(ValueError, match="batch >= 1"):
+        model.forward_with_cache(torch.empty((0, 3), dtype=torch.long))
+    with pytest.raises(ValueError, match="torch.Tensor"):
+        model.generate([1, 2])
+    with pytest.raises(ValueError, match="attention cache"):
+        model.forward_incremental(
+            torch.tensor([[1]], dtype=torch.long), 0, None
+        )
