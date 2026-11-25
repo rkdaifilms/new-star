@@ -30,7 +30,7 @@ class NewStarConfig:
         if width % heads:
             raise ValueError("width must be divisible by heads")
         if (not isinstance(dropout, (int, float)) or isinstance(dropout, bool)
-                or not 0.0 <= dropout < 1.0):
+                or not math.isfinite(dropout) or not 0.0 <= dropout < 1.0):
             raise ValueError("dropout must be a finite number in the range [0, 1)")
         if not isinstance(gradient_checkpointing, bool):
             raise ValueError("gradient_checkpointing must be a boolean")
@@ -135,15 +135,20 @@ class NewStarGPT(nn.Module):
         self.language_head.weight = self.token_embedding.weight
 
     def forward(self, tokens: torch.Tensor, targets: torch.Tensor | None = None):
-        if tokens.ndim != 2 or tokens.shape[1] < 1 or tokens.shape[1] > self.config.block_size:
-            raise ValueError("tokens must be [batch, sequence] with 1 <= sequence <= block_size")
+        if not isinstance(tokens, torch.Tensor):
+            raise ValueError("tokens must be a torch.Tensor")
+        if tokens.ndim != 2 or tokens.shape[0] < 1 or tokens.shape[1] < 1 or tokens.shape[1] > self.config.block_size:
+            raise ValueError("tokens must be [batch, sequence] with batch >= 1 and 1 <= sequence <= block_size")
         if tokens.dtype != torch.long:
             raise ValueError("tokens must use torch.long token IDs")
+        if tokens.device != self.token_embedding.weight.device:
+            raise ValueError("tokens and model parameters must be on the same device")
         if torch.any(tokens < 0) or torch.any(tokens >= self.config.vocab_size):
             raise ValueError("token IDs must be within the configured vocabulary")
         if targets is not None:
-            if targets.shape != tokens.shape or targets.dtype != torch.long:
-                raise ValueError("targets must be torch.long and match the token shape")
+            if (not isinstance(targets, torch.Tensor) or targets.shape != tokens.shape
+                    or targets.dtype != torch.long or targets.device != tokens.device):
+                raise ValueError("targets must be torch.long, on the token device, and match the token shape")
             valid_targets = targets != -100
             if not torch.any(valid_targets):
                 raise ValueError("targets must contain at least one non-masked token")
