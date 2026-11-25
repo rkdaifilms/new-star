@@ -1644,3 +1644,19 @@ def test_native_server_loads_only_structurally_compatible_checkpoints(tmp_path):
         torch.save(invalid, invalid_path)
         with pytest.raises(ValueError):
             load_engine(str(invalid_path), "cpu")
+
+
+
+def test_generation_cli_rejects_non_finite_and_out_of_range_temperature(monkeypatch):
+    import pytest
+    from generate import main
+
+    for temperature in ("0", "-0.1", "2.1", "nan", "inf", "-inf"):
+        monkeypatch.setattr(sys, "argv", [
+            "generate.py",
+            "--checkpoint", "unused-checkpoint.pt",
+            "--temperature", temperature,
+        ])
+        with pytest.raises(SystemExit) as error:
+            main()
+        assert error.value.code == 2
