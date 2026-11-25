@@ -4,7 +4,7 @@
 
 New Star has an application-owned AI orchestration layer running in Supabase. It owns authentication checks, prompts, conversation persistence, provider routing, request limits, API-key management, and model adapters. This is New Star's own AI application layer; it is **not** a foundation model trained from scratch by New Star.
 
-- Supabase Edge Function: `ai-gateway`, active deployment version **96**.
+- Supabase Edge Function: `ai-gateway`, active deployment version **97**.
 - Frontend workspace: `new-star-ai.html`, linked from Creator Studio.
 - Provider credentials remain in server-side Supabase secrets.
 - Vercel hosts app previews; Supabase runs the AI backend independently of Vercel.
@@ -46,8 +46,9 @@ Do not claim a video was generated until these checks pass.
 
 ## Deployment and release status
 
-- Supabase AI Gateway v96 is active.
+- Supabase AI Gateway v97 is active.
 - GitHub Actions validation passes for browser JavaScript syntax, Deno type-checking, model Compose configuration, required backend routes, API-key security, and Creator Studio controls.
+- The AI Gateway CORS allowlist includes the exact Netlify PR preview and current Vercel preview origins; no broad preview-domain wildcard is used.
 - The latest feature branch commit is published as a Netlify deploy preview. Vercel reported its preview build quota/rate limit and Cloudflare's connected build reported an authentication failure; neither failure changes the active Supabase AI Gateway.
 - The feature branch is proposed in pull request #6. Production has not been merged or released from this pull request.
 - Real authenticated provider inference tests for image, voice, live search, and video remain separate release checks.
