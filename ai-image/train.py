@@ -54,6 +54,7 @@ def training_config(args) -> dict:
         "ema_decay": args.ema_decay,
         "seed": args.seed,
         "text_conditioned": args.text_conditioned,
+        "caption_dropout": args.caption_dropout,
     }
 
 
@@ -212,6 +213,11 @@ def train(args) -> dict:
         noise = torch.randn(clean.shape, device=device, generator=noise_generator)
         noisy = schedule.add_noise(clean, times, noise)
         optimizer.zero_grad(set_to_none=True)
+        if text_tokens is not None and args.caption_dropout:
+            keep_caption = torch.rand(
+                (text_tokens.shape[0], 1), device=device, generator=noise_generator
+            ) >= args.caption_dropout
+            text_tokens = text_tokens * keep_caption.to(dtype=torch.long)
         prediction = model(noisy, times, text_tokens=text_tokens)
         loss = F.mse_loss(prediction, noise)
         if not torch.isfinite(loss):
@@ -279,12 +285,17 @@ def main() -> None:
     parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--ema-decay", type=float, default=0.999)
     parser.add_argument("--text-conditioned", action="store_true", help="Train with per-image captions from manifest captions object")
+    parser.add_argument("--caption-dropout", type=float, default=0.1, help="Probability of dropping captions for classifier-free guidance training")
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--log-interval", type=int, default=100)
     parser.add_argument("--checkpoint-interval", type=int, default=100)
     parser.add_argument("--resume-from", help="Resume from an earlier .resume.pt checkpoint")
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args()
+    if not math.isfinite(args.caption_dropout) or not 0.0 <= args.caption_dropout < 1.0:
+        parser.error("--caption-dropout must be finite and in [0, 1)")
+    if not args.text_conditioned and args.caption_dropout != 0.1:
+        parser.error("--caption-dropout requires --text-conditioned")
     if args.log_interval < 1:
         parser.error("--log-interval must be positive")
     try:
