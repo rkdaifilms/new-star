@@ -888,6 +888,18 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, revoked: true }, 200, headers);
   }
 
+  if (body?.action === "search") {
+    const query = typeof body.query === "string" ? body.query.trim() : "";
+    const requestedLanguage = typeof body.language === "string" ? body.language.trim().toLowerCase() : "auto";
+    const language = requestedLanguage === "auto" ? "auto" : (AI_LANGUAGE_NAMES[requestedLanguage] ? requestedLanguage : "auto");
+    const limit = Number.isInteger(body.limit) ? Math.min(10, Math.max(1, Number(body.limit))) : 5;
+    if (!query || query.length > 500) return json({ ok: false, error: "Enter a search query of up to 500 characters." }, 400, headers);
+    const { data: searchAllowed, error: searchLimitError } = await consumeAiGatewayRateLimit(adminClient, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
+    if (searchLimitError || searchAllowed !== true) return json({ ok: false, error: searchLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, searchLimitError ? 503 : 429, headers);
+    const indexed = await searchNewStarIndex(query, language, limit, headers);
+    if (indexed) return indexed;
+    return await searchWithGeminiGrounding(query, language, limit, headers);
+  }
   if (body?.action === "vision") {
     const image = typeof body.image === "string" ? body.image : "";
     const rawMimeType = typeof body.mimeType === "string" ? body.mimeType.split(";")[0].trim().toLowerCase() : "";
