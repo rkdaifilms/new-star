@@ -337,13 +337,13 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
 
   const requiredSelfHostedGuards = [
     "NEW_STAR_AI_MODE",
-    "NEW_STAR_VISION_MODEL_NOT_DEPLOYED",
+    "NEW_STAR_PRIVATE_VISION_UNAVAILABLE",
     "NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE",
     "NEW_STAR_PRIVATE_SPEECH_UNAVAILABLE",
     "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE",
     "NEW_STAR_PRIVATE_VIDEO_UNAVAILABLE",
     "NEW_STAR_PRIVATE_VIDEO_STATUS_UNAVAILABLE",
-    "NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED"
+    "NEW_STAR_PRIVATE_SEARCH_UNAVAILABLE"
   ];
   const missingGuards = requiredSelfHostedGuards.filter((guard) => !source.includes(guard));
   if (missingGuards.length) throw new Error("Missing self-hosted safety guards: " + missingGuards.join(", "));
@@ -394,7 +394,7 @@ Deno.test("Creator Studio clearly distinguishes private-only mode from external 
 Deno.test("every external media and search route fails closed before provider access in self-hosted mode", async () => {
   const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
   const routes = [
-    { action: "vision", guard: "NEW_STAR_VISION_MODEL_NOT_DEPLOYED" },
+    { action: "vision", guard: "NEW_STAR_PRIVATE_VISION_UNAVAILABLE" },
     { action: "speak", guard: "NEW_STAR_PRIVATE_SPEECH_UNAVAILABLE" },
     { action: "transcribe", guard: "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE" },
     { action: "video", guard: "NEW_STAR_PRIVATE_VIDEO_UNAVAILABLE" },
