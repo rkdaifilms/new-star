@@ -338,6 +338,7 @@ async function retrieveNewStarRagContext(query: string, adminClient: any): Promi
   } catch {
     // A missing or empty private index must not break ordinary chat.
   }
+  if (selfHostedRag) return "";
   const configured = Deno.env.get("NEW_STAR_SEARCH_BASE_URL")?.trim() || "";
   const token = Deno.env.get("NEW_STAR_SEARCH_API_KEY")?.trim() || "";
   if (!configured || !token) return "";
@@ -378,6 +379,13 @@ async function searchNewStarIndex(query: string, language: string, limit: number
     }
   } catch {
     // Continue to the configured private search worker if the local index is unavailable.
+  }
+  if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") {
+    return json({
+      ok: false,
+      error: "New Star's private search index is unavailable. External search workers are disabled in self-hosted mode.",
+      code: "NEW_STAR_PRIVATE_SEARCH_NOT_READY"
+    }, 503, headers);
   }
   const configured = Deno.env.get("NEW_STAR_SEARCH_BASE_URL")?.trim() || "";
   const token = Deno.env.get("NEW_STAR_SEARCH_API_KEY")?.trim() || "";
