@@ -658,6 +658,26 @@ function createNewStarApiKey() {
   return "ns_live_" + base64UrlEncode(bytes);
 }
 
+async function consumeAiGatewayRateLimit(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  apiKeyAuth: boolean,
+  apiKeyId: string,
+  apiKeyRateLimit: number,
+  userLimit: number
+) {
+  if (apiKeyAuth) {
+    return await admin.rpc("consume_ai_gateway_api_key_rate_limit", {
+      p_api_key_id: apiKeyId,
+      p_limit: apiKeyRateLimit
+    });
+  }
+  return await admin.rpc("consume_ai_gateway_rate_limit", {
+    p_user_id: userId,
+    p_limit: userLimit
+  });
+}
+
 async function transcribeWithOpenAI(key: string, audio: string, mimeType: string) {
   const binary = atob(audio);
   const bytes = new Uint8Array(binary.length);
@@ -711,6 +731,7 @@ Deno.serve(async (req: Request) => {
   });
   const bearerToken = authorization.slice(7).trim();
   let userId = "";
+  let apiKeyId = "";
   let apiKeyAuth = false;
   let apiKeyScopes: string[] = [];
   let apiKeyRateLimit = 20;
@@ -729,6 +750,7 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "API key is invalid, expired, or revoked." }, 401, headers);
     }
     userId = keyRecord.user_id;
+    apiKeyId = keyRecord.id;
     apiKeyAuth = true;
     apiKeyScopes = Array.isArray(keyRecord.scopes) ? keyRecord.scopes : [];
     apiKeyRateLimit = Math.min(100, Math.max(1, Number(keyRecord.rate_limit) || 20));
@@ -838,8 +860,7 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "Attach a valid PNG, JPEG, or WebP image smaller than 6 MB." }, 400, headers);
     }
     if (!prompt || prompt.length > 3000) return json({ ok: false, error: "Image question must contain 1 to 3,000 characters." }, 400, headers);
-    const visionLimit = Math.min(apiKeyAuth ? apiKeyRateLimit : 20, 20);
-    const { data: allowed, error: limitError } = await adminClient.rpc("consume_ai_gateway_rate_limit", { p_user_id: userId, p_limit: visionLimit });
+    const { data: allowed, error: limitError } = await consumeAiGatewayRateLimit(adminClient, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (limitError || allowed !== true) return json({ ok: false, error: limitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, limitError ? 503 : 429, headers);
     const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
     const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
@@ -874,7 +895,7 @@ Deno.serve(async (req: Request) => {
     const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
     if (!geminiKeys.length && !openaiKeys.length) return json({ ok: false, error: "Multilingual AI voice is not configured. Written replies remain available." }, 503, headers);
     const speechAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: speechAllowed, error: speechLimitError } = await speechAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userId, p_limit: apiKeyAuth ? apiKeyRateLimit : 20 });
+    const { data: speechAllowed, error: speechLimitError } = await consumeAiGatewayRateLimit(speechAdmin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (speechLimitError || speechAllowed !== true) return json({ ok: false, error: speechLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, speechLimitError ? 503 : 429, headers);
 
     const failures: string[] = [];
@@ -952,7 +973,7 @@ Deno.serve(async (req: Request) => {
     const extensions: Record<string, string> = { "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a", "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/wav": "wav", "audio/m4a": "m4a" };
     if (typeof audio !== "string" || audio.length < 100 || audio.length > 11000000 || !extensions[mimeType]) return json({ ok: false, error: "Voice recording is missing, too large, or uses an unsupported format." }, 400, headers);
     const voiceAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: allowedVoice, error: voiceLimitError } = await voiceAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userId, p_limit: apiKeyAuth ? apiKeyRateLimit : 20 });
+    const { data: allowedVoice, error: voiceLimitError } = await consumeAiGatewayRateLimit(voiceAdmin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (voiceLimitError || allowedVoice !== true) return json({ ok: false, error: voiceLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, voiceLimitError ? 503 : 429, headers);
     const failures: string[] = [];
     const audioBytes = Uint8Array.from(atob(audio), (character) => character.charCodeAt(0));
@@ -1013,7 +1034,7 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "Video generation requires Google Cloud Vertex AI access. An authorized project owner must configure GOOGLE_SERVICE_ACCOUNT_JSON and enable the Vertex AI API." }, 503, headers);
     }
     const videoAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: videoAllowed, error: videoLimitError } = await videoAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userId, p_limit: Math.min(apiKeyAuth ? apiKeyRateLimit : 20, 3) });
+    const { data: videoAllowed, error: videoLimitError } = await consumeAiGatewayRateLimit(videoAdmin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 3);
     if (videoLimitError || videoAllowed !== true) return json({ ok: false, error: videoLimitError ? "Security rate-limit check unavailable." : "Video request limit reached. Please wait before trying again." }, videoLimitError ? 503 : 429, headers);
 
     const configuredVideoModel = Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim();
@@ -1052,7 +1073,7 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "A valid video job ID is required." }, 400, headers);
     }
     const videoAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: statusAllowed, error: statusLimitError } = await videoAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userId, p_limit: 60 });
+    const { data: statusAllowed, error: statusLimitError } = await consumeAiGatewayRateLimit(videoAdmin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 60);
     if (statusLimitError || statusAllowed !== true) return json({ ok: false, error: statusLimitError ? "Security rate-limit check unavailable." : "Video status polling limit reached. Wait before checking again." }, statusLimitError ? 503 : 429, headers);
     const { data: job, error: jobError } = await videoAdmin.from("ai_video_jobs")
       .select("id, provider_interaction_id, provider_model, status, storage_path, failure_code, updated_at")
@@ -1127,7 +1148,7 @@ Deno.serve(async (req: Request) => {
     const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
     if (!geminiKeys.length && !openrouterKeys.length && !openaiKeys.length) return json({ ok: false, error: "Image generation is not configured. Add a Gemini, OpenRouter, or OpenAI provider key on the server." }, 503, headers);
     const imageAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: imageAllowed, error: imageLimitError } = await imageAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userId, p_limit: apiKeyAuth ? apiKeyRateLimit : 20 });
+    const { data: imageAllowed, error: imageLimitError } = await consumeAiGatewayRateLimit(imageAdmin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (imageLimitError || imageAllowed !== true) return json({ ok: false, error: imageLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, imageLimitError ? 503 : 429, headers);
 
     const failures: string[] = [];
@@ -1184,7 +1205,7 @@ Deno.serve(async (req: Request) => {
     const language = typeof body.language === "string" ? body.language.slice(0, 16) : "auto";
     const limit = Number.isInteger(body.limit) ? Math.min(10, Math.max(1, body.limit)) : 5;
     if (!query || query.length > 500) return json({ ok: false, error: "Search query must contain 1 to 500 characters." }, 400, headers);
-    const { data: searchAllowed, error: searchLimitError } = await adminClient.rpc("consume_ai_gateway_rate_limit", { p_user_id: userId, p_limit: apiKeyAuth ? apiKeyRateLimit : 20 });
+    const { data: searchAllowed, error: searchLimitError } = await consumeAiGatewayRateLimit(adminClient, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (searchLimitError || searchAllowed !== true) return json({ ok: false, error: searchLimitError ? "Security rate-limit check unavailable." : "Search request limit reached. Please wait before trying again." }, searchLimitError ? 503 : 429, headers);
     const indexed = await searchNewStarIndex(query, language, limit, headers);
     if (indexed) return indexed;
@@ -1192,6 +1213,8 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body?.action === "status") {
+    const { data: statusAllowed, error: statusLimitError } = await consumeAiGatewayRateLimit(adminClient, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
+    if (statusLimitError || statusAllowed !== true) return json({ ok: false, error: statusLimitError ? "Security rate-limit check unavailable." : "Provider status check limit reached. Wait before checking again." }, statusLimitError ? 503 : 429, headers);
     const newStarModel = await probeNewStarHostedModel();
     const newStarTestFallbackEnabled = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true" && newStarModel.configured;
     const newStarApiPrimary = Deno.env.get("NEW_STAR_MODEL_PRIMARY") === "true" && newStarModel.configured;
@@ -1289,8 +1312,7 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
-  const { data: allowed, error: limitError } = await admin
-    .rpc("consume_ai_gateway_rate_limit", { p_user_id: userId, p_limit: apiKeyAuth ? apiKeyRateLimit : 20 });
+  const { data: allowed, error: limitError } = await consumeAiGatewayRateLimit(admin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
 
   if (limitError) {
     return json({ ok: false, error: "Security rate-limit check unavailable. Try again shortly." }, 503, headers);
