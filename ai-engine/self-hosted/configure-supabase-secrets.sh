@@ -36,6 +36,14 @@ for name in required + optional:
     value = os.environ.get(name, "").strip()
     if name.endswith("_API_KEY") and value and (len(value) < 32 or "replace-" in value):
         sys.exit(f"ERROR: {name} must be a real random secret of at least 32 characters.")
+worker_keys = [os.environ.get(name, "").strip() for name in [
+    "NEW_STAR_MODEL_API_KEY", "NEW_STAR_IMAGE_API_KEY", "NEW_STAR_VIDEO_API_KEY",
+    "NEW_STAR_SPEECH_API_KEY", "NEW_STAR_SEARCH_API_KEY", "NEW_STAR_VISION_API_KEY",
+]]
+if len(set(worker_keys)) != len(worker_keys):
+    sys.exit("ERROR: each private worker must use a different API key.")
+if os.environ.get("NEW_STAR_EMBEDDING_API_KEY", "").strip() in worker_keys:
+    sys.exit("ERROR: the embedding worker must use its own separate API key.")
 for name in [x for x in required + optional if x.endswith("_BASE_URL")]:
     value = os.environ.get(name, "").strip()
     if not value: continue
