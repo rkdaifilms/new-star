@@ -68,6 +68,10 @@ def evaluate(checkpoint_path: str | Path, data_path: str | Path,
 
     model, schedule, config = load_checkpoint(checkpoint_path, str(device))
     audit = audit_image_dataset(data_path, manifest_path)
+    evaluation_fingerprint = fingerprint_dataset(audit)
+    training_fingerprint = config.get("training_dataset_fingerprint")
+    if training_fingerprint and evaluation_fingerprint == training_fingerprint:
+        raise ValueError("evaluation dataset fingerprint matches the training dataset; provide a separate held-out dataset")
     dataset = ImageFolderDataset(data_path, config["image_size"])
     generator = torch.Generator(device=device).manual_seed(seed)
     squared_error = 0.0
@@ -104,7 +108,7 @@ def evaluate(checkpoint_path: str | Path, data_path: str | Path,
         "evaluation_dataset": {
             "dataset_name": audit["dataset_name"],
             "image_count": audit["image_count"],
-            "fingerprint": fingerprint_dataset(audit),
+            "fingerprint": evaluation_fingerprint,
             "manifest_sha256": audit["manifest_sha256"],
         },
         "metrics": {
