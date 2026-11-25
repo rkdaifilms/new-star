@@ -27,12 +27,15 @@ def format_chat_messages(messages: list[dict[str, str]]) -> str:
         raise ValueError("messages must be a non-empty list")
     parts = []
     for item in messages:
-        if not isinstance(item, dict) or item.get("role") not in {"system", "user", "assistant"}:
+        if not isinstance(item, dict):
+            raise ValueError("each message must be an object")
+        role = item.get("role")
+        if not isinstance(role, str) or role not in {"system", "user", "assistant"}:
             raise ValueError("each message must have a supported role")
         content = item.get("content")
         if not isinstance(content, str) or not content.strip():
             raise ValueError("each message requires non-empty text content")
-        parts.append(f"{item['role']}: {content.strip()}")
+        parts.append(f"{role}: {content.strip()}")
     if messages[-1]["role"] != "user":
         raise ValueError("the final chat message must be from the user")
     return "\n".join(parts) + "\nassistant:"
