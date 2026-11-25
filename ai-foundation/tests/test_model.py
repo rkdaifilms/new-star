@@ -1263,3 +1263,42 @@ def test_byte_bpe_tokenizer_rejects_invalid_training_arguments_and_input():
         tokenizer.encode(123)
     with pytest.raises(ValueError, match="token ID"):
         tokenizer.decode([True])
+
+
+def test_balanced_batch_sampler_includes_final_valid_window():
+    from train import sample_balanced_batch
+
+    data = torch.arange(10, dtype=torch.long)
+    generator = torch.Generator(device="cpu").manual_seed(20261125)
+    x, y = sample_balanced_batch(
+        {"ne": data}, batch_size=128, block_size=8,
+        device="cpu", generator=generator,
+    )
+    assert torch.any(x[:, 0] == 1)
+    assert torch.all(y[:, :-1] == x[:, 1:])
+    assert torch.all(y[:, -1] <= 9)
+
+
+def test_random_window_evaluator_includes_final_valid_window():
+    from evaluate import evaluate_model
+
+    class WindowRecorder:
+        config = type("Config", (), {"block_size": 8})()
+
+        def __init__(self):
+            self.starts = []
+
+        def eval(self):
+            return self
+
+        def __call__(self, tokens, targets):
+            self.starts.extend(tokens[:, 0].tolist())
+            return None, torch.tensor(1.0)
+
+    model = WindowRecorder()
+    data = torch.arange(10, dtype=torch.long)
+    score = evaluate_model(
+        model, data, batch_size=1, batches=128, device="cpu", seed=20261125
+    )
+    assert score == 1.0
+    assert 1 in model.starts
