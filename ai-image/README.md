@@ -1,15 +1,16 @@
-# New Star Image AI — experimental from-scratch DDPM
+# New Star Image AI — experimental from-scratch DDPM with optional caption conditioning
 
 This package is New Star's first independent image-model training path. It contains a compact image-space U-Net denoiser and a Denoising Diffusion Probabilistic Model (DDPM) schedule implemented with PyTorch. It starts from random weights and does not call Gemini, OpenAI, Stable Diffusion, or another hosted image API.
 
 ## Current capability
 
-- Unconditional image generation: the model learns the visual distribution of a permitted local image dataset.
+- Unconditional image generation from a permitted local image dataset.
+- Experimental caption-conditioned image generation: an optional per-image caption map is hashed into deterministic token IDs and pooled into the denoiser conditioning path. This is a small from-scratch baseline, not a semantic pretrained text encoder.
 - RGB image loading, resizing, normalization, dataset SHA-256 audit, and a required provenance/permission manifest.
 - Training from random initialization, gradient clipping, exponential moving average (EMA) weights, atomic checkpoint writing, seeded sampling, and PNG output.
 - CPU support for small experiments and optional CUDA execution when a compatible PyTorch runtime is installed.
 
-This is not text-to-image: prompts, semantic conditioning, inpainting, high-resolution synthesis, video, and a production image API are not implemented here. A useful model requires a sufficiently large, diverse, high-quality dataset and substantial training. The automated tests use tiny synthetic images only to verify the code path; they do not create a useful image generator.
+Caption conditioning is implemented as an experimental hashed-token baseline. It is not comparable to CLIP/T5 conditioning and does not imply useful prompt understanding. Inpainting, high-resolution synthesis, video, and a production image model remain unimplemented. A useful model requires a sufficiently large, diverse, high-quality, accurately captioned dataset and substantial training. The automated tests use tiny synthetic images only to verify the code path; they do not create a useful image generator.
 
 ## Dataset permission manifest
 
@@ -20,7 +21,11 @@ Create a JSON file alongside your image folder:
   "dataset_name": "my permitted image collection",
   "source": "where the images came from",
   "license": "the actual dataset license",
-  "permission_basis": "why this collection may legally be used for model training"
+  "permission_basis": "why this collection may legally be used for model training",
+  "captions": {
+    "images/photo-001.jpg": "a red bicycle beside a stone wall",
+    "images/photo-002.jpg": "snow-covered mountains under a clear sky"
+  }
 }
 ```
 
@@ -39,6 +44,17 @@ python ai-image/train.py --data ./permitted-images --manifest ./image-manifest.j
 ```
 
 For CUDA, install a PyTorch build compatible with the selected NVIDIA driver and use `--device cuda`. Begin with 32×32 images and a small test run to measure memory and throughput before increasing image size, model width, batch size, or training steps.
+
+To train the experimental caption-conditioned variant, add a `captions` object to the manifest. Its keys must exactly match every image's relative path under the dataset directory, and every value must be a non-empty caption. Then add `--text-conditioned`:
+
+```sh
+python ai-image/train.py --data ./permitted-images --manifest ./image-manifest.json \\
+  --output ./artifacts/newstar-image-text-ddpm.pt --image-size 32 --steps 10000 \\
+  --text-conditioned --device cpu
+```
+
+Caption tokens use a deterministic BLAKE2 hash into a fixed 8,192-entry vocabulary. This makes training and inference reproducible without downloading an external text model, but hash collisions and lack of learned word semantics limit prompt understanding. The training manifest is audited to ensure there is exactly one caption per image. Do not describe this baseline as a high-quality general-purpose text-to-image model.
+
 
 Training writes an atomic resumable state file beside the final checkpoint at each
 checkpoint interval (default: 100 optimizer steps), named
@@ -103,7 +119,7 @@ Start the local service after training:
 python ai-image/serve.py --checkpoint ./artifacts/newstar-image-ddpm.pt --host 127.0.0.1 --port 8780
 ```
 
-It exposes `GET /health`, `GET /v1/models`, and `POST /v1/images/generations`. The generation endpoint accepts `n` (1–4), optional `seed`, and the checkpoint-native `size`; it returns PNG bytes as base64 in the `data[].b64_json` field. It intentionally rejects `prompt`: this first model is unconditional, not text-to-image. Set `NEW_STAR_IMAGE_API_KEY` before binding beyond loopback; clients must send a bearer token. Do not expose the experimental service directly to the public internet.
+It exposes `GET /health`, `GET /v1/models`, and `POST /v1/images/generations`. The generation endpoint accepts `n` (1–4), optional `seed`, and the checkpoint-native `size`; it returns PNG bytes as base64 in the `data[].b64_json` field. For an unconditional checkpoint it rejects `prompt`; for a caption-conditioned checkpoint it requires a non-empty `prompt` and routes its deterministic token IDs through the U-Net. The text-conditioned baseline is experimental and may not reliably follow natural-language prompts. Set `NEW_STAR_IMAGE_API_KEY` before binding beyond loopback; clients must send a bearer token. Do not expose the experimental service directly to the public internet.
 
 ## CPU container and Compose
 
@@ -119,4 +135,4 @@ The serving container binds inside the container network, while the published ho
 
 ## Model boundary
 
-This is an experimental unconditional DDPM baseline, not a trained commercial image model. The repository does not contain a licensed training dataset or trained image weights. No claim of prompt-based generation or production readiness should be made until those components exist and have been independently evaluated.
+This is an experimental DDPM baseline with optional hashed-caption conditioning, not a trained commercial image model. The repository does not contain a licensed training dataset or trained image weights. No claim of prompt-based generation or production readiness should be made until those components exist and have been independently evaluated.
