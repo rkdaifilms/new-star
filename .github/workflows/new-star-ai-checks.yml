@@ -6,6 +6,7 @@ on:
       - new-star-ai-engine-foundation
     paths:
       - "new-star-ai.js"
+      - "creator-ai.js"
       - "new-star-ai.html"
       - "new-star-ai.css"
       - "ai-video/**"
@@ -48,7 +49,9 @@ jobs:
           node-version: "22"
 
       - name: Check browser JavaScript syntax
-        run: node --check new-star-ai.js
+        run: |
+          node --check new-star-ai.js
+          node --check creator-ai.js
 
       - name: Set up Deno
         uses: denoland/setup-deno@v2
@@ -71,7 +74,7 @@ jobs:
           grep -F 'body?.action === "transcribe"' "$FILE"
           grep -F 'body?.action === "speak"' "$FILE"
           grep -F 'body?.action === "image"' "$FILE"
-          grep -F 'body?.action === "research"' "$FILE"
+          grep -F 'body?.action === "search"' "$FILE"
           grep -F 'body?.action === "vision"' "$FILE"
           grep -F 'new_star_ai_conversations' "$FILE"
           grep -F 'new_star_ai_messages' "$FILE"
@@ -80,17 +83,18 @@ jobs:
           grep -F 'newStarHostedModel: newStarModel' "$FILE"
           grep -F 'NEW_STAR_MODEL_BASE_URL' "$FILE"
           grep -F 'NEW_STAR_MODEL_NAME' "$FILE"
-          grep -F 'async function probeGemini' "$FILE"
-          grep -F 'async function probeOpenAI' "$FILE"
-          grep -F 'async function probeOpenRouter' "$FILE"
-          grep -F 'credits_exhausted' "$FILE"
-          grep -F 'inference quota is not tested' "$FILE"
-          grep -F 'x-new-star-api-key' "$FILE"
+          grep -F 'async function probeApiProvider' "$FILE"
+          grep -F 'providerHealth' "$FILE"
+          grep -F 'searchWithGeminiGrounding' "$FILE"
+          grep -F 'type: "google_search"' "$FILE"
+          grep -F 'inference permissions, billing, quota' "$FILE"
           grep -F 'api_key_create' "$FILE"
           grep -F 'api_key_list' "$FILE"
           grep -F 'api_key_revoke' "$FILE"
           grep -F 'new_star_ai_api_keys' "$FILE"
-          grep -F 'SHA-256' "$FILE"
+          grep -F 'sha256Hex' "$FILE"
+          grep -F 'body?.action === "video"' "$FILE"
+          grep -F 'body?.action === "video-status"' "$FILE"
 
       - name: Verify Creator Studio AI controls and safe video state
         shell: bash
@@ -99,11 +103,14 @@ jobs:
           grep -F 'data-mode="chat"' new-star-ai.html
           grep -F 'data-mode="research"' new-star-ai.html
           grep -F 'data-mode="image"' new-star-ai.html
-          grep -F 'data-mode="video" disabled' new-star-ai.html
+          grep -F 'data-mode="video"' new-star-ai.html
           grep -F 'client.functions.invoke("ai-gateway"' new-star-ai.js
           grep -F 'action:"research"' new-star-ai.js
           grep -F 'action:"vision"' new-star-ai.js
           grep -F 'async function toggleVoice()' new-star-ai.js
           grep -F 'transcribeVoice(blob)' new-star-ai.js
-          grep -F 'Video generation is not connected yet' new-star-ai.js
+          grep -F 'action:"video"' new-star-ai.js
+          grep -F 'action:"video-status"' new-star-ai.js
+          grep -F 'Developer API keys' new-star-ai.html
+          grep -F 'new-star-ai.html' creator-ai.html
           grep -F 'not a running video generator' ai-video/README.md
