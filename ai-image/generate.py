@@ -11,20 +11,71 @@ from model import DDPMSchedule, NewStarImageUNet
 
 
 def load_checkpoint(path: str | Path, device: str):
-    checkpoint = torch.load(path, map_location=device, weights_only=True)
-    if checkpoint.get("format") != "new-star-ddpm-image-v1":
+    try:
+        checkpoint = torch.load(path, map_location=device, weights_only=True)
+    except (OSError, RuntimeError, TypeError, ValueError) as exc:
+        raise ValueError("could not safely load New Star image checkpoint") from exc
+    if not isinstance(checkpoint, dict) or checkpoint.get("format") != "new-star-ddpm-image-v1":
         raise ValueError("unsupported New Star image checkpoint format")
-    config = checkpoint["model_config"]
-    model = NewStarImageUNet(config["base_channels"]).to(device)
-    config = dict(config)
+    raw_config = checkpoint.get("model_config")
+    raw_state = checkpoint.get("state_dict")
+    if not isinstance(raw_config, dict):
+        raise ValueError("image checkpoint is missing a valid model_config")
+    required = ("base_channels", "image_size", "diffusion_steps")
+    if any(key not in raw_config for key in required):
+        raise ValueError("image checkpoint model_config is incomplete")
+    for key in required:
+        value = raw_config[key]
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError(f"image checkpoint {key} must be an integer")
+    if raw_config["base_channels"] < 8:
+        raise ValueError("image checkpoint base_channels must be at least 8")
+    if raw_config["image_size"] < 8 or raw_config["image_size"] % 4:
+        raise ValueError("image checkpoint image_size must be at least 8 and divisible by 4")
+    if raw_config["diffusion_steps"] < 2:
+        raise ValueError("image checkpoint diffusion_steps must be at least 2")
+    if not isinstance(raw_state, dict):
+        raise ValueError("image checkpoint is missing a model state dictionary")
+    try:
+        model = NewStarImageUNet(raw_config["base_channels"]).to(device)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("image checkpoint model configuration is invalid") from exc
+    selected_weights = checkpoint.get("ema_state_dict", raw_state)
+    if not isinstance(selected_weights, dict):
+        raise ValueError("image checkpoint EMA state must be a state dictionary")
+    expected_state = model.state_dict()
+    if selected_weights.keys() != expected_state.keys():
+        raise ValueError("image checkpoint weights do not match the model architecture")
+    for key, expected in expected_state.items():
+        actual = selected_weights[key]
+        if not isinstance(actual, torch.Tensor):
+            raise ValueError(f"image checkpoint weight {key!r} is not a tensor")
+        if actual.shape != expected.shape or actual.dtype != expected.dtype:
+            raise ValueError(f"image checkpoint weight {key!r} has an incompatible shape or dtype")
+        if torch.is_floating_point(actual) and not torch.isfinite(actual).all():
+            raise ValueError(f"image checkpoint weight {key!r} contains non-finite values")
+    try:
+        model.load_state_dict(selected_weights, strict=True)
+    except (RuntimeError, TypeError) as exc:
+        raise ValueError("image checkpoint weights could not be loaded strictly") from exc
+    config = dict(raw_config)
     config["weights_source"] = "ema" if "ema_state_dict" in checkpoint else "raw"
     config["training_dataset_fingerprint"] = checkpoint.get("dataset_fingerprint")
     training_audit = checkpoint.get("dataset_audit", {})
-    config["training_image_hashes"] = {
-        item["sha256"] for item in training_audit.get("images", [])
-        if isinstance(item, dict) and isinstance(item.get("sha256"), str)
-    }
-    model.load_state_dict(checkpoint.get("ema_state_dict", checkpoint["state_dict"]))
+    if not isinstance(training_audit, dict):
+        raise ValueError("image checkpoint dataset audit must be an object")
+    training_images = training_audit.get("images", [])
+    if not isinstance(training_images, list):
+        raise ValueError("image checkpoint dataset audit images must be a list")
+    hashes = set()
+    for item in training_images:
+        if not isinstance(item, dict) or not isinstance(item.get("sha256"), str):
+            raise ValueError("image checkpoint contains an invalid training image audit entry")
+        digest = item["sha256"]
+        if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
+            raise ValueError("image checkpoint contains an invalid training image SHA-256")
+        hashes.add(digest)
+    config["training_image_hashes"] = hashes
     model.eval()
     schedule = DDPMSchedule(config["diffusion_steps"]).to(device)
     return model, schedule, config
