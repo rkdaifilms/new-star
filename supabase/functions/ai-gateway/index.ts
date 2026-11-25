@@ -23,7 +23,7 @@ function corsHeaders(origin: string) {
   const allowedOrigin = ALLOWED_ORIGINS.has(origin) ? origin : "https://new-star-nepal.netlify.app";
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+    "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-new-star-api-key",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Content-Type": "application/json",
     "Vary": "Origin"
@@ -756,14 +756,15 @@ Deno.serve(async (req: Request) => {
   }
 
   const authorization = req.headers.get("Authorization") || "";
-  if (!authorization.startsWith("Bearer ")) {
-    return json({ ok: false, error: "Sign-in required" }, 401, headers);
+  const suppliedApiKey = req.headers.get("x-new-star-api-key")?.trim() || "";
+  const bearerToken = suppliedApiKey || (authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "");
+  if (!bearerToken) {
+    return json({ ok: false, error: "Sign-in or a valid New Star API key is required." }, 401, headers);
   }
 
   const adminClient = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
-  const bearerToken = authorization.slice(7).trim();
   let userId = "";
   let apiKeyId = "";
   let apiKeyAuth = false;
