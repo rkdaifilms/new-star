@@ -147,6 +147,9 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
 
   const searchRoutes = source.match(/if \(body\?\.action === "search"\)/g) || [];
   if (searchRoutes.length !== 1) throw new Error("Expected exactly one search route; found " + searchRoutes.length);
+  if (!source.includes('ragSetting !== "true" && !selfHostedRag')) {
+    throw new Error("Self-hosted chat must enable private RAG by default");
+  }
   const privateIndexCalls = source.match(/search_new_star_private_index/g) || [];
   if (privateIndexCalls.length !== 2) {
     throw new Error("Expected private full-text index to serve both direct search and chat retrieval");
