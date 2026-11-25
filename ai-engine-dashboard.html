@@ -17,7 +17,7 @@ a{color:inherit}.wrap{max-width:1180px;margin:auto;padding:24px 18px 60px}.top{d
 <div class="card"><div class="metric" id="gatewayMetric">—</div><div class="metric-label">Gateway reachability</div></div>
 <div class="card"><div class="metric" id="providerMetric">—</div><div class="metric-label">External providers active in current mode</div></div>
 <div class="card"><div class="metric" id="privateModelMetric">—</div><div class="metric-label">New Star private model</div></div>
-<div class="card"><div class="metric" id="testedMetric">0 / 7</div><div class="metric-label">Live feature tests passed this visit</div></div>
+<div class="card"><div class="metric" id="testedMetric">—</div><div class="metric-label">Private modules configured (not generation-tested)</div></div>
 </section>
 <section class="section" id="modules"><h2>Engine modules</h2><div class="modules">
 <article class="card module"><div class="module-head"><h3>Chat & language detection</h3><span class="status">Needs live test</span></div><p>Gateway routing and same-language response. In private mode, a configured and reachable New Star model is required.</p><a class="btn" href="new-star-ai.html">Test chat ↗</a></article>
@@ -42,7 +42,9 @@ const providerMetric=document.getElementById("providerMetric"),privateMetric=doc
 const signIn=document.createElement("a");signIn.className="btn primary";signIn.href="auth.html?next=ai-engine-dashboard.html";signIn.textContent="Sign in to New Star";signIn.hidden=true;
 document.getElementById("runCheck").insertAdjacentElement("afterend",signIn);
 function setModuleBadge(selector,text,tone){const el=document.querySelector(selector);if(!el)return;el.textContent=text;el.className="status"+(tone==="ok"?" ok":tone==="bad"?" bad":"");}
-function capabilityLabel(item){if(!item)return "unknown";if(item.configured&&item.supported)return "configured · test required";if(item.supported)return "supported · not configured";return item.reason||"not deployed";}
+function capabilityLabel(item){if(!item)return "status unavailable";if(item.configured&&item.supported)return "configured · live test required";if(item.supported)return "supported · not configured";return item.reason||"not supported";}
+function setModuleDescription(selector,text){const el=document.querySelector(selector+" p");if(el)el.textContent=text;}
+function capabilitySummary(item){if(!item)return "No capability status was returned.";if(item.configured)return "Endpoint/key configuration detected. This is not proof of a successful inference request.";return item.reason||"Required private worker configuration is missing.";}
 async function check(){
  out.textContent="Checking authenticated New Star AI gateway…";state.textContent="Checking";signIn.hidden=true;
  try{
@@ -55,7 +57,7 @@ async function check(){
   const data=result.data,mode=data.mode||"provider";
   const providers=data.providers||{},health=data.health||{},caps=data.capabilities||{},model=health.newStarHostedModel||{};
   state.textContent="Authenticated · "+mode;metric.textContent="Online";
-  const providerHealth=health.providers||{};
+  const providerHealth=health.providers||{};\n  const privateCapabilities=["chat","imageGeneration","imageUnderstanding","speechGeneration","speechTranscription","videoGeneration","webSearch"];\n  const configuredCount=privateCapabilities.filter(name=>caps[name]?.supported&&caps[name]?.configured).length;\n  document.getElementById("testedMetric").textContent=mode==="self_hosted"?configuredCount+" / "+privateCapabilities.length:"—";
   const activeExternal=mode==="self_hosted"?0:[providerHealth.openai,providerHealth.gemini,providerHealth.openrouter]
    .filter(provider=>provider?.configured===true&&provider?.reachable===true).length;
   providerMetric.textContent=String(activeExternal);
@@ -79,6 +81,12 @@ async function check(){
   setModuleBadge(".module:nth-child(4) .status",capabilityLabel(caps.imageGeneration),"");
   setModuleBadge(".module:nth-child(5) .status",capabilityLabel(caps.videoGeneration),"");
   setModuleBadge(".module:nth-child(6) .status",capabilityLabel(caps.webSearch),"");
+  setModuleDescription(".module:nth-child(1)",capabilitySummary(caps.chat));
+  setModuleDescription(".module:nth-child(2)",capabilitySummary(caps.speechTranscription));
+  setModuleDescription(".module:nth-child(3)",capabilitySummary(caps.speechGeneration));
+  setModuleDescription(".module:nth-child(4)",capabilitySummary(caps.imageGeneration));
+  setModuleDescription(".module:nth-child(5)",capabilitySummary(caps.videoGeneration));
+  setModuleDescription(".module:nth-child(6)",capabilitySummary(caps.webSearch));
   setModuleBadge(".module:nth-child(7) .status",mode==="self_hosted"?"External providers disabled":"Provider mode",mode==="self_hosted"?"ok":"");
   setModuleBadge(".module:nth-child(8) .status",model.configured?(model.reachable&&model.modelAvailable?"Online":"Configured · unreachable"):"Not configured",model.reachable&&model.modelAvailable?"ok":"");
   last.textContent=new Date().toLocaleString();
