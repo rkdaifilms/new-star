@@ -181,6 +181,7 @@ def main():
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--device", default="auto", help="auto, cpu, cuda, or cuda:N")
     parser.add_argument("--precision", choices=("auto", "fp32", "fp16", "bf16"), default="auto")
+    parser.add_argument("--gradient-checkpointing", action="store_true", help="Trade extra compute for lower activation memory during SFT")
     args = parser.parse_args()
     if min(args.steps, args.batch_size, args.block_size, args.width,
            args.layers, args.heads, args.eval_interval) < 1:
@@ -254,6 +255,7 @@ def main():
     except ValueError as exc:
         parser.error(str(exc))
 
+    config.gradient_checkpointing = args.gradient_checkpointing
     model = NewStarGPT(config).to(device)
     if args.base_checkpoint:
         try:
@@ -281,6 +283,7 @@ def main():
         "tokenizer_type": tokenizer.to_dict()["type"],
         "data_format": "instruction-jsonl",
         "precision": precision,
+        "gradient_checkpointing": args.gradient_checkpointing,
     }
     start_step = 0
     if args.resume_from:
@@ -358,6 +361,7 @@ def main():
         "batch_size": args.batch_size,
         "block_size": args.block_size,
         "model_config": vars(config),
+        "gradient_checkpointing": config.gradient_checkpointing,
         "final_validation_loss": final_validation_loss,
         "resumed_from_step": start_step,
         "languages": sorted(train_data),
