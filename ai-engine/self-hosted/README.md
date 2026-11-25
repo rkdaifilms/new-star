@@ -57,14 +57,20 @@ The Supabase Edge Function requires public HTTPS endpoints; Compose deliberately
 
 1. Create seven DNS A records (and AAAA records only if IPv6 is correctly configured) for model, embeddings, image, video, speech, search, and vision, all pointing to the GPU host.
 2. Copy `caddy-domains.env.example` to a private environment file and replace every example hostname with a real domain you control.
-3. Install Caddy on the GPU host, load those six variables into the Caddy service environment, and validate/reload:
+3. Install Caddy on the GPU host, install the config and its systemd environment file, then validate/restart:
    ```sh
    cd ai-engine/self-hosted
+   sudo install -m 644 ./Caddyfile /etc/caddy/Caddyfile
+   sudo install -m 600 ./caddy-domains.env /etc/caddy/new-star-domains.env
+   sudo mkdir -p /etc/systemd/system/caddy.service.d
+   printf '[Service]\\nEnvironmentFile=/etc/caddy/new-star-domains.env\\n' | sudo tee /etc/systemd/system/caddy.service.d/new-star.conf >/dev/null
+   sudo systemctl daemon-reload
    set -a
    source ./caddy-domains.env
    set +a
-   caddy validate --config ./Caddyfile
-   sudo caddy reload --config ./Caddyfile
+   caddy validate --config /etc/caddy/Caddyfile
+   sudo systemctl restart caddy
+   sudo systemctl --no-pager --full status caddy
    ```
 4. Confirm DNS resolves to the host and that inbound TCP 80/443 is available for automatic certificate issuance. Do not open ports 8080–8094 to the internet.
 5. Set the matching `NEW_STAR_*_BASE_URL` values in the private host `.env` to the HTTPS hostnames (embedding URL must end in `/v1`), then run the Supabase secret configurator below.
