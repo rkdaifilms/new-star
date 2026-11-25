@@ -195,6 +195,19 @@ Deno.test("bounded JSON reader rejects wrong content type and oversized bodies",
   if (!valid.ok || (valid.value as { ok?: boolean }).ok !== true) throw new Error("Valid JSON request was not parsed");
 });
 
+Deno.test("private llama.cpp compose uses documented authentication and parallelism environment variables", async () => {
+  const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
+  if ((compose.match(/LLAMA_API_KEY:/g) || []).length !== 2) {
+    throw new Error("Both private model services must configure the documented LLAMA_API_KEY variable");
+  }
+  if (compose.includes("LLAMA_ARG_API_KEY:")) {
+    throw new Error("LLAMA_ARG_API_KEY is not the documented llama.cpp API key variable");
+  }
+  if (!compose.includes("LLAMA_ARG_N_PARALLEL:") || compose.includes("LLAMA_ARG_PARALLEL:")) {
+    throw new Error("Chat server must use the documented LLAMA_ARG_N_PARALLEL variable");
+  }
+});
+
 Deno.test("AI gateway has no duplicate local functions or duplicate search route", async () => {
   const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
   const functionNames = [...source.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*\(/g)].map((match) => match[1]);
