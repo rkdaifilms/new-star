@@ -7,6 +7,7 @@ on:
     paths:
       - "supabase/functions/ai-gateway/**"
       - "tests/ai-engine-core_test.ts"
+      - "ai-engine/self-hosted/**"
       - ".github/workflows/ai-engine-tests.yml"
   pull_request:
     paths:
@@ -34,3 +35,5 @@ jobs:
           deno-version: v2.x
       - name: Run AI engine regression tests
         run: deno test --allow-read tests/ai-engine-core_test.ts
+      - name: Validate private model startup script
+        run: bash -n ai-engine/self-hosted/verify.sh
