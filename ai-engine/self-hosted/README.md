@@ -27,6 +27,12 @@ curl http://127.0.0.1:8080/v1/chat/completions \
   -d '{"model":"local-model","messages":[{"role":"user","content":"Reply with: New Star private model is online."}],"temperature":0.2,"max_tokens":80}'
 ```
 
+The Compose file maps the project key to llama.cpp's documented `LLAMA_API_KEY`
+environment variable and sets the chat slot count with
+`LLAMA_ARG_N_PARALLEL`. These names are intentional; do not rename them to
+`LLAMA_ARG_API_KEY` or `LLAMA_ARG_PARALLEL`. The runtime flags are documented
+in the upstream [llama.cpp server options](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md).
+
 The service binds to loopback only. Put it behind a TLS reverse proxy or private network before connecting Supabase. Do not expose port 8080 publicly.
 
 ## Connect the New Star gateway
@@ -56,7 +62,7 @@ adds language and chunk metadata and installs a service-role-only full-text
 search RPC. Anonymous and signed-in browser roles cannot read the chunks or
 execute the private search function.
 
-The search index is empty until authorized content is ingested. Prepare a
+The search index is empty until authorized content is ingested. The ingestion utility calls the service-role-only `replace_new_star_search_chunks` RPC, which atomically deletes previous chunks for each submitted source and inserts its replacement set. This prevents stale trailing chunks when a source document becomes shorter. Prepare a
 UTF-8 JSONL file with one source document per line:
 
 ```json
