@@ -38,7 +38,7 @@ jobs:
           deno-version: v2.x
       - name: Run AI engine regression tests
         run: deno test --allow-read tests/ai-engine-core_test.ts
-      - name: Validate private model startup script
-        run: bash -n ai-engine/self-hosted/verify.sh
+      - name: Validate private model startup scripts
+        run: bash -n ai-engine/self-hosted/verify.sh ai-engine/self-hosted/verify-embeddings.sh
       - name: Type-check private search ingestion tool
         run: deno check scripts/new-star-search-ingest.ts
