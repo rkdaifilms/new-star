@@ -147,6 +147,10 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
 
   const searchRoutes = source.match(/if \(body\?\.action === "search"\)/g) || [];
   if (searchRoutes.length !== 1) throw new Error("Expected exactly one search route; found " + searchRoutes.length);
+  const privateIndexCalls = source.match(/search_new_star_private_index/g) || [];
+  if (privateIndexCalls.length !== 2) {
+    throw new Error("Expected private full-text index to serve both direct search and chat retrieval");
+  }
 
   const imports = [...source.matchAll(/^import\s+\{([^}]+)\}\s+from\s+["'][^"']+["'];/gm)]
     .flatMap((match) => match[1].split(",").map((part) => part.trim().split(/\s+as\s+/)[0]));
