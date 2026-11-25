@@ -338,7 +338,7 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
   const requiredSelfHostedGuards = [
     "NEW_STAR_AI_MODE",
     "NEW_STAR_VISION_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED",
+    "NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE",
     "NEW_STAR_PRIVATE_SPEECH_UNAVAILABLE",
     "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE",
     "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED",
@@ -399,7 +399,7 @@ Deno.test("every external media and search route fails closed before provider ac
     { action: "transcribe", guard: "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE" },
     { action: "video", guard: "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED" },
     { action: "video-status", guard: "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED" },
-    { action: "image", guard: "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED" }
+    { action: "image", guard: "NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE" }
   ];
   for (const route of routes) {
     const marker = 'if (body?.action === "' + route.action + '")';
