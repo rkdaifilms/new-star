@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from vector_sync import sync
+from vector_sync import open_source_database, sync
 
 
 class FakeStore:
@@ -22,7 +22,7 @@ class FakeStore:
 class VectorSyncTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.database = Path(self.temp.name) / "crawler.sqlite3"
+        self.database = Path(self.temp.name) / "crawler index #1.sqlite3"
         with sqlite3.connect(self.database) as db:
             db.execute(
                 """CREATE TABLE pages (
@@ -47,10 +47,23 @@ class VectorSyncTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_sync_reads_pages_in_batches_and_counts_chunks(self):
+    def test_read_only_open_supports_spaces_and_uri_characters(self):
+        db = open_source_database(str(self.database))
+        try:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM pages").fetchone()[0], 3)
+            with self.assertRaises(sqlite3.OperationalError):
+                db.execute("DELETE FROM pages")
+        finally:
+            db.close()
+
+    def test_sync_reads_pages_in_batches_and_counts_chunks_and_pages(self):
         store = FakeStore()
         result = sync(str(self.database), store, batch_size=1)
-        self.assertEqual(result, {"chunks_indexed": 4, "pages_failed": 1})
+        self.assertEqual(result, {
+            "pages_processed": 3,
+            "chunks_indexed": 4,
+            "pages_failed": 1,
+        })
         self.assertEqual([page[0] for page in store.pages], [
             "https://example.org/a",
             "https://example.org/b",
@@ -62,6 +75,11 @@ class VectorSyncTests(unittest.TestCase):
     def test_sync_rejects_invalid_batch_size(self):
         with self.assertRaisesRegex(ValueError, "batch_size"):
             sync(str(self.database), FakeStore(), batch_size=0)
+
+    def test_sync_rejects_missing_database(self):
+        missing = self.database.parent / "missing.sqlite3"
+        with self.assertRaisesRegex(FileNotFoundError, "does not exist"):
+            sync(str(missing), FakeStore())
 
     def test_sync_does_not_modify_source_database(self):
         before = self.database.read_bytes()
