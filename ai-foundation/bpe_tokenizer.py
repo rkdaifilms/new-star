@@ -180,14 +180,22 @@ class ByteBPETokenizer:
 
     def _expand(self, merge_index: int) -> bytes:
         left, right = self.merges[merge_index]
-        return self._expand_bytes(left) + self._expand_bytes(right)
+        return self._expand_bytes(left + right)
 
     def _expand_bytes(self, token: bytes) -> bytes:
-        # Merge outputs are unique; recursively resolve by their creation index.
-        token_id = self._token_to_id.get(token)
-        if token_id is None:
-            return token
-        return self._expand(token_id - self.BYTE_VOCAB_SIZE)
+        """Expand a learned token iteratively, without Python recursion limits."""
+        pending = [token]
+        expanded = bytearray()
+        while pending:
+            current = pending.pop()
+            token_id = self._token_to_id.get(current)
+            if token_id is None:
+                expanded.extend(current)
+                continue
+            left, right = self.merges[token_id - self.BYTE_VOCAB_SIZE]
+            pending.append(right)
+            pending.append(left)
+        return bytes(expanded)
 
     def to_dict(self) -> dict:
         return {
