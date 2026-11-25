@@ -418,6 +418,17 @@ Deno.test("every external media and search route fails closed before provider ac
   }
 });
 
+Deno.test("Creator Studio sends the detected transcription language with voice chat", async () => {
+  const source = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  const expected = 'function requestLanguage(){return lastInputWasVoice?(lastTranscriptionLanguage||automaticLanguageOptions().language):(selectedAppLanguage()||automaticLanguageOptions().language);}';
+  if (!source.includes(expected)) {
+    throw new Error("Voice chat must pass the detected transcription language instead of discarding it");
+  }
+  if (!source.includes('lastTranscriptionLanguage=result.data.language&&result.data.language!=="und"?result.data.language:""')) {
+    throw new Error("Voice transcription must retain the language returned by the speech recognizer");
+  }
+});
+
 Deno.test("Creator Studio UI does not advertise removed external video dependencies or unreachable legacy fallbacks", async () => {
   const app = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
   const html = await Deno.readTextFile(new URL("../new-star-ai.html", import.meta.url));
