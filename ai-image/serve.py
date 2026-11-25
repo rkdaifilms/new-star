@@ -1,4 +1,4 @@
-"""Local authenticated HTTP API for New Star's unconditional image checkpoint."""
+"""Local authenticated HTTP API for New Star image checkpoints."""
 from __future__ import annotations
 
 import argparse
