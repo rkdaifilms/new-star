@@ -14,6 +14,7 @@ import torch.nn.functional as F
 
 from data import ImageFolderDataset, audit_image_dataset
 from model import DDPMSchedule, NewStarImageUNet
+from text_conditioning import TEXT_VOCAB_SIZE
 
 
 def atomic_save(payload: dict, destination: str | Path) -> None:
@@ -52,6 +53,7 @@ def training_config(args) -> dict:
         "learning_rate": args.learning_rate,
         "ema_decay": args.ema_decay,
         "seed": args.seed,
+        "text_conditioned": args.text_conditioned,
     }
 
 
@@ -78,6 +80,7 @@ def make_checkpoint(model, optimizer, ema_state: dict[str, torch.Tensor],
             "base_channels": config["base_channels"],
             "image_size": config["image_size"],
             "diffusion_steps": config["diffusion_steps"],
+            "text_vocab_size": TEXT_VOCAB_SIZE if config["text_conditioned"] else 0,
         },
         "training_config": config,
         "state_dict": {key: value.detach().cpu() for key, value in model.state_dict().items()},
@@ -122,13 +125,20 @@ def train(args) -> dict:
 
     audit = audit_image_dataset(args.data, args.manifest)
     fingerprint = dataset_fingerprint(audit)
-    dataset = ImageFolderDataset(args.data, args.image_size)
+    manifest_data = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+    captions = manifest_data.get("captions") if args.text_conditioned else None
+    if args.text_conditioned and captions is None:
+        raise ValueError("text-conditioned training requires a captions object in the dataset manifest")
+    dataset = ImageFolderDataset(args.data, args.image_size, captions=captions)
     config = training_config(args)
 
     torch.manual_seed(args.seed)
     if device.type == "cuda":
         torch.cuda.manual_seed_all(args.seed)
-    model = NewStarImageUNet(args.base_channels).to(device)
+    model = NewStarImageUNet(
+        args.base_channels,
+        text_vocab_size=TEXT_VOCAB_SIZE if args.text_conditioned else 0,
+    ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     ema_state = {key: value.detach().clone() for key, value in model.state_dict().items()}
     schedule = DDPMSchedule(args.diffusion_steps).to(device)
@@ -188,7 +198,13 @@ def train(args) -> dict:
             offset = 0
         indices = order[offset:offset + args.batch_size].tolist()
         offset += len(indices)
-        clean = torch.stack([dataset[index] for index in indices]).to(device)
+        samples = [dataset[index] for index in indices]
+        if args.text_conditioned:
+            clean = torch.stack([sample[0] for sample in samples]).to(device)
+            text_tokens = torch.stack([sample[1] for sample in samples]).to(device)
+        else:
+            clean = torch.stack(samples).to(device)
+            text_tokens = None
         times = torch.randint(
             0, schedule.steps, (clean.shape[0],), device=device,
             generator=noise_generator,
@@ -196,7 +212,7 @@ def train(args) -> dict:
         noise = torch.randn(clean.shape, device=device, generator=noise_generator)
         noisy = schedule.add_noise(clean, times, noise)
         optimizer.zero_grad(set_to_none=True)
-        prediction = model(noisy, times)
+        prediction = model(noisy, times, text_tokens=text_tokens)
         loss = F.mse_loss(prediction, noise)
         if not torch.isfinite(loss):
             raise RuntimeError("training loss became non-finite")
@@ -226,6 +242,7 @@ def train(args) -> dict:
         "base_channels": args.base_channels,
         "image_size": args.image_size,
         "diffusion_steps": args.diffusion_steps,
+        "text_vocab_size": TEXT_VOCAB_SIZE if args.text_conditioned else 0,
     }
     checkpoint = {
         "format": "new-star-ddpm-image-v1",
@@ -261,6 +278,7 @@ def main() -> None:
     parser.add_argument("--diffusion-steps", type=int, default=100)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--ema-decay", type=float, default=0.999)
+    parser.add_argument("--text-conditioned", action="store_true", help="Train with per-image captions from manifest captions object")
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--log-interval", type=int, default=100)
     parser.add_argument("--checkpoint-interval", type=int, default=100)
