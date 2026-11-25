@@ -96,6 +96,9 @@ jobs:
           grep -F 'sha256Hex' "$FILE"
           grep -F 'body?.action === "video"' "$FILE"
           grep -F 'body?.action === "video-status"' "$FILE"
+          grep -F 'store: false' "$FILE"
+          grep -F 'p_limit: 60' "$FILE"
+          grep -F 'dimensions["4K"]' "$FILE"
 
       - name: Verify Creator Studio AI controls and safe video state
         shell: bash
@@ -110,6 +113,8 @@ jobs:
           grep -F 'action:"vision"' new-star-ai.js
           grep -F 'async function toggleVoice()' new-star-ai.js
           grep -F 'transcribeVoice(blob)' new-star-ai.js
+          grep -F 'selectedAppLanguage()||lastTranscriptionLanguage||"auto"' new-star-ai.js
+          grep -F 'pendingSendAfterTranscription' creator-ai.js
           grep -F 'action:"video"' new-star-ai.js
           grep -F 'action:"video-status"' new-star-ai.js
           grep -F 'Developer API keys' new-star-ai.html
