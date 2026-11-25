@@ -69,7 +69,7 @@ note "Building and starting chat plus all private workers."
 docker compose -f compose.yaml --profile speech --profile image --profile video --profile search --profile vision up -d --build
 
 check_worker() {
-  local name="$1" port="$2" path="$3" key="$4"
+  local name="$1" port="$2" path="$3"
   local health="http://127.0.0.1:${port}/health"
   local ready=0
   for attempt in $(seq 1 90); do
@@ -101,12 +101,12 @@ for attempt in $(seq 1 90); do
 done
 note "Chat model health is responding. Run bash verify.sh to perform its authenticated generation test."
 
-check_worker new-star-speech 8090 http://127.0.0.1:8090/v1/audio/speech "$NEW_STAR_SPEECH_API_KEY"
-check_worker new-star-image 8091 http://127.0.0.1:8091/v1/images/generations "$NEW_STAR_IMAGE_API_KEY"
-check_worker new-star-video 8092 http://127.0.0.1:8092/v1/videos/generations "$NEW_STAR_VIDEO_API_KEY"
-check_worker new-star-search 8093 http://127.0.0.1:8093/v1/search "$NEW_STAR_SEARCH_API_KEY"
-check_worker new-star-vision 8094 http://127.0.0.1:8094/v1/vision/analyze "$NEW_STAR_VISION_API_KEY"
+check_worker new-star-speech 8090 http://127.0.0.1:8090/v1/audio/speech
+check_worker new-star-image 8091 http://127.0.0.1:8091/v1/images/generations
+check_worker new-star-video 8092 http://127.0.0.1:8092/v1/videos/generations
+check_worker new-star-search 8093 http://127.0.0.1:8093/v1/search
+check_worker new-star-vision 8094 http://127.0.0.1:8094/v1/vision/analyze
 
-note "All private containers are healthy and reject invalid credentials."
+note "All five optional media/search worker containers are healthy and reject invalid credentials; chat health is responding."
 note "This is not a generation test. Run python3 verify-workers.py --infer and python3 verify-workers.py --video after configuring HTTPS reverse-proxy URLs and Supabase secrets."
 note "All ports remain bound to loopback by Compose. Do not publish worker ports directly to the internet."
