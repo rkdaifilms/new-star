@@ -43,9 +43,16 @@ def train(args) -> dict:
         raise ValueError("base_channels must be >= 8 and diffusion_steps must be >= 2")
     if args.learning_rate <= 0:
         raise ValueError("learning_rate must be positive")
-    if args.device.startswith("cuda") and not torch.cuda.is_available():
-        raise ValueError("CUDA requested but unavailable")
+    if not isinstance(args.seed, int) or isinstance(args.seed, bool) or not 0 <= args.seed <= 2**63 - 1:
+        raise ValueError("seed must be an integer between 0 and 2^63-1")
     device = torch.device(args.device)
+    if device.type not in {"cpu", "cuda"}:
+        raise ValueError("device must be cpu, cuda, or cuda:N")
+    if device.type == "cuda":
+        if not torch.cuda.is_available():
+            raise ValueError("CUDA requested but unavailable")
+        if device.index is not None and device.index >= torch.cuda.device_count():
+            raise ValueError("requested CUDA device index is unavailable")
     audit = audit_image_dataset(args.data, args.manifest)
     dataset = ImageFolderDataset(args.data, args.image_size)
     loader = DataLoader(
@@ -58,7 +65,6 @@ def train(args) -> dict:
     model = NewStarImageUNet(args.base_channels).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     schedule = DDPMSchedule(args.diffusion_steps).to(device)
-    generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
     iterator = iter(loader)
     losses = []
     model.train()
