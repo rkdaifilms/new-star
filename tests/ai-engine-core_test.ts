@@ -245,6 +245,10 @@ Deno.test("private model smoke checks validate readiness and safe API key format
   if (!embeddings.includes("URL-safe random characters") || !embeddings.includes("isfinite(value)")) {
     throw new Error("Embedding smoke test must validate safe API keys and finite numeric vector values");
   }
+  if (!embeddings.includes('!= replace-*') || !embeddings.includes("NVIDIA Container Toolkit") ||
+      !embeddings.includes("nvidia-smi") || !embeddings.includes("docker compose version")) {
+    throw new Error("Embedding smoke test must reject the example secret and verify the NVIDIA GPU runtime");
+  }
   if (!embeddings.includes("/v1/embeddings") || !chat.includes("/v1/chat/completions")) {
     throw new Error("Private model smoke tests must call the documented authenticated API endpoints");
   }
