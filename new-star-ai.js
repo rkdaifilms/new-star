@@ -94,10 +94,10 @@ async function refreshEngineStatus(){
   const providers=result.data.providers||{};
   const capabilities=result.data.capabilities||{};
   const model=health.newStarHostedModel||{};
-  const providerSummary=["Gemini: "+(providers.gemini?"configured":"not configured"),"OpenAI: "+(providers.openai?"configured":"not configured"),"OpenRouter: "+(providers.openrouter?"configured":"not configured")].join(" · ");
+  const providerHealth=health.providers||{};const providerState=(name,configured)=>{if(!configured)return "not configured";const item=providerHealth[name]||{};if(item.authorized)return "online";if(item.reachable)return "reachable, access denied";return "unreachable";};const providerSummary=["Gemini: "+providerState("gemini",providers.gemini),"OpenAI: "+providerState("openai",providers.openai),"OpenRouter: "+providerState("openrouter",providers.openrouter)].join(" · ");
   const modelSummary=model.configured?(model.reachable&&model.modelAvailable?"New Star hosted model: online":"New Star hosted model: configured, not verified"):"New Star hosted model: not configured";
   status.textContent=modelSummary+" · "+providerSummary;
-  status.style.color=(model.reachable&&model.modelAvailable)||providers.gemini||providers.openai||providers.openrouter?"#91e6b0":"#f6c66b";
+  status.style.color=(model.reachable&&model.modelAvailable)||providerHealth.gemini?.authorized||providerHealth.openai?.authorized||providerHealth.openrouter?.authorized?"#91e6b0":"#f6c66b";
   const capabilitySummary=["Chat "+(capabilities.chat?.configured?"ready":"not configured"),"Images "+(capabilities.imageGeneration?.configured?"configured":"not configured"),"Image understanding "+(capabilities.imageUnderstanding?.configured?"configured":"not configured"),"Voice "+(capabilities.speechGeneration?.configured?"configured":"not configured"),"Video "+(capabilities.videoGeneration?.configured?"service account configured":"not configured"),"Search "+(capabilities.webSearch?.configured?"configured":"not configured")].join(" · ");
   foot.textContent=capabilitySummary+". Configuration checks do not prove provider billing, quota or successful generation.";
  }catch(error){status.textContent="AI service unavailable";status.style.color="#ff9b9b";foot.textContent=error.message||"Could not check New Star AI service status.";}
