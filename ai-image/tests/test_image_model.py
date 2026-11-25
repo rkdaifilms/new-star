@@ -189,3 +189,29 @@ def test_diffusion_schedule_rejects_out_of_range_timesteps_and_mismatched_noise(
         schedule.add_noise(clean, torch.tensor([3]), torch.ones_like(clean))
     with pytest.raises(ValueError, match="share"):
         schedule.add_noise(clean, torch.tensor([1]), torch.ones(1, 3, 4, 4))
+
+
+def test_image_http_api_rejects_unsupported_fields():
+    model = NewStarImageUNet(base_channels=8).eval()
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        create_handler(model, DDPMSchedule(steps=2), 8, "cpu", "field-secret"),
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = Request(
+            f"http://127.0.0.1:{server.server_address[1]}/v1/images/generations",
+            data=json.dumps({"n": 1, "quality": "high"}).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer field-secret",
+            },
+        )
+        with pytest.raises(HTTPError) as error:
+            urlopen(request)
+        assert error.value.code == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
