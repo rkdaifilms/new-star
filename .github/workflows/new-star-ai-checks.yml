@@ -19,6 +19,7 @@ on:
       - main
     paths:
       - "new-star-ai.js"
+      - "creator-ai.js"
       - "new-star-ai.html"
       - "new-star-ai.css"
       - "ai-video/**"
@@ -87,7 +88,7 @@ jobs:
           grep -F 'providerHealth' "$FILE"
           grep -F 'searchWithGeminiGrounding' "$FILE"
           grep -F 'type: "google_search"' "$FILE"
-          grep -F 'inference permissions, billing, quota' "$FILE"
+          grep -F 'generation permissions, billing, quota' "$FILE"
           grep -F 'api_key_create' "$FILE"
           grep -F 'api_key_list' "$FILE"
           grep -F 'api_key_revoke' "$FILE"
@@ -105,7 +106,7 @@ jobs:
           grep -F 'data-mode="image"' new-star-ai.html
           grep -F 'data-mode="video"' new-star-ai.html
           grep -F 'client.functions.invoke("ai-gateway"' new-star-ai.js
-          grep -F 'action:"research"' new-star-ai.js
+          grep -F 'action:"search"' new-star-ai.js
           grep -F 'action:"vision"' new-star-ai.js
           grep -F 'async function toggleVoice()' new-star-ai.js
           grep -F 'transcribeVoice(blob)' new-star-ai.js
@@ -113,4 +114,5 @@ jobs:
           grep -F 'action:"video-status"' new-star-ai.js
           grep -F 'Developer API keys' new-star-ai.html
           grep -F 'new-star-ai.html' creator-ai.html
-          grep -F 'not a running video generator' ai-video/README.md
+          grep -F 'Google Cloud Vertex AI' ai-video/README.md
+          grep -F 'end-to-end generation test' ai-video/README.md
