@@ -7,8 +7,11 @@ export function buildGeminiVideoRequest(
 ) {
   return {
     model,
-    input: [{ type: "text", text: prompt }],
-    generation_config: { video_config: { task: "text_to_video" } },
+    input: [{
+      background: true,
+      type: "text",
+      text: prompt
+    }],
     response_format: [{
       type: "video",
       delivery: "inline",
@@ -16,7 +19,11 @@ export function buildGeminiVideoRequest(
       resolution,
       duration
     }],
-    background: true,
+    generation_config: {
+      video_config: {
+        task: "text_to_video"
+      }
+    },
     store: true
   };
 }
