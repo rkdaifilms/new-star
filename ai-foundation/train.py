@@ -29,7 +29,7 @@ def sample_balanced_batch(corpora: dict[str, torch.Tensor], batch_size: int,
         data = corpora[languages[language_index]]
         if len(data) <= block_size + 1:
             raise ValueError(f"language {languages[language_index]!r} has too few tokens")
-        start = int(torch.randint(0, len(data) - block_size - 1, (1,), generator=generator).item())
+        start = int(torch.randint(0, len(data) - block_size, (1,), generator=generator).item())
         rows_x.append(data[start:start + block_size])
         rows_y.append(data[start + 1:start + block_size + 1])
     return torch.stack(rows_x).to(device), torch.stack(rows_y).to(device)
