@@ -1837,3 +1837,23 @@ def test_seeded_generation_is_reproducible_without_global_rng_changes():
     torch.testing.assert_close(first, second)
     assert torch.equal(first[:, :prompt.shape[1]], prompt)
 
+
+
+def test_generation_kv_cache_matches_full_recompute_after_context_window_rollover():
+    model = tiny_model().eval()
+    prompt = torch.tensor([[7, 19, 23, 31, 47]], dtype=torch.long)
+
+    with torch.inference_mode():
+        cached = model.generate(
+            prompt.clone(), max_new_tokens=7, do_sample=False,
+            temperature=1.0, top_k=None, top_p=1.0,
+        )
+        reference = prompt.clone()
+        for _ in range(7):
+            context = reference[:, -model.config.block_size:]
+            logits, _ = model(context)
+            next_token = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)
+            reference = torch.cat((reference, next_token), dim=1)
+
+    torch.testing.assert_close(cached, reference)
+    assert cached.shape[1] == prompt.shape[1] + 7
