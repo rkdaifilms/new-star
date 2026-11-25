@@ -155,3 +155,16 @@ The optional `image` Compose profile runs a local Diffusers pipeline (default mo
 5. Configure Supabase Edge Function secrets `NEW_STAR_IMAGE_BASE_URL` (the HTTPS proxy base URL) and `NEW_STAR_IMAGE_API_KEY` (the same worker key). Verify the authenticated endpoint before enabling `NEW_STAR_AI_MODE=self_hosted`.
 
 The worker downloads the configured open-weight model into its persistent cache on first load. This is local inference, not a New Star foundation model trained from scratch. Review the model license and usage restrictions before commercial use. The source code is committed but the image model has not been downloaded, GPU-tested, or deployed.
+
+
+## Private video generation worker
+
+The optional `video` Compose profile adds a local Diffusers/CogVideoX worker. It uses the open-weight `THUDM/CogVideoX-2b` model, runs inference on a CUDA GPU, and returns MP4 jobs through an authenticated API. The currently implemented, deliberately bounded output is **480p and 6 seconds** in landscape 16:9 or portrait 9:16. The Creator Studio controls expose only those verified-by-code settings; 720p, longer clips, and editing are not silently advertised as available.
+
+1. Provision a CUDA GPU host with enough system RAM, GPU memory, and persistent disk for the model cache and generated jobs. CogVideoX model weights are large; first model load downloads them into the persistent cache.
+2. Set a unique `NEW_STAR_VIDEO_API_KEY` of at least 32 characters in the private host's `.env`.
+3. Build and start the worker: `docker compose --profile video build new-star-video`, then `docker compose --profile video up -d new-star-video`.
+4. Verify the worker health endpoint locally, then put an authenticated TLS reverse proxy/private network in front of loopback port 8092. Never expose the raw worker port publicly.
+5. Configure Supabase Edge Function secrets `NEW_STAR_VIDEO_BASE_URL` (HTTPS proxy base URL) and `NEW_STAR_VIDEO_API_KEY` (same worker key). Verify an authenticated test job and Supabase Storage upload before enabling self-hosted mode.
+
+Jobs and outputs are stored in a persistent Docker volume. If the worker restarts during an active generation, the interrupted job is marked failed on restart rather than falsely remaining in progress. The gateway stores job ownership in `ai_video_jobs`, polls the private worker, uploads the finished MP4 into the private `new-star-ai-videos` bucket, and returns a short-lived signed URL. This is local inference with an open-weight model, not a New Star foundation model trained from scratch. Review the model's license and commercial-use terms. The source is committed but model weights have not been downloaded, GPU inference has not been tested, and no worker or Supabase secret has been deployed.
