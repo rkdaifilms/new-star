@@ -13,7 +13,7 @@ source .env
 set +a
 [[ -n "${NEW_STAR_EMBEDDING_MODEL_FILE:-}" ]] || fail "NEW_STAR_EMBEDDING_MODEL_FILE is empty."
 [[ -n "${NEW_STAR_EMBEDDING_API_KEY:-}" ]] || fail "NEW_STAR_EMBEDDING_API_KEY is empty."
-[[ "${#NEW_STAR_EMBEDDING_API_KEY}" -ge 32 ]] || fail "Embedding API key must be at least 32 characters."
+[[ "$NEW_STAR_EMBEDDING_API_KEY" =~ ^[A-Za-z0-9_-]{32,}$ ]] || fail "Embedding API key must be at least 32 URL-safe random characters."
 [[ "$NEW_STAR_EMBEDDING_API_KEY" != replace-* ]] || fail "Replace the example embedding API key before starting the service."
 [[ -f "models/$NEW_STAR_EMBEDDING_MODEL_FILE" ]] || fail "Embedding model file models/$NEW_STAR_EMBEDDING_MODEL_FILE is missing."
 docker compose -f compose.yaml --profile embeddings config --quiet
@@ -51,7 +51,7 @@ if not isinstance(items, list) or not items:
 vector = items[0].get("embedding")
 if not isinstance(vector, list) or len(vector) != 384:
     raise SystemExit("ERROR: expected a 384-dimensional embedding; received " + str(len(vector) if isinstance(vector, list) else "no vector"))
-if any(not isinstance(value, (int, float)) for value in vector):
-    raise SystemExit("ERROR: embedding contains a non-numeric value")
+if any(not isinstance(value, (int, float)) or not __import__("math").isfinite(value) for value in vector):
+    raise SystemExit("ERROR: embedding contains a non-finite or non-numeric value")
 print("PASS: private embedding service returned 384 numeric dimensions.")
 PY
