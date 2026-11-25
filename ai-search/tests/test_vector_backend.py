@@ -24,6 +24,40 @@ class VectorBackendTests(unittest.TestCase):
         self.assertEqual(PgVectorSearch.chunks("   "), [])
         self.assertEqual(PgVectorSearch.chunks("\\n"), [])
 
+    def test_empty_page_deletes_stale_vectors_without_inserting(self):
+        class FakeCursor:
+            def __init__(self):
+                self.executed = []
+                self.inserted = []
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+            def execute(self, query, params):
+                self.executed.append((query, params))
+            def executemany(self, query, records):
+                self.inserted.extend(records)
+
+        class FakeConnection:
+            def __init__(self):
+                self.cursor_instance = FakeCursor()
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+            def cursor(self):
+                return self.cursor_instance
+
+        search = object.__new__(PgVectorSearch)
+        connection = FakeConnection()
+        with patch.object(search, "connect", return_value=connection):
+            self.assertEqual(search.upsert_page("https://example.org/empty", "", "", "example.org"), 0)
+
+        self.assertEqual(len(connection.cursor_instance.executed), 1)
+        self.assertIn("DELETE FROM public.new_star_search_chunks",
+                      connection.cursor_instance.executed[0][0])
+        self.assertEqual(connection.cursor_instance.inserted, [])
+
     def test_embedding_dimension_is_enforced(self):
         class WrongModel:
             def embed(self, values):
