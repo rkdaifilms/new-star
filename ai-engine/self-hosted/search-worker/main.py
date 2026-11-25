@@ -57,7 +57,7 @@ def database():
     try:
         connection.execute("PRAGMA journal_mode=WAL")
         connection.execute("CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY, url TEXT UNIQUE NOT NULL, title TEXT NOT NULL, text TEXT NOT NULL, fetched_at INTEGER NOT NULL)")
-        connection.execute("CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(title, text, url UNINDEXED, content='')")
+        connection.execute("CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(title, text, url UNINDEXED)")
         yield connection
         connection.commit()
     finally:
@@ -70,12 +70,8 @@ def fetch_page(url: str):
     session.trust_env = False
     response = session.get(safe_url, headers=HEADERS, timeout=TIMEOUT, stream=True, allow_redirects=False)
     if response.status_code in {301, 302, 303, 307, 308}:
-        location = response.headers.get("Location")
-        if not location:
-            raise HTTPException(422, "Website redirect did not include a destination")
-        target = validate_url(urljoin(safe_url, location))
         response.close()
-        response = session.get(target, headers=HEADERS, timeout=TIMEOUT, stream=True, allow_redirects=False)
+        raise HTTPException(422, "Website redirects are not followed; crawl the final public URL directly")
     if response.status_code >= 400:
         raise HTTPException(422, "Website returned HTTP " + str(response.status_code))
     content_type = response.headers.get("content-type", "").lower()
