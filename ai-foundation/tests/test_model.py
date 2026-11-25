@@ -1199,5 +1199,5 @@ def test_generation_rejects_generator_on_different_device_type():
     with pytest.raises(ValueError, match="generator"):
         model.generate(
             prompt, max_new_tokens=1,
-            generator=torch.Generator(device="meta"),
+            generator="cpu",
         )
