@@ -157,7 +157,9 @@ async function main() {
   console.log("Indexed " + documents.length + " source documents into " + chunks.length + " vector + full-text chunks.");
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  Deno.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    Deno.exit(1);
+  });
+}
