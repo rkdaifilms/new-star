@@ -43,8 +43,8 @@ try{
    pending.textContent=result.data.answer||"The AI returned an empty response.";if(result.data.memorySaved===false){const memoryNote=document.createElement("small");memoryNote.textContent="This reply was generated, but conversation saving is temporarily unavailable.";memoryNote.style.display="block";memoryNote.style.opacity=".75";pending.append(memoryNote);}
    lastInputWasVoice=false;lastTranscriptionLanguage="";conversationId=result.data.conversationId||conversationId;if(conversationId)localStorage.setItem("new-star-ai-conversation",conversationId);const voiceButton=document.createElement("button");voiceButton.type="button";voiceButton.textContent="▶ Listen";voiceButton.className="ns-listen";voiceButton.addEventListener("click",()=>speakText(result.data.answer||"",voiceButton));pending.append(voiceButton);
  }else if(mode==="image"){
-   if(attachment)throw new Error("Image editing with uploads is not enabled in the current AI gateway yet. Text-to-image is available when a provider is configured.");
-   const result=await client.functions.invoke("ai-gateway",{body:{action:"image",prompt:sendText,language:selectedAppLanguage()||"auto",imageSize:$("ns-size").value}});
+   const imagePayload=attachment?await toBase64(attachment):"";
+   const result=await client.functions.invoke("ai-gateway",{body:{action:"image",prompt:sendText,language:selectedAppLanguage()||"auto",imageSize:$("ns-size").value,image:imagePayload||undefined,mimeType:attachment?.type||undefined}});
    if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"Image generation is unavailable. Check the server-side provider configuration."));
    if(typeof result.data.image!=="string"||result.data.image.length<100)throw new Error("The image provider returned no usable image data.");
    const mime=/^image\/(png|jpeg|webp)$/i.test(result.data.mimeType||"")?result.data.mimeType:"image/png";
