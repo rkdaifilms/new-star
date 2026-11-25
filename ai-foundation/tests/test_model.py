@@ -1302,3 +1302,54 @@ def test_random_window_evaluator_includes_final_valid_window():
     )
     assert score == 1.0
     assert 1 in model.starts
+
+
+def test_transformer_config_rejects_non_integer_dimensions_and_non_finite_dropout():
+    import math
+    import pytest
+
+    invalid_configs = [
+        {"vocab_size": True},
+        {"block_size": 16.5},
+        {"width": 0},
+        {"layers": False},
+        {"heads": "4"},
+        {"dropout": float("nan")},
+        {"dropout": float("inf")},
+        {"dropout": True},
+        {"gradient_checkpointing": 1},
+    ]
+    for values in invalid_configs:
+        with pytest.raises(ValueError):
+            NewStarConfig(**values)
+
+
+def test_cached_incremental_logits_match_full_causal_forward():
+    model = tiny_model().eval()
+    tokens = torch.tensor([[11, 22, 33, 44, 55]], dtype=torch.long)
+    with torch.inference_mode():
+        full_logits, _ = model(tokens)
+        cached_logits, caches = model.forward_with_cache(tokens[:, :3])
+        for position in range(3, tokens.shape[1]):
+            cached_logits, caches = model.forward_incremental(
+                tokens[:, position:position + 1], position, caches
+            )
+    torch.testing.assert_close(
+        cached_logits[:, -1], full_logits[:, -1], rtol=1e-5, atol=1e-6
+    )
+
+
+def test_incremental_cache_rejects_invalid_position_and_cache_dtype():
+    import pytest
+
+    model = tiny_model().eval()
+    tokens = torch.tensor([[1, 2]], dtype=torch.long)
+    with torch.inference_mode():
+        _, caches = model.forward_with_cache(tokens[:, :1])
+    with pytest.raises(ValueError, match="position"):
+        model.forward_incremental(tokens[:, 1:2], True, caches)
+    bad_caches = [
+        (key.double(), value.double()) for key, value in caches
+    ]
+    with pytest.raises(ValueError, match="dtype"):
+        model.forward_incremental(tokens[:, 1:2], 1, bad_caches)
