@@ -592,7 +592,7 @@ def test_text_conditioned_image_http_api_accepts_prompt(tmp_path):
         assert payload["model"] == "new-star-ddpm-text-conditioned"
         assert len(payload["data"]) == 1
         decoded = base64.b64decode(payload["data"][0]["b64_json"])
-        assert decoded.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+        assert decoded.startswith(bytes.fromhex("89504e470d0a1a0a"))
     finally:
         server.shutdown()
         server.server_close()
