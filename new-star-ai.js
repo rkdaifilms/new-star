@@ -37,7 +37,7 @@ try{
    const result=await client.functions.invoke("ai-gateway",{body:crawlUrl?{action:"crawl",url:sendText.trim()}:{action:"search",query:sendText,language:responseLanguage,limit:8}});
    if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,crawlUrl?"Private website indexing is unavailable.":"Live research is unavailable."));
    if(crawlUrl){
-     pending.textContent="Page indexed in the New Star private search library: "+(result.data.title||result.data.url)+" · "+(result.data.charactersIndexed||0)+" characters. You can now search for information from this page.";
+     pending.textContent="Page indexed in the New Star private search library: "+(result.data.title||result.data.url)+" · "+(result.data.pagesIndexed||1)+" page(s), "+(result.data.charactersIndexed||0)+" characters indexed. You can now search this site.";
    }else{
      pending.textContent=typeof result.data.answer==="string"&&result.data.answer.trim()?result.data.answer:(result.data.count?"Search found "+result.data.count+" source(s).":"No matching pages were found in the private crawl index yet. Paste a public page URL to index it first.");const countNote=document.createElement("small");countNote.textContent=(result.data.count||0)+" verified source link(s) · "+(result.data.provider||"Search");countNote.style.display="block";countNote.style.marginTop="10px";countNote.style.opacity=".75";pending.append(countNote);
    const sources=Array.isArray(result.data.results)?result.data.results:[];
