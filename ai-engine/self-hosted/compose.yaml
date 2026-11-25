@@ -50,6 +50,28 @@ services:
               count: all
               capabilities: [gpu]
 
+  new-star-image:
+    build:
+      context: ./image-worker
+    container_name: new-star-private-image
+    restart: unless-stopped
+    profiles: ["image"]
+    ports:
+      - "127.0.0.1:8091:8091"
+    environment:
+      NEW_STAR_IMAGE_API_KEY: ${NEW_STAR_IMAGE_API_KEY:?Set NEW_STAR_IMAGE_API_KEY in .env}
+      NEW_STAR_IMAGE_MODEL: ${NEW_STAR_IMAGE_MODEL:-stabilityai/sdxl-turbo}
+      NEW_STAR_IMAGE_CACHE: /models/huggingface
+    volumes:
+      - new-star-image-cache:/models/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
   new-star-speech:
     build:
       context: ./speech-worker
@@ -80,3 +102,4 @@ services:
 
 volumes:
   new-star-speech-cache:
+  new-star-image-cache:
