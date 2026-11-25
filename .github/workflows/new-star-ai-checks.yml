@@ -104,6 +104,8 @@ jobs:
           grep -F 'apiKeyId' "$FILE"
           grep -F 'x-new-star-api-key' "$FILE"
           grep -F 'suppliedApiKey' "$FILE"
+          grep -F 'https://deploy-preview-6--new-star-nepal.netlify.app' "$FILE"
+          grep -F 'https://new-star-2h8betscn-rkdaifilms-8858.vercel.app' "$FILE"
           grep -F 'private.ai_gateway_api_key_rate_limits' supabase/migrations/20261125000000_ai_gateway_api_key_rate_limits.sql
           grep -F 'sha256Hex' "$FILE"
           grep -F 'body?.action === "video"' "$FILE"
