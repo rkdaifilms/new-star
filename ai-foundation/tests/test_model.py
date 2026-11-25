@@ -1689,3 +1689,30 @@ def test_generation_cli_rejects_malformed_checkpoint_structure(monkeypatch, tmp_
         with pytest.raises(SystemExit) as error:
             main()
         assert error.value.code == 2
+
+
+
+def test_chat_prompt_formatter_rejects_unhashable_or_non_string_roles():
+    import pytest
+    from serve import format_chat_messages
+
+    for role in ([], {}, 1, None):
+        with pytest.raises(ValueError, match="supported role"):
+            format_chat_messages([
+                {"role": role, "content": "hello"},
+            ])
+
+
+def test_chat_prompt_formatter_rejects_non_object_messages_and_invalid_content():
+    import pytest
+    from serve import format_chat_messages
+
+    invalid_messages = [
+        ["not-an-object"],
+        [{"role": "user", "content": []}],
+        [{"role": "user", "content": "   "}],
+        [{"role": "assistant", "content": "hello"}],
+    ]
+    for messages in invalid_messages:
+        with pytest.raises(ValueError):
+            format_chat_messages(messages)
