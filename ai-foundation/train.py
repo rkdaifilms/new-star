@@ -175,6 +175,14 @@ def main():
             parser.error("--steps must be greater than the saved resume step")
         model.load_state_dict(resume["model_state"])
         optimizer.load_state_dict(resume["optimizer_state"])
+        scaler_state = resume.get("grad_scaler_state")
+        if scaler_state is not None:
+            if not isinstance(scaler_state, dict):
+                parser.error("resume gradient-scaler state is malformed")
+            try:
+                scaler.load_state_dict(scaler_state)
+            except (KeyError, RuntimeError, ValueError) as exc:
+                parser.error(f"could not restore gradient-scaler state: {exc}")
         batch_generator.set_state(resume["batch_generator_state"])
         torch.set_rng_state(resume["torch_rng_state"].cpu())
         if torch.cuda.is_available() and resume.get("cuda_rng_states") is not None:
@@ -214,6 +222,7 @@ def main():
                 "step": step,
                 "model_state": model.state_dict(),
                 "optimizer_state": optimizer.state_dict(),
+                "grad_scaler_state": scaler.state_dict(),
                 "batch_generator_state": batch_generator.get_state(),
                 "torch_rng_state": torch.get_rng_state(),
                 "cuda_rng_states": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
