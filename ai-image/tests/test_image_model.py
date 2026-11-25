@@ -398,3 +398,35 @@ def test_image_evaluation_rejects_overlapping_images_under_new_filenames(tmp_pat
     }), encoding="utf-8")
     with pytest.raises(ValueError, match="contains image files used for training"):
         evaluate_checkpoint(checkpoint, heldout_root, heldout_manifest, "cpu")
+
+
+@pytest.mark.parametrize("time_width", [0, -1, True, 1.5, "32"])
+def test_unet_rejects_invalid_time_embedding_width(time_width):
+    with pytest.raises(ValueError, match="time_width"):
+        NewStarImageUNet(base_channels=8, time_width=time_width)
+
+
+def test_unet_accepts_explicit_positive_time_embedding_width():
+    model = NewStarImageUNet(base_channels=8, time_width=12)
+    images = torch.randn(1, 3, 32, 32)
+    timesteps = torch.tensor([1], dtype=torch.long)
+    assert model(images, timesteps).shape == images.shape
+
+
+@pytest.mark.parametrize("flag,value", [
+    ("--learning-rate", "nan"),
+    ("--learning-rate", "inf"),
+    ("--learning-rate", "-inf"),
+    ("--learning-rate", "0"),
+    ("--ema-decay", "nan"),
+    ("--ema-decay", "inf"),
+])
+def test_image_training_rejects_non_finite_or_invalid_hyperparameters(flag, value, monkeypatch):
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", "--data", "unused-images", "--manifest", "unused-manifest.json",
+        "--steps", "1", flag, value,
+    ])
+    with pytest.raises(SystemExit) as error:
+        train_main()
+    assert error.value.code == 2
+
