@@ -22,11 +22,11 @@ import urllib.request
 from typing import Any
 
 WORKERS = {
-    "image": ("NEW_STAR_IMAGE_BASE_URL", "NEW_STAR_IMAGE_API_KEY", 8091),
-    "video": ("NEW_STAR_VIDEO_BASE_URL", "NEW_STAR_VIDEO_API_KEY", 8092),
-    "speech": ("NEW_STAR_SPEECH_BASE_URL", "NEW_STAR_SPEECH_API_KEY", 8090),
-    "search": ("NEW_STAR_SEARCH_BASE_URL", "NEW_STAR_SEARCH_API_KEY", 8093),
-    "vision": ("NEW_STAR_VISION_BASE_URL", "NEW_STAR_VISION_API_KEY", 8094),
+    "image": ("NEW_STAR_IMAGE_BASE_URL", "NEW_STAR_IMAGE_API_KEY", "/v1/images/generations"),
+    "video": ("NEW_STAR_VIDEO_BASE_URL", "NEW_STAR_VIDEO_API_KEY", "/v1/videos/generations"),
+    "speech": ("NEW_STAR_SPEECH_BASE_URL", "NEW_STAR_SPEECH_API_KEY", "/v1/audio/speech"),
+    "search": ("NEW_STAR_SEARCH_BASE_URL", "NEW_STAR_SEARCH_API_KEY", "/v1/search"),
+    "vision": ("NEW_STAR_VISION_BASE_URL", "NEW_STAR_VISION_API_KEY", "/v1/vision/analyze"),
 }
 PNG_1X1 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j4WQAAAAASUVORK5CYII="
@@ -88,7 +88,7 @@ def validate_config(name: str, base: str, key: str) -> str:
     return base.rstrip("/")
 
 
-def health_check(name: str, base: str, key: str) -> tuple[str, str] | None:
+def health_check(name: str, base: str, key: str, protected_path: str) -> tuple[str, str] | None:
     try:
         endpoint = validate_config(name, base, key)
         status, data, _ = request_json(endpoint + "/health", timeout=15)
@@ -96,7 +96,10 @@ def health_check(name: str, base: str, key: str) -> tuple[str, str] | None:
             raise RuntimeError("health endpoint did not return HTTP 200 with ok=true")
         if name in ("image", "video", "vision") and data.get("cuda") is not True:
             raise RuntimeError("worker is reachable but reports CUDA unavailable")
-        report("PASS", name, "HTTPS health endpoint is responding; secret not displayed")
+        auth_status, _, _ = request_json(endpoint + protected_path, "new-star-invalid-auth-probe", {}, timeout=15)
+        if auth_status != 401:
+            raise RuntimeError("protected API did not reject an invalid bearer token with HTTP 401")
+        report("PASS", name, "HTTPS health is responding and protected API rejects invalid credentials")
         return endpoint, key
     except (ValueError, RuntimeError) as error:
         report("FAIL", name, str(error))
@@ -203,7 +206,7 @@ def main() -> int:
     args = parser.parse_args()
 
     ready: dict[str, tuple[str, str]] = {}
-    for name, (url_name, key_name, _port) in WORKERS.items():
+    for name, (url_name, key_name, protected_path) in WORKERS.items():
         url, key = os.getenv(url_name, "").strip(), os.getenv(key_name, "").strip()
         if not url and not key:
             if args.require_all:
@@ -214,7 +217,7 @@ def main() -> int:
         if not url or not key:
             report("FAIL", name, f"both {url_name} and {key_name} must be set")
             continue
-        result = health_check(name, url, key)
+        result = health_check(name, url, key, protected_path)
         if result:
             ready[name] = result
 
