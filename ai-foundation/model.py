@@ -15,12 +15,23 @@ class NewStarConfig:
     def __init__(self, vocab_size: int = 256, block_size: int = 256,
                  width: int = 256, layers: int = 4, heads: int = 4,
                  dropout: float = 0.1, gradient_checkpointing: bool = False):
+        dimensions = {
+            "vocab_size": vocab_size,
+            "block_size": block_size,
+            "width": width,
+            "layers": layers,
+            "heads": heads,
+        }
+        for name, value in dimensions.items():
+            if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+                raise ValueError(f"{name} must be a positive integer")
         if width % heads:
             raise ValueError("width must be divisible by heads")
-        if min(vocab_size, block_size, width, layers, heads) < 1:
-            raise ValueError("model dimensions must be positive")
-        if not 0.0 <= dropout < 1.0:
-            raise ValueError("dropout must be in the range [0, 1)")
+        if (not isinstance(dropout, (int, float)) or isinstance(dropout, bool)
+                or not 0.0 <= dropout < 1.0):
+            raise ValueError("dropout must be a finite number in the range [0, 1)")
+        if not isinstance(gradient_checkpointing, bool):
+            raise ValueError("gradient_checkpointing must be a boolean")
         self.vocab_size = vocab_size
         self.block_size = block_size
         self.width = width
@@ -180,8 +191,9 @@ class NewStarGPT(nn.Module):
         """Advance cached decoding by exactly one token at its absolute window position."""
         if token.ndim != 2 or token.shape[1] != 1 or token.dtype != torch.long:
             raise ValueError("incremental token must be a [batch, 1] torch.long tensor")
-        if not 0 <= position < self.config.block_size:
-            raise ValueError("incremental position must be inside block_size")
+        if (not isinstance(position, int) or isinstance(position, bool)
+                or not 0 <= position < self.config.block_size):
+            raise ValueError("incremental position must be an integer inside block_size")
         if len(caches) != len(self.blocks):
             raise ValueError("one attention cache is required for every Transformer block")
         if torch.any(token < 0) or torch.any(token >= self.config.vocab_size):
@@ -194,8 +206,10 @@ class NewStarGPT(nn.Module):
                         self.config.width // self.config.heads)
             if (not isinstance(key, torch.Tensor) or not isinstance(value, torch.Tensor)
                     or tuple(key.shape) != expected or tuple(value.shape) != expected
-                    or key.device != token.device or value.device != token.device):
-                raise ValueError("attention cache shape/device does not match token batch and position")
+                    or key.device != token.device or value.device != token.device
+                    or key.dtype != self.token_embedding.weight.dtype
+                    or value.dtype != self.token_embedding.weight.dtype):
+                raise ValueError("attention cache shape/device/dtype does not match token batch and position")
         x = self.dropout(self.token_embedding(token) + self.position_embedding.weight[position:position + 1])
         next_caches = []
         for block, cache in zip(self.blocks, caches):
