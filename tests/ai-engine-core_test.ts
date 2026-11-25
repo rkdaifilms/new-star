@@ -355,3 +355,24 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
     throw new Error("Self-hosted video-status route could still call an external provider");
   }
 });
+
+Deno.test("Creator Studio clearly distinguishes private-only mode from external provider mode", async () => {
+  const source = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  const marker = 'if(result.data.mode==="self_hosted"){';
+  const start = source.indexOf(marker);
+  const end = source.indexOf('const providerState=', start);
+  if (start < 0 || end < 0) throw new Error("Creator Studio self-hosted status branch is missing");
+  const branch = source.slice(start, end);
+  for (const required of [
+    "New Star private model:",
+    "External AI providers: disabled",
+    "no Gemini, OpenAI or OpenRouter inference fallback",
+    "private worker not deployed",
+    "return;"
+  ]) {
+    if (!branch.includes(required)) throw new Error("Self-hosted status UI is missing: " + required);
+  }
+  if (branch.includes("providerState(")) {
+    throw new Error("Self-hosted status must not display or evaluate external provider health");
+  }
+});
