@@ -461,3 +461,13 @@ Deno.test("Creator Studio UI does not advertise removed external video dependenc
     throw new Error("Search capability card must describe private-mode provider isolation");
   }
 });
+
+Deno.test("Creator Studio discards stale speech language after transcript edits or leaving chat", async () => {
+  const source = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  if (!source.includes('prompt.addEventListener("input",()=>{lastInputWasVoice=false;lastTranscriptionLanguage="";});')) {
+    throw new Error("Manually editing a transcript must clear the old speech-recognition language");
+  }
+  if (!source.includes('function setMode(next){if(next!=="chat"){lastInputWasVoice=false;lastTranscriptionLanguage="";}')) {
+    throw new Error("Switching away from chat must clear stale voice-language state");
+  }
+});
