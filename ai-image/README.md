@@ -88,6 +88,14 @@ python ai-image/generate.py --checkpoint ./artifacts/newstar-image-ddpm.pt \
 
 The output is an image grid saved as PNG. The same checkpoint and seed reproduce the same sample on the same compatible runtime. Different hardware or library versions can produce small numeric differences.
 
+For a caption-conditioned checkpoint, provide a prompt and optional classifier-free guidance scale:
+
+```sh
+python ai-image/generate.py --checkpoint ./artifacts/newstar-image-text-ddpm.pt \\
+  --prompt "a red bicycle beside a stone wall" --guidance-scale 2.0 \\
+  --output ./artifacts/newstar-prompt-generated.png --count 1 --seed 2026 --device cpu
+```
+
 ## Evaluate on held-out images
 
 Keep a separate evaluation folder that was not used for training, and give it
@@ -120,7 +128,7 @@ Start the local service after training:
 python ai-image/serve.py --checkpoint ./artifacts/newstar-image-ddpm.pt --host 127.0.0.1 --port 8780
 ```
 
-It exposes `GET /health`, `GET /v1/models`, and `POST /v1/images/generations`. The generation endpoint accepts `n` (1–4), optional `seed`, and the checkpoint-native `size`; it returns PNG bytes as base64 in the `data[].b64_json` field. For an unconditional checkpoint it rejects `prompt`; for a caption-conditioned checkpoint it requires a non-empty `prompt` and routes its deterministic token IDs through the U-Net. The text-conditioned baseline is experimental and may not reliably follow natural-language prompts. Guidance scale defaults to 1.0 (no guidance); values from 0 to 10 are accepted. Values above 1 trade diversity for stronger caption conditioning, but do not overcome the hashed-token representation’s limited semantic understanding. Set `NEW_STAR_IMAGE_API_KEY` before binding beyond loopback; clients must send a bearer token. Do not expose the experimental service directly to the public internet.
+It exposes `GET /health`, `GET /v1/models`, and `POST /v1/images/generations`. The generation endpoint accepts `n` (1–4), optional `seed`, and the checkpoint-native `size`; it returns PNG bytes as base64 in the `data[].b64_json` field. For an unconditional checkpoint it rejects `prompt`; for a caption-conditioned checkpoint it requires a non-empty `prompt` and routes its deterministic token IDs through the U-Net. The text-conditioned baseline is experimental and may not reliably follow natural-language prompts. The optional `guidance_scale` defaults to 1.0 (no guidance); values from 0 to 10 are accepted. Values above 1 trade diversity for stronger caption conditioning, but do not overcome the hashed-token representation’s limited semantic understanding. Set `NEW_STAR_IMAGE_API_KEY` before binding beyond loopback; clients must send a bearer token. Do not expose the experimental service directly to the public internet.
 
 ## CPU container and Compose
 
@@ -136,4 +144,4 @@ The serving container binds inside the container network, while the published ho
 
 ## Model boundary
 
-This is an experimental DDPM baseline with optional hashed-caption conditioning, not a trained commercial image model. The repository does not contain a licensed training dataset or trained image weights. No claim of prompt-based generation or production readiness should be made until those components exist and have been independently evaluated.
+This is an experimental DDPM baseline with optional hashed-caption conditioning, not a trained commercial image model. The prompt-conditioning and guidance code paths exist, but the repository does not contain a licensed training dataset or trained image weights. No claim of useful prompt understanding, image quality, or production readiness should be made until training and independent evaluation on a suitable captioned dataset are complete.
