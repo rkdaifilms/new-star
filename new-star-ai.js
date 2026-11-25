@@ -72,10 +72,6 @@ try{
    pending.textContent="Video created · "+(completed.model||started.data.model||"Google Cloud Vertex AI");
    const video=document.createElement("video");video.controls=true;video.playsInline=true;video.preload="metadata";video.src=videoUrl;video.style.cssText="display:block;width:100%;max-width:640px;border-radius:12px;margin-top:10px";
    const save=document.createElement("a");save.href=videoUrl;save.download="new-star-ai-video.mp4";save.textContent="Save video";save.style.display="inline-block";save.style.marginTop="10px";pending.append(video,save);
- }else if(mode==="research"){
-   throw new Error("Live Research needs a connected search provider. The current Supabase AI gateway supports chat, image generation and voice, but does not yet provide web-search results.");
- }else{
-   throw new Error("Video generation needs a video model server and job queue. This feature is not connected yet; no fake video will be shown.");
  }
  attachment=null;fileInput.value="";$("ns-attachment-wrap").hidden=true;
 }catch(error){pending.textContent=error.message||"AI backend unavailable.";pending.dataset.error="true";if(!prompt.value.trim())prompt.value=sendText;}
