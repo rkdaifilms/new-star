@@ -1232,3 +1232,34 @@ def test_unicode_tokenizer_rejects_invalid_vocab_limits_and_non_string_input():
         tokenizer.encode(123)
     with pytest.raises(ValueError, match="token ID"):
         tokenizer.decode([True])
+
+
+def test_byte_bpe_tokenizer_rejects_malformed_serialized_merges():
+    import pytest
+    from bpe_tokenizer import ByteBPETokenizer
+
+    invalid_payloads = [
+        None,
+        {"type": ByteBPETokenizer.FORMAT, "merges": "not-a-list"},
+        {"type": ByteBPETokenizer.FORMAT, "merges": [["61"]]},
+        {"type": ByteBPETokenizer.FORMAT, "merges": [["61", "6g"]]},
+        {"type": ByteBPETokenizer.FORMAT, "merges": [["6 1", "62"]]},
+        {"type": ByteBPETokenizer.FORMAT, "merges": [["61", "62"], ["61", "62"]]},
+    ]
+    for payload in invalid_payloads:
+        with pytest.raises(ValueError):
+            ByteBPETokenizer.from_dict(payload)
+
+
+def test_byte_bpe_tokenizer_rejects_invalid_training_arguments_and_input():
+    import pytest
+    from bpe_tokenizer import ByteBPETokenizer
+
+    for merges, frequency in ((True, 1), (-1, 1), (1.5, 1), (1, False), (1, 0)):
+        with pytest.raises(ValueError):
+            ByteBPETokenizer.train("valid text", merges, frequency)
+    tokenizer = ByteBPETokenizer.train("नमस्ते नमस्ते", max_merges=8)
+    with pytest.raises(ValueError, match="string"):
+        tokenizer.encode(123)
+    with pytest.raises(ValueError, match="token ID"):
+        tokenizer.decode([True])
