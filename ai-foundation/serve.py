@@ -40,14 +40,35 @@ def format_chat_messages(messages: list[dict[str, str]]) -> str:
 
 def load_engine(checkpoint_path: str, device: str):
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    if not isinstance(checkpoint, dict):
+        raise ValueError("foundation checkpoint must contain a dictionary")
     checkpoint_format = checkpoint.get("format")
     if checkpoint_format not in {"new-star-unicode-char-gpt-v1", "new-star-byte-bpe-gpt-v1"}:
         raise ValueError("the local foundation server requires a supported New Star tokenizer checkpoint")
-    config = NewStarConfig(**checkpoint["config"])
+    raw_config = checkpoint.get("config")
+    state_dict = checkpoint.get("state_dict")
+    tokenizer_payload = checkpoint.get("tokenizer")
+    if not isinstance(raw_config, dict):
+        raise ValueError("foundation checkpoint is missing a valid model config")
+    if not isinstance(state_dict, dict):
+        raise ValueError("foundation checkpoint is missing a model state dictionary")
+    if not isinstance(tokenizer_payload, dict):
+        raise ValueError("foundation checkpoint is missing a tokenizer")
+    try:
+        config = NewStarConfig(**raw_config)
+        tokenizer = tokenizer_from_dict(tokenizer_payload)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("foundation checkpoint config or tokenizer is invalid") from exc
+    if len(tokenizer) != config.vocab_size:
+        raise ValueError(
+            "foundation checkpoint tokenizer vocabulary does not match model vocab_size"
+        )
     model = NewStarGPT(config).to(device)
-    model.load_state_dict(checkpoint["state_dict"])
+    try:
+        model.load_state_dict(state_dict, strict=True)
+    except (RuntimeError, TypeError) as exc:
+        raise ValueError("foundation checkpoint weights do not match the configured model") from exc
     model.eval()
-    tokenizer = tokenizer_from_dict(checkpoint["tokenizer"])
     return model, tokenizer
 
 
