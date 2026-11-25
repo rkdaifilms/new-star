@@ -297,7 +297,9 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 1600
 
 
 async function retrieveNewStarRagContext(query: string, adminClient: any): Promise<string> {
-  if (Deno.env.get("NEW_STAR_RAG_ENABLED") !== "true") return "";
+  const ragSetting = Deno.env.get("NEW_STAR_RAG_ENABLED");
+  const selfHostedRag = Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted";
+  if (ragSetting === "false" || (ragSetting !== "true" && !selfHostedRag)) return "";
   try {
     const { data, error } = await adminClient.rpc("search_new_star_private_index", {
       p_query: query.slice(0, 500), p_limit: 5, p_language: "auto"
