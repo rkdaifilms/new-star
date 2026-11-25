@@ -125,7 +125,9 @@ python ai-foundation/serve.py --checkpoint artifacts/newstar-small.pt
 ```
 
 It listens on `127.0.0.1:8765` and exposes `GET /health`,
-`POST /v1/completions`, and `POST /v1/chat/completions`. The chat endpoint
+`GET /v1/models`, `POST /v1/completions`, and `POST /v1/chat/completions`.
+The model-list route uses the OpenAI-compatible `list` response shape so local
+clients can discover the configured checkpoint name before sending chat requests. The chat endpoint
 accepts ordinary `system`, `user`, and `assistant` messages and returns an
 OpenAI-style non-streaming response. Set `temperature`, `top_k`, `top_p`, and
 `repetition_penalty` to control sampling. Streaming is not implemented. To bind to
