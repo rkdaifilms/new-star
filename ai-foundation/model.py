@@ -206,7 +206,8 @@ class NewStarGPT(nn.Module):
     @torch.no_grad()
     def generate(self, tokens: torch.Tensor, max_new_tokens: int = 100,
                  temperature: float = 1.0, top_k: int | None = 50,
-                 top_p: float = 0.95, repetition_penalty: float = 1.0) -> torch.Tensor:
+                 top_p: float = 0.95, repetition_penalty: float = 1.0,
+                 do_sample: bool = True) -> torch.Tensor:
         """Sample continuations using per-layer KV-state caching and bounded context."""
         if not isinstance(max_new_tokens, int) or isinstance(max_new_tokens, bool) or max_new_tokens < 0:
             raise ValueError("max_new_tokens must be a non-negative integer")
@@ -218,6 +219,8 @@ class NewStarGPT(nn.Module):
             raise ValueError("top_p must be greater than 0 and at most 1")
         if not isinstance(repetition_penalty, (int, float)) or isinstance(repetition_penalty, bool) or repetition_penalty < 1:
             raise ValueError("repetition_penalty must be at least 1")
+        if not isinstance(do_sample, bool):
+            raise ValueError("do_sample must be a boolean")
         if tokens.ndim != 2 or tokens.shape[1] < 1:
             raise ValueError("generation prompt must be a non-empty [batch, sequence] tensor")
         if tokens.dtype != torch.long:
@@ -240,20 +243,23 @@ class NewStarGPT(nn.Module):
                         values > 0, values / float(repetition_penalty),
                         values * float(repetition_penalty),
                     )
-            if top_k is not None:
-                k = min(top_k, next_logits.shape[-1])
-                threshold = torch.topk(next_logits, k, dim=-1).values[:, -1, None]
-                next_logits = next_logits.masked_fill(next_logits < threshold, float("-inf"))
-            if top_p < 1:
-                sorted_logits, sorted_indices = torch.sort(next_logits, descending=True, dim=-1)
-                sorted_probs = torch.softmax(sorted_logits, dim=-1)
-                cumulative = torch.cumsum(sorted_probs, dim=-1)
-                remove = cumulative - sorted_probs >= float(top_p)
-                sorted_logits = sorted_logits.masked_fill(remove, float("-inf"))
-                filtered = torch.full_like(next_logits, float("-inf"))
-                next_logits = filtered.scatter(1, sorted_indices, sorted_logits)
-            probabilities = torch.softmax(next_logits, dim=-1)
-            next_token = torch.multinomial(probabilities, num_samples=1)
+            if do_sample:
+                if top_k is not None:
+                    k = min(top_k, next_logits.shape[-1])
+                    threshold = torch.topk(next_logits, k, dim=-1).values[:, -1, None]
+                    next_logits = next_logits.masked_fill(next_logits < threshold, float("-inf"))
+                if top_p < 1:
+                    sorted_logits, sorted_indices = torch.sort(next_logits, descending=True, dim=-1)
+                    sorted_probs = torch.softmax(sorted_logits, dim=-1)
+                    cumulative = torch.cumsum(sorted_probs, dim=-1)
+                    remove = cumulative - sorted_probs >= float(top_p)
+                    sorted_logits = sorted_logits.masked_fill(remove, float("-inf"))
+                    filtered = torch.full_like(next_logits, float("-inf"))
+                    next_logits = filtered.scatter(1, sorted_indices, sorted_logits)
+                probabilities = torch.softmax(next_logits, dim=-1)
+                next_token = torch.multinomial(probabilities, num_samples=1)
+            else:
+                next_token = torch.argmax(next_logits, dim=-1, keepdim=True)
             tokens = torch.cat((tokens, next_token), dim=1)
             if step + 1 == max_new_tokens:
                 break
