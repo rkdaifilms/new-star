@@ -127,6 +127,9 @@ jobs:
           grep -F 'transcribeVoice(blob)' new-star-ai.js
           grep -F 'selectedAppLanguage()||lastTranscriptionLanguage||"auto"' new-star-ai.js
           grep -F 'pendingSendAfterTranscription' creator-ai.js
+          grep -F 'creator-ai-conversation' creator-ai.js
+          grep -F 'gatewayErrorMessage' new-star-ai.js
+          grep -F 'backendMessage' creator-ai.js
           grep -F 'action:"video"' new-star-ai.js
           grep -F 'action:"video-status"' new-star-ai.js
           grep -F 'Developer API keys' new-star-ai.html
