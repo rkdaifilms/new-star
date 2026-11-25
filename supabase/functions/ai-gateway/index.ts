@@ -236,27 +236,6 @@ async function getGoogleCloudAccessToken(): Promise<{ token: string; projectId: 
   return { token: cachedGoogleAccessToken, projectId };
 }
 
-function buildGeminiVideoRequest(model: string, prompt: string, aspectRatio: string, resolution: string, duration: string) {
-  const allowedDuration = model === "gemini-omni-1.2-flash" ? [ "3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s" ] : [ "3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s" ];
-  const safeDuration = allowedDuration.includes(duration) ? duration : "6s";
-  const safeAspectRatio = aspectRatio === "9:16" ? "9:16" : "16:9";
-  const safeResolution = ["360p", "720p", "1080p"].includes(resolution) ? resolution : "720p";
-  return {
-    model,
-    background: true,
-    store: true,
-    input: [{ type: "text", text: prompt }],
-    response_format: [{
-      type: "video",
-      delivery: "inline",
-      aspect_ratio: safeAspectRatio,
-      resolution: safeResolution,
-      duration: safeDuration
-    }],
-    generation_config: { video_config: { task: "text_to_video" } }
-  };
-}
-
 async function startGeminiVideo(model: string, prompt: string, aspectRatio: string, resolution: string, duration: string) {
   const { token, projectId } = await getGoogleCloudAccessToken();
   const endpoint = "https://aiplatform.googleapis.com/v1beta1/projects/" + encodeURIComponent(projectId) + "/locations/global/interactions";
