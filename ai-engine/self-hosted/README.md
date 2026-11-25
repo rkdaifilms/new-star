@@ -51,7 +51,7 @@ This server provides text chat only. Image generation, video generation, speech 
 New Star already had `public.new_star_search_chunks` with `vector(384)`,
 HNSW and GIN indexes. The new private search path reuses that existing table;
 it does not create a second document store. Migration
-`supabase/migrations/202611250003_reuse_existing_new_star_search_chunks.sql`
+`supabase/migrations/20261125125524_reuse_existing_new_star_search_chunks.sql`
 adds language and chunk metadata and installs a service-role-only full-text
 search RPC. Anonymous and signed-in browser roles cannot read the chunks or
 execute the private search function.
