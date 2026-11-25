@@ -35,6 +35,37 @@ in the upstream [llama.cpp server options](https://github.com/ggml-org/llama.cpp
 
 The service binds to loopback only. Put it behind a TLS reverse proxy or private network before connecting Supabase. Do not expose port 8080 publicly.
 
+
+## Verify every private worker
+
+The repository includes `verify-workers.py` to check the deployed worker HTTPS endpoints without printing secrets. Configure the five `NEW_STAR_*_BASE_URL` values and matching API keys in the environment of a trusted GPU/operations host. Each URL must point to a TLS reverse proxy that forwards to the worker's loopback-only Compose port; do not expose ports 8090–8094 publicly.
+
+Run a health/configuration pass:
+
+```sh
+cd ai-engine/self-hosted
+set -a
+source .env
+set +a
+python3 verify-workers.py
+```
+
+Run actual image, vision, speech-synthesis, and private-index search inference (this downloads/loads model weights as needed and consumes GPU resources):
+
+```sh
+python3 verify-workers.py --infer
+```
+
+For crawler verification, set `NEW_STAR_SMOKE_CRAWL_URL` to a public page you are authorized to index. The crawler only follows same-host links and is capped at five pages per submitted root URL. To test speech synthesis in a different installed voice language, set `NEW_STAR_SMOKE_SPEECH_LANGUAGE` to its configured ISO language code. To query a different indexed phrase, set `NEW_STAR_SMOKE_SEARCH_QUERY`.
+
+Video generation is a separate, expensive six-second GPU job and is not run by the default checks:
+
+```sh
+python3 verify-workers.py --video
+```
+
+The video test waits up to `NEW_STAR_SMOKE_VIDEO_TIMEOUT` seconds (default 1800). A successful health check only proves that the worker responds; only the `--infer`/ `--video` runs prove actual model inference. A skipped worker is not counted as passed. Use `--require-all` in a release environment where every worker must be deployed.
+
 ## Connect the New Star gateway
 
 Set Supabase Edge Function secrets:
