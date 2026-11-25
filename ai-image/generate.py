@@ -33,7 +33,7 @@ def save_image_grid(images: torch.Tensor, destination: str | Path) -> None:
         pixels = tensor.detach().cpu().clamp(-1, 1).add(1).mul(127.5).byte()
         image = Image.frombytes(
             "RGB", (width, height),
-            pixels.permute(1, 2, 0).contiguous().numpy().tobytes(),
+            bytes(pixels.permute(1, 2, 0).contiguous().view(-1).tolist()),
         )
         canvas.paste(image, ((index % columns) * width, (index // columns) * height))
     output = Path(destination)
