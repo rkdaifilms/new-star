@@ -48,35 +48,31 @@ This server provides text chat only. Image generation, video generation, speech 
 
 ## New Star private search index
 
-The existing `new_star_search_chunks` table and its HNSW + GIN indexes are reused; no parallel document table is needed. Migration `supabase/migrations/202611250003_reuse_existing_new_star_search_chunks.sql` adds language/chunk metadata and the private full-text RPC. It is
-service-role-only: browser roles have no table privileges or RPC execution.
-The gateway checks this index first for both search requests and optional
-chat retrieval. The index starts empty; add only content you have permission
-to store and make searchable.
+New Star already had `public.new_star_search_chunks` with `vector(384)`,
+HNSW and GIN indexes. The new private search path reuses that existing table;
+it does not create a second document store. Migration
+`supabase/migrations/202611250003_reuse_existing_new_star_search_chunks.sql`
+adds language and chunk metadata and installs a service-role-only full-text
+search RPC. Anonymous and signed-in browser roles cannot read the chunks or
+execute the private search function.
 
-Prepare a UTF-8 JSONL file with one object per line:
+The search index is empty until authorized content is ingested. Prepare a
+UTF-8 JSONL file with one source document per line:
 
 ```json
 {"url":"https://docs.example.org/guide","title":"Guide title","source":"Example Docs","content":"Text that may be searched by New Star.","language":"en","published_at":null}
 ```
 
-Run the ingestion utility from the repository root on a trusted machine:
+The optional `new-star-embeddings` Compose service runs a dedicated
+384-dimensional embedding model on loopback port 8081. Place a legally
+licensed, compatible E5-small-v2 GGUF file in `models/`, configure
+`NEW_STAR_EMBEDDING_MODEL_FILE` and a separate random
+`NEW_STAR_EMBEDDING_API_KEY`, then start it with:
 
 ```sh
-SUPABASE_URL="https://YOUR_PROJECT.supabase.co" \
-SUPABASE_SERVICE_ROLE_KEY="YOUR_SERVER_ONLY_SERVICE_ROLE_KEY" \
-deno run --allow-read --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY scripts/new-star-search-ingest.ts documents.jsonl
+docker compose --profile embeddings up -d new-star-embeddings
+bash verify-embeddings.sh
 ```
-
-The tool accepts HTTPS URLs only, rejects credentials in URLs, validates
-content lengths and dates, rejects duplicate URLs within a batch, and limits
-each batch to 500 documents. Never put the service-role key in browser code,
-mobile apps, public repositories, or client-visible environment variables.
-
-
-## Private search embeddings
-
-The optional `new-star-embeddings` Compose service runs a dedicated 384-dimensional embedding model on loopback port 8081. Place a legally licensed compatible E5-small-v2 GGUF file in `models/`, set `NEW_STAR_EMBEDDING_MODEL_FILE` and a separate `NEW_STAR_EMBEDDING_API_KEY`, then start it with `docker compose --profile embeddings up -d new-star-embeddings`. The model must produce exactly 384 values per embedding.
 
 Run the ingestion utility from the repository root on a trusted machine:
 
@@ -88,4 +84,9 @@ NEW_STAR_EMBEDDING_API_KEY="YOUR_PRIVATE_EMBEDDING_KEY" \
 deno run --allow-read --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,NEW_STAR_EMBEDDING_BASE_URL,NEW_STAR_EMBEDDING_API_KEY scripts/new-star-search-ingest.ts documents.jsonl
 ```
 
-The tool accepts HTTPS source URLs only, rejects credentials in URLs, validates content lengths and dates, rejects duplicate URLs within a batch, chunks text with overlap, obtains a 384-dimensional embedding for each chunk, and limits each batch to 100 source documents and 200 chunks.
+The tool validates HTTPS source URLs, rejects URL credentials and duplicate
+source URLs, chunks the text with overlap, obtains one 384-dimensional vector
+per chunk from the private embedding worker, and limits each batch to 100
+source documents and 200 chunks. Never expose the Supabase service-role key or
+embedding API key in browser code, mobile apps, public repositories, or
+client-visible environment variables.
