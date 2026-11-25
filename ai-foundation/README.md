@@ -9,6 +9,8 @@ This folder contains New Star's own experimental decoder-only Transformer archit
 - Learned token and position embeddings, causal attention masking, feed-forward blocks, residual paths, and tied input/output embeddings.
 - A next-token prediction training loop with validation loss, AdamW, and gradient clipping.
 - Local checkpoint saving and text generation.
+- Incremental decoding with projected per-head key/value caches using PyTorch scaled dot-product attention. The prompt is prefetched once, each next token projects only its own query/key/value, and the cache is rebuilt when the fixed context window rolls over. This reduces repeated Transformer-layer work during generation; it does not change the model's context-window limit or make a small untrained checkpoint capable.
+
 - A deterministic held-out evaluation command reporting cross-entropy (nats/token or nats/byte depending on checkpoint) and perplexity.
 
 
