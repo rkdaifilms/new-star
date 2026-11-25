@@ -1459,3 +1459,38 @@ def test_model_forward_and_cache_paths_reject_empty_batches_and_non_tensors():
         model.forward_incremental(
             torch.tensor([[1]], dtype=torch.long), 0, None
         )
+
+
+def test_native_inference_server_requires_bearer_key_for_post_requests():
+    import threading
+    from http.server import ThreadingHTTPServer
+    from urllib.error import HTTPError
+    from urllib.request import Request, urlopen
+    import pytest
+    from serve import create_handler
+    from tokenizer import UnicodeCharTokenizer
+
+    model = tiny_model().eval()
+    tokenizer = UnicodeCharTokenizer.train("hello")
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        create_handler(model, tokenizer, "test-model", "cpu", "test-secret"),
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base_url = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        with urlopen(base_url + "/health") as response:
+            assert response.status == 200
+        request = Request(
+            base_url + "/v1/completions",
+            data=b'{"prompt":"hello","max_tokens":1}',
+            headers={"Content-Type": "application/json"},
+        )
+        with pytest.raises(HTTPError) as error:
+            urlopen(request)
+        assert error.value.code == 401
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
