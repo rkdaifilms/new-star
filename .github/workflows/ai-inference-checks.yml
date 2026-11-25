@@ -1,0 +1,168 @@
+name: New Star CPU Inference Checks
+
+on:
+  pull_request:
+    paths:
+      - "ai-inference/**"
+      - "ai-foundation/**"
+      - "ai-image/**"
+      - "ai-engine/**"
+      - "ai-search/**"
+      - "ai-engine.html"
+      - "ai-engine/tests/**"
+      - "ai-chat.js"
+      - "creator-ai.js"
+      - "creator-ai.html"
+      - "AI_GATEWAY_SETUP.md"
+      - "supabase/functions/ai-gateway/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/ai-inference-checks.yml"
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-inference
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: ai-inference/requirements.txt
+      - name: Install test dependencies
+        run: pip install "fastapi==0.115.12" "pydantic==2.11.4" "pytest==8.3.5" "httpx==0.28.1"
+      - name: Compile Python source
+        run: python -m compileall -q app.py tests scripts
+      - name: Run API tests
+        run: pytest -q
+
+  gateway-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check the hosted-model gateway adapter
+        run: deno check --no-lock supabase/functions/ai-gateway/index.ts supabase/functions/ai-gateway/language-policy.ts
+      - name: Test Google Cloud service-account helpers
+        run: deno test --no-check supabase/functions/ai-gateway/google-auth.test.ts supabase/functions/ai-gateway/video-provider.test.ts supabase/functions/ai-gateway/language-policy.test.ts supabase/functions/ai-gateway/language-catalog.test.ts supabase/functions/ai-gateway/search-provider.test.ts supabase/functions/ai-gateway/request-body.test.ts
+      - name: Verify local model adapter and provider priority
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="supabase/functions/ai-gateway/index.ts"
+          grep -F 'async function callNewStarHostedModel' "$FILE"
+          grep -F 'async function probeNewStarHostedModel' "$FILE"
+          grep -F 'NEW_STAR_MODEL_BASE_URL' "$FILE"
+          grep -F 'NEW_STAR_MODEL_NAME' "$FILE"
+          grep -F 'NEW_STAR_MODEL_API_KEY' "$FILE"
+          grep -F 'new-star-ai-fallback' "$FILE"
+          grep -F 'new-star-ai' "$FILE"
+          grep -F 'NEW_STAR_MODEL_ENABLE_FALLBACK' "$FILE"
+          grep -F 'NEW_STAR_MODEL_PRIMARY' "$FILE"
+          grep -F 'body?.action === "search"' "$FILE"
+          grep -F 'NEW_STAR_SEARCH_BASE_URL' "$FILE"
+          grep -F 'newStarApiPrimary' "$FILE"
+          grep -F 'id="search-mode"' creator-ai.html
+          grep -F 'async function searchWeb' creator-ai.js
+          grep -F 'newStarTestFallbackEnabled' "$FILE"
+          grep -F 'async function startGeminiVideo' "$FILE"
+          grep -F 'NEW_STAR_IMAGE_MODEL' "$FILE"
+          grep -F 'buildGeminiVideoRequest' "$FILE"
+          grep -F 'response_format: [{' supabase/functions/ai-gateway/video-provider.ts
+          grep -F 'generation_config: { video_config: { task: "text_to_video" } }' supabase/functions/ai-gateway/video-provider.ts
+          grep -F 'delivery: "inline"' supabase/functions/ai-gateway/video-provider.ts
+          grep -F 'input: [{ type: "text", text: prompt }]' supabase/functions/ai-gateway/video-provider.ts
+          grep -F 'videoJobOwnerKey' creator-ai.js
+          grep -F 'newstar_pending_video_job' creator-ai.js
+          grep -F 'video-duration' creator-ai.html
+          grep -F 'duration=$("video-duration")' creator-ai.js
+          grep -F 'videoGeneration: { supported: true, configured: Boolean(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON")?.trim())' "$FILE"
+          grep -F 'https://aiplatform.googleapis.com/v1beta1/projects/' "$FILE"
+          grep -F 'GOOGLE_SERVICE_ACCOUNT_JSON' "$FILE"
+          grep -F 'oauth2.googleapis.com/token' "$FILE"
+          grep -F 'gemini-omni-1.2-flash' "$FILE"
+          grep -F 'gemini-omni-1.1-flash-preview' "$FILE"
+          grep -F 'background: true' supabase/functions/ai-gateway/video-provider.ts
+          grep -F 'body?.action === "video-status"' "$FILE"
+          grep -F 'pendingVideoJobId' creator-ai.js
+          grep -F 'async function getGeminiVideoInteraction' "$FILE"
+          grep -F 'body?.action === "video-status"' "$FILE"
+          grep -F 'ai_video_jobs' "$FILE"
+          grep -F 'create table if not exists public.ai_video_jobs' supabase/migrations/20261124130000_add_async_ai_video_jobs.sql
+          grep -F 'body?.action === "video"' "$FILE"
+          grep -F 'new-star-ai-videos' "$FILE"
+
+
+  frontend-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check browser AI scripts syntax
+        run: |
+          node --check ai-chat.js
+          node --check creator-ai.js
+          python ai-engine/tests/check_html.py ai-engine.html
+
+  container-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build CPU inference container
+        run: docker build --tag new-star-cpu-inference:ci ./ai-inference
+      - name: Build New Star Search and vector retrieval container
+        run: docker build --tag new-star-search:ci ./ai-search
+      - name: Validate Compose deployment manifests
+        run: |
+          NEW_STAR_AI_SERVER_TOKEN=ci-test-token docker compose -f ai-engine/docker-compose.yml config --quiet
+          NEW_STAR_SEARCH_API_KEY=ci-test-token NEW_STAR_VECTOR_DATABASE_URL=postgresql://ci:ci@localhost:5432/ci docker compose -f ai-search/docker-compose.yml config --quiet
+          MODEL_TOKEN=ci-test-token docker compose -f ai-inference/docker-compose.yml --profile gpu config --quiet
+          docker compose -f ai-foundation/docker-compose.yml --profile cpu config --quiet
+          docker compose -f ai-foundation/docker-compose.yml --profile gpu config --quiet
+          NEW_STAR_IMAGE_API_KEY=ci-test-token docker compose -f ai-image/docker-compose.yml --profile serve config --quiet
+
+  foundation-model-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU PyTorch and test runner
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install pytest "Pillow>=10,<13"
+      - name: Compile foundation and image models
+        run: python -m compileall -q ai-foundation ai-image
+      - name: Test New Star Transformer
+        run: PYTHONPATH=. pytest -q ai-foundation/tests
+      - name: Test New Star from-scratch image diffusion model
+        run: PYTHONPATH=ai-image pytest -q ai-image/tests
+      - name: Verify multilingual generation evaluator CLI
+        run: PYTHONPATH=ai-foundation python ai-foundation/generation_eval.py --help
+
+  self-hosted-router-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile self-hosted AI engine and search services
+        run: python -m compileall -q ai-engine/ai_engine ai-search
+      - name: Test model registry, fallback router, HTTP API, and streaming adapters
+        run: python -m unittest discover -s ai-engine/tests -v
+      - name: Test New Star lexical and vector search APIs
+        run: python -m unittest discover -s ai-search/tests -v
+      - name: Validate example registry and preview a multilingual route
+        run: |
+          PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.example.json validate
+          PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.example.json plan --capability chat --language hi
+          PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.foundation.example.json validate
+          PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.foundation.example.json plan --capability chat --language ne

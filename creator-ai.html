@@ -26,7 +26,7 @@ main{width:min(900px,100%);margin:0 auto;padding:14px;flex:1;display:flex;flex-d
 .composer-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.composer-row button{border:0;border-radius:10px;padding:11px 14px;background:var(--accent);color:white;font-weight:700}.composer-row button.secondary{background:#272731;border:1px solid #494956}.composer-row button:disabled{opacity:.55}
 #voice-status,#notice{color:var(--muted);font-size:12px;margin:7px 2px}
 #image-result img{width:100%;max-width:640px;border-radius:14px;border:1px solid var(--line)}
-#image-result{display:grid;gap:8px}
+#image-result,#video-result{display:grid;gap:8px}#video-result video{background:#000}
 .toggle{display:flex;align-items:center;gap:7px;color:#ddd;font-size:13px}
 small.hint{color:var(--muted)}
 @media(min-width:760px){main{padding:20px}.welcome{padding:20px}#prompt{min-height:90px}}
@@ -40,7 +40,7 @@ small.hint{color:var(--muted)}
 </head>
 <body>
 <div id="creator-ai-app">
-<header class="top"><a class="back" href="index.html" aria-label="Back" data-i18n-aria-label="ai.back">‹</a><div class="brand"><strong data-i18n="ai.title">✦ New Star Creator Studio</strong><small data-i18n="ai.subtitle">Creative assistant · Chat · Voice · Images</small></div><span id="gateway-status" class="status">Connecting…</span></header>
+<header class="top"><a class="back" href="index.html" aria-label="Back" data-i18n-aria-label="ai.back">‹</a><div class="brand"><strong data-i18n="ai.title">✦ New Star Creator Studio</strong><small data-i18n="ai.subtitle">Creative assistant · Chat · Voice · Images · Video</small></div><span id="gateway-status" class="status">Connecting…</span></header>
 <main>
 <section class="welcome"><h1 data-i18n="ai.welcomeTitle">Your ideas, in your language.</h1><p data-i18n="ai.welcomeText">Ask questions, write stories and scripts, create video titles, descriptions and hashtags, plan content, or generate an original image. The AI follows the language you type or speak.</p></section>
 <div class="tools" aria-label="Creator tools" data-i18n-aria-label="ai.tools">
@@ -48,12 +48,15 @@ small.hint{color:var(--muted)}
 <button type="button" data-starter="Write an engaging video title, description and relevant hashtags for this topic: ">📝 <span data-i18n="ai.titleDescription">Title & description</span></button>
 <button type="button" data-starter="Write an engaging original story about: ">📖 <span data-i18n="ai.storyWriter">Story writer</span></button>
 <button type="button" id="image-mode">🎨 <span data-i18n="ai.generateImage">Generate image</span></button>
+<button type="button" id="video-mode">🎬 Generate video</button>
+<button type="button" id="search-mode">🔎 Search web</button>
 </div>
 <div id="chat-log" aria-live="polite"><div class="msg assistant" data-i18n="ai.hello">Hello! Tell me what you want to create. I’ll reply in the language you use.</div></div>
 <div id="image-result" hidden></div>
+<div id="video-result" hidden></div>
 <section id="composer">
 <div id="prompt-wrap"><textarea id="prompt" maxlength="8000" data-i18n-placeholder="ai.prompt" placeholder="Write a message or tap the mic to speak…"></textarea><button type="button" id="voice" aria-label="Speak with microphone" title="Speak with microphone" data-i18n-aria-label="ai.mic" class="prompt-mic">🎙️</button></div>
-<div class="composer-row"><label class="toggle">Image size <select id="image-aspect-ratio" class="secondary"><option value="1:1">Auto / Square (1:1)</option><option value="16:9">Landscape (16:9)</option><option value="9:16">Portrait (9:16)</option><option value="4:3">Landscape (4:3)</option><option value="3:4">Portrait (3:4)</option></select></label><label class="toggle">Resolution <select id="image-resolution" class="secondary"><option value="1K">1K</option><option value="2K">2K</option><option value="4K">4K</option></select></label><button type="button" id="send" data-i18n="ai.send">Send</button><button type="button" id="stop-voice" class="secondary" hidden data-i18n="ai.stopRecording">■ Stop recording</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> <span data-i18n="ai.speakAnswers">Speak answers aloud</span></label></div>
+<div class="composer-row"><label class="toggle">Image size <select id="image-aspect-ratio" class="secondary"><option value="1:1">Auto / Square (1:1)</option><option value="16:9">Landscape (16:9)</option><option value="9:16">Portrait (9:16)</option><option value="4:3">Landscape (4:3)</option><option value="3:4">Portrait (3:4)</option></select></label><label class="toggle">Resolution <select id="image-resolution" class="secondary"><option value="1K">1K</option><option value="2K">2K</option><option value="4K">4K</option></select></label><label class="toggle" id="video-options" hidden>Video format <select id="video-aspect-ratio" class="secondary"><option value="16:9">Landscape (16:9)</option><option value="9:16">Portrait (9:16)</option></select> <select id="video-resolution" class="secondary"><option value="360p">360p draft</option><option value="720p" selected>720p</option><option value="1080p">1080p</option></select> <label class="toggle" for="video-duration">Duration <select id="video-duration" class="secondary"><option value="6s" selected>6 seconds</option><option value="10s">10 seconds</option><option value="15s">15 seconds</option></select></label></label><button type="button" id="send" data-i18n="ai.send">Send</button><button type="button" id="stop-voice" class="secondary" hidden data-i18n="ai.stopRecording">■ Stop recording</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> <span data-i18n="ai.speakAnswers">Speak answers aloud</span></label></div>
 <div id="voice-status" role="status" aria-live="polite" data-i18n="ai.voiceHint">Tap the mic to speak. When recording stops, your voice is converted to text.</div>
 <div id="notice" data-i18n="ai.signinNotice">Sign in required. Do not enter passwords, OTPs, API keys or private financial details.</div>
 </section>

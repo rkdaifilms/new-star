@@ -1,0 +1,46 @@
+services:
+  train:
+    profiles: ["train"]
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    init: true
+    entrypoint: ["python", "train.py"]
+    volumes:
+      - ${NEW_STAR_IMAGE_DATA_DIR:-./data}:/data:ro
+      - ${NEW_STAR_IMAGE_ARTIFACTS_DIR:-./artifacts}:/artifacts
+    command:
+      - --data
+      - /data/images
+      - --manifest
+      - /data/manifest.json
+      - --output
+      - /artifacts/newstar-image-ddpm.pt
+      - --image-size
+      - "${NEW_STAR_IMAGE_SIZE:-32}"
+      - --steps
+      - "${NEW_STAR_IMAGE_TRAIN_STEPS:-10000}"
+      - --device
+      - cpu
+    restart: "no"
+
+  serve:
+    profiles: ["serve"]
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    init: true
+    environment:
+      NEW_STAR_IMAGE_API_KEY: ${NEW_STAR_IMAGE_API_KEY:-}
+    volumes:
+      - ${NEW_STAR_IMAGE_ARTIFACTS_DIR:-./artifacts}:/artifacts:ro
+    ports:
+      - "127.0.0.1:8780:8780"
+    command:
+      - --checkpoint
+      - /artifacts/newstar-image-ddpm.pt
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8780"
+    restart: unless-stopped

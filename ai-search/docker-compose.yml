@@ -1,0 +1,43 @@
+services:
+  new-star-search:
+    build: .
+    restart: unless-stopped
+    environment:
+      NEW_STAR_SEARCH_API_KEY: ${NEW_STAR_SEARCH_API_KEY:?Set NEW_STAR_SEARCH_API_KEY}
+      NEW_STAR_SEARCH_DB: /var/lib/new-star-search/index.sqlite3
+      NEW_STAR_SEARCH_ALLOWED_DOMAINS: ${NEW_STAR_SEARCH_ALLOWED_DOMAINS:-}
+      NEW_STAR_SEARCH_USER_AGENT: ${NEW_STAR_SEARCH_USER_AGENT:-NewStarSearchBot/1.0}
+      NEW_STAR_SEARCH_MAX_PAGE_BYTES: ${NEW_STAR_SEARCH_MAX_PAGE_BYTES:-2000000}
+      NEW_STAR_SEARCH_FETCH_TIMEOUT: ${NEW_STAR_SEARCH_FETCH_TIMEOUT:-12}
+    volumes:
+      - new-star-search-data:/var/lib/new-star-search
+    ports:
+      - "127.0.0.1:8081:8081"
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/healthz',timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+  new-star-vector-search:
+    build: .
+    command: ["python","vector_server.py"]
+    restart: unless-stopped
+    environment:
+      NEW_STAR_SEARCH_API_KEY: ${NEW_STAR_SEARCH_API_KEY:?Set NEW_STAR_SEARCH_API_KEY}
+      NEW_STAR_VECTOR_DATABASE_URL: ${NEW_STAR_VECTOR_DATABASE_URL:?Set NEW_STAR_VECTOR_DATABASE_URL}
+      NEW_STAR_EMBEDDING_MODEL: ${NEW_STAR_EMBEDDING_MODEL:-intfloat/multilingual-e5-small}
+      HF_HOME: /var/cache/huggingface
+    volumes:
+      - new-star-model-cache:/var/cache/huggingface
+      - new-star-search-data:/var/lib/new-star-search:ro
+    ports:
+      - "127.0.0.1:8082:8082"
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/healthz',timeout=5)"]
+      interval: 30s
+      timeout: 8s
+      retries: 5
+      start_period: 180s
+volumes:
+  new-star-search-data:
+  new-star-model-cache:

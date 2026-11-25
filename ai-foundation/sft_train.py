@@ -1,0 +1,400 @@
+"""Supervised fine-tuning for New Star using response-only masked chat targets."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+from pathlib import Path
+
+import torch
+
+from audit_corpus import audit_corpus
+from instruction_data import encode_instruction_example, load_instruction_corpora
+from model import NewStarConfig, NewStarGPT
+from tokenizer import UnicodeCharTokenizer, tokenizer_from_dict
+from bpe_tokenizer import ByteBPETokenizer
+from hardware import autocast_context, create_grad_scaler, hardware_report, resolve_device, resolve_precision
+from artifact_io import atomic_torch_save, atomic_write_json
+
+
+def encode_corpora(corpora, tokenizer, block_size):
+    encoded = {}
+    for language, conversations in corpora.items():
+        rows = []
+        for messages in conversations:
+            inputs, labels = encode_instruction_example(messages, tokenizer, block_size)
+            rows.append((inputs, labels))
+        if not rows:
+            raise ValueError(f"language {language!r} has no usable instruction examples")
+        encoded[language] = rows
+    return encoded
+
+
+def collate_examples(examples, indices, block_size, device):
+    batch = [examples[index] for index in indices]
+    width = min(block_size, max(len(inputs) for inputs, _ in batch))
+    tokens = torch.zeros((len(batch), width), dtype=torch.long)
+    labels = torch.full((len(batch), width), -100, dtype=torch.long)
+    for row, (input_ids, target_ids) in enumerate(batch):
+        length = min(width, len(input_ids))
+        tokens[row, :length] = torch.tensor(input_ids[:length], dtype=torch.long)
+        labels[row, :length] = torch.tensor(target_ids[:length], dtype=torch.long)
+    return tokens.to(device), labels.to(device)
+
+
+def sample_instruction_batch(corpora, batch_size, block_size, device, generator=None):
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size < 1:
+        raise ValueError("batch_size must be a positive integer")
+    if not isinstance(block_size, int) or isinstance(block_size, bool) or block_size < 1:
+        raise ValueError("block_size must be a positive integer")
+    if not isinstance(corpora, dict) or not corpora:
+        raise ValueError("at least one language corpus is required")
+    if generator is not None and (
+        not isinstance(generator, torch.Generator) or generator.device.type != "cpu"
+    ):
+        raise ValueError("generator must be a CPU torch.Generator or None")
+    try:
+        target_device = torch.device(device)
+    except (TypeError, RuntimeError) as exc:
+        raise ValueError("device must identify a valid PyTorch device") from exc
+    if any(not isinstance(language, str) or not language.strip() for language in corpora):
+        raise ValueError("language corpus keys must be non-empty strings")
+    languages = sorted(corpora)
+    for language in languages:
+        examples = corpora[language]
+        if not isinstance(examples, list) or not examples:
+            raise ValueError(f"language {language!r} must contain at least one encoded example")
+        for example in examples:
+            if not isinstance(example, (tuple, list)) or len(example) != 2:
+                raise ValueError(f"language {language!r} contains a malformed encoded example")
+            inputs, labels = example
+            if not isinstance(inputs, list) or not isinstance(labels, list) or not inputs:
+                raise ValueError(f"language {language!r} contains empty or invalid token sequences")
+            if len(inputs) != len(labels) or len(inputs) > block_size:
+                raise ValueError(f"language {language!r} contains mismatched or oversized token sequences")
+            if any(not isinstance(token, int) or isinstance(token, bool) or token < 0 for token in inputs):
+                raise ValueError(f"language {language!r} contains invalid input token IDs")
+            if any(not isinstance(token, int) or isinstance(token, bool) or (token < 0 and token != -100) for token in labels):
+                raise ValueError(f"language {language!r} contains invalid target token IDs")
+            if not any(token != -100 for token in labels):
+                raise ValueError(f"language {language!r} contains an example without assistant targets")
+    selected = []
+    for _ in range(batch_size):
+        lang_index = int(torch.randint(len(languages), (1,), generator=generator).item())
+        examples = corpora[languages[lang_index]]
+        example_index = int(torch.randint(len(examples), (1,), generator=generator).item())
+        selected.append(examples[example_index])
+    return collate_examples(selected, list(range(batch_size)), block_size, target_device)
+
+
+def save_training_state(path, model, optimizer, generator, step, seed,
+                       data_fingerprint, training_config, scaler=None):
+    """Atomically persist model, optimizer, RNG, and mixed-precision scaler state."""
+    atomic_torch_save({
+        "format": "new-star-sft-resume-v1",
+        "step": step,
+        "model_state": model.state_dict(),
+        "optimizer_state": optimizer.state_dict(),
+        "grad_scaler_state": scaler.state_dict() if scaler is not None else None,
+        "batch_generator_state": generator.get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+        "cuda_rng_states": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+        "seed": seed,
+        "data_fingerprint": data_fingerprint,
+        "training_config": training_config,
+    }, path)
+
+
+def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32"):
+    """Return a macro-average of per-language token-weighted validation losses."""
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size < 1:
+        raise ValueError("batch_size must be a positive integer")
+    if not isinstance(block_size, int) or isinstance(block_size, bool) or block_size < 1:
+        raise ValueError("block_size must be a positive integer")
+    if not isinstance(corpora, dict) or not corpora:
+        raise ValueError("at least one validation language is required")
+    if any(not isinstance(language, str) or not language.strip() for language in corpora):
+        raise ValueError("validation language keys must be non-empty strings")
+    for language, examples in corpora.items():
+        if not isinstance(examples, list) or not examples:
+            raise ValueError(f"validation language {language!r} must contain at least one example")
+        for example in examples:
+            if not isinstance(example, (tuple, list)) or len(example) != 2:
+                raise ValueError(f"validation language {language!r} contains a malformed example")
+            inputs, labels = example
+            if not isinstance(inputs, list) or not isinstance(labels, list) or not inputs:
+                raise ValueError(f"validation language {language!r} contains empty token sequences")
+            if len(inputs) != len(labels) or len(inputs) > block_size:
+                raise ValueError(f"validation language {language!r} contains mismatched or oversized sequences")
+            if any(not isinstance(token, int) or isinstance(token, bool) or token < 0 for token in inputs):
+                raise ValueError(f"validation language {language!r} contains invalid input token IDs")
+            if any(not isinstance(token, int) or isinstance(token, bool) or (token < 0 and token != -100) for token in labels):
+                raise ValueError(f"validation language {language!r} contains invalid target token IDs")
+            if not any(token != -100 for token in labels):
+                raise ValueError(f"validation language {language!r} contains no assistant targets")
+    try:
+        target_device = torch.device(device)
+    except (TypeError, RuntimeError) as exc:
+        raise ValueError("device must identify a valid PyTorch device") from exc
+    if not isinstance(precision, str) or precision not in {"auto", "fp32", "fp16", "bf16"}:
+        raise ValueError("precision must be auto, fp32, fp16, or bf16")
+    was_training = getattr(model, "training", None)
+    model.eval()
+    language_losses = []
+    try:
+        with torch.inference_mode():
+            for language in sorted(corpora):
+                examples = corpora[language]
+                weighted_loss = 0.0
+                token_count = 0
+                for start in range(0, len(examples), batch_size):
+                    indices = list(range(start, min(start + batch_size, len(examples))))
+                    x, y = collate_examples(examples, indices, block_size, target_device)
+                    supervised_tokens = int((y != -100).sum().item())
+                    if supervised_tokens == 0:
+                        raise ValueError(f"validation batch has no assistant targets for {language}")
+                    with autocast_context(device, precision):
+                        _, loss = model(x, y)
+                    if loss is None or not torch.isfinite(loss):
+                        raise RuntimeError(f"non-finite validation loss for {language}")
+                    weighted_loss += float(loss.item()) * supervised_tokens
+                    token_count += supervised_tokens
+                language_losses.append(weighted_loss / token_count)
+        return sum(language_losses) / len(language_losses)
+    finally:
+        if was_training is not None:
+            model.train(was_training)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data", required=True, help="JSONL with language, split, and messages")
+    parser.add_argument("--manifest", required=True, help="dataset provenance JSON; required before SFT")
+    parser.add_argument("--output", default="artifacts/newstar-sft.pt")
+    parser.add_argument("--steps", type=int, default=1000)
+    parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--block-size", type=int, default=256)
+    parser.add_argument("--width", type=int, default=128)
+    parser.add_argument("--layers", type=int, default=4)
+    parser.add_argument("--heads", type=int, default=4)
+    parser.add_argument("--learning-rate", type=float, default=1e-4)
+    parser.add_argument("--max-vocab-size", type=int, default=8192)
+    parser.add_argument("--tokenizer", choices=("char", "bpe"), default="char", help="Tokenizer for a new SFT model when --base-checkpoint is omitted")
+    parser.add_argument("--base-checkpoint", help="Optional pretrained New Star checkpoint to fine-tune; preserves its exact model config and tokenizer")
+    parser.add_argument("--eval-interval", type=int, default=100)
+    parser.add_argument("--resume-from", help="Resume optimizer/model/RNG state from a .resume.pt checkpoint")
+    parser.add_argument("--seed", type=int, default=1337)
+    parser.add_argument("--device", default="auto", help="auto, cpu, cuda, or cuda:N")
+    parser.add_argument("--precision", choices=("auto", "fp32", "fp16", "bf16"), default="auto")
+    parser.add_argument("--gradient-checkpointing", action="store_true", help="Trade extra compute for lower activation memory during SFT")
+    args = parser.parse_args()
+    if min(args.steps, args.batch_size, args.block_size, args.width,
+           args.layers, args.heads, args.eval_interval) < 1:
+        parser.error("steps, batch-size, block-size, width, layers, heads, and eval-interval must be positive")
+    if args.max_vocab_size < 256:
+        parser.error("--max-vocab-size must be at least 256")
+    if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
+        parser.error("--learning-rate must be a finite positive number")
+    if args.width % args.heads:
+        parser.error("--width must be divisible by --heads")
+    try:
+        device = resolve_device(args.device)
+        precision = resolve_precision(device, args.precision)
+    except (ValueError, RuntimeError) as exc:
+        parser.error(str(exc))
+    scaler = create_grad_scaler(device, precision)
+    runtime_info = hardware_report(device, precision)
+    print("Training hardware: " + json.dumps(runtime_info, ensure_ascii=False), flush=True)
+
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+    try:
+        audit_report = audit_corpus(args.data, args.manifest)
+        if not audit_report["ok"]:
+            parser.error("instruction corpus audit failed: " + "; ".join(audit_report["errors"]))
+        train_messages, validation_messages = load_instruction_corpora(args.data)
+        for language, conversations in train_messages.items():
+            if not conversations:
+                raise ValueError(f"language {language!r} has no training conversations")
+            if not validation_messages.get(language):
+                raise ValueError(f"language {language!r} has no validation conversations")
+        tokenizer_text = "\n".join(
+            message["content"]
+            for conversations in train_messages.values()
+            for messages in conversations
+            for message in messages
+        )
+        base_checkpoint = None
+        base_checkpoint_fingerprint = None
+        if args.base_checkpoint:
+            base_path = Path(args.base_checkpoint)
+            if not base_path.is_file():
+                raise ValueError(f"base checkpoint does not exist: {base_path}")
+            base_checkpoint_fingerprint = hashlib.sha256(base_path.read_bytes()).hexdigest()
+            try:
+                base_checkpoint = torch.load(base_path, map_location="cpu", weights_only=True)
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise ValueError(f"could not load base checkpoint: {exc}") from exc
+            if base_checkpoint.get("format") not in {
+                "new-star-byte-bpe-gpt-v1", "new-star-unicode-char-gpt-v1"
+            }:
+                raise ValueError("unsupported base checkpoint format")
+            tokenizer = tokenizer_from_dict(base_checkpoint.get("tokenizer"))
+            base_config = base_checkpoint.get("config", {})
+            if int(base_config.get("block_size", 0)) != args.block_size:
+                raise ValueError("--block-size must match the base checkpoint")
+            config = NewStarConfig(**base_config)
+            if config.vocab_size != len(tokenizer):
+                raise ValueError("base checkpoint vocabulary size does not match its tokenizer")
+        else:
+            tokenizer = (
+                ByteBPETokenizer.train(tokenizer_text, max_merges=args.max_vocab_size - 256)
+                if args.tokenizer == "bpe"
+                else UnicodeCharTokenizer.train(tokenizer_text, args.max_vocab_size)
+            )
+            config = NewStarConfig(vocab_size=len(tokenizer), block_size=args.block_size,
+                                   width=args.width, layers=args.layers, heads=args.heads)
+        train_data = encode_corpora(train_messages, tokenizer, args.block_size)
+        validation_data = encode_corpora(validation_messages, tokenizer, args.block_size)
+    except ValueError as exc:
+        parser.error(str(exc))
+
+    config.gradient_checkpointing = args.gradient_checkpointing
+    model = NewStarGPT(config).to(device)
+    if args.base_checkpoint:
+        try:
+            model.load_state_dict(base_checkpoint["state_dict"], strict=True)
+        except (KeyError, RuntimeError) as exc:
+            parser.error(f"base checkpoint weights do not match its model config: {exc}")
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
+    generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
+    data_fingerprint = hashlib.sha256(Path(args.data).read_bytes()).hexdigest()
+    tokenizer_fingerprint = hashlib.sha256(json.dumps(
+        tokenizer.to_dict(), ensure_ascii=False, sort_keys=True
+    ).encode("utf-8")).hexdigest()
+    training_config = {
+        "seed": args.seed,
+        "data_fingerprint": data_fingerprint,
+        "tokenizer_fingerprint": tokenizer_fingerprint,
+        "base_checkpoint_fingerprint": base_checkpoint_fingerprint,
+        "learning_rate": args.learning_rate,
+        "batch_size": args.batch_size,
+        "block_size": args.block_size,
+        "width": config.width,
+        "layers": config.layers,
+        "heads": config.heads,
+        "max_vocab_size": args.max_vocab_size,
+        "tokenizer_type": tokenizer.to_dict()["type"],
+        "data_format": "instruction-jsonl",
+        "precision": precision,
+        "gradient_checkpointing": args.gradient_checkpointing,
+    }
+    start_step = 0
+    if args.resume_from:
+        resume_path = Path(args.resume_from)
+        if not resume_path.is_file():
+            parser.error(f"resume checkpoint does not exist: {resume_path}")
+        try:
+            resume = torch.load(resume_path, map_location=device, weights_only=True)
+        except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(f"could not load resume checkpoint: {exc}")
+        if resume.get("format") != "new-star-sft-resume-v1":
+            parser.error("unsupported SFT resume checkpoint format")
+        if resume.get("data_fingerprint") != data_fingerprint:
+            parser.error("resume data does not match the original training dataset")
+        if resume.get("training_config") != training_config:
+            parser.error("resume training configuration must match the original run")
+        if resume.get("seed") != args.seed:
+            parser.error("resume seed does not match the original run")
+        start_step = int(resume.get("step", 0))
+        if start_step < 0 or start_step >= args.steps:
+            parser.error("--steps must be greater than the saved resume step")
+        model.load_state_dict(resume["model_state"])
+        optimizer.load_state_dict(resume["optimizer_state"])
+        scaler_state = resume.get("grad_scaler_state")
+        if scaler_state is not None:
+            if not isinstance(scaler_state, dict):
+                parser.error("resume gradient-scaler state is malformed")
+            try:
+                scaler.load_state_dict(scaler_state)
+            except (KeyError, RuntimeError, ValueError) as exc:
+                parser.error(f"could not restore gradient-scaler state: {exc}")
+        generator.set_state(resume["batch_generator_state"])
+        torch.set_rng_state(resume["torch_rng_state"].cpu())
+        if torch.cuda.is_available() and resume.get("cuda_rng_states") is not None:
+            torch.cuda.set_rng_state_all(
+                [state.cpu() for state in resume["cuda_rng_states"]]
+            )
+    final_validation_loss = None
+    for step in range(start_step + 1, args.steps + 1):
+        model.train()
+        x, y = sample_instruction_batch(
+            train_data, args.batch_size, args.block_size, device, generator
+        )
+        with autocast_context(device, precision):
+            _, loss = model(x, y)
+        if loss is None or not torch.isfinite(loss):
+            raise RuntimeError("training produced a non-finite loss")
+        optimizer.zero_grad(set_to_none=True)
+        scaler.scale(loss).backward()
+        scaler.unscale_(optimizer)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        scaler.step(optimizer)
+        scaler.update()
+        if step == 1 or step % args.eval_interval == 0 or step == args.steps:
+            validation_loss = evaluate_sft(
+                model, validation_data, args.batch_size, args.block_size, device, precision
+            )
+            final_validation_loss = validation_loss
+            resume_path = Path(args.output).with_suffix(Path(args.output).suffix + ".resume.pt")
+            save_training_state(
+                resume_path, model, optimizer, generator, step, args.seed,
+                data_fingerprint, training_config, scaler=scaler,
+            )
+            print(
+                f"step={step} train_loss={loss.item():.4f} "
+                f"macro_language_val_loss={validation_loss:.4f}",
+                flush=True,
+            )
+
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    atomic_torch_save({
+        "format": ("new-star-byte-bpe-gpt-v1" if tokenizer.to_dict()["type"] == ByteBPETokenizer.FORMAT else "new-star-unicode-char-gpt-v1"),
+        "config": vars(config),
+        "tokenizer": tokenizer.to_dict(),
+        "state_dict": model.cpu().state_dict(),
+    }, output)
+    metadata = {
+        "training_method": "supervised-fine-tuning-response-only",
+        "training_steps": args.steps,
+        "seed": args.seed,
+        "learning_rate": args.learning_rate,
+        "batch_size": args.batch_size,
+        "block_size": args.block_size,
+        "model_config": vars(config),
+        "gradient_checkpointing": config.gradient_checkpointing,
+        "final_validation_loss": final_validation_loss,
+        "resumed_from_step": start_step,
+        "languages": sorted(train_data),
+        "train_examples_by_language": {lang: len(rows) for lang, rows in train_data.items()},
+        "validation_examples_by_language": {lang: len(rows) for lang, rows in validation_data.items()},
+        "validation_metric": "unweighted macro-average of per-language token-weighted assistant-response cross-entropy",
+        "source_data": str(Path(args.data).name),
+        "data_fingerprint": data_fingerprint,
+        "tokenizer_fingerprint": tokenizer_fingerprint,
+        "tokenizer_type": tokenizer.to_dict()["type"],
+        "base_checkpoint": str(Path(args.base_checkpoint).name) if args.base_checkpoint else None,
+        "base_checkpoint_fingerprint": base_checkpoint_fingerprint,
+        "evaluation_protocol": "sft-response-only-macro-language-token-ce-v1",
+        "hardware": runtime_info,
+    }
+    atomic_write_json(audit_report, output.with_suffix(output.suffix + ".corpus-audit.json"))
+    atomic_write_json(metadata, output.with_suffix(output.suffix + ".json"))
+    print(f"Saved New Star SFT checkpoint: {output}")
+
+
+if __name__ == "__main__":
+    main()

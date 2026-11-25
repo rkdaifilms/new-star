@@ -1,0 +1,15 @@
+services:
+  new-star-cpu-inference:
+    build:
+      context: .
+      dockerfile: Dockerfile.cuda
+    environment:
+      N_GPU_LAYERS: ${N_GPU_LAYERS:-999}
+      N_BATCH: ${N_BATCH:-512}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
