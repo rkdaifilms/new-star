@@ -53,6 +53,35 @@ class CausalBlock(nn.Module):
         x = x + attended
         return x + self.feed_forward(self.norm2(x))
 
+    def forward_with_cache(self, x: torch.Tensor, causal_mask: torch.Tensor):
+        """Run a prompt and retain each layer's normalized K/V input states."""
+        normalized = self.norm1(x)
+        attended, _ = self.attention(
+            normalized, normalized, normalized, attn_mask=causal_mask,
+            need_weights=False,
+        )
+        output = x + attended
+        output = output + self.feed_forward(self.norm2(output))
+        return output, normalized
+
+    def forward_incremental(self, x: torch.Tensor, past_states: torch.Tensor):
+        """Process one token while attending to cached states and the current token."""
+        normalized = self.norm1(x)
+        all_states = torch.cat((past_states, normalized), dim=1)
+        attended, _ = self.attention(
+            normalized, all_states, all_states, need_weights=False,
+        )
+        output = x + attended
+        output = output + self.feed_forward(self.norm2(output))
+        return output, all_states
+        normalized = self.norm1(x)
+        attended, _ = self.attention(
+            normalized, normalized, normalized, attn_mask=causal_mask,
+            need_weights=False,
+        )
+        x = x + attended
+        return x + self.feed_forward(self.norm2(x))
+
 
 class NewStarGPT(nn.Module):
     """Decoder-only causal language model with learned token/position embeddings."""
@@ -103,20 +132,58 @@ class NewStarGPT(nn.Module):
             )
         return logits, loss
 
+    def forward_with_cache(self, tokens: torch.Tensor):
+        """Prefill a prompt and return logits plus per-layer attention caches."""
+        if tokens.ndim != 2 or tokens.shape[1] < 1 or tokens.shape[1] > self.config.block_size:
+            raise ValueError("tokens must be [batch, sequence] with 1 <= sequence <= block_size")
+        if tokens.dtype != torch.long:
+            raise ValueError("tokens must use torch.long token IDs")
+        if torch.any(tokens < 0) or torch.any(tokens >= self.config.vocab_size):
+            raise ValueError("token IDs must be within the configured vocabulary")
+        positions = torch.arange(tokens.shape[1], device=tokens.device)
+        x = self.dropout(self.token_embedding(tokens) + self.position_embedding(positions))
+        mask = torch.triu(
+            torch.ones(tokens.shape[1], tokens.shape[1], device=tokens.device,
+                       dtype=torch.bool), diagonal=1
+        )
+        caches = []
+        for block in self.blocks:
+            x, layer_cache = block.forward_with_cache(x, mask)
+            caches.append(layer_cache)
+        return self.language_head(self.final_norm(x)), caches
+
+    def forward_incremental(self, token: torch.Tensor, position: int,
+                            caches: list[torch.Tensor]):
+        """Advance cached decoding by exactly one token at its absolute window position."""
+        if token.ndim != 2 or token.shape[1] != 1 or token.dtype != torch.long:
+            raise ValueError("incremental token must be a [batch, 1] torch.long tensor")
+        if not 0 <= position < self.config.block_size:
+            raise ValueError("incremental position must be inside block_size")
+        if len(caches) != len(self.blocks):
+            raise ValueError("one attention cache is required for every Transformer block")
+        if torch.any(token < 0) or torch.any(token >= self.config.vocab_size):
+            raise ValueError("token IDs must be within the configured vocabulary")
+        x = self.dropout(self.token_embedding(token) + self.position_embedding.weight[position:position + 1])
+        next_caches = []
+        for block, cache in zip(self.blocks, caches):
+            x, next_cache = block.forward_incremental(x, cache)
+            next_caches.append(next_cache)
+        return self.language_head(self.final_norm(x)), next_caches
+
     @torch.no_grad()
     def generate(self, tokens: torch.Tensor, max_new_tokens: int = 100,
                  temperature: float = 1.0, top_k: int | None = 50,
                  top_p: float = 0.95, repetition_penalty: float = 1.0) -> torch.Tensor:
-        """Sample continuations with temperature, top-k/top-p and repetition control."""
-        if not isinstance(max_new_tokens, int) or max_new_tokens < 0:
+        """Sample continuations using per-layer KV-state caching and bounded context."""
+        if not isinstance(max_new_tokens, int) or isinstance(max_new_tokens, bool) or max_new_tokens < 0:
             raise ValueError("max_new_tokens must be a non-negative integer")
-        if not isinstance(temperature, (int, float)) or not 0 < temperature <= 2:
+        if not isinstance(temperature, (int, float)) or isinstance(temperature, bool) or not 0 < temperature <= 2:
             raise ValueError("temperature must be greater than 0 and at most 2")
-        if top_k is not None and (not isinstance(top_k, int) or top_k < 1):
+        if top_k is not None and (not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1):
             raise ValueError("top_k must be None or a positive integer")
-        if not isinstance(top_p, (int, float)) or not 0 < top_p <= 1:
+        if not isinstance(top_p, (int, float)) or isinstance(top_p, bool) or not 0 < top_p <= 1:
             raise ValueError("top_p must be greater than 0 and at most 1")
-        if not isinstance(repetition_penalty, (int, float)) or repetition_penalty < 1:
+        if not isinstance(repetition_penalty, (int, float)) or isinstance(repetition_penalty, bool) or repetition_penalty < 1:
             raise ValueError("repetition_penalty must be at least 1")
         if tokens.ndim != 2 or tokens.shape[1] < 1:
             raise ValueError("generation prompt must be a non-empty [batch, sequence] tensor")
@@ -125,9 +192,12 @@ class NewStarGPT(nn.Module):
         if torch.any(tokens < 0) or torch.any(tokens >= self.config.vocab_size):
             raise ValueError("generation tokens must be within the configured vocabulary")
         self.eval()
-        for _ in range(max_new_tokens):
-            context = tokens[:, -self.config.block_size:]
-            logits, _ = self(context)
+        if max_new_tokens == 0:
+            return tokens
+        context = tokens[:, -self.config.block_size:]
+        logits, caches = self.forward_with_cache(context)
+
+        for step in range(max_new_tokens):
             next_logits = logits[:, -1, :] / float(temperature)
             if repetition_penalty > 1:
                 for row in range(tokens.shape[0]):
@@ -152,4 +222,14 @@ class NewStarGPT(nn.Module):
             probabilities = torch.softmax(next_logits, dim=-1)
             next_token = torch.multinomial(probabilities, num_samples=1)
             tokens = torch.cat((tokens, next_token), dim=1)
+            if step + 1 == max_new_tokens:
+                break
+            if context.shape[1] < self.config.block_size:
+                logits, caches = self.forward_incremental(
+                    next_token, context.shape[1], caches
+                )
+                context = torch.cat((context, next_token), dim=1)
+            else:
+                context = tokens[:, -self.config.block_size:]
+                logits, caches = self.forward_with_cache(context)
         return tokens
