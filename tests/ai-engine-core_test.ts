@@ -338,8 +338,8 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
     "NEW_STAR_AI_MODE",
     "NEW_STAR_VISION_MODEL_NOT_DEPLOYED",
     "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_STT_MODEL_NOT_DEPLOYED",
+    "NEW_STAR_PRIVATE_SPEECH_UNAVAILABLE",
+    "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE",
     "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED",
     "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED",
     "NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED"
@@ -394,8 +394,8 @@ Deno.test("every external media and search route fails closed before provider ac
   const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
   const routes = [
     { action: "vision", guard: "NEW_STAR_VISION_MODEL_NOT_DEPLOYED" },
-    { action: "speak", guard: "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED" },
-    { action: "transcribe", guard: "NEW_STAR_STT_MODEL_NOT_DEPLOYED" },
+    { action: "speak", guard: "NEW_STAR_PRIVATE_SPEECH_UNAVAILABLE" },
+    { action: "transcribe", guard: "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE" },
     { action: "video", guard: "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED" },
     { action: "video-status", guard: "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED" },
     { action: "image", guard: "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED" }
