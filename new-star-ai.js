@@ -29,7 +29,7 @@ try{
  }else if(mode==="research"){
    const result=await client.functions.invoke("ai-gateway",{body:{action:"search",query:sendText,language:"auto",limit:8}});
    if(result.error||!result.data?.ok)throw new Error(result.data?.error||"Live research is unavailable.");
-   pending.textContent=result.data.count?("New Star Search found "+result.data.count+" indexed result(s)."):"New Star Search returned no indexed results.";
+   pending.textContent=typeof result.data.answer==="string"&&result.data.answer.trim()?result.data.answer:(result.data.count?"Search found "+result.data.count+" source(s).":"Search returned no results.");const countNote=document.createElement("small");countNote.textContent=(result.data.count||0)+" verified source link(s) · "+(result.data.provider||"Search");countNote.style.display="block";countNote.style.marginTop="10px";countNote.style.opacity=".75";pending.append(countNote);
    const sources=Array.isArray(result.data.results)?result.data.results:[];
    if(sources.length){const heading=document.createElement("strong");heading.textContent="Sources";heading.style.display="block";heading.style.marginTop="12px";pending.append(heading);for(const source of sources){const url=mediaUrl(source.url);if(!url)continue;const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.title||url;link.style.display="block";link.style.marginTop="6px";pending.append(link);}}
  }else if(mode==="chat"){
@@ -96,7 +96,7 @@ async function refreshEngineStatus(){
   const modelSummary=model.configured?(model.reachable&&model.modelAvailable?"New Star hosted model: online":"New Star hosted model: configured, not verified"):"New Star hosted model: not configured";
   status.textContent=modelSummary+" · "+providerSummary;
   status.style.color=(model.reachable&&model.modelAvailable)||providers.gemini||providers.openai||providers.openrouter?"#91e6b0":"#f6c66b";
-  const capabilitySummary=["Chat "+(capabilities.chat?.configured?"ready":"not configured"),"Images "+(capabilities.imageGeneration?.configured?"configured":"not configured"),"Voice "+(capabilities.speechGeneration?.configured?"configured":"not configured"),"Video "+(capabilities.videoGeneration?.configured?"service account configured":"not configured"),"Search "+(capabilities.webSearch?.configured?"endpoint configured":"not configured")].join(" · ");
+  const capabilitySummary=["Chat "+(capabilities.chat?.configured?"ready":"not configured"),"Images "+(capabilities.imageGeneration?.configured?"configured":"not configured"),"Image understanding "+(capabilities.imageUnderstanding?.configured?"configured":"not configured"),"Voice "+(capabilities.speechGeneration?.configured?"configured":"not configured"),"Video "+(capabilities.videoGeneration?.configured?"service account configured":"not configured"),"Search "+(capabilities.webSearch?.configured?"configured":"not configured")].join(" · ");
   foot.textContent=capabilitySummary+". Configuration checks do not prove provider billing, quota or successful generation.";
  }catch(error){status.textContent="AI service unavailable";status.style.color="#ff9b9b";foot.textContent=error.message||"Could not check New Star AI service status.";}
 }
