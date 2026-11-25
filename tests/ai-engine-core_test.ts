@@ -568,3 +568,46 @@ Deno.test("Creator Studio exposes only the private worker's supported video sett
     throw new Error("Video controls must not advertise unsupported private worker resolutions or durations");
   }
 });
+
+
+Deno.test("private search adapter enforces HTTPS and authenticated private endpoints", async () => {
+  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-search.ts", import.meta.url));
+  for (const required of ['u.protocol!=="https:"', 'Authorization:"Bearer "+key', 'redirect:"error"', '"/v1/search"', '"/v1/crawl"']) {
+    if (!source.includes(required)) throw new Error("Private search adapter missing " + required);
+  }
+});
+
+Deno.test("private crawler rejects non-public targets and limits indexed content", async () => {
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/search-worker/main.py", import.meta.url));
+  for (const required of ["ipaddress.ip_address", "address.is_global", "allow_redirects=False", "MAX_BYTES = 2 * 1024 * 1024", "100000", "pages_fts", "/v1/crawl", "/v1/search"]) {
+    if (!worker.includes(required)) throw new Error("Private crawler missing security/index rule " + required);
+  }
+  if (worker.includes("allow_redirects=True")) throw new Error("Private crawler must not follow redirects");
+});
+
+Deno.test("private vision adapter and worker are protected and wired only in self-hosted mode", async () => {
+  const adapter = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-vision.ts", import.meta.url));
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/vision-worker/main.py", import.meta.url));
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
+  if (!adapter.includes('u.protocol!=="https:"') || !adapter.includes('Authorization:"Bearer "+key')) throw new Error("Private vision adapter must enforce HTTPS and bearer authentication");
+  for (const required of ["AutoModelForVision2Seq", "torch.cuda.is_available", "/v1/vision/analyze", "Image.open", "6 * 1024 * 1024"]) {
+    if (!worker.includes(required)) throw new Error("Private vision worker missing " + required);
+  }
+  if (!gateway.includes("privateVision(") || !gateway.includes("NEW_STAR_VISION_BASE_URL") || !gateway.includes("NEW_STAR_PRIVATE_VISION_UNAVAILABLE")) throw new Error("Self-hosted vision action is not connected to its private worker");
+  if (!compose.includes('profiles: ["vision"]') || !compose.includes('127.0.0.1:8094:8094')) throw new Error("Private vision worker must be optional and loopback-only");
+});
+
+Deno.test("self-hosted search uses private crawl index and never calls Gemini grounding", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const searchStart = gateway.indexOf('if (body?.action === "search")');
+  const visionStart = gateway.indexOf('if (body?.action === "crawl")', searchStart);
+  const searchBlock = gateway.slice(searchStart, visionStart);
+  if (!searchBlock.includes("privateSearch(") || !searchBlock.includes("NEW_STAR_SEARCH_BASE_URL") || !searchBlock.includes("NEW_STAR_PRIVATE_SEARCH_UNAVAILABLE")) {
+    throw new Error("Self-hosted search must query the private search index");
+  }
+  if (searchBlock.indexOf('NEW_STAR_AI_MODE") === "self_hosted"') > searchBlock.indexOf("searchWithGeminiGrounding")) {
+    throw new Error("Self-hosted search must not reach Gemini grounding");
+  }
+  if (!gateway.includes('body?.action === "crawl"') || !gateway.includes("privateCrawl(")) throw new Error("Authenticated crawl action must be connected");
+});
