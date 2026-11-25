@@ -22,6 +22,7 @@ class VectorBackendTests(unittest.TestCase):
 
     def test_empty_text_has_no_chunks(self):
         self.assertEqual(PgVectorSearch.chunks("   "), [])
+        self.assertEqual(PgVectorSearch.chunks("\\n"), [])
 
     def test_embedding_dimension_is_enforced(self):
         class WrongModel:
