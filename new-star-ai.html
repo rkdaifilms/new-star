@@ -12,10 +12,10 @@
 <div class="ns-shell">
 <header class="ns-top"><a href="creator-ai.html" aria-label="Back">‹</a><div><b>✦ NEW STAR AI ENGINE</b><small>Use the same New Star Creator Hub account</small></div><span id="engine-status" class="ns-status">Checking…</span></header>
 <main class="ns-main">
-<section class="ns-hero"><div class="ns-kicker">NEW STAR · GENERATIVE AI</div><h1>One place. Every creative workflow.</h1><p>Your New Star AI workspace. Chat, image understanding, image generation and web-grounded research run through the New Star AI gateway. Video generation uses the configured Google Cloud Vertex AI workflow.</p></section>
+<section class="ns-hero"><div class="ns-kicker">NEW STAR · GENERATIVE AI</div><h1>One place. Every creative workflow.</h1><p>Your New Star AI workspace. Chat, image understanding, image generation and connected New Star Search run through the AI gateway. Video generation uses Google Cloud Vertex AI when the project has access and quota.</p></section>
 <p id="ns-auth-note" hidden style="padding:12px 15px;border:1px solid #78613a;border-radius:12px;background:#2a2419;color:#ffe3a6;line-height:1.5">Use the same login you already use for New Star Creator Hub. You do not need a separate AI account. <a href="auth.html?next=new-star-ai.html" style="color:#fff;text-decoration:underline;font-weight:700">Open New Star Login</a></p>
 <nav class="ns-tabs" aria-label="AI tools">
-<button class="active" data-mode="chat">✦ Chat</button><button data-mode="research">⌕ Research</button><button data-mode="image">▧ Image</button><button data-mode="video">▷ Video</button>
+<button class="active" data-mode="chat">✦ Chat</button><button data-mode="research">⌕ Search</button><button data-mode="image">▧ Image</button><button data-mode="video">▷ Video</button>
 </nav>
 <section class="ns-workspace">
 <div class="ns-panel-head"><div><b id="mode-title">AI Chat</b><small id="mode-help">Ask questions or give the AI a task.</small></div><div class="ns-panel-actions"><button type="button" id="ns-new-chat" class="ns-new-chat">＋ New chat</button><span class="ns-chip">NEW STAR ENGINE</span></div></div>
@@ -27,7 +27,7 @@
 </form>
 <p class="ns-footnote" id="ns-footnote">Chat, voice, image, research and video generation depend on configured providers. Video requires Google Cloud Vertex AI access and may incur provider charges.</p>
 </section>
-<section class="ns-capabilities"><article><b>New Star AI Chat</b><p>Connected chat with private, saved conversations.</p></article><article><b>Voice</b><p>Voice input and spoken replies through the AI gateway.</p></article><article><b>Image Generation</b><p>Text-to-image generation. Uploaded-image editing is not connected yet.</p></article><article><b>Live Research</b><p>Search-grounded answers with source links when Gemini Search grounding is available.</p></article><article><b>Video Generation</b><p>Video requests use Google Cloud Vertex AI. Project access, model availability and quota must be verified before a generation can complete.</p></article></section>
+<section class="ns-capabilities"><article><b>New Star AI Chat</b><p>Connected chat with private, saved conversations.</p></article><article><b>Voice</b><p>Voice input and spoken replies through the AI gateway.</p></article><article><b>Image Generation</b><p>Text-to-image generation. Uploaded-image editing is not connected yet.</p></article><article><b>Live Research</b><p>Searches the separately deployed New Star Search index and displays verified result URLs when that service is configured.</p></article><article><b>Video Generation</b><p>Video requests use Google Cloud Vertex AI. Project access, model availability and quota must be verified before a generation can complete.</p></article></section>
 <section class="ns-api-keys" aria-labelledby="ns-api-title">
   <div class="ns-api-head"><div><b id="ns-api-title">Developer API keys</b><p>Create keys for your own apps and scripts. Keep each key private.</p></div><button type="button" id="ns-api-refresh">Refresh</button></div>
   <form id="ns-api-form">
