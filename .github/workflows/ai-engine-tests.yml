@@ -18,6 +18,10 @@ on:
       - "supabase/functions/ai-gateway/**"
       - "tests/ai-engine-core_test.ts"
       - "ai-engine/self-hosted/**"
+      - "scripts/new-star-search-ingest.ts"
+      - "supabase/migrations/20261125125100_new_star_private_search.sql"
+      - "supabase/migrations/20261125125524_reuse_existing_new_star_search_chunks.sql"
+      - "supabase/migrations/20261125130256_new_star_hybrid_search_embedding_rpc.sql"
       - ".github/workflows/ai-engine-tests.yml"
 
 permissions:
