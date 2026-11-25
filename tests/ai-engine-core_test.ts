@@ -440,6 +440,12 @@ Deno.test("Creator Studio UI does not advertise removed external video dependenc
   ]) {
     if (html.includes(staleClaim)) throw new Error("Stale external-provider capability claim remains: " + staleClaim);
   }
+  if (!html.includes("Private-only mode requires New Star's own speech workers")) {
+    throw new Error("Voice capability card must state private speech worker requirement");
+  }
+  if (!html.includes("In private-only mode, replies use only the configured New Star model")) {
+    throw new Error("Chat capability card must state private-only inference routing");
+  }
   if (!html.includes("never falls back to an external search provider")) {
     throw new Error("Search capability card must describe private-mode provider isolation");
   }
