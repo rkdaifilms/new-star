@@ -25,7 +25,7 @@ def encode_png(image: torch.Tensor) -> str:
     pixels = image.detach().cpu().clamp(-1, 1).add(1).mul(127.5).byte()
     rendered = Image.frombytes(
         "RGB", (pixels.shape[2], pixels.shape[1]),
-        pixels.permute(1, 2, 0).contiguous().numpy().tobytes(),
+        bytes(pixels.permute(1, 2, 0).contiguous().view(-1).tolist()),
     )
     buffer = io.BytesIO()
     rendered.save(buffer, format="PNG")
