@@ -20,19 +20,37 @@ from artifact_io import atomic_torch_save, atomic_write_json
 def sample_balanced_batch(corpora: dict[str, torch.Tensor], batch_size: int,
                           block_size: int, device: str, generator=None):
     """Sample each row from a uniformly selected language corpus."""
-    languages = sorted(corpora)
-    if not languages:
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size < 1:
+        raise ValueError("batch_size must be a positive integer")
+    if not isinstance(block_size, int) or isinstance(block_size, bool) or block_size < 1:
+        raise ValueError("block_size must be a positive integer")
+    if not isinstance(corpora, dict) or not corpora:
         raise ValueError("at least one language corpus is required")
+    if generator is not None and (
+        not isinstance(generator, torch.Generator) or generator.device.type != "cpu"
+    ):
+        raise ValueError("generator must be a CPU torch.Generator or None")
+    try:
+        target_device = torch.device(device)
+    except (TypeError, RuntimeError) as exc:
+        raise ValueError("device must identify a valid PyTorch device") from exc
+    languages = sorted(corpora)
+    for language in languages:
+        data = corpora[language]
+        if not isinstance(language, str) or not language.strip():
+            raise ValueError("language corpus keys must be non-empty strings")
+        if not isinstance(data, torch.Tensor) or data.ndim != 1 or data.dtype != torch.long:
+            raise ValueError(f"language {language!r} corpus must be a one-dimensional torch.long tensor")
+        if data.numel() < block_size + 1:
+            raise ValueError(f"language {language!r} has too few tokens")
     rows_x, rows_y = [], []
     for _ in range(batch_size):
         language_index = int(torch.randint(len(languages), (1,), generator=generator).item())
         data = corpora[languages[language_index]]
-        if len(data) <= block_size + 1:
-            raise ValueError(f"language {languages[language_index]!r} has too few tokens")
-        start = int(torch.randint(0, len(data) - block_size, (1,), generator=generator).item())
+        start = int(torch.randint(0, data.numel() - block_size, (1,), generator=generator).item())
         rows_x.append(data[start:start + block_size])
         rows_y.append(data[start + 1:start + block_size + 1])
-    return torch.stack(rows_x).to(device), torch.stack(rows_y).to(device)
+    return torch.stack(rows_x).to(target_device), torch.stack(rows_y).to(target_device)
 
 
 def main():
