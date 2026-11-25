@@ -75,6 +75,8 @@ python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data 
 # For per-language scores, pass a validation-only JSONL file:
 python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data ./held-out-languages.jsonl --data-format jsonl --report-json artifacts/multilingual-benchmark.json
 python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120
+# Deterministic greedy decoding (no token sampling):
+python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120 --greedy
 ```
 
 The scripts import their model directly from the same source folder. Keep evaluation data separate from training data: use a held-out corpus that was not included in the training file. Evaluation uses deterministic sampling so repeated runs with the same checkpoint, data, and seed produce the same reported loss. The first experiments should use a small, curated corpus and a small model on CPU. A GPU substantially reduces training time. The corpus must be lawfully obtained and suitable for the intended use; do not scrape private data or include secrets or personal records.
@@ -132,7 +134,9 @@ The model-list route uses the OpenAI-compatible `list` response shape so local
 clients can discover the configured checkpoint name before sending chat requests. The chat endpoint
 accepts ordinary `system`, `user`, and `assistant` messages and returns an
 OpenAI-style non-streaming response. Set `temperature`, `top_k`, `top_p`, and
-`repetition_penalty` to control sampling. Streaming is not implemented. To bind to
+`repetition_penalty` to control sampling. Set `do_sample` to `false` for
+repeatable greedy argmax decoding; in that mode top-k/top-p filtering and
+sampling randomness are bypassed. Streaming is not implemented. To bind to
 a non-loopback interface, set `NEW_STAR_FOUNDATION_API_KEY` first; requests
 must then include `Authorization: Bearer ...`. Do not expose this experimental
 server directly to the public internet. It has no production-grade abuse
