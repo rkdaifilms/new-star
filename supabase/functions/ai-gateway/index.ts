@@ -9,6 +9,7 @@ import { readBoundedJson } from "./request-body.ts";
 import { buildChatProviderPlan } from "./provider-routing.ts";
 import { privateSpeechSynthesis, privateSpeechTranscription } from "./private-speech.ts";
 import { privateImageGeneration } from "./private-image.ts";
+import { privateVideoStart, privateVideoStatus } from "./private-video.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -1166,19 +1167,30 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "Voice transcription providers failed: " + failures.join("; "), attempted: failures }, 502, headers);
   }
   if (body?.action === "video") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private video-generation model and GPU worker are not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED" }, 503, headers);
+    const selfHostedVideo = Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted";
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = ["16:9", "9:16"].includes(String(body.aspectRatio || "")) ? String(body.aspectRatio) : "16:9";
-    const resolution = ["360p", "720p", "1080p"].includes(String(body.resolution || "")) ? String(body.resolution) : "720p";
+    const resolution = selfHostedVideo ? (String(body.resolution || "") === "480p" ? "480p" : "720p") : (["360p", "720p", "1080p"].includes(String(body.resolution || "")) ? String(body.resolution) : "720p");
     const duration = ["6s", "10s", "15s"].includes(String(body.duration || "")) ? String(body.duration) : "6s";
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter a video description of up to 1,800 characters." }, 400, headers);
-    if (!Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON")?.trim()) {
-      return json({ ok: false, error: "Video generation requires Google Cloud Vertex AI access. An authorized project owner must configure GOOGLE_SERVICE_ACCOUNT_JSON and enable the Vertex AI API." }, 503, headers);
-    }
     const videoAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: videoAllowed, error: videoLimitError } = await consumeAiGatewayRateLimit(videoAdmin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 3);
     if (videoLimitError || videoAllowed !== true) return json({ ok: false, error: videoLimitError ? "Security rate-limit check unavailable." : "Video request limit reached. Please wait before trying again." }, videoLimitError ? 503 : 429, headers);
-
+    if (selfHostedVideo) {
+      const result = await privateVideoStart(Deno.env.get("NEW_STAR_VIDEO_BASE_URL") || "", Deno.env.get("NEW_STAR_VIDEO_API_KEY") || "", prompt, aspectRatio, resolution, duration);
+      if (!result.ok) return json({ ok: false, error: result.error, code: "NEW_STAR_PRIVATE_VIDEO_UNAVAILABLE" }, result.status, headers);
+      const { data: job, error: jobError } = await videoAdmin.from("ai_video_jobs").insert({
+        user_id: userId,
+        provider_interaction_id: result.jobId,
+        provider_model: result.model,
+        status: result.status
+      }).select("id").single();
+      if (jobError || !job?.id) return json({ ok: false, error: "The private video job started but its record could not be saved.", code: "VIDEO_JOB_SAVE_FAILED" }, 503, headers);
+      return json({ ok: true, jobId: job.id, status: result.status, provider: "new_star_private", model: result.model }, 202, headers);
+    }
+    if (!Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON")?.trim()) {
+      return json({ ok: false, error: "Video generation requires Google Cloud Vertex AI access. An authorized project owner must configure GOOGLE_SERVICE_ACCOUNT_JSON and enable the Vertex AI API." }, 503, headers);
+    }
     const configuredVideoModel = Deno.env.get("NEW_STAR_VIDEO_MODEL")?.trim();
     const videoModels = Array.from(new Set([configuredVideoModel, "gemini-omni-1.2-flash", ...(duration === "15s" ? [] : ["gemini-omni-1.1-flash-preview"])].filter((value): value is string => Boolean(value))));
     const failures: string[] = [];
@@ -1210,7 +1222,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body?.action === "video-status") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "Private New Star video job polling is not available until the private video worker is deployed. External video providers are disabled in self-hosted mode.", code: "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED" }, 503, headers);
+    const selfHostedVideo = Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted";
     const jobId = typeof body.jobId === "string" ? body.jobId.trim() : "";
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(jobId)) {
       return json({ ok: false, error: "A valid video job ID is required." }, 400, headers);
@@ -1223,6 +1235,30 @@ Deno.serve(async (req: Request) => {
       .eq("id", jobId).eq("user_id", userId).maybeSingle();
     if (jobError) return json({ ok: false, error: "Could not read video job status." }, 503, headers);
     if (!job) return json({ ok: false, error: "Video job not found." }, 404, headers);
+    if (selfHostedVideo) {
+      const privateState = await privateVideoStatus(Deno.env.get("NEW_STAR_VIDEO_BASE_URL") || "", Deno.env.get("NEW_STAR_VIDEO_API_KEY") || "", job.provider_interaction_id);
+      if (!privateState.ok) return json({ ok: false, error: privateState.error, code: "NEW_STAR_PRIVATE_VIDEO_STATUS_UNAVAILABLE" }, privateState.status, headers);
+      if (privateState.status === "failed") {
+        await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: privateState.failureCode || "PRIVATE_VIDEO_GENERATION_FAILED", updated_at: new Date().toISOString() }).eq("id", job.id);
+        return json({ ok: false, status: "failed", error: "Private video generation failed. Check the GPU worker logs and model availability.", code: privateState.failureCode || "PRIVATE_VIDEO_GENERATION_FAILED" }, 200, headers);
+      }
+      if (privateState.status !== "completed") return json({ ok: true, status: privateState.status, jobId: job.id, model: privateState.model }, 200, headers);
+      if (!privateState.videoBytes) return json({ ok: false, error: "Private video worker returned no MP4 data." }, 502, headers);
+      const storagePath = userId + "/" + crypto.randomUUID() + ".mp4";
+      const { error: uploadError } = await videoAdmin.storage.from("new-star-ai-videos").upload(storagePath, privateState.videoBytes, { contentType: "video/mp4", cacheControl: "3600", upsert: false });
+      if (uploadError) {
+        await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "VIDEO_STORAGE_UPLOAD_FAILED", updated_at: new Date().toISOString() }).eq("id", job.id);
+        return json({ ok: false, error: "The private video finished but could not be saved to New Star storage." }, 503, headers);
+      }
+      const { error: updateError } = await videoAdmin.from("ai_video_jobs").update({ status: "completed", storage_path: storagePath, updated_at: new Date().toISOString() }).eq("id", job.id);
+      if (updateError) {
+        await videoAdmin.storage.from("new-star-ai-videos").remove([storagePath]);
+        return json({ ok: false, error: "The private video was uploaded but its job record could not be finalized." }, 503, headers);
+      }
+      const { data: signed, error: signedError } = await videoAdmin.storage.from("new-star-ai-videos").createSignedUrl(storagePath, 3600);
+      if (signedError || !signed?.signedUrl) return json({ ok: false, error: "The private video is saved, but a secure playback link could not be created." }, 503, headers);
+      return json({ ok: true, status: "completed", videoUrl: signed.signedUrl, storagePath, mimeType: "video/mp4", model: privateState.model, expiresInSeconds: 3600 }, 200, headers);
+    }
     if (job.status === "failed") return json({ ok: false, status: "failed", error: "Video generation failed. Check provider access and try again.", code: job.failure_code || "VIDEO_JOB_FAILED" }, 200, headers);
     if (job.status === "completed" && job.storage_path) {
       const { data: signed, error: signedError } = await videoAdmin.storage.from("new-star-ai-videos").createSignedUrl(job.storage_path, 3600);
@@ -1359,7 +1395,7 @@ Deno.serve(async (req: Request) => {
     if (statusLimitError || statusAllowed !== true) return json({ ok: false, error: statusLimitError ? "Security rate-limit check unavailable." : "Provider status check limit reached. Wait before checking again." }, statusLimitError ? 503 : 429, headers);
     if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") {
       const hosted = await probeNewStarHostedModel();
-      return json({ ok: true, status: true, mode: "self_hosted", providers: { newStarHostedModelConfigured: hosted.configured, newStarApiPrimary: true, openai: false, gemini: false, openrouter: false }, capabilities: { chat: { supported: true, configured: hosted.configured && hosted.reachable && hosted.modelAvailable }, imageGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_IMAGE_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_IMAGE_API_KEY")?.trim() || "").length >= 32), reason: "Private GPU image worker endpoint and key must be configured and verified" }, imageUnderstanding: { supported: false, configured: false, reason: "Private vision model not deployed" }, developerApiKeys: { supported: true, configured: true }, speechGeneration: { supported: false, configured: false, reason: "Private speech model not deployed" }, speechTranscription: { supported: false, configured: false, reason: "Private speech recognition model not deployed" }, videoGeneration: { supported: false, configured: false, reason: "Private video model not deployed" }, webSearch: { supported: false, configured: false, reason: "Private search worker not deployed" } }, health: { newStarHostedModel: hosted, providers: { openai: { configured: false }, gemini: { configured: false }, openrouter: { configured: false } }, note: "Self-hosted-only mode. No external model providers are contacted." } }, 200, headers);
+      return json({ ok: true, status: true, mode: "self_hosted", providers: { newStarHostedModelConfigured: hosted.configured, newStarApiPrimary: true, openai: false, gemini: false, openrouter: false }, capabilities: { chat: { supported: true, configured: hosted.configured && hosted.reachable && hosted.modelAvailable }, imageGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_IMAGE_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_IMAGE_API_KEY")?.trim() || "").length >= 32), reason: "Private GPU image worker endpoint and key must be configured and verified" }, imageUnderstanding: { supported: false, configured: false, reason: "Private vision model not deployed" }, developerApiKeys: { supported: true, configured: true }, speechGeneration: { supported: false, configured: false, reason: "Private speech model not deployed" }, speechTranscription: { supported: false, configured: false, reason: "Private speech recognition model not deployed" }, videoGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_VIDEO_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_VIDEO_API_KEY")?.trim() || "").length >= 32), reason: "Private GPU video worker endpoint and key must be configured and verified; current output is 480p, 6 seconds" }, webSearch: { supported: false, configured: false, reason: "Private search worker not deployed" } }, health: { newStarHostedModel: hosted, providers: { openai: { configured: false }, gemini: { configured: false }, openrouter: { configured: false } }, note: "Self-hosted-only mode. No external model providers are contacted." } }, 200, headers);
     }
     const newStarModel = await probeNewStarHostedModel();
     const newStarTestFallbackEnabled = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true" && newStarModel.configured;
