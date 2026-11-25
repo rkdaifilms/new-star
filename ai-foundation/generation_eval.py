@@ -18,6 +18,7 @@ import torch
 from corpus import require_complete_language_coverage
 from model import NewStarConfig, NewStarGPT
 from tokenizer import tokenizer_from_dict
+from artifact_io import atomic_write_json
 
 
 def load_cases(path: str | Path) -> list[dict[str, str]]:
@@ -144,8 +145,7 @@ def main() -> None:
         "metric_note": "Character n-gram F1 is a chrF-style surface metric; it does not measure semantic correctness or human preference.",
     })
     output = Path(args.report_json)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    atomic_write_json(report, output)
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
