@@ -14,6 +14,7 @@ set +a
 [[ -n "${NEW_STAR_EMBEDDING_MODEL_FILE:-}" ]] || fail "NEW_STAR_EMBEDDING_MODEL_FILE is empty."
 [[ -n "${NEW_STAR_EMBEDDING_API_KEY:-}" ]] || fail "NEW_STAR_EMBEDDING_API_KEY is empty."
 [[ "${#NEW_STAR_EMBEDDING_API_KEY}" -ge 32 ]] || fail "Embedding API key must be at least 32 characters."
+[[ "$NEW_STAR_EMBEDDING_API_KEY" != replace-* ]] || fail "Replace the example embedding API key before starting the service."
 [[ -f "models/$NEW_STAR_EMBEDDING_MODEL_FILE" ]] || fail "Embedding model file models/$NEW_STAR_EMBEDDING_MODEL_FILE is missing."
 docker compose -f compose.yaml --profile embeddings config --quiet
 docker compose -f compose.yaml --profile embeddings up -d new-star-embeddings
