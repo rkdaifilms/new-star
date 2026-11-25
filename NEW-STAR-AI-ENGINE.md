@@ -12,8 +12,10 @@
 
 The only model runtime deployment directory is `ai-engine/self-hosted/`. The duplicate `ai-model/` vLLM deployment blueprint was removed so the repository has one source of truth.
 
-- `compose.yaml` runs the private llama.cpp chat server and an optional separate 384-dimensional embedding server.
-- Both services bind to loopback ports only: chat 8080 and embeddings 8081.
+- `compose.yaml` runs the private llama.cpp chat server, optional 384-dimensional embeddings, and separate optional Image, Video, Speech, Search/Crawler, and Vision workers.
+- All worker ports bind to loopback only: chat 8080, embeddings 8081, speech 8090, image 8091, video 8092, search 8093, and vision 8094.
+- `verify-workers.py` checks HTTPS health and rejects invalid bearer tokens, refuses redirects, and can run real media/search inference after workers are deployed.
+- `ai-engine/training/` contains a private dataset validator and CUDA QLoRA fine-tuning pipeline for an open-weight base model; it is not pretraining a foundation model from scratch.
 - `verify.sh` checks Docker, NVIDIA runtime, model file presence, service health, and authenticated text inference.
 - `verify-embeddings.sh` checks embedding service health and verifies exactly 384 numeric dimensions.
 - Model weights are not stored in Git. The owner must supply legally licensed model files and a compatible NVIDIA GPU host.
@@ -29,7 +31,7 @@ In that mode:
 - Private Search uses the existing New Star search index and its private embedding endpoint.
 - If the private index/embedding path is unavailable, Search returns an explicit unavailable response rather than using an external search worker.
 - Chat retrieval does not fall back to a separately hosted external search worker.
-- Image generation, video generation, speech recognition, and speech synthesis are unavailable until their private workers are implemented and deployed.
+- Image generation, video generation, speech recognition/synthesis, and image understanding use the private worker adapters. Worker source code is present, but each worker remains unavailable until its GPU host, model/voice weights, HTTPS route, API key, and deployment are configured.
 
 **Production caveat:** The secret `NEW_STAR_AI_MODE=self_hosted` has not been confirmed active in the live Supabase environment. Do not assume external providers are disabled in production until the secret is set and verified. Do not remove the existing provider configuration before the private model is provisioned and tested.
 
@@ -52,7 +54,7 @@ The existing gateway also contains provider adapters for image generation, image
 - Provider credentials are server-side, not embedded in browser JavaScript.
 - Provider status probes do not prove quota, inference, or successful media generation.
 - The Vertex AI video path is provider-connected but still requires a real authorized end-to-end test: job completion, private MP4 storage, and owner-only playback.
-- No private image, video, vision, transcription, or speech worker is deployed.
+- Private image, video, vision, transcription, speech, and crawler workers have source code in this branch but are not deployed or end-to-end tested.
 - Do not claim an image, video, search result, upload, or playback succeeded unless the corresponding real operation was verified.
 
 ## Verification and release gates
@@ -61,7 +63,7 @@ The existing gateway also contains provider adapters for image generation, image
 - The hybrid search RPC was smoke-tested with temporary lexical and semantic rows; the rows were removed.
 - The atomic replacement RPC was smoke-tested: two old chunks were replaced by one new chunk, stale data disappeared, and an invalid 383-dimensional vector was rejected. The transaction was rolled back.
 - Database permissions were checked: only `service_role` can execute the private search and replacement RPCs.
-- Earlier AI Engine regression and static checks passed. Latest changes that restore migration files, remove the duplicate runtime, and update workflow validation still require fresh CI confirmation.
+- Latest branch CI passed: 38 Deno regression tests, 9 Python worker-verifier unit tests, Python syntax validation, frontend syntax, Supabase Edge Function type-check, runtime configuration, gateway action/auth, and Creator Studio checks. See the latest runs in PR #6.
 - The latest Vercel status is a daily build-rate-limit failure; this does not change the independently deployed Supabase gateway.
 
 Do not mark the AI platform complete until a GPU host and licensed model weights are provisioned, authenticated private chat and embeddings pass end-to-end tests, the self-hosted secret is confirmed active, and each required private media worker is implemented and tested.
