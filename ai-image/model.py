@@ -180,7 +180,8 @@ class DDPMSchedule:
 
     @torch.inference_mode()
     def sample(self, model: NewStarImageUNet, count: int, image_size: int,
-               device: torch.device | str, seed: int | None = None) -> torch.Tensor:
+               device: torch.device | str, seed: int | None = None,
+               text_tokens: torch.Tensor | None = None) -> torch.Tensor:
         if not isinstance(count, int) or isinstance(count, bool) or not 1 <= count <= 16:
             raise ValueError("count must be an integer from 1 to 16")
         if not isinstance(image_size, int) or image_size < 8 or image_size % 4:
@@ -198,7 +199,7 @@ class DDPMSchedule:
         model.eval()
         for step in reversed(range(self.steps)):
             time = torch.full((count,), step, dtype=torch.long, device=device)
-            predicted_noise = model(values, time)
+            predicted_noise = model(values, time, text_tokens=text_tokens)
             beta = betas[step]
             alpha = alphas[step]
             alpha_bar = alpha_bars[step]
