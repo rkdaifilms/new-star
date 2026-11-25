@@ -297,3 +297,26 @@ def test_image_training_rejects_invalid_ema_decay(tmp_path, monkeypatch):
     ])
     with pytest.raises(SystemExit):
         train_main()
+
+
+def test_image_training_resume_rejects_changed_permission_manifest(tmp_path, monkeypatch):
+    root = create_dataset(tmp_path / "images")
+    manifest = create_manifest(tmp_path / "manifest.json")
+    output = tmp_path / "model.pt"
+    common = [
+        "--data", str(root), "--manifest", str(manifest),
+        "--output", str(output), "--steps", "1", "--batch-size", "1",
+        "--image-size", "32", "--base-channels", "8",
+        "--diffusion-steps", "2", "--checkpoint-interval", "1",
+    ]
+    monkeypatch.setattr(sys, "argv", ["train.py", *common])
+    train_main()
+    changed_manifest = json.loads(manifest.read_text(encoding="utf-8"))
+    changed_manifest["permission_basis"] = "updated permission record"
+    manifest.write_text(json.dumps(changed_manifest), encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", *common, "--steps", "2",
+        "--resume-from", str(output) + ".resume.pt",
+    ])
+    with pytest.raises(SystemExit):
+        train_main()
