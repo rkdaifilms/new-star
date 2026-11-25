@@ -1,0 +1,38 @@
+name: New Star Search checks
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "ai-search/**"
+      - ".github/workflows/ai-search-checks.yml"
+  pull_request:
+    paths:
+      - "ai-search/**"
+      - ".github/workflows/ai-search-checks.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-search-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  search-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: ai-search/requirements.txt
+      - name: Compile search modules
+        run: python -m py_compile ai-search/new_star_search.py ai-search/vector_backend.py ai-search/vector_server.py ai-search/vector_sync.py
+      - name: Run search unit tests
+        run: python -m unittest discover -s ai-search/tests -v
