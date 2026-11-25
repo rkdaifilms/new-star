@@ -55,10 +55,12 @@ def main():
         raise SystemExit("Training input file does not exist")
     records = []
     seen = set()
+    input_count = 0
     with source.open(encoding="utf-8") as stream:
         for line_number, line in enumerate(stream, 1):
             if not line.strip():
                 continue
+            input_count += 1
             try:
                 record = clean_record(json.loads(line), line_number)
             except (json.JSONDecodeError, ValueError) as error:
@@ -84,7 +86,7 @@ def main():
         "unique_conversations": len(records),
         "training_conversations": len(training),
         "validation_conversations": len(validation),
-        "duplicate_conversations_removed": len(seen) - len(records),
+        "duplicate_conversations_removed": input_count - len(records),
         "source_file": source.name,
         "credentials_scan": "passed",
     }
