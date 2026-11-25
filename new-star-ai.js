@@ -99,7 +99,7 @@ async function refreshEngineStatus(){
    const privateOnline=Boolean(model.reachable&&model.modelAvailable);
    status.textContent=privateOnline?"New Star private model: online · External AI providers: disabled":model.configured?"New Star private model: configured, not verified · External AI providers: disabled":"New Star private model: not configured · External AI providers: disabled";
    status.style.color=privateOnline?"#91e6b0":"#f6c66b";
-   const capabilitySummary=["Chat "+(capabilities.chat?.configured?"ready":"not configured"),"Images "+(capabilities.imageGeneration?.supported?"available":"private worker not deployed"),"Vision "+(capabilities.imageUnderstanding?.supported?"available":"private worker not deployed"),"Speech "+(capabilities.speechGeneration?.supported?"available":"private worker not deployed"),"Video "+(capabilities.videoGeneration?.supported?"available":"private worker not deployed"),"Search "+(capabilities.webSearch?.supported?"available":"private worker not deployed")].join(" · ");
+   const capabilitySummary=["Chat "+(capabilities.chat?.configured?"ready":"not configured"),"Images "+(capabilities.imageGeneration?.configured?"configured":"not configured"),"Vision "+(capabilities.imageUnderstanding?.supported?"available":"private worker not deployed"),"Speech "+(capabilities.speechGeneration?.configured?"configured":"not configured"),"Video "+(capabilities.videoGeneration?.configured?"configured":"not configured"),"Search "+(capabilities.webSearch?.supported?"available":"private worker not deployed")].join(" · ");
    foot.textContent=capabilitySummary+". Self-hosted-only mode: no Gemini, OpenAI or OpenRouter inference fallback.";
    return;
   }
