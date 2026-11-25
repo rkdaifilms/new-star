@@ -236,6 +236,7 @@ def train(args) -> dict:
             "steps": completed_steps,
             "batch_size": args.batch_size,
             "learning_rate": args.learning_rate,
+            "ema_decay": args.ema_decay,
             "seed": args.seed,
             "final_loss": losses[-1],
             "mean_loss": sum(losses) / len(losses),
