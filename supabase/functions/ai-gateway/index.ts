@@ -504,7 +504,9 @@ async function callOpenRouter(key: string, messages: ChatMessage[], systemPrompt
 async function callNewStarHostedModel(key: string, messages: ChatMessage[], systemPrompt: string) {
   const configuredEndpoint = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
   const model = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
-  if (!configuredEndpoint || !model) throw new Error("NEW_STAR_MODEL_NOT_CONFIGURED");
+  if (!configuredEndpoint || !model || !key || key.length < 32) {
+    throw new Error("NEW_STAR_MODEL_NOT_CONFIGURED: URL, model name, and a 32-character API key are required.");
+  }
   let endpoint: URL;
   try { endpoint = new URL(configuredEndpoint); }
   catch { throw new Error("NEW_STAR_MODEL_INVALID_ENDPOINT"); }
@@ -594,7 +596,9 @@ async function probeNewStarHostedModel() {
   const configuredEndpoint = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
   const model = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
   const key = Deno.env.get("NEW_STAR_MODEL_API_KEY")?.trim() || "";
-  if (!configuredEndpoint || !model) return { configured: false, reachable: false, modelAvailable: false };
+  if (!configuredEndpoint || !model || key.length < 32) {
+    return { configured: false, reachable: false, modelAvailable: false, reason: "Private model URL, model name, and an API key of at least 32 characters are required." };
+  }
   try {
     const endpoint = new URL(configuredEndpoint);
     if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
@@ -1375,10 +1379,10 @@ Deno.serve(async (req: Request) => {
 
   const newStarModelUrl = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
   const newStarModelName = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
-  const newStarModelKey = Deno.env.get("NEW_STAR_MODEL_API_KEY")?.trim() || "local-no-key";
+  const newStarModelKey = Deno.env.get("NEW_STAR_MODEL_API_KEY")?.trim() || "";
   const enableLocalTestFallback = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true";
   const newStarApiPrimary = Deno.env.get("NEW_STAR_MODEL_PRIMARY") === "true";
-  const newStarApiConfigured = Boolean(newStarModelUrl && newStarModelName);
+  const newStarApiConfigured = Boolean(newStarModelUrl && newStarModelName && newStarModelKey.length >= 32);
   const selfHostedOnly = Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted";
   const providers = (selfHostedOnly
     ? (newStarApiConfigured ? [{ name: "new-star-ai", keys: [newStarModelKey], run: callNewStarHostedModel }] : [])
