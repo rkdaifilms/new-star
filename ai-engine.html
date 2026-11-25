@@ -41,11 +41,11 @@ main{max-width:920px;margin:auto;padding:20px 14px 40px}.top{display:flex;align-
  </section>
  <section id="tool-research" class="tool">
   <label for="research-prompt">What should New Star research on the web?</label><textarea id="research-prompt" rows="3" placeholder="Ask for current information, comparisons, or sources…"></textarea>
-  <div class="row" style="margin-top:10px"><button id="research">Search and answer</button><span class="small">Uses Google Search grounding through the configured Gemini service.</span></div>
+  <div class="row" style="margin-top:10px"><button id="research">Search and answer</button><span class="small">Uses the separately deployed New Star Search index. The search API and indexed sources must be configured on the server.</span></div>
   <div id="research-result" class="result"></div>
  </section>
  <section id="tool-voice" class="tool">
-  <p class="small">Voice input converts a short recording into text. Voice output reads your text aloud using your device's installed speech voices.</p>
+  <p class="small">Voice input sends a short recording to the configured New Star speech-transcription service. Voice output generates spoken audio through the configured server-side AI voice provider.</p>
   <div class="row"><button id="record">Start recording</button><button id="stop-record" class="secondary" disabled>Stop and transcribe</button><span id="voice-status" class="small">Microphone is off.</span></div>
   <textarea id="transcript" rows="3" placeholder="Your transcription will appear here…"></textarea>
   <div class="row" style="margin-top:8px"><button id="speak" class="secondary">Read text aloud</button><button id="use-transcript" class="secondary">Send transcription to Chat</button></div>
