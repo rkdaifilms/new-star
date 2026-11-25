@@ -4,7 +4,7 @@ const form=$("ns-form"),prompt=$("ns-prompt"),output=$("ns-output"),submit=$("ns
 async function gatewayErrorMessage(result,fallback){const direct=result?.data?.error;if(typeof direct==="string"&&direct.trim())return direct;try{const response=result?.error?.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();if(typeof payload?.error==="string"&&payload.error.trim())return payload.error;}}catch(_){}return fallback;}
 function selectedAppLanguage(){try{const p=window.NewStarPreferences?.get?.()||JSON.parse(localStorage.getItem("newstar_preferences")||"{}");return typeof p.language==="string"&&/^[a-z]{2}$/i.test(p.language)?p.language:"";}catch(_){return "";}}
 function automaticLanguageOptions(){return {language:"auto"};}
-function requestLanguage(){return lastInputWasVoice?automaticLanguageOptions().language:(selectedAppLanguage()||automaticLanguageOptions().language);}
+function requestLanguage(){return lastInputWasVoice?(lastTranscriptionLanguage||automaticLanguageOptions().language):(selectedAppLanguage()||automaticLanguageOptions().language);}
 let lastTranscriptionLanguage="",lastInputWasVoice=false;
 let mode="chat",busy=false,attachment=null,conversationId=localStorage.getItem("new-star-ai-conversation")||"",recorder=null,recordedChunks=[];
 const modes={chat:["AI Chat","Ask questions, plan and create."],research:["Live Research","Search the web and return source links."],image:["Image Generation","Describe an image and choose output size."],video:["Video Generation","Describe a short video and choose its format and duration."]};
