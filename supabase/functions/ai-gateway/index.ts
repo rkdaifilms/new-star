@@ -6,6 +6,7 @@ import { detectReplyScript } from "./language-policy.ts";
 import { formatRetrievedContext, normalizeNewStarSearchResults } from "./search-provider.ts";
 import { AI_LANGUAGE_NAMES } from "./language-catalog.ts";
 import { readBoundedJson } from "./request-body.ts";
+import { buildChatProviderPlan } from "./provider-routing.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -1384,15 +1385,20 @@ Deno.serve(async (req: Request) => {
   const newStarApiPrimary = Deno.env.get("NEW_STAR_MODEL_PRIMARY") === "true";
   const newStarApiConfigured = Boolean(newStarModelUrl && newStarModelName && newStarModelKey.length >= 32);
   const selfHostedOnly = Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted";
-  const providers = (selfHostedOnly
-    ? (newStarApiConfigured ? [{ name: "new-star-ai", keys: [newStarModelKey], run: callNewStarHostedModel }] : [])
-    : [
-      ...(newStarApiPrimary && newStarApiConfigured ? [{ name: "new-star-ai", keys: [newStarModelKey], run: callNewStarHostedModel }] : []),
-      { name: "gemini", keys: secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"), run: callGemini },
-      { name: "openai", keys: secretCandidates("OPENAI_API_KEY", "OPENAI_KEY"), run: callOpenAI },
-      { name: "openrouter", keys: secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY"), run: callOpenRouter },
-      ...(!newStarApiPrimary && enableLocalTestFallback && newStarApiConfigured ? [{ name: "new-star-ai-fallback", keys: [newStarModelKey], run: callNewStarHostedModel }] : [])
-    ]).filter((p): p is { name: string; keys: string[]; run: (key: string, messages: ChatMessage[], systemPrompt: string) => Promise<string> } => p.keys.length > 0);
+  const providers = buildChatProviderPlan({
+    selfHostedOnly,
+    newStarConfigured: newStarApiConfigured,
+    newStarApiPrimary,
+    enableLocalTestFallback,
+    newStarModelKey,
+    geminiKeys: secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY"),
+    openaiKeys: secretCandidates("OPENAI_API_KEY", "OPENAI_KEY"),
+    openrouterKeys: secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY"),
+    runNewStarHostedModel: callNewStarHostedModel,
+    runGemini: callGemini,
+    runOpenAI: callOpenAI,
+    runOpenRouter: callOpenRouter
+  });
 
   if (providers.length === 0) {
     return json({
