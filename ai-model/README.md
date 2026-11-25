@@ -6,12 +6,16 @@ gateway and this runtime serves model inference.
 
 ## Current status
 
-- The gateway adapter is implemented and deployed in Supabase AI Gateway v83.
+- The gateway adapter is implemented and deployed in Supabase AI Gateway v91.
 - The adapter expects an OpenAI-compatible `/chat/completions` endpoint.
 - The gateway status action now performs non-billable credential/access probes for configured providers. Gemini and OpenAI use model-list endpoints so checks do not depend on one specific model; it does not run paid inference or verify inference quota.
-- This directory contains the GPU runtime deployment files.
+- This directory contains only the GPU runtime deployment blueprint.
 - No GPU host is provisioned or running yet. Therefore New Star's independent model
   is **not online or tested**.
+- No New Star-owned foundation-model weights, training dataset, fine-tuning run,
+  evaluation suite, or training pipeline have been completed. Qwen3-8B is an
+  open-weight starting point that could be hosted; hosting it would not make it a
+  model trained by New Star.
 
 ## Runtime
 
