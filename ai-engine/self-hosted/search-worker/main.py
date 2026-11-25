@@ -89,12 +89,15 @@ def fetch_page(url: str):
         title, text = safe_url, data.decode(response.encoding or "utf-8", errors="replace")
     else:
         soup = BeautifulSoup(data, "html.parser")
+        links = [urljoin(safe_url, anchor.get("href", "")) for anchor in soup.find_all("a", href=True)]
         for node in soup(["script", "style", "noscript", "svg", "nav", "footer"]):
             node.decompose()
         title = soup.title.get_text(" ", strip=True) if soup.title else safe_url
         text = soup.get_text(" ", strip=True)
+    if "text/plain" in content_type:
+        links = []
     text = re.sub(r"\s+", " ", text).strip()[:100000]
-    return title[:500], text
+    return title[:500], text, links[:100]
 
 
 class CrawlRequest(BaseModel):
@@ -117,16 +120,42 @@ def health():
 def crawl(request: CrawlRequest, authorization: Optional[str] = Header(default=None)):
     auth(authorization)
     url = validate_url(request.url)
-    title, text = fetch_page(url)
-    if len(text) < 40:
-        raise HTTPException(422, "Website did not contain enough readable text")
-    with database() as db:
-        existing = db.execute("SELECT id FROM pages WHERE url=?", (url,)).fetchone()
-        page_id = existing[0] if existing else str(uuid.uuid4())
-        db.execute("DELETE FROM pages_fts WHERE url=?", (url,))
-        db.execute("INSERT INTO pages(id,url,title,text,fetched_at) VALUES(?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET title=excluded.title,text=excluded.text,fetched_at=excluded.fetched_at", (page_id,url,title,text,int(time.time())))
-        db.execute("INSERT INTO pages_fts(title,text,url) VALUES(?,?,?)", (title,text,url))
-    return {"ok": True, "page_id": page_id, "url": url, "title": title, "characters_indexed": len(text)}
+    root_host = urlparse(url).hostname
+    pending = [url]
+    visited = set()
+    indexed_pages = []
+    total_characters = 0
+    while pending and len(visited) < 5:
+        current = validate_url(pending.pop(0))
+        parsed = urlparse(current)
+        if parsed.hostname != root_host or current in visited:
+            continue
+        visited.add(current)
+        try:
+            title, text, links = fetch_page(current)
+        except HTTPException:
+            if current == url:
+                raise
+            continue
+        if len(text) < 40:
+            if current == url:
+                raise HTTPException(422, "Website did not contain enough readable text")
+            continue
+        with database() as db:
+            existing = db.execute("SELECT id FROM pages WHERE url=?", (current,)).fetchone()
+            page_id = existing[0] if existing else str(uuid.uuid4())
+            db.execute("DELETE FROM pages_fts WHERE url=?", (current,))
+            db.execute("INSERT INTO pages(id,url,title,text,fetched_at) VALUES(?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET title=excluded.title,text=excluded.text,fetched_at=excluded.fetched_at", (page_id,current,title,text,int(time.time())))
+            db.execute("INSERT INTO pages_fts(title,text,url) VALUES(?,?,?)", (title,text,current))
+        indexed_pages.append({"page_id": page_id, "url": current, "title": title, "characters_indexed": len(text)})
+        total_characters += len(text)
+        for link in links:
+            candidate = urldefrag(link)[0]
+            link_parsed = urlparse(candidate)
+            if link_parsed.scheme in {"http", "https"} and link_parsed.hostname == root_host and candidate not in visited and candidate not in pending:
+                pending.append(candidate)
+    root = indexed_pages[0]
+    return {"ok": True, "page_id": root["page_id"], "url": url, "title": root["title"], "characters_indexed": total_characters, "pages_indexed": len(indexed_pages), "pages": indexed_pages}
 
 
 @app.post("/v1/search")
