@@ -16,7 +16,7 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from data import ImageFolderDataset, audit_image_dataset
-from generate import load_checkpoint, save_image_grid
+from generate import load_checkpoint, save_image_grid, main as generate_main
 from evaluate import atomic_write_json, evaluate as evaluate_checkpoint
 from model import DDPMSchedule, NewStarImageUNet
 from serve import create_handler
@@ -685,4 +685,13 @@ def test_caption_dropout_cli_rejects_invalid_values(tmp_path, monkeypatch):
     ])
     with pytest.raises(SystemExit) as error:
         train_main()
+    assert error.value.code == 2
+
+
+def test_image_generation_cli_rejects_non_finite_guidance_scale(monkeypatch):
+    monkeypatch.setattr(sys, "argv", [
+        "generate.py", "--checkpoint", "unused.pt", "--guidance-scale", "nan",
+    ])
+    with pytest.raises(SystemExit) as error:
+        generate_main()
     assert error.value.code == 2
