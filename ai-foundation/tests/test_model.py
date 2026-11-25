@@ -1366,3 +1366,40 @@ def test_generation_rejects_non_finite_repetition_penalty_and_bad_prompt_type():
     generator = torch.Generator(device="cpu")
     with pytest.raises(ValueError, match="torch.Tensor"):
         model.generate("not a tensor", generator=generator)
+
+
+def test_native_inference_server_rejects_non_finite_sampling_parameters():
+    import json
+    import threading
+    from http.server import ThreadingHTTPServer
+    from urllib.error import HTTPError
+    from urllib.request import Request, urlopen
+    import pytest
+    from serve import create_handler
+    from tokenizer import UnicodeCharTokenizer
+
+    model = tiny_model().eval()
+    tokenizer = UnicodeCharTokenizer.train("hello नमस्ते", max_vocab_size=512)
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        create_handler(model, tokenizer, "test-model", "cpu", ""),
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        for penalty in (float("nan"), float("inf")):
+            request = Request(
+                f"http://127.0.0.1:{server.server_address[1]}/v1/completions",
+                data=json.dumps({
+                    "prompt": "hello", "max_tokens": 1,
+                    "repetition_penalty": penalty,
+                }).encode(),
+                headers={"Content-Type": "application/json"},
+            )
+            with pytest.raises(HTTPError) as error:
+                urlopen(request)
+            assert error.value.code == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
