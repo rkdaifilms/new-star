@@ -18,9 +18,17 @@ class ByteBPETokenizer:
     FORMAT = "new-star-byte-bpe-v1"
 
     def __post_init__(self) -> None:
-        normalized = [(bytes(left), bytes(right)) for left, right in self.merges]
-        if any(not left or not right for left, right in normalized):
-            raise ValueError("BPE merge parts must be non-empty")
+        if not isinstance(self.merges, list):
+            raise ValueError("BPE merges must be a list of byte pairs")
+        normalized = []
+        for pair in self.merges:
+            if (not isinstance(pair, (tuple, list)) or len(pair) != 2
+                    or not all(isinstance(part, bytes) for part in pair)):
+                raise ValueError("each BPE merge must contain exactly two byte strings")
+            left, right = pair
+            if not left or not right:
+                raise ValueError("BPE merge parts must be non-empty")
+            normalized.append((left, right))
         if len(set(normalized)) != len(normalized):
             raise ValueError("BPE merge rules must be unique")
         outputs = [left + right for left, right in normalized]
@@ -38,10 +46,12 @@ class ByteBPETokenizer:
               min_frequency: int = 2) -> "ByteBPETokenizer":
         if not isinstance(text, str) or not text:
             raise ValueError("training text must be a non-empty string")
-        if max_merges < 0:
-            raise ValueError("max_merges must be non-negative")
-        if min_frequency < 1:
-            raise ValueError("min_frequency must be at least one")
+        if (not isinstance(max_merges, int) or isinstance(max_merges, bool)
+                or max_merges < 0):
+            raise ValueError("max_merges must be a non-negative integer")
+        if (not isinstance(min_frequency, int) or isinstance(min_frequency, bool)
+                or min_frequency < 1):
+            raise ValueError("min_frequency must be a positive integer")
 
         # Keep whitespace and punctuation: BPE learns from the exact UTF-8 stream.
         sequence = [bytes([value]) for value in text.encode("utf-8")];
@@ -80,6 +90,8 @@ class ByteBPETokenizer:
         return cls(merges)
 
     def encode(self, text: str) -> list[int]:
+        if not isinstance(text, str):
+            raise ValueError("text to encode must be a string")
         sequence: list[bytes] = [bytes([value]) for value in text.encode("utf-8")]
         while len(sequence) > 1:
             candidates = [
@@ -100,7 +112,7 @@ class ByteBPETokenizer:
     def decode(self, token_ids: list[int]) -> str:
         expanded = bytearray()
         for token_id in token_ids:
-            if not isinstance(token_id, int) or not 0 <= token_id < len(self):
+            if not isinstance(token_id, int) or isinstance(token_id, bool) or not 0 <= token_id < len(self):
                 raise ValueError("token ID is outside the tokenizer vocabulary")
             if token_id < self.BYTE_VOCAB_SIZE:
                 expanded.append(token_id)
@@ -127,14 +139,24 @@ class ByteBPETokenizer:
 
     @classmethod
     def from_dict(cls, payload: dict) -> "ByteBPETokenizer":
-        if payload.get("type") != cls.FORMAT:
+        if not isinstance(payload, dict) or payload.get("type") != cls.FORMAT:
             raise ValueError("unsupported tokenizer format")
+        raw_merges = payload.get("merges")
+        if not isinstance(raw_merges, list):
+            raise ValueError("BPE tokenizer payload must contain a merge list")
+        merges = []
         try:
-            merges = [(bytes.fromhex(left), bytes.fromhex(right))
-                      for left, right in payload["merges"]]
-        except (KeyError, TypeError, ValueError) as exc:
+            for pair in raw_merges:
+                if (not isinstance(pair, list) or len(pair) != 2
+                        or not all(isinstance(part, str) for part in pair)):
+                    raise ValueError("each BPE merge must contain exactly two hexadecimal strings")
+                decoded = tuple(bytes.fromhex(part) for part in pair)
+                if any(decoded_part.hex() != part.lower() for decoded_part, part in zip(decoded, pair)):
+                    raise ValueError("BPE merge hexadecimal strings must be canonical")
+                merges.append(decoded)
+            return cls(merges)
+        except (TypeError, ValueError) as exc:
             raise ValueError("invalid byte-BPE tokenizer payload") from exc
-        return cls(merges)
 
     def __len__(self) -> int:
         return self.BYTE_VOCAB_SIZE + len(self.merges)
