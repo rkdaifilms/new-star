@@ -1554,3 +1554,18 @@ def test_sft_sampler_validates_language_examples_and_batches():
             sample_instruction_batch(corpora, batch_size, block_size, "cpu")
     with pytest.raises(ValueError, match="generator"):
         sample_instruction_batch(valid, 1, 4, "cpu", generator="invalid")
+
+
+def test_sft_evaluator_rejects_invalid_batch_settings_and_validation_examples():
+    import pytest
+    from sft_train import evaluate_sft
+
+    model = tiny_model()
+    valid = {"en": [([10, 11, 12], [-100, 11, 12])]}
+    for batch_size, block_size in ((True, 4), (1, False), (0, 4), (1, 0)):
+        with pytest.raises(ValueError):
+            evaluate_sft(model, valid, batch_size, block_size, "cpu")
+    with pytest.raises(ValueError, match="assistant targets"):
+        evaluate_sft(model, {"en": [([1, 2], [-100, -100])]}, 1, 4, "cpu")
+    with pytest.raises(ValueError, match="precision"):
+        evaluate_sft(model, valid, 1, 4, "cpu", precision="fp8")
