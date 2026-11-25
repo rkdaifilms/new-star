@@ -163,6 +163,14 @@ Deno.test("private search ingestion chunks long content with overlap and no data
   if (!chunks.some((chunk, index) => index > 0 && chunks[index - 1].slice(-5).split(" ").some(word => chunk.startsWith(word)))) {
     throw new Error("Chunk overlap was not preserved");
   }
+  const oversizedToken = "x".repeat(73);
+  const bounded = splitIntoChunks(oversizedToken, 16, 0);
+  if (bounded.some((chunk) => chunk.length > 16)) {
+    throw new Error("A single unbroken token exceeded the configured maximum chunk length");
+  }
+  if (bounded.join("").replace(/\s/g, "") !== oversizedToken) {
+    throw new Error("Splitting an oversized token lost or reordered characters");
+  }
 });
 
 
