@@ -12,8 +12,8 @@ on:
       - "supabase/migrations/20261125125100_new_star_private_search.sql"
       - "supabase/migrations/20261125125524_reuse_existing_new_star_search_chunks.sql"
       - "supabase/migrations/20261125130256_new_star_hybrid_search_embedding_rpc.sql"
-      - "supabase/migrations/20261125133000_replace_new_star_search_chunks_rpc.sql"
-      - "supabase/migrations/20261125133500_harden_search_chunk_replacement_rpc.sql"
+      - "supabase/migrations/20261125131109_replace_new_star_search_chunks_rpc.sql"
+      - "supabase/migrations/20261125131209_harden_search_chunk_replacement_rpc.sql"
       - ".github/workflows/ai-engine-tests.yml"
   pull_request:
     paths:
@@ -24,8 +24,8 @@ on:
       - "supabase/migrations/20261125125100_new_star_private_search.sql"
       - "supabase/migrations/20261125125524_reuse_existing_new_star_search_chunks.sql"
       - "supabase/migrations/20261125130256_new_star_hybrid_search_embedding_rpc.sql"
-      - "supabase/migrations/20261125133000_replace_new_star_search_chunks_rpc.sql"
-      - "supabase/migrations/20261125133500_harden_search_chunk_replacement_rpc.sql"
+      - "supabase/migrations/20261125131109_replace_new_star_search_chunks_rpc.sql"
+      - "supabase/migrations/20261125131209_harden_search_chunk_replacement_rpc.sql"
       - ".github/workflows/ai-engine-tests.yml"
 
 permissions:
