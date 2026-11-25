@@ -368,17 +368,15 @@ async function searchNewStarIndex(query: string, language: string, limit: number
       p_query: query.slice(0, 500), p_limit: limit, p_language: language,
       p_embedding: toPgVectorLiteral(embedding)
     });
-    if (!error && Array.isArray(data) && data.length) {
+    if (!error && Array.isArray(data)) {
       const results = normalizePrivateIndexRows(data, limit);
-      if (results.length) {
-        return json({
-          ok: true, provider: "new-star-private-index", query,
-          answer: "", results, count: results.length
-        }, 200, headers);
-      }
+      return json({
+        ok: true, provider: "new-star-private-index", query,
+        answer: "", results, count: results.length
+      }, 200, headers);
     }
   } catch {
-    // Continue to the configured private search worker if the local index is unavailable.
+    // The self-hosted caller receives an unavailable response; normal mode may use its configured search service.
   }
   if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") {
     return json({
