@@ -74,13 +74,6 @@ class CausalBlock(nn.Module):
         output = x + attended
         output = output + self.feed_forward(self.norm2(output))
         return output, all_states
-        normalized = self.norm1(x)
-        attended, _ = self.attention(
-            normalized, normalized, normalized, attn_mask=causal_mask,
-            need_weights=False,
-        )
-        x = x + attended
-        return x + self.feed_forward(self.norm2(x))
 
 
 class NewStarGPT(nn.Module):
@@ -163,6 +156,13 @@ class NewStarGPT(nn.Module):
             raise ValueError("one attention cache is required for every Transformer block")
         if torch.any(token < 0) or torch.any(token >= self.config.vocab_size):
             raise ValueError("token IDs must be within the configured vocabulary")
+        for cache in caches:
+            if (not isinstance(cache, torch.Tensor) or cache.ndim != 3
+                    or cache.shape[0] != token.shape[0]
+                    or cache.shape[1] != position
+                    or cache.shape[2] != self.config.width
+                    or cache.device != token.device):
+                raise ValueError("attention cache shape/device does not match token batch and position")
         x = self.dropout(self.token_embedding(token) + self.position_embedding.weight[position:position + 1])
         next_caches = []
         for block, cache in zip(self.blocks, caches):
