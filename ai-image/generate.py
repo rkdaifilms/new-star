@@ -19,6 +19,11 @@ def load_checkpoint(path: str | Path, device: str):
     config = dict(config)
     config["weights_source"] = "ema" if "ema_state_dict" in checkpoint else "raw"
     config["training_dataset_fingerprint"] = checkpoint.get("dataset_fingerprint")
+    training_audit = checkpoint.get("dataset_audit", {})
+    config["training_image_hashes"] = {
+        item["sha256"] for item in training_audit.get("images", [])
+        if isinstance(item, dict) and isinstance(item.get("sha256"), str)
+    }
     model.load_state_dict(checkpoint.get("ema_state_dict", checkpoint["state_dict"]))
     model.eval()
     schedule = DDPMSchedule(config["diffusion_steps"]).to(device)
