@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import base64
 import json
 import sys
+import threading
+from http.server import ThreadingHTTPServer
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 from pathlib import Path
 
 import pytest
@@ -13,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from data import ImageFolderDataset, audit_image_dataset
 from generate import load_checkpoint, save_image_grid
 from model import DDPMSchedule, NewStarImageUNet
+from serve import create_handler
 from train import main as train_main
 
 
@@ -111,3 +117,66 @@ def test_image_manifest_requires_permission_provenance(tmp_path):
     }), encoding="utf-8")
     with pytest.raises(ValueError, match="permission_basis"):
         audit_image_dataset(root, manifest)
+
+
+def test_image_http_api_generates_png_and_rejects_text_prompt():
+    model = NewStarImageUNet(base_channels=8).eval()
+    schedule = DDPMSchedule(steps=2)
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        create_handler(model, schedule, 8, "cpu", "image-test-secret"),
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        request = Request(
+            base + "/v1/images/generations",
+            data=json.dumps({"n": 1, "seed": 123, "size": "8x8"}).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer image-test-secret",
+            },
+        )
+        with urlopen(request) as response:
+            result = json.loads(response.read())
+        png = base64.b64decode(result["data"][0]["b64_json"])
+        assert png.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+        prompt_request = Request(
+            base + "/v1/images/generations",
+            data=json.dumps({"prompt": "a mountain"}).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer image-test-secret",
+            },
+        )
+        with pytest.raises(HTTPError) as error:
+            urlopen(prompt_request)
+        assert error.value.code == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_image_http_api_requires_authentication():
+    model = NewStarImageUNet(base_channels=8).eval()
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        create_handler(model, DDPMSchedule(steps=2), 8, "cpu", "required-secret"),
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = Request(
+            f"http://127.0.0.1:{server.server_address[1]}/v1/images/generations",
+            data=json.dumps({"n": 1}).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        with pytest.raises(HTTPError) as error:
+            urlopen(request)
+        assert error.value.code == 401
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
