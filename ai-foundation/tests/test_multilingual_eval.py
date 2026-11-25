@@ -42,6 +42,23 @@ class MultilingualEvaluationTests(unittest.TestCase):
             self.assertEqual(cases[0]["language"], "ne")
             self.assertEqual(cases[0]["prompt"], "नमस्ते")
 
+    def test_generation_evaluation_is_reproducible_without_mutating_global_rng(self):
+        from generation_eval import evaluate_cases
+
+        tokenizer = UnicodeCharTokenizer.train("hello world नमस्ते", 512)
+        model = NewStarGPT(NewStarConfig(
+            vocab_size=len(tokenizer), block_size=16, width=16, layers=1, heads=2
+        ))
+        cases = [{"language": "en", "prompt": "hello", "reference": "world"}]
+        python_state = __import__("random").getstate()
+        torch_state = torch.random.get_rng_state().clone()
+        first = evaluate_cases(model, tokenizer, cases, "cpu", 4, 9876)
+        self.assertTrue(torch.equal(torch_state, torch.random.get_rng_state()))
+        self.assertEqual(python_state, __import__("random").getstate())
+        second = evaluate_cases(model, tokenizer, cases, "cpu", 4, 9876)
+        self.assertEqual(first, second)
+        self.assertTrue(torch.equal(torch_state, torch.random.get_rng_state()))
+
     def test_evaluation_reports_each_unicode_language_and_macro_metrics(self):
         validation = {
             "ar": "اللغة العربية جميلة ومفيدة للبحث.",
