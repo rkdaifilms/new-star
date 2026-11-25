@@ -31,8 +31,8 @@ def load_checkpoint(path: str | Path, device: str):
             raise ValueError(f"image checkpoint {key} must be an integer")
     if raw_config["base_channels"] < 8:
         raise ValueError("image checkpoint base_channels must be at least 8")
-    if raw_config["image_size"] < 8 or raw_config["image_size"] % 4:
-        raise ValueError("image checkpoint image_size must be at least 8 and divisible by 4")
+    if raw_config["image_size"] not in {32, 64}:
+        raise ValueError("image checkpoint image_size must be 32 or 64 pixels")
     if raw_config["diffusion_steps"] < 2:
         raise ValueError("image checkpoint diffusion_steps must be at least 2")
     if not isinstance(raw_state, dict):
