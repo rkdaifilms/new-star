@@ -98,9 +98,7 @@ def evaluate(checkpoint_path: str | Path, data_path: str | Path,
         "format": "new-star-image-evaluation-v1",
         "checkpoint": str(Path(checkpoint_path)),
         "model": "new-star-ddpm-unconditional",
-        "weights": "ema" if "ema_state_dict" in torch.load(
-            checkpoint_path, map_location="cpu", weights_only=True
-        ) else "raw",
+        "weights": config["weights_source"],
         "image_size": config["image_size"],
         "diffusion_steps": config["diffusion_steps"],
         "evaluation_dataset": {
