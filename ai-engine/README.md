@@ -97,6 +97,16 @@ curl -N http://127.0.0.1:8090/v1/chat/completions \
 
 Supported request fields include `model`, `messages`, `stream`, `temperature`, `top_p`, `max_tokens`, `stop`, `seed`, `response_format`, `format`, `user`, and `language`. The server limits request bodies to 1 MiB and validates message roles and common sampling fields.
 
+## New Star-owned experimental image service
+
+The separate `ai-image/` package now includes a from-scratch unconditional DDPM training pipeline and a local authenticated PNG-generation API. Train a checkpoint with a permitted image dataset, then run:
+
+```sh
+python ai-image/serve.py --checkpoint artifacts/newstar-image-ddpm.pt --host 127.0.0.1 --port 8780
+```
+
+The image endpoint is `POST http://127.0.0.1:8780/v1/images/generations`. It returns base64 PNG images and supports a request-local seed. This experimental image model is not wired into the chat router and does not support text prompts; do not advertise it as text-to-image. See `ai-image/README.md` for dataset provenance, training, generation, and API details.
+
 ## Adapters and fallback
 
 - `openai_chat`: sends `POST /v1/chat/completions`; supports OpenAI JSON and SSE responses.
