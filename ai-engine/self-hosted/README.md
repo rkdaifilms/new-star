@@ -168,3 +168,27 @@ The optional `video` Compose profile adds a local Diffusers/CogVideoX worker. It
 5. Configure Supabase Edge Function secrets `NEW_STAR_VIDEO_BASE_URL` (HTTPS proxy base URL) and `NEW_STAR_VIDEO_API_KEY` (same worker key). Verify an authenticated test job and Supabase Storage upload before enabling self-hosted mode.
 
 Jobs and outputs are stored in a persistent Docker volume. If the worker restarts during an active generation, the interrupted job is marked failed on restart rather than falsely remaining in progress. The gateway stores job ownership in `ai_video_jobs`, polls the private worker, uploads the finished MP4 into the private `new-star-ai-videos` bucket, and returns a short-lived signed URL. This is local inference with an open-weight model, not a New Star foundation model trained from scratch. Review the model's license and commercial-use terms. The source is committed but model weights have not been downloaded, GPU inference has not been tested, and no worker or Supabase secret has been deployed.
+
+
+## Private web crawler and search index
+
+The optional `search` profile provides a private crawler and persistent SQLite FTS5 index. It indexes pages explicitly crawled by the operator; it is not a general live-web search engine and does not invent results for pages it has never indexed.
+
+1. Set a unique `NEW_STAR_SEARCH_API_KEY` (at least 32 characters).
+2. Build/start with `docker compose --profile search build new-star-search` and `docker compose --profile search up -d new-star-search`.
+3. Put loopback-only port 8093 behind an authenticated TLS reverse proxy/private network.
+4. Set Supabase Edge Function secrets `NEW_STAR_SEARCH_BASE_URL` and `NEW_STAR_SEARCH_API_KEY`.
+5. Call the authenticated gateway action `crawl` with a public URL to index a page; then use `search` to query the private index.
+
+The crawler accepts public HTTP/HTTPS hosts, rejects local/private/reserved IP resolutions, does not follow redirects, accepts HTML/plain text only, limits pages to 2 MiB and extracted text to 100,000 characters, and removes script/style/navigation/footer content. Search uses SQLite FTS5 and returns source URLs, snippets, and fetch timestamps. It does not crawl linked pages automatically. The worker is source code only until deployed and tested.
+
+## Private image understanding (vision)
+
+The optional `vision` profile runs `HuggingFaceTB/SmolVLM2-2.2B-Instruct` locally on a CUDA GPU. It accepts authenticated base64 PNG/JPEG/WebP images up to 6 MiB, scales them to a bounded 1280-pixel maximum dimension, and returns a text answer. In self-hosted mode, image data is not sent to external providers.
+
+1. Set a unique `NEW_STAR_VISION_API_KEY` (at least 32 characters).
+2. Build/start with `docker compose --profile vision build new-star-vision` and `docker compose --profile vision up -d new-star-vision`.
+3. Put loopback-only port 8094 behind an authenticated TLS reverse proxy/private network.
+4. Set Supabase Edge Function secrets `NEW_STAR_VISION_BASE_URL` and `NEW_STAR_VISION_API_KEY`.
+
+Model weights are downloaded to the persistent cache on first use. This is local inference using an open-weight model, not a New Star foundation model trained from scratch. Review the model license and hardware requirements. Neither worker has been deployed or GPU-tested.
