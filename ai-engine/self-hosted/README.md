@@ -90,3 +90,14 @@ per chunk from the private embedding worker, and limits each batch to 100
 source documents and 200 chunks. Never expose the Supabase service-role key or
 embedding API key in browser code, mobile apps, public repositories, or
 client-visible environment variables.
+
+For semantic retrieval from the hosted Supabase Edge Function, configure
+server-side Edge Function secrets `NEW_STAR_EMBEDDING_BASE_URL`,
+`NEW_STAR_EMBEDDING_API_KEY`, and optionally
+`NEW_STAR_EMBEDDING_MODEL_NAME`. The gateway accepts only an HTTPS endpoint
+without URL credentials, query strings, or fragments. The loopback URL above
+is for the ingestion utility running on the GPU host; Supabase cannot call
+that loopback address. Expose the embedding service only through a protected
+TLS reverse proxy/private network with the separate embedding API key, and
+never expose the raw model port publicly. If the embedding worker is not
+configured, the gateway continues to use the existing full-text GIN index.
