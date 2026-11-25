@@ -59,6 +59,29 @@ jobs:
         run: |
           node --check new-star-ai.js
           node --check creator-ai.js
+      - name: Check AI Engine dashboard inline JavaScript
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Scripts(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.inline=[]; self.current=None
+              def handle_starttag(self, tag, attrs):
+                  if tag == "script" and not dict(attrs).get("src"):
+                      self.current=[]
+              def handle_data(self, data):
+                  if self.current is not None: self.current.append(data)
+              def handle_endtag(self, tag):
+                  if tag == "script" and self.current is not None:
+                      self.inline.append("".join(self.current)); self.current=None
+          parser=Scripts(); parser.feed(Path("ai-engine-dashboard.html").read_text())
+          if not parser.inline: raise SystemExit("No inline dashboard script found")
+          Path("/tmp/new-star-ai-dashboard.js").write_text("\\n".join(parser.inline))
+          PY
+          node --check /tmp/new-star-ai-dashboard.js
+          grep -F 'Private modules configured (not generation-tested)' ai-engine-dashboard.html
+          grep -F 'capabilitySummary(item)' ai-engine-dashboard.html
 
       - name: Set up Deno
         uses: denoland/setup-deno@v2
