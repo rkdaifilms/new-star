@@ -9,6 +9,7 @@ on:
       - "creator-ai.js"
       - "new-star-ai.html"
       - "new-star-ai.css"
+      - "ai-engine-dashboard.html"
       - "ai-video/**"
       - "supabase/functions/ai-gateway/**"
       - "supabase/migrations/**"
