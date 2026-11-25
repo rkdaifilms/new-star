@@ -48,11 +48,24 @@ def training_config(args) -> dict:
         "base_channels": args.base_channels,
         "diffusion_steps": args.diffusion_steps,
         "learning_rate": args.learning_rate,
+        "ema_decay": args.ema_decay,
         "seed": args.seed,
     }
 
 
-def make_checkpoint(model, optimizer, completed_steps: int, losses: list[float],
+def update_ema(ema_state: dict[str, torch.Tensor], model: torch.nn.Module,
+               decay: float) -> None:
+    with torch.no_grad():
+        for name, value in model.state_dict().items():
+            current = value.detach()
+            if torch.is_floating_point(ema_state[name]):
+                ema_state[name].mul_(decay).add_(current, alpha=1.0 - decay)
+            else:
+                ema_state[name].copy_(current)
+
+
+def make_checkpoint(model, optimizer, ema_state: dict[str, torch.Tensor],
+                    completed_steps: int, losses: list[float],
                     audit: dict, fingerprint: str, config: dict,
                     order: torch.Tensor, offset: int,
                     shuffle_generator: torch.Generator,
@@ -66,6 +79,7 @@ def make_checkpoint(model, optimizer, completed_steps: int, losses: list[float],
         },
         "training_config": config,
         "state_dict": {key: value.detach().cpu() for key, value in model.state_dict().items()},
+        "ema_state_dict": {key: value.detach().cpu() for key, value in ema_state.items()},
         "optimizer_state": optimizer.state_dict(),
         "completed_steps": completed_steps,
         "losses": losses,
@@ -89,6 +103,8 @@ def train(args) -> dict:
         raise ValueError("base_channels must be >= 8 and diffusion_steps must be >= 2")
     if args.learning_rate <= 0:
         raise ValueError("learning_rate must be positive")
+    if not 0.0 <= args.ema_decay < 1.0:
+        raise ValueError("ema_decay must be in the range [0, 1)")
     if not isinstance(args.seed, int) or isinstance(args.seed, bool) or not 0 <= args.seed <= 2**63 - 1:
         raise ValueError("seed must be an integer between 0 and 2^63-1")
     if args.checkpoint_interval < 1:
@@ -112,6 +128,7 @@ def train(args) -> dict:
         torch.cuda.manual_seed_all(args.seed)
     model = NewStarImageUNet(args.base_channels).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
+    ema_state = {key: value.detach().clone() for key, value in model.state_dict().items()}
     schedule = DDPMSchedule(args.diffusion_steps).to(device)
     shuffle_generator = torch.Generator(device="cpu").manual_seed(args.seed + 1)
     noise_generator = torch.Generator(device=device).manual_seed(args.seed + 2)
@@ -135,6 +152,13 @@ def train(args) -> dict:
         if not isinstance(completed_steps, int) or completed_steps < 1 or completed_steps > args.steps:
             raise ValueError("resume completed_steps must be between one and the requested total steps")
         model.load_state_dict(resume["state_dict"])
+        saved_ema = resume.get("ema_state_dict")
+        if not isinstance(saved_ema, dict) or saved_ema.keys() != model.state_dict().keys():
+            raise ValueError("resume checkpoint is missing a compatible EMA state")
+        for key, value in saved_ema.items():
+            if value.shape != ema_state[key].shape or value.dtype != ema_state[key].dtype:
+                raise ValueError("resume EMA tensor shape or dtype is invalid")
+            ema_state[key].copy_(value.to(device))
         optimizer.load_state_dict(resume["optimizer_state"])
         losses = resume.get("losses")
         if not isinstance(losses, list) or len(losses) != completed_steps:
@@ -177,6 +201,7 @@ def train(args) -> dict:
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
+        update_ema(ema_state, model, args.ema_decay)
         completed_steps += 1
         losses.append(float(loss.detach().item()))
 
@@ -190,7 +215,7 @@ def train(args) -> dict:
 
         if completed_steps % args.checkpoint_interval == 0 or completed_steps == args.steps:
             resume_state = make_checkpoint(
-                model, optimizer, completed_steps, losses, audit, fingerprint,
+                model, optimizer, ema_state, completed_steps, losses, audit, fingerprint,
                 config, order, offset, shuffle_generator, noise_generator,
             )
             atomic_save(resume_state, resume_output)
@@ -204,6 +229,7 @@ def train(args) -> dict:
         "format": "new-star-ddpm-image-v1",
         "model_config": model_config,
         "state_dict": {key: value.detach().cpu() for key, value in model.state_dict().items()},
+        "ema_state_dict": {key: value.detach().cpu() for key, value in ema_state.items()},
         "dataset_audit": audit,
         "dataset_fingerprint": fingerprint,
         "training": {
@@ -231,6 +257,7 @@ def main() -> None:
     parser.add_argument("--base-channels", type=int, default=32)
     parser.add_argument("--diffusion-steps", type=int, default=100)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
+    parser.add_argument("--ema-decay", type=float, default=0.999)
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--log-interval", type=int, default=100)
     parser.add_argument("--checkpoint-interval", type=int, default=100)
