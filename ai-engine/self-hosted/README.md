@@ -28,8 +28,8 @@ curl http://127.0.0.1:8080/v1/chat/completions \
 ```
 
 The Compose file maps the project key to llama.cpp's documented `LLAMA_API_KEY`
-environment variable and sets the chat slot count with
-`LLAMA_ARG_N_PARALLEL`. These names are intentional; do not rename them to
+environment variable, sets the chat slot count with `LLAMA_ARG_N_PARALLEL`, and
+disables the built-in UI with `LLAMA_ARG_UI=false`. These names are intentional; do not rename them to
 `LLAMA_ARG_API_KEY` or `LLAMA_ARG_PARALLEL`. The runtime flags are documented
 in the upstream [llama.cpp server options](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md).
 
