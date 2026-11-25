@@ -365,7 +365,7 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
     throw new Error("Self-hosted status must report only New Star and avoid external provider probes");
   }
   const videoStatusRoute = source.slice(source.indexOf('if (body?.action === "video-status")'));
-  if (!videoStatusRoute.includes("NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED")) {
+  if (!videoStatusRoute.includes("NEW_STAR_PRIVATE_VIDEO_STATUS_UNAVAILABLE")) {
     throw new Error("Self-hosted video-status route could still call an external provider");
   }
 });
