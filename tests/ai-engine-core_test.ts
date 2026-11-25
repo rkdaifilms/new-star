@@ -659,3 +659,12 @@ Deno.test("New Star private image UI exposes only the worker's supported 1K size
     throw new Error("Private image-size helper must disable unsupported 2K and 4K outputs");
   }
 });
+
+
+Deno.test("private speech requests refuse redirects before forwarding worker credentials", async () => {
+  const adapter = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-speech.ts", import.meta.url));
+  const redirectGuards = adapter.match(/redirect: "error"/g) || [];
+  if (redirectGuards.length !== 2) {
+    throw new Error("Both private speech synthesis and transcription must reject HTTP redirects");
+  }
+});
