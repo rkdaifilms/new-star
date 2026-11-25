@@ -408,7 +408,7 @@
       const user = data?.session?.user || null;
 
       if (!user && protectedPages.includes(currentPage)) {
-        location.replace("auth.html");
+        location.replace("auth.html?next=" + encodeURIComponent(currentPage));
         return;
       }
 
