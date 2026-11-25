@@ -27,10 +27,10 @@ try{
    if(result.error||!result.data?.ok)throw new Error(result.data?.error||"Image analysis is unavailable.");
    pending.textContent=result.data.answer||"The image model returned an empty response.";
  }else if(mode==="research"){
-   const result=await client.functions.invoke("ai-gateway",{body:{action:"research",query:sendText}});
+   const result=await client.functions.invoke("ai-gateway",{body:{action:"search",query:sendText,language:"auto",limit:8}});
    if(result.error||!result.data?.ok)throw new Error(result.data?.error||"Live research is unavailable.");
-   pending.textContent=result.data.answer||"Research returned an empty answer.";
-   const sources=Array.isArray(result.data.sources)?result.data.sources:[];
+   pending.textContent=result.data.count?("New Star Search found "+result.data.count+" indexed result(s)."):"New Star Search returned no indexed results.";
+   const sources=Array.isArray(result.data.results)?result.data.results:[];
    if(sources.length){const heading=document.createElement("strong");heading.textContent="Sources";heading.style.display="block";heading.style.marginTop="12px";pending.append(heading);for(const source of sources){const url=mediaUrl(source.url);if(!url)continue;const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.title||url;link.style.display="block";link.style.marginTop="6px";pending.append(link);}}
  }else if(mode==="chat"){
    const result=await client.functions.invoke("ai-gateway",{body:{messages:[{role:"user",content:sendText}],conversationId:conversationId||undefined,language:"auto"}});
@@ -89,23 +89,15 @@ async function refreshEngineStatus(){
   const result=await client.functions.invoke("ai-gateway",{body:{action:"status"}});
   if(result.error||!result.data?.ok)throw new Error(result.data?.error||"Gateway status check failed");
   const health=result.data.health||{};
-  const model=health.newStarHostedModel;
-  const names={gemini:"Gemini",openai:"OpenAI",openrouter:"OpenRouter"};
-  const descriptions={not_configured:"not configured",invalid_key:"invalid key",access_denied:"access denied",provider_rate_limited:"provider rate-limited",provider_unreachable:"unreachable",credits_exhausted:"credits exhausted",credits_available:"credits available",key_valid_inference_not_tested:"key valid · inference not tested",key_valid_credit_balance_unknown:"key valid · credits unknown",key_valid_credit_check_unreachable:"credit check unavailable"};
-  const providerSummary=Object.entries(names).map(([key,label])=>{
-   const item=health[key];
-   if(!item?.configured)return label+": not configured";
-   const detail=descriptions[item.status]||item.status||"check unavailable";
-   return label+": "+detail;
-  }).join(" · ");
-  if(model?.reachable&&model?.modelAvailable){
-   status.textContent="New Star model online · "+providerSummary;
-   status.style.color="#91e6b0";
-  }else{
-   status.textContent=providerSummary;
-   status.style.color=Object.values(health).some(item=>item?.status==="invalid_key"||item?.status==="credits_exhausted")?"#ff9b9b":"#f6c66b";
-  }
-  foot.textContent="Provider checks do not generate content or charge inference. Gemini/OpenAI quota is not tested.";
+  const providers=result.data.providers||{};
+  const capabilities=result.data.capabilities||{};
+  const model=health.newStarHostedModel||{};
+  const providerSummary=["Gemini: "+(providers.gemini?"configured":"not configured"),"OpenAI: "+(providers.openai?"configured":"not configured"),"OpenRouter: "+(providers.openrouter?"configured":"not configured")].join(" · ");
+  const modelSummary=model.configured?(model.reachable&&model.modelAvailable?"New Star hosted model: online":"New Star hosted model: configured, not verified"):"New Star hosted model: not configured";
+  status.textContent=modelSummary+" · "+providerSummary;
+  status.style.color=(model.reachable&&model.modelAvailable)||providers.gemini||providers.openai||providers.openrouter?"#91e6b0":"#f6c66b";
+  const capabilitySummary=["Chat "+(capabilities.chat?.configured?"ready":"not configured"),"Images "+(capabilities.imageGeneration?.configured?"configured":"not configured"),"Voice "+(capabilities.speechGeneration?.configured?"configured":"not configured"),"Video "+(capabilities.videoGeneration?.configured?"service account configured":"not configured"),"Search "+(capabilities.webSearch?.configured?"endpoint configured":"not configured")].join(" · ");
+  foot.textContent=capabilitySummary+". Configuration checks do not prove provider billing, quota or successful generation.";
  }catch(error){status.textContent="AI service unavailable";status.style.color="#ff9b9b";foot.textContent=error.message||"Could not check New Star AI service status.";}
 }
 window.addEventListener("load",()=>{refreshEngineStatus();loadApiKeys();});
