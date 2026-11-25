@@ -181,11 +181,23 @@ class DDPMSchedule:
     @torch.inference_mode()
     def sample(self, model: NewStarImageUNet, count: int, image_size: int,
                device: torch.device | str, seed: int | None = None,
-               text_tokens: torch.Tensor | None = None) -> torch.Tensor:
+               text_tokens: torch.Tensor | None = None,
+               guidance_scale: float = 1.0) -> torch.Tensor:
         if not isinstance(count, int) or isinstance(count, bool) or not 1 <= count <= 16:
             raise ValueError("count must be an integer from 1 to 16")
         if not isinstance(image_size, int) or image_size < 8 or image_size % 4:
             raise ValueError("image_size must be an integer >= 8 and divisible by 4")
+        if not isinstance(guidance_scale, (int, float)) or isinstance(guidance_scale, bool):
+            raise ValueError("guidance_scale must be a finite number from 0 to 10")
+        if not math.isfinite(float(guidance_scale)) or not 0.0 <= float(guidance_scale) <= 10.0:
+            raise ValueError("guidance_scale must be a finite number from 0 to 10")
+        if text_tokens is None and guidance_scale != 1.0:
+            raise ValueError("guidance_scale other than 1 requires caption tokens")
+        if text_tokens is not None and (
+            text_tokens.ndim != 2 or text_tokens.shape[0] != count
+            or text_tokens.dtype != torch.long
+        ):
+            raise ValueError("text_tokens must be a torch.long matrix with one row per image")
         device = torch.device(device)
         generator = torch.Generator(device=device)
         if seed is not None:
@@ -199,7 +211,14 @@ class DDPMSchedule:
         model.eval()
         for step in reversed(range(self.steps)):
             time = torch.full((count,), step, dtype=torch.long, device=device)
-            predicted_noise = model(values, time, text_tokens=text_tokens)
+            if text_tokens is not None and guidance_scale != 1.0:
+                conditional_noise = model(values, time, text_tokens=text_tokens)
+                unconditional_noise = model(values, time, text_tokens=torch.zeros_like(text_tokens))
+                predicted_noise = unconditional_noise + float(guidance_scale) * (
+                    conditional_noise - unconditional_noise
+                )
+            else:
+                predicted_noise = model(values, time, text_tokens=text_tokens)
             beta = betas[step]
             alpha = alphas[step]
             alpha_bar = alpha_bars[step]
