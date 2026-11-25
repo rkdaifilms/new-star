@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import secrets
 import threading
@@ -151,8 +152,8 @@ def create_handler(model, tokenizer, model_name: str, device: str, api_key: str)
                     raise ValueError("top_k must be null or a positive integer")
                 if not 0 < top_p <= 1:
                     raise ValueError("top_p must be greater than 0 and at most 1")
-                if repetition_penalty < 1:
-                    raise ValueError("repetition_penalty must be at least 1")
+                if not math.isfinite(repetition_penalty) or repetition_penalty < 1:
+                    raise ValueError("repetition_penalty must be a finite number of at least 1")
                 encoded = tokenizer.encode(prompt)
                 if not encoded:
                     raise ValueError("prompt did not produce any tokens")
