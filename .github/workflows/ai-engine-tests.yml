@@ -50,7 +50,7 @@ jobs:
         run: deno test --allow-read tests/ai-engine-core_test.ts
       - name: Validate private model startup scripts
         run: |
-          bash -n ai-engine/self-hosted/verify.sh ai-engine/self-hosted/verify-embeddings.sh ai-engine/self-hosted/deploy-workers.sh
+          bash -n ai-engine/self-hosted/verify.sh ai-engine/self-hosted/verify-embeddings.sh ai-engine/self-hosted/deploy-workers.sh ai-engine/self-hosted/configure-supabase-secrets.sh
           python3 - <<'PY'
           import json
           from pathlib import Path
