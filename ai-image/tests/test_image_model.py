@@ -581,7 +581,7 @@ def test_text_conditioned_image_http_api_accepts_prompt(tmp_path):
     try:
         request = Request(
             f"http://127.0.0.1:{server.server_address[1]}/v1/images/generations",
-            data=json.dumps({"n": 1, "prompt": "a small blue house", "seed": 12}).encode(),
+            data=json.dumps({"n": 1, "prompt": "a small blue house", "seed": 12, "guidance_scale": 1.5}).encode(),
             headers={
                 "Content-Type": "application/json",
                 "Authorization": "Bearer caption-secret",
@@ -664,3 +664,25 @@ def test_classifier_free_guidance_api_rejects_invalid_scale():
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_caption_dropout_cli_rejects_invalid_values(tmp_path, monkeypatch):
+    root = create_dataset(tmp_path / "caption-dropout-images")
+    manifest = tmp_path / "caption-dropout-manifest.json"
+    manifest.write_text(json.dumps({
+        "dataset_name": "caption dropout fixture",
+        "source": "generated test fixtures",
+        "license": "CC0-1.0",
+        "permission_basis": "created by the test suite",
+        "captions": {
+            "sample-0.png": "a red square",
+            "sample-1.png": "a blue square",
+        },
+    }), encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", "--data", str(root), "--manifest", str(manifest),
+        "--steps", "1", "--text-conditioned", "--caption-dropout", "1.0",
+    ])
+    with pytest.raises(SystemExit) as error:
+        train_main()
+    assert error.value.code == 2
