@@ -100,6 +100,10 @@ def test_tiny_training_run_saves_reloadable_checkpoint_and_generates_png(tmp_pat
     ])
     train_main()
     model, schedule, config = load_checkpoint(checkpoint, "cpu")
+    saved = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    for key, value in model.state_dict().items():
+        torch.testing.assert_close(value, saved["ema_state_dict"][key], rtol=0, atol=0)
+    assert saved["training"]["ema_decay"] == 0.999
     assert config["image_size"] == 32
     generated = schedule.sample(model, 1, 32, "cpu", seed=9)
     output = tmp_path / "generated.png"
