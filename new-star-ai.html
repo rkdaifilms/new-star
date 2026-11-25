@@ -27,7 +27,7 @@
 </form>
 <p class="ns-footnote" id="ns-footnote">Chat, voice, image, research and video generation depend on configured providers. Video requires Google Cloud Vertex AI access and may incur provider charges.</p>
 </section>
-<section class="ns-capabilities"><article><b>New Star AI Chat</b><p>Connected chat with private, saved conversations.</p></article><article><b>Voice</b><p>Voice input and spoken replies through the AI gateway.</p></article><article><b>Image Generation</b><p>Text-to-image generation. Uploaded-image editing is not connected yet.</p></article><article><b>Live Research</b><p>Searches the separately deployed New Star Search index and displays verified result URLs when that service is configured.</p></article><article><b>Video Generation</b><p>Video requests use Google Cloud Vertex AI. Project access, model availability and quota must be verified before a generation can complete.</p></article></section>
+<section class="ns-capabilities"><article><b>New Star AI Chat</b><p>Connected chat with private, saved conversations.</p></article><article><b>Voice</b><p>Voice input and spoken replies through the AI gateway.</p></article><article><b>Image Generation</b><p>Text-to-image generation. Uploaded-image editing is not connected yet.</p></article><article><b>Live Web Search</b><p>Uses the New Star Search index when connected, with Gemini Google Search grounding as a live-web fallback when available. Search grounding may require separate provider quota or billing.</p></article><article><b>Video Generation</b><p>Video requests use Google Cloud Vertex AI. Project access, model availability and quota must be verified before a generation can complete.</p></article></section>
 <section class="ns-api-keys" aria-labelledby="ns-api-title">
   <div class="ns-api-head"><div><b id="ns-api-title">Developer API keys</b><p>Create keys for your own apps and scripts. Keep each key private.</p></div><button type="button" id="ns-api-refresh">Refresh</button></div>
   <form id="ns-api-form">
@@ -35,7 +35,7 @@
     <label>Permissions<select id="ns-api-scopes" multiple size="4" aria-label="API permissions">
       <option value="chat" selected>Chat</option><option value="image">Image generation</option><option value="vision">Image understanding</option><option value="transcribe">Voice transcription</option><option value="speak">Voice output</option><option value="research">Research</option><option value="status">Provider status</option>
     </select><small>Choose only the permissions this integration needs.</small></label>
-    <div class="ns-api-row"><label>Requests per minute<input id="ns-api-limit" type="number" min="1" max="120" value="20"></label><label>Expires (optional)<input id="ns-api-expiry" type="date"></label></div>
+    <div class="ns-api-row"><label>Requests per minute<input id="ns-api-limit" type="number" min="1" max="100" value="20"></label><label>Expires (optional)<input id="ns-api-expiry" type="date"></label></div>
     <button type="submit" id="ns-api-create">Create API key</button>
   </form>
   <div id="ns-api-new" hidden></div>
