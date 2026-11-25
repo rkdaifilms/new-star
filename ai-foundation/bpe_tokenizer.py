@@ -31,6 +31,7 @@ class ByteBPETokenizer:
         if not isinstance(self.merges, list):
             raise ValueError("BPE merges must be a list of byte pairs")
         normalized = []
+        available_tokens = {bytes([value]) for value in range(self.BYTE_VOCAB_SIZE)}
         for pair in self.merges:
             if (not isinstance(pair, (tuple, list)) or len(pair) != 2
                     or not all(isinstance(part, bytes) for part in pair)):
@@ -38,7 +39,10 @@ class ByteBPETokenizer:
             left, right = pair
             if not left or not right:
                 raise ValueError("BPE merge parts must be non-empty")
+            if left not in available_tokens or right not in available_tokens:
+                raise ValueError("BPE merge parts must reference byte tokens or earlier merge outputs")
             normalized.append((left, right))
+            available_tokens.add(left + right)
         if len(set(normalized)) != len(normalized):
             raise ValueError("BPE merge rules must be unique")
         outputs = [left + right for left, right in normalized]
