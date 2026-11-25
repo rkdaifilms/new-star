@@ -355,3 +355,18 @@ def test_image_checkpoint_evaluation_is_reproducible_and_writes_report(tmp_path,
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["format"] == "new-star-image-evaluation-v1"
     assert report["metrics"]["batches_evaluated"] == 2
+
+
+
+def test_image_evaluation_rejects_training_dataset_leakage(tmp_path, monkeypatch):
+    root = create_dataset(tmp_path / "images")
+    manifest = create_manifest(tmp_path / "manifest.json")
+    checkpoint = tmp_path / "image-model.pt"
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", "--data", str(root), "--manifest", str(manifest),
+        "--output", str(checkpoint), "--steps", "1", "--batch-size", "1",
+        "--image-size", "32", "--base-channels", "8", "--diffusion-steps", "2",
+    ])
+    train_main()
+    with pytest.raises(ValueError, match="matches the training dataset"):
+        evaluate_checkpoint(checkpoint, root, manifest, "cpu", batch_size=1, seed=9)
