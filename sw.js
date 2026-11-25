@@ -1,4 +1,4 @@
-const CACHE_NAME = "newstar-app-shell-v6";
+const CACHE_NAME = "newstar-app-shell-v7";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -18,6 +18,10 @@ const APP_SHELL = [
   "/ai-chat.js",
   "/creator-ai.html",
   "/creator-ai.js",
+  "/new-star-ai.html",
+  "/new-star-ai.js",
+  "/new-star-ai.css",
+  "/ai-engine-dashboard.html",
   "/preferences.js",
   "/i18n.js",
   "/supabase-config.js",
