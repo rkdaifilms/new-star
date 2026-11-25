@@ -463,9 +463,9 @@ def test_image_checkpoint_loader_rejects_invalid_structure_and_weights(tmp_path)
         {**valid, "dataset_audit": {"images": [{"sha256": "not-a-digest"}]}},
         {
             **valid,
-            "state_dict": {
-                **valid["state_dict"],
-                "input.weight": torch.full_like(valid["state_dict"]["input.weight"], float("nan")),
+            "ema_state_dict": {
+                **valid["ema_state_dict"],
+                "input.weight": torch.full_like(valid["ema_state_dict"]["input.weight"], float("nan")),
             },
         },
     ]
