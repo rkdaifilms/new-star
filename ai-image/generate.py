@@ -135,7 +135,7 @@ def main() -> None:
         seed=args.seed, text_tokens=text_tokens,
     )
     save_image_grid(images, args.output)
-    print(f"Saved {args.count} unconditional image(s) to {args.output}")
+    print(f"Saved {args.count} generated image(s) to {args.output}")
 
 
 if __name__ == "__main__":
