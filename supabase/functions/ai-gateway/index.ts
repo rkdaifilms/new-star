@@ -127,11 +127,17 @@ async function generateGeminiImage(key: string, prompt: string, aspectRatio: str
   }
   throw new Error(lastFailure);
 }
-async function generateOpenAIImage(key: string, prompt: string, aspectRatio: string) {
+async function generateOpenAIImage(key: string, prompt: string, aspectRatio: string, imageSize: string) {
+  const dimensions: Record<string, Record<string, string>> = {
+    "1K": { "1:1": "1024x1024", "16:9": "1024x576", "9:16": "576x1024", "4:3": "1024x768", "3:4": "768x1024" },
+    "2K": { "1:1": "2048x2048", "16:9": "2048x1152", "9:16": "1152x2048", "4:3": "2048x1536", "3:4": "1536x2048" },
+    "4K": { "1:1": "3840x3840", "16:9": "3840x2160", "9:16": "2160x3840", "4:3": "3840x2880", "3:4": "2880x3840" }
+  };
+  const size = dimensions[imageSize]?.[aspectRatio] || dimensions["1K"]["1:1"];
   const response = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "gpt-image-2.5-flare", prompt, size: aspectRatio === "16:9" || aspectRatio === "4:3" ? "1536x1024" : aspectRatio === "9:16" || aspectRatio === "3:4" ? "1024x1536" : "1024x1024", n: 1 })
+    body: JSON.stringify({ model: "gpt-image-2.5-flare", prompt, size, n: 1 })
   }, 60000);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
@@ -353,7 +359,8 @@ async function searchWithGeminiGrounding(query: string, language: string, limit:
         body: JSON.stringify({
           model: "gemini-3.8-flash",
           input: prompt,
-          tools: [{ type: "google_search" }]
+          tools: [{ type: "google_search" }],
+          store: false
         })
       }, 60000);
       const data = await response.json().catch(() => ({}));
@@ -1045,6 +1052,8 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "A valid video job ID is required." }, 400, headers);
     }
     const videoAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: statusAllowed, error: statusLimitError } = await videoAdmin.rpc("consume_ai_gateway_rate_limit", { p_user_id: userId, p_limit: 60 });
+    if (statusLimitError || statusAllowed !== true) return json({ ok: false, error: statusLimitError ? "Security rate-limit check unavailable." : "Video status polling limit reached. Wait before checking again." }, statusLimitError ? 503 : 429, headers);
     const { data: job, error: jobError } = await videoAdmin.from("ai_video_jobs")
       .select("id, provider_interaction_id, provider_model, status, storage_path, failure_code, updated_at")
       .eq("id", jobId).eq("user_id", userId).maybeSingle();
@@ -1144,7 +1153,7 @@ Deno.serve(async (req: Request) => {
     }
     for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
       try {
-        const result = await generateOpenAIImage(openaiKeys[keyIndex], localizedImagePrompt, aspectRatio);
+        const result = await generateOpenAIImage(openaiKeys[keyIndex], localizedImagePrompt, aspectRatio, imageSize);
         return json({ ok: true, ...result, aspectRatio, provider: "openai" }, 200, headers);
       } catch (error) {
         const reason = error instanceof Error ? error.message : "UNKNOWN";
