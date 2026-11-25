@@ -58,7 +58,8 @@ async function check(){
   const providers=data.providers||{},health=data.health||{},caps=data.capabilities||{},model=health.newStarHostedModel||{};
   state.textContent="Authenticated · "+mode;metric.textContent="Online";
   const providerHealth=health.providers||{};
-  const privateCapabilities=["chat","imageGeneration","imageUnderstanding","speechGeneration","speechTranscription","videoGeneration","webSearch"];\n  const configuredCount=privateCapabilities.filter(name=>caps[name]?.supported&&caps[name]?.configured).length;\n  document.getElementById("testedMetric").textContent=mode==="self_hosted"?configuredCount+" / "+privateCapabilities.length:"—";
+  const privateCapabilities=["chat","imageGeneration","imageUnderstanding","speechGeneration","speechTranscription","videoGeneration","webSearch"];
+  const configuredCount=privateCapabilities.filter(name=>caps[name]?.supported&&caps[name]?.configured).length;\n  document.getElementById("testedMetric").textContent=mode==="self_hosted"?configuredCount+" / "+privateCapabilities.length:"—";
   const activeExternal=mode==="self_hosted"?0:[providerHealth.openai,providerHealth.gemini,providerHealth.openrouter]
    .filter(provider=>provider?.configured===true&&provider?.reachable===true).length;
   providerMetric.textContent=String(activeExternal);
