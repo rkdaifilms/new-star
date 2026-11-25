@@ -1,6 +1,6 @@
 # New Star AI Gateway Setup
 
-The authenticated Supabase Edge Function `ai-gateway` is deployed with JWT verification enabled.
+The Supabase Edge Function `ai-gateway` is deployed with platform `verify_jwt=false`, but it performs mandatory in-function authentication: every request must include `Authorization: Bearer <user access token>`, and the function validates that token with `auth.getUser()` before processing any action. Do not remove this check or expose provider secrets to the browser.
 
 ## Provider failover order
 
@@ -85,7 +85,7 @@ Creator Studio uses one authenticated Supabase Edge Function for chat, image gen
 
 Search is routed to the self-hosted New Star Search service. Configure these Supabase Edge Function secrets:
 - NEW_STAR_SEARCH_BASE_URL: HTTPS origin or base path for the New Star Search API. The gateway posts to /search unless the configured path already ends in /search.
-- NEW_STAR_SEARCH_API_KEY: optional bearer token required by the search service.
+- NEW_STAR_SEARCH_API_KEY: required bearer token shared only between the gateway and the separately hosted search service. The gateway returns a configuration error if this secret is missing.
 
 The search service must accept POST JSON containing query, language, and limit, and return JSON with a results array. Each result must contain title and an HTTPS url; snippet and publishedAt are optional. The gateway validates result URLs and limits response fields before returning them. Creator Studio has a Search Web mode that displays clickable indexed results.
 
