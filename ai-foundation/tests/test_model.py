@@ -1601,3 +1601,46 @@ def test_pretraining_cli_rejects_non_finite_or_non_positive_learning_rate(monkey
             main()
         assert error.value.code == 2
 
+
+
+def test_native_server_loads_only_structurally_compatible_checkpoints(tmp_path):
+    import pytest
+    from serve import load_engine
+
+    model = tiny_model()
+    config = {
+        "vocab_size": 256,
+        "block_size": 16,
+        "width": 16,
+        "layers": 2,
+        "heads": 4,
+        "dropout": 0.0,
+    }
+    checkpoint = {
+        "format": "new-star-byte-bpe-gpt-v1",
+        "config": config,
+        "state_dict": model.state_dict(),
+        "tokenizer": {"type": "new-star-byte-bpe-v1", "merges": []},
+    }
+    path = tmp_path / "valid-checkpoint.pt"
+    torch.save(checkpoint, path)
+    loaded_model, tokenizer = load_engine(str(path), "cpu")
+    assert loaded_model.config.vocab_size == len(tokenizer) == 256
+
+    invalid_checkpoints = [
+        [],
+        {"format": "new-star-byte-bpe-gpt-v1", "config": [], "state_dict": {}, "tokenizer": {}},
+        {
+            **checkpoint,
+            "config": {**config, "vocab_size": 257},
+        },
+        {
+            **checkpoint,
+            "state_dict": {"not-a-model-weight": torch.zeros(1)},
+        },
+    ]
+    for index, invalid in enumerate(invalid_checkpoints):
+        invalid_path = tmp_path / f"invalid-checkpoint-{index}.pt"
+        torch.save(invalid, invalid_path)
+        with pytest.raises(ValueError):
+            load_engine(str(invalid_path), "cpu")
