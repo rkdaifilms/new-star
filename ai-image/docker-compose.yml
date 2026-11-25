@@ -17,9 +17,9 @@ services:
       - --output
       - /artifacts/newstar-image-ddpm.pt
       - --image-size
-      - ${NEW_STAR_IMAGE_SIZE:-32}
+      - "${NEW_STAR_IMAGE_SIZE:-32}"
       - --steps
-      - ${NEW_STAR_IMAGE_TRAIN_STEPS:-10000}
+      - "${NEW_STAR_IMAGE_TRAIN_STEPS:-10000}"
       - --device
       - cpu
     restart: "no"
