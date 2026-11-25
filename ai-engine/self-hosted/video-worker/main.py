@@ -9,6 +9,8 @@ from typing import Optional
 
 import imageio.v2 as imageio
 import torch
+import numpy as np
+from PIL import Image
 from diffusers import CogVideoXPipeline
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
@@ -89,6 +91,8 @@ def render(job_id: str) -> None:
         JOB_DIR.mkdir(parents=True, exist_ok=True)
         with imageio.get_writer(str(output), fps=FPS, codec="libx264", quality=8, macro_block_size=16) as writer:
             for frame in frames:
+                if not isinstance(frame, Image.Image):
+                    frame = Image.fromarray(np.asarray(frame).astype("uint8"))
                 if ratio == "9:16":
                     width, height = frame.size
                     target_ratio = 9 / 16
@@ -104,7 +108,7 @@ def render(job_id: str) -> None:
                     frame = frame.resize((480, 848))
                 else:
                     frame = frame.resize((848, 480))
-                writer.append_data(__import__("numpy").asarray(frame.convert("RGB")))
+                writer.append_data(np.asarray(frame.convert("RGB")))
         size = output.stat().st_size
         if size <= 0 or size > 50 * 1024 * 1024:
             raise RuntimeError("Generated video is empty or exceeds the 50 MiB output limit")
