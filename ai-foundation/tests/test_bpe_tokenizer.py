@@ -52,6 +52,18 @@ def test_byte_bpe_rejects_merge_parts_not_defined_by_prior_rules():
         ByteBPETokenizer([(b"ab", b"c")])
 
 
+def test_byte_bpe_decodes_deep_merge_chains_without_recursion_limit():
+    merges = []
+    token = b"a"
+    for _ in range(1200):
+        merges.append((token, b"b"))
+        token += b"b"
+
+    tokenizer = ByteBPETokenizer(merges)
+    final_token_id = tokenizer.BYTE_VOCAB_SIZE + len(merges) - 1
+    assert tokenizer.decode([final_token_id]) == (b"a" + b"b" * 1200).decode("ascii")
+
+
 def test_byte_bpe_rejects_ambiguous_duplicate_merge_outputs():
     with pytest.raises(ValueError, match="outputs must be unique"):
         ByteBPETokenizer([(b"a", b"b"), (b"b", b"c"), (b"ab", b"c"), (b"a", b"bc")])
