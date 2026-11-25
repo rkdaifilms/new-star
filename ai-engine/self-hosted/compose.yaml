@@ -49,3 +49,34 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+  new-star-speech:
+    build:
+      context: ./speech-worker
+    container_name: new-star-private-speech
+    restart: unless-stopped
+    profiles: ["speech"]
+    ports:
+      - "127.0.0.1:8090:8090"
+    environment:
+      NEW_STAR_SPEECH_API_KEY: ${NEW_STAR_SPEECH_API_KEY:?Set NEW_STAR_SPEECH_API_KEY in .env}
+      NEW_STAR_SPEECH_MODEL_DIR: /models
+      NEW_STAR_SPEECH_CACHE: /tmp/new-star-speech
+      NEW_STAR_WHISPER_MODEL: ${NEW_STAR_WHISPER_MODEL:-small}
+      NEW_STAR_WHISPER_DEVICE: ${NEW_STAR_WHISPER_DEVICE:-cuda}
+      NEW_STAR_WHISPER_COMPUTE: ${NEW_STAR_WHISPER_COMPUTE:-float16}
+      NEW_STAR_PIPER_VOICES: ${NEW_STAR_PIPER_VOICES:-{}}
+      NEW_STAR_MAX_AUDIO_BYTES: "8388608"
+    volumes:
+      - ./models:/models:ro
+      - new-star-speech-cache:/tmp/new-star-speech
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  new-star-speech-cache:
