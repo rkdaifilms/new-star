@@ -555,6 +555,40 @@ async function probeApiProvider(keys: string[], url: string, headerName: string)
   return last;
 }
 
+async function probeOpenRouterProvider(keys: string[]) {
+  if (!keys.length) return { configured: false, reachable: false, authorized: false, status: null };
+  let last: any = { configured: true, reachable: false, authorized: false, status: null };
+  for (const key of keys) {
+    const checked = await probeApiProvider(["Bearer " + key], "https://openrouter.ai/api/v1/key", "Authorization");
+    last = checked;
+    if (!checked.authorized) continue;
+    try {
+      const response = await fetchWithTimeout("https://openrouter.ai/api/v1/credits", {
+        method: "GET",
+        headers: { "Authorization": "Bearer " + key },
+        redirect: "error"
+      }, 7000);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) return { ...checked, status: "key_valid_credit_check_failed_" + response.status };
+      const total = Number(data?.data?.total_credits);
+      const used = Number(data?.data?.total_usage);
+      if (Number.isFinite(total) && Number.isFinite(used)) {
+        const creditsRemaining = Math.max(0, total - used);
+        return {
+          ...checked,
+          status: creditsRemaining > 0 ? "credits_available" : "credits_exhausted",
+          creditsRemaining: Number(creditsRemaining.toFixed(4)),
+          quotaAvailable: creditsRemaining > 0
+        };
+      }
+      return { ...checked, status: "key_valid_credit_balance_unknown" };
+    } catch {
+      return { ...checked, status: "key_valid_credit_check_unreachable" };
+    }
+  }
+  return last;
+}
+
 async function probeNewStarHostedModel() {
   const configuredEndpoint = Deno.env.get("NEW_STAR_MODEL_BASE_URL")?.trim() || "";
   const model = Deno.env.get("NEW_STAR_MODEL_NAME")?.trim() || "";
@@ -1227,7 +1261,7 @@ Deno.serve(async (req: Request) => {
     const [openaiHealth, geminiHealth, openrouterHealth] = await Promise.all([
       probeApiProvider(openaiKeys.map(key => "Bearer " + key), "https://api.openai.com/v1/models", "Authorization"),
       probeApiProvider(geminiKeys, "https://generativelanguage.googleapis.com/v1beta/models", "x-goog-api-key"),
-      probeApiProvider(openrouterKeys.map(key => "Bearer " + key), "https://openrouter.ai/api/v1/models", "Authorization")
+      probeOpenRouterProvider(openrouterKeys)
     ]);
     const imageConfigured = hasGemini || hasOpenRouter || hasOpenAI;
     const speechConfigured = hasGemini || hasOpenAI;
@@ -1259,7 +1293,7 @@ Deno.serve(async (req: Request) => {
           gemini: geminiHealth,
           openrouter: openrouterHealth
         },
-        note: "Provider checks call authenticated model-list endpoints. A valid key does not prove generation permissions, billing, quota, or successful image/audio/video generation."
+        note: "OpenAI and Gemini checks call authenticated model-list endpoints. OpenRouter also checks the key and remaining credits. These checks do not prove successful model generation."
       }
     }, 200, headers);
   }
