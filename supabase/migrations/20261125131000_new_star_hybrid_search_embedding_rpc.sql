@@ -42,7 +42,7 @@ as $$
     select
       d.id, d.title, d.url, d.content, d.source, d.published_at,
       0.0::double precision as lexical_score,
-      greatest(0.0, 1.0 - (d.embedding <=> p_embedding)) as semantic_score
+      greatest(0.0, 1.0 - (d.embedding OPERATOR(extensions.<=>) p_embedding)) as semantic_score
     from public.new_star_search_chunks d
     where p_embedding is not null
       and (
@@ -50,7 +50,7 @@ as $$
         or d.language = 'auto'
         or lower(d.language) = lower(p_language)
       )
-    order by d.embedding <=> p_embedding
+    order by d.embedding OPERATOR(extensions.<=>) p_embedding
     limit greatest(1, least(coalesce(p_limit, 5), 10)) * 4
   ),
   candidates as (
