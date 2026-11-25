@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 
 import torch
@@ -186,6 +187,8 @@ def main():
         parser.error("steps, batch-size, block-size, width, layers, heads, and eval-interval must be positive")
     if args.max_vocab_size < 256:
         parser.error("--max-vocab-size must be at least 256")
+    if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
+        parser.error("--learning-rate must be a finite positive number")
     if args.width % args.heads:
         parser.error("--width must be divisible by --heads")
     try:
