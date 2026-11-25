@@ -54,7 +54,7 @@ def test_byte_bpe_rejects_merge_parts_not_defined_by_prior_rules():
 
 def test_byte_bpe_rejects_ambiguous_duplicate_merge_outputs():
     with pytest.raises(ValueError, match="outputs must be unique"):
-        ByteBPETokenizer([(b"a", b"bc"), (b"ab", b"c")])
+        ByteBPETokenizer([(b"a", b"b"), (b"b", b"c"), (b"ab", b"c"), (b"a", b"bc")])
 
 
 def test_byte_bpe_training_skips_duplicate_merge_outputs():
