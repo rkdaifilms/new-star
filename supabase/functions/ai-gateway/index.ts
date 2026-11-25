@@ -13,7 +13,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://new-star-delta.vercel.app",
   "https://new-star-rkdaifilms-8858.vercel.app",
   "https://new-star.rkdaifilms.workers.dev",
-  "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app"
+  "https://new-star-git-new-star-repair-pass-1-rkdaifilms-8858.vercel.app",
+  "https://new-star-git-new-star-own-ai-engine-cpu-rkdaifilms-8858.vercel.app"
 ]);
 
 function corsHeaders(origin: string) {
