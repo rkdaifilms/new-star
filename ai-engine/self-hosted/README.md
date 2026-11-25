@@ -48,8 +48,7 @@ This server provides text chat only. Image generation, video generation, speech 
 
 ## New Star private search index
 
-The private PostgreSQL full-text index is created by migration
-`supabase/migrations/202611250002_new_star_private_search.sql`. It is
+The existing `new_star_search_chunks` table and its HNSW + GIN indexes are reused; no parallel document table is needed. Migration `supabase/migrations/202611250003_reuse_existing_new_star_search_chunks.sql` adds language/chunk metadata and the private full-text RPC. It is
 service-role-only: browser roles have no table privileges or RPC execution.
 The gateway checks this index first for both search requests and optional
 chat retrieval. The index starts empty; add only content you have permission
@@ -73,3 +72,20 @@ The tool accepts HTTPS URLs only, rejects credentials in URLs, validates
 content lengths and dates, rejects duplicate URLs within a batch, and limits
 each batch to 500 documents. Never put the service-role key in browser code,
 mobile apps, public repositories, or client-visible environment variables.
+
+
+## Private search embeddings
+
+The optional `new-star-embeddings` Compose service runs a dedicated 384-dimensional embedding model on loopback port 8081. Place a legally licensed compatible E5-small-v2 GGUF file in `models/`, set `NEW_STAR_EMBEDDING_MODEL_FILE` and a separate `NEW_STAR_EMBEDDING_API_KEY`, then start it with `docker compose --profile embeddings up -d new-star-embeddings`. The model must produce exactly 384 values per embedding.
+
+Run the ingestion utility from the repository root on a trusted machine:
+
+```sh
+SUPABASE_URL="https://YOUR_PROJECT.supabase.co" \
+SUPABASE_SERVICE_ROLE_KEY="YOUR_SERVER_ONLY_SERVICE_ROLE_KEY" \
+NEW_STAR_EMBEDDING_BASE_URL="http://127.0.0.1:8081/v1" \
+NEW_STAR_EMBEDDING_API_KEY="YOUR_PRIVATE_EMBEDDING_KEY" \
+deno run --allow-read --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,NEW_STAR_EMBEDDING_BASE_URL,NEW_STAR_EMBEDDING_API_KEY scripts/new-star-search-ingest.ts documents.jsonl
+```
+
+The tool accepts HTTPS source URLs only, rejects credentials in URLs, validates content lengths and dates, rejects duplicate URLs within a batch, chunks text with overlap, obtains a 384-dimensional embedding for each chunk, and limits each batch to 100 source documents and 200 chunks.
