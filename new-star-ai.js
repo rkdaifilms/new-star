@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id);
 const form=$("ns-form"),prompt=$("ns-prompt"),output=$("ns-output"),submit=$("ns-submit"),status=$("engine-status"),foot=$("ns-footnote"),fileInput=$("ns-file");
 async function gatewayErrorMessage(result,fallback){const direct=result?.data?.error;if(typeof direct==="string"&&direct.trim())return direct;try{const response=result?.error?.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();if(typeof payload?.error==="string"&&payload.error.trim())return payload.error;}}catch(_){}return fallback;}
 function selectedAppLanguage(){try{const p=window.NewStarPreferences?.get?.()||JSON.parse(localStorage.getItem("newstar_preferences")||"{}");return typeof p.language==="string"&&/^[a-z]{2}$/i.test(p.language)?p.language:"";}catch(_){return "";}}
-function automaticLanguageOptions(){return {language:"auto"};}
+function automaticLanguageOptions(){return {language:"auto"};}function setPrivateImageSizeMode(privateOnly){const select=$("ns-size");if(!select)return;for(const option of select.options){const supported=!privateOnly||option.value==="1K";option.disabled=!supported;option.hidden=!supported;}if(privateOnly)select.value="1K";}
 function requestLanguage(){return lastInputWasVoice?(lastTranscriptionLanguage||automaticLanguageOptions().language):(selectedAppLanguage()||automaticLanguageOptions().language);}
 let lastTranscriptionLanguage="",lastInputWasVoice=false;
 let mode="chat",busy=false,attachment=null,conversationId=localStorage.getItem("new-star-ai-conversation")||"",recorder=null,recordedChunks=[];
@@ -101,6 +101,7 @@ async function refreshEngineStatus(){
   const model=health.newStarHostedModel||{};
   const providerHealth=health.providers||{};
   if(result.data.mode==="self_hosted"){
+   setPrivateImageSizeMode(true);
    const privateOnline=Boolean(model.reachable&&model.modelAvailable);
    status.textContent=privateOnline?"New Star private model: online · External AI providers: disabled":model.configured?"New Star private model: configured, not verified · External AI providers: disabled":"New Star private model: not configured · External AI providers: disabled";
    status.style.color=privateOnline?"#91e6b0":"#f6c66b";
@@ -108,6 +109,7 @@ async function refreshEngineStatus(){
    foot.textContent=capabilitySummary+". Self-hosted-only mode: no Gemini, OpenAI or OpenRouter inference fallback.";
    return;
   }
+  setPrivateImageSizeMode(false);
   const providerState=(name,configured)=>{if(!configured)return "not configured";const item=providerHealth[name]||{};if(item.quotaAvailable===false)return "credits exhausted";if(item.status==="credits_available")return "online · credits available";if(item.authorized)return "online";if(item.reachable)return "reachable, access denied";return "unreachable";};
   const providerSummary=["Gemini: "+providerState("gemini",providers.gemini),"OpenAI: "+providerState("openai",providers.openai),"OpenRouter: "+providerState("openrouter",providers.openrouter)].join(" · ");
   const modelSummary=model.configured?(model.reachable&&model.modelAvailable?"New Star hosted model: online":"New Star hosted model: configured, not verified"):"New Star hosted model: not configured";
