@@ -141,26 +141,30 @@ def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32
     was_training = model.training
     model.eval()
     language_losses = []
-    with torch.inference_mode():
-        for language in sorted(corpora):
-            examples = corpora[language]
-            weighted_loss = 0.0
-            token_count = 0
-            for start in range(0, len(examples), batch_size):
-                indices = list(range(start, min(start + batch_size, len(examples))))
-                x, y = collate_examples(examples, indices, block_size, target_device)
-                supervised_tokens = int((y != -100).sum().item())
-                if supervised_tokens == 0:
-                    raise ValueError(f"validation batch has no assistant targets for {language}")
-                with autocast_context(device, precision):
-                    _, loss = model(x, y)
-                if loss is None or not torch.isfinite(loss):
-                    raise RuntimeError(f"non-finite validation loss for {language}")
-                weighted_loss += float(loss.item()) * supervised_tokens
-                token_count += supervised_tokens
-            language_losses.append(weighted_loss / token_count)
-    model.train(was_training)
-    return sum(language_losses) / len(language_losses)
+    try:
+        language_losses = []
+        with torch.inference_mode():
+            for language in sorted(corpora):
+                examples = corpora[language]
+                weighted_loss = 0.0
+                token_count = 0
+                for start in range(0, len(examples), batch_size):
+                    indices = list(range(start, min(start + batch_size, len(examples))))
+                    x, y = collate_examples(examples, indices, block_size, target_device)
+                    supervised_tokens = int((y != -100).sum().item())
+                    if supervised_tokens == 0:
+                        raise ValueError(f"validation batch has no assistant targets for {language}")
+                    with autocast_context(device, precision):
+                        _, loss = model(x, y)
+                    if loss is None or not torch.isfinite(loss):
+                        raise RuntimeError(f"non-finite validation loss for {language}")
+                    weighted_loss += float(loss.item()) * supervised_tokens
+                    token_count += supervised_tokens
+                language_losses.append(weighted_loss / token_count)
+        model.train(was_training)
+        return sum(language_losses) / len(language_losses)
+    finally:
+        model.train(was_training)
 
 
 def main():
