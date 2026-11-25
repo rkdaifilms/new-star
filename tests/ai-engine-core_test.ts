@@ -72,7 +72,20 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
   const importCollisions = imports.filter((name) => functionNames.includes(name));
   if (importCollisions.length) throw new Error("Imported functions redeclared locally: " + [...new Set(importCollisions)].join(", "));
 
-  if (!source.includes("NEW_STAR_AI_MODE") || !source.includes("NEW_STAR_VISION_MODEL_NOT_DEPLOYED")) {
-    throw new Error("Self-hosted-only safety guards are missing");
+  const requiredSelfHostedGuards = [
+    "NEW_STAR_AI_MODE",
+    "NEW_STAR_VISION_MODEL_NOT_DEPLOYED",
+    "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED",
+    "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED",
+    "NEW_STAR_STT_MODEL_NOT_DEPLOYED",
+    "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED",
+    "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED",
+    "NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED"
+  ];
+  const missingGuards = requiredSelfHostedGuards.filter((guard) => !source.includes(guard));
+  if (missingGuards.length) throw new Error("Missing self-hosted safety guards: " + missingGuards.join(", "));
+  const videoStatusRoute = source.slice(source.indexOf('if (body?.action === "video-status")'));
+  if (!videoStatusRoute.includes("NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED")) {
+    throw new Error("Self-hosted video-status route could still call an external provider");
   }
 });
