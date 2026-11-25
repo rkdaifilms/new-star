@@ -482,3 +482,89 @@ def test_image_checkpoint_loader_rejects_unreadable_file(tmp_path):
     path.write_text("not a torch checkpoint", encoding="utf-8")
     with pytest.raises(ValueError, match="safely load"):
         load_checkpoint(path, "cpu")
+
+
+def test_caption_tokenizer_is_deterministic_and_unicode_aware():
+    from text_conditioning import TEXT_VOCAB_SIZE, encode_caption
+
+    first = encode_caption("A blue sky over नेपाल")
+    second = encode_caption("A blue sky over नेपाल")
+    assert first == second
+    assert 1 <= len(first) <= 32
+    assert all(1 <= token < TEXT_VOCAB_SIZE for token in first)
+    with pytest.raises(ValueError):
+        encode_caption("   ")
+
+
+def test_text_conditioned_unet_requires_valid_caption_token_matrix():
+    model = NewStarImageUNet(base_channels=8, text_vocab_size=8192)
+    images = torch.randn(2, 3, 32, 32)
+    times = torch.tensor([0, 1], dtype=torch.long)
+    tokens = torch.tensor([[1, 2, 0], [3, 4, 5]], dtype=torch.long)
+    prediction = model(images, times, text_tokens=tokens)
+    assert prediction.shape == images.shape
+    with pytest.raises(ValueError, match="text_tokens"):
+        model(images, times, text_tokens=torch.ones(2, 3))
+    with pytest.raises(ValueError, match="vocabulary"):
+        model(images, times, text_tokens=torch.full((2, 3), 8192, dtype=torch.long))
+
+
+def test_text_conditioned_training_checkpoint_generates_from_prompt(tmp_path, monkeypatch):
+    from text_conditioning import MAX_TEXT_TOKENS, encode_caption
+
+    root = create_dataset(tmp_path / "captioned-images")
+    manifest = tmp_path / "captioned-manifest.json"
+    manifest.write_text(json.dumps({
+        "dataset_name": "captioned synthetic test images",
+        "source": "generated test fixtures",
+        "license": "CC0-1.0",
+        "permission_basis": "created by the test suite",
+        "captions": {
+            "sample-0.png": "a red square",
+            "sample-1.png": "a blue landscape",
+        },
+    }), encoding="utf-8")
+    checkpoint = tmp_path / "captioned-model.pt"
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", "--data", str(root), "--manifest", str(manifest),
+        "--output", str(checkpoint), "--steps", "1", "--batch-size", "1",
+        "--image-size", "32", "--base-channels", "8", "--diffusion-steps", "2",
+        "--text-conditioned", "--log-interval", "1", "--checkpoint-interval", "1",
+        "--device", "cpu",
+    ])
+    train_main()
+    model, schedule, config = load_checkpoint(checkpoint, "cpu")
+    assert model.text_vocab_size == 8192
+    assert config["text_vocab_size"] == 8192
+    encoded = encode_caption("a red square")
+    tokens = torch.zeros((1, MAX_TEXT_TOKENS), dtype=torch.long)
+    tokens[0, :len(encoded)] = torch.tensor(encoded)
+    generated = schedule.sample(model, 1, 32, "cpu", seed=17, text_tokens=tokens)
+    assert generated.shape == (1, 3, 32, 32)
+    assert torch.isfinite(generated).all()
+
+
+def test_text_conditioned_training_requires_caption_manifest(tmp_path, monkeypatch):
+    root = create_dataset(tmp_path / "images-without-captions")
+    manifest = create_manifest(tmp_path / "manifest-without-captions.json")
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", "--data", str(root), "--manifest", str(manifest),
+        "--steps", "1", "--text-conditioned",
+    ])
+    with pytest.raises(SystemExit) as error:
+        train_main()
+    assert error.value.code == 2
+
+
+def test_caption_audit_requires_exact_image_coverage(tmp_path):
+    root = create_dataset(tmp_path / "caption-audit-images")
+    manifest = tmp_path / "incomplete-captions.json"
+    manifest.write_text(json.dumps({
+        "dataset_name": "incomplete caption fixture",
+        "source": "generated test fixtures",
+        "license": "CC0-1.0",
+        "permission_basis": "created by the test suite",
+        "captions": {"sample-0.png": "one caption"},
+    }), encoding="utf-8")
+    with pytest.raises(ValueError, match="exactly one caption"):
+        audit_image_dataset(root, manifest)
