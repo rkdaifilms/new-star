@@ -85,8 +85,12 @@ class NewStarImageUNet(nn.Module):
             raise ValueError("image height and width must each be at least 8")
         if images.shape[-2] % 4 or images.shape[-1] % 4:
             raise ValueError("image height and width must be divisible by 4")
-        if timesteps.ndim != 1 or timesteps.shape[0] != images.shape[0]:
-            raise ValueError("timesteps must contain one value per image")
+        if timesteps.ndim != 1 or timesteps.shape[0] != images.shape[0] or timesteps.dtype != torch.long:
+            raise ValueError("timesteps must be a torch.long vector with one value per image")
+        if timesteps.device != images.device:
+            raise ValueError("images and timesteps must be on the same device")
+        if not torch.isfinite(images).all():
+            raise ValueError("images must contain only finite values")
         time = self.time_mlp(timestep_embedding(timesteps, self.base_channels))
         first = self.down1(self.input(images), time)
         second = self.down2(self.downsample1(first), time)
@@ -120,6 +124,16 @@ class DDPMSchedule:
 
     def add_noise(self, clean: torch.Tensor, timesteps: torch.Tensor,
                   noise: torch.Tensor) -> torch.Tensor:
+        if clean.ndim != 4 or clean.shape[1] != 3 or noise.shape != clean.shape:
+            raise ValueError("clean images and noise must share [batch, 3, height, width] shape")
+        if timesteps.dtype != torch.long or timesteps.ndim != 1 or timesteps.shape[0] != clean.shape[0]:
+            raise ValueError("timesteps must be a torch.long vector with one value per image")
+        if clean.device != noise.device or clean.device != timesteps.device:
+            raise ValueError("images, noise, and timesteps must be on the same device")
+        if torch.any(timesteps < 0) or torch.any(timesteps >= self.steps):
+            raise ValueError("timestep values must be within the diffusion schedule")
+        if not torch.isfinite(clean).all() or not torch.isfinite(noise).all():
+            raise ValueError("clean images and noise must contain only finite values")
         alpha_bar = self.alpha_bars[timesteps].view(-1, 1, 1, 1)
         return alpha_bar.sqrt() * clean + (1.0 - alpha_bar).sqrt() * noise
 
