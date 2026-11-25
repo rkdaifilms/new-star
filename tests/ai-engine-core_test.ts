@@ -71,7 +71,7 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
     .flatMap((match) => match[1].split(",").map((part) => part.trim().split(/\s+as\s+/)[0]));
   const importCollisions = imports.filter((name) => functionNames.includes(name));
   if (importCollisions.length) throw new Error("Imported functions redeclared locally: " + [...new Set(importCollisions)].join(", "));
-  if (!source.includes("key.length < 32") || source.includes('"local-no-key"')) {
+  if (!source.includes("key.length < 32") || source.includes('key !== "local-no-key"')) {
     throw new Error("Private model must require a real API key and must not use a dummy key");
   }
   if (!source.includes("newStarModelKey.length >= 32")) {
