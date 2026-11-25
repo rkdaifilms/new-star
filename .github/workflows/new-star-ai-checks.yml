@@ -98,7 +98,7 @@ jobs:
           grep -F 'body?.action === "video-status"' "$FILE"
           grep -F 'store: false' "$FILE"
           grep -F 'p_limit: 60' "$FILE"
-          grep -F 'dimensions["4K"]' "$FILE"
+          grep -F '"4K": {' "$FILE"
 
       - name: Verify Creator Studio AI controls and safe video state
         shell: bash
