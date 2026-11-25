@@ -430,7 +430,17 @@ Deno.test("Creator Studio UI does not advertise removed external video dependenc
   if (html.includes("Video generation uses Google Cloud Vertex AI")) {
     throw new Error("Creator Studio must not advertise external Vertex AI as its video engine");
   }
-  if (!html.includes("Private-only mode never silently switches to external AI providers")) {
-    throw new Error("Creator Studio must explain private-only provider isolation");
+  if (!html.includes("private image, speech, search and video workers must be deployed")) {
+    throw new Error("Creator Studio must state the private worker deployment requirement");
+  }
+  for (const staleClaim of [
+    "Gemini Google Search grounding as a live-web fallback",
+    "Video requests use Google Cloud Vertex AI",
+    "Video requires Google Cloud Vertex AI access"
+  ]) {
+    if (html.includes(staleClaim)) throw new Error("Stale external-provider capability claim remains: " + staleClaim);
+  }
+  if (!html.includes("never falls back to an external search provider")) {
+    throw new Error("Search capability card must describe private-mode provider isolation");
   }
 });
