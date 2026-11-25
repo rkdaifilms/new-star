@@ -1291,10 +1291,6 @@ Deno.serve(async (req: Request) => {
     if (sourceImage && (!["image/png", "image/jpeg", "image/webp"].includes(sourceMimeType) || sourceImage.length < 100 || sourceImage.length > 8500000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(sourceImage))) {
       return json({ ok: false, error: "Attach a valid PNG, JPEG, or WebP image smaller than 6 MB." }, 400, headers);
     }
-    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    const openrouterKeys = secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY");
-    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
-    if (!geminiKeys.length && !openrouterKeys.length && !openaiKeys.length) return json({ ok: false, error: "Image generation is not configured. Add a Gemini, OpenRouter, or OpenAI provider key on the server." }, 503, headers);
     const imageAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: imageAllowed, error: imageLimitError } = await consumeAiGatewayRateLimit(imageAdmin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (imageLimitError || imageAllowed !== true) return json({ ok: false, error: imageLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, imageLimitError ? 503 : 429, headers);
@@ -1305,6 +1301,10 @@ Deno.serve(async (req: Request) => {
       if (!result.ok) return json({ ok: false, error: result.error, code: "NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE" }, result.status, headers);
       return json({ ok: true, image: result.image, mimeType: result.mimeType, aspectRatio, provider: "new_star_private" }, 200, headers);
     }
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const openrouterKeys = secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY");
+    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
+    if (!geminiKeys.length && !openrouterKeys.length && !openaiKeys.length) return json({ ok: false, error: "Image generation is not configured. Add a Gemini, OpenRouter, or OpenAI provider key on the server." }, 503, headers);
     const failures: string[] = [];
     for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
       try {
