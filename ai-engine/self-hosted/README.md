@@ -63,7 +63,7 @@ The Supabase Edge Function requires public HTTPS endpoints; Compose deliberately
    sudo install -m 644 ./Caddyfile /etc/caddy/Caddyfile
    sudo install -m 600 ./caddy-domains.env /etc/caddy/new-star-domains.env
    sudo mkdir -p /etc/systemd/system/caddy.service.d
-   printf '[Service]\\nEnvironmentFile=/etc/caddy/new-star-domains.env\\n' | sudo tee /etc/systemd/system/caddy.service.d/new-star.conf >/dev/null
+   printf '%s\n' '[Service]' 'EnvironmentFile=/etc/caddy/new-star-domains.env' | sudo tee /etc/systemd/system/caddy.service.d/new-star.conf >/dev/null
    sudo systemctl daemon-reload
    set -a
    source ./caddy-domains.env
