@@ -8,6 +8,7 @@ import { AI_LANGUAGE_NAMES } from "./language-catalog.ts";
 import { readBoundedJson } from "./request-body.ts";
 import { buildChatProviderPlan } from "./provider-routing.ts";
 import { privateSpeechSynthesis, privateSpeechTranscription } from "./private-speech.ts";
+import { privateImageGeneration } from "./private-image.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -1279,7 +1280,6 @@ Deno.serve(async (req: Request) => {
   }
 
     if (body?.action === "image") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private image-generation model and GPU worker are not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED" }, 503, headers);
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = requestedImageAspectRatio(prompt, body.aspectRatio);
     const imageSize = ["1K", "2K", "4K"].includes(String(body.imageSize || "")) ? String(body.imageSize) : "1K";
@@ -1299,6 +1299,12 @@ Deno.serve(async (req: Request) => {
     const { data: imageAllowed, error: imageLimitError } = await consumeAiGatewayRateLimit(imageAdmin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (imageLimitError || imageAllowed !== true) return json({ ok: false, error: imageLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, imageLimitError ? 503 : 429, headers);
 
+    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") {
+      if (sourceImage) return json({ ok: false, error: "Private image editing is not enabled yet; text-to-image generation is supported.", code: "NEW_STAR_PRIVATE_IMAGE_EDIT_NOT_SUPPORTED" }, 422, headers);
+      const result = await privateImageGeneration(Deno.env.get("NEW_STAR_IMAGE_BASE_URL") || "", Deno.env.get("NEW_STAR_IMAGE_API_KEY") || "", localizedImagePrompt, aspectRatio, imageSize);
+      if (!result.ok) return json({ ok: false, error: result.error, code: "NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE" }, result.status, headers);
+      return json({ ok: true, image: result.image, mimeType: result.mimeType, aspectRatio, provider: "new_star_private" }, 200, headers);
+    }
     const failures: string[] = [];
     for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
       try {
@@ -1353,7 +1359,7 @@ Deno.serve(async (req: Request) => {
     if (statusLimitError || statusAllowed !== true) return json({ ok: false, error: statusLimitError ? "Security rate-limit check unavailable." : "Provider status check limit reached. Wait before checking again." }, statusLimitError ? 503 : 429, headers);
     if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") {
       const hosted = await probeNewStarHostedModel();
-      return json({ ok: true, status: true, mode: "self_hosted", providers: { newStarHostedModelConfigured: hosted.configured, newStarApiPrimary: true, openai: false, gemini: false, openrouter: false }, capabilities: { chat: { supported: true, configured: hosted.configured && hosted.reachable && hosted.modelAvailable }, imageGeneration: { supported: false, configured: false, reason: "Private image model not deployed" }, imageUnderstanding: { supported: false, configured: false, reason: "Private vision model not deployed" }, developerApiKeys: { supported: true, configured: true }, speechGeneration: { supported: false, configured: false, reason: "Private speech model not deployed" }, speechTranscription: { supported: false, configured: false, reason: "Private speech recognition model not deployed" }, videoGeneration: { supported: false, configured: false, reason: "Private video model not deployed" }, webSearch: { supported: false, configured: false, reason: "Private search worker not deployed" } }, health: { newStarHostedModel: hosted, providers: { openai: { configured: false }, gemini: { configured: false }, openrouter: { configured: false } }, note: "Self-hosted-only mode. No external model providers are contacted." } }, 200, headers);
+      return json({ ok: true, status: true, mode: "self_hosted", providers: { newStarHostedModelConfigured: hosted.configured, newStarApiPrimary: true, openai: false, gemini: false, openrouter: false }, capabilities: { chat: { supported: true, configured: hosted.configured && hosted.reachable && hosted.modelAvailable }, imageGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_IMAGE_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_IMAGE_API_KEY")?.trim() || "").length >= 32), reason: "Private GPU image worker endpoint and key must be configured and verified" }, imageUnderstanding: { supported: false, configured: false, reason: "Private vision model not deployed" }, developerApiKeys: { supported: true, configured: true }, speechGeneration: { supported: false, configured: false, reason: "Private speech model not deployed" }, speechTranscription: { supported: false, configured: false, reason: "Private speech recognition model not deployed" }, videoGeneration: { supported: false, configured: false, reason: "Private video model not deployed" }, webSearch: { supported: false, configured: false, reason: "Private search worker not deployed" } }, health: { newStarHostedModel: hosted, providers: { openai: { configured: false }, gemini: { configured: false }, openrouter: { configured: false } }, note: "Self-hosted-only mode. No external model providers are contacted." } }, 200, headers);
     }
     const newStarModel = await probeNewStarHostedModel();
     const newStarTestFallbackEnabled = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true" && newStarModel.configured;
