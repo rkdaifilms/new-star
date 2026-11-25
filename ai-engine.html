@@ -17,6 +17,16 @@ main{max-width:920px;margin:auto;padding:20px 14px 40px}.top{display:flex;align-
 </head>
 <body><main>
 <header class="top"><div class="logo">NS</div><div><div class="eyebrow">NEW STAR • AI WORKSPACE</div><div class="title">AI Engine</div><div class="sub">Chat · Image · Research · Voice · Own-model connection</div></div><span class="tag">Experimental</span></header>
+<section class="panel" id="account-panel">
+ <div class="row" style="justify-content:space-between"><strong>New Star account</strong><span id="account-state" class="auth-state">Checking account…</span></div>
+ <div id="auth-form">
+  <p class="small">Sign in to use New Star AI securely. New users can create an account here.</p>
+  <div class="auth-grid"><div><label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com"></div><div><label for="auth-password">Password</label><input id="auth-password" type="password" autocomplete="current-password" placeholder="At least 8 characters"></div></div>
+  <div class="auth-actions"><button id="auth-signin" type="button">Sign in</button><button id="auth-signup" type="button" class="secondary">Create account</button><button id="auth-reset" type="button" class="secondary">Reset password</button></div>
+  <div id="auth-message" class="auth-message" aria-live="polite"></div>
+ </div>
+ <div id="auth-signed" class="auth-hidden"><div class="row"><span id="signed-email" class="small"></span><button id="auth-signout" type="button" class="secondary">Sign out</button></div></div>
+</section>
 <section class="panel">
  <div class="row"><div class="grow"><label for="own-endpoint">Own New Star foundation server (optional)</label><input id="own-endpoint" type="url" placeholder="https://your-secure-engine-host"></div><div class="grow"><label for="own-key">Own-model API key</label><input id="own-key" type="password" placeholder="Bearer key" autocomplete="off"></div></div>
  <div class="row" style="margin-top:10px"><button id="own-check" class="secondary"><span class="btn-content"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1"/><circle cx="12" cy="12" r="4"/></svg>Check own model</span></button><span id="own-status" class="status"><i class="dot"></i>Not connected. Hosted trained checkpoint required.</span></div>
