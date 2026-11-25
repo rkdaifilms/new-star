@@ -2,6 +2,72 @@ import { buildGeminiVideoRequest } from "../supabase/functions/ai-gateway/video-
 import { normalizeNewStarSearchResults, formatRetrievedContext } from "../supabase/functions/ai-gateway/search-provider.ts";
 import { detectReplyScript } from "../supabase/functions/ai-gateway/language-policy.ts";
 import { readBoundedJson } from "../supabase/functions/ai-gateway/request-body.ts";
+import { buildChatProviderPlan } from "../supabase/functions/ai-gateway/provider-routing.ts";
+
+
+Deno.test("self-hosted chat provider plan contains only the private New Star model", () => {
+  const run = async () => "ok";
+  const plan = buildChatProviderPlan({
+    selfHostedOnly: true,
+    newStarConfigured: true,
+    newStarApiPrimary: false,
+    enableLocalTestFallback: true,
+    newStarModelKey: "n".repeat(40),
+    geminiKeys: ["gemini-secret"],
+    openaiKeys: ["openai-secret"],
+    openrouterKeys: ["openrouter-secret"],
+    runNewStarHostedModel: run,
+    runGemini: run,
+    runOpenAI: run,
+    runOpenRouter: run
+  });
+  if (plan.length !== 1 || plan[0].name !== "new-star-ai") {
+    throw new Error("Self-hosted mode must select only the New Star private model");
+  }
+  if (plan[0].keys.length !== 1 || plan[0].keys[0] !== "n".repeat(40)) {
+    throw new Error("Self-hosted mode must not pass external provider keys to inference");
+  }
+});
+
+Deno.test("self-hosted chat refuses an unconfigured private model instead of falling back", () => {
+  const run = async () => "ok";
+  const plan = buildChatProviderPlan({
+    selfHostedOnly: true,
+    newStarConfigured: false,
+    newStarApiPrimary: false,
+    enableLocalTestFallback: true,
+    newStarModelKey: "",
+    geminiKeys: ["gemini-secret"],
+    openaiKeys: ["openai-secret"],
+    openrouterKeys: ["openrouter-secret"],
+    runNewStarHostedModel: run,
+    runGemini: run,
+    runOpenAI: run,
+    runOpenRouter: run
+  });
+  if (plan.length !== 0) throw new Error("Self-hosted mode must fail closed when private model configuration is missing");
+});
+
+Deno.test("normal provider mode retains only configured provider adapters", () => {
+  const run = async () => "ok";
+  const plan = buildChatProviderPlan({
+    selfHostedOnly: false,
+    newStarConfigured: false,
+    newStarApiPrimary: false,
+    enableLocalTestFallback: false,
+    newStarModelKey: "",
+    geminiKeys: ["gemini-secret"],
+    openaiKeys: [],
+    openrouterKeys: ["openrouter-secret"],
+    runNewStarHostedModel: run,
+    runGemini: run,
+    runOpenAI: run,
+    runOpenRouter: run
+  });
+  if (plan.map((provider) => provider.name).join(",") !== "gemini,openrouter") {
+    throw new Error("Normal provider mode did not filter unconfigured providers correctly");
+  }
+});
 
 Deno.test("video request builder clamps unsupported values", () => {
   const request = buildGeminiVideoRequest("gemini-omni-1.2-flash", "A sunrise", "4:3", "4K", "30s");
