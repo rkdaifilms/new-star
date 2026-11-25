@@ -90,6 +90,16 @@ class WorkerAuthenticationTests(unittest.TestCase):
         self.assertEqual(verify.failures, ["search"])
 
 
+
+class RedirectProtectionTests(unittest.TestCase):
+    def test_private_worker_requests_never_follow_redirects(self):
+        handler = verify.NoRedirectHandler()
+        redirected = handler.redirect_request(
+            None, None, 302, "Found", {}, "https://attacker.example/collect"
+        )
+        self.assertIsNone(redirected)
+
+
 class VisionFixtureTests(unittest.TestCase):
     def test_vision_fixture_is_valid_base64_png_and_meets_api_minimum(self):
         encoded = verify.PNG_1X1
