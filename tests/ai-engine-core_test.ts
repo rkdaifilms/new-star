@@ -624,7 +624,7 @@ Deno.test("Creator Studio Search mode can index a public URL before querying its
 Deno.test("private New Star fine-tuning pipeline validates datasets and uses local CUDA QLoRA", async () => {
   const prepare = await Deno.readTextFile(new URL("../ai-engine/training/prepare_dataset.py", import.meta.url));
   const train = await Deno.readTextFile(new URL("../ai-engine/training/train_lora.py", import.meta.url));
-  for (const required of ["SECRET_PATTERNS", "credentials/secret detected", "duplicate_conversations_removed", "train.jsonl", "validation.jsonl", "At least 10 unique validated conversations are required"]) {
+  for (const required of ["SECRET_PATTERNS", "possible credential/secret detected", "duplicate_conversations_removed", "train.jsonl", "validation.jsonl", "At least 10 unique validated conversations are required"]) {
     if (!prepare.includes(required)) throw new Error("Training dataset validator is missing " + required);
   }
   for (const required of ["Qwen/Qwen2.5-3B-Instruct", "torch.cuda.is_available()", "load_in_4bit=True", "LoraConfig", "SFTTrainer", "training-report.json", "not pretraining a New Star foundation model"]) {
