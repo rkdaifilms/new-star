@@ -51,7 +51,7 @@ export function splitIntoChunks(content: string, maxLength = 1200, overlap = 160
   if (!Number.isInteger(maxLength) || maxLength < 1 || !Number.isInteger(overlap) || overlap < 0 || overlap >= maxLength) {
     throw new Error("Chunk size and overlap configuration is invalid");
   }
-  const words = content.replace(/\\s+/g, " ").trim().split(" ").filter(Boolean);
+  const words = content.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
   if (!words.length) return [];
   const chunks: string[] = [];
   let start = 0;
