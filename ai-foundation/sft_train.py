@@ -138,6 +138,7 @@ def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32
         raise ValueError("device must identify a valid PyTorch device") from exc
     if not isinstance(precision, str) or precision not in {"auto", "fp32", "fp16", "bf16"}:
         raise ValueError("precision must be auto, fp32, fp16, or bf16")
+    was_training = model.training
     model.eval()
     language_losses = []
     with torch.inference_mode():
@@ -158,6 +159,7 @@ def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32
                 weighted_loss += float(loss.item()) * supervised_tokens
                 token_count += supervised_tokens
             language_losses.append(weighted_loss / token_count)
+    model.train(was_training)
     return sum(language_losses) / len(language_losses)
 
 
