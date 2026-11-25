@@ -986,7 +986,7 @@ Deno.serve(async (req: Request) => {
     if (Deno.env.get("NEW_STAR_AI_MODE") !== "self_hosted") return json({ ok: false, error: "The crawl action is reserved for New Star private search mode." }, 409, headers);
     const result = await privateCrawl(Deno.env.get("NEW_STAR_SEARCH_BASE_URL") || "", Deno.env.get("NEW_STAR_SEARCH_API_KEY") || "", url);
     if (!result.ok) return json({ ok: false, error: result.error, code: "NEW_STAR_PRIVATE_CRAWL_UNAVAILABLE" }, result.status, headers);
-    return json({ ok: true, provider: "new-star-private-search", ...result }, 200, headers);
+    return json({ ok: true, provider: "new-star-private-search", title: result.title, url: result.url, charactersIndexed: result.charactersIndexed }, 200, headers);
   }
 
   if (body?.action === "vision") {
