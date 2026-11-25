@@ -1,0 +1,37 @@
+# Caddy reverse proxy for New Star private AI workers.
+# Export the domain variables in the Caddy service environment before loading this file.
+# Each upstream remains bound to host loopback by Compose; do not publish raw worker ports.
+
+{$NEW_STAR_MODEL_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:8080
+}
+
+{$NEW_STAR_IMAGE_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:8091
+}
+
+{$NEW_STAR_VIDEO_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:8092 {
+    transport http {
+      response_header_timeout 35m
+    }
+  }
+}
+
+{$NEW_STAR_SPEECH_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:8090
+}
+
+{$NEW_STAR_SEARCH_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:8093
+}
+
+{$NEW_STAR_VISION_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:8094
+}
