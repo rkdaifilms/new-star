@@ -50,7 +50,7 @@ Never put the model API key in frontend JavaScript. The Edge Function reads it s
 
 ## Capabilities and limits
 
-This server provides text chat only. Image generation, video generation, speech recognition, speech synthesis, web crawling, and model training require separate models/workers and are not implemented by this service. In self-hosted mode the gateway must report those capabilities as unavailable until their private workers are deployed. A successful container health check alone does not prove model inference; run the authenticated chat test above.
+This server provides text chat only. An optional private speech worker is included separately under `speech-worker/`; image generation, video generation, web crawling, and model training still require separate models/workers. A successful container health check alone does not prove model inference; run the authenticated chat test above.
 
 ## Canonical runtime
 
@@ -133,3 +133,12 @@ curl http://127.0.0.1:8090/health
 Place the Whisper model cache in the persistent Docker volume (the first run downloads the selected model), and place licensed Piper `.onnx` voice files plus their matching `.onnx.json` config files in `models/`. Set `NEW_STAR_PIPER_VOICES` to a JSON map from language codes to exact filenames. Only configured voices are available; the worker returns an explicit error instead of silently speaking with the wrong language. The example Hindi voice filename is illustrative: verify that the corresponding licensed model and config are actually present before enabling it.
 
 The speech worker binds to host loopback only and requires a separate random bearer key. For Supabase Edge Function access, put it behind an authenticated TLS reverse proxy/private network; never expose port 8090 directly. Configure the gateway integration with that private HTTPS endpoint and the same key only after its authenticated smoke tests pass. This worker is source code, not a running service: the GPU host, models, voice files, and deployment are still required.
+
+### Connect the private speech worker to the gateway
+
+After the worker is running behind a private TLS reverse proxy, configure these Supabase Edge Function secrets:
+
+- `NEW_STAR_SPEECH_BASE_URL=https://YOUR_PRIVATE_SPEECH_HOST` (base URL only; do not add `/v1/audio`)
+- `NEW_STAR_SPEECH_API_KEY` (same random key as the worker's `NEW_STAR_SPEECH_API_KEY`)
+
+The gateway uses the authenticated `/v1/audio/transcriptions` and `/v1/audio/speech` endpoints only when `NEW_STAR_AI_MODE=self_hosted`. It returns a clear unavailable response when the worker or requested language voice is missing; it does not fall back to external speech providers in that mode. Creator Studio now sends the active language with speech requests. The STT worker detects the spoken language automatically. TTS works only for language codes with installed Piper voices in `NEW_STAR_PIPER_VOICES`.
