@@ -142,3 +142,16 @@ After the worker is running behind a private TLS reverse proxy, configure these 
 - `NEW_STAR_SPEECH_API_KEY` (same random key as the worker's `NEW_STAR_SPEECH_API_KEY`)
 
 The gateway uses the authenticated `/v1/audio/transcriptions` and `/v1/audio/speech` endpoints only when `NEW_STAR_AI_MODE=self_hosted`. It returns a clear unavailable response when the worker or requested language voice is missing; it does not fall back to external speech providers in that mode. Creator Studio now sends the active language with speech requests. The STT worker detects the spoken language automatically. TTS works only for language codes with installed Piper voices in `NEW_STAR_PIPER_VOICES`.
+
+
+## Private image generation worker
+
+The optional `image` Compose profile runs a local Diffusers pipeline (default model: `stabilityai/sdxl-turbo`) on an NVIDIA CUDA GPU. It exposes only loopback port 8091 and serves authenticated PNG text-to-image requests. It currently supports 1K output and the configured aspect ratios; 2K/4K and image-to-image editing are deliberately rejected rather than silently downgraded.
+
+1. Put the model cache on persistent storage and provision a GPU with enough VRAM for the selected model.
+2. Set a unique `NEW_STAR_IMAGE_API_KEY` (at least 32 characters) in the private host's `.env`.
+3. Start it with `docker compose --profile image build new-star-image` and `docker compose --profile image up -d new-star-image`.
+4. Put an authenticated TLS reverse proxy in front of the loopback service. Never expose port 8091 directly to the public internet.
+5. Configure Supabase Edge Function secrets `NEW_STAR_IMAGE_BASE_URL` (the HTTPS proxy base URL) and `NEW_STAR_IMAGE_API_KEY` (the same worker key). Verify the authenticated endpoint before enabling `NEW_STAR_AI_MODE=self_hosted`.
+
+The worker downloads the configured open-weight model into its persistent cache on first load. This is local inference, not a New Star foundation model trained from scratch. Review the model license and usage restrictions before commercial use. The source code is committed but the image model has not been downloaded, GPU-tested, or deployed.
