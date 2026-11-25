@@ -1,0 +1,54 @@
+# New Star Image AI — experimental from-scratch DDPM
+
+This package is New Star's first independent image-model training path. It contains a compact image-space U-Net denoiser and a Denoising Diffusion Probabilistic Model (DDPM) schedule implemented with PyTorch. It starts from random weights and does not call Gemini, OpenAI, Stable Diffusion, or another hosted image API.
+
+## Current capability
+
+- Unconditional image generation: the model learns the visual distribution of a permitted local image dataset.
+- RGB image loading, resizing, normalization, dataset SHA-256 audit, and a required provenance/permission manifest.
+- Training from random initialization, gradient clipping, atomic checkpoint writing, seeded sampling, and PNG output.
+- CPU support for small experiments and optional CUDA execution when a compatible PyTorch runtime is installed.
+
+This is not text-to-image: prompts, semantic conditioning, inpainting, high-resolution synthesis, video, and a production image API are not implemented here. A useful model requires a sufficiently large, diverse, high-quality dataset and substantial training. The automated tests use tiny synthetic images only to verify the code path; they do not create a useful image generator.
+
+## Dataset permission manifest
+
+Create a JSON file alongside your image folder:
+
+```json
+{
+  "dataset_name": "my permitted image collection",
+  "source": "where the images came from",
+  "license": "the actual dataset license",
+  "permission_basis": "why this collection may legally be used for model training"
+}
+```
+
+Do not train on private photos, personal records, or images without permission. The manifest is an audit record supplied by the dataset curator; it does not independently verify the truth of a license claim.
+
+## Install and train
+
+From the repository root:
+
+```sh
+python -m venv .venv
+. .venv/bin/activate
+pip install -r ai-image/requirements.txt
+python ai-image/train.py --data ./permitted-images --manifest ./image-manifest.json \
+  --output ./artifacts/newstar-image-ddpm.pt --image-size 32 --steps 10000 --device cpu
+```
+
+For CUDA, install a PyTorch build compatible with the selected NVIDIA driver and use `--device cuda`. Begin with 32×32 images and a small test run to measure memory and throughput before increasing image size, model width, batch size, or training steps.
+
+## Generate
+
+```sh
+python ai-image/generate.py --checkpoint ./artifacts/newstar-image-ddpm.pt \
+  --output ./artifacts/newstar-generated.png --count 4 --seed 2026 --device cpu
+```
+
+The output is an image grid saved as PNG. The same checkpoint and seed reproduce the same sample on the same compatible runtime. Different hardware or library versions can produce small numeric differences.
+
+## Model boundary
+
+This is an experimental unconditional DDPM baseline, not a trained commercial image model. The repository does not contain a licensed training dataset or trained image weights. No claim of prompt-based generation or production readiness should be made until those components exist and have been independently evaluated.
