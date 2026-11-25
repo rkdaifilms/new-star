@@ -105,6 +105,8 @@ jobs:
           grep -F 'store: false' "$FILE"
           grep -F 'p_limit: 60' "$FILE"
           grep -F '"4K": {' "$FILE"
+          grep -F '"1:1": "2880x2880"' "$FILE"
+          grep -F '"16:9": "3840x2160"' "$FILE"
 
       - name: Verify Creator Studio AI controls and safe video state
         shell: bash
