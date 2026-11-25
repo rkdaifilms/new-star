@@ -45,3 +45,31 @@ Never put the model API key in frontend JavaScript. The Edge Function reads it s
 ## Capabilities and limits
 
 This server provides text chat only. Image generation, video generation, speech recognition, speech synthesis, web crawling, and model training require separate models/workers and are not implemented by this service. In self-hosted mode the gateway must report those capabilities as unavailable until their private workers are deployed. A successful container health check alone does not prove model inference; run the authenticated chat test above.
+
+## New Star private search index
+
+The private PostgreSQL full-text index is created by migration
+`supabase/migrations/202611250002_new_star_private_search.sql`. It is
+service-role-only: browser roles have no table privileges or RPC execution.
+The gateway checks this index first for both search requests and optional
+chat retrieval. The index starts empty; add only content you have permission
+to store and make searchable.
+
+Prepare a UTF-8 JSONL file with one object per line:
+
+```json
+{"url":"https://docs.example.org/guide","title":"Guide title","source":"Example Docs","content":"Text that may be searched by New Star.","language":"en","published_at":null}
+```
+
+Run the ingestion utility from the repository root on a trusted machine:
+
+```sh
+SUPABASE_URL="https://YOUR_PROJECT.supabase.co" \
+SUPABASE_SERVICE_ROLE_KEY="YOUR_SERVER_ONLY_SERVICE_ROLE_KEY" \
+deno run --allow-read --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY scripts/new-star-search-ingest.ts documents.jsonl
+```
+
+The tool accepts HTTPS URLs only, rejects credentials in URLs, validates
+content lengths and dates, rejects duplicate URLs within a batch, and limits
+each batch to 500 documents. Never put the service-role key in browser code,
+mobile apps, public repositories, or client-visible environment variables.
