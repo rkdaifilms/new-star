@@ -81,7 +81,19 @@ Never put the model API key in frontend JavaScript. The Edge Function reads it s
 
 ## Capabilities and limits
 
-This server provides text chat only. An optional private speech worker is included separately under `speech-worker/`; image generation, video generation, web crawling, and model training still require separate models/workers. A successful container health check alone does not prove model inference; run the authenticated chat test above.
+This Compose project contains separate optional workers for private text chat, embeddings, speech recognition/synthesis, image generation, video generation, web crawling/search, and image understanding. They are separate processes and model stacks, not one model that magically provides every capability.
+
+- Chat uses the configured GGUF model through llama.cpp.
+- Embeddings use a separately configured 384-dimensional model.
+- Speech uses Faster-Whisper for transcription and Piper voice files for synthesis; only installed language voices work.
+- Image generation currently accepts 1K output only.
+- Video generation currently accepts 480p, six-second clips in 16:9 or 9:16.
+- Search queries the private index populated by explicitly submitted public URLs; it is not general live-web search.
+- Vision uses the configured local vision-language model to analyze an uploaded image.
+
+All worker source code and Compose profiles are present, but this does not mean the services are deployed. Each worker still requires a compatible GPU/CPU host, licensed model weights or voice files, unique API key, protected HTTPS reverse proxy, server-side Supabase secrets, and successful authenticated inference tests. Run `python3 verify-workers.py` for health/auth checks, `python3 verify-workers.py --infer` for image/vision/speech/search inference, and `python3 verify-workers.py --video` for a real video-generation job. A successful container health check alone does not prove model inference.
+
+The training directory provides a QLoRA adapter fine-tuning pipeline for an open-weight base model. It does not train a New Star foundation model from random initialization; no training run or New Star model weights are included.
 
 ## Canonical runtime
 
