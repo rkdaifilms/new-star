@@ -23,10 +23,10 @@ from serve import create_handler
 from train import main as train_main
 
 
-def create_dataset(root: Path, count: int = 2) -> Path:
+def create_dataset(root: Path, count: int = 2, color_offset: int = 0) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     for index in range(count):
-        image = Image.new("RGB", (18 + index, 20 + index), (index * 50, 100, 180))
+        image = Image.new("RGB", (18 + index, 20 + index), (index * 50 + color_offset, 100, 180))
         image.save(root / f"sample-{index}.png")
     return root
 
@@ -327,7 +327,7 @@ def test_image_training_resume_rejects_changed_permission_manifest(tmp_path, mon
 def test_image_checkpoint_evaluation_is_reproducible_and_writes_report(tmp_path, monkeypatch):
     training_root = create_dataset(tmp_path / "training-images")
     training_manifest = create_manifest(tmp_path / "training-manifest.json")
-    heldout_root = create_dataset(tmp_path / "heldout-images", count=3)
+    heldout_root = create_dataset(tmp_path / "heldout-images", count=3, color_offset=7)
     heldout_manifest = create_manifest(tmp_path / "heldout-manifest.json")
     checkpoint = tmp_path / "image-model.pt"
     monkeypatch.setattr(sys, "argv", [
