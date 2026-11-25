@@ -103,6 +103,19 @@ Deno.test("search normalization accepts safe HTTPS results and rejects unsafe UR
 
 
 
+Deno.test("private search ingestion CLI is import-safe and validates 384-dimensional embeddings", async () => {
+  const source = await Deno.readTextFile(new URL("../scripts/new-star-search-ingest.ts", import.meta.url));
+  if (!source.includes("if (import.meta.main)")) {
+    throw new Error("Importing the ingestion utility must not execute its CLI");
+  }
+  if (!source.includes("vector.length !== 384")) {
+    throw new Error("The ingestion utility must enforce the existing 384-dimensional vector schema");
+  }
+  if (!source.includes("new_star_search_chunks?on_conflict=url,chunk_index")) {
+    throw new Error("The ingestion utility must reuse the existing vector chunk table");
+  }
+});
+
 Deno.test("private search ingestion chunks long content with overlap and no data loss", () => {
   const content = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu";
   const chunks = splitIntoChunks(content, 24, 5);
