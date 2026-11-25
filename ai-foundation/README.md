@@ -77,6 +77,8 @@ python ai-foundation/evaluate.py --checkpoint artifacts/newstar-small.pt --data 
 python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120
 # Deterministic greedy decoding (no token sampling):
 python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120 --greedy
+# Reproducible sampling with an isolated RNG seed:
+python ai-foundation/generate.py --checkpoint artifacts/newstar-small.pt --prompt "Namaste" --tokens 120 --seed 2026
 ```
 
 The scripts import their model directly from the same source folder. Keep evaluation data separate from training data: use a held-out corpus that was not included in the training file. Evaluation uses deterministic sampling so repeated runs with the same checkpoint, data, and seed produce the same reported loss. The first experiments should use a small, curated corpus and a small model on CPU. A GPU substantially reduces training time. The corpus must be lawfully obtained and suitable for the intended use; do not scrape private data or include secrets or personal records.
@@ -136,7 +138,9 @@ accepts ordinary `system`, `user`, and `assistant` messages and returns an
 OpenAI-style non-streaming response. Set `temperature`, `top_k`, `top_p`, and
 `repetition_penalty` to control sampling. Set `do_sample` to `false` for
 repeatable greedy argmax decoding; in that mode top-k/top-p filtering and
-sampling randomness are bypassed. Streaming is not implemented. To bind to
+sampling randomness are bypassed. An optional integer `seed` creates an
+isolated request-local random generator for reproducible sampling without
+changing the process-wide PyTorch RNG state. Streaming is not implemented. To bind to
 a non-loopback interface, set `NEW_STAR_FOUNDATION_API_KEY` first; requests
 must then include `Authorization: Bearer ...`. Do not expose this experimental
 server directly to the public internet. It has no production-grade abuse
