@@ -85,25 +85,25 @@ function requestedImageAspectRatio(prompt: string, requested: unknown) {
   }, "1:1");
 }
 
-async function generateGeminiImage(key: string, prompt: string, aspectRatio: string, imageSize: string) {
-  // Try fast native image generation first, then compatible higher-quality and
-  // lightweight models. Quota/model access failures must not stop model fallback.
+async function generateGeminiImage(key: string, prompt: string, aspectRatio: string, imageSize: string, sourceImage = "", sourceMimeType = "") {
   const configuredImageModel = Deno.env.get("NEW_STAR_IMAGE_MODEL")?.trim();
-  const models = Array.from(new Set([configuredImageModel, "gemini-nano-banana-2.1", "gemini-3.1-flash-image", "gemini-3-pro-image", "gemini-3.1-flash-lite-image"].filter((value): value is string => Boolean(value))));
+  const models = Array.from(new Set(["gemini-nano-banana-2.1", "gemini-3.1-flash-image", "gemini-3.1-flash-lite-image", configuredImageModel].filter((value): value is string => Boolean(value))));
   let lastFailure = "GEMINI_IMAGE_UNAVAILABLE";
   for (const model of models) {
     try {
+      const parts: any[] = [{ text: (sourceImage ? "Edit the supplied image according to these instructions. Preserve details not requested to change. " : "Generate one image based on this description. Return an image, not only text: ") + prompt }];
+      if (sourceImage) parts.push({ inline_data: { mime_type: sourceMimeType, data: sourceImage } });
       const response = await fetchWithTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
           method: "POST",
           headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: "Generate one image based on this description. Return an image, not only text: " + prompt }] }],
+            contents: [{ role: "user", parts }],
             generationConfig: { responseModalities: ["TEXT", "IMAGE"], imageConfig: { aspectRatio, imageSize } }
           })
         },
-        60000
+        90000
       );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -112,15 +112,13 @@ async function generateGeminiImage(key: string, prompt: string, aspectRatio: str
         console.warn("Gemini image model fallback:", model, lastFailure);
         continue;
       }
-      const parts = data?.candidates?.[0]?.content?.parts || [];
-      const imagePart = parts.find((part: any) =>
+      const outputParts = data?.candidates?.[0]?.content?.parts || [];
+      const imagePart = outputParts.find((part: any) =>
         (typeof part?.inlineData?.data === "string" && part.inlineData.data.length > 0) ||
         (typeof part?.inline_data?.data === "string" && part.inline_data.data.length > 0)
       );
       const image = imagePart?.inlineData?.data || imagePart?.inline_data?.data;
-      if (image) {
-        return { image, mimeType: imagePart?.inlineData?.mimeType || imagePart?.inline_data?.mime_type || "image/png" };
-      }
+      if (image) return { image, mimeType: imagePart?.inlineData?.mimeType || imagePart?.inline_data?.mime_type || "image/png" };
       lastFailure = model + ":GEMINI_RETURNED_NO_IMAGE:" + (data?.candidates?.[0]?.finishReason || "UNKNOWN");
     } catch (error) {
       lastFailure = model + ":" + (error instanceof Error ? error.message : "REQUEST_FAILED");
@@ -986,7 +984,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
+    for (let keyIndex = 0; !sourceImage && keyIndex < openaiKeys.length; keyIndex++) {
       try {
         const response = await fetchWithTimeout("https://api.openai.com/v1/audio/speech", {
           method: "POST",
@@ -1192,7 +1190,12 @@ Deno.serve(async (req: Request) => {
     const imageSize = ["1K", "2K", "4K"].includes(String(body.imageSize || "")) ? String(body.imageSize) : "1K";
     const imageLanguage = AI_LANGUAGE_NAMES[String(body.language || "")] || "";
     const localizedImagePrompt = imageLanguage ? prompt + "\nIf any visible text is included in the image, write it only in " + imageLanguage + "." : prompt;
-    if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter an image description of up to 1,800 characters." }, 400, headers);
+    const sourceImage = typeof body.image === "string" ? body.image : "";
+    const sourceMimeType = typeof body.mimeType === "string" ? body.mimeType.split(";")[0].trim().toLowerCase() : "";
+    if ((!prompt && !sourceImage) || prompt.length > 1800) return json({ ok: false, error: "Enter an image description of up to 1,800 characters or attach an image to edit." }, 400, headers);
+    if (sourceImage && (!["image/png", "image/jpeg", "image/webp"].includes(sourceMimeType) || sourceImage.length < 100 || sourceImage.length > 8500000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(sourceImage))) {
+      return json({ ok: false, error: "Attach a valid PNG, JPEG, or WebP image smaller than 6 MB." }, 400, headers);
+    }
     const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
     const openrouterKeys = secretCandidates("OPENROUTER_API_KEY", "OPENROUTER_KEY");
     const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
@@ -1204,7 +1207,7 @@ Deno.serve(async (req: Request) => {
     const failures: string[] = [];
     for (let keyIndex = 0; keyIndex < geminiKeys.length; keyIndex++) {
       try {
-        const result = await generateGeminiImage(geminiKeys[keyIndex], localizedImagePrompt, aspectRatio, imageSize);
+        const result = await generateGeminiImage(geminiKeys[keyIndex], localizedImagePrompt || "Improve this image while preserving its main subject.", aspectRatio, imageSize, sourceImage, sourceMimeType);
         return json({ ok: true, ...result, aspectRatio, provider: "gemini" }, 200, headers);
       } catch (error) {
         const reason = error instanceof Error ? error.message : "UNKNOWN";
@@ -1212,7 +1215,7 @@ Deno.serve(async (req: Request) => {
         console.error("AI image provider failed:", "gemini", keyIndex + 1, reason);
       }
     }
-    for (let keyIndex = 0; keyIndex < openrouterKeys.length; keyIndex++) {
+    for (let keyIndex = 0; !sourceImage && keyIndex < openrouterKeys.length; keyIndex++) {
       try {
         const result = await generateOpenRouterImage(openrouterKeys[keyIndex], localizedImagePrompt, aspectRatio, imageSize);
         return json({ ok: true, ...result, aspectRatio, provider: "openrouter" }, 200, headers);
