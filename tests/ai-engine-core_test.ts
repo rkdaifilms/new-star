@@ -1,5 +1,5 @@
 import { buildGeminiVideoRequest } from "../supabase/functions/ai-gateway/video-provider.ts";
-import { normalizeNewStarSearchResults, formatRetrievedContext } from "../supabase/functions/ai-gateway/search-provider.ts";
+import { normalizeNewStarSearchResults, normalizePrivateIndexRows, formatRetrievedContext } from "../supabase/functions/ai-gateway/search-provider.ts";
 import { detectReplyScript } from "../supabase/functions/ai-gateway/language-policy.ts";
 import { readBoundedJson } from "../supabase/functions/ai-gateway/request-body.ts";
 import { buildChatProviderPlan } from "../supabase/functions/ai-gateway/provider-routing.ts";
@@ -97,6 +97,21 @@ Deno.test("search normalization accepts safe HTTPS results and rejects unsafe UR
   }
   if (!formatRetrievedContext(results).includes("https://example.com/article")) {
     throw new Error("Retrieved context omitted the verified source URL");
+  }
+});
+
+
+Deno.test("private search index rows share HTTPS validation and result limits", () => {
+  const rows = normalizePrivateIndexRows([
+    { title: "Local result", url: "https://docs.newstar.example/ai", snippet: "Private search index", published_at: null },
+    { title: "Unsafe result", url: "javascript:alert(1)", snippet: "must be rejected" },
+    { title: "Credential URL", url: "https://user:pass@example.com/private", snippet: "must be rejected" }
+  ], 5);
+  if (rows.length !== 1 || rows[0].title !== "Local result" || rows[0].source !== "docs.newstar.example") {
+    throw new Error("Private index results did not pass the shared safe URL normalizer");
+  }
+  if (normalizePrivateIndexRows(rows, 0).length !== 0) {
+    throw new Error("Private index result limit was not enforced");
   }
 });
 
