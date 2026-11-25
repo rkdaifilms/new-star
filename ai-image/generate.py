@@ -47,20 +47,27 @@ def load_checkpoint(path: str | Path, device: str):
         ).to(device)
     except (TypeError, ValueError) as exc:
         raise ValueError("image checkpoint model configuration is invalid") from exc
+    expected_state = model.state_dict()
+
+    def validate_weights(weights: dict, label: str) -> None:
+        if weights.keys() != expected_state.keys():
+            raise ValueError(f"image checkpoint {label} weights do not match the model architecture")
+        for key, expected in expected_state.items():
+            actual = weights[key]
+            if not isinstance(actual, torch.Tensor):
+                raise ValueError(f"image checkpoint {label} weight {key!r} is not a tensor")
+            if actual.shape != expected.shape or actual.dtype != expected.dtype:
+                raise ValueError(
+                    f"image checkpoint {label} weight {key!r} has an incompatible shape or dtype"
+                )
+            if torch.is_floating_point(actual) and not torch.isfinite(actual).all():
+                raise ValueError(f"image checkpoint {label} weight {key!r} contains non-finite values")
+
+    validate_weights(raw_state, "raw")
     selected_weights = checkpoint.get("ema_state_dict", raw_state)
     if not isinstance(selected_weights, dict):
         raise ValueError("image checkpoint EMA state must be a state dictionary")
-    expected_state = model.state_dict()
-    if selected_weights.keys() != expected_state.keys():
-        raise ValueError("image checkpoint weights do not match the model architecture")
-    for key, expected in expected_state.items():
-        actual = selected_weights[key]
-        if not isinstance(actual, torch.Tensor):
-            raise ValueError(f"image checkpoint weight {key!r} is not a tensor")
-        if actual.shape != expected.shape or actual.dtype != expected.dtype:
-            raise ValueError(f"image checkpoint weight {key!r} has an incompatible shape or dtype")
-        if torch.is_floating_point(actual) and not torch.isfinite(actual).all():
-            raise ValueError(f"image checkpoint weight {key!r} contains non-finite values")
+    validate_weights(selected_weights, "EMA")
     try:
         model.load_state_dict(selected_weights, strict=True)
     except (RuntimeError, TypeError) as exc:
