@@ -16,9 +16,9 @@ The repository does not contain model weights, GPU compute, or a trained New Sta
 1. Copy `.env.example` to `.env`.
 2. Put the licensed GGUF file under `models/` and set its exact filename in `NEW_STAR_MODEL_FILE`.
 3. Set `NEW_STAR_MODEL_API_KEY` to a unique random secret (at least 32 random bytes).
-4. Start with `docker compose up -d`.
-5. Verify locally with `curl http://127.0.0.1:8080/health`.
-6. Verify authenticated inference:
+4. Run `bash verify.sh` on the GPU host. It checks Docker, NVIDIA runtime, the model file, starts the service, waits for health, and sends an authenticated inference request.
+5. For a quick manual health check, use `curl http://127.0.0.1:8080/health`.
+6. To manually verify authenticated inference:
 
 ```sh
 curl http://127.0.0.1:8080/v1/chat/completions \
