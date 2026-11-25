@@ -9,7 +9,8 @@ on:
       - "tests/ai-engine-core_test.ts"
       - "ai-engine/self-hosted/**"
       - "scripts/new-star-search-ingest.ts"
-      - "supabase/migrations/202611250002_new_star_private_search.sql"
+      - "supabase/migrations/20261125125100_new_star_private_search.sql"
+      - "supabase/migrations/20261125125524_reuse_existing_new_star_search_chunks.sql"
       - ".github/workflows/ai-engine-tests.yml"
   pull_request:
     paths:
