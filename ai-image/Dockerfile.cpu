@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /opt/new-star-image
+COPY requirements.txt ./
+RUN python -m pip install --upgrade pip \
+    && python -m pip install --index-url https://download.pytorch.org/whl/cpu torch \
+    && python -m pip install "Pillow>=10,<13"
+
+COPY . ./
+RUN useradd --system --uid 10001 --create-home newstar \
+    && mkdir -p /data /artifacts \
+    && chown -R newstar:newstar /opt/new-star-image /data /artifacts
+USER newstar
+
+EXPOSE 8780
+ENTRYPOINT ["python", "serve.py"]
