@@ -89,13 +89,14 @@ def sample_instruction_batch(corpora, batch_size, block_size, device, generator=
 
 
 def save_training_state(path, model, optimizer, generator, step, seed,
-                       data_fingerprint, training_config):
-    """Atomically persist all state needed to resume an SFT run."""
+                       data_fingerprint, training_config, scaler=None):
+    """Atomically persist model, optimizer, RNG, and mixed-precision scaler state."""
     atomic_torch_save({
         "format": "new-star-sft-resume-v1",
         "step": step,
         "model_state": model.state_dict(),
         "optimizer_state": optimizer.state_dict(),
+        "grad_scaler_state": scaler.state_dict() if scaler is not None else None,
         "batch_generator_state": generator.get_state(),
         "torch_rng_state": torch.get_rng_state(),
         "cuda_rng_states": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
@@ -312,6 +313,14 @@ def main():
             parser.error("--steps must be greater than the saved resume step")
         model.load_state_dict(resume["model_state"])
         optimizer.load_state_dict(resume["optimizer_state"])
+        scaler_state = resume.get("grad_scaler_state")
+        if scaler_state is not None:
+            if not isinstance(scaler_state, dict):
+                parser.error("resume gradient-scaler state is malformed")
+            try:
+                scaler.load_state_dict(scaler_state)
+            except (KeyError, RuntimeError, ValueError) as exc:
+                parser.error(f"could not restore gradient-scaler state: {exc}")
         generator.set_state(resume["batch_generator_state"])
         torch.set_rng_state(resume["torch_rng_state"].cpu())
         if torch.cuda.is_available() and resume.get("cuda_rng_states") is not None:
@@ -342,7 +351,7 @@ def main():
             resume_path = Path(args.output).with_suffix(Path(args.output).suffix + ".resume.pt")
             save_training_state(
                 resume_path, model, optimizer, generator, step, args.seed,
-                data_fingerprint, training_config,
+                data_fingerprint, training_config, scaler=scaler,
             )
             print(
                 f"step={step} train_loss={loss.item():.4f} "
