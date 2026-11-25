@@ -34,11 +34,11 @@ def sample_balanced_batch(corpora: dict[str, torch.Tensor], batch_size: int,
         target_device = torch.device(device)
     except (TypeError, RuntimeError) as exc:
         raise ValueError("device must identify a valid PyTorch device") from exc
+    if any(not isinstance(language, str) or not language.strip() for language in corpora):
+        raise ValueError("language corpus keys must be non-empty strings")
     languages = sorted(corpora)
     for language in languages:
         data = corpora[language]
-        if not isinstance(language, str) or not language.strip():
-            raise ValueError("language corpus keys must be non-empty strings")
         if not isinstance(data, torch.Tensor) or data.ndim != 1 or data.dtype != torch.long:
             raise ValueError(f"language {language!r} corpus must be a one-dimensional torch.long tensor")
         if data.numel() < block_size + 1:
