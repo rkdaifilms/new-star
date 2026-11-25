@@ -1889,3 +1889,21 @@ def test_gradient_checkpointing_preserves_forward_loss_and_parameter_gradients()
         assert left is not None, name
         assert right is not None, name
         torch.testing.assert_close(right, left, rtol=1e-5, atol=1e-7, msg=name)
+
+def test_sft_validation_restores_training_mode_when_forward_raises(monkeypatch):
+    import pytest
+    from sft_train import evaluate_sft
+
+    model = tiny_model().train()
+    corpora = {
+        "en": [([1, 2, 3], [-100, 2, 3])],
+    }
+
+    def fail_forward(*args, **kwargs):
+        raise RuntimeError("synthetic validation failure")
+
+    monkeypatch.setattr(model, "forward", fail_forward)
+    with pytest.raises(RuntimeError, match="synthetic validation failure"):
+        evaluate_sft(model, corpora, batch_size=1, block_size=8, device="cpu")
+    assert model.training
+
