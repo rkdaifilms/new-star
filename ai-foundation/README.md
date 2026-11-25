@@ -208,11 +208,14 @@ python ai-foundation/sft_train.py --data ./permitted-instructions.jsonl \
   --resume-from artifacts/newstar-sft.pt.resume.pt
 ```
 
-The resume file includes model weights, optimizer state, batch-sampling RNG,
-and PyTorch RNG state. The trainer rejects a changed dataset or incompatible
-training configuration rather than silently resuming a different experiment.
+The resume file includes model weights, optimizer state, mixed-precision
+gradient-scaler state, batch-sampling RNG, and PyTorch CPU/CUDA RNG state.
+The trainer restores the scaler when present and remains compatible with older
+resume files that predate scaler persistence. It rejects a changed dataset or
+incompatible training configuration rather than silently resuming a different
+experiment.
 The `--steps` value is the desired total step count, not additional steps.
-The pretraining and SFT resume files are separate formats. Both trainers reject a changed dataset or incompatible training configuration. For pretraining, the resume file also verifies the tokenizer fingerprint. The `--steps` value is the desired total step count, not additional steps.
+The pretraining and SFT resume files are separate formats. Both trainers persist and restore mixed-precision gradient-scaler state as well as optimizer and RNG state; older resume files without scaler state remain readable. Both trainers reject a changed dataset or incompatible training configuration. For pretraining, the resume file also verifies the tokenizer fingerprint. The `--steps` value is the desired total step count, not additional steps.
 
 The SFT loop trains only on assistant response targets; system/user tokens and
 padding positions are ignored by the loss. Each batch row selects a language
