@@ -24,6 +24,7 @@ set +a
 [[ -n "${NEW_STAR_MODEL_FILE:-}" ]] || fail "NEW_STAR_MODEL_FILE is empty."
 [[ -n "${NEW_STAR_MODEL_API_KEY:-}" ]] || fail "NEW_STAR_MODEL_API_KEY is empty."
 [[ "${#NEW_STAR_MODEL_API_KEY}" -ge 32 ]] || fail "NEW_STAR_MODEL_API_KEY must be at least 32 characters."
+[[ "$NEW_STAR_MODEL_API_KEY" != replace-* ]] || fail "Replace the example model API key before starting the service."
 [[ -f "models/$NEW_STAR_MODEL_FILE" ]] || fail "Model file models/$NEW_STAR_MODEL_FILE is missing."
 
 note "Checking Compose configuration."
