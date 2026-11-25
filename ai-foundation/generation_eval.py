@@ -11,7 +11,6 @@ import hashlib
 import json
 import math
 from pathlib import Path
-import random
 
 import torch
 
@@ -65,8 +64,7 @@ def char_ngram_f1(reference: str, hypothesis: str, max_order: int = 6) -> float:
 
 def evaluate_cases(model, tokenizer, cases: list[dict[str, str]], device: str,
                    max_new_tokens: int, seed: int) -> dict:
-    random.seed(seed)
-    torch.manual_seed(seed)
+    generator = torch.Generator(device=torch.device(device)).manual_seed(seed)
     by_language: dict[str, list[dict]] = defaultdict(list)
     for case in cases:
         prompt_ids = tokenizer.encode(case["prompt"]) if tokenizer else list(case["prompt"].encode("utf-8"))
@@ -75,7 +73,8 @@ def evaluate_cases(model, tokenizer, cases: list[dict[str, str]], device: str,
         prompt = torch.tensor(prompt_ids, dtype=torch.long, device=device).unsqueeze(0)
         with torch.no_grad():
             output_ids = model.generate(prompt, max_new_tokens=max_new_tokens, temperature=0.8,
-                                        top_k=50, top_p=0.95)[0].tolist()
+                                        top_k=50, top_p=0.95,
+                                        generator=generator)[0].tolist()
         generated_ids = output_ids[len(prompt_ids):]
         if tokenizer:
             generated = tokenizer.decode(generated_ids)
