@@ -1494,3 +1494,33 @@ def test_native_inference_server_requires_bearer_key_for_post_requests():
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_balanced_sampler_validates_arguments_and_accepts_minimum_valid_corpus():
+    import pytest
+    from train import sample_balanced_batch
+
+    exact = torch.tensor([10, 11, 12, 13], dtype=torch.long)
+    x, y = sample_balanced_batch(
+        {"en": exact}, batch_size=2, block_size=3, device="cpu",
+        generator=torch.Generator(device="cpu").manual_seed(5),
+    )
+    assert x.shape == (2, 3)
+    assert y.shape == (2, 3)
+    torch.testing.assert_close(x[:, 1:], y[:, :-1])
+
+    invalid_calls = [
+        ({}, 1, 2),
+        ({"en": exact}, True, 2),
+        ({"en": exact}, 1, False),
+        ({"en": torch.tensor([1, 2, 3], dtype=torch.long)}, 1, 3),
+        ({"en": torch.tensor([[1, 2, 3, 4]], dtype=torch.long)}, 1, 2),
+        ({"en": torch.tensor([1, 2, 3, 4], dtype=torch.int32)}, 1, 2),
+    ]
+    for corpora, batch_size, block_size in invalid_calls:
+        with pytest.raises(ValueError):
+            sample_balanced_batch(corpora, batch_size, block_size, "cpu")
+    with pytest.raises(ValueError, match="generator"):
+        sample_balanced_batch(
+            {"en": exact}, 1, 2, "cpu", generator="not-a-generator"
+        )
