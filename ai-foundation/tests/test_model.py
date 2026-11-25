@@ -33,6 +33,37 @@ def test_causal_attention_does_not_leak_future_tokens():
     torch.testing.assert_close(left_logits[:, 0], changed_logits[:, 0])
 
 
+def test_cached_incremental_logits_match_full_causal_forward():
+    model = tiny_model().eval()
+    tokens = torch.tensor([[10, 11, 12, 13, 14]], dtype=torch.long)
+    with torch.no_grad():
+        cached_logits, caches = model.forward_with_cache(tokens[:, :3])
+        torch.testing.assert_close(
+            cached_logits[:, -1], model(tokens[:, :3])[0][:, -1],
+            rtol=1e-4, atol=1e-5,
+        )
+        for position in range(3, tokens.shape[1]):
+            cached_logits, caches = model.forward_incremental(
+                tokens[:, position:position + 1], position, caches
+            )
+            full_logits, _ = model(tokens[:, :position + 1])
+            torch.testing.assert_close(
+                cached_logits[:, -1], full_logits[:, -1],
+                rtol=1e-4, atol=1e-5,
+            )
+
+
+def test_incremental_cache_rejects_wrong_position_shape():
+    import pytest
+
+    model = tiny_model().eval()
+    prompt = torch.tensor([[10, 11, 12]], dtype=torch.long)
+    with torch.no_grad():
+        _, caches = model.forward_with_cache(prompt)
+        with pytest.raises(ValueError, match="shape/device/dtype"):
+            model.forward_incremental(torch.tensor([[13]]), 2, caches)
+
+
 def test_generation_appends_requested_number_of_tokens():
     model = tiny_model()
     prompt = torch.tensor([[65, 66]])
