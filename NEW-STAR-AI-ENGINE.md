@@ -41,7 +41,7 @@ New Star reuses the existing `public.new_star_search_chunks` table, its 384-dime
 - `replace_new_star_search_chunks` replaces all chunks for each submitted source in one transaction, preventing stale trailing chunks after a source becomes shorter.
 - Both private RPCs are restricted to `service_role`; anonymous and authenticated browser roles cannot read the private chunk table or execute the RPCs.
 - `scripts/new-star-search-ingest.ts` accepts UTF-8 JSONL source documents, chunks the content, obtains 384-dimensional embeddings, and calls the atomic replacement RPC.
-- The index is empty until the owner ingests authorized source content.
+- The index is empty until the owner ingests authorized source content. A healthy search RPC returns a successful empty result set when there are no matching documents; only an RPC/configuration failure is reported as the private index being unavailable.
 
 The GPU host's embedding service is configured separately from the chat model. Supabase secrets `NEW_STAR_EMBEDDING_BASE_URL`, `NEW_STAR_EMBEDDING_API_KEY`, and optionally `NEW_STAR_EMBEDDING_MODEL_NAME` are required for semantic retrieval. Without an embedding endpoint, full-text retrieval remains available.
 
