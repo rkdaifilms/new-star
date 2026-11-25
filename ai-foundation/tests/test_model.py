@@ -1099,3 +1099,42 @@ def test_gradient_checkpointing_forward_backward_matches_standard_model():
     assert loss is not None and torch.isfinite(loss)
     loss.backward()
     assert model.token_embedding.weight.grad is not None
+
+
+def test_incremental_kv_cache_matches_full_causal_forward():
+    model = tiny_model().eval()
+    tokens = torch.tensor([[10, 11, 12, 13, 14]], dtype=torch.long)
+    with torch.no_grad():
+        _, caches = model.forward_with_cache(tokens[:, :2])
+        for position in range(2, tokens.shape[1]):
+            incremental_logits, caches = model.forward_incremental(
+                tokens[:, position:position + 1], position, caches
+            )
+            full_logits, _ = model(tokens[:, :position + 1])
+            torch.testing.assert_close(
+                incremental_logits[:, -1], full_logits[:, -1],
+                rtol=1e-5, atol=1e-6,
+            )
+
+
+def test_cached_generation_handles_context_window_rollover():
+    model = tiny_model().eval()
+    prompt = torch.tensor([[65, 66, 67]], dtype=torch.long)
+    result = model.generate(
+        prompt, max_new_tokens=20, temperature=0.8,
+        top_k=16, top_p=0.95, repetition_penalty=1.05,
+    )
+    assert result.shape == (1, 23)
+    assert result.dtype == torch.long
+
+
+def test_incremental_forward_rejects_invalid_cache_and_position():
+    import pytest
+    model = tiny_model().eval()
+    token = torch.tensor([[65]], dtype=torch.long)
+    with pytest.raises(ValueError, match="cache"):
+        model.forward_incremental(token, 0, [])
+    with torch.no_grad():
+        _, caches = model.forward_with_cache(token)
+    with pytest.raises(ValueError, match="position"):
+        model.forward_incremental(token, model.config.block_size, caches)
