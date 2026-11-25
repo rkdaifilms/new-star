@@ -1586,3 +1586,18 @@ def test_sft_cli_rejects_non_finite_or_non_positive_learning_rate(monkeypatch):
             main()
         assert error.value.code == 2
 
+
+def test_pretraining_cli_rejects_non_finite_or_non_positive_learning_rate(monkeypatch):
+    import pytest
+    from train import main
+
+    for learning_rate in ("0", "-0.001", "nan", "inf", "-inf"):
+        monkeypatch.setattr(sys, "argv", [
+            "train.py",
+            "--data", "unused.txt",
+            "--learning-rate", learning_rate,
+        ])
+        with pytest.raises(SystemExit) as error:
+            main()
+        assert error.value.code == 2
+
