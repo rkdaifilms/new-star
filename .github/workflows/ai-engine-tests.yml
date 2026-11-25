@@ -8,6 +8,8 @@ on:
       - "supabase/functions/ai-gateway/**"
       - "tests/ai-engine-core_test.ts"
       - "ai-engine/self-hosted/**"
+      - "scripts/new-star-search-ingest.ts"
+      - "supabase/migrations/202611250002_new_star_private_search.sql"
       - ".github/workflows/ai-engine-tests.yml"
   pull_request:
     paths:
@@ -38,3 +40,5 @@ jobs:
         run: deno test --allow-read tests/ai-engine-core_test.ts
       - name: Validate private model startup script
         run: bash -n ai-engine/self-hosted/verify.sh
+      - name: Type-check private search ingestion tool
+        run: deno check scripts/new-star-search-ingest.ts
