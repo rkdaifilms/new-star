@@ -1716,3 +1716,12 @@ def test_chat_prompt_formatter_rejects_non_object_messages_and_invalid_content()
     for messages in invalid_messages:
         with pytest.raises(ValueError):
             format_chat_messages(messages)
+
+
+
+def test_chat_prompt_formatter_returns_consistent_role_error_for_unhashable_values():
+    import pytest
+    from serve import format_chat_messages
+
+    with pytest.raises(ValueError, match="supported role"):
+        format_chat_messages([{"role": ["user"], "content": "hello"}])
