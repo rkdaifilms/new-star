@@ -623,3 +623,44 @@ def test_text_conditioned_image_http_api_requires_prompt():
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_classifier_free_guidance_sampling_and_validation():
+    model = NewStarImageUNet(base_channels=8, text_vocab_size=8192).eval()
+    schedule = DDPMSchedule(steps=2)
+    tokens = torch.tensor([[1, 2, 0]], dtype=torch.long)
+    guided = schedule.sample(
+        model, 1, 32, "cpu", seed=21, text_tokens=tokens, guidance_scale=2.0
+    )
+    assert guided.shape == (1, 3, 32, 32)
+    assert torch.isfinite(guided).all()
+    with pytest.raises(ValueError, match="guidance_scale"):
+        schedule.sample(model, 1, 32, "cpu", text_tokens=tokens, guidance_scale=float("nan"))
+    with pytest.raises(ValueError, match="requires caption tokens"):
+        schedule.sample(NewStarImageUNet(base_channels=8), 1, 32, "cpu", guidance_scale=2.0)
+
+
+def test_classifier_free_guidance_api_rejects_invalid_scale():
+    model = NewStarImageUNet(base_channels=8, text_vocab_size=8192).eval()
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        create_handler(model, DDPMSchedule(steps=2), 8, "cpu", "caption-secret"),
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = Request(
+            f"http://127.0.0.1:{server.server_address[1]}/v1/images/generations",
+            data=json.dumps({"prompt": "a blue house", "guidance_scale": 99}).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer caption-secret",
+            },
+        )
+        with pytest.raises(HTTPError) as error:
+            urlopen(request)
+        assert error.value.code == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
