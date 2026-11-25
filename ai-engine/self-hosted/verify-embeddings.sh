@@ -4,8 +4,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 command -v docker >/dev/null 2>&1 || fail "Docker is required."
+docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is required."
 command -v curl >/dev/null 2>&1 || fail "curl is required."
 command -v python3 >/dev/null 2>&1 || fail "python3 is required."
+command -v nvidia-smi >/dev/null 2>&1 || fail "NVIDIA drivers are not installed or nvidia-smi is unavailable."
+docker info >/dev/null 2>&1 || fail "Docker daemon is not reachable."
+docker info --format '{{json .Runtimes}}' | grep -q nvidia || fail "NVIDIA Container Toolkit runtime is not visible to Docker."
 [[ -f .env ]] || fail "Create .env from .env.example first."
 set -a
 # shellcheck disable=SC1091
@@ -15,6 +19,7 @@ set +a
 [[ -n "${NEW_STAR_EMBEDDING_API_KEY:-}" ]] || fail "NEW_STAR_EMBEDDING_API_KEY is empty."
 [[ "$NEW_STAR_EMBEDDING_API_KEY" =~ ^[A-Za-z0-9_-]{32,}$ ]] || fail "Embedding API key must be at least 32 URL-safe random characters."
 [[ "$NEW_STAR_EMBEDDING_API_KEY" != replace-* ]] || fail "Replace the example embedding API key before starting the service."
+[[ "$NEW_STAR_EMBEDDING_API_KEY" != *YOUR* ]] || fail "Replace the example embedding API key before starting the service."
 [[ -f "models/$NEW_STAR_EMBEDDING_MODEL_FILE" ]] || fail "Embedding model file models/$NEW_STAR_EMBEDDING_MODEL_FILE is missing."
 docker compose -f compose.yaml --profile embeddings config --quiet
 docker compose -f compose.yaml --profile embeddings up -d new-star-embeddings
