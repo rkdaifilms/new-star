@@ -83,15 +83,16 @@ class PgVectorSearch:
 
     def upsert_page(self, url: str, title: str, body: str, source: str) -> int:
         chunks = self.chunks((title + "\n" + body)[:50000])
-        if not chunks:
-            return 0
         records = [(url, title[:240], source[:253], part, self.embedder.encode(part, passage=True)) for part in chunks]
+        # Delete and reinsert in one transaction. If a crawled page becomes empty,
+        # remove its old chunks instead of leaving stale content searchable.
         with self.connect() as connection:
             with connection.cursor() as cursor:
                 cursor.execute("DELETE FROM public.new_star_search_chunks WHERE url=%s", (url,))
-                cursor.executemany(
-                    """INSERT INTO public.new_star_search_chunks(url,title,source,content,embedding)
-                       VALUES (%s,%s,%s,%s,%s)""", records)
+                if records:
+                    cursor.executemany(
+                        """INSERT INTO public.new_star_search_chunks(url,title,source,content,embedding)
+                           VALUES (%s,%s,%s,%s,%s)""", records)
         return len(records)
 
     @staticmethod
