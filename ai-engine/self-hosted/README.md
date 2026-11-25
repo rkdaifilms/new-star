@@ -192,3 +192,40 @@ The optional `vision` profile runs `HuggingFaceTB/SmolVLM2-2.2B-Instruct` locall
 4. Set Supabase Edge Function secrets `NEW_STAR_VISION_BASE_URL` and `NEW_STAR_VISION_API_KEY`.
 
 Model weights are downloaded to the persistent cache on first use. This is local inference using an open-weight model, not a New Star foundation model trained from scratch. Review the model license and hardware requirements. Neither worker has been deployed or GPU-tested.
+
+
+## Private New Star model fine-tuning
+
+The separate `ai-engine/training` directory contains a local QLoRA fine-tuning pipeline for adapting an Apache-2.0 open-weight Qwen2.5-3B-Instruct base model. This is a path toward a New Star-tuned model and private inference; it is **not** training a foundation model from scratch. The base model remains a third-party model and its license/model card must be reviewed before commercial use.
+
+### 1. Prepare a private dataset
+
+Create a UTF-8 JSONL file. Each line is one conversation:
+
+```json
+{"messages":[{"role":"user","content":"Explain how to make a video storyboard."},{"role":"assistant","content":"A storyboard is a sequence of visual panels..."}]}
+```
+
+Keep only data you have rights and permission to use. Do not train on private user conversations, credentials, personal records, or scraped content without a lawful basis and appropriate consent. The validator rejects malformed turns, likely API keys/tokens/passwords, excessive lengths, and duplicate conversations.
+
+Run the validator:
+
+```sh
+python3 ai-engine/training/prepare_dataset.py --input ./private-training.jsonl --output-dir ./prepared-dataset
+```
+
+It writes deterministic `train.jsonl`, `validation.jsonl`, and `dataset-report.json`. Inspect the report and the split files before training. Keep all dataset files private and outside public Git repositories.
+
+### 2. Train the adapter on a CUDA GPU
+
+Install `ai-engine/training/requirements.txt` in an isolated Python environment with a compatible NVIDIA driver/CUDA runtime, or build the provided training image. The default training script requires a CUDA GPU and uses 4-bit NF4 quantization, gradient checkpointing, LoRA rank 16, and a bounded context length.
+
+```sh
+python3 ai-engine/training/train_lora.py --dataset-dir ./prepared-dataset --output-dir ./new-star-qwen-adapter --epochs 2 --batch-size 1 --gradient-accumulation 16 --max-seq-length 2048
+```
+
+The script evaluates each epoch, retains the best checkpoint, and saves the LoRA adapter and a training report. GPU memory requirements vary by model, context length, and batch settings. Start with a small private dataset and verify evaluation loss and sample outputs before using the adapter.
+
+### 3. Model governance before production
+
+Review the dataset provenance, consent, copyright/license status, privacy, harmful-output testing, multilingual quality, and evaluation results. A fine-tuned adapter is not automatically safe or production-ready. Merge/quantize/convert the adapter to the llama.cpp GGUF format in a separately tested model-release pipeline before updating `NEW_STAR_MODEL_FILE`. Do not replace the live model file until the candidate passes evaluation and rollback is available. No training has been run and no adapter/model weights are included in this repository.
