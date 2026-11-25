@@ -290,6 +290,17 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
   if (!source.includes('code: "NEW_STAR_PRIVATE_SEARCH_NOT_READY"')) {
     throw new Error("Self-hosted search must fail closed when its own index is unavailable");
   }
+  const statusRouteStart = source.indexOf('if (body?.action === "status")');
+  const externalProbeStart = source.indexOf("const newStarModel = await probeNewStarHostedModel()", statusRouteStart);
+  if (statusRouteStart < 0 || externalProbeStart < 0) {
+    throw new Error("Provider status route boundaries could not be verified");
+  }
+  const selfHostedStatusBranch = source.slice(statusRouteStart, externalProbeStart);
+  if (!selfHostedStatusBranch.includes('mode: "self_hosted"') ||
+      !selfHostedStatusBranch.includes("No external model providers are contacted.") ||
+      !selfHostedStatusBranch.includes("openai: false, gemini: false, openrouter: false")) {
+    throw new Error("Self-hosted status must report only New Star and avoid external provider probes");
+  }
   const videoStatusRoute = source.slice(source.indexOf('if (body?.action === "video-status")'));
   if (!videoStatusRoute.includes("NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED")) {
     throw new Error("Self-hosted video-status route could still call an external provider");
