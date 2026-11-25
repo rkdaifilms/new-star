@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { base64UrlEncode, privateKeyPemToBytes } from "./google-auth.ts";
 import { buildGeminiVideoRequest } from "./video-provider.ts";
 import { detectReplyScript } from "./language-policy.ts";
-import { formatRetrievedContext, normalizeNewStarSearchResults } from "./search-provider.ts";
+import { formatRetrievedContext, normalizeNewStarSearchResults, normalizePrivateIndexRows } from "./search-provider.ts";
 import { AI_LANGUAGE_NAMES } from "./language-catalog.ts";
 import { readBoundedJson } from "./request-body.ts";
 import { buildChatProviderPlan } from "./provider-routing.ts";
@@ -303,9 +303,7 @@ async function retrieveNewStarRagContext(query: string, adminClient: any): Promi
       p_query: query.slice(0, 500), p_limit: 5, p_language: "auto"
     });
     if (!error && Array.isArray(data) && data.length) {
-      const localContext = formatRetrievedContext(data.map((item: any) => ({
-        title: item.title, url: item.url, snippet: item.snippet, publishedAt: item.published_at
-      })), 5);
+      const localContext = formatRetrievedContext(normalizePrivateIndexRows(data, 5), 5);
       if (localContext) return localContext;
     }
   } catch {
@@ -339,10 +337,7 @@ async function searchNewStarIndex(query: string, language: string, limit: number
       p_query: query.slice(0, 500), p_limit: limit, p_language: language
     });
     if (!error && Array.isArray(data) && data.length) {
-      const results = normalizeNewStarSearchResults(data.map((item: any) => ({
-        title: item.title, url: item.url, snippet: item.snippet,
-        publishedAt: item.published_at
-      })), limit);
+      const results = normalizePrivateIndexRows(data, limit);
       if (results.length) {
         return json({
           ok: true, provider: "new-star-private-index", query,
