@@ -257,7 +257,7 @@ async function startGeminiVideo(model: string, prompt: string, aspectRatio: stri
 async function getGeminiVideoInteraction(interactionId: string) {
   const { token, projectId } = await getGoogleCloudAccessToken();
   const endpoint = "https://aiplatform.googleapis.com/v1beta1/projects/" + encodeURIComponent(projectId) + "/locations/global/interactions/" + encodeURIComponent(interactionId);
-  const response = await fetchWithTimeout(endpoint, { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: "" }, 25000);
+  const response = await fetchWithTimeout(endpoint, { method: "GET", headers: { "Authorization": "Bearer " + token } }, 25000);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
   return data;
