@@ -7,6 +7,7 @@ import { formatRetrievedContext, normalizeNewStarSearchResults, normalizePrivate
 import { AI_LANGUAGE_NAMES } from "./language-catalog.ts";
 import { readBoundedJson } from "./request-body.ts";
 import { buildChatProviderPlan } from "./provider-routing.ts";
+import { privateSpeechSynthesis, privateSpeechTranscription } from "./private-speech.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -1008,15 +1009,24 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body?.action === "speak") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private speech-generation model is not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED" }, 503, headers);
     const spokenText = typeof body.text === "string" ? body.text.trim() : "";
     if (!spokenText || spokenText.length > 3500) return json({ ok: false, error: "Text for speech must be between 1 and 3,500 characters." }, 400, headers);
-    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
-    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
-    if (!geminiKeys.length && !openaiKeys.length) return json({ ok: false, error: "Multilingual AI voice is not configured. Written replies remain available." }, 503, headers);
     const speechAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: speechAllowed, error: speechLimitError } = await consumeAiGatewayRateLimit(speechAdmin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (speechLimitError || speechAllowed !== true) return json({ ok: false, error: speechLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, speechLimitError ? 503 : 429, headers);
+    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") {
+      const result = await privateSpeechSynthesis(
+        Deno.env.get("NEW_STAR_SPEECH_BASE_URL") || "",
+        Deno.env.get("NEW_STAR_SPEECH_API_KEY") || "",
+        spokenText,
+        typeof body.language === "string" ? body.language.toLowerCase() : "auto",
+      );
+      if (!result.ok) return json({ ok: false, error: result.error, code: "NEW_STAR_PRIVATE_SPEECH_UNAVAILABLE" }, result.status, headers);
+      return json({ ok: true, audio: result.audio, mimeType: result.mimeType, provider: "new_star_private" }, 200, headers);
+    }
+    const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
+    const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
+    if (!geminiKeys.length && !openaiKeys.length) return json({ ok: false, error: "Multilingual AI voice is not configured. Written replies remain available." }, 503, headers);
 
     const failures: string[] = [];
     const speechModels = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"];
@@ -1087,7 +1097,6 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body?.action === "transcribe") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private speech-recognition model is not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_STT_MODEL_NOT_DEPLOYED" }, 503, headers);
     const audio = body.audio;
     const rawMimeType = typeof body.mimeType === "string" ? body.mimeType : "audio/webm";
     const mimeType = rawMimeType.split(";")[0].trim().toLowerCase();
@@ -1096,6 +1105,16 @@ Deno.serve(async (req: Request) => {
     const voiceAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: allowedVoice, error: voiceLimitError } = await consumeAiGatewayRateLimit(voiceAdmin, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (voiceLimitError || allowedVoice !== true) return json({ ok: false, error: voiceLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, voiceLimitError ? 503 : 429, headers);
+    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") {
+      const result = await privateSpeechTranscription(
+        Deno.env.get("NEW_STAR_SPEECH_BASE_URL") || "",
+        Deno.env.get("NEW_STAR_SPEECH_API_KEY") || "",
+        audio,
+        mimeType,
+      );
+      if (!result.ok) return json({ ok: false, error: result.error, code: "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE" }, result.status, headers);
+      return json({ ok: true, transcript: result.transcript, language: result.language, provider: "new_star_private" }, 200, headers);
+    }
     const failures: string[] = [];
     const audioBytes = Uint8Array.from(atob(audio), (character) => character.charCodeAt(0));
     const openaiKeys = secretCandidates("OPENAI_API_KEY", "OPENAI_KEY");
