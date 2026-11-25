@@ -74,7 +74,9 @@ export async function privateSpeechTranscription(
   }
   if (!bytes.length || bytes.length > 8 * 1024 * 1024) return { ok: false, status: 413, error: "Voice recording exceeds the private worker size limit." };
   const form = new FormData();
-  form.append("file", new File([bytes], "new-star-voice." + extension, { type: mimeType }));
+  const audioBuffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(audioBuffer).set(bytes);
+  form.append("file", new File([audioBuffer], "new-star-voice." + extension, { type: mimeType }));
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 110000);
   try {
