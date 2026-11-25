@@ -619,3 +619,15 @@ Deno.test("Creator Studio Search mode can index a public URL before querying its
   if (!frontend.includes('crawlUrl?{action:"crawl",url:sendText.trim()}:{action:"search"')) throw new Error("Search mode must call the private crawler for URLs and the private index for queries");
   if (!frontend.includes("Paste a public page URL to index it first.")) throw new Error("Empty private search results must explain how to add a source");
 });
+
+
+Deno.test("private New Star fine-tuning pipeline validates datasets and uses local CUDA QLoRA", async () => {
+  const prepare = await Deno.readTextFile(new URL("../ai-engine/training/prepare_dataset.py", import.meta.url));
+  const train = await Deno.readTextFile(new URL("../ai-engine/training/train_lora.py", import.meta.url));
+  for (const required of ["SECRET_PATTERNS", "credentials/secret detected", "duplicate_conversations_removed", "train.jsonl", "validation.jsonl", "At least 10 unique validated conversations are required"]) {
+    if (!prepare.includes(required)) throw new Error("Training dataset validator is missing " + required);
+  }
+  for (const required of ["Qwen/Qwen2.5-3B-Instruct", "torch.cuda.is_available()", "load_in_4bit=True", "LoraConfig", "SFTTrainer", "training-report.json", "not pretraining a New Star foundation model"]) {
+    if (!train.includes(required)) throw new Error("Private QLoRA trainer is missing " + required);
+  }
+});
