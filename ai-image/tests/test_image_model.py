@@ -257,6 +257,9 @@ def test_image_training_resume_matches_uninterrupted_cpu_run(tmp_path, monkeypat
     assert actual["state_dict"].keys() == expected["state_dict"].keys()
     for key in expected["state_dict"]:
         torch.testing.assert_close(actual["state_dict"][key], expected["state_dict"][key], rtol=0, atol=0)
+    assert actual["ema_state_dict"].keys() == expected["ema_state_dict"].keys()
+    for key in expected["ema_state_dict"]:
+        torch.testing.assert_close(actual["ema_state_dict"][key], expected["ema_state_dict"][key], rtol=0, atol=0)
 
 
 def test_image_training_resume_rejects_changed_dataset(tmp_path, monkeypatch):
@@ -275,6 +278,18 @@ def test_image_training_resume_rejects_changed_dataset(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", [
         "train.py", *common, "--steps", "2",
         "--resume-from", str(output) + ".resume.pt",
+    ])
+    with pytest.raises(SystemExit):
+        train_main()
+
+
+
+def test_image_training_rejects_invalid_ema_decay(tmp_path, monkeypatch):
+    root = create_dataset(tmp_path / "images")
+    manifest = create_manifest(tmp_path / "manifest.json")
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", "--data", str(root), "--manifest", str(manifest),
+        "--steps", "1", "--ema-decay", "1.0",
     ])
     with pytest.raises(SystemExit):
         train_main()
