@@ -693,7 +693,7 @@ function createNewStarApiKey() {
 }
 
 async function consumeAiGatewayRateLimit(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   userId: string,
   apiKeyAuth: boolean,
   apiKeyId: string,
@@ -769,7 +769,7 @@ Deno.serve(async (req: Request) => {
   let apiKeyAuth = false;
   let apiKeyScopes: string[] = [];
   let apiKeyRateLimit = 20;
-  let userClient: ReturnType<typeof createClient>;
+  let userClient: any;
 
   if (bearerToken.startsWith("ns_live_")) {
     const keyHash = await sha256Hex(bearerToken);
