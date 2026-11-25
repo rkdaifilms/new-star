@@ -146,8 +146,8 @@ async function generateOpenAIImage(key: string, prompt: string, aspectRatio: str
   return { image, mimeType: "image/png" };
 }
 
-async function generateOpenRouterImage(key: string, prompt: string, aspectRatio: string) {
-  const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+async function generateOpenRouterImage(key: string, prompt: string, aspectRatio: string, imageSize: string) {
+  const response = await fetchWithTimeout("https://openrouter.ai/api/v1/images", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${key}`,
@@ -156,32 +156,32 @@ async function generateOpenRouterImage(key: string, prompt: string, aspectRatio:
       "X-Title": "New Star Creator Studio"
     },
     body: JSON.stringify({
-      model: "google/gemini-3.1-flash-image",
-      modalities: ["text", "image"],
-      image_config: { aspect_ratio: aspectRatio },
-      messages: [{ role: "user", content: "Generate one image, not just a description. Create this image: " + prompt }]
+      model: "google/gemini-nano-banana-2.1",
+      prompt,
+      resolution: imageSize,
+      aspect_ratio: aspectRatio,
+      output_format: "png",
+      n: 1
     })
   }, 90000);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
-  const imageItem = data?.choices?.[0]?.message?.images?.find((item: any) =>
-    typeof item?.image_url?.url === "string" && item.image_url.url.length > 20
-  );
-  const imageUrl = imageItem?.image_url?.url;
-  if (!imageUrl) throw new Error("OPENROUTER_RETURNED_NO_IMAGE");
-  const dataMatch = imageUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/i);
-  if (dataMatch) return { image: dataMatch[2], mimeType: dataMatch[1] };
-  if (/^https:\/\//i.test(imageUrl)) {
-    const imageResponse = await fetchWithTimeout(imageUrl, {}, 60000);
+  const imageItem = Array.isArray(data?.data) ? data.data[0] : null;
+  if (typeof imageItem?.b64_json === "string" && imageItem.b64_json.length > 100) {
+    const mimeType = ["image/png", "image/jpeg", "image/webp"].includes(imageItem.media_type) ? imageItem.media_type : "image/png";
+    return { image: imageItem.b64_json, mimeType };
+  }
+  if (typeof imageItem?.url === "string" && /^https:\/\//i.test(imageItem.url)) {
+    const imageResponse = await fetchWithTimeout(imageItem.url, {}, 60000);
     if (!imageResponse.ok) throw new Error("OPENROUTER_IMAGE_DOWNLOAD_HTTP_" + imageResponse.status);
-    const mimeType = imageResponse.headers.get("content-type")?.split(";")[0] || "image/png";
-    if (!/^image\/(png|jpeg|webp)$/i.test(mimeType)) throw new Error("OPENROUTER_UNSUPPORTED_IMAGE_FORMAT");
+    const mimeType = imageResponse.headers.get("content-type")?.split(";")[0] || imageItem.media_type || "image/png";
+    if (!["image/png", "image/jpeg", "image/webp"].includes(mimeType)) throw new Error("OPENROUTER_UNSUPPORTED_IMAGE_FORMAT");
     const bytes = new Uint8Array(await imageResponse.arrayBuffer());
     let binary = "";
     for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     return { image: btoa(binary), mimeType };
   }
-  throw new Error("OPENROUTER_INVALID_IMAGE_DATA");
+  throw new Error("OPENROUTER_RETURNED_NO_IMAGE");
 }
 
 
@@ -1198,7 +1198,7 @@ Deno.serve(async (req: Request) => {
     }
     for (let keyIndex = 0; keyIndex < openrouterKeys.length; keyIndex++) {
       try {
-        const result = await generateOpenRouterImage(openrouterKeys[keyIndex], localizedImagePrompt, aspectRatio);
+        const result = await generateOpenRouterImage(openrouterKeys[keyIndex], localizedImagePrompt, aspectRatio, imageSize);
         return json({ ok: true, ...result, aspectRatio, provider: "openrouter" }, 200, headers);
       } catch (error) {
         const reason = error instanceof Error ? error.message : "UNKNOWN";
