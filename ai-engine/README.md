@@ -99,13 +99,13 @@ Supported request fields include `model`, `messages`, `stream`, `temperature`, `
 
 ## New Star-owned experimental image service
 
-The separate `ai-image/` package now includes a from-scratch unconditional DDPM training pipeline and a local authenticated PNG-generation API. Train a checkpoint with a permitted image dataset, then run:
+The separate `ai-image/` package includes a from-scratch DDPM training pipeline, optional experimental caption conditioning, and a local authenticated PNG-generation API. Train an unconditional checkpoint or add an audited `captions` object to the dataset manifest and pass `--text-conditioned` to train the caption-conditioned variant. Then run:
 
 ```sh
 python ai-image/serve.py --checkpoint artifacts/newstar-image-ddpm.pt --host 127.0.0.1 --port 8780
 ```
 
-The image endpoint is `POST http://127.0.0.1:8780/v1/images/generations`. It returns base64 PNG images and supports a request-local seed. This experimental image model is not wired into the chat router and does not support text prompts; do not advertise it as text-to-image. See `ai-image/README.md` for dataset provenance, training, generation, and API details.
+The image endpoint is `POST http://127.0.0.1:8780/v1/images/generations`. It returns base64 PNG images and supports a request-local seed. Unconditional checkpoints reject prompts; caption-conditioned checkpoints require a prompt and route deterministic hashed caption tokens through the U-Net. This is an experimental baseline with limited semantic understanding, not a production-quality text-to-image model, and it is not wired into the chat router. See `ai-image/README.md` for dataset provenance, training, generation, and API details.
 
 ## Adapters and fallback
 
