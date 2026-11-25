@@ -12,7 +12,9 @@ on:
       - "ai-video/**"
       - "supabase/functions/ai-gateway/**"
       - "supabase/migrations/**"
-      - "ai-model/**"
+      - "ai-engine/self-hosted/**"
+      - "scripts/new-star-search-ingest.ts"
+      - "tests/ai-engine-core_test.ts"
       - ".github/workflows/new-star-ai-checks.yml"
   pull_request:
     branches:
@@ -24,7 +26,10 @@ on:
       - "new-star-ai.css"
       - "ai-video/**"
       - "supabase/functions/ai-gateway/**"
-      - "ai-model/**"
+      - "ai-engine/self-hosted/**"
+      - "supabase/migrations/**"
+      - "scripts/new-star-search-ingest.ts"
+      - "tests/ai-engine-core_test.ts"
       - ".github/workflows/new-star-ai-checks.yml"
   workflow_dispatch:
 
@@ -63,7 +68,7 @@ jobs:
         run: deno check --no-lock supabase/functions/ai-gateway/index.ts
 
       - name: Validate self-hosted model runtime configuration
-        run: ruby -e 'require "yaml"; config = YAML.load_file("ai-model/docker-compose.yml"); abort "missing new-star-model service" unless config.dig("services", "new-star-model")'
+        run: ruby -e 'require "yaml"; config = YAML.load_file("ai-engine/self-hosted/compose.yaml"); services = config.fetch("services"); abort "missing new-star-model service" unless services["new-star-model"]; abort "missing private embedding service" unless services["new-star-embeddings"]'
 
       - name: Verify required AI actions and authentication guards
         shell: bash
