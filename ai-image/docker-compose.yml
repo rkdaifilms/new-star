@@ -31,7 +31,7 @@ services:
       dockerfile: Dockerfile.cpu
     init: true
     environment:
-      NEW_STAR_IMAGE_API_KEY: ${NEW_STAR_IMAGE_API_KEY:?set NEW_STAR_IMAGE_API_KEY}
+      NEW_STAR_IMAGE_API_KEY: ${NEW_STAR_IMAGE_API_KEY:-}
     volumes:
       - ${NEW_STAR_IMAGE_ARTIFACTS_DIR:-./artifacts}:/artifacts:ro
     ports:
