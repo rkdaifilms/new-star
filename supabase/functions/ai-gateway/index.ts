@@ -1465,6 +1465,13 @@ Deno.serve(async (req: Request) => {
   });
 
   if (providers.length === 0) {
+    if (selfHostedOnly) {
+      return json({
+        ok: false,
+        error: "New Star's private AI model is not configured or reachable yet. Configure the private model URL, model name, and API key. External providers are disabled in self-hosted mode.",
+        code: "NEW_STAR_PRIVATE_MODEL_NOT_CONFIGURED"
+      }, 503, headers);
+    }
     return json({
       ok: false,
       error: "No AI provider is configured on the server yet.",
