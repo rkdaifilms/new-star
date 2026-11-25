@@ -234,6 +234,12 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
   ];
   const missingGuards = requiredSelfHostedGuards.filter((guard) => !source.includes(guard));
   if (missingGuards.length) throw new Error("Missing self-hosted safety guards: " + missingGuards.join(", "));
+  if (!source.includes("if (selfHostedRag) return \"\";")) {
+    throw new Error("Self-hosted RAG must not fall back to a separately hosted search service");
+  }
+  if (!source.includes('code: "NEW_STAR_PRIVATE_SEARCH_NOT_READY"')) {
+    throw new Error("Self-hosted search must fail closed when its own index is unavailable");
+  }
   const videoStatusRoute = source.slice(source.indexOf('if (body?.action === "video-status")'));
   if (!videoStatusRoute.includes("NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED")) {
     throw new Error("Self-hosted video-status route could still call an external provider");
