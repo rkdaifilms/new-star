@@ -21,6 +21,14 @@ import urllib.error
 import urllib.request
 from typing import Any
 
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+_NO_REDIRECT_OPENER = urllib.request.build_opener(NoRedirectHandler)
+
+
 WORKERS = {
     "image": ("NEW_STAR_IMAGE_BASE_URL", "NEW_STAR_IMAGE_API_KEY", "/v1/images/generations"),
     "video": ("NEW_STAR_VIDEO_BASE_URL", "NEW_STAR_VIDEO_API_KEY", "/v1/videos/generations"),
@@ -58,7 +66,7 @@ def request_json(url: str, key: str | None = None, body: dict[str, Any] | None =
         data = json.dumps(body).encode("utf-8")
     request = urllib.request.Request(url, data=data, headers=headers, method="POST" if data is not None else "GET")
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with _NO_REDIRECT_OPENER.open(request, timeout=timeout) as response:
             raw = response.read(14 * 1024 * 1024 + 1)
             if len(raw) > 14 * 1024 * 1024:
                 raise ValueError("response exceeded the 14 MiB diagnostic limit")
@@ -184,7 +192,7 @@ def infer_video(base: str, key: str) -> None:
         if state == "completed":
             out = urllib.request.Request(base + "/v1/videos/jobs/" + job_id + "/output",
                 headers={"Authorization": "Bearer " + key})
-            with urllib.request.urlopen(out, timeout=120) as response:
+            with _NO_REDIRECT_OPENER.open(out, timeout=120) as response:
                 payload = response.read(50 * 1024 * 1024 + 1)
                 if response.headers.get_content_type() != "video/mp4" or len(payload) < 12 or payload[4:8] != b"ftyp":
                     raise RuntimeError("video worker returned an invalid MP4 response")
