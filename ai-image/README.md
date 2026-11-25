@@ -71,6 +71,27 @@ python ai-image/generate.py --checkpoint ./artifacts/newstar-image-ddpm.pt \
 
 The output is an image grid saved as PNG. The same checkpoint and seed reproduce the same sample on the same compatible runtime. Different hardware or library versions can produce small numeric differences.
 
+## Evaluate on held-out images
+
+Keep a separate evaluation folder that was not used for training, and give it
+its own accurate permission manifest. The evaluator loads EMA weights when
+present, uses a fixed seed for repeatable noise/timestep selection, and writes
+an atomic JSON report:
+
+```sh
+python ai-image/evaluate.py \\
+  --checkpoint ./artifacts/newstar-image-ddpm.pt \\
+  --data ./heldout-images --manifest ./heldout-manifest.json \\
+  --batch-size 8 --seed 2026 \\
+  --output ./artifacts/newstar-image-evaluation.json --device cpu
+```
+
+The report includes held-out dataset and manifest fingerprints, sample counts,
+and noise-prediction MSE. MSE is a denoising diagnostic only; it is not a
+perceptual metric such as FID and does not establish that generated images are
+visually useful. Evaluation data must be separate from the training folder for
+the result to be a meaningful held-out measurement.
+
 ## Local image API
 
 Start the local service after training:
