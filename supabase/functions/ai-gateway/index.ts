@@ -516,7 +516,7 @@ async function callNewStarHostedModel(key: string, messages: ChatMessage[], syst
   const base = endpoint.toString().replace(/\/$/, "");
   const requestUrl = base.endsWith("/chat/completions") ? base : base + "/chat/completions";
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (key && key !== "local-no-key") headers.Authorization = "Bearer " + key;
+  headers.Authorization = "Bearer " + key;
   const response = await fetchWithTimeout(requestUrl, {
     method: "POST", headers,
     body: JSON.stringify({
