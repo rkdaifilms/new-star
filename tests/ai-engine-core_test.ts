@@ -1,0 +1,78 @@
+import { buildGeminiVideoRequest } from "../supabase/functions/ai-gateway/video-provider.ts";
+import { normalizeNewStarSearchResults, formatRetrievedContext } from "../supabase/functions/ai-gateway/search-provider.ts";
+import { detectReplyScript } from "../supabase/functions/ai-gateway/language-policy.ts";
+import { readBoundedJson } from "../supabase/functions/ai-gateway/request-body.ts";
+
+Deno.test("video request builder clamps unsupported values", () => {
+  const request = buildGeminiVideoRequest("gemini-omni-1.2-flash", "A sunrise", "4:3", "4K", "30s");
+  const format = request.response_format[0];
+  if (format.aspect_ratio !== "16:9") throw new Error("Unsupported aspect ratio was not clamped");
+  if (format.resolution !== "720p") throw new Error("Unsupported resolution was not clamped");
+  if (format.duration !== "6s") throw new Error("Unsupported duration was not clamped");
+});
+
+Deno.test("video request builder preserves allowed portrait settings", () => {
+  const request = buildGeminiVideoRequest("gemini-omni-1.2-flash", "A creator intro", "9:16", "1080p", "15s");
+  const format = request.response_format[0];
+  if (format.aspect_ratio !== "9:16" || format.resolution !== "1080p" || format.duration !== "15s") {
+    throw new Error("Allowed video settings were not preserved");
+  }
+});
+
+Deno.test("search normalization accepts safe HTTPS results and rejects unsafe URLs", () => {
+  const results = normalizeNewStarSearchResults([
+    { title: "New Star", url: "https://example.com/article", snippet: "A result" },
+    { title: "Unsafe", url: "http://example.com" },
+    { title: "Credentials", url: "https://user:pass@example.com" },
+    { title: "", url: "https://example.com/empty" }
+  ], 5);
+  if (results.length !== 1 || results[0].source !== "example.com") {
+    throw new Error("Search result validation did not filter unsafe entries");
+  }
+  if (!formatRetrievedContext(results).includes("https://example.com/article")) {
+    throw new Error("Retrieved context omitted the verified source URL");
+  }
+});
+
+Deno.test("reply language detection identifies Devanagari without assuming Hindi", () => {
+  const hint = detectReplyScript("मलाई नयाँ स्टारको एआई इन्जिन जाँच गर्न मद्दत गर्नुहोस्");
+  if (!hint || hint.script !== "Devanagari" || !hint.instruction.includes("Nepali")) {
+    throw new Error("Devanagari language guidance is missing");
+  }
+});
+
+Deno.test("bounded JSON reader rejects wrong content type and oversized bodies", async () => {
+  const wrongType = await readBoundedJson(new Request("https://local.test", {
+    method: "POST", headers: { "Content-Type": "text/plain" }, body: "not json"
+  }), 100);
+  if (wrongType.ok || wrongType.status !== 415) throw new Error("Wrong content type was not rejected");
+
+  const oversized = await readBoundedJson(new Request("https://local.test", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: "x".repeat(200) })
+  }), 100);
+  if (oversized.ok || oversized.status !== 413) throw new Error("Oversized request was not rejected");
+
+  const valid = await readBoundedJson(new Request("https://local.test", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ok: true })
+  }), 100);
+  if (!valid.ok || (valid.value as { ok?: boolean }).ok !== true) throw new Error("Valid JSON request was not parsed");
+});
+
+Deno.test("AI gateway has no duplicate local functions or duplicate search route", async () => {
+  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const functionNames = [...source.matchAll(/(?:async\\s+)?function\\s+([A-Za-z0-9_]+)\\s*\\(/g)].map((match) => match[1]);
+  const duplicates = functionNames.filter((name, index) => functionNames.indexOf(name) !== index);
+  if (duplicates.length) throw new Error("Duplicate function declarations: " + [...new Set(duplicates)].join(", "));
+
+  const searchRoutes = source.match(/if \\(body\\?\\.action === "search"\\)/g) || [];
+  if (searchRoutes.length !== 1) throw new Error("Expected exactly one search route; found " + searchRoutes.length);
+
+  const imports = [...source.matchAll(/^import\\s+\\{([^}]+)\\}\\s+from\\s+["'][^"']+["'];/gm)]
+    .flatMap((match) => match[1].split(",").map((part) => part.trim().split(/\\s+as\\s+/)[0]));
+  const importCollisions = imports.filter((name) => functionNames.includes(name));
+  if (importCollisions.length) throw new Error("Imported functions redeclared locally: " + [...new Set(importCollisions)].join(", "));
+
+  if (!source.includes("NEW_STAR_AI_MODE") || !source.includes("NEW_STAR_VISION_MODEL_NOT_DEPLOYED")) {
+    throw new Error("Self-hosted-only safety guards are missing");
+  }
+});
