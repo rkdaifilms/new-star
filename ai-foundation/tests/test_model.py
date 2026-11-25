@@ -1146,6 +1146,6 @@ def test_incremental_forward_rejects_malformed_key_value_cache():
     token = torch.tensor([[65]], dtype=torch.long)
     _, caches = model.forward_with_cache(token)
     malformed = list(caches)
-    malformed[0] = (torch.zeros(1, 4, 1, 4), torch.zeros(1, 4, 1, 4))
+    malformed[0] = (torch.zeros(1, 4, 2, 4), torch.zeros(1, 4, 2, 4))
     with pytest.raises(ValueError, match="cache shape/device"):
         model.forward_incremental(token, 1, malformed)
