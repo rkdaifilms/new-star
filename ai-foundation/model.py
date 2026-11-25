@@ -175,10 +175,14 @@ class NewStarGPT(nn.Module):
 
     def forward_with_cache(self, tokens: torch.Tensor):
         """Prefill a prompt and return logits plus per-layer attention caches."""
-        if tokens.ndim != 2 or tokens.shape[1] < 1 or tokens.shape[1] > self.config.block_size:
-            raise ValueError("tokens must be [batch, sequence] with 1 <= sequence <= block_size")
+        if not isinstance(tokens, torch.Tensor):
+            raise ValueError("tokens must be a torch.Tensor")
+        if tokens.ndim != 2 or tokens.shape[0] < 1 or tokens.shape[1] < 1 or tokens.shape[1] > self.config.block_size:
+            raise ValueError("tokens must be [batch, sequence] with batch >= 1 and 1 <= sequence <= block_size")
         if tokens.dtype != torch.long:
             raise ValueError("tokens must use torch.long token IDs")
+        if tokens.device != self.token_embedding.weight.device:
+            raise ValueError("tokens and model parameters must be on the same device")
         if torch.any(tokens < 0) or torch.any(tokens >= self.config.vocab_size):
             raise ValueError("token IDs must be within the configured vocabulary")
         positions = torch.arange(tokens.shape[1], device=tokens.device)
@@ -196,12 +200,14 @@ class NewStarGPT(nn.Module):
     def forward_incremental(self, token: torch.Tensor, position: int,
                             caches: list[tuple[torch.Tensor, torch.Tensor]]):
         """Advance cached decoding by exactly one token at its absolute window position."""
-        if token.ndim != 2 or token.shape[1] != 1 or token.dtype != torch.long:
-            raise ValueError("incremental token must be a [batch, 1] torch.long tensor")
+        if not isinstance(token, torch.Tensor) or token.ndim != 2 or token.shape[0] < 1 or token.shape[1] != 1 or token.dtype != torch.long:
+            raise ValueError("incremental token must be a [batch >= 1, 1] torch.long tensor")
+        if token.device != self.token_embedding.weight.device:
+            raise ValueError("incremental token and model parameters must be on the same device")
         if (not isinstance(position, int) or isinstance(position, bool)
                 or not 0 <= position < self.config.block_size):
             raise ValueError("incremental position must be an integer inside block_size")
-        if len(caches) != len(self.blocks):
+        if not isinstance(caches, (list, tuple)) or len(caches) != len(self.blocks):
             raise ValueError("one attention cache is required for every Transformer block")
         if torch.any(token < 0) or torch.any(token >= self.config.vocab_size):
             raise ValueError("token IDs must be within the configured vocabulary")
