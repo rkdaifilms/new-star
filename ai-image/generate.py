@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import pickle
 from pathlib import Path
 
 import torch
@@ -13,7 +14,7 @@ from model import DDPMSchedule, NewStarImageUNet
 def load_checkpoint(path: str | Path, device: str):
     try:
         checkpoint = torch.load(path, map_location=device, weights_only=True)
-    except (OSError, RuntimeError, TypeError, ValueError) as exc:
+    except (OSError, RuntimeError, TypeError, ValueError, pickle.UnpicklingError) as exc:
         raise ValueError("could not safely load New Star image checkpoint") from exc
     if not isinstance(checkpoint, dict) or checkpoint.get("format") != "new-star-ddpm-image-v1":
         raise ValueError("unsupported New Star image checkpoint format")
