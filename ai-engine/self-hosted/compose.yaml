@@ -23,3 +23,29 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+  new-star-embeddings:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: new-star-private-embeddings
+    restart: unless-stopped
+    profiles: ["embeddings"]
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      LLAMA_ARG_MODEL: /models/${NEW_STAR_EMBEDDING_MODEL_FILE:-e5-small-v2-embedding.Q8_0.gguf}
+      LLAMA_ARG_HOST: 0.0.0.0
+      LLAMA_ARG_PORT: "8081"
+      LLAMA_ARG_N_GPU_LAYERS: ${NEW_STAR_GPU_LAYERS:-999}
+      LLAMA_ARG_CTX_SIZE: "2048"
+      LLAMA_ARG_EMBEDDINGS: "true"
+      LLAMA_ARG_POOLING: mean
+      LLAMA_ARG_API_KEY: ${NEW_STAR_EMBEDDING_API_KEY:?Set NEW_STAR_EMBEDDING_API_KEY in .env}
+    volumes:
+      - ./models:/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
