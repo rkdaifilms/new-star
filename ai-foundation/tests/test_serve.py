@@ -18,8 +18,10 @@ class FakeConfig:
 class FakeModel:
     config = FakeConfig()
 
-    def generate(self, input_ids, max_tokens, temperature, top_k, top_p, repetition_penalty):
+    def generate(self, input_ids, max_tokens, temperature, top_k, top_p,
+                 repetition_penalty, do_sample=True):
         import torch
+        self.last_do_sample = do_sample
         return torch.cat(
             [input_ids, torch.tensor([[65]], dtype=torch.long, device=input_ids.device)],
             dim=1,
@@ -36,9 +38,10 @@ class FakeTokenizer:
 
 class FoundationServerTests(unittest.TestCase):
     def setUp(self):
+        self.model = FakeModel()
         self.server = ThreadingHTTPServer(
             ("127.0.0.1", 0),
-            create_handler(FakeModel(), FakeTokenizer(), "test-model", "cpu", "test-secret"),
+            create_handler(self.model, FakeTokenizer(), "test-model", "cpu", "test-secret"),
         )
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -70,6 +73,25 @@ class FoundationServerTests(unittest.TestCase):
             },
         )
         return urlopen(request)
+
+    def test_greedy_mode_is_forwarded_to_foundation_model(self):
+        with self.post({
+            "messages": [{"role": "user", "content": "hello"}],
+            "max_tokens": 1,
+            "do_sample": False,
+        }) as response:
+            self.assertEqual(json.loads(response.read())["object"], "chat.completion")
+        self.assertFalse(self.model.last_do_sample)
+
+    def test_rejects_non_boolean_do_sample(self):
+        for value in (1, "false", None):
+            with self.subTest(value=value):
+                with self.assertRaises(HTTPError) as error:
+                    self.post({
+                        "messages": [{"role": "user", "content": "hello"}],
+                        "do_sample": value,
+                    })
+                self.assertEqual(error.exception.code, 400)
 
     def test_chat_completion_returns_openai_compatible_shape(self):
         with self.post({
