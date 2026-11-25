@@ -21,7 +21,7 @@ def main() -> int:
         parser.error(f"cannot read {args.html_file}: {exc}")
 
     scripts = re.findall(
-        r"<script\\b(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script\\s*>",
+        r"<script\b(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script\s*>",
         html,
         flags=re.IGNORECASE,
     )
