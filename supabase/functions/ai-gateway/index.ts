@@ -588,7 +588,7 @@ async function callNewStarHostedModel(key: string, messages: ChatMessage[], syst
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   headers.Authorization = "Bearer " + key;
   const response = await fetchWithTimeout(requestUrl, {
-    method: "POST", headers,
+    method: "POST", headers, redirect: "error",
     body: JSON.stringify({
       model,
       messages: [{ role: "system", content: systemPrompt }, ...messages.map(m => ({ role: m.role, content: m.content }))],
