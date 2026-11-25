@@ -1764,3 +1764,45 @@ def test_incremental_kv_cache_rejects_wrong_cache_batch_shape():
     ]
     with pytest.raises(ValueError, match="shape/device/dtype"):
         model.forward_incremental(token, prompt.shape[1], wrong_batch_cache)
+
+def test_batched_incremental_kv_cache_matches_full_forward_for_each_sequence():
+    model = tiny_model().eval()
+    prompt = torch.tensor([[3, 8, 13], [21, 34, 55]], dtype=torch.long)
+    continuation = torch.tensor([[89, 144], [90, 145]], dtype=torch.long)
+
+    with torch.inference_mode():
+        _, caches = model.forward_with_cache(prompt)
+        context = prompt.clone()
+        for index in range(continuation.shape[1]):
+            token = continuation[:, index:index + 1]
+            cached_logits, caches = model.forward_incremental(
+                token, context.shape[1], caches
+            )
+            context = torch.cat((context, token), dim=1)
+            full_logits, _ = model(context)
+            torch.testing.assert_close(
+                cached_logits[:, -1, :],
+                full_logits[:, -1, :],
+                rtol=1e-4,
+                atol=1e-5,
+            )
+
+
+def test_seeded_generation_is_reproducible_without_global_rng_changes():
+    model = tiny_model().eval()
+    prompt = torch.tensor([[7, 19, 23]], dtype=torch.long)
+    first_generator = torch.Generator(device="cpu").manual_seed(20261125)
+    second_generator = torch.Generator(device="cpu").manual_seed(20261125)
+
+    first = model.generate(
+        prompt.clone(), max_new_tokens=5, top_k=20, top_p=0.9,
+        generator=first_generator,
+    )
+    second = model.generate(
+        prompt.clone(), max_new_tokens=5, top_k=20, top_p=0.9,
+        generator=second_generator,
+    )
+
+    torch.testing.assert_close(first, second)
+    assert torch.equal(first[:, :prompt.shape[1]], prompt)
+
