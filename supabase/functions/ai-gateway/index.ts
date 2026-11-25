@@ -984,7 +984,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    for (let keyIndex = 0; !sourceImage && keyIndex < openaiKeys.length; keyIndex++) {
+    for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
       try {
         const response = await fetchWithTimeout("https://api.openai.com/v1/audio/speech", {
           method: "POST",
@@ -1225,7 +1225,7 @@ Deno.serve(async (req: Request) => {
         console.error("AI image provider failed:", "openrouter", keyIndex + 1, reason);
       }
     }
-    for (let keyIndex = 0; keyIndex < openaiKeys.length; keyIndex++) {
+    for (let keyIndex = 0; !sourceImage && keyIndex < openaiKeys.length; keyIndex++) {
       try {
         const result = await generateOpenAIImage(openaiKeys[keyIndex], localizedImagePrompt, aspectRatio, imageSize);
         return json({ ok: true, ...result, aspectRatio, provider: "openai" }, 200, headers);
