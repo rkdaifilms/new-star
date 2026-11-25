@@ -157,3 +157,5 @@ jobs:
         run: |
           PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.example.json validate
           PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.example.json plan --capability chat --language hi
+          PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.foundation.example.json validate
+          PYTHONPATH=ai-engine python -m ai_engine --models-file ai-engine/config/models.foundation.example.json plan --capability chat --language ne
