@@ -17,6 +17,7 @@ from PIL import Image
 
 from generate import load_checkpoint
 from model import DDPMSchedule, NewStarImageUNet
+from text_conditioning import MAX_TEXT_TOKENS, encode_caption
 
 
 def encode_png(image: torch.Tensor) -> str:
@@ -51,7 +52,7 @@ def create_handler(model, schedule, image_size: int, device: str, api_key: str):
             if self.path == "/health":
                 self.send_json(200, {
                     "ok": True,
-                    "model": "new-star-ddpm-unconditional",
+                    "model": "new-star-ddpm-text-conditioned" if model.text_vocab_size else "new-star-ddpm-unconditional",
                     "image_size": image_size,
                     "diffusion_steps": schedule.steps,
                 })
@@ -59,10 +60,10 @@ def create_handler(model, schedule, image_size: int, device: str, api_key: str):
                 self.send_json(200, {
                     "object": "list",
                     "data": [{
-                        "id": "new-star-ddpm-unconditional",
+                        "id": "new-star-ddpm-text-conditioned" if model.text_vocab_size else "new-star-ddpm-unconditional",
                         "object": "model",
                         "owned_by": "new-star",
-                        "capabilities": ["image_generation_unconditional"],
+                        "capabilities": ["image_generation_text_to_image"] if model.text_vocab_size else ["image_generation_unconditional"],
                     }],
                 })
             else:
@@ -89,8 +90,10 @@ def create_handler(model, schedule, image_size: int, device: str, api_key: str):
                 payload = json.loads(self.rfile.read(length))
                 if not isinstance(payload, dict):
                     raise ValueError("request body must be a JSON object")
-                if "prompt" in payload:
+                if "prompt" in payload and not model.text_vocab_size:
                     raise ValueError("this checkpoint is unconditional and does not support text prompts")
+                if model.text_vocab_size and ("prompt" not in payload or not isinstance(payload["prompt"], str)):
+                    raise ValueError("a non-empty prompt is required by this text-conditioned checkpoint")
                 unsupported = sorted(set(payload) - {"n", "seed", "size", "prompt"})
                 if unsupported:
                     raise ValueError("unsupported request fields: " + ", ".join(unsupported))
@@ -106,15 +109,20 @@ def create_handler(model, schedule, image_size: int, device: str, api_key: str):
                     or not 0 <= seed <= 2**63 - 1
                 ):
                     raise ValueError("seed must be an integer between 0 and 2^63-1")
+                text_tokens = None
+                if model.text_vocab_size:
+                    encoded = encode_caption(payload["prompt"])
+                    text_tokens = torch.zeros((count, MAX_TEXT_TOKENS), dtype=torch.long, device=device)
+                    text_tokens[:, :len(encoded)] = torch.tensor(encoded, dtype=torch.long, device=device)
                 started = time.time()
                 with generation_lock, torch.inference_mode():
                     generated = schedule.sample(
-                        model, count, image_size, device, seed=seed
+                        model, count, image_size, device, seed=seed, text_tokens=text_tokens
                     )
                 data = [{"b64_json": encode_png(image)} for image in generated]
                 self.send_json(200, {
                     "created": int(started),
-                    "model": "new-star-ddpm-unconditional",
+                    "model": "new-star-ddpm-text-conditioned" if model.text_vocab_size else "new-star-ddpm-unconditional",
                     "data": data,
                 })
             except (ValueError, TypeError, json.JSONDecodeError) as exc:
@@ -146,7 +154,7 @@ def main() -> None:
         create_handler(model, schedule, config["image_size"], args.device, api_key),
     )
     print(f"New Star image API listening on http://{args.host}:{args.port}")
-    print("This endpoint performs unconditional image generation; it does not accept text prompts.")
+    print("Text prompts are required for caption-conditioned checkpoints; unconditional checkpoints do not accept prompts.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
