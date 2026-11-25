@@ -51,9 +51,9 @@ learning rate, and seed, and set `--steps` to the desired **total** optimizer
 step count:
 
 ```sh
-python ai-image/train.py --data ./permitted-images --manifest ./image-manifest.json \\
-  --output ./artifacts/newstar-image-ddpm.pt --image-size 32 --steps 20000 \\
-  --checkpoint-interval 100 --resume-from ./artifacts/newstar-image-ddpm.pt.resume.pt \\
+python ai-image/train.py --data ./permitted-images --manifest ./image-manifest.json \
+  --output ./artifacts/newstar-image-ddpm.pt --image-size 32 --steps 20000 \
+  --checkpoint-interval 100 --resume-from ./artifacts/newstar-image-ddpm.pt.resume.pt \
   --device cpu
 ```
 
@@ -79,10 +79,10 @@ present, uses a fixed seed for repeatable noise/timestep selection, and writes
 an atomic JSON report:
 
 ```sh
-python ai-image/evaluate.py \\
-  --checkpoint ./artifacts/newstar-image-ddpm.pt \\
-  --data ./heldout-images --manifest ./heldout-manifest.json \\
-  --batch-size 8 --seed 2026 \\
+python ai-image/evaluate.py \
+  --checkpoint ./artifacts/newstar-image-ddpm.pt \
+  --data ./heldout-images --manifest ./heldout-manifest.json \
+  --batch-size 8 --seed 2026 \
   --output ./artifacts/newstar-image-evaluation.json --device cpu
 ```
 
