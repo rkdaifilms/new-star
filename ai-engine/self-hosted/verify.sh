@@ -23,7 +23,7 @@ set +a
 
 [[ -n "${NEW_STAR_MODEL_FILE:-}" ]] || fail "NEW_STAR_MODEL_FILE is empty."
 [[ -n "${NEW_STAR_MODEL_API_KEY:-}" ]] || fail "NEW_STAR_MODEL_API_KEY is empty."
-[[ "${#NEW_STAR_MODEL_API_KEY}" -ge 32 ]] || fail "NEW_STAR_MODEL_API_KEY must be at least 32 characters."
+[[ "$NEW_STAR_MODEL_API_KEY" =~ ^[A-Za-z0-9_-]{32,}$ ]] || fail "NEW_STAR_MODEL_API_KEY must be at least 32 URL-safe random characters."
 [[ "$NEW_STAR_MODEL_API_KEY" != replace-* ]] || fail "Replace the example model API key before starting the service."
 [[ -f "models/$NEW_STAR_MODEL_FILE" ]] || fail "Model file models/$NEW_STAR_MODEL_FILE is missing."
 
@@ -68,8 +68,8 @@ if not isinstance(choices, list) or not choices:
     raise SystemExit("ERROR: model returned no completion choices")
 message = choices[0].get("message", {})
 content = message.get("content", "")
-if not isinstance(content, str) or not content.strip():
-    raise SystemExit("ERROR: model returned an empty assistant message")
-print("PASS: authenticated private model inference returned text.")
+if not isinstance(content, str) or "NEW_STAR_PRIVATE_MODEL_READY" not in content:
+    raise SystemExit("ERROR: model did not return the requested readiness marker; received an unexpected response")
+print("PASS: authenticated private model inference returned the readiness marker.")
 PY
 note "Private model is ready. Configure the Supabase secrets documented in README.md before enabling self-hosted mode."
