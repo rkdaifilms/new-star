@@ -51,7 +51,14 @@ jobs:
       - name: Validate private model startup scripts
         run: |
           bash -n ai-engine/self-hosted/verify.sh ai-engine/self-hosted/verify-embeddings.sh ai-engine/self-hosted/deploy-workers.sh
-          bash -c 'set -a; source ai-engine/self-hosted/.env.example; python3 -c "import json,os; v=json.loads(os.environ[\\"NEW_STAR_PIPER_VOICES\\"]); assert isinstance(v,dict) and v"'
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          line = next(line for line in Path("ai-engine/self-hosted/.env.example").read_text().splitlines() if line.startswith("NEW_STAR_PIPER_VOICES="))
+          value = line.split("=", 1)[1].strip().strip("'")
+          voices = json.loads(value)
+          assert isinstance(voices, dict) and voices
+          PY
       - name: Type-check private search ingestion tool
         run: deno check scripts/new-star-search-ingest.ts
       - name: Type-check private gateway adapters
