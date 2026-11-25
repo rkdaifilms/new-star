@@ -56,7 +56,10 @@ class NewStarImageUNet(nn.Module):
         super().__init__()
         if not isinstance(base_channels, int) or isinstance(base_channels, bool) or base_channels < 8:
             raise ValueError("base_channels must be an integer of at least 8")
-        time_width = time_width or base_channels * 4
+        if time_width is None:
+            time_width = base_channels * 4
+        if not isinstance(time_width, int) or isinstance(time_width, bool) or time_width < 1:
+            raise ValueError("time_width must be a positive integer")
         self.base_channels = base_channels
         self.time_width = time_width
         self.time_mlp = nn.Sequential(
