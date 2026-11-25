@@ -631,3 +631,14 @@ Deno.test("private New Star fine-tuning pipeline validates datasets and uses loc
     if (!train.includes(required)) throw new Error("Private QLoRA trainer is missing " + required);
   }
 });
+
+
+Deno.test("private crawler requires the developer API research permission", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const scopeStart = gateway.indexOf("const requiredScope =");
+  const scopeEnd = gateway.indexOf("if (!apiKeyScopes.includes(requiredScope))", scopeStart);
+  const scopeBlock = gateway.slice(scopeStart, scopeEnd);
+  if (!scopeBlock.includes('action === "search" || action === "crawl" ? "research"')) {
+    throw new Error("Both private search and crawl actions must require the research API scope");
+  }
+});
