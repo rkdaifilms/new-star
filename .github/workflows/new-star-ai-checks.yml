@@ -93,6 +93,9 @@ jobs:
           grep -F 'api_key_list' "$FILE"
           grep -F 'api_key_revoke' "$FILE"
           grep -F 'new_star_ai_api_keys' "$FILE"
+          grep -F 'consumeAiGatewayRateLimit' "$FILE"
+          grep -F 'consume_ai_gateway_api_key_rate_limit' "$FILE"
+          grep -F 'apiKeyId' "$FILE"
           grep -F 'sha256Hex' "$FILE"
           grep -F 'body?.action === "video"' "$FILE"
           grep -F 'body?.action === "video-status"' "$FILE"
@@ -121,3 +124,4 @@ jobs:
           grep -F 'new-star-ai.html' creator-ai.html
           grep -F 'Google Cloud Vertex AI' ai-video/README.md
           grep -F 'end-to-end generation test' ai-video/README.md
+          grep -F 'ns_live_' new-star-ai.js
