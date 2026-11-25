@@ -262,7 +262,7 @@ Deno.test("self-hosted model deployment has one canonical Compose source", async
 Deno.test("private index returns an empty success response when the index has no matching documents", async () => {
   const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
   const start = source.indexOf("async function searchNewStarIndex(");
-  const end = source.indexOf("\\nasync function searchWithGeminiGrounding", start);
+  const end = source.indexOf("\nasync function searchWithGeminiGrounding", start);
   if (start < 0 || end < 0) throw new Error("Private search function boundaries are missing");
   const implementation = source.slice(start, end);
   if (!implementation.includes("if (!error && Array.isArray(data))")) {
