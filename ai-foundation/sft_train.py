@@ -135,7 +135,7 @@ def evaluate_sft(model, corpora, batch_size, block_size, device, precision="fp32
         target_device = torch.device(device)
     except (TypeError, RuntimeError) as exc:
         raise ValueError("device must identify a valid PyTorch device") from exc
-    if precision not in {"auto", "fp32", "fp16", "bf16"}:
+    if not isinstance(precision, str) or precision not in {"auto", "fp32", "fp16", "bf16"}:
         raise ValueError("precision must be auto, fp32, fp16, or bf16")
     model.eval()
     language_losses = []
