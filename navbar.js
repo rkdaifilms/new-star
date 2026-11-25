@@ -277,7 +277,7 @@
         const { error } = await db.auth.signOut();
         if (error) throw error;
 
-        location.replace("auth.html");
+        location.replace("auth.html?next=" + encodeURIComponent(currentPage));
       } catch (error) {
         alert("Logout Error: " + error.message);
         button.disabled = false;
