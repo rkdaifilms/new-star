@@ -49,6 +49,23 @@ Deno.test("self-hosted chat refuses an unconfigured private model instead of fal
   if (plan.length !== 0) throw new Error("Self-hosted mode must fail closed when private model configuration is missing");
 });
 
+Deno.test("self-hosted gateway reports a New Star-specific configuration error instead of generic provider failure", async () => {
+  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const marker = "if (providers.length === 0)";
+  const start = source.indexOf(marker);
+  const end = source.indexOf("const baseSystemPrompt", start);
+  if (start < 0 || end < 0) throw new Error("Gateway provider-empty handling block is missing");
+  const block = source.slice(start, end);
+  if (!block.includes("if (selfHostedOnly)") ||
+      !block.includes("NEW_STAR_PRIVATE_MODEL_NOT_CONFIGURED") ||
+      !block.includes("External providers are disabled in self-hosted mode.")) {
+    throw new Error("Self-hosted mode must explain that its private model is missing and external fallback is disabled");
+  }
+  if (!block.includes("AI_PROVIDERS_NOT_CONFIGURED")) {
+    throw new Error("Normal provider mode must retain its existing configuration error");
+  }
+});
+
 Deno.test("normal provider mode retains only configured provider adapters", () => {
   const run = async () => "ok";
   const plan = buildChatProviderPlan({
