@@ -215,3 +215,66 @@ def test_image_http_api_rejects_unsupported_fields():
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_image_training_resume_matches_uninterrupted_cpu_run(tmp_path, monkeypatch):
+    root = create_dataset(tmp_path / "images")
+    manifest = create_manifest(tmp_path / "manifest.json")
+    uninterrupted = tmp_path / "uninterrupted.pt"
+    resumed = tmp_path / "resumed.pt"
+
+    common = [
+        "--data", str(root), "--manifest", str(manifest),
+        "--batch-size", "1", "--image-size", "32",
+        "--base-channels", "8", "--diffusion-steps", "2",
+        "--learning-rate", "0.0002", "--seed", "41",
+        "--log-interval", "1", "--checkpoint-interval", "1",
+        "--device", "cpu",
+    ]
+
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", *common, "--output", str(uninterrupted), "--steps", "2",
+    ])
+    train_main()
+
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", *common, "--output", str(resumed), "--steps", "1",
+    ])
+    train_main()
+    resume_file = Path(str(resumed) + ".resume.pt")
+    assert resume_file.is_file()
+
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", *common, "--output", str(resumed), "--steps", "2",
+        "--resume-from", str(resume_file),
+    ])
+    train_main()
+
+    expected = torch.load(uninterrupted, map_location="cpu", weights_only=True)
+    actual = torch.load(resumed, map_location="cpu", weights_only=True)
+    assert actual["training"]["steps"] == 2
+    assert actual["dataset_fingerprint"] == expected["dataset_fingerprint"]
+    assert actual["state_dict"].keys() == expected["state_dict"].keys()
+    for key in expected["state_dict"]:
+        torch.testing.assert_close(actual["state_dict"][key], expected["state_dict"][key], rtol=0, atol=0)
+
+
+def test_image_training_resume_rejects_changed_dataset(tmp_path, monkeypatch):
+    root = create_dataset(tmp_path / "images")
+    manifest = create_manifest(tmp_path / "manifest.json")
+    output = tmp_path / "model.pt"
+    common = [
+        "--data", str(root), "--manifest", str(manifest),
+        "--output", str(output), "--steps", "1", "--batch-size", "1",
+        "--image-size", "32", "--base-channels", "8",
+        "--diffusion-steps", "2", "--checkpoint-interval", "1",
+    ]
+    monkeypatch.setattr(sys, "argv", ["train.py", *common])
+    train_main()
+    Image.new("RGB", (22, 22), (20, 30, 40)).save(root / "changed.png")
+    monkeypatch.setattr(sys, "argv", [
+        "train.py", *common, "--steps", "2",
+        "--resume-from", str(output) + ".resume.pt",
+    ])
+    with pytest.raises(SystemExit):
+        train_main()
