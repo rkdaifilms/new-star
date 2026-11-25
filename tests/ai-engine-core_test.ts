@@ -60,15 +60,15 @@ Deno.test("bounded JSON reader rejects wrong content type and oversized bodies",
 
 Deno.test("AI gateway has no duplicate local functions or duplicate search route", async () => {
   const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
-  const functionNames = [...source.matchAll(/(?:async\\s+)?function\\s+([A-Za-z0-9_]+)\\s*\\(/g)].map((match) => match[1]);
+  const functionNames = [...source.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*\(/g)].map((match) => match[1]);
   const duplicates = functionNames.filter((name, index) => functionNames.indexOf(name) !== index);
   if (duplicates.length) throw new Error("Duplicate function declarations: " + [...new Set(duplicates)].join(", "));
 
-  const searchRoutes = source.match(/if \\(body\\?\\.action === "search"\\)/g) || [];
+  const searchRoutes = source.match(/if \(body\?\.action === "search"\)/g) || [];
   if (searchRoutes.length !== 1) throw new Error("Expected exactly one search route; found " + searchRoutes.length);
 
-  const imports = [...source.matchAll(/^import\\s+\\{([^}]+)\\}\\s+from\\s+["'][^"']+["'];/gm)]
-    .flatMap((match) => match[1].split(",").map((part) => part.trim().split(/\\s+as\\s+/)[0]));
+  const imports = [...source.matchAll(/^import\s+\{([^}]+)\}\s+from\s+["'][^"']+["'];/gm)]
+    .flatMap((match) => match[1].split(",").map((part) => part.trim().split(/\s+as\s+/)[0]));
   const importCollisions = imports.filter((name) => functionNames.includes(name));
   if (importCollisions.length) throw new Error("Imported functions redeclared locally: " + [...new Set(importCollisions)].join(", "));
 
