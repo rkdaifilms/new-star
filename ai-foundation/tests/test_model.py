@@ -1660,3 +1660,32 @@ def test_generation_cli_rejects_non_finite_and_out_of_range_temperature(monkeypa
         with pytest.raises(SystemExit) as error:
             main()
         assert error.value.code == 2
+
+
+
+def test_generation_cli_rejects_malformed_checkpoint_structure(monkeypatch, tmp_path):
+    import pytest
+    from generate import main
+
+    malformed = [
+        [],
+        {"format": "new-star-byte-gpt-v1", "config": [], "state_dict": {}},
+        {"format": "new-star-byte-gpt-v1", "config": {}, "state_dict": []},
+        {
+            "format": "new-star-byte-gpt-v1",
+            "config": {
+                "vocab_size": 256, "block_size": 16, "width": 16,
+                "layers": 2, "heads": 4, "dropout": 0.0,
+            },
+            "state_dict": {"unexpected.weight": torch.zeros(1)},
+        },
+    ]
+    for index, checkpoint in enumerate(malformed):
+        path = tmp_path / f"malformed-{index}.pt"
+        torch.save(checkpoint, path)
+        monkeypatch.setattr(sys, "argv", [
+            "generate.py", "--checkpoint", str(path),
+        ])
+        with pytest.raises(SystemExit) as error:
+            main()
+        assert error.value.code == 2
