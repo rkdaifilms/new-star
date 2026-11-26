@@ -7,7 +7,8 @@ import java.net.URL
 import java.net.URLEncoder
 
 data class NewStarSession(val accessToken: String, val refreshToken: String, val userId: String, val email: String)
-data class NewStarVideo(val id: String, val userId: String, val username: String, val caption: String, val videoUrl: String, val likes: Int, val views: Int)\ndata class NewStarComment(val username: String, val comment: String)
+data class NewStarVideo(val id: String, val userId: String, val username: String, val caption: String, val videoUrl: String, val likes: Int, val views: Int)
+data class NewStarComment(val username: String, val comment: String)\ndata class NewStarComment(val username: String, val comment: String)
 
 class NewStarApi {
     companion object {
@@ -86,6 +87,38 @@ class NewStarApi {
             val id = row.optString("id"); val videoUrl = urls.optString(id)
             if (videoUrl.isBlank()) null else NewStarVideo(id, row.optString("user_id"), row.optString("username").ifBlank { "New Star Creator" }, row.optString("caption"), videoUrl, row.optInt("likes_count"), row.optInt("views_count"))
         }
+    }
+
+
+    fun toggleLike(token: String, userId: String, videoId: String): Boolean {
+        val video = URLEncoder.encode(videoId, "UTF-8")
+        val user = URLEncoder.encode(userId, "UTF-8")
+        val existing = JSONArray(request("/rest/v1/likes?select=id&video_id=eq.$video&user_id=eq.$user&limit=1", token = token))
+        if (existing.length() > 0) {
+            val id = URLEncoder.encode(existing.getJSONObject(0).getString("id"), "UTF-8")
+            request("/rest/v1/likes?id=eq.$id", "DELETE", token)
+            return false
+        }
+        request("/rest/v1/likes", "POST", token, JSONObject().put("user_id", userId).put("video_id", videoId))
+        return true
+    }
+
+    fun loadComments(token: String, videoId: String): List<NewStarComment> {
+        val video = URLEncoder.encode(videoId, "UTF-8")
+        val rows = JSONArray(request("/rest/v1/video_comments?select=username,comment&video_id=eq.$video&order=created_at.desc&limit=40", token = token))
+        val result = ArrayList<NewStarComment>()
+        for (i in 0 until rows.length()) {
+            val row = rows.optJSONObject(i) ?: continue
+            result.add(NewStarComment(row.optString("username").ifBlank { "New Star user" }, row.optString("comment")))
+        }
+        return result
+    }
+
+    fun addComment(token: String, userId: String, username: String, videoId: String, comment: String) {
+        val clean = comment.trim()
+        require(clean.isNotEmpty() && clean.length <= 500) { "Comment must be between 1 and 500 characters." }
+        request("/rest/v1/video_comments", "POST", token,
+            JSONObject().put("user_id", userId).put("username", username).put("video_id", videoId).put("comment", clean))
     }
 
     fun searchCreators(token: String?, term: String): List<String> {
