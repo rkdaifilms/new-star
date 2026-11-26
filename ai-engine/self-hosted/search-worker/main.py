@@ -36,6 +36,9 @@ def validate_url(raw: str) -> str:
         if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError()
         host = parsed.hostname.rstrip(".").lower()
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        if port not in {80, 443} or (parsed.scheme == "https" and port != 443) or (parsed.scheme == "http" and port != 80):
+            raise ValueError()
         if host == "localhost" or host.endswith(BLOCKED_SUFFIXES):
             raise ValueError()
         addresses = socket.getaddrinfo(host, parsed.port or (443 if parsed.scheme == "https" else 80), type=socket.SOCK_STREAM)
@@ -69,6 +72,19 @@ def fetch_page(url: str):
     session = requests.Session()
     session.trust_env = False
     response = session.get(safe_url, headers=HEADERS, timeout=TIMEOUT, stream=True, allow_redirects=False)
+    connection = getattr(response.raw, "_connection", None) or getattr(response.raw, "connection", None)
+    sock = getattr(connection, "sock", None)
+    if sock is None:
+        response.close()
+        raise HTTPException(502, "Website network destination could not be verified")
+    try:
+        peer_ip = ipaddress.ip_address(sock.getpeername()[0].split("%")[0])
+    except (ValueError, OSError, IndexError):
+        response.close()
+        raise HTTPException(502, "Website network destination could not be verified")
+    if not peer_ip.is_global:
+        response.close()
+        raise HTTPException(403, "Website resolved to a non-public network destination")
     if response.status_code in {301, 302, 303, 307, 308}:
         response.close()
         raise HTTPException(422, "Website redirects are not followed; crawl the final public URL directly")
@@ -120,7 +136,10 @@ def health():
 def crawl(request: CrawlRequest, authorization: Optional[str] = Header(default=None)):
     auth(authorization)
     url = validate_url(request.url)
-    root_host = urlparse(url).hostname
+    root_parsed = urlparse(url)
+    root_host = root_parsed.hostname
+    root_scheme = root_parsed.scheme
+    root_port = root_parsed.port or (443 if root_scheme == "https" else 80)
     pending = [url]
     visited = set()
     indexed_pages = []
@@ -128,7 +147,8 @@ def crawl(request: CrawlRequest, authorization: Optional[str] = Header(default=N
     while pending and len(visited) < 5:
         current = validate_url(pending.pop(0))
         parsed = urlparse(current)
-        if parsed.hostname != root_host or current in visited:
+        current_port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        if parsed.hostname != root_host or parsed.scheme != root_scheme or current_port != root_port or current in visited:
             continue
         visited.add(current)
         try:
@@ -152,7 +172,8 @@ def crawl(request: CrawlRequest, authorization: Optional[str] = Header(default=N
         for link in links:
             candidate = urldefrag(link)[0]
             link_parsed = urlparse(candidate)
-            if link_parsed.scheme in {"http", "https"} and link_parsed.hostname == root_host and candidate not in visited and candidate not in pending:
+            link_port = link_parsed.port or (443 if link_parsed.scheme == "https" else 80)
+            if link_parsed.scheme == root_scheme and link_parsed.hostname == root_host and link_port == root_port and candidate not in visited and candidate not in pending:
                 pending.append(candidate)
     root = indexed_pages[0]
     return {"ok": True, "page_id": root["page_id"], "url": url, "title": root["title"], "characters_indexed": total_characters, "pages_indexed": len(indexed_pages), "pages": indexed_pages}
