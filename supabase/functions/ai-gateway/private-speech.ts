@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "./fetch-with-timeout.ts";
 import { readWorkerJson } from "./worker-response.ts";
 const AUDIO_MIME_EXTENSIONS: Record<string, string> = {
   "audio/webm": "webm",
@@ -33,16 +34,13 @@ export async function privateSpeechSynthesis(
 ): Promise<{ ok: true; audio: string; mimeType: string } | { ok: false; status: number; error: string }> {
   const endpoint = privateSpeechEndpoint(base, "/v1/audio/speech");
   if (!endpoint || key.length < 32) return { ok: false, status: 503, error: "Private speech worker endpoint or key is not configured securely." };
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 95000);
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetchWithTimeout(endpoint, {
       method: "POST",
       redirect: "error",
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
       body: JSON.stringify({ input: text, language }),
-      signal: controller.signal,
-    });
+    }, 95000);
     const payload = await readJson(response, 24 * 1024 * 1024);
     if (!response.ok) return { ok: false, status: response.status >= 500 ? 503 : 422, error: "Private speech worker rejected the synthesis request." };
     if (typeof payload.audio !== "string" || payload.audio.length < 100 || payload.audio.length > 28000000 ||
@@ -52,8 +50,6 @@ export async function privateSpeechSynthesis(
     return { ok: true, audio: payload.audio, mimeType: payload.mimeType };
   } catch {
     return { ok: false, status: 503, error: "Private speech worker is unreachable or timed out." };
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
@@ -80,16 +76,13 @@ export async function privateSpeechTranscription(
   const audioBuffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(audioBuffer).set(bytes);
   form.append("file", new File([audioBuffer], "new-star-voice." + extension, { type: mimeType }));
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 110000);
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetchWithTimeout(endpoint, {
       method: "POST",
       redirect: "error",
       headers: { Authorization: "Bearer " + key },
       body: form,
-      signal: controller.signal,
-    });
+    }, 110000);
     const payload = await readJson(response, 64 * 1024);
     if (!response.ok) return { ok: false, status: response.status >= 500 ? 503 : 422, error: "Private speech worker rejected the transcription request." };
     if (typeof payload.text !== "string" || !payload.text.trim() ||
@@ -99,7 +92,5 @@ export async function privateSpeechTranscription(
     return { ok: true, transcript: payload.text.trim(), language: payload.language.toLowerCase() };
   } catch {
     return { ok: false, status: 503, error: "Private speech worker is unreachable or timed out." };
-  } finally {
-    clearTimeout(timeout);
   }
 }
