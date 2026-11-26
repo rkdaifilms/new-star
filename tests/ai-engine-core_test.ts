@@ -679,3 +679,15 @@ Deno.test("private chat model requests refuse HTTP redirects", async () => {
     throw new Error("The authenticated private model request must reject redirects");
   }
 });
+
+
+Deno.test("AI engine control room exposes private vision capability status", async () => {
+  const dashboard = await Deno.readTextFile(new URL("../ai-engine-dashboard.html", import.meta.url));
+  if (!dashboard.includes('id="visionModule"') ||
+      !dashboard.includes('id="visionStatus"') ||
+      !dashboard.includes('id="visionDescription"') ||
+      !dashboard.includes('capabilityLabel(caps.imageUnderstanding)') ||
+      !dashboard.includes('capabilitySummary(caps.imageUnderstanding)')) {
+    throw new Error("Control Room must display the gateway's private image-understanding capability and reason");
+  }
+});
