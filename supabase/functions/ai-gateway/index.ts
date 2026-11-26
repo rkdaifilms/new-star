@@ -14,6 +14,7 @@ import { privateImageGeneration } from "./private-image.ts";
 import { privateVideoStart, privateVideoStatus } from "./private-video.ts";
 import { privateSearch, privateCrawl } from "./private-search.ts";
 import { privateVision } from "./private-vision.ts";
+import { probePrivateWorker } from "./private-worker-health.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-nepal.netlify.app",
@@ -1423,8 +1424,47 @@ Deno.serve(async (req: Request) => {
     const { data: statusAllowed, error: statusLimitError } = await consumeAiGatewayRateLimit(adminClient, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (statusLimitError || statusAllowed !== true) return json({ ok: false, error: statusLimitError ? "Security rate-limit check unavailable." : "Provider status check limit reached. Wait before checking again." }, statusLimitError ? 503 : 429, headers);
     if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") {
-      const hosted = await probeNewStarHostedModel();
-      return json({ ok: true, status: true, mode: "self_hosted", providers: { newStarHostedModelConfigured: hosted.configured, newStarApiPrimary: true, openai: false, gemini: false, openrouter: false }, capabilities: { chat: { supported: true, configured: hosted.configured && hosted.reachable && hosted.modelAvailable }, imageGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_IMAGE_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_IMAGE_API_KEY")?.trim() || "").length >= 32), reason: "Private GPU image worker endpoint and key must be configured and verified" }, imageUnderstanding: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_VISION_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_VISION_API_KEY")?.trim() || "").length >= 32), reason: "Private vision worker endpoint and key must be configured and verified" }, developerApiKeys: { supported: true, configured: true }, speechGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SPEECH_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_SPEECH_API_KEY")?.trim() || "").length >= 32), reason: "Private speech worker and licensed language voices must be installed and verified" }, speechTranscription: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SPEECH_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_SPEECH_API_KEY")?.trim() || "").length >= 32), reason: "Private speech worker endpoint and key must be configured and verified" }, videoGeneration: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_VIDEO_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_VIDEO_API_KEY")?.trim() || "").length >= 32), reason: "Private GPU video worker endpoint and key must be configured and verified; current output is 480p, 6 seconds" }, webSearch: { supported: true, configured: Boolean(Deno.env.get("NEW_STAR_SEARCH_BASE_URL")?.trim() && (Deno.env.get("NEW_STAR_SEARCH_API_KEY")?.trim() || "").length >= 32), reason: "Private crawler/search worker endpoint and key must be configured; only pages crawled into its local index are searchable" } }, health: { newStarHostedModel: hosted, providers: { openai: { configured: false }, gemini: { configured: false }, openrouter: { configured: false } }, note: "Self-hosted-only mode. No external model providers are contacted." } }, 200, headers);
+      const [hosted, image, video, speech, search, vision] = await Promise.all([
+        probeNewStarHostedModel(),
+        probePrivateWorker(Deno.env.get("NEW_STAR_IMAGE_BASE_URL") || "", Deno.env.get("NEW_STAR_IMAGE_API_KEY") || ""),
+        probePrivateWorker(Deno.env.get("NEW_STAR_VIDEO_BASE_URL") || "", Deno.env.get("NEW_STAR_VIDEO_API_KEY") || ""),
+        probePrivateWorker(Deno.env.get("NEW_STAR_SPEECH_BASE_URL") || "", Deno.env.get("NEW_STAR_SPEECH_API_KEY") || ""),
+        probePrivateWorker(Deno.env.get("NEW_STAR_SEARCH_BASE_URL") || "", Deno.env.get("NEW_STAR_SEARCH_API_KEY") || ""),
+        probePrivateWorker(Deno.env.get("NEW_STAR_VISION_BASE_URL") || "", Deno.env.get("NEW_STAR_VISION_API_KEY") || "")
+      ]);
+      const configuredAndReachable = (worker: { configured: boolean; reachable: boolean }) => worker.configured && worker.reachable;
+      return json({
+        ok: true,
+        status: true,
+        mode: "self_hosted",
+        providers: {
+          newStarHostedModelConfigured: hosted.configured,
+          newStarApiPrimary: true,
+          openai: false,
+          gemini: false,
+          openrouter: false
+        },
+        capabilities: {
+          chat: { supported: true, configured: hosted.configured, reachable: hosted.reachable, modelAvailable: hosted.modelAvailable },
+          imageGeneration: { supported: true, configured: image.configured, reachable: image.reachable, healthy: image.healthy, reason: "Private image worker health is checked live; current output is 1K only" },
+          imageUnderstanding: { supported: true, configured: vision.configured, reachable: vision.reachable, healthy: vision.healthy },
+          developerApiKeys: { supported: true, configured: true },
+          speechGeneration: { supported: true, configured: speech.configured, reachable: speech.reachable, healthy: speech.healthy, reason: "Only installed and licensed Piper language voices can generate speech" },
+          speechTranscription: { supported: true, configured: speech.configured, reachable: speech.reachable, healthy: speech.healthy, modelLoaded: speech.modelLoaded },
+          videoGeneration: { supported: true, configured: video.configured, reachable: video.reachable, healthy: video.healthy, reason: "Private GPU video worker currently produces 480p, 6-second clips" },
+          webSearch: { supported: true, configured: search.configured, reachable: search.reachable, healthy: search.healthy, reason: "Only pages crawled into the private index are searchable" }
+        },
+        health: {
+          newStarHostedModel: hosted,
+          privateWorkers: { image, video, speech, search, vision },
+          providers: {
+            openai: { configured: false },
+            gemini: { configured: false },
+            openrouter: { configured: false }
+          },
+          note: "Self-hosted-only mode. No external model providers are contacted. Worker configured, reachable, and model-loaded states are reported separately."
+        }
+      }, 200, headers);
     }
     const newStarModel = await probeNewStarHostedModel();
     const newStarTestFallbackEnabled = Deno.env.get("NEW_STAR_MODEL_ENABLE_FALLBACK") === "true" && newStarModel.configured;
