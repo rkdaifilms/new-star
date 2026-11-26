@@ -39,6 +39,13 @@ WORKERS = {
 PNG_1X1 = (
     "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGPUSNnCQApgIkn1qIZRDUNKAwAFQAFgfUuIBgAAAABJRU5ErkJggg=="
 )
+AUTH_PROBE_BODIES = {
+    "image": {"prompt": "authorization probe", "aspect_ratio": "1:1", "image_size": "1K"},
+    "video": {"prompt": "authorization probe", "aspect_ratio": "16:9", "resolution": "480p", "duration": "6s"},
+    "speech": {"input": "authorization probe", "language": "en"},
+    "search": {"query": "authorization probe", "limit": 1},
+    "vision": {"image": PNG_1X1, "mime_type": "image/png", "prompt": "authorization probe"},
+}
 failures: list[str] = []
 passed = 0
 skipped = 0
@@ -104,7 +111,10 @@ def health_check(name: str, base: str, key: str, protected_path: str) -> tuple[s
             raise RuntimeError("health endpoint did not return HTTP 200 with ok=true")
         if name in ("image", "video", "vision") and data.get("cuda") is not True:
             raise RuntimeError("worker is reachable but reports CUDA unavailable")
-        auth_status, _, _ = request_json(endpoint + protected_path, "new-star-invalid-auth-probe", {}, timeout=15)
+        probe_body = AUTH_PROBE_BODIES.get(name)
+        if probe_body is None:
+            raise RuntimeError("no schema-valid authorization probe is defined for this worker")
+        auth_status, _, _ = request_json(endpoint + protected_path, "new-star-invalid-auth-probe", probe_body, timeout=15)
         if auth_status != 401:
             raise RuntimeError("protected API did not reject an invalid bearer token with HTTP 401")
         report("PASS", name, "HTTPS health is responding and protected API rejects invalid credentials")
