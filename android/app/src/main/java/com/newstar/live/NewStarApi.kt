@@ -57,8 +57,25 @@ class NewStarApi {
         return if (JSONObject(raw).has("access_token")) parseSession(raw) else null
     }
 
-    fun loadFeed(token: String?): List<NewStarVideo> {
-        val path = "/rest/v1/videos?select=id,user_id,username,caption,likes_count,views_count,processing_status,visibility,audience_type,created_at&or=(processing_status.eq.published,processing_status.is.null)&or=(visibility.eq.public,visibility.is.null)&or=(audience_type.eq.all,audience_type.is.null)&order=created_at.desc&limit=30"
+    fun loadFeed(token: String?): List<NewStarVideo> = loadFeedForUsers(token, null)
+
+    fun loadFollowingFeed(token: String, userId: String): List<NewStarVideo> {
+        val encodedUser = URLEncoder.encode(userId, "UTF-8")
+        val follows = JSONArray(request("/rest/v1/followers?select=following_id&follower_id=eq.$encodedUser", token = token))
+        val ids = ArrayList<String>()
+        for (i in 0 until follows.length()) {
+            val id = follows.optJSONObject(i)?.optString("following_id").orEmpty()
+            if (id.isNotBlank()) ids.add(id)
+        }
+        if (ids.isEmpty()) return emptyList()
+        return loadFeedForUsers(token, ids)
+    }
+
+    private fun loadFeedForUsers(token: String?, creatorIds: List<String>?): List<NewStarVideo> {
+        val basePath = "/rest/v1/videos?select=id,user_id,username,caption,likes_count,views_count,processing_status,visibility,audience_type,created_at&or=(processing_status.eq.published,processing_status.is.null)&or=(visibility.eq.public,visibility.is.null)&or=(audience_type.eq.all,audience_type.is.null)&order=created_at.desc&limit=30"
+        val path = if (creatorIds == null) basePath else basePath.substringBefore("&order=") +
+            "&user_id=in." + URLEncoder.encode("(" + creatorIds.joinToString(",") + ")", "UTF-8") +
+            "&order=created_at.desc&limit=30"
         val rows = JSONArray(request(path, token = token))
         val ids = JSONArray()
         val base = ArrayList<JSONObject>()
