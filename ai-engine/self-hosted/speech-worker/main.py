@@ -22,6 +22,8 @@ MAX_AUDIO_BYTES = int(os.getenv("NEW_STAR_MAX_AUDIO_BYTES", str(8 * 1024 * 1024)
 VOICE_MAP_RAW = os.getenv("NEW_STAR_PIPER_VOICES", "{}")
 _model = None
 _model_lock = threading.Lock()
+_transcription_lock = threading.Lock()
+_synthesis_lock = threading.Lock()
 
 
 def voice_map() -> dict:
@@ -87,8 +89,10 @@ async def transcriptions(file: UploadFile = File(...), authorization: Optional[s
             temp.write(data)
             temp_path = temp.name
         model = whisper()
-        segments, info = model.transcribe(temp_path, beam_size=5, vad_filter=True)
-        transcript = " ".join(segment.text.strip() for segment in segments).strip()
+        # Faster-Whisper shares a GPU model instance; serialize inference to bound VRAM use.
+        with _transcription_lock:
+            segments, info = model.transcribe(temp_path, beam_size=5, vad_filter=True)
+            transcript = " ".join(segment.text.strip() for segment in segments).strip()
         if not transcript:
             raise HTTPException(status_code=422, detail="No speech could be recognized")
         return {"text": transcript, "language": info.language, "language_probability": info.language_probability}
@@ -113,7 +117,8 @@ def speech(request: SpeechRequest, authorization: Optional[str] = Header(default
     try:
         with tempfile.NamedTemporaryFile(prefix="ns-voice-", suffix=".wav", dir=str(CACHE_DIR), delete=False) as temp:
             output_path = temp.name
-        completed = subprocess.run(["piper", "--model", str(voice_path), "--output_file", output_path], input=request.input, text=True, capture_output=True, timeout=90, check=False)
+        with _synthesis_lock:
+            completed = subprocess.run(["piper", "--model", str(voice_path), "--output_file", output_path], input=request.input, text=True, capture_output=True, timeout=90, check=False)
         if completed.returncode != 0:
             raise HTTPException(status_code=502, detail="Private speech synthesis process failed")
         audio = Path(output_path).read_bytes()
