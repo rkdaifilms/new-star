@@ -52,6 +52,16 @@ class SearchWorkerResponseSafetyTests(unittest.TestCase):
 
     @patch.object(worker, "validate_url_and_resolve", return_value=("https://example.com/", ["8.8.8.8"]))
     @patch.object(worker.requests, "Session")
+    def test_rejects_peer_ip_not_in_validated_dns_answers(self, session_factory, _validate):
+        response = self.make_response(headers={"content-type": "text/plain"})
+        response.raw._connection.sock.getpeername = lambda: ("1.1.1.1", 443)
+        session_factory.return_value.get.return_value = response
+        with self.assertRaisesRegex(worker.HTTPException, "unvalidated network destination"):
+            worker.fetch_page("https://example.com/")
+        response.close.assert_called()
+
+    @patch.object(worker, "validate_url_and_resolve", return_value=("https://example.com/", ["8.8.8.8"]))
+    @patch.object(worker.requests, "Session")
     def test_redirect_is_rejected_and_response_closed(self, session_factory, _validate):
         response = self.make_response(status=302, headers={"location": "http://127.0.0.1/"})
         session_factory.return_value.get.return_value = response
@@ -61,7 +71,7 @@ class SearchWorkerResponseSafetyTests(unittest.TestCase):
         self.assertFalse(session_factory.return_value.get.call_args.kwargs["allow_redirects"])
         response.close.assert_called()
 
-    @patch.object(worker, "validate_url", return_value="https://example.com/")
+    @patch.object(worker, "validate_url_and_resolve", return_value=("https://example.com/", ["8.8.8.8"]))
     @patch.object(worker.requests, "Session")
     def test_declared_oversize_response_is_rejected_before_body_read(self, session_factory, _validate):
         response = self.make_response(headers={
