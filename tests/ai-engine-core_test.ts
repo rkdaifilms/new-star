@@ -141,6 +141,9 @@ Deno.test("private search ingestion CLI is import-safe and atomically replaces e
   if (!source.includes("vector.length !== 384")) {
     throw new Error("The ingestion utility must enforce the existing 384-dimensional vector schema");
   }
+  if (!source.includes('model: "local-model"') || source.includes('model: "new-star-embedding"')) {
+    throw new Error("The ingestion utility must use the model identifier shared by the private llama.cpp embedding service");
+  }
   if (!source.includes("/rpc/replace_new_star_search_chunks") || !source.includes("p_chunks: chunks")) {
     throw new Error("Ingestion must use the atomic replacement RPC");
   }
