@@ -813,7 +813,7 @@ Deno.test("private video worker validates MP4 output and repairs stale completed
   const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/video-worker/main.py", import.meta.url));
   for (const required of [
     "def valid_mp4_output(path: Path) -> bool:",
-    "header[4:8] == b'ftyp'",
+    'header[4:8] == b"ftyp"',
     'job.get("status") == "completed" and not valid_mp4_output',
     '"VIDEO_OUTPUT_MISSING_OR_INVALID"',
     "if not valid_mp4_output(output):"
