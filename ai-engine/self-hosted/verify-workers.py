@@ -15,6 +15,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -95,6 +96,12 @@ def request_json(url: str, key: str | None = None, body: dict[str, Any] | None =
 
 def build_multipart_request(url: str, key: str, filename: str, mime_type: str, payload: bytes,
                            field_name: str = "file") -> urllib.request.Request:
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", filename):
+        raise ValueError("transcription filename contains unsupported characters")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", field_name):
+        raise ValueError("transcription form field name contains unsupported characters")
+    if not re.fullmatch(r"[A-Za-z0-9.+-]+/[A-Za-z0-9.+-]+", mime_type):
+        raise ValueError("transcription MIME type is invalid")
     boundary = "----NewStarSpeech" + os.urandom(16).hex()
     body = b"".join([
         b"--" + boundary.encode("ascii") + b"\r\n",
@@ -129,9 +136,10 @@ def request_multipart(url: str, key: str, filename: str, mime_type: str, payload
                 data = {}
             return response.status, data if isinstance(data, dict) else {}, raw.decode("utf-8", "replace")
     except urllib.error.HTTPError as error:
-        raw = error.read(64 * 1024 + 1).decode("utf-8", "replace")
-        if len(raw.encode("utf-8")) > 64 * 1024:
+        raw_bytes = error.read(64 * 1024 + 1)
+        if len(raw_bytes) > 64 * 1024:
             raise RuntimeError("transcription error response exceeded the 64 KiB limit") from None
+        raw = raw_bytes.decode("utf-8", "replace")
         try:
             data = json.loads(raw)
         except json.JSONDecodeError:
