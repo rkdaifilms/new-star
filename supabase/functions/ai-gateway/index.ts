@@ -6,6 +6,7 @@ import { detectReplyScript } from "./language-policy.ts";
 import { formatRetrievedContext, normalizeNewStarSearchResults, normalizePrivateIndexRows, normalizeEmbeddingVector, toPgVectorLiteral } from "./search-provider.ts";
 import { AI_LANGUAGE_NAMES } from "./language-catalog.ts";
 import { readBoundedJson } from "./request-body.ts";
+import { fetchWithTimeout } from "./fetch-with-timeout.ts";
 import { buildChatProviderPlan } from "./provider-routing.ts";
 import { privateSpeechSynthesis, privateSpeechTranscription } from "./private-speech.ts";
 import { privateImageGeneration } from "./private-image.ts";
@@ -289,17 +290,6 @@ function normalizeGeminiContents(messages: ChatMessage[]) {
   while (contents[0]?.role === "model") contents.shift();
   return contents;
 }
-
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 16000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 
 async function createNewStarSearchEmbedding(query: string): Promise<number[] | null> {
   const configured = Deno.env.get("NEW_STAR_EMBEDDING_BASE_URL")?.trim() || "";
