@@ -780,3 +780,16 @@ Deno.test("private video encodes its 49 CogVideoX frames as an exact six-second 
     throw new Error("Private video output timing must encode all 49 model frames into exactly six seconds");
   }
 });
+
+
+Deno.test("completed private video status polls reuse the saved object instead of uploading duplicates", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const privateBranch = gateway.indexOf("if (selfHostedVideo) {", gateway.indexOf('if (body?.action === "video-status")'));
+  const completedGuard = gateway.indexOf('if (job.status === "completed" && job.storage_path)', privateBranch);
+  const workerPoll = gateway.indexOf("privateVideoStatus(", privateBranch);
+  const signedUrl = gateway.indexOf("createSignedUrl(job.storage_path, 3600)", completedGuard);
+  if (privateBranch < 0 || completedGuard < 0 || signedUrl < completedGuard ||
+      workerPoll < completedGuard || completedGuard > workerPoll) {
+    throw new Error("Completed private video jobs must return their existing signed Storage URL before polling the worker");
+  }
+});
