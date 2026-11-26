@@ -7,6 +7,7 @@ import { formatRetrievedContext, normalizeNewStarSearchResults, normalizePrivate
 import { AI_LANGUAGE_NAMES } from "./language-catalog.ts";
 import { readBoundedJson } from "./request-body.ts";
 import { fetchWithTimeout } from "./fetch-with-timeout.ts";
+import { readWorkerJson } from "./worker-response.ts";
 import { buildChatProviderPlan } from "./provider-routing.ts";
 import { privateSpeechSynthesis, privateSpeechTranscription } from "./private-speech.ts";
 import { privateImageGeneration } from "./private-image.ts";
@@ -309,8 +310,9 @@ async function createNewStarSearchEmbedding(query: string): Promise<number[] | n
       })
     }, 12000);
     if (!response.ok) return null;
-    const data = await response.json().catch(() => ({}));
-    return normalizeEmbeddingVector(data?.data?.[0]?.embedding);
+    const parsed = await readWorkerJson(response, 1024 * 1024);
+    if (!parsed.ok) return null;
+    return normalizeEmbeddingVector(parsed.value?.data && (parsed.value.data as any)?.[0]?.embedding);
   } catch {
     return null;
   }
@@ -585,9 +587,11 @@ async function callNewStarHostedModel(key: string, messages: ChatMessage[], syst
       temperature: 0.4, max_tokens: 1400
     })
   }, 45000);
-  const data = await response.json().catch(() => ({}));
+  const parsed = await readWorkerJson(response, 2 * 1024 * 1024);
+  const data = parsed.ok ? parsed.value : {};
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
-  const answer = data?.choices?.[0]?.message?.content;
+  if (!parsed.ok) throw new Error("NEW_STAR_MODEL_INVALID_OR_OVERSIZED_RESPONSE");
+  const answer = (data as any)?.choices?.[0]?.message?.content;
   if (typeof answer !== "string" || !answer.trim()) throw new Error("NEW_STAR_MODEL_EMPTY_RESPONSE");
   return answer.trim();
 }
@@ -673,7 +677,9 @@ async function probeNewStarHostedModel() {
       await response.body?.cancel().catch(() => {});
       return { configured: true, reachable: false, modelAvailable: false };
     }
-    const data = await response.json().catch(() => ({}));
+    const parsed = await readWorkerJson(response, 256 * 1024);
+    if (!parsed.ok) return { configured: true, reachable: false, modelAvailable: false, reason: "Private model returned an invalid or oversized model list." };
+    const data = parsed.value;
     const models = Array.isArray(data?.data) ? data.data : [];
     return { configured: true, reachable: true, modelAvailable: models.some((item: any) => item?.id === model) };
   } catch {
