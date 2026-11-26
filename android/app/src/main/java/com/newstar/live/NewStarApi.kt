@@ -8,7 +8,7 @@ import java.net.URLEncoder
 
 data class NewStarSession(val accessToken: String, val refreshToken: String, val userId: String, val email: String)
 data class NewStarVideo(val id: String, val userId: String, val username: String, val caption: String, val videoUrl: String, val likes: Int, val views: Int)
-data class NewStarComment(val username: String, val comment: String)\ndata class NewStarComment(val username: String, val comment: String)
+data class NewStarComment(val username: String, val comment: String)
 
 class NewStarApi {
     companion object {
