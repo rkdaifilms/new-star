@@ -1,4 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,NEW_STAR_EMBEDDING_BASE_URL,NEW_STAR_EMBEDDING_API_KEY
+import { fetchWithTimeout } from "../supabase/functions/ai-gateway/fetch-with-timeout.ts";
+import { readWorkerBytes } from "../supabase/functions/ai-gateway/worker-response.ts";
+
 type InputDocument = {
   url: string;
   title: string;
@@ -94,26 +97,37 @@ export function splitIntoChunks(content: string, maxLength = 1200, overlap = 160
   return chunks;
 }
 
-async function createEmbedding(base: string, key: string, text: string): Promise<number[]> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30000);
-  try {
-    const response = await fetch(base + "/embeddings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
-      body: JSON.stringify({ model: "new-star-embedding", input: text }),
-      signal: controller.signal
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error("Embedding service returned HTTP " + response.status);
-    const vector = payload?.data?.[0]?.embedding;
-    if (!Array.isArray(vector) || vector.length !== 384 || vector.some((v: unknown) => typeof v !== "number" || !Number.isFinite(v))) {
-      throw new Error("Embedding service must return exactly 384 finite numbers; verify the configured embedding model.");
-    }
-    return vector as number[];
-  } finally {
-    clearTimeout(timer);
+async function readJsonResponse(response: Response, maxBytes: number): Promise<unknown> {
+  const result = await readWorkerBytes(response, maxBytes);
+  if (!result.ok) {
+    throw new Error(result.error === "response_too_large"
+      ? "Upstream response exceeded the configured size limit."
+      : "Upstream response could not be read.");
   }
+  try {
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(result.bytes));
+  } catch {
+    throw new Error("Upstream returned invalid JSON.");
+  }
+}
+
+async function createEmbedding(base: string, key: string, text: string): Promise<number[]> {
+  const response = await fetchWithTimeout(base + "/embeddings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+    body: JSON.stringify({ model: "new-star-embedding", input: text }),
+    redirect: "error"
+  }, 30000);
+  const payload = await readJsonResponse(response, 1024 * 1024) as Record<string, unknown>;
+  if (!response.ok) throw new Error("Embedding service returned HTTP " + response.status);
+  const data = payload.data;
+  const vector = Array.isArray(data) && data[0] && typeof data[0] === "object"
+    ? (data[0] as Record<string, unknown>).embedding
+    : null;
+  if (!Array.isArray(vector) || vector.length !== 384 || vector.some((v: unknown) => typeof v !== "number" || !Number.isFinite(v))) {
+    throw new Error("Embedding service must return exactly 384 finite numbers; verify the configured embedding model.");
+  }
+  return vector as number[];
 }
 
 async function main() {
@@ -168,21 +182,25 @@ async function main() {
     }
   }
 
-  const response = await fetch(supabaseBase + "/rest/v1/rpc/replace_new_star_search_chunks", {
+  const response = await fetchWithTimeout(supabaseBase + "/rest/v1/rpc/replace_new_star_search_chunks", {
     method: "POST",
     headers: {
       apikey: serviceKey,
       Authorization: "Bearer " + serviceKey,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ p_chunks: chunks })
-  });
+    body: JSON.stringify({ p_chunks: chunks }),
+    redirect: "error"
+  }, 45000);
+  const responsePayload = await readJsonResponse(response, 64 * 1024);
   if (!response.ok) {
-    const message = (await response.text()).slice(0, 1200);
+    const message = typeof responsePayload === "string"
+      ? responsePayload.slice(0, 1200)
+      : JSON.stringify(responsePayload).slice(0, 1200);
     throw new Error("Supabase atomic search replacement failed with HTTP " + response.status + ": " + message);
   }
-  const replacedCount = await response.json().catch(() => null);
-  if (replacedCount !== chunks.length) {
+  const replacedCount = Number(responsePayload);
+  if (!Number.isInteger(replacedCount) || replacedCount !== chunks.length) {
     throw new Error("Supabase confirmed " + String(replacedCount) + " replaced chunks; expected " + chunks.length);
   }
   console.log("Atomically replaced " + documents.length + " source documents with " + replacedCount + " vector + full-text chunks.");
