@@ -723,7 +723,7 @@ Deno.test("private GPU deployment runs authenticated chat inference before repor
 
 
 Deno.test("private speech rejects oversized base64 before decoding or making a network request", async () => {
-  const oversized = "A".repeat(11_184_812);
+  const oversized = "A".repeat(11_184_816);
   const result = await privateSpeechTranscription(
     "https://speech.private.example",
     "s".repeat(40),
