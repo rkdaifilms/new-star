@@ -307,12 +307,12 @@ async function handleAuthAction(){
    if(error)throw error;
 
    if(data.session){
-    showMessage("Account बन गया! Profile खुल रहा है।","success");
+    showMessage("Account बन गया! Home खुल रहा है।","success");
     setTimeout(goAfterLogin,500);
 
    }else{
     showMessage(
-     "Account बन गया। अपने Email में Confirmation Link खोलें। Verification के बाद Profile पर वापस आएँ और Login करें।",
+     "Account बन गया। अपने Email में Confirmation Link खोलें। Verification के बाद New Star खोलें और Login करें।",
      "success"
     );
 
@@ -335,7 +335,7 @@ async function handleAuthAction(){
    if(error)throw error;
    if(!data.session)throw new Error("Login session नहीं बना।");
 
-   showMessage("Login सफल! Profile खुल रहा है...","success");
+   showMessage("Login सफल! Home खुल रहा है...","success");
 
    setTimeout(goAfterLogin,400);
   }
