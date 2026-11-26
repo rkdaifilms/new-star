@@ -1273,15 +1273,19 @@ Deno.serve(async (req: Request) => {
       }
       if (privateState.status !== "completed") return json({ ok: true, status: privateState.status, jobId: job.id, model: privateState.model }, 200, headers);
       if (!privateState.videoBytes) return json({ ok: false, error: "Private video worker returned no MP4 data." }, 502, headers);
-      const storagePath = userId + "/" + crypto.randomUUID() + ".mp4";
-      const { error: uploadError } = await videoAdmin.storage.from("new-star-ai-videos").upload(storagePath, privateState.videoBytes, { contentType: "video/mp4", cacheControl: "3600", upsert: false });
+      // A deterministic per-job object key makes concurrent completion polls idempotent.
+      // Upsert allows simultaneous pollers to converge on the same object instead of
+      // creating multiple randomly named copies of one generated video.
+      const storagePath = userId + "/" + job.id + ".mp4";
+      const { error: uploadError } = await videoAdmin.storage.from("new-star-ai-videos").upload(storagePath, privateState.videoBytes, { contentType: "video/mp4", cacheControl: "3600", upsert: true });
       if (uploadError) {
         await videoAdmin.from("ai_video_jobs").update({ status: "failed", failure_code: "VIDEO_STORAGE_UPLOAD_FAILED", updated_at: new Date().toISOString() }).eq("id", job.id);
         return json({ ok: false, error: "The private video finished but could not be saved to New Star storage." }, 503, headers);
       }
       const { error: updateError } = await videoAdmin.from("ai_video_jobs").update({ status: "completed", storage_path: storagePath, updated_at: new Date().toISOString() }).eq("id", job.id);
       if (updateError) {
-        await videoAdmin.storage.from("new-star-ai-videos").remove([storagePath]);
+        // Keep the deterministic object: another concurrent poll may have finalized
+        // the same job successfully. A retry can safely upsert this exact object.
         return json({ ok: false, error: "The private video was uploaded but its job record could not be finalized." }, 503, headers);
       }
       const { data: signed, error: signedError } = await videoAdmin.storage.from("new-star-ai-videos").createSignedUrl(storagePath, 3600);
