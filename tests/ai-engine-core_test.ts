@@ -697,6 +697,16 @@ Deno.test("private GPU deployment runs authenticated chat inference before repor
   const deploy = await Deno.readTextFile(new URL("../ai-engine/self-hosted/deploy-workers.sh", import.meta.url));
   const verify = await Deno.readTextFile(new URL("../ai-engine/self-hosted/verify.sh", import.meta.url));
   const healthMarker = deploy.indexOf('note "Chat model health is responding.');
+  for (const required of [
+    'new-star-speech) auth_body=',
+    'new-star-image) auth_body=',
+    'new-star-video) auth_body=',
+    'new-star-search) auth_body=',
+    'new-star-vision) auth_body=',
+    '--data "$auth_body"'
+  ]) {
+    if (!deploy.includes(required)) throw new Error("Deployment auth probes must use schema-valid worker payloads: " + required);
+  }
   const smokeCall = deploy.indexOf("bash verify.sh", healthMarker);
   const firstWorker = deploy.indexOf("check_worker new-star-speech", healthMarker);
   if (healthMarker < 0 || smokeCall < healthMarker || firstWorker < smokeCall) {
