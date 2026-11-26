@@ -9,6 +9,9 @@ from contextlib import contextmanager
 from urllib.parse import urljoin, urlparse, urldefrag
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.connection import HTTPConnection, HTTPSConnection
+from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -33,9 +36,81 @@ def auth(value: Optional[str]):
         raise HTTPException(401, "Unauthorized")
 
 
-def validate_url(raw: str) -> str:
+class _PinnedAddressMixin:
+    def __init__(self, *args, pinned_ips=(), **kwargs):
+        self._pinned_ips = tuple(pinned_ips)
+        super().__init__(*args, **kwargs)
+
+    def _new_conn(self):
+        if not self._pinned_ips:
+            raise OSError("No validated public IP addresses are available")
+        last_error = None
+        for address in self._pinned_ips:
+            try:
+                return socket.create_connection(
+                    (address, self.port),
+                    timeout=self.timeout,
+                    source_address=self.source_address,
+                    socket_options=self.socket_options,
+                )
+            except OSError as error:
+                last_error = error
+        if last_error is not None:
+            raise last_error
+        raise OSError("Could not connect to a validated public IP address")
+
+
+class _PinnedHTTPConnection(_PinnedAddressMixin, HTTPConnection):
+    pass
+
+
+class _PinnedHTTPSConnection(_PinnedAddressMixin, HTTPSConnection):
+    pass
+
+
+class _PinnedHTTPConnectionPool(HTTPConnectionPool):
+    ConnectionCls = _PinnedHTTPConnection
+
+
+class _PinnedHTTPSConnectionPool(HTTPSConnectionPool):
+    ConnectionCls = _PinnedHTTPSConnection
+
+
+class PinnedAddressAdapter(HTTPAdapter):
+    """Pin TCP destinations while retaining hostname-based TLS verification."""
+
+    def __init__(self, pinned_ips):
+        self.pinned_ips = tuple(pinned_ips)
+        super().__init__(max_retries=0)
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        super().init_poolmanager(connections, maxsize, block=block, **pool_kwargs)
+        classes = dict(self.poolmanager.pool_classes_by_scheme)
+        classes["http"] = _PinnedHTTPConnectionPool
+        classes["https"] = _PinnedHTTPSConnectionPool
+        self.poolmanager.pool_classes_by_scheme = classes
+        self.poolmanager.connection_pool_kw["pinned_ips"] = self.pinned_ips
+
+
+def resolve_public_addresses(host: str, port: int) -> list[str]:
+    answers = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    if not answers:
+        raise ValueError("Hostname did not resolve")
+    addresses = []
+    for item in answers:
+        address = ipaddress.ip_address(item[4][0].split("%")[0])
+        if not address.is_global:
+            raise ValueError("Hostname resolved to a non-public address")
+        value = str(address)
+        if value not in addresses:
+            addresses.append(value)
+    return addresses
+
+
+def validate_url_and_resolve(raw: str) -> tuple[str, list[str]]:
     try:
-        parsed = urlparse(raw.strip())
+        safe_url = raw.strip()
+        parsed = urlparse(safe_url)
         if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError()
         host = parsed.hostname.rstrip(".").lower()
@@ -44,16 +119,13 @@ def validate_url(raw: str) -> str:
             raise ValueError()
         if host == "localhost" or host.endswith(BLOCKED_SUFFIXES):
             raise ValueError()
-        addresses = socket.getaddrinfo(host, parsed.port or (443 if parsed.scheme == "https" else 80), type=socket.SOCK_STREAM)
-        if not addresses:
-            raise ValueError()
-        for item in addresses:
-            address = ipaddress.ip_address(item[4][0].split("%")[0])
-            if not address.is_global:
-                raise ValueError()
-        return raw.strip()
+        return safe_url, resolve_public_addresses(host, port)
     except Exception:
         raise HTTPException(400, "Only public HTTP or HTTPS websites are allowed")
+
+
+def validate_url(raw: str) -> str:
+    return validate_url_and_resolve(raw)[0]
 
 
 @contextmanager
@@ -71,9 +143,11 @@ def database():
 
 
 def fetch_page(url: str):
-    safe_url = validate_url(url)
+    safe_url, pinned_addresses = validate_url_and_resolve(url)
     session = requests.Session()
     session.trust_env = False
+    parsed_url = urlparse(safe_url)
+    session.mount(parsed_url.scheme + "://", PinnedAddressAdapter(pinned_addresses))
     response = session.get(safe_url, headers=HEADERS, timeout=TIMEOUT, stream=True, allow_redirects=False)
     connection = getattr(response.raw, "_connection", None) or getattr(response.raw, "connection", None)
     sock = getattr(connection, "sock", None)
