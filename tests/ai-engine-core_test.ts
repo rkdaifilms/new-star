@@ -144,6 +144,9 @@ Deno.test("private search ingestion CLI is import-safe and atomically replaces e
   if (!source.includes('model: "local-model"') || source.includes('model: "new-star-embedding"')) {
     throw new Error("The ingestion utility must use the model identifier shared by the private llama.cpp embedding service");
   }
+  if (!source.includes("fetchWithTimeout") || !source.includes("readWorkerBytes") || source.includes("await response.json()")) {
+    throw new Error("Embedding and Supabase ingestion requests must keep timeouts active through bounded response-body reads");
+  }
   if (!source.includes("/rpc/replace_new_star_search_chunks") || !source.includes("p_chunks: chunks")) {
     throw new Error("Ingestion must use the atomic replacement RPC");
   }
