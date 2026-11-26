@@ -807,3 +807,17 @@ Deno.test("concurrent private video completion polls converge on one determinist
     throw new Error("Concurrent private video polls must use one deterministic per-job Storage key with upsert enabled");
   }
 });
+
+
+Deno.test("private video worker validates MP4 output and repairs stale completed jobs on restart", async () => {
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/video-worker/main.py", import.meta.url));
+  for (const required of [
+    "def valid_mp4_output(path: Path) -> bool:",
+    "header[4:8] == b'ftyp'",
+    'job.get("status") == "completed" and not valid_mp4_output',
+    '"VIDEO_OUTPUT_MISSING_OR_INVALID"',
+    "if not valid_mp4_output(output):"
+  ]) {
+    if (!worker.includes(required)) throw new Error("Video worker recovery validation is missing " + required);
+  }
+});
