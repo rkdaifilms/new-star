@@ -114,7 +114,7 @@ Run actual image, vision, speech-synthesis, and private-index search inference (
 python3 verify-workers.py --infer
 ```
 
-For crawler verification, set `NEW_STAR_SMOKE_CRAWL_URL` to a public page you are authorized to index. The crawler verifies the connected peer IP is globally routable before reading page content, accepts only standard HTTP/HTTPS ports, follows same-origin links only on the original scheme and port, and is capped at five pages per submitted root URL. To test speech synthesis in a different installed voice language, set `NEW_STAR_SMOKE_SPEECH_LANGUAGE` to its configured ISO language code. To query a different indexed phrase, set `NEW_STAR_SMOKE_SEARCH_QUERY`.
+For crawler verification, set `NEW_STAR_SMOKE_CRAWL_URL` to a public page you are authorized to index. The crawler validates DNS answers as globally routable and pins those exact IPs in its HTTP/HTTPS connection pool before sending a request; HTTPS retains hostname-based SNI and certificate verification, and the connected peer IP is checked again before page content is read. It accepts only standard HTTP/HTTPS ports, follows same-origin links only on the original scheme and port, and is capped at five pages per submitted root URL. To test speech synthesis in a different installed voice language, set `NEW_STAR_SMOKE_SPEECH_LANGUAGE` to its configured ISO language code. To query a different indexed phrase, set `NEW_STAR_SMOKE_SEARCH_QUERY`.
 
 Video generation is a separate, expensive six-second GPU job and is not run by the default checks:
 
