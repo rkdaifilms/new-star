@@ -1,4 +1,4 @@
-const CACHE_NAME = "newstar-app-shell-v6";
+const CACHE_NAME = "newstar-app-shell-v7";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -14,6 +14,9 @@ const APP_SHELL = [
   "/monetization.html",
   "/wallet.html",
   "/admin.html",
+  "/new-star-ai.html",
+  "/new-star-ai.css",
+  "/new-star-ai.js",
   "/navbar.js",
   "/ai-chat.js",
   "/creator-ai.html",
