@@ -71,6 +71,15 @@ docker compose -f compose.yaml --profile speech --profile image --profile video 
 check_worker() {
   local name="$1" port="$2" path="$3"
   local health="http://127.0.0.1:${port}/health"
+  local auth_body
+  case "$name" in
+    new-star-speech) auth_body='{"input":"authorization probe","language":"en"}' ;;
+    new-star-image) auth_body='{"prompt":"authorization probe","aspect_ratio":"1:1","image_size":"1K"}' ;;
+    new-star-video) auth_body='{"prompt":"authorization probe","aspect_ratio":"16:9","resolution":"480p","duration":"6s"}' ;;
+    new-star-search) auth_body='{"query":"authorization probe","limit":1}' ;;
+    new-star-vision) auth_body='{"image":"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGPUSNnCQApgIkn1qIZRDUNKAwAFQAFgfUuIBgAAAABFJREFUeJxjYBgFo2AUjIJRMAAAAwAB1t1oNwAAAABJRU5ErkJggg==","mime_type":"image/png","prompt":"authorization probe"}' ;;
+    *) fail "No schema-valid authorization probe is configured for $name." ;;
+  esac
   local ready=0
   for attempt in $(seq 1 90); do
     if curl --silent --show-error --fail --max-time 5 "$health" >/dev/null 2>&1; then
@@ -88,7 +97,7 @@ check_worker() {
     --request POST "$path" \
     --header 'Authorization: Bearer new-star-invalid-auth-probe' \
     --header 'Content-Type: application/json' \
-    --data '{}' || true)"
+    --data "$auth_body" || true)"
   [[ "$auth_status" == "401" ]] || fail "$name protected endpoint did not reject invalid credentials (HTTP $auth_status)."
   note "$name health passed and invalid credentials were rejected."
 }
