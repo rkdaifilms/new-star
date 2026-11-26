@@ -769,3 +769,14 @@ Deno.test("Creator Studio private search results render without block-scoped sou
     throw new Error("Private search result links must be read from the gateway results array");
   }
 });
+
+
+Deno.test("private video encodes its 49 CogVideoX frames as an exact six-second clip", async () => {
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/video-worker/main.py", import.meta.url));
+  if (!worker.includes("FRAME_COUNT = 49") ||
+      !worker.includes("FPS = FRAME_COUNT / 6.0") ||
+      !worker.includes("num_frames=FRAME_COUNT") ||
+      !worker.includes("fps=FPS")) {
+    throw new Error("Private video output timing must encode all 49 model frames into exactly six seconds");
+  }
+});
