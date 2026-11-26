@@ -1,286 +1,195 @@
 package com.newstar.live
 
-import android.Manifest
-import android.app.Activity
-import android.content.*
-import android.media.projection.MediaProjectionManager
+import android.content.Context
+import android.graphics.Color
 import android.net.Uri
-import android.os.Build
-import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
-import android.webkit.*
-import android.widget.FrameLayout
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import org.json.JSONObject
+import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var container: FrameLayout
-    private lateinit var web: WebView
-    private var fileCallback: ValueCallback<Array<Uri>>? = null
-    private var pendingUrl = ""
-    private var pendingMicEnabled = false
-    private var pendingWebPermission: PermissionRequest? = null
+    private val api = NewStarApi()
+    private val worker = Executors.newSingleThreadExecutor()
+    private val prefs by lazy { getSharedPreferences("newstar_native_session", Context.MODE_PRIVATE) }
+    private var session: NewStarSession? = null
+    private lateinit var root: LinearLayout
+    private lateinit var content: FrameLayout
+    private lateinit var status: TextView
 
-    private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        val selected = if (result.resultCode == Activity.RESULT_OK) {
-            val data = result.data
-            when {
-                data?.clipData != null -> Array(data.clipData!!.itemCount) { i -> data.clipData!!.getItemAt(i).uri }
-                data?.data != null -> arrayOf(data.data!!)
-                else -> null
-            }
-        } else null
-        fileCallback?.onReceiveValue(selected)
-        fileCallback = null
-    }
-
-    private val webMediaPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
-        val request = pendingWebPermission
-        pendingWebPermission = null
-        if (request == null) return@registerForActivityResult
-        val resources = request.resources
-        val supported = resources.isNotEmpty() && resources.all {
-            it == PermissionRequest.RESOURCE_AUDIO_CAPTURE || it == PermissionRequest.RESOURCE_VIDEO_CAPTURE
-        }
-        val allGranted = supported && resources.all { resource ->
-            val permission = when (resource) {
-                PermissionRequest.RESOURCE_AUDIO_CAPTURE -> Manifest.permission.RECORD_AUDIO
-                PermissionRequest.RESOURCE_VIDEO_CAPTURE -> Manifest.permission.CAMERA
-                else -> return@all false
-            }
-            grants[permission] == true ||
-                ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
-        }
-        if (allGranted) request.grant(resources) else request.deny()
-    }
-
-    private val gamingMicPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        pendingMicEnabled = granted
-        launchGamingScreenPermission()
-    }
-
-    private val screenPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null && pendingUrl.isNotBlank()) {
-            val i = Intent(this, GamingStreamService::class.java).apply {
-                action = GamingStreamService.START
-                putExtra(GamingStreamService.RESULT_CODE, result.resultCode)
-                putExtra(GamingStreamService.RESULT_DATA, result.data)
-                putExtra(GamingStreamService.WHIP_URL, pendingUrl)
-                putExtra(GamingStreamService.INCLUDE_MIC, pendingMicEnabled)
-            }
-            ContextCompat.startForegroundService(this, i)
-        } else {
-            emit("error", "Android screen-sharing permission was not granted.")
-        }
-        pendingUrl = ""
-        pendingMicEnabled = false
-    }
-
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(c: Context?, i: Intent?) {
-            emit(i?.getStringExtra("status") ?: return, i.getStringExtra("message") ?: "", i.getStringExtra("resource") ?: "")
-        }
+    private val videoPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) Toast.makeText(this, "Selected video: " + uri.lastPathSegment, Toast.LENGTH_SHORT).show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        container = FrameLayout(this)
-        web = createWebView()
-        container.addView(web, FrameLayout.LayoutParams(-1, -1))
-        setContentView(container)
+        window.statusBarColor = Color.rgb(8, 10, 18)
+        window.navigationBarColor = Color.rgb(8, 10, 18)
+        session = restoreSession()
+        if (session == null) showAuth() else showHome()
+    }
 
-        val f = IntentFilter(GamingStreamService.STATUS)
-        if (Build.VERSION.SDK_INT >= 33) registerReceiver(receiver, f, Context.RECEIVER_NOT_EXPORTED)
-        else {
-            @Suppress("DEPRECATION")
-            registerReceiver(receiver, f)
+    private fun restoreSession(): NewStarSession? {
+        val access = prefs.getString("access", null) ?: return null
+        val refresh = prefs.getString("refresh", null) ?: return null
+        val id = prefs.getString("user_id", null) ?: return null
+        return NewStarSession(access, refresh, id, prefs.getString("email", "") ?: "")
+    }
+
+    private fun saveSession(value: NewStarSession) {
+        session = value
+        prefs.edit().putString("access", value.accessToken).putString("refresh", value.refreshToken).putString("user_id", value.userId).putString("email", value.email).apply()
+    }
+
+    private fun baseScreen(title: String) {
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Color.rgb(8, 10, 18)) }
+        val header = TextView(this).apply { text = title; setTextColor(Color.WHITE); textSize = 22f; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(20), dp(12), dp(20), dp(12)); setTypeface(null, 1) }
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(58)))
+        content = FrameLayout(this)
+        root.addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
+        status = TextView(this).apply { setTextColor(Color.LTGRAY); textSize = 13f; setPadding(dp(16), dp(8), dp(16), dp(8)); visibility = View.GONE }
+        root.addView(status)
+        setContentView(root)
+    }
+
+    private fun showAuth() {
+        baseScreen("✦ New Star")
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(24), dp(20), dp(24), dp(20)) }
+        panel.addView(label("Welcome to New Star", 26f, true))
+        panel.addView(label("Sign in to watch and connect", 14f))
+        val email = EditText(this).apply { hint = "Email address"; setSingleLine(); inputType = 33; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY); setPadding(dp(14), 0, dp(14), 0); setBackgroundColor(Color.rgb(28, 31, 43)) }
+        val password = EditText(this).apply { hint = "Password"; setSingleLine(); inputType = 129; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY); setPadding(dp(14), 0, dp(14), 0); setBackgroundColor(Color.rgb(28, 31, 43)) }
+        val signIn = button("Sign in"); val signUp = button("Create account")
+        panel.addView(email, LinearLayout.LayoutParams(-1, dp(52))); panel.addView(space(12))
+        panel.addView(password, LinearLayout.LayoutParams(-1, dp(52))); panel.addView(space(18))
+        panel.addView(signIn, LinearLayout.LayoutParams(-1, dp(50))); panel.addView(space(8))
+        panel.addView(signUp, LinearLayout.LayoutParams(-1, dp(50)))
+        content.addView(panel, FrameLayout.LayoutParams(-1, -1))
+        signIn.setOnClickListener { authenticate(email.text.toString(), password.text.toString(), false, signIn) }
+        signUp.setOnClickListener { authenticate(email.text.toString(), password.text.toString(), true, signUp) }
+    }
+
+    private fun authenticate(email: String, password: String, create: Boolean, trigger: Button) {
+        if (!email.contains("@") || password.length < 6) { showStatus("Enter a valid email and password of at least 6 characters."); return }
+        trigger.isEnabled = false; showStatus(if (create) "Creating account…" else "Signing in…")
+        worker.execute {
+            try {
+                val result = if (create) api.signUp(email, password) else api.signIn(email, password)
+                runOnUiThread {
+                    trigger.isEnabled = true
+                    if (result == null) showStatus("Account created. Verify your email, then sign in.")
+                    else { saveSession(result); showHome() }
+                }
+            } catch (e: Exception) { runOnUiThread { trigger.isEnabled = true; showStatus(e.message ?: "Authentication failed.") } }
         }
-        if (savedInstanceState == null) web.loadUrl(HOME_URL) else web.restoreState(savedInstanceState)
     }
 
-    private fun launchGamingScreenPermission() {
-        val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        screenPermission.launch(manager.createScreenCaptureIntent())
+    private fun showHome() {
+        baseScreen("✦ New Star")
+        val toolbar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), 0, dp(16), 0) }
+        toolbar.addView(label("For You", 16f, true), LinearLayout.LayoutParams(0, dp(44), 1f))
+        val refresh = TextView(this).apply { text = "↻"; textSize = 26f; setTextColor(Color.WHITE); gravity = Gravity.CENTER }
+        toolbar.addView(refresh, LinearLayout.LayoutParams(dp(48), dp(44)))
+        content.addView(toolbar, FrameLayout.LayoutParams(-1, dp(48)))
+        val scroll = ScrollView(this)
+        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        scroll.addView(list)
+        content.addView(scroll, FrameLayout.LayoutParams(-1, -1).apply { topMargin = dp(48) })
+        refresh.setOnClickListener { loadFeed(list) }
+        loadFeed(list)
+        addBottomNav("Home")
     }
 
-    private fun createWebView(): WebView {
-        return WebView(this).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.allowFileAccess = false
-            settings.allowContentAccess = true
-            settings.javaScriptCanOpenWindowsAutomatically = false
-            settings.setSupportMultipleWindows(false)
-            settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            settings.safeBrowsingEnabled = true
-            CookieManager.getInstance().setAcceptCookie(true)
-            CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
-            webChromeClient = object : WebChromeClient() {
-                override fun onPermissionRequest(request: PermissionRequest) {
+    private fun loadFeed(list: LinearLayout) {
+        list.removeAllViews(); list.addView(label("Loading videos…", 16f))
+        worker.execute {
+            try {
+                val videos = api.loadFeed(session?.accessToken)
+                runOnUiThread {
+                    list.removeAllViews()
+                    if (videos.isEmpty()) list.addView(label("No public videos are available yet.", 16f))
+                    videos.forEachIndexed { index, video -> list.addView(videoCard(video, index == 0)) }
+                }
+            } catch (e: Exception) {
+                runOnUiThread { list.removeAllViews(); list.addView(label("Could not load feed: " + (e.message ?: "Network error"), 15f)) }
+            }
+        }
+    }
+
+    private fun videoCard(video: NewStarVideo, autoplay: Boolean): View {
+        val card = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Color.BLACK) }
+        val player = VideoView(this)
+        card.addView(player, LinearLayout.LayoutParams(-1, dp(610)))
+        val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(12), dp(16), dp(18)); setBackgroundColor(Color.rgb(8, 10, 18)) }
+        info.addView(label("@" + video.username, 16f, true))
+        info.addView(label(video.caption, 14f))
+        info.addView(label("♥ " + video.likes + "     ▶ " + video.views, 13f))
+        card.addView(info)
+        if (autoplay) player.post {
+            player.setVideoURI(Uri.parse(video.videoUrl))
+            player.setOnPreparedListener { it.isLooping = true; it.start() }
+        }
+        card.setOnClickListener { if (player.isPlaying) player.pause() else player.start() }
+        return card
+    }
+
+    private fun showSearch() {
+        baseScreen("Search New Star")
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(16), dp(16), 0) }
+        val input = EditText(this).apply { hint = "Search creator"; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY) }
+        val search = button("Search creators")
+        val results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val scroll = ScrollView(this).apply { addView(results) }
+        panel.addView(input, LinearLayout.LayoutParams(-1, dp(52))); panel.addView(space(10))
+        panel.addView(search, LinearLayout.LayoutParams(-1, dp(48))); panel.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        content.addView(panel)
+        search.setOnClickListener {
+            val term = input.text.toString().trim()
+            if (term.isBlank()) return@setOnClickListener
+            results.removeAllViews(); showStatus("Searching…")
+            worker.execute {
+                try {
+                    val found = api.searchCreators(session?.accessToken, term)
                     runOnUiThread {
-                        val trustedOrigin = request.origin.scheme == "https" && request.origin.host == APP_HOST
-                        val supportedResources = request.resources.isNotEmpty() && request.resources.all {
-                            it == PermissionRequest.RESOURCE_AUDIO_CAPTURE || it == PermissionRequest.RESOURCE_VIDEO_CAPTURE
-                        }
-                        if (!trustedOrigin || !supportedResources) {
-                            request.deny()
-                            return@runOnUiThread
-                        }
-                        val requiredPermissions = buildList {
-                            if (request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) add(Manifest.permission.RECORD_AUDIO)
-                            if (request.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) add(Manifest.permission.CAMERA)
-                        }
-                        val missingPermissions = requiredPermissions.filter {
-                            ContextCompat.checkSelfPermission(this@MainActivity, it) != PackageManager.PERMISSION_GRANTED
-                        }
-                        if (missingPermissions.isEmpty()) {
-                            request.grant(request.resources)
-                        } else {
-                            pendingWebPermission?.deny()
-                            pendingWebPermission = request
-                            webMediaPermissions.launch(missingPermissions.toTypedArray())
-                        }
+                        status.visibility = View.GONE
+                        if (found.isEmpty()) results.addView(label("No matching creators found."))
+                        found.forEach { results.addView(label(it)) }
                     }
-                }
-
-                override fun onPermissionRequestCanceled(request: PermissionRequest) {
-                    if (pendingWebPermission == request) pendingWebPermission = null
-                }
-
-                override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                }
-
-                override fun onShowFileChooser(
-                    webView: WebView?,
-                    callback: ValueCallback<Array<Uri>>?,
-                    params: FileChooserParams?
-                ): Boolean {
-                    fileCallback?.onReceiveValue(null)
-                    fileCallback = callback
-                    return try {
-                        val intent = params?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
-                            type = "*/*"
-                            addCategory(Intent.CATEGORY_OPENABLE)
-                            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                        }
-                        filePicker.launch(intent)
-                        true
-                    } catch (_: Exception) {
-                        fileCallback?.onReceiveValue(null)
-                        fileCallback = null
-                        false
-                    }
-                }
-            }
-            webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    val uri = request.url
-                    if (uri.scheme == "https" && uri.host == APP_HOST) return false
-                    if (uri.scheme == "https" || uri.scheme == "http") {
-                        runCatching { startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-                    }
-                    return true
-                }
-
-                @Suppress("DEPRECATION")
-                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                    val uri = Uri.parse(url)
-                    if (uri.scheme == "https" && uri.host == APP_HOST) return false
-                    if (uri.scheme == "https" || uri.scheme == "http") {
-                        runCatching { startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-                    }
-                    return true
-                }
-
-                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                }
-
-                override fun onPageCommitVisible(view: WebView?, url: String?) {
-                }
-
-                override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                    if (request.isForMainFrame) showLoadError(error.description?.toString() ?: "Network error")
-                }
-
-                override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
-                    if (request.isForMainFrame && response.statusCode >= 500) showLoadError("Server error: ${response.statusCode}")
-                }
-
-                override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: android.net.http.SslError) {
-                    handler.cancel()
-                    showLoadError("Secure connection failed. Please check your internet connection and device date/time.")
-                }
-            }
-            addJavascriptInterface(Bridge(), "NewStarNative")
-        }
-    }
-
-    private fun showLoadError(message: String) {
-        val safeMessage = message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        val html = """
-            <html><meta name="viewport" content="width=device-width, initial-scale=1">
-            <body style="margin:0;background:#101018;color:white;font:16px sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center">
-            <main style="padding:28px"><h2>New Star couldn't load</h2><p>$safeMessage</p>
-            <button onclick="location.href='$HOME_URL'" style="padding:14px 22px;border:0;border-radius:10px;background:#7c3aed;color:white;font-size:16px">Try again</button>
-            </main></body></html>
-        """.trimIndent()
-        web.loadDataWithBaseURL(HOME_URL, html, "text/html", "UTF-8", null)
-    }
-
-    private fun emit(status: String, message: String, resource: String = "") {
-        val d = JSONObject().put("status", status).put("message", message).put("resourceUrl", resource)
-        runOnUiThread { if (::web.isInitialized) web.evaluateJavascript("window.dispatchEvent(new CustomEvent('newstar-native-stream-status',{detail:$d}));", null) }
-    }
-
-    inner class Bridge {
-        @JavascriptInterface fun startScreenStream(url: String) {
-            val u = runCatching { Uri.parse(url) }.getOrNull()
-            if (u?.scheme != "https" || u.host.isNullOrBlank() || !(u.host == "cloudflarestream.com" || u.host!!.endsWith(".cloudflarestream.com"))) {
-                emit("error", "Server did not provide a valid secure Cloudflare WHIP endpoint."); return
-            }
-            runOnUiThread {
-                pendingUrl = url
-                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                    pendingMicEnabled = true
-                    launchGamingScreenPermission()
-                } else {
-                    // Screen sharing can still proceed if the creator declines microphone access.
-                    pendingMicEnabled = false
-                    gamingMicPermission.launch(Manifest.permission.RECORD_AUDIO)
-                }
+                } catch (e: Exception) { runOnUiThread { showStatus(e.message ?: "Search failed.") } }
             }
         }
-        @JavascriptInterface fun stopScreenStream() {
-            runOnUiThread { stopService(Intent(this@MainActivity, GamingStreamService::class.java)) }
+    }
+
+    private fun showProfile() {
+        baseScreen("Your Account")
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(24), dp(20), dp(20)) }
+        panel.addView(label("Signed in as\n" + (session?.email ?: "New Star creator"), 16f))
+        val logout = button("Sign out")
+        panel.addView(logout, LinearLayout.LayoutParams(-1, dp(50)))
+        content.addView(panel)
+        logout.setOnClickListener { prefs.edit().clear().apply(); session = null; showAuth() }
+    }
+
+    private fun addBottomNav(selected: String) {
+        val nav = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setBackgroundColor(Color.rgb(16, 18, 28)) }
+        listOf("Home", "Search", "Profile").forEach { item ->
+            val tab = TextView(this).apply { text = item; gravity = Gravity.CENTER; textSize = 13f; setTextColor(if (item == selected) Color.WHITE else Color.LTGRAY) }
+            nav.addView(tab, LinearLayout.LayoutParams(0, dp(52), 1f))
+            tab.setOnClickListener { when (item) { "Home" -> showHome(); "Search" -> showSearch(); else -> showProfile() } }
         }
+        root.addView(nav)
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        web.saveState(outState)
-        super.onSaveInstanceState(outState)
+    private fun label(text: String, size: Float = 15f, bold: Boolean = false) = TextView(this).apply {
+        this.text = text; textSize = size; setTextColor(Color.WHITE); setPadding(dp(8), dp(10), dp(8), dp(10))
+        if (bold) setTypeface(null, 1)
     }
-
-    override fun onBackPressed() {
-        if (::web.isInitialized && web.canGoBack()) web.goBack() else super.onBackPressed()
-    }
-
-    override fun onDestroy() {
-        fileCallback?.onReceiveValue(null)
-        fileCallback = null
-        runCatching { unregisterReceiver(receiver) }
-        if (::web.isInitialized) {
-            web.removeJavascriptInterface("NewStarNative")
-            web.stopLoading()
-            web.destroy()
-        }
-        super.onDestroy()
-    }
-
-    companion object {
-        private const val APP_HOST = "new-star-delta.vercel.app"
-        private const val HOME_URL = "https://new-star-delta.vercel.app/"
-    }
+    private fun button(text: String) = Button(this).apply { this.text = text; isAllCaps = false; textSize = 15f; setTextColor(Color.WHITE); setBackgroundColor(Color.rgb(110, 65, 220)) }
+    private fun space(height: Int) = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dp(height)) }
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+    private fun showStatus(message: String) { status.text = message; status.visibility = View.VISIBLE }
+    override fun onDestroy() { worker.shutdown(); super.onDestroy() }
 }
