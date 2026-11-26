@@ -8,6 +8,12 @@ function requestLanguage(){return lastInputWasVoice?(lastTranscriptionLanguage||
 let lastTranscriptionLanguage="",lastInputWasVoice=false;
 let mode="chat",busy=false,attachment=null,conversationId=localStorage.getItem("new-star-ai-conversation")||"",recorder=null,recordedChunks=[];
 const modes={chat:["AI Chat","Ask questions, plan and create."],research:["Live Research","Search the web and return source links."],image:["Image Generation","Describe an image and choose output size."],video:["Video Generation","Describe a short video and choose its format and duration."]};
+function setResearchMode(privateOnly){
+ modes.research=privateOnly
+  ?["Private Search","Search pages indexed in New Star. Paste a public website URL to add it to your private index."]
+  :["Live Research","Search the web and return source links."];
+ if(mode==="research"){$("mode-title").textContent=modes.research[0];$("mode-help").textContent=modes.research[1];}
+}
 function bubble(text,kind="ai"){const el=document.createElement("div");el.className="ns-message "+(kind==="user"?"ns-user":"ns-ai");el.textContent=text;output.append(el);output.scrollTop=output.scrollHeight;return el;}
 function toBase64(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(new Error("Could not read voice recording."));reader.readAsDataURL(blob);});}
 async function transcribeVoice(blob){const client=window.supabaseClient||window.cloudClient;if(!client?.functions)throw new Error("New Star AI connection is not ready. Reload the page.");const mime=(blob.type||"audio/webm").split(";")[0];const audio=await toBase64(blob);const result=await client.functions.invoke("ai-gateway",{body:{action:"transcribe",audio,mimeType:mime}});if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"Voice transcription failed."));lastTranscriptionLanguage=result.data.language&&result.data.language!=="und"?result.data.language:"";lastInputWasVoice=true;prompt.value=(prompt.value.trim()?prompt.value.trim()+" ":"")+result.data.transcript;prompt.focus();bubble("Voice transcript: "+result.data.transcript,"user");}
@@ -101,6 +107,7 @@ async function refreshEngineStatus(){
   const model=health.newStarHostedModel||{};
   const providerHealth=health.providers||{};
   if(result.data.mode==="self_hosted"){
+   setResearchMode(true);
    setPrivateImageSizeMode(true);
    const privateOnline=Boolean(model.reachable&&model.modelAvailable);
    status.textContent=privateOnline?"New Star private model: online · External AI providers: disabled":model.configured?"New Star private model: configured, not verified · External AI providers: disabled":"New Star private model: not configured · External AI providers: disabled";
@@ -109,6 +116,7 @@ async function refreshEngineStatus(){
    foot.textContent=capabilitySummary+". Self-hosted-only mode: no Gemini, OpenAI or OpenRouter inference fallback.";
    return;
   }
+  setResearchMode(false);
   setPrivateImageSizeMode(false);
   const providerState=(name,configured)=>{if(!configured)return "not configured";const item=providerHealth[name]||{};if(item.quotaAvailable===false)return "credits exhausted";if(item.status==="credits_available")return "online · credits available";if(item.authorized)return "online";if(item.reachable)return "reachable, access denied";return "unreachable";};
   const providerSummary=["Gemini: "+providerState("gemini",providers.gemini),"OpenAI: "+providerState("openai",providers.openai),"OpenRouter: "+providerState("openrouter",providers.openrouter)].join(" · ");
