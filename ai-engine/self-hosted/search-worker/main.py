@@ -97,7 +97,6 @@ class PinnedAddressAdapter(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
         self.poolmanager = _PinnedPoolManager(
             num_pools=connections,
-            headers=self.headers,
             block=block,
             pinned_ips=self.pinned_ips,
             **pool_kwargs,
