@@ -4,7 +4,7 @@ import { detectReplyScript } from "../supabase/functions/ai-gateway/language-pol
 import { readBoundedJson } from "../supabase/functions/ai-gateway/request-body.ts";
 import { splitIntoChunks } from "../scripts/new-star-search-ingest.ts";
 import { buildChatProviderPlan } from "../supabase/functions/ai-gateway/provider-routing.ts";
-import { privateSpeechEndpoint } from "../supabase/functions/ai-gateway/private-speech.ts";
+import { privateSpeechEndpoint, privateSpeechTranscription } from "../supabase/functions/ai-gateway/private-speech.ts";
 import { privateImageEndpoint } from "../supabase/functions/ai-gateway/private-image.ts";
 
 
@@ -718,5 +718,27 @@ Deno.test("private GPU deployment runs authenticated chat inference before repor
   }
   for (const required of ["NEW_STAR_PRIVATE_MODEL_READY", "authenticated inference smoke test", "PASS: authenticated private model inference"]) {
     if (!verify.includes(required)) throw new Error("Chat inference smoke test is missing " + required);
+  }
+});
+
+
+Deno.test("private speech rejects oversized base64 before decoding or making a network request", async () => {
+  const oversized = "A".repeat(11_184_812);
+  const result = await privateSpeechTranscription(
+    "https://speech.private.example",
+    "s".repeat(40),
+    oversized,
+    "audio/webm"
+  );
+  if (result.ok || result.status !== 413) {
+    throw new Error("Oversized encoded audio must be rejected before base64 decoding");
+  }
+});
+
+Deno.test("private vision serializes GPU inference to prevent concurrent VRAM exhaustion", async () => {
+  const source = await Deno.readTextFile(new URL("../ai-engine/self-hosted/vision-worker/main.py", import.meta.url));
+  if (!source.includes("_inference_lock = threading.Lock()") ||
+      !source.includes("with _inference_lock, torch.inference_mode():")) {
+    throw new Error("Private vision GPU inference must be serialized with a dedicated lock");
   }
 });
