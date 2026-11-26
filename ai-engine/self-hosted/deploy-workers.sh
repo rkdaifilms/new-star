@@ -99,7 +99,8 @@ for attempt in $(seq 1 90); do
   if [[ "$attempt" -eq 90 ]]; then docker compose -f compose.yaml logs --tail=80 new-star-model >&2; fail "Private chat model did not become healthy."; fi
   sleep 5
 done
-note "Chat model health is responding. Run bash verify.sh to perform its authenticated generation test."
+note "Chat model health is responding. Running the authenticated chat inference smoke test."
+bash verify.sh
 
 check_worker new-star-speech 8090 http://127.0.0.1:8090/v1/audio/speech
 check_worker new-star-image 8091 http://127.0.0.1:8091/v1/images/generations
@@ -107,6 +108,6 @@ check_worker new-star-video 8092 http://127.0.0.1:8092/v1/videos/generations
 check_worker new-star-search 8093 http://127.0.0.1:8093/v1/search
 check_worker new-star-vision 8094 http://127.0.0.1:8094/v1/vision/analyze
 
-note "All five optional media/search worker containers are healthy and reject invalid credentials; chat health is responding."
+note "Authenticated private chat inference passed; all five optional media/search worker containers are healthy and reject invalid credentials."
 note "This is not a generation test. Run python3 verify-workers.py --infer and python3 verify-workers.py --video after configuring HTTPS reverse-proxy URLs and Supabase secrets."
 note "All ports remain bound to loopback by Compose. Do not publish worker ports directly to the internet."
