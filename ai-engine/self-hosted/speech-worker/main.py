@@ -121,9 +121,13 @@ def speech(request: SpeechRequest, authorization: Optional[str] = Header(default
             completed = subprocess.run(["piper", "--model", str(voice_path), "--output_file", output_path], input=request.input, text=True, capture_output=True, timeout=90, check=False)
         if completed.returncode != 0:
             raise HTTPException(status_code=502, detail="Private speech synthesis process failed")
-        audio = Path(output_path).read_bytes()
-        if len(audio) < 44 or len(audio) > 20 * 1024 * 1024:
+        audio_file = Path(output_path)
+        audio_size = audio_file.stat().st_size
+        if audio_size < 44 or audio_size > 20 * 1024 * 1024:
             raise HTTPException(status_code=502, detail="Private speech synthesis returned invalid audio")
+        audio = audio_file.read_bytes()
+        if len(audio) != audio_size or audio[:4] != b"RIFF" or audio[8:12] != b"WAVE":
+            raise HTTPException(status_code=502, detail="Private speech synthesis returned an invalid WAV file")
         return {"audio": base64.b64encode(audio).decode("ascii"), "mimeType": "audio/wav", "language": request.language.lower()}
     except subprocess.TimeoutExpired as exc:
         raise HTTPException(status_code=504, detail="Private speech synthesis timed out") from exc
