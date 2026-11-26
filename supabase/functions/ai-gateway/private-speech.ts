@@ -67,6 +67,9 @@ export async function privateSpeechTranscription(
   const endpoint = privateSpeechEndpoint(base, "/v1/audio/transcriptions");
   const extension = AUDIO_MIME_EXTENSIONS[mimeType];
   if (!endpoint || key.length < 32 || !extension) return { ok: false, status: 503, error: "Private speech worker endpoint, key, or audio format is not configured." };
+  // Reject oversized encoded input before atob allocates a second, decoded copy.
+  const maxEncodedLength = Math.ceil((8 * 1024 * 1024) / 3) * 4;
+  if (audio.length > maxEncodedLength) return { ok: false, status: 413, error: "Voice recording exceeds the private worker size limit." };
   let bytes: Uint8Array;
   try {
     bytes = Uint8Array.from(atob(audio), (character) => character.charCodeAt(0));
