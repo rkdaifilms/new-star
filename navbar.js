@@ -239,10 +239,10 @@
       <div id="newstar-menu-panel">
         <a href="camera.html" data-i18n="page.camera">📷 Camera / Create / Upload</a>
         <a href="creator-ai.html">✨ New Star Creator Studio</a>
-        <a href="new-star-ai.html">🧠 New Star AI Engine</a>
         <a href="profile.html" data-i18n="nav.profile">👤 My Profile</a>
         <a href="settings.html" data-i18n="settings.title">⚙️ Main Settings</a>
         <a href="admin.html" id="newstar-owner-dashboard-link" hidden>🛡️ Developer / Owner Dashboard</a>
+        <a href="new-star-ai.html">✦ New Star AI Engine</a>
         <a href="wallet.html" data-i18n="nav.wallet">💰 Wallet</a>
         <a href="inbox.html" data-i18n="nav.inbox">✉️ Inbox</a>
         <a href="monetization.html" data-i18n="page.monetization">💎 Monetization</a>
@@ -353,7 +353,7 @@
 
     const items = [
       { page: "index.html", icon: "🏠", label: navText("Home") },
-      { page: "new-star-ai.html", icon: "✦", label: navText("AI") },
+      { page: "new-star-ai.html", icon: "✦", label: "New Star AI" },
       { page: "wallet.html", icon: "💰", label: navText("Wallet") },
       { page: "camera.html", icon: "+", label: navText("Create"), plus: true },
       { page: "inbox.html", icon: "✉️", label: navText("Inbox") },
