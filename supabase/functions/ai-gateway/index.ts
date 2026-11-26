@@ -1432,7 +1432,6 @@ Deno.serve(async (req: Request) => {
         probePrivateWorker(Deno.env.get("NEW_STAR_SEARCH_BASE_URL") || "", Deno.env.get("NEW_STAR_SEARCH_API_KEY") || ""),
         probePrivateWorker(Deno.env.get("NEW_STAR_VISION_BASE_URL") || "", Deno.env.get("NEW_STAR_VISION_API_KEY") || "")
       ]);
-      const configuredAndReachable = (worker: { configured: boolean; reachable: boolean }) => worker.configured && worker.reachable;
       return json({
         ok: true,
         status: true,
