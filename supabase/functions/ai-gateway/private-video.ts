@@ -72,8 +72,7 @@ export async function privateVideoStatus(
     if (typeof data?.status !== "string" || !states.has(data.status)) return { ok: false, status: 502, error: "Private video worker returned an invalid job state." };
     const jobStatus = data.status as "queued" | "in_progress" | "completed" | "failed";
     if (jobStatus !== "completed") return { ok: true, status: jobStatus, model: String(data.model || "New Star private video model"), failureCode: typeof data.failure_code === "string" ? data.failure_code : undefined };
-    try {
-      const output = await fetchWithTimeout(base + "/v1/videos/jobs/" + jobId + "/output", {
+    const output = await fetchWithTimeout(base + "/v1/videos/jobs/" + jobId + "/output", {
         method: "GET",
         redirect: "error",
         headers: { Authorization: "Bearer " + apiKey },
@@ -84,8 +83,7 @@ export async function privateVideoStatus(
       const outputBody = await readWorkerBytes(output, 50 * 1024 * 1024);
       if (!outputBody.ok || !outputBody.bytes.byteLength) return { ok: false, status: 502, error: "Private video output is empty, unreadable, or exceeds 50 MiB." };
       const bytes = outputBody.bytes;
-      return { ok: true, status: "completed", model: String(data.model || "New Star private video model"), videoBytes: bytes };
-    }
+    return { ok: true, status: "completed", model: String(data.model || "New Star private video model"), videoBytes: bytes };
   } catch (error) {
     return { ok: false, status: 503, error: error instanceof Error && error.name === "AbortError" ? "Private video status request timed out." : "Private video worker is unreachable." };
   }
