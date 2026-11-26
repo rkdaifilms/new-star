@@ -7,7 +7,7 @@ import java.net.URL
 import java.net.URLEncoder
 
 data class NewStarSession(val accessToken: String, val refreshToken: String, val userId: String, val email: String)
-data class NewStarVideo(val id: String, val userId: String, val username: String, val caption: String, val videoUrl: String, val likes: Int, val views: Int)
+data class NewStarVideo(val id: String, val userId: String, val username: String, val caption: String, val videoUrl: String, val likes: Int, val views: Int)\ndata class NewStarComment(val username: String, val comment: String)
 
 class NewStarApi {
     companion object {
@@ -71,7 +71,7 @@ class NewStarApi {
         val urls = try {
             c.requestMethod = "POST"; c.connectTimeout = 15000; c.readTimeout = 25000; c.doOutput = true
             c.setRequestProperty("apikey", ANON_KEY)
-            c.setRequestProperty("Authorization", "Bearer " + (token ?: ANON_KEY))
+            if (token != null) c.setRequestProperty("Authorization", "Bearer " + token)
             c.setRequestProperty("Content-Type", "application/json")
             c.outputStream.use { it.write(JSONObject().put("video_ids", ids).toString().toByteArray(Charsets.UTF_8)) }
             val code = c.responseCode
