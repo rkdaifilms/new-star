@@ -77,7 +77,8 @@ export async function privateVideoStatus(
     if (!response.ok) return { ok: false, status: response.status, error: typeof data?.detail === "string" ? data.detail.slice(0, 300) : "Could not read private video job status." };
     const states = new Set(["queued", "in_progress", "completed", "failed"]);
     if (typeof data?.status !== "string" || !states.has(data.status)) return { ok: false, status: 502, error: "Private video worker returned an invalid job state." };
-    if (data.status !== "completed") return { ok: true, status: data.status, model: String(data.model || "New Star private video model"), failureCode: typeof data.failure_code === "string" ? data.failure_code : undefined };
+    const jobStatus = data.status as "queued" | "in_progress" | "completed" | "failed";
+    if (jobStatus !== "completed") return { ok: true, status: jobStatus, model: String(data.model || "New Star private video model"), failureCode: typeof data.failure_code === "string" ? data.failure_code : undefined };
     const outputController = new AbortController();
     const outputTimer = setTimeout(() => outputController.abort(), 90000);
     try {
