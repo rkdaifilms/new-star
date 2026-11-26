@@ -121,7 +121,7 @@ class SpeechTranscriptionSmokeTests(unittest.TestCase):
         verify.skipped = 0
 
     def test_multipart_builder_encodes_authenticated_audio_upload(self):
-        audio = b"RIFF" + b"\\x00" * 4 + b"WAVE" + b"audio-bytes"
+        audio = b"RIFF" + b"\x00" * 4 + b"WAVE" + b"audio-bytes"
         request = verify.build_multipart_request(
             "https://speech.private.example/v1/audio/transcriptions",
             "s" * 40,
@@ -138,14 +138,16 @@ class SpeechTranscriptionSmokeTests(unittest.TestCase):
         self.assertIn(b'name="file"; filename="new-star-speech-test.wav"', body)
         self.assertIn(b"Content-Type: audio/wav", body)
         self.assertIn(audio, body)
-        self.assertTrue(body.endswith(b"\\r\\n--" + boundary + b"--\\r\\n"))
+        self.assertTrue(body.endswith(b"\r\n--" + boundary + b"--\r\n"))
 
     def test_speech_smoke_runs_tts_then_transcribes_generated_audio(self):
-        wav = b"RIFF" + b"\\x00" * 4 + b"WAVE" + b"\\x00" * 64
+        wav = b"RIFF" + b"\x00" * 4 + b"WAVE" + b"\x00" * 64
         encoded = base64.b64encode(wav).decode("ascii")
-        with patch.object(verify, "request_json", return_value=(200, {"audio": encoded}, "")) as tts, \\
-             patch.object(verify, "request_multipart", return_value=(200, {"text": "New Star private speech test", "language": "en"}, "")) as stt, \\
-             redirect_stdout(io.StringIO()) as output:
+        with (
+            patch.object(verify, "request_json", return_value=(200, {"audio": encoded}, "")) as tts,
+            patch.object(verify, "request_multipart", return_value=(200, {"text": "New Star private speech test", "language": "en"}, "")) as stt,
+            redirect_stdout(io.StringIO()) as output,
+        ):
             verify.infer_speech("https://speech.private.example", "s" * 40)
 
         self.assertEqual(tts.call_count, 1)
@@ -159,10 +161,12 @@ class SpeechTranscriptionSmokeTests(unittest.TestCase):
         self.assertEqual(verify.passed, 2)
 
     def test_speech_smoke_fails_when_transcription_is_empty(self):
-        wav = b"RIFF" + b"\\x00" * 4 + b"WAVE" + b"\\x00" * 64
+        wav = b"RIFF" + b"\x00" * 4 + b"WAVE" + b"\x00" * 64
         encoded = base64.b64encode(wav).decode("ascii")
-        with patch.object(verify, "request_json", return_value=(200, {"audio": encoded}, "")), \\
-             patch.object(verify, "request_multipart", return_value=(200, {"text": "", "language": "en"}, "")):
+        with (
+            patch.object(verify, "request_json", return_value=(200, {"audio": encoded}, "")),
+            patch.object(verify, "request_multipart", return_value=(200, {"text": "", "language": "en"}, "")),
+        ):
             with self.assertRaisesRegex(RuntimeError, "non-empty transcript"):
                 verify.infer_speech("https://speech.private.example", "s" * 40)
 
