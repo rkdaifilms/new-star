@@ -15,7 +15,7 @@ The only model runtime deployment directory is `ai-engine/self-hosted/`. The dup
 - `compose.yaml` runs the private llama.cpp chat server, optional 384-dimensional embeddings, and separate optional Image, Video, Speech, Search/Crawler, and Vision workers.
 - All worker ports bind to loopback only: chat 8080, embeddings 8081, speech 8090, image 8091, video 8092, search 8093, and vision 8094.
 - `verify-workers.py` checks HTTPS health and rejects invalid bearer tokens, refuses redirects, and can run real media/search inference after workers are deployed.
-- `ai-engine/training/` contains a private dataset validator and CUDA QLoRA fine-tuning pipeline for an open-weight base model; it is not pretraining a foundation model from scratch.
+- `ai-engine/training/` contains a private dataset validator and CUDA QLoRA fine-tuning pipeline for an open-weight base model; it is not pretraining a foundation model from scratch. The dataset validator rejects likely provider keys, GitHub tokens, AWS access-key IDs, bearer tokens, JWTs, PEM private-key headers, and password/secret assignments before writing train/validation splits.
 - `verify.sh` checks Docker, NVIDIA runtime, model file presence, service health, and authenticated text inference.
 - `verify-embeddings.sh` checks embedding service health and verifies exactly 384 numeric dimensions.
 - Model weights are not stored in Git. The owner must supply legally licensed model files and a compatible NVIDIA GPU host.
