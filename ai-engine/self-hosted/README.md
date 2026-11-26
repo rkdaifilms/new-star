@@ -273,7 +273,7 @@ Jobs and outputs are stored in a persistent Docker volume. If the worker restart
 
 ## Private web crawler and search index
 
-The optional `search` profile provides a private crawler and persistent SQLite FTS5 index. It indexes pages explicitly crawled by the operator; it is not a general live-web search engine and does not invent results for pages it has never indexed.
+The optional `search` profile provides a private crawler and persistent SQLite FTS5 index. It indexes pages explicitly crawled by the operator; it is not a general live-web search engine and does not invent results for pages it has never indexed. The search worker is CPU-only and uses a lightweight Python runtime; it does not need CUDA, PyTorch, or a GPU reservation.
 
 1. Set a unique `NEW_STAR_SEARCH_API_KEY` (at least 32 characters).
 2. Build/start with `docker compose --profile search build new-star-search` and `docker compose --profile search up -d new-star-search`.
