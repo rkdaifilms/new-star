@@ -65,7 +65,7 @@ jobs:
         run: deno check supabase/functions/ai-gateway/private-search.ts supabase/functions/ai-gateway/private-vision.ts supabase/functions/ai-gateway/private-video.ts supabase/functions/ai-gateway/private-image.ts supabase/functions/ai-gateway/private-speech.ts
 
       - name: Validate private worker Python syntax
-        run: python3 -m py_compile ai-engine/self-hosted/speech-worker/main.py ai-engine/self-hosted/image-worker/main.py ai-engine/self-hosted/video-worker/main.py ai-engine/self-hosted/search-worker/main.py ai-engine/self-hosted/vision-worker/main.py ai-engine/training/prepare_dataset.py ai-engine/training/train_lora.py ai-engine/self-hosted/verify-workers.py tests/ai_engine_worker_verify_test.py tests/search_worker_security_test.py
+        run: python3 -m py_compile ai-engine/self-hosted/speech-worker/main.py ai-engine/self-hosted/image-worker/main.py ai-engine/self-hosted/video-worker/main.py ai-engine/self-hosted/search-worker/main.py ai-engine/self-hosted/vision-worker/main.py ai-engine/training/prepare_dataset.py ai-engine/training/train_lora.py ai-engine/self-hosted/verify-workers.py tests/ai_engine_worker_verify_test.py tests/search_worker_security_test.py tests/training_dataset_security_test.py
       - name: Set up supported Python for private worker tests
         uses: actions/setup-python@v5
         with:
@@ -76,3 +76,4 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'ai_engine_worker_verify_test.py' -v
           python -m unittest discover -s tests -p 'search_worker_security_test.py' -v
+          python -m unittest discover -s tests -p 'training_dataset_security_test.py' -v
