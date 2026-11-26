@@ -22,8 +22,9 @@ MODEL_ID = os.getenv("NEW_STAR_VIDEO_MODEL", "THUDM/CogVideoX-2b")
 MODEL_CACHE = Path(os.getenv("NEW_STAR_VIDEO_CACHE", "/models/huggingface"))
 JOB_DIR = Path(os.getenv("NEW_STAR_VIDEO_JOBS", "/data/jobs"))
 MAX_PROMPT = 1800
-FPS = 8
 FRAME_COUNT = 49
+# CogVideoX emits 49 frames; this frame rate encodes an exact six-second clip.
+FPS = FRAME_COUNT / 6.0
 _jobs: dict[str, dict] = {}
 _jobs_lock = threading.Lock()
 _queue: queue.Queue[str] = queue.Queue(maxsize=2)
