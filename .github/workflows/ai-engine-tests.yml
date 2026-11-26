@@ -66,5 +66,9 @@ jobs:
 
       - name: Validate private worker Python syntax
         run: python3 -m py_compile ai-engine/self-hosted/speech-worker/main.py ai-engine/self-hosted/image-worker/main.py ai-engine/self-hosted/video-worker/main.py ai-engine/self-hosted/search-worker/main.py ai-engine/self-hosted/vision-worker/main.py ai-engine/training/prepare_dataset.py ai-engine/training/train_lora.py ai-engine/self-hosted/verify-workers.py tests/ai_engine_worker_verify_test.py
-      - name: Test private worker verification and authentication checks
-        run: python3 -m unittest discover -s tests -p 'ai_engine_worker_verify_test.py' -v
+      - name: Install private search worker test dependencies
+        run: python3 -m pip install -r ai-engine/self-hosted/search-worker/requirements.txt
+      - name: Test private worker verification, authentication, and crawler security
+        run: |
+          python3 -m unittest discover -s tests -p 'ai_engine_worker_verify_test.py' -v
+          python3 -m unittest discover -s tests -p 'search_worker_security_test.py' -v
