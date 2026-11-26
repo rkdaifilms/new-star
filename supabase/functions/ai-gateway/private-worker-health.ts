@@ -43,7 +43,7 @@ export async function probePrivateWorker(
     const parsed = await readWorkerJson(response, 64 * 1024);
     if (!response.ok || !parsed.ok || parsed.value.ok !== true) {
       await response.body?.cancel().catch(() => {});
-      return { configured, reachable: response.ok, healthy: false, modelLoaded: null, service: null, reason: "Worker health endpoint did not return a valid healthy response." };
+      return { configured, reachable: true, healthy: false, modelLoaded: null, service: null, reason: "Worker health endpoint did not return a valid healthy response." };
     }
     const data = parsed.value;
     const modelLoaded = typeof data.model_loaded === "boolean"
