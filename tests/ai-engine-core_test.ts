@@ -793,3 +793,17 @@ Deno.test("completed private video status polls reuse the saved object instead o
     throw new Error("Completed private video jobs must return their existing signed Storage URL before polling the worker");
   }
 });
+
+
+Deno.test("concurrent private video completion polls converge on one deterministic Storage object", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const statusBranch = gateway.indexOf('if (body?.action === "video-status")');
+  const privateBranch = gateway.indexOf("if (selfHostedVideo) {", statusBranch);
+  const upload = gateway.indexOf('videoAdmin.storage.from("new-star-ai-videos").upload(', privateBranch);
+  const uploadBlock = gateway.slice(upload, gateway.indexOf("\n", upload));
+  if (statusBranch < 0 || privateBranch < 0 || upload < 0 ||
+      !gateway.slice(privateBranch, upload).includes('userId + "/" + job.id + ".mp4"') ||
+      !uploadBlock.includes("upsert: true")) {
+    throw new Error("Concurrent private video polls must use one deterministic per-job Storage key with upsert enabled");
+  }
+});
