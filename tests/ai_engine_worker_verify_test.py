@@ -140,6 +140,14 @@ class SpeechTranscriptionSmokeTests(unittest.TestCase):
         self.assertIn(audio, body)
         self.assertTrue(body.endswith(b"\r\n--" + boundary + b"--\r\n"))
 
+    def test_multipart_builder_rejects_header_injection(self):
+        with self.assertRaisesRegex(ValueError, "filename"):
+            verify.build_multipart_request("https://speech.private.example", "s" * 40, "voice.wav\\r\\nX-Evil: yes", "audio/wav", b"RIFF")
+        with self.assertRaisesRegex(ValueError, "field name"):
+            verify.build_multipart_request("https://speech.private.example", "s" * 40, "voice.wav", "audio/wav", b"RIFF", "file\\r\\nX-Evil")
+        with self.assertRaisesRegex(ValueError, "MIME type"):
+            verify.build_multipart_request("https://speech.private.example", "s" * 40, "voice.wav", "audio/wav\\r\\nX-Evil", b"RIFF")
+
     def test_speech_smoke_runs_tts_then_transcribes_generated_audio(self):
         wav = b"RIFF" + b"\x00" * 4 + b"WAVE" + b"\x00" * 64
         encoded = base64.b64encode(wav).decode("ascii")
