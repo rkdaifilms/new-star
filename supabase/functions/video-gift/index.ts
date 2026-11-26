@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
     const safeMessages = [
       "Insufficient coins.", "Wallet not found.", "You cannot gift your own video.",
       "Video is unavailable for gifts.", "Follow request approval is required before gifting this creator.",
-      "Video gift commission is not configured or enabled.", "Coin deduction failed.",
+      "Video gift commission is not configured or enabled.", "Creator is not eligible for video gifts yet.", "Coin deduction failed.",
       "Gift name or coin price is invalid."
     ];
     const safe = safeMessages.find(item => message.includes(item));
