@@ -821,3 +821,18 @@ Deno.test("private video worker validates MP4 output and repairs stale completed
     if (!worker.includes(required)) throw new Error("Video worker recovery validation is missing " + required);
   }
 });
+
+
+
+Deno.test("private speech validates WAV output and enforces file size before reading it into memory", async () => {
+  const source = await Deno.readTextFile(new URL("../ai-engine/self-hosted/speech-worker/main.py", import.meta.url));
+  const sizeCheck = source.indexOf("audio_size = audio_file.stat().st_size");
+  const read = source.indexOf("audio = audio_file.read_bytes()", sizeCheck);
+  const signature = source.indexOf('audio[:4] != b"RIFF" or audio[8:12] != b"WAVE"', read);
+  if (sizeCheck < 0 || read < 0 || signature < 0 || !(sizeCheck < read && read < signature)) {
+    throw new Error("Speech worker must cap output size before reading and validate the RIFF/WAVE signature");
+  }
+  if (!source.slice(sizeCheck, read).includes("20 * 1024 * 1024")) {
+    throw new Error("Speech worker must enforce the 20 MiB WAV output limit before reading");
+  }
+});
