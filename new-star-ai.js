@@ -17,81 +17,100 @@ function setResearchMode(privateOnly){
 function bubble(text,kind="ai"){const el=document.createElement("div");el.className="ns-message "+(kind==="user"?"ns-user":"ns-ai");el.textContent=text;output.append(el);output.scrollTop=output.scrollHeight;return el;}
 function toBase64(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(new Error("Could not read voice recording."));reader.readAsDataURL(blob);});}
 async function transcribeVoice(blob){const client=window.supabaseClient||window.cloudClient;if(!client?.functions)throw new Error("New Star AI connection is not ready. Reload the page.");const mime=(blob.type||"audio/webm").split(";")[0];const audio=await toBase64(blob);const result=await client.functions.invoke("ai-gateway",{body:{action:"transcribe",audio,mimeType:mime}});if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"Voice transcription failed."));lastTranscriptionLanguage=result.data.language&&result.data.language!=="und"?result.data.language:"";lastInputWasVoice=true;prompt.value=(prompt.value.trim()?prompt.value.trim()+" ":"")+result.data.transcript;prompt.focus();bubble("Voice transcript: "+result.data.transcript,"user");}
-let speechRecognition=null,speechBaseText="",speechFinalText="";
-function speechLocale(){
- const code=selectedAppLanguage().toLowerCase();
- const locales={hi:"hi-IN",ne:"ne-NP",en:"en-US",bn:"bn-IN",ur:"ur-PK",es:"es-ES",fr:"fr-FR",ar:"ar-SA",pt:"pt-BR",ru:"ru-RU",zh:"zh-CN",ja:"ja-JP"};
- return locales[code]||navigator.language||"en-US";
-}
-function resetMicButton(){const mic=$("ns-mic");mic.disabled=false;mic.textContent="🎙 Voice";mic.setAttribute("aria-label","Record voice");}
-function startBrowserSpeechRecognition(){
- const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!SpeechRecognition)return false;
+let recordingStartedAt=0,recordingLimitTimer=null,voiceStream=null;
+function resetMicButton(){
  const mic=$("ns-mic");
- speechRecognition=new SpeechRecognition();
- speechRecognition.lang=speechLocale();
- speechRecognition.continuous=true;
- speechRecognition.interimResults=true;
- speechRecognition.maxAlternatives=1;
- speechBaseText=prompt.value.trim();
- speechFinalText="";
- speechRecognition.onstart=()=>{mic.textContent="■ Stop · Listening";mic.setAttribute("aria-label","Stop voice recording");};
- speechRecognition.onresult=event=>{
-  let interim="";
-  for(let i=event.resultIndex;i<event.results.length;i++){
-   const result=event.results[i];
-   const transcript=result[0]?.transcript||"";
-   if(result.isFinal)speechFinalText+=transcript;
-   else interim+=transcript;
-  }
-  const recognized=(speechFinalText+" "+interim).trim();
-  prompt.value=(speechBaseText? speechBaseText+" ":"")+recognized;
-  prompt.dispatchEvent(new Event("input",{bubbles:true}));
-  prompt.focus();
- };
- speechRecognition.onerror=event=>{
-  const messages={not_allowed:"Microphone permission denied. Allow microphone access for this site.",service_not_allowed:"Voice recognition service is blocked by the browser.",no_speech:"No speech detected. Tap the microphone and speak again.",network:"Voice recognition network error. Check your internet connection.",audio_capture:"No microphone was found or it is busy."};
-  bubble(messages[event.error]||("Voice recognition error: "+event.error),"ai");
- };
- speechRecognition.onend=()=>{
-  const recognized=speechFinalText.trim();
-  if(recognized){
-   lastInputWasVoice=true;
-   lastTranscriptionLanguage=speechLocale().split("-")[0];
-   prompt.value=(speechBaseText? speechBaseText+" ":"")+recognized;
-   prompt.focus();
-  }
-  speechRecognition=null;
-  resetMicButton();
- };
- try{speechRecognition.start();return true;}
- catch(error){speechRecognition=null;resetMicButton();bubble(error.message||"Could not start voice recognition. Try again.","ai");return true;}
+ mic.disabled=false;
+ mic.textContent="🎙 Voice";
+ mic.setAttribute("aria-label","Start voice recording");
+ mic.classList.remove("ns-recording");
+}
+function stopVoiceTracks(){
+ if(voiceStream){voiceStream.getTracks().forEach(track=>track.stop());voiceStream=null;}
+}
+async function transcribeVoice(blob){
+ const client=window.supabaseClient||window.cloudClient;
+ if(!client?.functions)throw new Error("New Star connection is not ready. Reload the page and sign in again.");
+ const mime=(blob.type||"audio/webm").split(";")[0].toLowerCase();
+ const supported=["audio/webm","audio/ogg","audio/mp4","audio/mpeg","audio/mp3","audio/wav","audio/m4a"];
+ if(!supported.includes(mime))throw new Error("This phone recorded an unsupported audio format: "+mime);
+ const audio=await toBase64(blob);
+ const result=await client.functions.invoke("ai-gateway",{body:{action:"transcribe",audio,mimeType:mime}});
+ if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"New Star could not transcribe this recording."));
+ const transcript=String(result.data.transcript||"").trim();
+ if(!transcript)throw new Error("No words were detected. Record again and speak clearly.");
+ lastTranscriptionLanguage=result.data.language&&result.data.language!=="und"?result.data.language:"";
+ lastInputWasVoice=true;
+ prompt.value=(prompt.value.trim()?prompt.value.trim()+" ":"")+transcript;
+ prompt.dispatchEvent(new Event("change",{bubbles:true}));
+ prompt.focus();
+ prompt.setSelectionRange(prompt.value.length,prompt.value.length);
 }
 async function toggleVoice(){
  const mic=$("ns-mic");
- if(speechRecognition){mic.textContent="Finalizing…";mic.disabled=true;try{speechRecognition.stop();}catch(_){speechRecognition=null;resetMicButton();}return;}
- if(recorder&&recorder.state==="recording"){recorder.stop();mic.textContent="Processing…";mic.disabled=true;return;}
- if(startBrowserSpeechRecognition())return;
- if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){bubble("This browser does not support voice input. Open this page in updated Chrome and allow microphone access.","ai");return;}
+ if(recorder&&recorder.state==="recording"){
+  mic.disabled=true;
+  mic.textContent="Finishing recording…";
+  if(recordingLimitTimer){clearTimeout(recordingLimitTimer);recordingLimitTimer=null;}
+  try{recorder.stop();}catch(error){stopVoiceTracks();recorder=null;resetMicButton();bubble(error.message||"Could not stop the recording.","ai");}
+  return;
+ }
+ if(!navigator.mediaDevices||typeof navigator.mediaDevices.getUserMedia!=="function"||typeof window.MediaRecorder!=="function"){
+  bubble("This browser cannot record audio here. Open this page in updated Chrome and allow microphone access.","ai");
+  return;
+ }
  try{
-  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-  const preferred=["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(type=>MediaRecorder.isTypeSupported(type));
-  recorder=preferred?new MediaRecorder(stream,{mimeType:preferred}):new MediaRecorder(stream);
+  mic.disabled=true;
+  mic.textContent="Allow microphone…";
+  voiceStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  const mimeCandidates=["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus","audio/ogg","audio/mp4"];
+  const mimeType=mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type));
+  recorder=mimeType?new MediaRecorder(voiceStream,{mimeType}):new MediaRecorder(voiceStream);
   recordedChunks=[];
-  recorder.ondataavailable=e=>{if(e.data?.size)recordedChunks.push(e.data);};
-  recorder.onerror=()=>{stream.getTracks().forEach(t=>t.stop());resetMicButton();bubble("Voice recording failed. Check microphone permission and try again.","ai");};
-  recorder.onstop=async()=>{
-   stream.getTracks().forEach(t=>t.stop());
-   try{const blob=new Blob(recordedChunks,{type:recorder.mimeType||"audio/webm"});if(blob.size<100)throw new Error("Recording was too short. Please try again.");await transcribeVoice(blob);}
-   catch(error){bubble(error.message||"Voice transcription failed.","ai");}
-   finally{resetMicButton();recorder=null;}
+  recorder.ondataavailable=event=>{if(event.data&&event.data.size>0)recordedChunks.push(event.data);};
+  recorder.onerror=event=>{
+   stopVoiceTracks();
+   if(recordingLimitTimer){clearTimeout(recordingLimitTimer);recordingLimitTimer=null;}
+   recorder=null;
+   resetMicButton();
+   bubble(event.error?.message||"Audio recording failed. Check microphone permission and try again.","ai");
   };
-  recorder.start();
+  recorder.onstop=async()=>{
+   const finishedRecorder=recorder;
+   const blob=new Blob(recordedChunks,{type:finishedRecorder?.mimeType||mimeType||"audio/webm"});
+   stopVoiceTracks();
+   if(recordingLimitTimer){clearTimeout(recordingLimitTimer);recordingLimitTimer=null;}
+   recorder=null;
+   recordedChunks=[];
+   resetMicButton();
+   if(blob.size<100){bubble("Recording is empty or too short. Tap the microphone and try again.","ai");return;}
+   mic.disabled=true;
+   mic.textContent="Transcribing…";
+   try{
+    await transcribeVoice(blob);
+    bubble("Voice converted to text. Review it, then tap Send ↗.","ai");
+   }catch(error){
+    bubble(error.message||"Voice transcription failed. Your recording was not sent.","ai");
+   }finally{mic.disabled=false;mic.textContent="🎙 Voice";}
+  };
+  recorder.start(250);
+  recordingStartedAt=Date.now();
+  mic.disabled=false;
   mic.textContent="■ Stop recording";
   mic.setAttribute("aria-label","Stop voice recording");
+  mic.classList.add("ns-recording");
+  recordingLimitTimer=setTimeout(()=>{
+   if(recorder&&recorder.state==="recording"){
+    bubble("Recording reached the 90-second limit. Finishing it now…","ai");
+    try{recorder.stop();}catch(_){stopVoiceTracks();recorder=null;resetMicButton();}
+   }
+  },90000);
  }catch(error){
+  stopVoiceTracks();
+  recorder=null;
   resetMicButton();
-  bubble(error.name==="NotAllowedError"?"Microphone permission was denied. Allow microphone access in browser settings.":error.message||"Could not start microphone.","ai");
+  const message=error.name==="NotAllowedError"?"Microphone permission is blocked. Allow microphone access for this site in Chrome settings.":error.name==="NotFoundError"?"No microphone was found on this device.":error.message||"Could not start microphone recording.";
+  bubble(message,"ai");
  }
 }
 function pcmToWav(pcm,sampleRate){const header=new ArrayBuffer(44);const view=new DataView(header);const write=(offset,value)=>{for(let i=0;i<value.length;i++)view.setUint8(offset+i,value.charCodeAt(i));};write(0,"RIFF");view.setUint32(4,36+pcm.byteLength,true);write(8,"WAVE");write(12,"fmt ");view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,sampleRate,true);view.setUint32(28,sampleRate*2,true);view.setUint16(32,2,true);view.setUint16(34,16,true);write(36,"data");view.setUint32(40,pcm.byteLength,true);return new Blob([header,pcm],{type:"audio/wav"});}
