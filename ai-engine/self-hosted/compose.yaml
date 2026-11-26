@@ -1,0 +1,169 @@
+services:
+  new-star-model:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: new-star-private-model
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      LLAMA_ARG_MODEL: /models/${NEW_STAR_MODEL_FILE:?Set NEW_STAR_MODEL_FILE in .env}
+      LLAMA_ARG_HOST: 0.0.0.0
+      LLAMA_ARG_PORT: "8080"
+      LLAMA_ARG_N_GPU_LAYERS: ${NEW_STAR_GPU_LAYERS:-999}
+      LLAMA_ARG_CTX_SIZE: ${NEW_STAR_CONTEXT_SIZE:-8192}
+      LLAMA_ARG_N_PARALLEL: ${NEW_STAR_PARALLEL:-2}
+      LLAMA_API_KEY: ${NEW_STAR_MODEL_API_KEY:?Set a long random API key in .env}
+      LLAMA_ARG_UI: "false"
+    volumes:
+      - ./models:/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  new-star-embeddings:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: new-star-private-embeddings
+    restart: unless-stopped
+    profiles: ["embeddings"]
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      LLAMA_ARG_MODEL: /models/${NEW_STAR_EMBEDDING_MODEL_FILE:-e5-small-v2-embedding.Q8_0.gguf}
+      LLAMA_ARG_HOST: 0.0.0.0
+      LLAMA_ARG_PORT: "8081"
+      LLAMA_ARG_N_GPU_LAYERS: ${NEW_STAR_GPU_LAYERS:-999}
+      LLAMA_ARG_CTX_SIZE: "2048"
+      LLAMA_ARG_EMBEDDINGS: "true"
+      LLAMA_ARG_POOLING: mean
+      LLAMA_API_KEY: ${NEW_STAR_EMBEDDING_API_KEY:?Set NEW_STAR_EMBEDDING_API_KEY in .env}
+    volumes:
+      - ./models:/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  new-star-image:
+    build:
+      context: ./image-worker
+    container_name: new-star-private-image
+    restart: unless-stopped
+    profiles: ["image"]
+    ports:
+      - "127.0.0.1:8091:8091"
+    environment:
+      NEW_STAR_IMAGE_API_KEY: ${NEW_STAR_IMAGE_API_KEY:?Set NEW_STAR_IMAGE_API_KEY in .env}
+      NEW_STAR_IMAGE_MODEL: ${NEW_STAR_IMAGE_MODEL:-stabilityai/sdxl-turbo}
+      NEW_STAR_IMAGE_CACHE: /models/huggingface
+    volumes:
+      - new-star-image-cache:/models/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  new-star-video:
+    build:
+      context: ./video-worker
+    container_name: new-star-private-video
+    restart: unless-stopped
+    profiles: ["video"]
+    ports:
+      - "127.0.0.1:8092:8092"
+    environment:
+      NEW_STAR_VIDEO_API_KEY: ${NEW_STAR_VIDEO_API_KEY:?Set NEW_STAR_VIDEO_API_KEY in .env}
+      NEW_STAR_VIDEO_MODEL: ${NEW_STAR_VIDEO_MODEL:-THUDM/CogVideoX-2b}
+      NEW_STAR_VIDEO_CACHE: /models/huggingface
+      NEW_STAR_VIDEO_JOBS: /data/jobs
+    volumes:
+      - new-star-video-cache:/models/huggingface
+      - new-star-video-jobs:/data/jobs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  new-star-search:
+    build:
+      context: ./search-worker
+    container_name: new-star-private-search
+    restart: unless-stopped
+    profiles: ["search"]
+    ports:
+      - "127.0.0.1:8093:8093"
+    environment:
+      NEW_STAR_SEARCH_API_KEY: ${NEW_STAR_SEARCH_API_KEY:?Set NEW_STAR_SEARCH_API_KEY in .env}
+      NEW_STAR_SEARCH_DB: /data/search.sqlite3
+    volumes:
+      - new-star-search-data:/data
+
+  new-star-vision:
+    build:
+      context: ./vision-worker
+    container_name: new-star-private-vision
+    restart: unless-stopped
+    profiles: ["vision"]
+    ports:
+      - "127.0.0.1:8094:8094"
+    environment:
+      NEW_STAR_VISION_API_KEY: ${NEW_STAR_VISION_API_KEY:?Set NEW_STAR_VISION_API_KEY in .env}
+      NEW_STAR_VISION_MODEL: ${NEW_STAR_VISION_MODEL:-HuggingFaceTB/SmolVLM2-2.2B-Instruct}
+      NEW_STAR_VISION_CACHE: /models/huggingface
+    volumes:
+      - new-star-vision-cache:/models/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  new-star-speech:
+    build:
+      context: ./speech-worker
+    container_name: new-star-private-speech
+    restart: unless-stopped
+    profiles: ["speech"]
+    ports:
+      - "127.0.0.1:8090:8090"
+    environment:
+      NEW_STAR_SPEECH_API_KEY: ${NEW_STAR_SPEECH_API_KEY:?Set NEW_STAR_SPEECH_API_KEY in .env}
+      NEW_STAR_SPEECH_MODEL_DIR: /models
+      NEW_STAR_SPEECH_CACHE: /tmp/new-star-speech
+      NEW_STAR_WHISPER_MODEL: ${NEW_STAR_WHISPER_MODEL:-small}
+      NEW_STAR_WHISPER_DEVICE: ${NEW_STAR_WHISPER_DEVICE:-cuda}
+      NEW_STAR_WHISPER_COMPUTE: ${NEW_STAR_WHISPER_COMPUTE:-float16}
+      NEW_STAR_PIPER_VOICES: ${NEW_STAR_PIPER_VOICES:?Set NEW_STAR_PIPER_VOICES in .env}
+      NEW_STAR_MAX_AUDIO_BYTES: "8388608"
+    volumes:
+      - ./models:/models:ro
+      - new-star-speech-cache:/tmp/new-star-speech
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  new-star-speech-cache:
+  new-star-image-cache:
+  new-star-video-cache:
+  new-star-video-jobs:
+  new-star-search-data:
+  new-star-vision-cache:

@@ -1,0 +1,3 @@
+-- Intentionally empty compatibility migration. New Star already has public.new_star_search_chunks
+-- with vector(384), HNSW and GIN indexes. The private-index RPC and metadata are
+-- installed by 202611250003_reuse_existing_new_star_search_chunks.sql.

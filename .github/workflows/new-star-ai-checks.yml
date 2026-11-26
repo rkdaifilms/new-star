@@ -1,0 +1,179 @@
+name: New Star AI Engine Checks
+
+on:
+  push:
+    branches:
+      - new-star-ai-engine-foundation
+    paths:
+      - "new-star-ai.js"
+      - "creator-ai.js"
+      - "new-star-ai.html"
+      - "new-star-ai.css"
+      - "ai-engine-dashboard.html"
+      - "ai-video/**"
+      - "supabase/functions/ai-gateway/**"
+      - "supabase/migrations/**"
+      - "ai-engine/self-hosted/**"
+      - "scripts/new-star-search-ingest.ts"
+      - "tests/ai-engine-core_test.ts"
+      - ".github/workflows/new-star-ai-checks.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "new-star-ai.js"
+      - "creator-ai.js"
+      - "new-star-ai.html"
+      - "new-star-ai.css"
+      - "ai-video/**"
+      - "supabase/functions/ai-gateway/**"
+      - "ai-engine/self-hosted/**"
+      - "supabase/migrations/**"
+      - "scripts/new-star-search-ingest.ts"
+      - "tests/ai-engine-core_test.ts"
+      - ".github/workflows/new-star-ai-checks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: new-star-ai-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate AI frontend and Edge Function
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check browser JavaScript syntax
+        run: |
+          node --check new-star-ai.js
+          node --check creator-ai.js
+      - name: Check AI Engine dashboard inline JavaScript
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Scripts(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.inline=[]; self.current=None
+              def handle_starttag(self, tag, attrs):
+                  if tag == "script" and not dict(attrs).get("src"):
+                      self.current=[]
+              def handle_data(self, data):
+                  if self.current is not None: self.current.append(data)
+              def handle_endtag(self, tag):
+                  if tag == "script" and self.current is not None:
+                      self.inline.append("".join(self.current)); self.current=None
+          parser=Scripts(); parser.feed(Path("ai-engine-dashboard.html").read_text())
+          if not parser.inline: raise SystemExit("No inline dashboard script found")
+          Path("/tmp/new-star-ai-dashboard.js").write_text("\\n".join(parser.inline))
+          PY
+          node --check /tmp/new-star-ai-dashboard.js
+          grep -F 'Private modules configured (not generation-tested)' ai-engine-dashboard.html
+          grep -F 'capabilitySummary(item)' ai-engine-dashboard.html
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Type-check Supabase Edge Function
+        run: deno check --no-lock supabase/functions/ai-gateway/index.ts
+
+      - name: Validate self-hosted model runtime configuration
+        run: ruby -e 'require "yaml"; config = YAML.load_file("ai-engine/self-hosted/compose.yaml"); services = config.fetch("services"); abort "missing new-star-model service" unless services["new-star-model"]; abort "missing private embedding service" unless services["new-star-embeddings"]; abort "missing optional private speech service" unless services["new-star-speech"]; abort "missing optional private image service" unless services["new-star-image"]; abort "missing optional private video service" unless services["new-star-video"]; abort "missing optional private search service" unless services["new-star-search"]; abort "missing optional private vision service" unless services["new-star-vision"]'
+
+      - name: Verify required AI actions and authentication guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="supabase/functions/ai-gateway/index.ts"
+          grep -F 'auth.getUser()' "$FILE"
+          grep -F 'consume_ai_gateway_rate_limit' "$FILE"
+          grep -F 'body?.action === "transcribe"' "$FILE"
+          grep -F 'body?.action === "speak"' "$FILE"
+          grep -F 'body?.action === "image"' "$FILE"
+          grep -F 'body?.action === "search"' "$FILE"
+          grep -F 'body?.action === "vision"' "$FILE"
+          grep -F 'new_star_ai_conversations' "$FILE"
+          grep -F 'new_star_ai_messages' "$FILE"
+          grep -F 'callNewStarHostedModel' "$FILE"
+          grep -F 'probeNewStarHostedModel' "$FILE"
+          grep -F 'newStarHostedModel: newStarModel' "$FILE"
+          grep -F 'NEW_STAR_MODEL_BASE_URL' "$FILE"
+          grep -F 'NEW_STAR_MODEL_NAME' "$FILE"
+          grep -F 'async function probeApiProvider' "$FILE"
+          grep -F 'async function probeOpenRouterProvider' "$FILE"
+          grep -F 'generateOpenRouterImage' "$FILE"
+          grep -F 'https://openrouter.ai/api/v1/images' "$FILE"
+          grep -F 'resolution: imageSize' "$FILE"
+          grep -F '"4K": {' "$FILE"
+          grep -F 'credits_exhausted' "$FILE"
+          grep -F 'openrouter: openrouterHealth' "$FILE"
+          grep -F 'searchWithGeminiGrounding' "$FILE"
+          grep -F 'type: "google_search"' "$FILE"
+          grep -F 'These checks do not prove successful model generation.' "$FILE"
+          grep -F 'api_key_create' "$FILE"
+          grep -F 'api_key_list' "$FILE"
+          grep -F 'api_key_revoke' "$FILE"
+          grep -F 'new_star_ai_api_keys' "$FILE"
+          grep -F 'consumeAiGatewayRateLimit' "$FILE"
+          grep -F 'consume_ai_gateway_api_key_rate_limit' "$FILE"
+          grep -F 'apiKeyId' "$FILE"
+          grep -F 'x-new-star-api-key' "$FILE"
+          grep -F 'suppliedApiKey' "$FILE"
+          grep -F 'https://deploy-preview-6--new-star-nepal.netlify.app' "$FILE"
+          grep -F 'https://new-star-2h8betscn-rkdaifilms-8858.vercel.app' "$FILE"
+          grep -F 'private.ai_gateway_api_key_rate_limits' supabase/migrations/20261125000000_ai_gateway_api_key_rate_limits.sql
+          grep -F 'sha256Hex' "$FILE"
+          grep -F 'body?.action === "video"' "$FILE"
+          grep -F 'body?.action === "video-status"' "$FILE"
+          grep -F 'privateVideoStart' "$FILE"
+          grep -F 'privateVideoStatus' "$FILE"
+          grep -F 'privateSearch' "$FILE"
+          grep -F 'privateCrawl' "$FILE"
+          grep -F 'privateVision' "$FILE"
+          grep -F 'store: false' "$FILE"
+          grep -F 'apiKeyRateLimit, 60' "$FILE"
+          grep -F '"4K": {' "$FILE"
+          grep -F '"1:1": "2880x2880"' "$FILE"
+          grep -F '"16:9": "3840x2160"' "$FILE"
+
+      - name: Verify Creator Studio AI controls and safe video state
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'data-mode="chat"' new-star-ai.html
+          grep -F 'data-mode="research"' new-star-ai.html
+          grep -F 'data-mode="image"' new-star-ai.html
+          grep -F 'data-mode="video"' new-star-ai.html
+          grep -F 'client.functions.invoke("ai-gateway"' new-star-ai.js
+          grep -F 'action:"search"' new-star-ai.js
+          grep -F 'action:"vision"' new-star-ai.js
+          grep -F 'async function toggleVoice()' new-star-ai.js
+          grep -F 'transcribeVoice(blob)' new-star-ai.js
+          grep -F 'language:"auto"' new-star-ai.js
+          grep -F 'form.append("response_format", "verbose_json")' supabase/functions/ai-gateway/index.ts
+          grep -F 'Ignore saved app/profile language when language is auto' supabase/functions/ai-gateway/index.ts
+          grep -F 'pendingSendAfterTranscription' creator-ai.js
+          grep -F 'creator-ai-conversation' creator-ai.js
+          grep -F 'gatewayErrorMessage' new-star-ai.js
+          grep -F 'backendMessage' creator-ai.js
+          grep -F 'action:"video"' new-star-ai.js
+          grep -F 'action:"video-status"' new-star-ai.js
+          grep -F 'Developer API keys' new-star-ai.html
+          grep -F 'new-star-ai.html' creator-ai.html
+          grep -F 'Google Cloud Vertex AI' ai-video/README.md
+          grep -F 'No end-to-end provider generation has been verified' ai-video/README.md
+          grep -F 'ns_live_YOUR_KEY' new-star-ai.html

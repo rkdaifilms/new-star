@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10131d"><title>New Star AI Engine</title>
+<link rel="stylesheet" href="new-star-ai.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script><script src="i18n.js"></script><script src="preferences.js"></script><script src="navbar.js"></script>
+<script src="new-star-ai.js" defer></script>
+</head>
+<body>
+<div class="ns-shell">
+<header class="ns-top"><a href="index.html" aria-label="Back to New Star Home" title="Back to New Star Home">⌂</a><div><b>✦ NEW STAR AI ENGINE</b><small>New Star AI</small></div><span id="engine-status" class="ns-status">Checking…</span></header>
+<main class="ns-main">
+<p id="ns-auth-note" hidden style="padding:12px 15px;border:1px solid #78613a;border-radius:12px;background:#2a2419;color:#ffe3a6;line-height:1.5">Use the same login you already use for New Star Creator Hub. You do not need a separate AI account. <a href="auth.html?next=new-star-ai.html" style="color:#fff;text-decoration:underline;font-weight:700">Open New Star Login</a></p>
+<nav class="ns-tabs" aria-label="AI tools">
+<button class="active" data-mode="chat">✦ Chat</button><button data-mode="research">⌕ Search</button><button data-mode="image">▧ Image</button><button data-mode="video">▷ Video</button>
+</nav>
+<section class="ns-workspace">
+<div class="ns-panel-head"><div><b id="mode-title">New Star AI</b><small id="mode-help" hidden></small></div><div class="ns-panel-actions"><button type="button" id="ns-new-chat" class="ns-new-chat">＋ New chat</button><span class="ns-chip">NEW STAR ENGINE</span></div></div>
+<div id="ns-output" class="ns-output" aria-live="polite"><div class="ns-empty"><div class="ns-orb">✦</div><b>New Star AI</b><p>अपना संदेश लिखें या माइक दबाकर बोलें।</p></div></div>
+<form id="ns-form" class="ns-composer">
+<div id="ns-attachment-wrap" hidden><span id="ns-attachment-name"></span><button type="button" id="ns-clear-file" aria-label="Remove attachment">×</button></div>
+<textarea id="ns-prompt" rows="3" maxlength="12000" placeholder="Ask anything…"></textarea>
+<div class="ns-controls"><label id="ns-upload" class="ns-upload">＋ Attach image<input id="ns-file" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><select id="ns-size" aria-label="Image output size"><option value="1K">1K · Standard</option><option value="2K">2K · High</option><option value="4K">4K · Ultra</option></select><div id="ns-video-controls" hidden><select id="ns-video-aspect" aria-label="Video aspect ratio"><option value="16:9">Landscape 16:9</option><option value="9:16">Portrait 9:16</option></select><select id="ns-video-resolution" aria-label="Video resolution" disabled><option value="480p">480p · New Star private video</option></select><select id="ns-video-duration" aria-label="Video duration"><option value="6s">6 seconds · Current private model</option></select></div><button id="ns-mic" type="button" aria-label="Record voice">🎙 Voice</button><button id="ns-submit" type="submit">Send ↗</button></div>
+</form>
+<p class="ns-footnote" id="ns-footnote">Only capabilities confirmed by the server are available. In private-only mode, New Star never falls back to external AI providers; private image, speech, search and video workers must be deployed before those tools can run.</p>
+</section>
+<section class="ns-api-keys" aria-labelledby="ns-api-title">
+  <div class="ns-api-head"><div><b id="ns-api-title">Developer API keys</b><p>Create keys for your own apps and scripts. Keep each key private.</p></div><button type="button" id="ns-api-refresh">Refresh</button></div>
+  <form id="ns-api-form">
+    <label>Key name<input id="ns-api-name" maxlength="80" required placeholder="My private integration"></label>
+    <label>Permissions<select id="ns-api-scopes" multiple size="4" aria-label="API permissions">
+      <option value="chat" selected>Chat</option><option value="image">Image generation</option><option value="vision">Image understanding</option><option value="transcribe">Voice transcription</option><option value="speak">Voice output</option><option value="research">Research</option><option value="status">Provider status</option>
+    </select><small>Choose only the permissions this integration needs.</small></label>
+    <div class="ns-api-row"><label>Requests per minute<input id="ns-api-limit" type="number" min="1" max="100" value="20"></label><label>Expires (optional)<input id="ns-api-expiry" type="date"></label></div>
+    <button type="submit" id="ns-api-create">Create API key</button>
+  </form>
+  <div id="ns-api-new" hidden></div>
+  <div id="ns-api-list" aria-live="polite"><p>Sign in to manage your API keys.</p></div>
+  <p class="ns-api-note">A new key is shown only once. The server stores only its SHA-256 hash. Revoke any key you no longer use. Never share a key in public code or messages.</p>
+  <details class="ns-api-docs"><summary>How to call the New Star API</summary>
+    <p>Call this endpoint from your own server. Keep the New Star key out of browser JavaScript, mobile app bundles, public repositories, and screenshots.</p>
+    <pre><code>POST https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/ai-gateway
+Authorization: Bearer ns_live_YOUR_KEY
+apikey: YOUR_SUPABASE_ANON_KEY
+Content-Type: application/json
+
+{
+  "messages": [
+    { "role": "user", "content": "Write a short video description." }
+  ]
+}</code></pre>
+    <p>Use only the permissions granted to that key. Chat uses the <code>messages</code> field; image generation uses <code>action: "image"</code>; live search uses <code>action: "search"</code>; image understanding uses <code>action: "vision"</code>.</p>
+  </details>
+</section>
+</main>
+</div>
+</body></html>

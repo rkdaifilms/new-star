@@ -4,6 +4,11 @@ import { detectReplyScript } from "../supabase/functions/ai-gateway/language-pol
 import { readBoundedJson } from "../supabase/functions/ai-gateway/request-body.ts";
 import { splitIntoChunks } from "../scripts/new-star-search-ingest.ts";
 import { buildChatProviderPlan } from "../supabase/functions/ai-gateway/provider-routing.ts";
+import { privateSpeechEndpoint, privateSpeechTranscription } from "../supabase/functions/ai-gateway/private-speech.ts";
+import { privateImageEndpoint } from "../supabase/functions/ai-gateway/private-image.ts";
+import { readWorkerJson, readWorkerBytes } from "../supabase/functions/ai-gateway/worker-response.ts";
+import { fetchWithTimeout } from "../supabase/functions/ai-gateway/fetch-with-timeout.ts";
+import { probePrivateWorker } from "../supabase/functions/ai-gateway/private-worker-health.ts";
 
 
 Deno.test("self-hosted chat provider plan contains only the private New Star model", () => {
@@ -137,6 +142,12 @@ Deno.test("private search ingestion CLI is import-safe and atomically replaces e
   if (!source.includes("vector.length !== 384")) {
     throw new Error("The ingestion utility must enforce the existing 384-dimensional vector schema");
   }
+  if (!source.includes('model: "local-model"') || source.includes('model: "new-star-embedding"')) {
+    throw new Error("The ingestion utility must use the model identifier shared by the private llama.cpp embedding service");
+  }
+  if (!source.includes("fetchWithTimeout") || !source.includes("readWorkerBytes") || source.includes("await response.json()")) {
+    throw new Error("Embedding and Supabase ingestion requests must keep timeouts active through bounded response-body reads");
+  }
   if (!source.includes("/rpc/replace_new_star_search_chunks") || !source.includes("p_chunks: chunks")) {
     throw new Error("Ingestion must use the atomic replacement RPC");
   }
@@ -162,6 +173,14 @@ Deno.test("private search ingestion chunks long content with overlap and no data
   }
   if (!chunks.some((chunk, index) => index > 0 && chunks[index - 1].slice(-5).split(" ").some(word => chunk.startsWith(word)))) {
     throw new Error("Chunk overlap was not preserved");
+  }
+  const oversizedToken = "x".repeat(73);
+  const bounded = splitIntoChunks(oversizedToken, 16, 0);
+  if (bounded.some((chunk) => chunk.length > 16)) {
+    throw new Error("A single unbroken token exceeded the configured maximum chunk length");
+  }
+  if (bounded.join("").replace(/\s/g, "") !== oversizedToken) {
+    throw new Error("Splitting an oversized token lost or reordered characters");
   }
 });
 
@@ -220,6 +239,63 @@ Deno.test("bounded JSON reader rejects wrong content type and oversized bodies",
   if (!valid.ok || (valid.value as { ok?: boolean }).ok !== true) throw new Error("Valid JSON request was not parsed");
 });
 
+Deno.test("gateway fetch timeout remains active until the response body is consumed", async () => {
+  let aborted = false;
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    const signal = init?.signal as AbortSignal;
+    const body = new ReadableStream<Uint8Array>({
+      pull() {
+        return new Promise((_, reject) => {
+          signal.addEventListener("abort", () => {
+            aborted = true;
+            reject(new DOMException("Aborted", "AbortError"));
+          }, { once: true });
+        });
+      }
+    });
+    return new Response(body, { status: 200 });
+  };
+  const response = await fetchWithTimeout("https://worker.example.test", {}, 20, fakeFetch);
+  let bodyRejected = false;
+  try {
+    await response.text();
+  } catch {
+    bodyRejected = true;
+  }
+  if (!aborted || !bodyRejected) {
+    throw new Error("Upstream timeout was cleared before the response body finished");
+  }
+});
+
+Deno.test("private worker responses are streamed with strict JSON and binary size limits", async () => {
+  const valid = await readWorkerJson(new Response(JSON.stringify({ ok: true }), {
+    headers: { "Content-Type": "application/json" }
+  }), 100);
+  if (!valid.ok || valid.value.ok !== true) throw new Error("Bounded worker JSON reader rejected a valid object");
+
+  const oversized = await readWorkerJson(new Response(JSON.stringify({ value: "x".repeat(200) }), {
+    headers: { "Content-Type": "application/json" }
+  }), 100);
+  if (oversized.ok || oversized.error !== "response_too_large") {
+    throw new Error("Bounded worker JSON reader accepted an oversized response");
+  }
+
+  const invalid = await readWorkerJson(new Response("[]"), 100);
+  if (invalid.ok || invalid.error !== "invalid_json") {
+    throw new Error("Worker JSON reader accepted a non-object payload");
+  }
+
+  const binary = await readWorkerBytes(new Response(new Uint8Array([1, 2, 3, 4])), 4);
+  if (!binary.ok || binary.bytes.length !== 4 || binary.bytes[3] !== 4) {
+    throw new Error("Bounded worker binary reader rejected valid bytes");
+  }
+
+  const oversizedBinary = await readWorkerBytes(new Response(new Uint8Array([1, 2, 3, 4, 5])), 4);
+  if (oversizedBinary.ok || oversizedBinary.error !== "response_too_large") {
+    throw new Error("Bounded worker binary reader accepted oversized bytes");
+  }
+});
+
 Deno.test("private llama.cpp compose uses documented authentication and parallelism environment variables", async () => {
   const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
   if ((compose.match(/LLAMA_API_KEY:/g) || []).length !== 2) {
@@ -244,6 +320,10 @@ Deno.test("private model smoke checks validate readiness and safe API key format
   }
   if (!embeddings.includes("URL-safe random characters") || !embeddings.includes("isfinite(value)")) {
     throw new Error("Embedding smoke test must validate safe API keys and finite numeric vector values");
+  }
+  if (!embeddings.includes('!= replace-*') || !embeddings.includes("NVIDIA Container Toolkit") ||
+      !embeddings.includes("nvidia-smi") || !embeddings.includes("docker compose version")) {
+    throw new Error("Embedding smoke test must reject the example secret and verify the NVIDIA GPU runtime");
   }
   if (!embeddings.includes("/v1/embeddings") || !chat.includes("/v1/chat/completions")) {
     throw new Error("Private model smoke tests must call the documented authenticated API endpoints");
@@ -323,13 +403,13 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
 
   const requiredSelfHostedGuards = [
     "NEW_STAR_AI_MODE",
-    "NEW_STAR_VISION_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_STT_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED",
-    "NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED"
+    "NEW_STAR_PRIVATE_VISION_UNAVAILABLE",
+    "NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE",
+    "NEW_STAR_PRIVATE_SPEECH_UNAVAILABLE",
+    "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE",
+    "NEW_STAR_PRIVATE_VIDEO_UNAVAILABLE",
+    "NEW_STAR_PRIVATE_VIDEO_STATUS_UNAVAILABLE",
+    "NEW_STAR_PRIVATE_SEARCH_UNAVAILABLE"
   ];
   const missingGuards = requiredSelfHostedGuards.filter((guard) => !source.includes(guard));
   if (missingGuards.length) throw new Error("Missing self-hosted safety guards: " + missingGuards.join(", "));
@@ -351,7 +431,7 @@ Deno.test("AI gateway has no duplicate local functions or duplicate search route
     throw new Error("Self-hosted status must report only New Star and avoid external provider probes");
   }
   const videoStatusRoute = source.slice(source.indexOf('if (body?.action === "video-status")'));
-  if (!videoStatusRoute.includes("NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED")) {
+  if (!videoStatusRoute.includes("NEW_STAR_PRIVATE_VIDEO_STATUS_UNAVAILABLE")) {
     throw new Error("Self-hosted video-status route could still call an external provider");
   }
 });
@@ -380,12 +460,12 @@ Deno.test("Creator Studio clearly distinguishes private-only mode from external 
 Deno.test("every external media and search route fails closed before provider access in self-hosted mode", async () => {
   const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
   const routes = [
-    { action: "vision", guard: "NEW_STAR_VISION_MODEL_NOT_DEPLOYED" },
-    { action: "speak", guard: "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED" },
-    { action: "transcribe", guard: "NEW_STAR_STT_MODEL_NOT_DEPLOYED" },
-    { action: "video", guard: "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED" },
-    { action: "video-status", guard: "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED" },
-    { action: "image", guard: "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED" }
+    { action: "vision", guard: "NEW_STAR_PRIVATE_VISION_UNAVAILABLE" },
+    { action: "speak", guard: "NEW_STAR_PRIVATE_SPEECH_UNAVAILABLE" },
+    { action: "transcribe", guard: "NEW_STAR_PRIVATE_TRANSCRIPTION_UNAVAILABLE" },
+    { action: "video", guard: "NEW_STAR_PRIVATE_VIDEO_UNAVAILABLE" },
+    { action: "video-status", guard: "NEW_STAR_PRIVATE_VIDEO_STATUS_UNAVAILABLE" },
+    { action: "image", guard: "NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE" }
   ];
   for (const route of routes) {
     const marker = 'if (body?.action === "' + route.action + '")';
@@ -411,7 +491,7 @@ Deno.test("every external media and search route fails closed before provider ac
   if (searchStart < 0) throw new Error("Missing search route");
   const searchEnd = source.indexOf('if (body?.action === "vision")', searchStart);
   const searchBlock = source.slice(searchStart, searchEnd < 0 ? source.length : searchEnd);
-  const searchGuard = searchBlock.indexOf("NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED");
+  const searchGuard = searchBlock.indexOf("NEW_STAR_PRIVATE_SEARCH_UNAVAILABLE");
   const externalSearch = searchBlock.indexOf("searchWithGeminiGrounding(");
   if (searchGuard < 0 || externalSearch < 0 || searchGuard > externalSearch) {
     throw new Error("Search must fail closed before invoking external grounding in self-hosted mode");
@@ -459,5 +539,479 @@ Deno.test("Creator Studio UI does not advertise removed external video dependenc
   }
   if (!html.includes("never falls back to an external search provider")) {
     throw new Error("Search capability card must describe private-mode provider isolation");
+  }
+});
+
+Deno.test("Creator Studio discards stale speech language after transcript edits or leaving chat", async () => {
+  const source = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  if (!source.includes('prompt.addEventListener("input",()=>{lastInputWasVoice=false;lastTranscriptionLanguage="";});')) {
+    throw new Error("Manually editing a transcript must clear the old speech-recognition language");
+  }
+  if (!source.includes('function setMode(next){if(next!=="chat"){lastInputWasVoice=false;lastTranscriptionLanguage="";}')) {
+    throw new Error("Switching away from chat must clear stale voice-language state");
+  }
+});
+
+Deno.test("private speech adapter requires a protected HTTPS endpoint", () => {
+  if (privateSpeechEndpoint("https://speech.internal.example", "/v1/audio/speech") !== "https://speech.internal.example/v1/audio/speech") {
+    throw new Error("Valid private HTTPS speech endpoint was rejected");
+  }
+  for (const unsafe of [
+    "http://speech.internal.example",
+    "https://user:pass@speech.internal.example",
+    "https://speech.internal.example/?token=secret",
+    "not-a-url",
+  ]) {
+    if (privateSpeechEndpoint(unsafe, "/v1/audio/speech") !== null) {
+      throw new Error("Unsafe private speech endpoint was accepted: " + unsafe);
+    }
+  }
+});
+
+Deno.test("private speech worker is wired only in self-hosted voice paths", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/speech-worker/main.py", import.meta.url));
+  const frontend = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  if (!gateway.includes("privateSpeechSynthesis(") || !gateway.includes("privateSpeechTranscription(")) {
+    throw new Error("Private-mode speech and transcription must call the New Star worker adapter");
+  }
+  if (!worker.includes("/v1/audio/transcriptions") || !worker.includes("/v1/audio/speech") || !worker.includes("require_auth")) {
+    throw new Error("Private speech worker must expose authenticated STT and TTS endpoints");
+  }
+  if (!frontend.includes('body:{action:"speak",text,language}')) {
+    throw new Error("Creator Studio must pass its active language into private speech synthesis");
+  }
+  if (!frontend.includes("const sendText=text;const responseLanguage=requestLanguage();")) {
+    throw new Error("Creator Studio must capture the detected voice language before clearing transient voice state");
+  }
+  if (!frontend.includes('speakText(result.data.answer||"",voiceButton,responseLanguage)')) {
+    throw new Error("Spoken AI replies must use the language captured for the user's request");
+  }
+});
+
+
+Deno.test("private image adapter requires an authenticated HTTPS endpoint", () => {
+  if (privateImageEndpoint("https://image.internal.example") !== "https://image.internal.example/v1/images/generations") throw new Error("Valid private HTTPS image endpoint was rejected");
+  for (const unsafe of ["http://image.internal.example", "https://user:pass@image.internal.example", "https://image.internal.example/?key=secret", "not-a-url"]) {
+    if (privateImageEndpoint(unsafe) !== null) throw new Error("Unsafe private image endpoint was accepted");
+  }
+});
+
+Deno.test("private image worker is wired only for self-hosted text-to-image", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/image-worker/main.py", import.meta.url));
+  const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
+  if (!gateway.includes("privateImageGeneration(") || !gateway.includes("NEW_STAR_IMAGE_BASE_URL") || !gateway.includes("NEW_STAR_PRIVATE_IMAGE_UNAVAILABLE")) throw new Error("Self-hosted image action must call the private worker and fail closed");
+  if (!worker.includes("/v1/images/generations") || !worker.includes("require_auth") || !worker.includes("torch.cuda.is_available")) throw new Error("Image worker must expose authenticated GPU-backed generation");
+  if (!compose.includes('profiles: ["image"]') || !compose.includes('127.0.0.1:8091:8091')) throw new Error("Image worker must be optional and bound to loopback");
+});
+
+
+Deno.test("private video adapter accepts only protected HTTPS and supported job settings", async () => {
+  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-video.ts", import.meta.url));
+  if (!source.includes('endpoint.protocol !== "https:"') || !source.includes('resolution !== "480p"') || !source.includes('duration !== "6s"')) {
+    throw new Error("Private video adapter must validate HTTPS and enforce supported generation settings");
+  }
+  for (const required of ["redirect: \"error\"", "/v1/videos/generations", "/v1/videos/jobs/", "video/mp4", "50 * 1024 * 1024"]) {
+    if (!source.includes(required)) throw new Error("Private video adapter is missing " + required);
+  }
+});
+
+Deno.test("private video worker persists jobs and rejects unauthenticated or unsupported requests", async () => {
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/video-worker/main.py", import.meta.url));
+  const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
+  for (const required of ["require_auth", "CogVideoXPipeline", "/v1/videos/generations", "/v1/videos/jobs/{job_id}", "restore_jobs", "VIDEO_WORKER_RESTARTED", "torch.cuda.is_available", "FRAME_COUNT = 49"]) {
+    if (!worker.includes(required)) throw new Error("Private video worker is missing " + required);
+  }
+  if (!compose.includes('profiles: ["video"]') || !compose.includes('127.0.0.1:8092:8092') || !compose.includes("new-star-video-jobs:")) {
+    throw new Error("Private video worker must use an optional profile, loopback binding, and persistent job storage");
+  }
+});
+
+Deno.test("Creator Studio exposes only the private worker's supported video settings", async () => {
+  const html = await Deno.readTextFile(new URL("../new-star-ai.html", import.meta.url));
+  if (!html.includes('value="480p"') || !html.includes('value="6s"') || html.includes('value="15s"')) {
+    throw new Error("Video controls must not advertise unsupported private worker resolutions or durations");
+  }
+});
+
+
+Deno.test("private search adapter enforces HTTPS and authenticated private endpoints", async () => {
+  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-search.ts", import.meta.url));
+  for (const required of ['url.protocol !== "https:"', 'Authorization: "Bearer " + key', 'redirect: "error"', '"/v1/search"', '"/v1/crawl"']) {
+    if (!source.includes(required)) throw new Error("Private search adapter missing " + required);
+  }
+});
+
+Deno.test("private crawler rejects non-public targets and limits indexed content", async () => {
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/search-worker/main.py", import.meta.url));
+  const dockerfile = await Deno.readTextFile(new URL("../ai-engine/self-hosted/search-worker/Dockerfile", import.meta.url));
+  if (!dockerfile.includes("FROM python:3.12-slim") || dockerfile.includes("torch==") || dockerfile.includes("nvidia/cuda")) {
+    throw new Error("Private search worker must use its lightweight CPU-only runtime, not a CUDA/PyTorch image");
+  }
+  for (const required of ["ipaddress.ip_address", "address.is_global", "allow_redirects=False", "MAX_BYTES = 2 * 1024 * 1024", "100000", "pages_fts", "/v1/crawl", "/v1/search", "MAX_CRAWL_PAGES = 5", "MAX_CRAWL_BYTES = 10 * 1024 * 1024", "MAX_LINKS_PER_PAGE = 100", "parsed.hostname != root_host", "pages_indexed", "peer_ip.is_global", "sock.getpeername()", "port not in {80, 443}", "parsed.scheme != root_scheme", "current_port != root_port", "link_port == root_port"]) {
+    if (!worker.includes(required)) throw new Error("Private crawler missing security/index rule " + required);
+  }
+  if (worker.includes("allow_redirects=True")) throw new Error("Private crawler must not follow redirects");
+});
+
+Deno.test("private vision adapter and worker are protected and wired only in self-hosted mode", async () => {
+  const adapter = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-vision.ts", import.meta.url));
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/vision-worker/main.py", import.meta.url));
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
+  if (!adapter.includes('u.protocol!=="https:"') || !adapter.includes('Authorization:"Bearer "+key')) throw new Error("Private vision adapter must enforce HTTPS and bearer authentication");
+  for (const required of ["AutoModelForVision2Seq", "torch.cuda.is_available", "/v1/vision/analyze", "Image.open", "6 * 1024 * 1024"]) {
+    if (!worker.includes(required)) throw new Error("Private vision worker missing " + required);
+  }
+  if (!gateway.includes("privateVision(") || !gateway.includes("NEW_STAR_VISION_BASE_URL") || !gateway.includes("NEW_STAR_PRIVATE_VISION_UNAVAILABLE")) throw new Error("Self-hosted vision action is not connected to its private worker");
+  if (!compose.includes('profiles: ["vision"]') || !compose.includes('127.0.0.1:8094:8094')) throw new Error("Private vision worker must be optional and loopback-only");
+});
+
+Deno.test("self-hosted search uses private crawl index and never calls Gemini grounding", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const searchStart = gateway.indexOf('if (body?.action === "search")');
+  const visionStart = gateway.indexOf('if (body?.action === "crawl")', searchStart);
+  const searchBlock = gateway.slice(searchStart, visionStart);
+  if (!searchBlock.includes("privateSearch(") || !searchBlock.includes("NEW_STAR_SEARCH_BASE_URL") || !searchBlock.includes("NEW_STAR_PRIVATE_SEARCH_UNAVAILABLE")) {
+    throw new Error("Self-hosted search must query the private search index");
+  }
+  if (searchBlock.indexOf('NEW_STAR_AI_MODE") === "self_hosted"') > searchBlock.indexOf("searchWithGeminiGrounding")) {
+    throw new Error("Self-hosted search must not reach Gemini grounding");
+  }
+  if (!gateway.includes('body?.action === "crawl"') || !gateway.includes("privateCrawl(")) throw new Error("Authenticated crawl action must be connected");
+});
+
+
+Deno.test("Creator Studio Search mode can index a public URL before querying its private crawl index", async () => {
+  const frontend = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  if (!frontend.includes('const crawlUrl=/^https?:\\/\\/[^\\s]+$/i.test(sendText.trim())')) throw new Error("Search mode must recognize a pasted URL for private indexing");
+  if (!frontend.includes('crawlUrl?{action:"crawl",url:sendText.trim()}:{action:"search"')) throw new Error("Search mode must call the private crawler for URLs and the private index for queries");
+  if (!frontend.includes("Paste a public page URL to index it first.")) throw new Error("Empty private search results must explain how to add a source");
+});
+
+
+Deno.test("private New Star fine-tuning pipeline validates datasets and uses local CUDA QLoRA", async () => {
+  const prepare = await Deno.readTextFile(new URL("../ai-engine/training/prepare_dataset.py", import.meta.url));
+  const train = await Deno.readTextFile(new URL("../ai-engine/training/train_lora.py", import.meta.url));
+  for (const required of ["SECRET_PATTERNS", "possible credential/secret detected", "duplicate_conversations_removed", "train.jsonl", "validation.jsonl", "At least 10 unique validated conversations are required"]) {
+    if (!prepare.includes(required)) throw new Error("Training dataset validator is missing " + required);
+  }
+  for (const required of ["Qwen/Qwen2.5-3B-Instruct", "torch.cuda.is_available()", "load_in_4bit=True", "LoraConfig", "SFTTrainer", "training-report.json", "not pretraining a New Star foundation model"]) {
+    if (!train.includes(required)) throw new Error("Private QLoRA trainer is missing " + required);
+  }
+});
+
+
+Deno.test("private crawler requires the developer API research permission", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const scopeStart = gateway.indexOf("const requiredScope =");
+  const scopeEnd = gateway.indexOf("if (!apiKeyScopes.includes(requiredScope))", scopeStart);
+  const scopeBlock = gateway.slice(scopeStart, scopeEnd);
+  if (!scopeBlock.includes('action === "search" || action === "crawl" ? "research"')) {
+    throw new Error("Both private search and crawl actions must require the research API scope");
+  }
+});
+
+
+Deno.test("New Star private image UI exposes only the worker's supported 1K size", async () => {
+  const frontend = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  const privateMode = frontend.indexOf('if(result.data.mode==="self_hosted")');
+  const externalMode = frontend.indexOf('setPrivateImageSizeMode(false)');
+  const helper = frontend.indexOf("function setPrivateImageSizeMode(privateOnly)");
+  if (helper < 0 || privateMode < 0 || externalMode < 0) {
+    throw new Error("Image size controls must react to the active AI mode");
+  }
+  if (!frontend.slice(privateMode, externalMode).includes("setPrivateImageSizeMode(true)")) {
+    throw new Error("Self-hosted mode must restrict image output to 1K");
+  }
+  if (!frontend.slice(helper, privateMode).includes('option.value==="1K"')) {
+    throw new Error("Private image-size helper must disable unsupported 2K and 4K outputs");
+  }
+});
+
+
+Deno.test("private speech requests refuse redirects before forwarding worker credentials", async () => {
+  const adapter = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-speech.ts", import.meta.url));
+  const redirectGuards = adapter.match(/redirect: "error"/g) || [];
+  if (redirectGuards.length !== 2) {
+    throw new Error("Both private speech synthesis and transcription must reject HTTP redirects");
+  }
+});
+
+
+Deno.test("private chat model requests refuse HTTP redirects", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const start = gateway.indexOf("async function callNewStarHostedModel");
+  const end = gateway.indexOf("\nasync function probeApiProvider", start);
+  const request = gateway.slice(start, end);
+  if (start < 0 || end < 0 || !request.includes('redirect: "error"')) {
+    throw new Error("The authenticated private model request must reject redirects");
+  }
+});
+
+
+Deno.test("AI engine control room exposes private vision capability status", async () => {
+  const dashboard = await Deno.readTextFile(new URL("../ai-engine-dashboard.html", import.meta.url));
+  if (!dashboard.includes('id="visionModule"') ||
+      !dashboard.includes('id="visionStatus"') ||
+      !dashboard.includes('id="visionDescription"') ||
+      !dashboard.includes('capabilityLabel(caps.imageUnderstanding)') ||
+      !dashboard.includes('capabilitySummary(caps.imageUnderstanding)')) {
+    throw new Error("Control Room must display the gateway's private image-understanding capability and reason");
+  }
+});
+
+
+Deno.test("private GPU deployment runs authenticated chat inference before reporting success", async () => {
+  const deploy = await Deno.readTextFile(new URL("../ai-engine/self-hosted/deploy-workers.sh", import.meta.url));
+  const verify = await Deno.readTextFile(new URL("../ai-engine/self-hosted/verify.sh", import.meta.url));
+  const healthMarker = deploy.indexOf('note "Chat model health is responding.');
+  for (const required of [
+    'new-star-speech) auth_body=',
+    'new-star-image) auth_body=',
+    'new-star-video) auth_body=',
+    'new-star-search) auth_body=',
+    'new-star-vision) auth_body=',
+    '--data "$auth_body"'
+  ]) {
+    if (!deploy.includes(required)) throw new Error("Deployment auth probes must use schema-valid worker payloads: " + required);
+  }
+  const smokeCall = deploy.indexOf("bash verify.sh", healthMarker);
+  const firstWorker = deploy.indexOf("check_worker new-star-speech", healthMarker);
+  if (healthMarker < 0 || smokeCall < healthMarker || firstWorker < smokeCall) {
+    throw new Error("Deployment must run the private chat inference smoke test after health and before worker checks");
+  }
+  for (const required of ["NEW_STAR_PRIVATE_MODEL_READY", "authenticated inference smoke test", "PASS: authenticated private model inference"]) {
+    if (!verify.includes(required)) throw new Error("Chat inference smoke test is missing " + required);
+  }
+});
+
+
+Deno.test("private speech rejects oversized base64 before decoding or making a network request", async () => {
+  const oversized = "A".repeat(11_184_816);
+  const result = await privateSpeechTranscription(
+    "https://speech.private.example",
+    "s".repeat(40),
+    oversized,
+    "audio/webm"
+  );
+  if (result.ok || result.status !== 413) {
+    throw new Error("Oversized encoded audio must be rejected before base64 decoding");
+  }
+});
+
+Deno.test("private vision serializes GPU inference to prevent concurrent VRAM exhaustion", async () => {
+  const source = await Deno.readTextFile(new URL("../ai-engine/self-hosted/vision-worker/main.py", import.meta.url));
+  if (!source.includes("_inference_lock = threading.Lock()") ||
+      !source.includes("with _inference_lock, torch.inference_mode():")) {
+    throw new Error("Private vision GPU inference must be serialized with a dedicated lock");
+  }
+});
+
+
+Deno.test("private speech serializes transcription and synthesis worker access", async () => {
+  const source = await Deno.readTextFile(new URL("../ai-engine/self-hosted/speech-worker/main.py", import.meta.url));
+  if (!source.includes("_transcription_lock = threading.Lock()") ||
+      !source.includes("with _transcription_lock:") ||
+      !source.includes("_synthesis_lock = threading.Lock()") ||
+      !source.includes("with _synthesis_lock:")) {
+    throw new Error("Private speech worker must serialize GPU transcription and Piper synthesis");
+  }
+});
+
+
+Deno.test("Creator Studio private search results render without block-scoped source errors", async () => {
+  const frontend = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  const sourceDeclaration = frontend.indexOf("const sources=crawlUrl?[]:");
+  const crawlBranch = frontend.indexOf("if(crawlUrl){", sourceDeclaration);
+  const sourceRender = frontend.indexOf("if(sources.length){", crawlBranch);
+  if (sourceDeclaration < 0 || crawlBranch < 0 || sourceRender < 0 ||
+      !(sourceDeclaration < crawlBranch && crawlBranch < sourceRender)) {
+    throw new Error("Search results must be declared in the parent scope before rendering source links");
+  }
+  const between = frontend.slice(sourceDeclaration, sourceRender);
+  if (!between.includes("result.data.results")) {
+    throw new Error("Private search result links must be read from the gateway results array");
+  }
+});
+
+
+Deno.test("private video encodes its 49 CogVideoX frames as an exact six-second clip", async () => {
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/video-worker/main.py", import.meta.url));
+  if (!worker.includes("FRAME_COUNT = 49") ||
+      !worker.includes("FPS = FRAME_COUNT / 6.0") ||
+      !worker.includes("num_frames=FRAME_COUNT") ||
+      !worker.includes("fps=FPS")) {
+    throw new Error("Private video output timing must encode all 49 model frames into exactly six seconds");
+  }
+});
+
+
+Deno.test("completed private video status polls reuse the saved object instead of uploading duplicates", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const privateBranch = gateway.indexOf("if (selfHostedVideo) {", gateway.indexOf('if (body?.action === "video-status")'));
+  const completedGuard = gateway.indexOf('if (job.status === "completed" && job.storage_path)', privateBranch);
+  const workerPoll = gateway.indexOf("privateVideoStatus(", privateBranch);
+  const signedUrl = gateway.indexOf("createSignedUrl(job.storage_path, 3600)", completedGuard);
+  if (privateBranch < 0 || completedGuard < 0 || signedUrl < completedGuard ||
+      workerPoll < completedGuard || completedGuard > workerPoll) {
+    throw new Error("Completed private video jobs must return their existing signed Storage URL before polling the worker");
+  }
+});
+
+
+Deno.test("concurrent private video completion polls converge on one deterministic Storage object", async () => {
+  const gateway = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+  const statusBranch = gateway.indexOf('if (body?.action === "video-status")');
+  const privateBranch = gateway.indexOf("if (selfHostedVideo) {", statusBranch);
+  const upload = gateway.indexOf('videoAdmin.storage.from("new-star-ai-videos").upload(', privateBranch);
+  const uploadBlock = gateway.slice(upload, gateway.indexOf("\n", upload));
+  if (statusBranch < 0 || privateBranch < 0 || upload < 0 ||
+      !gateway.slice(privateBranch, upload).includes('userId + "/" + job.id + ".mp4"') ||
+      !uploadBlock.includes("upsert: true")) {
+    throw new Error("Concurrent private video polls must use one deterministic per-job Storage key with upsert enabled");
+  }
+});
+
+
+Deno.test("private video worker validates MP4 output and repairs stale completed jobs on restart", async () => {
+  const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/video-worker/main.py", import.meta.url));
+  for (const required of [
+    "def valid_mp4_output(path: Path) -> bool:",
+    'header[4:8] == b"ftyp"',
+    'job.get("status") == "completed" and not valid_mp4_output',
+    '"VIDEO_OUTPUT_MISSING_OR_INVALID"',
+    "if not valid_mp4_output(output):"
+  ]) {
+    if (!worker.includes(required)) throw new Error("Video worker recovery validation is missing " + required);
+  }
+});
+
+
+
+Deno.test("private speech validates WAV output and enforces file size before reading it into memory", async () => {
+  const source = await Deno.readTextFile(new URL("../ai-engine/self-hosted/speech-worker/main.py", import.meta.url));
+  const sizeCheck = source.indexOf("audio_size = audio_file.stat().st_size");
+  const read = source.indexOf("audio = audio_file.read_bytes()", sizeCheck);
+  const signature = source.indexOf('audio[:4] != b"RIFF" or audio[8:12] != b"WAVE"', read);
+  if (sizeCheck < 0 || read < 0 || signature < 0 || !(sizeCheck < read && read < signature)) {
+    throw new Error("Speech worker must cap output size before reading and validate the RIFF/WAVE signature");
+  }
+  if (!source.slice(sizeCheck, read).includes("20 * 1024 * 1024")) {
+    throw new Error("Speech worker must enforce the 20 MiB WAV output limit before reading");
+  }
+});
+
+
+Deno.test("private search keeps its timeout active while reading a bounded worker response", async () => {
+  const adapter = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-search.ts", import.meta.url));
+  const requestStart = adapter.indexOf("async function request(");
+  const requestEnd = adapter.indexOf("\nfunction workerFailure", requestStart);
+  const requestBlock = adapter.slice(requestStart, requestEnd);
+  const responseRead = requestBlock.indexOf("await reader.read()");
+  const timerClear = requestBlock.indexOf("clearTimeout(timer)");
+  if (requestStart < 0 || requestEnd < 0 || responseRead < 0 || timerClear < responseRead) {
+    throw new Error("Private search timeout must remain active until the response body has been fully read");
+  }
+  if (!requestBlock.includes("MAX_WORKER_RESPONSE_BYTES") ||
+      !requestBlock.includes("await reader.cancel()") ||
+      !requestBlock.includes('redirect: "error"')) {
+    throw new Error("Private search must cap response size, cancel oversized streams, and reject redirects");
+  }
+  if (!adapter.includes('request(endpoint, key, "/v1/search"') ||
+      !adapter.includes('request(endpoint, key, "/v1/crawl"')) {
+    throw new Error("Both private search and crawl must use the bounded response reader");
+  }
+});
+
+
+Deno.test("private speech, image, and video workers keep request timeouts active through bounded body reads", async () => {
+  const speech = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-speech.ts", import.meta.url));
+  const image = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-image.ts", import.meta.url));
+  const video = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-video.ts", import.meta.url));
+  for (const [name, source] of [["speech", speech], ["image", image], ["video", video]] as const) {
+    if (!source.includes('import { fetchWithTimeout } from "./fetch-with-timeout.ts";') ||
+        source.includes("new AbortController()") ||
+        source.includes("clearTimeout(timer)") ||
+        !source.includes("readWorkerJson") ) {
+      throw new Error("Private " + name + " requests must use the shared body-aware timeout and bounded JSON reader");
+    }
+  }
+  if ((speech.match(/fetchWithTimeout\(/g) || []).length !== 2 ||
+      (image.match(/fetchWithTimeout\(/g) || []).length !== 1 ||
+      (video.match(/fetchWithTimeout\(/g) || []).length !== 3) {
+    throw new Error("Every private speech, image, and video network request must use the shared timeout wrapper");
+  }
+
+  let timedOutDuringBodyRead = false;
+  const delayedFetch: typeof fetch = async (_input, init) => {
+    const signal = init?.signal as AbortSignal;
+    const body = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        await new Promise<void>((_resolve, reject) => {
+          signal.addEventListener("abort", () => reject(new DOMException("Timed out", "AbortError")), { once: true });
+        });
+        controller.enqueue(new TextEncoder().encode("{}"));
+        controller.close();
+      }
+    });
+    return new Response(body, { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const response = await fetchWithTimeout("https://worker.example.test/slow", {}, 20, delayedFetch);
+  try {
+    await response.text();
+  } catch (error) {
+    timedOutDuringBodyRead = error instanceof Error && error.name === "AbortError";
+  }
+  if (!timedOutDuringBodyRead) {
+    throw new Error("The shared timeout must abort a response whose body stalls after headers arrive");
+  }
+});
+
+
+Deno.test("private worker health rejects insecure URLs and missing keys without making a request", async () => {
+  let called = false;
+  const fakeFetch: typeof fetch = async () => {
+    called = true;
+    return Response.json({ ok: true });
+  };
+  const insecure = await probePrivateWorker("http://worker.example.test", "k".repeat(40), fakeFetch);
+  const missingKey = await probePrivateWorker("https://worker.example.test", "short", fakeFetch);
+  if (called || insecure.configured || insecure.reachable || missingKey.configured || missingKey.reachable) {
+    throw new Error("Private worker health must fail closed before contacting insecure or unconfigured endpoints");
+  }
+});
+
+Deno.test("private worker health distinguishes a reachable worker from an unloaded model", async () => {
+  const fakeFetch: typeof fetch = async () => Response.json({
+    ok: true,
+    service: "new-star-private-image",
+    model_loaded: false,
+    cuda: true
+  });
+  const result = await probePrivateWorker("https://worker.example.test/image", "k".repeat(40), fakeFetch);
+  if (!result.configured || !result.reachable || !result.healthy || result.modelLoaded !== false ||
+      result.service !== "new-star-private-image") {
+    throw new Error("Worker status must report configuration, reachability, health, and model loading separately");
+  }
+});
+
+Deno.test("private worker health distinguishes an HTTP response from a healthy worker", async () => {
+  const fakeFetch: typeof fetch = async () => Response.json({ ok: false, detail: "starting" }, { status: 503 });
+  const result = await probePrivateWorker("https://worker.example.test", "k".repeat(40), fakeFetch);
+  if (!result.configured || !result.reachable || result.healthy) {
+    throw new Error("An HTTP error proves reachability but must not be reported as a healthy worker");
+  }
+});
+
+Deno.test("private worker health reports network failures without leaking endpoint details", async () => {
+  const fakeFetch: typeof fetch = async () => {
+    throw new TypeError("private host connection failed");
+  };
+  const result = await probePrivateWorker("https://worker.example.test", "k".repeat(40), fakeFetch);
+  if (!result.configured || result.reachable || result.healthy ||
+      result.reason !== "Worker health endpoint is unreachable.") {
+    throw new Error("Network failures must be reported as unreachable with a sanitized reason");
   }
 });

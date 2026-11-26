@@ -1,0 +1,210 @@
+from __future__ import annotations
+
+import base64
+import importlib.util
+import io
+import unittest
+from contextlib import redirect_stdout
+from pathlib import Path
+from unittest.mock import patch
+
+MODULE_PATH = Path(__file__).resolve().parents[1] / "ai-engine" / "self-hosted" / "verify-workers.py"
+SPEC = importlib.util.spec_from_file_location("new_star_verify_workers", MODULE_PATH)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError("Could not load New Star worker verification module")
+verify = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(verify)
+
+
+class WorkerConfigurationTests(unittest.TestCase):
+    def test_rejects_missing_endpoint_or_key(self):
+        with self.assertRaisesRegex(ValueError, "not set"):
+            verify.validate_config("image", "", "x" * 40)
+        with self.assertRaisesRegex(ValueError, "not set"):
+            verify.validate_config("image", "https://private.example", "")
+
+    def test_rejects_short_or_placeholder_key(self):
+        with self.assertRaisesRegex(ValueError, "at least 32"):
+            verify.validate_config("image", "https://private.example", "short")
+        with self.assertRaisesRegex(ValueError, "at least 32"):
+            verify.validate_config("image", "https://private.example", "replace-" + "x" * 40)
+
+    def test_rejects_non_https_and_embedded_credentials(self):
+        key = "n" * 40
+        with self.assertRaisesRegex(ValueError, "HTTPS"):
+            verify.validate_config("image", "http://private.example", key)
+        with self.assertRaisesRegex(ValueError, "HTTPS"):
+            verify.validate_config("image", "https://user:pass@private.example", key)
+
+    def test_normalizes_valid_https_base_url(self):
+        self.assertEqual(
+            verify.validate_config("image", "https://private.example/prefix/", "n" * 40),
+            "https://private.example/prefix",
+        )
+
+
+class WorkerAuthenticationTests(unittest.TestCase):
+    def setUp(self):
+        verify.failures.clear()
+        verify.passed = 0
+        verify.skipped = 0
+
+    def test_health_and_invalid_bearer_rejection_are_required(self):
+        output = io.StringIO()
+        with patch.object(
+            verify,
+            "request_json",
+            side_effect=[
+                (200, {"ok": True, "cuda": True}, ""),
+                (401, {"detail": "Unauthorized"}, ""),
+            ],
+        ) as request, redirect_stdout(output):
+            result = verify.health_check("image", "https://private.example", "s" * 40, "/v1/images/generations")
+
+        self.assertEqual(result, ("https://private.example", "s" * 40))
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(request.call_args.args[0], "https://private.example/v1/images/generations")
+        self.assertEqual(request.call_args.args[1], "new-star-invalid-auth-probe")
+        self.assertIn("PASS: image:", output.getvalue())
+        self.assertNotIn("s" * 40, output.getvalue())
+
+    def test_worker_fails_if_invalid_bearer_is_accepted(self):
+        with patch.object(
+            verify,
+            "request_json",
+            side_effect=[
+                (200, {"ok": True, "cuda": True}, ""),
+                (200, {"ok": True}, ""),
+            ],
+        ), redirect_stdout(io.StringIO()):
+            result = verify.health_check("image", "https://private.example", "s" * 40, "/v1/images/generations")
+
+        self.assertIsNone(result)
+        self.assertEqual(verify.failures, ["image"])
+
+    def test_auth_probes_use_schema_valid_payloads_for_every_worker(self):
+        self.assertEqual(set(verify.AUTH_PROBE_BODIES), {"image", "video", "speech", "search", "vision"})
+        self.assertEqual(verify.AUTH_PROBE_BODIES["image"]["image_size"], "1K")
+        self.assertEqual(verify.AUTH_PROBE_BODIES["video"]["duration"], "6s")
+        self.assertEqual(verify.AUTH_PROBE_BODIES["speech"]["language"], "en")
+        self.assertEqual(verify.AUTH_PROBE_BODIES["search"]["limit"], 1)
+        self.assertEqual(verify.AUTH_PROBE_BODIES["vision"]["mime_type"], "image/png")
+        self.assertGreaterEqual(len(base64.b64decode(verify.AUTH_PROBE_BODIES["vision"]["image"])), 70)
+
+    def test_health_check_sends_valid_body_before_expectation_of_401(self):
+        with patch.object(
+            verify,
+            "request_json",
+            side_effect=[
+                (200, {"ok": True}, ""),
+                (401, {"detail": "Unauthorized"}, ""),
+            ],
+        ) as request, redirect_stdout(io.StringIO()):
+            verify.health_check("speech", "https://private.example", "s" * 40, "/v1/audio/speech")
+        self.assertEqual(request.call_args.args[2], verify.AUTH_PROBE_BODIES["speech"])
+
+    def test_worker_fails_when_health_is_not_ok(self):
+        with patch.object(verify, "request_json", return_value=(200, {"ok": False}, "")), redirect_stdout(io.StringIO()):
+            result = verify.health_check("search", "https://private.example", "s" * 40, "/v1/search")
+
+        self.assertIsNone(result)
+        self.assertEqual(verify.failures, ["search"])
+
+
+
+
+
+class SpeechTranscriptionSmokeTests(unittest.TestCase):
+    def setUp(self):
+        verify.failures.clear()
+        verify.passed = 0
+        verify.skipped = 0
+
+    def test_multipart_builder_encodes_authenticated_audio_upload(self):
+        audio = b"RIFF" + b"\x00" * 4 + b"WAVE" + b"audio-bytes"
+        request = verify.build_multipart_request(
+            "https://speech.private.example/v1/audio/transcriptions",
+            "s" * 40,
+            "new-star-speech-test.wav",
+            "audio/wav",
+            audio,
+        )
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(request.get_header("Authorization"), "Bearer " + "s" * 40)
+        content_type = request.get_header("Content-type")
+        self.assertTrue(content_type.startswith("multipart/form-data; boundary="))
+        boundary = content_type.split("boundary=", 1)[1].encode("ascii")
+        body = request.data
+        self.assertIn(b'name="file"; filename="new-star-speech-test.wav"', body)
+        self.assertIn(b"Content-Type: audio/wav", body)
+        self.assertIn(audio, body)
+        self.assertTrue(body.endswith(b"\r\n--" + boundary + b"--\r\n"))
+
+    def test_multipart_builder_rejects_header_injection(self):
+        with self.assertRaisesRegex(ValueError, "filename"):
+            verify.build_multipart_request("https://speech.private.example", "s" * 40, "voice.wav\\r\\nX-Evil: yes", "audio/wav", b"RIFF")
+        with self.assertRaisesRegex(ValueError, "field name"):
+            verify.build_multipart_request("https://speech.private.example", "s" * 40, "voice.wav", "audio/wav", b"RIFF", "file\\r\\nX-Evil")
+        with self.assertRaisesRegex(ValueError, "MIME type"):
+            verify.build_multipart_request("https://speech.private.example", "s" * 40, "voice.wav", "audio/wav\\r\\nX-Evil", b"RIFF")
+
+    def test_speech_smoke_runs_tts_then_transcribes_generated_audio(self):
+        wav = b"RIFF" + b"\x00" * 4 + b"WAVE" + b"\x00" * 64
+        encoded = base64.b64encode(wav).decode("ascii")
+        with (
+            patch.object(verify, "request_json", return_value=(200, {"audio": encoded}, "")) as tts,
+            patch.object(verify, "request_multipart", return_value=(200, {"text": "New Star private speech test", "language": "en"}, "")) as stt,
+            redirect_stdout(io.StringIO()) as output,
+        ):
+            verify.infer_speech("https://speech.private.example", "s" * 40)
+
+        self.assertEqual(tts.call_count, 1)
+        self.assertEqual(stt.call_count, 1)
+        self.assertEqual(stt.call_args.args[0], "https://speech.private.example/v1/audio/transcriptions")
+        self.assertEqual(stt.call_args.args[1], "s" * 40)
+        self.assertEqual(stt.call_args.args[3], "audio/wav")
+        self.assertEqual(stt.call_args.args[4], wav)
+        self.assertIn("PASS: speech-tts:", output.getvalue())
+        self.assertIn("PASS: speech-stt:", output.getvalue())
+        self.assertEqual(verify.passed, 2)
+
+    def test_speech_smoke_fails_when_transcription_is_empty(self):
+        wav = b"RIFF" + b"\x00" * 4 + b"WAVE" + b"\x00" * 64
+        encoded = base64.b64encode(wav).decode("ascii")
+        with (
+            patch.object(verify, "request_json", return_value=(200, {"audio": encoded}, "")),
+            patch.object(verify, "request_multipart", return_value=(200, {"text": "", "language": "en"}, "")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "non-empty transcript"):
+                verify.infer_speech("https://speech.private.example", "s" * 40)
+
+
+class RedirectProtectionTests(unittest.TestCase):
+    def test_private_worker_requests_never_follow_redirects(self):
+        handler = verify.NoRedirectHandler()
+        redirected = handler.redirect_request(
+            None, None, 302, "Found", {}, "https://attacker.example/collect"
+        )
+        self.assertIsNone(redirected)
+
+
+class VisionFixtureTests(unittest.TestCase):
+    def test_vision_fixture_is_valid_base64_png_and_meets_api_minimum(self):
+        encoded = verify.PNG_1X1
+        raw = base64.b64decode(encoded, validate=True)
+        self.assertGreaterEqual(len(encoded), 100)
+        self.assertTrue(raw.startswith(bytes((137, 80, 78, 71, 13, 10, 26, 10))))
+
+
+class DeploymentDocumentationTests(unittest.TestCase):
+    def test_caddy_systemd_drop_in_writes_two_real_lines(self):
+        readme = MODULE_PATH.parents[2] / "ai-engine" / "self-hosted" / "README.md"
+        text = readme.read_text(encoding="utf-8")
+        command = next((line.strip() for line in text.splitlines() if "new-star.conf" in line), "")
+        self.assertIn("printf '%s\\n'", command)
+        self.assertIn("'[Service]' 'EnvironmentFile=/etc/caddy/new-star-domains.env'", command)
+        self.assertNotIn("\\\\n", command)
+
+
+if __name__ == "__main__":
+    unittest.main()

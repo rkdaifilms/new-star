@@ -143,6 +143,9 @@ body{
 
 let isSignupMode = false;
 let authBusy = false;
+const authParams = new URLSearchParams(location.search);
+const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+const isRecoveryMode = authParams.get("mode") === "recovery" || hashParams.get("type") === "recovery";
 
 const $ = id => document.getElementById(id);
 
@@ -198,7 +201,7 @@ function getSafeNextPage(){
   const allowed=[
    "index.html","profile.html","camera.html","upload.html",
    "wallet.html","inbox.html","settings.html",
-   "monetization.html","live.html","gaming.html","campaign.html","admin.html"
+   "monetization.html","live.html","gaming.html","campaign.html","admin.html","new-star-ai.html","ai-engine-dashboard.html"
   ];
 
   if(!allowed.includes(page))return "profile.html";
@@ -294,20 +297,27 @@ async function handleAuthAction(){
 
  try{
 
-  if(isSignupMode){
+  if(isRecoveryMode){
+
+   const {error}=await client.auth.updateUser({password});
+   if(error)throw error;
+   showMessage("Password updated successfully. Opening your New Star page...","success");
+   setTimeout(goAfterLogin,700);
+
+  }else if(isSignupMode){
 
    const {data,error}=await client.auth.signUp({
     email,
     password,
     options:{
-     emailRedirectTo:new URL("./profile.html",location.href).href
+     emailRedirectTo:new URL("./auth.html?next="+encodeURIComponent(getSafeNextPage()),location.href).href
     }
    });
 
    if(error)throw error;
 
    if(data.session){
-    showMessage("Account बन गया! Profile खुल रहा है।","success");
+    showMessage("Account बन गया! आपका अनुरोधित New Star पेज खुल रहा है।","success");
     setTimeout(goAfterLogin,500);
 
    }else{
@@ -335,7 +345,7 @@ async function handleAuthAction(){
    if(error)throw error;
    if(!data.session)throw new Error("Login session नहीं बना।");
 
-   showMessage("Login सफल! Profile खुल रहा है...","success");
+   showMessage("Login सफल! आपका अनुरोधित New Star पेज खुल रहा है...","success");
 
    setTimeout(goAfterLogin,400);
   }
