@@ -2,7 +2,7 @@ name: New Star Creator Android APK
 
 on:
   push:
-    branches: [main]
+    branches: [main, new-star-gift-ui-fix]
     paths:
       - "android/**"
       - ".github/workflows/android-creator-apk.yml"
