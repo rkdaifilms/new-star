@@ -1,3 +1,4 @@
+import { readWorkerBytes, readWorkerJson } from "./worker-response.ts";
 export type PrivateVideoStartResult =
   | { ok: true; jobId: string; status: string; model: string }
   | { ok: false; status: number; error: string };
@@ -43,7 +44,8 @@ export async function privateVideoStart(
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, aspect_ratio: aspectRatio, resolution, duration }),
     });
-    const data = await response.json().catch(() => ({}));
+    const parsed = await readWorkerJson(response, 64 * 1024);
+    const data = parsed.ok ? parsed.value : {};
     if (!response.ok) return { ok: false, status: response.status, error: typeof data?.detail === "string" ? data.detail.slice(0, 300) : "Private video worker rejected the request." };
     if (typeof data?.job_id !== "string" || !validJobId(data.job_id)) return { ok: false, status: 502, error: "Private video worker returned an invalid job ID." };
     return { ok: true, jobId: data.job_id, status: String(data.status || "queued"), model: String(data.model || "New Star private video model") };
@@ -70,7 +72,8 @@ export async function privateVideoStatus(
       signal: controller.signal,
       headers: { Authorization: "Bearer " + apiKey },
     });
-    const data = await response.json().catch(() => ({}));
+    const parsed = await readWorkerJson(response, 64 * 1024);
+    const data = parsed.ok ? parsed.value : {};
     if (!response.ok) return { ok: false, status: response.status, error: typeof data?.detail === "string" ? data.detail.slice(0, 300) : "Could not read private video job status." };
     const states = new Set(["queued", "in_progress", "completed", "failed"]);
     if (typeof data?.status !== "string" || !states.has(data.status)) return { ok: false, status: 502, error: "Private video worker returned an invalid job state." };
@@ -87,8 +90,9 @@ export async function privateVideoStatus(
       if (!output.ok) return { ok: false, status: output.status, error: "Private video worker could not provide the completed MP4." };
       const mime = (output.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
       if (mime !== "video/mp4") return { ok: false, status: 502, error: "Private video worker returned an unsupported output format." };
-      const bytes = new Uint8Array(await output.arrayBuffer());
-      if (!bytes.byteLength || bytes.byteLength > 50 * 1024 * 1024) return { ok: false, status: 502, error: "Private video output is empty or exceeds 50 MiB." };
+      const outputBody = await readWorkerBytes(output, 50 * 1024 * 1024);
+      if (!outputBody.ok || !outputBody.bytes.byteLength) return { ok: false, status: 502, error: "Private video output is empty, unreadable, or exceeds 50 MiB." };
+      const bytes = outputBody.bytes;
       return { ok: true, status: "completed", model: String(data.model || "New Star private video model"), videoBytes: bytes };
     } finally {
       clearTimeout(outputTimer);
