@@ -8,15 +8,13 @@ val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").o
 android {
     namespace = "com.newstar.live"
     compileSdk = 35
-
     defaultConfig {
         applicationId = "com.newstar.live"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.1.0"
     }
-
     signingConfigs {
         if (releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
             create("release") {
@@ -27,24 +25,16 @@ android {
             }
         }
     }
-
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
-            if (releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            if (releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) signingConfig = signingConfigs.getByName("release")
         }
     }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
+    compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
 }
-
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
