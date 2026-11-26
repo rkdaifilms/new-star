@@ -742,3 +742,14 @@ Deno.test("private vision serializes GPU inference to prevent concurrent VRAM ex
     throw new Error("Private vision GPU inference must be serialized with a dedicated lock");
   }
 });
+
+
+Deno.test("private speech serializes transcription and synthesis worker access", async () => {
+  const source = await Deno.readTextFile(new URL("../ai-engine/self-hosted/speech-worker/main.py", import.meta.url));
+  if (!source.includes("_transcription_lock = threading.Lock()") ||
+      !source.includes("with _transcription_lock:") ||
+      !source.includes("_synthesis_lock = threading.Lock()") ||
+      !source.includes("with _synthesis_lock:")) {
+    throw new Error("Private speech worker must serialize GPU transcription and Piper synthesis");
+  }
+});
