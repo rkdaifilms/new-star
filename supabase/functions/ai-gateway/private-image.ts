@@ -1,3 +1,4 @@
+import { readWorkerJson } from "./worker-response.ts";
 export type PrivateImageResult =
   | { ok: true; image: string; mimeType: "image/png" }
   | { ok: false; status: number; error: string };
@@ -33,7 +34,8 @@ export async function privateImageGeneration(
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, aspect_ratio: aspectRatio, image_size: imageSize }),
     });
-    const data = await response.json().catch(() => ({}));
+    const parsed = await readWorkerJson(response, 16 * 1024 * 1024);
+    const data = parsed.ok ? parsed.value : {};
     if (!response.ok) {
       const detail = typeof data?.detail === "string" ? data.detail : "Private image worker rejected the request.";
       return { ok: false, status: response.status >= 400 && response.status < 600 ? response.status : 502, error: detail.slice(0, 300) };
