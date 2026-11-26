@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 from transformers import AutoProcessor, AutoModelForVision2Seq
 
 app = FastAPI(title="New Star Private Vision Worker", docs_url=None, redoc_url=None)
+MAX_IMAGE_BYTES = 6 * 1024 * 1024
+MAX_IMAGE_PIXELS = 20_000_000
 API_KEY = os.getenv("NEW_STAR_VISION_API_KEY", "")
 MODEL_ID = os.getenv("NEW_STAR_VISION_MODEL", "HuggingFaceTB/SmolVLM2-2.2B-Instruct")
 CACHE = os.getenv("NEW_STAR_VISION_CACHE", "/models/huggingface")
@@ -56,13 +58,22 @@ def analyze(request: VisionRequest, authorization: Optional[str] = Header(defaul
     auth(authorization)
     try:
         raw = base64.b64decode(request.image, validate=True)
-        if len(raw) > 6 * 1024 * 1024:
+        if len(raw) > MAX_IMAGE_BYTES:
             raise HTTPException(413, "Image exceeds the 6 MiB limit")
-        image = Image.open(io.BytesIO(raw)).convert("RGB")
+        with Image.open(io.BytesIO(raw)) as source_image:
+            width, height = source_image.size
+            if width < 1 or height < 1 or width * height > MAX_IMAGE_PIXELS:
+                raise HTTPException(413, "Image dimensions exceed the 20 megapixel limit")
+            if source_image.format not in {"PNG", "JPEG", "WEBP"}:
+                raise HTTPException(415, "Only PNG, JPEG, and WebP images are supported")
+            source_image.load()
+            image = source_image.convert("RGB")
         image.thumbnail((1280, 1280))
     except HTTPException:
         raise
-    except (ValueError, UnidentifiedImageError):
+    except Image.DecompressionBombError:
+        raise HTTPException(413, "Image dimensions exceed the safe decoding limit")
+    except (ValueError, UnidentifiedImageError, OSError):
         raise HTTPException(400, "Invalid image data")
     try:
         model, processor = load_model()
