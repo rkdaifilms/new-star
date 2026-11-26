@@ -7,6 +7,7 @@ import { buildChatProviderPlan } from "../supabase/functions/ai-gateway/provider
 import { privateSpeechEndpoint, privateSpeechTranscription } from "../supabase/functions/ai-gateway/private-speech.ts";
 import { privateImageEndpoint } from "../supabase/functions/ai-gateway/private-image.ts";
 import { readWorkerJson, readWorkerBytes } from "../supabase/functions/ai-gateway/worker-response.ts";
+import { fetchWithTimeout } from "../supabase/functions/ai-gateway/fetch-with-timeout.ts";
 
 
 Deno.test("self-hosted chat provider plan contains only the private New Star model", () => {
@@ -229,6 +230,34 @@ Deno.test("bounded JSON reader rejects wrong content type and oversized bodies",
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ok: true })
   }), 100);
   if (!valid.ok || (valid.value as { ok?: boolean }).ok !== true) throw new Error("Valid JSON request was not parsed");
+});
+
+Deno.test("gateway fetch timeout remains active until the response body is consumed", async () => {
+  let aborted = false;
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    const signal = init?.signal as AbortSignal;
+    const body = new ReadableStream<Uint8Array>({
+      pull() {
+        return new Promise((_, reject) => {
+          signal.addEventListener("abort", () => {
+            aborted = true;
+            reject(new DOMException("Aborted", "AbortError"));
+          }, { once: true });
+        });
+      }
+    });
+    return new Response(body, { status: 200 });
+  };
+  const response = await fetchWithTimeout("https://worker.example.test", {}, 20, fakeFetch);
+  let bodyRejected = false;
+  try {
+    await response.text();
+  } catch {
+    bodyRejected = true;
+  }
+  if (!aborted || !bodyRejected) {
+    throw new Error("Upstream timeout was cleared before the response body finished");
+  }
 });
 
 Deno.test("private worker responses are streamed with strict JSON and binary size limits", async () => {
