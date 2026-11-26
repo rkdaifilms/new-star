@@ -9,6 +9,7 @@ import java.net.URLEncoder
 data class NewStarSession(val accessToken: String, val refreshToken: String, val userId: String, val email: String)
 data class NewStarVideo(val id: String, val userId: String, val username: String, val caption: String, val videoUrl: String, val likes: Int, val views: Int)
 data class NewStarComment(val username: String, val comment: String)
+data class NewStarCreator(val userId: String, val username: String, val fullName: String, val avatarUrl: String, val bio: String, val about: String, val isPrivate: Boolean, val followerCount: Int)
 
 class NewStarApi {
     companion object {
@@ -138,15 +139,51 @@ class NewStarApi {
             JSONObject().put("user_id", userId).put("username", username).put("video_id", videoId).put("comment", clean))
     }
 
-    fun searchCreators(token: String?, term: String): List<String> {
-        val q = URLEncoder.encode("*" + term + "*", "UTF-8")
-        val raw = request("/rest/v1/creator_public_profiles?select=username,full_name&or=(username.ilike." + q + ",full_name.ilike." + q + ")&limit=20", token = token)
+    fun searchCreators(token: String?, term: String): List<NewStarCreator> {
+        val safeTerm = term.trim().replace("*", " ").replace(",", " ").take(60)
+        val q = URLEncoder.encode("*" + safeTerm + "*", "UTF-8")
+        val raw = request("/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,bio,about,is_private&or=(username.ilike." + q + ",full_name.ilike." + q + ")&order=username.asc&limit=30", token = token)
         val rows = JSONArray(raw)
-        val found = ArrayList<String>()
+        val found = ArrayList<NewStarCreator>()
         for (i in 0 until rows.length()) {
             val row = rows.optJSONObject(i) ?: continue
-            found.add("@" + row.optString("username") + if (row.optString("full_name").isBlank()) "" else " · " + row.optString("full_name"))
+            val id = row.optString("user_id")
+            if (id.isBlank()) continue
+            found.add(NewStarCreator(id, row.optString("username"), row.optString("full_name"), row.optString("avatar_url"), row.optString("bio"), row.optString("about"), row.optBoolean("is_private"), 0))
         }
         return found
     }
+
+    fun loadCreatorProfile(token: String?, userId: String): NewStarCreator? {
+        val id = URLEncoder.encode(userId, "UTF-8")
+        val rows = JSONArray(request("/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,bio,about,is_private&user_id=eq.$id&limit=1", token = token))
+        if (rows.length() == 0) return null
+        val row = rows.getJSONObject(0)
+        val followers = JSONArray(request("/rest/v1/followers?select=id&following_id=eq.$id&limit=1000", token = token))
+        return NewStarCreator(row.optString("user_id"), row.optString("username"), row.optString("full_name"), row.optString("avatar_url"), row.optString("bio"), row.optString("about"), row.optBoolean("is_private"), followers.length())
+    }
+
+    fun isFollowing(token: String, followerId: String, targetId: String): Boolean {
+        val follower = URLEncoder.encode(followerId, "UTF-8")
+        val target = URLEncoder.encode(targetId, "UTF-8")
+        val rows = JSONArray(request("/rest/v1/followers?select=id&follower_id=eq.$follower&following_id=eq.$target&limit=1", token = token))
+        return rows.length() > 0
+    }
+
+    fun toggleFollow(token: String, followerId: String, targetId: String): Boolean {
+        require(followerId != targetId) { "You cannot follow your own account." }
+        val follower = URLEncoder.encode(followerId, "UTF-8")
+        val target = URLEncoder.encode(targetId, "UTF-8")
+        val existing = JSONArray(request("/rest/v1/followers?select=id&follower_id=eq.$follower&following_id=eq.$target&limit=1", token = token))
+        if (existing.length() > 0) {
+            request("/rest/v1/followers?follower_id=eq.$follower&following_id=eq.$target", "DELETE", token)
+            return false
+        }
+        request("/rest/v1/followers", "POST", token,
+            JSONObject().put("follower_id", followerId).put("following_id", targetId))
+        return true
+    }
+
+    fun loadCreatorVideos(token: String?, creatorId: String): List<NewStarVideo> =
+        loadFeedForUsers(token, listOf(creatorId))
 }
