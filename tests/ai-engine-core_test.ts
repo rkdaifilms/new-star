@@ -8,6 +8,7 @@ import { privateSpeechEndpoint, privateSpeechTranscription } from "../supabase/f
 import { privateImageEndpoint } from "../supabase/functions/ai-gateway/private-image.ts";
 import { readWorkerJson, readWorkerBytes } from "../supabase/functions/ai-gateway/worker-response.ts";
 import { fetchWithTimeout } from "../supabase/functions/ai-gateway/fetch-with-timeout.ts";
+import { probePrivateWorker } from "../supabase/functions/ai-gateway/private-worker-health.ts";
 
 
 Deno.test("self-hosted chat provider plan contains only the private New Star model", () => {
@@ -965,5 +966,52 @@ Deno.test("private speech, image, and video workers keep request timeouts active
   }
   if (!timedOutDuringBodyRead) {
     throw new Error("The shared timeout must abort a response whose body stalls after headers arrive");
+  }
+});
+
+
+Deno.test("private worker health rejects insecure URLs and missing keys without making a request", async () => {
+  let called = false;
+  const fakeFetch: typeof fetch = async () => {
+    called = true;
+    return Response.json({ ok: true });
+  };
+  const insecure = await probePrivateWorker("http://worker.example.test", "k".repeat(40), fakeFetch);
+  const missingKey = await probePrivateWorker("https://worker.example.test", "short", fakeFetch);
+  if (called || insecure.configured || insecure.reachable || missingKey.configured || missingKey.reachable) {
+    throw new Error("Private worker health must fail closed before contacting insecure or unconfigured endpoints");
+  }
+});
+
+Deno.test("private worker health distinguishes a reachable worker from an unloaded model", async () => {
+  const fakeFetch: typeof fetch = async () => Response.json({
+    ok: true,
+    service: "new-star-private-image",
+    model_loaded: false,
+    cuda: true
+  });
+  const result = await probePrivateWorker("https://worker.example.test/image", "k".repeat(40), fakeFetch);
+  if (!result.configured || !result.reachable || !result.healthy || result.modelLoaded !== false ||
+      result.service !== "new-star-private-image") {
+    throw new Error("Worker status must report configuration, reachability, health, and model loading separately");
+  }
+});
+
+Deno.test("private worker health distinguishes an HTTP response from a healthy worker", async () => {
+  const fakeFetch: typeof fetch = async () => Response.json({ ok: false, detail: "starting" }, { status: 503 });
+  const result = await probePrivateWorker("https://worker.example.test", "k".repeat(40), fakeFetch);
+  if (!result.configured || !result.reachable || result.healthy) {
+    throw new Error("An HTTP error proves reachability but must not be reported as a healthy worker");
+  }
+});
+
+Deno.test("private worker health reports network failures without leaking endpoint details", async () => {
+  const fakeFetch: typeof fetch = async () => {
+    throw new TypeError("private host connection failed");
+  };
+  const result = await probePrivateWorker("https://worker.example.test", "k".repeat(40), fakeFetch);
+  if (!result.configured || result.reachable || result.healthy ||
+      result.reason !== "Worker health endpoint is unreachable.") {
+    throw new Error("Network failures must be reported as unreachable with a sanitized reason");
   }
 });
