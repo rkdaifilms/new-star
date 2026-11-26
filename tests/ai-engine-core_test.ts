@@ -923,3 +923,47 @@ Deno.test("private search keeps its timeout active while reading a bounded worke
     throw new Error("Both private search and crawl must use the bounded response reader");
   }
 });
+
+
+Deno.test("private speech, image, and video workers keep request timeouts active through bounded body reads", async () => {
+  const speech = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-speech.ts", import.meta.url));
+  const image = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-image.ts", import.meta.url));
+  const video = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-video.ts", import.meta.url));
+  for (const [name, source] of [["speech", speech], ["image", image], ["video", video]] as const) {
+    if (!source.includes('import { fetchWithTimeout } from "./fetch-with-timeout.ts";') ||
+        source.includes("new AbortController()") ||
+        source.includes("clearTimeout(timer)") ||
+        !source.includes("readWorkerJson") ) {
+      throw new Error("Private " + name + " requests must use the shared body-aware timeout and bounded JSON reader");
+    }
+  }
+  if ((speech.match(/fetchWithTimeout\(/g) || []).length !== 2 ||
+      (image.match(/fetchWithTimeout\(/g) || []).length !== 1 ||
+      (video.match(/fetchWithTimeout\(/g) || []).length !== 3) {
+    throw new Error("Every private speech, image, and video network request must use the shared timeout wrapper");
+  }
+
+  let timedOutDuringBodyRead = false;
+  const delayedFetch: typeof fetch = async (_input, init) => {
+    const signal = init?.signal as AbortSignal;
+    const body = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        await new Promise<void>((_resolve, reject) => {
+          signal.addEventListener("abort", () => reject(new DOMException("Timed out", "AbortError")), { once: true });
+        });
+        controller.enqueue(new TextEncoder().encode("{}"));
+        controller.close();
+      }
+    });
+    return new Response(body, { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const response = await fetchWithTimeout("https://worker.example.test/slow", {}, 20, delayedFetch);
+  try {
+    await response.text();
+  } catch (error) {
+    timedOutDuringBodyRead = error instanceof Error && error.name === "AbortError";
+  }
+  if (!timedOutDuringBodyRead) {
+    throw new Error("The shared timeout must abort a response whose body stalls after headers arrive");
+  }
+});
