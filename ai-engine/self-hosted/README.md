@@ -285,7 +285,7 @@ The crawler accepts public HTTP/HTTPS hosts, rejects local/private/reserved or m
 
 ## Private image understanding (vision)
 
-The optional `vision` profile runs `HuggingFaceTB/SmolVLM2-2.2B-Instruct` locally on a CUDA GPU. It accepts authenticated base64 PNG/JPEG/WebP images up to 6 MiB, scales them to a bounded 1280-pixel maximum dimension, and returns a text answer. In self-hosted mode, image data is not sent to external providers.
+The optional `vision` profile runs `HuggingFaceTB/SmolVLM2-2.2B-Instruct` locally on a CUDA GPU. It accepts authenticated base64 PNG/JPEG/WebP images up to 6 MiB and 20 megapixels, checks format and dimensions before full decoding, scales them to a bounded 1280-pixel maximum dimension, and returns a text answer. In self-hosted mode, image data is not sent to external providers.
 
 1. Set a unique `NEW_STAR_VISION_API_KEY` (at least 32 characters).
 2. Build/start with `docker compose --profile vision build new-star-vision` and `docker compose --profile vision up -d new-star-vision`.
