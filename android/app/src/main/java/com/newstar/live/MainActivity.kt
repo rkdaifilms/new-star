@@ -92,24 +92,31 @@ class MainActivity : AppCompatActivity() {
     private fun showHome() {
         baseScreen("✦ New Star")
         val toolbar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), 0, dp(16), 0) }
-        toolbar.addView(label("For You", 16f, true), LinearLayout.LayoutParams(0, dp(44), 1f))
+        val forYou = button("For You")
+        val following = button("Following")
         val refresh = TextView(this).apply { text = "↻"; textSize = 26f; setTextColor(Color.WHITE); gravity = Gravity.CENTER }
+        toolbar.addView(forYou, LinearLayout.LayoutParams(0, dp(44), 1f))
+        toolbar.addView(following, LinearLayout.LayoutParams(0, dp(44), 1f))
         toolbar.addView(refresh, LinearLayout.LayoutParams(dp(48), dp(44)))
         content.addView(toolbar, FrameLayout.LayoutParams(-1, dp(48)))
         val scroll = ScrollView(this)
         val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         scroll.addView(list)
         content.addView(scroll, FrameLayout.LayoutParams(-1, -1).apply { topMargin = dp(48) })
-        refresh.setOnClickListener { loadFeed(list) }
-        loadFeed(list)
+        forYou.setOnClickListener { loadFeed(list, false) }
+        following.setOnClickListener { loadFeed(list, true) }
+        refresh.setOnClickListener { loadFeed(list, false) }
+        loadFeed(list, false)
         addBottomNav("Home")
     }
 
-    private fun loadFeed(list: LinearLayout) {
-        list.removeAllViews(); list.addView(label("Loading videos…", 16f))
+    private fun loadFeed(list: LinearLayout, followingOnly: Boolean = false) {
+        list.removeAllViews(); list.addView(label(if (followingOnly) "Loading followed creators…" else "Loading videos…", 16f))
         worker.execute {
             try {
-                val videos = api.loadFeed(session?.accessToken)
+                val active = session
+                val videos = if (followingOnly && active != null) api.loadFollowingFeed(active.accessToken, active.userId)
+                    else api.loadFeed(active?.accessToken)
                 runOnUiThread {
                     list.removeAllViews()
                     if (videos.isEmpty()) list.addView(label("No public videos are available yet.", 16f))
