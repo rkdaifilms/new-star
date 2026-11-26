@@ -84,7 +84,7 @@ class SearchWorkerResponseSafetyTests(unittest.TestCase):
         response.iter_content.assert_not_called()
         response.close.assert_called()
 
-    @patch.object(worker, "validate_url", return_value="https://example.com/")
+    @patch.object(worker, "validate_url_and_resolve", return_value=("https://example.com/", ["8.8.8.8"]))
     @patch.object(worker.requests, "Session")
     def test_streamed_oversize_response_is_rejected_and_closed(self, session_factory, _validate):
         response = self.make_response(chunks=[b"x" * (worker.MAX_BYTES + 1)])
