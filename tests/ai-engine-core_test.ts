@@ -836,3 +836,25 @@ Deno.test("private speech validates WAV output and enforces file size before rea
     throw new Error("Speech worker must enforce the 20 MiB WAV output limit before reading");
   }
 });
+
+
+Deno.test("private search keeps its timeout active while reading a bounded worker response", async () => {
+  const adapter = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-search.ts", import.meta.url));
+  const requestStart = adapter.indexOf("async function request(");
+  const requestEnd = adapter.indexOf("\nfunction workerFailure", requestStart);
+  const requestBlock = adapter.slice(requestStart, requestEnd);
+  const responseRead = requestBlock.indexOf("await reader.read()");
+  const timerClear = requestBlock.indexOf("clearTimeout(timer)");
+  if (requestStart < 0 || requestEnd < 0 || responseRead < 0 || timerClear < responseRead) {
+    throw new Error("Private search timeout must remain active until the response body has been fully read");
+  }
+  if (!requestBlock.includes("MAX_WORKER_RESPONSE_BYTES") ||
+      !requestBlock.includes("await reader.cancel()") ||
+      !requestBlock.includes('redirect: "error"')) {
+    throw new Error("Private search must cap response size, cancel oversized streams, and reject redirects");
+  }
+  if (!adapter.includes('request(endpoint, key, "/v1/search"') ||
+      !adapter.includes('request(endpoint, key, "/v1/crawl"')) {
+    throw new Error("Both private search and crawl must use the bounded response reader");
+  }
+});
