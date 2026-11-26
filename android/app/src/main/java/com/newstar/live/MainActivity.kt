@@ -1,6 +1,8 @@
 package com.newstar.live
 
 import android.content.Context
+import android.content.Intent
+import android.app.AlertDialog
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -126,7 +128,37 @@ class MainActivity : AppCompatActivity() {
         val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(12), dp(16), dp(18)); setBackgroundColor(Color.rgb(8, 10, 18)) }
         info.addView(label("@" + video.username, 16f, true))
         info.addView(label(video.caption, 14f))
-        info.addView(label("♥ " + video.likes + "     ▶ " + video.views, 13f))
+        val metrics = label("♥ " + video.likes + "     ▶ " + video.views, 13f)
+        info.addView(metrics)
+        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val likeButton = button("♥ Like")
+        val commentButton = button("Comment")
+        val shareButton = button("Share")
+        actions.addView(likeButton, LinearLayout.LayoutParams(0, dp(44), 1f))
+        actions.addView(commentButton, LinearLayout.LayoutParams(0, dp(44), 1f))
+        actions.addView(shareButton, LinearLayout.LayoutParams(0, dp(44), 1f))
+        info.addView(actions)
+        likeButton.setOnClickListener {
+            val active = session ?: return@setOnClickListener
+            likeButton.isEnabled = false
+            worker.execute {
+                try {
+                    val liked = api.toggleLike(active.accessToken, active.userId, video.id)
+                    runOnUiThread {
+                        likeButton.isEnabled = true
+                        likeButton.text = if (liked) "♥ Liked" else "♥ Like"
+                        metrics.text = "♥ " + (video.likes + if (liked) 1 else -1).coerceAtLeast(0) + "     ▶ " + video.views
+                    }
+                } catch (e: Exception) {
+                    runOnUiThread { likeButton.isEnabled = true; showStatus(e.message ?: "Could not update like.") }
+                }
+            }
+        }
+        commentButton.setOnClickListener { openComments(video) }
+        shareButton.setOnClickListener {
+            val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, video.videoUrl) }
+            startActivity(Intent.createChooser(send, "Share New Star video"))
+        }
         card.addView(info)
         if (autoplay) player.post {
             player.setVideoURI(Uri.parse(video.videoUrl))
