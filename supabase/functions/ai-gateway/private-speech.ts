@@ -1,3 +1,4 @@
+import { readWorkerJson } from "./worker-response.ts";
 const AUDIO_MIME_EXTENSIONS: Record<string, string> = {
   "audio/webm": "webm",
   "audio/ogg": "ogg",
@@ -19,11 +20,9 @@ export function privateSpeechEndpoint(base: string, path: string): string | null
   }
 }
 
-async function readJson(response: Response): Promise<Record<string, unknown>> {
-  const value = await response.json().catch(() => ({}));
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
+async function readJson(response: Response, maxBytes: number): Promise<Record<string, unknown>> {
+  const result = await readWorkerJson(response, maxBytes);
+  return result.ok ? result.value : {};
 }
 
 export async function privateSpeechSynthesis(
@@ -44,7 +43,7 @@ export async function privateSpeechSynthesis(
       body: JSON.stringify({ input: text, language }),
       signal: controller.signal,
     });
-    const payload = await readJson(response);
+    const payload = await readJson(response, 24 * 1024 * 1024);
     if (!response.ok) return { ok: false, status: response.status >= 500 ? 503 : 422, error: "Private speech worker rejected the synthesis request." };
     if (typeof payload.audio !== "string" || payload.audio.length < 100 || payload.audio.length > 28000000 ||
       typeof payload.mimeType !== "string" || !/^audio\/[a-z0-9.+-]+$/i.test(payload.mimeType)) {
@@ -91,7 +90,7 @@ export async function privateSpeechTranscription(
       body: form,
       signal: controller.signal,
     });
-    const payload = await readJson(response);
+    const payload = await readJson(response, 64 * 1024);
     if (!response.ok) return { ok: false, status: response.status >= 500 ? 503 : 422, error: "Private speech worker rejected the transcription request." };
     if (typeof payload.text !== "string" || !payload.text.trim() ||
       typeof payload.language !== "string" || !/^[a-z]{2,3}(-[a-z0-9]+)?$/i.test(payload.language)) {
