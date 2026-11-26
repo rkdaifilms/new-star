@@ -753,3 +753,19 @@ Deno.test("private speech serializes transcription and synthesis worker access",
     throw new Error("Private speech worker must serialize GPU transcription and Piper synthesis");
   }
 });
+
+
+Deno.test("Creator Studio private search results render without block-scoped source errors", async () => {
+  const frontend = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
+  const sourceDeclaration = frontend.indexOf("const sources=crawlUrl?[]:");
+  const crawlBranch = frontend.indexOf("if(crawlUrl){", sourceDeclaration);
+  const sourceRender = frontend.indexOf("if(sources.length){", crawlBranch);
+  if (sourceDeclaration < 0 || crawlBranch < 0 || sourceRender < 0 ||
+      !(sourceDeclaration < crawlBranch && crawlBranch < sourceRender)) {
+    throw new Error("Search results must be declared in the parent scope before rendering source links");
+  }
+  const between = frontend.slice(sourceDeclaration, sourceRender);
+  if (!between.includes("result.data.results")) {
+    throw new Error("Private search result links must be read from the gateway results array");
+  }
+});
