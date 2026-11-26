@@ -93,6 +93,54 @@ def request_json(url: str, key: str | None = None, body: dict[str, Any] | None =
         raise RuntimeError(type(error).__name__ + " while contacting worker") from None
 
 
+def build_multipart_request(url: str, key: str, filename: str, mime_type: str, payload: bytes,
+                           field_name: str = "file") -> urllib.request.Request:
+    boundary = "----NewStarSpeech" + os.urandom(16).hex()
+    body = b"".join([
+        b"--" + boundary.encode("ascii") + b"\r\n",
+        f'Content-Disposition: form-data; name="{field_name}"; filename="{filename}"\r\n'.encode("utf-8"),
+        f"Content-Type: {mime_type}\r\n\r\n".encode("ascii"),
+        payload,
+        b"\r\n--" + boundary.encode("ascii") + b"--\r\n",
+    ])
+    return urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Accept": "application/json",
+            "Authorization": "Bearer " + key,
+            "Content-Type": "multipart/form-data; boundary=" + boundary,
+        },
+        method="POST",
+    )
+
+
+def request_multipart(url: str, key: str, filename: str, mime_type: str, payload: bytes,
+                      timeout: int = 120) -> tuple[int, dict[str, Any], str]:
+    request = build_multipart_request(url, key, filename, mime_type, payload)
+    try:
+        with _NO_REDIRECT_OPENER.open(request, timeout=timeout) as response:
+            raw = response.read(64 * 1024 + 1)
+            if len(raw) > 64 * 1024:
+                raise ValueError("response exceeded the 64 KiB transcription limit")
+            try:
+                data = json.loads(raw.decode("utf-8")) if raw else {}
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                data = {}
+            return response.status, data if isinstance(data, dict) else {}, raw.decode("utf-8", "replace")
+    except urllib.error.HTTPError as error:
+        raw = error.read(64 * 1024 + 1).decode("utf-8", "replace")
+        if len(raw.encode("utf-8")) > 64 * 1024:
+            raise RuntimeError("transcription error response exceeded the 64 KiB limit") from None
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            data = {}
+        return error.code, data if isinstance(data, dict) else {}, raw
+    except (urllib.error.URLError, TimeoutError, OSError) as error:
+        raise RuntimeError(type(error).__name__ + " while contacting speech transcription worker") from None
+
+
 def validate_config(name: str, base: str, key: str) -> str:
     if not base or not key:
         raise ValueError("endpoint URL or API key is not set")
@@ -157,9 +205,18 @@ def infer_speech(base: str, key: str) -> None:
     if status != 200 or not isinstance(encoded, str):
         raise RuntimeError("speech worker did not return audio; verify the configured Piper voice")
     audio = base64.b64decode(encoded, validate=True)
-    if not audio.startswith(b"RIFF") or len(audio) < 44:
+    if not audio.startswith(b"RIFF") or len(audio) < 44 or audio[8:12] != b"WAVE":
         raise RuntimeError("speech worker did not return a valid WAV file")
     report("PASS", "speech-tts", f"generated WAV ({len(audio)} bytes) for language {language}")
+
+    stt_status, transcript, _ = request_multipart(
+        base + "/v1/audio/transcriptions", key, "new-star-speech-test.wav", "audio/wav", audio, timeout=180
+    )
+    text = transcript.get("text")
+    detected_language = transcript.get("language")
+    if stt_status != 200 or not isinstance(text, str) or not text.strip() or not isinstance(detected_language, str) or not detected_language.strip():
+        raise RuntimeError("speech-recognition worker did not return a non-empty transcript and detected language")
+    report("PASS", "speech-stt", f"recognized {len(text.strip())} characters; detected language {detected_language}")
 
 
 def infer_search(base: str, key: str) -> None:
