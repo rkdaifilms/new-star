@@ -39,6 +39,20 @@ def require_auth(authorization: Optional[str]) -> None:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
+def valid_mp4_output(path: Path) -> bool:
+    try:
+        if not path.is_file():
+            return False
+        size = path.stat().st_size
+        if size < 12 or size > 50 * 1024 * 1024:
+            return False
+        with path.open("rb") as stream:
+            header = stream.read(12)
+        return len(header) == 12 and header[4:8] == b"ftyp"
+    except OSError:
+        return False
+
+
 def persist(job_id: str) -> None:
     JOB_DIR.mkdir(parents=True, exist_ok=True)
     temporary = JOB_DIR / (job_id + ".json.tmp")
@@ -111,8 +125,8 @@ def render(job_id: str) -> None:
                     frame = frame.resize((848, 480))
                 writer.append_data(np.asarray(frame.convert("RGB")))
         size = output.stat().st_size
-        if size <= 0 or size > 50 * 1024 * 1024:
-            raise RuntimeError("Generated video is empty or exceeds the 50 MiB output limit")
+        if not valid_mp4_output(output):
+            raise RuntimeError("Generated video is not a valid MP4 or exceeds the 50 MiB output limit")
         with _jobs_lock:
             _jobs[job_id].update({"status": "completed", "output": output.name, "bytes": size, "updated_at": int(time.time())})
             persist(job_id)
@@ -141,6 +155,12 @@ def restore_jobs() -> None:
                 continue
             if job.get("status") in {"queued", "in_progress"}:
                 job.update({"status": "failed", "failure_code": "VIDEO_WORKER_RESTARTED", "updated_at": int(time.time())})
+                temporary = JOB_DIR / (job_id + ".json.tmp")
+                temporary.write_text(json.dumps(job), encoding="utf-8")
+                temporary.replace(saved)
+            elif job.get("status") == "completed" and not valid_mp4_output(JOB_DIR / (job_id + ".mp4")):
+                # Never report a completed job when its durable MP4 is missing or corrupt.
+                job.update({"status": "failed", "failure_code": "VIDEO_OUTPUT_MISSING_OR_INVALID", "updated_at": int(time.time())})
                 temporary = JOB_DIR / (job_id + ".json.tmp")
                 temporary.write_text(json.dumps(job), encoding="utf-8")
                 temporary.replace(saved)
