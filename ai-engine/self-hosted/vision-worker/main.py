@@ -78,4 +78,5 @@ def analyze(request: VisionRequest, authorization: Optional[str] = Header(defaul
     except HTTPException:
         raise
     except Exception as error:
-        raise HTTPException(503, "Private vision inference failed: " + str(error)[:180])
+        print("Private vision inference failed:", type(error).__name__)
+        raise HTTPException(503, "Private vision inference failed") from error
