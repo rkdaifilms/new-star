@@ -10,16 +10,15 @@
 </head>
 <body>
 <div class="ns-shell">
-<header class="ns-top"><a href="ai-engine-dashboard.html" aria-label="AI Engine Control Room" title="AI Engine Control Room">⌂</a><div><b>✦ NEW STAR AI ENGINE</b><small>Use the same New Star Creator Hub account</small></div><span id="engine-status" class="ns-status">Checking…</span></header>
+<header class="ns-top"><a href="ai-engine-dashboard.html" aria-label="AI Engine Control Room" title="AI Engine Control Room">⌂</a><div><b>✦ NEW STAR AI ENGINE</b><small>New Star AI</small></div><span id="engine-status" class="ns-status">Checking…</span></header>
 <main class="ns-main">
-<section class="ns-hero"><div class="ns-kicker">NEW STAR · GENERATIVE AI</div><h1>One place. Every creative workflow.</h1><p>Your New Star AI workspace. Chat, image understanding, image generation and search run through the New Star AI gateway when their services are configured. Private-only mode never silently switches to external AI providers; tools without private workers will report that they are not yet available.</p></section>
 <p id="ns-auth-note" hidden style="padding:12px 15px;border:1px solid #78613a;border-radius:12px;background:#2a2419;color:#ffe3a6;line-height:1.5">Use the same login you already use for New Star Creator Hub. You do not need a separate AI account. <a href="auth.html?next=new-star-ai.html" style="color:#fff;text-decoration:underline;font-weight:700">Open New Star Login</a></p>
 <nav class="ns-tabs" aria-label="AI tools">
 <button class="active" data-mode="chat">✦ Chat</button><button data-mode="research">⌕ Search</button><button data-mode="image">▧ Image</button><button data-mode="video">▷ Video</button>
 </nav>
 <section class="ns-workspace">
-<div class="ns-panel-head"><div><b id="mode-title">AI Chat</b><small id="mode-help">Ask questions or give the AI a task.</small></div><div class="ns-panel-actions"><button type="button" id="ns-new-chat" class="ns-new-chat">＋ New chat</button><span class="ns-chip">NEW STAR ENGINE</span></div></div>
-<div id="ns-output" class="ns-output" aria-live="polite"><div class="ns-empty"><div class="ns-orb">✦</div><b>Your AI workspace is ready</b><p>Choose a tool and describe what you want to do.</p></div></div>
+<div class="ns-panel-head"><div><b id="mode-title">New Star AI</b><small id="mode-help" hidden></small></div><div class="ns-panel-actions"><button type="button" id="ns-new-chat" class="ns-new-chat">＋ New chat</button><span class="ns-chip">NEW STAR ENGINE</span></div></div>
+<div id="ns-output" class="ns-output" aria-live="polite"><div class="ns-empty"><div class="ns-orb">✦</div><b>New Star AI</b><p>अपना संदेश लिखें या माइक दबाकर बोलें।</p></div></div>
 <form id="ns-form" class="ns-composer">
 <div id="ns-attachment-wrap" hidden><span id="ns-attachment-name"></span><button type="button" id="ns-clear-file" aria-label="Remove attachment">×</button></div>
 <textarea id="ns-prompt" rows="3" maxlength="12000" placeholder="Ask anything…"></textarea>
@@ -27,7 +26,6 @@
 </form>
 <p class="ns-footnote" id="ns-footnote">Only capabilities confirmed by the server are available. In private-only mode, New Star never falls back to external AI providers; private image, speech, search and video workers must be deployed before those tools can run.</p>
 </section>
-<section class="ns-capabilities"><article><b>New Star AI Chat</b><p>Sign-in protected chat with conversation saving when the database is available. In private-only mode, replies use only the configured New Star model.</p></article><article><b>Voice</b><p>Voice input and spoken replies require configured speech-recognition and speech-generation services. Private-only mode requires New Star's own speech workers.</p></article><article><b>Image Generation</b><p>Available only when the selected server mode has a configured image-generation worker. Private-only mode requires New Star's own image worker.</p></article><article><b>Search</b><p>Uses the configured search service. Private-only mode requires New Star's private crawl and search-index workers and never falls back to an external search provider.</p></article><article><b>Video Generation</b><p>Available only when a video model and job worker are deployed for the selected server mode. Private-only mode requires New Star's own video worker.</p></article></section>
 <section class="ns-api-keys" aria-labelledby="ns-api-title">
   <div class="ns-api-head"><div><b id="ns-api-title">Developer API keys</b><p>Create keys for your own apps and scripts. Keep each key private.</p></div><button type="button" id="ns-api-refresh">Refresh</button></div>
   <form id="ns-api-form">
