@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "./fetch-with-timeout.ts";
 import { readWorkerJson } from "./worker-response.ts";
 export type PrivateImageResult =
   | { ok: true; image: string; mimeType: "image/png" }
@@ -24,16 +25,13 @@ export async function privateImageGeneration(
   if (!endpoint || apiKey.trim().length < 32) {
     return { ok: false, status: 503, error: "Private image worker HTTPS endpoint or API key is not configured." };
   }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 120000);
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetchWithTimeout(endpoint, {
       method: "POST",
       redirect: "error",
-      signal: controller.signal,
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, aspect_ratio: aspectRatio, image_size: imageSize }),
-    });
+    }, 120000);
     const parsed = await readWorkerJson(response, 16 * 1024 * 1024);
     const data = parsed.ok ? parsed.value : {};
     if (!response.ok) {
@@ -46,7 +44,5 @@ export async function privateImageGeneration(
     return { ok: true, image: data.image, mimeType: "image/png" };
   } catch (error) {
     return { ok: false, status: 503, error: error instanceof Error && error.name === "AbortError" ? "Private image generation timed out." : "Private image worker is unreachable." };
-  } finally {
-    clearTimeout(timer);
   }
 }
