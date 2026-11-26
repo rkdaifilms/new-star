@@ -136,6 +136,54 @@ class MainActivity : AppCompatActivity() {
         return card
     }
 
+    private fun openComments(video: NewStarVideo) {
+        val active = session ?: return
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(12), dp(18), dp(8)) }
+        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val scroll = ScrollView(this).apply { addView(list) }
+        val entry = EditText(this).apply { hint = "Write a comment (max 500 characters)"; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY); maxLines = 3 }
+        val send = button("Post comment")
+        panel.addView(scroll, LinearLayout.LayoutParams(-1, dp(260)))
+        panel.addView(entry, LinearLayout.LayoutParams(-1, dp(64)))
+        panel.addView(send, LinearLayout.LayoutParams(-1, dp(48)))
+        val dialog = AlertDialog.Builder(this).setTitle("Comments").setView(panel).setNegativeButton("Close", null).create()
+        dialog.show()
+        fun refreshComments() {
+            list.removeAllViews()
+            list.addView(label("Loading comments…", 14f))
+            worker.execute {
+                try {
+                    val comments = api.loadComments(active.accessToken, video.id)
+                    runOnUiThread {
+                        list.removeAllViews()
+                        if (comments.isEmpty()) list.addView(label("No comments yet. Start the conversation.", 14f))
+                        comments.forEach { item ->
+                            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(5), 0, dp(5)) }
+                            row.addView(label("@" + item.username, 13f, true))
+                            row.addView(label(item.comment, 14f))
+                            list.addView(row)
+                        }
+                    }
+                } catch (e: Exception) { runOnUiThread { list.removeAllViews(); list.addView(label(e.message ?: "Could not load comments.")) } }
+            }
+        }
+        refreshComments()
+        send.setOnClickListener {
+            val value = entry.text.toString().trim()
+            if (value.isBlank()) { entry.error = "Write a comment first"; return@setOnClickListener }
+            send.isEnabled = false
+            val username = active.email.substringBefore("@").ifBlank { "creator" }
+            worker.execute {
+                try {
+                    api.addComment(active.accessToken, active.userId, username, video.id, value)
+                    runOnUiThread { entry.setText(""); send.isEnabled = true; refreshComments() }
+                } catch (e: Exception) {
+                    runOnUiThread { send.isEnabled = true; showStatus(e.message ?: "Could not post comment.") }
+                }
+            }
+        }
+    }
+
     private fun showSearch() {
         baseScreen("Search New Star")
         val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(16), dp(16), 0) }
