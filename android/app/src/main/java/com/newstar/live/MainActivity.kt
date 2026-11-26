@@ -280,7 +280,8 @@ class MainActivity : AppCompatActivity() {
                     if (creator.fullName.isNotBlank()) panel.addView(label(creator.fullName, 17f, true))
                     if (creator.bio.isNotBlank()) panel.addView(label(creator.bio, 15f))
                     if (creator.about.isNotBlank()) panel.addView(label(creator.about, 14f))
-                    panel.addView(label(creator.followerCount.toString() + " followers", 14f))
+                    val followersLabel = label(creator.followerCount.toString() + " followers", 14f)
+                    panel.addView(followersLabel)
                     if (active?.userId != creatorId) {
                         val follow = button(if (following) "Following" else if (creator.isPrivate) "Private account" else "Follow")
                         follow.isEnabled = !creator.isPrivate
@@ -295,8 +296,7 @@ class MainActivity : AppCompatActivity() {
                                         follow.text = if (nowFollowing) "Following" else "Follow"
                                         follow.isEnabled = true
                                         val count = refreshed?.followerCount ?: creator.followerCount
-                                        val countView = panel.getChildAt(4) as? TextView
-                                        countView?.text = count.toString() + " followers"
+                                        followersLabel.text = count.toString() + " followers"
                                     }
                                 } catch (e: Exception) {
                                     runOnUiThread { follow.isEnabled = true; showStatus(e.message ?: "Could not update follow status.") }
