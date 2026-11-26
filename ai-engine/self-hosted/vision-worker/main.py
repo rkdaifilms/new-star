@@ -17,6 +17,7 @@ API_KEY = os.getenv("NEW_STAR_VISION_API_KEY", "")
 MODEL_ID = os.getenv("NEW_STAR_VISION_MODEL", "HuggingFaceTB/SmolVLM2-2.2B-Instruct")
 CACHE = os.getenv("NEW_STAR_VISION_CACHE", "/models/huggingface")
 _lock = threading.Lock()
+_inference_lock = threading.Lock()
 _model = None
 _processor = None
 
@@ -80,7 +81,8 @@ def analyze(request: VisionRequest, authorization: Optional[str] = Header(defaul
         messages = [{"role": "user", "content": [{"type": "image", "image": image}, {"type": "text", "text": request.prompt}]}]
         prompt = processor.apply_chat_template(messages, add_generation_prompt=True)
         inputs = processor(text=prompt, images=[image], return_tensors="pt").to(model.device)
-        with torch.inference_mode():
+        # Serialize GPU inference so concurrent requests cannot exhaust VRAM.
+        with _inference_lock, torch.inference_mode():
             generated = model.generate(**inputs, max_new_tokens=450, do_sample=False)
         answer = processor.batch_decode(generated, skip_special_tokens=True)[0].strip()
         if not answer:
