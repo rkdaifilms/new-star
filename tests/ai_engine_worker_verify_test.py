@@ -82,6 +82,27 @@ class WorkerAuthenticationTests(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(verify.failures, ["image"])
 
+    def test_auth_probes_use_schema_valid_payloads_for_every_worker(self):
+        self.assertEqual(set(verify.AUTH_PROBE_BODIES), {"image", "video", "speech", "search", "vision"})
+        self.assertEqual(verify.AUTH_PROBE_BODIES["image"]["image_size"], "1K")
+        self.assertEqual(verify.AUTH_PROBE_BODIES["video"]["duration"], "6s")
+        self.assertEqual(verify.AUTH_PROBE_BODIES["speech"]["language"], "en")
+        self.assertEqual(verify.AUTH_PROBE_BODIES["search"]["limit"], 1)
+        self.assertEqual(verify.AUTH_PROBE_BODIES["vision"]["mime_type"], "image/png")
+        self.assertGreaterEqual(len(base64.b64decode(verify.AUTH_PROBE_BODIES["vision"]["image"])), 70)
+
+    def test_health_check_sends_valid_body_before_expectation_of_401(self):
+        with patch.object(
+            verify,
+            "request_json",
+            side_effect=[
+                (200, {"ok": True}, ""),
+                (401, {"detail": "Unauthorized"}, ""),
+            ],
+        ) as request, redirect_stdout(io.StringIO()):
+            verify.health_check("speech", "https://private.example", "s" * 40, "/v1/audio/speech")
+        self.assertEqual(request.call_args.args[2], verify.AUTH_PROBE_BODIES["speech"])
+
     def test_worker_fails_when_health_is_not_ok(self):
         with patch.object(verify, "request_json", return_value=(200, {"ok": False}, "")), redirect_stdout(io.StringIO()):
             result = verify.health_check("search", "https://private.example", "s" * 40, "/v1/search")
