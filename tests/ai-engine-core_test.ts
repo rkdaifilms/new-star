@@ -691,3 +691,18 @@ Deno.test("AI engine control room exposes private vision capability status", asy
     throw new Error("Control Room must display the gateway's private image-understanding capability and reason");
   }
 });
+
+
+Deno.test("private GPU deployment runs authenticated chat inference before reporting success", async () => {
+  const deploy = await Deno.readTextFile(new URL("../ai-engine/self-hosted/deploy-workers.sh", import.meta.url));
+  const verify = await Deno.readTextFile(new URL("../ai-engine/self-hosted/verify.sh", import.meta.url));
+  const healthMarker = deploy.indexOf('note "Chat model health is responding.');
+  const smokeCall = deploy.indexOf("bash verify.sh", healthMarker);
+  const firstWorker = deploy.indexOf("check_worker new-star-speech", healthMarker);
+  if (healthMarker < 0 || smokeCall < healthMarker || firstWorker < smokeCall) {
+    throw new Error("Deployment must run the private chat inference smoke test after health and before worker checks");
+  }
+  for (const required of ["NEW_STAR_PRIVATE_MODEL_READY", "authenticated inference smoke test", "PASS: authenticated private model inference"]) {
+    if (!verify.includes(required)) throw new Error("Chat inference smoke test is missing " + required);
+  }
+});
