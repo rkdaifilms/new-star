@@ -6,6 +6,7 @@ import { splitIntoChunks } from "../scripts/new-star-search-ingest.ts";
 import { buildChatProviderPlan } from "../supabase/functions/ai-gateway/provider-routing.ts";
 import { privateSpeechEndpoint, privateSpeechTranscription } from "../supabase/functions/ai-gateway/private-speech.ts";
 import { privateImageEndpoint } from "../supabase/functions/ai-gateway/private-image.ts";
+import { readWorkerJson, readWorkerBytes } from "../supabase/functions/ai-gateway/worker-response.ts";
 
 
 Deno.test("self-hosted chat provider plan contains only the private New Star model", () => {
@@ -228,6 +229,35 @@ Deno.test("bounded JSON reader rejects wrong content type and oversized bodies",
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ok: true })
   }), 100);
   if (!valid.ok || (valid.value as { ok?: boolean }).ok !== true) throw new Error("Valid JSON request was not parsed");
+});
+
+Deno.test("private worker responses are streamed with strict JSON and binary size limits", async () => {
+  const valid = await readWorkerJson(new Response(JSON.stringify({ ok: true }), {
+    headers: { "Content-Type": "application/json" }
+  }), 100);
+  if (!valid.ok || valid.value.ok !== true) throw new Error("Bounded worker JSON reader rejected a valid object");
+
+  const oversized = await readWorkerJson(new Response(JSON.stringify({ value: "x".repeat(200) }), {
+    headers: { "Content-Type": "application/json" }
+  }), 100);
+  if (oversized.ok || oversized.error !== "response_too_large") {
+    throw new Error("Bounded worker JSON reader accepted an oversized response");
+  }
+
+  const invalid = await readWorkerJson(new Response("[]"), 100);
+  if (invalid.ok || invalid.error !== "invalid_json") {
+    throw new Error("Worker JSON reader accepted a non-object payload");
+  }
+
+  const binary = await readWorkerBytes(new Response(new Uint8Array([1, 2, 3, 4])), 4);
+  if (!binary.ok || binary.bytes.length !== 4 || binary.bytes[3] !== 4) {
+    throw new Error("Bounded worker binary reader rejected valid bytes");
+  }
+
+  const oversizedBinary = await readWorkerBytes(new Response(new Uint8Array([1, 2, 3, 4, 5])), 4);
+  if (oversizedBinary.ok || oversizedBinary.error !== "response_too_large") {
+    throw new Error("Bounded worker binary reader accepted oversized bytes");
+  }
 });
 
 Deno.test("private llama.cpp compose uses documented authentication and parallelism environment variables", async () => {
