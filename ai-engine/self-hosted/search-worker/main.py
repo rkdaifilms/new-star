@@ -18,6 +18,9 @@ app = FastAPI(title="New Star Private Search Worker", docs_url=None, redoc_url=N
 API_KEY = os.getenv("NEW_STAR_SEARCH_API_KEY", "")
 DB_PATH = os.getenv("NEW_STAR_SEARCH_DB", "/data/search.sqlite3")
 MAX_BYTES = 2 * 1024 * 1024
+MAX_CRAWL_BYTES = 10 * 1024 * 1024
+MAX_CRAWL_PAGES = 5
+MAX_LINKS_PER_PAGE = 100
 TIMEOUT = 12
 HEADERS = {"User-Agent": "NewStarResearchBot/1.0 (+private search index)"}
 BLOCKED_SUFFIXES = (".local", ".internal", ".localhost")
@@ -85,22 +88,35 @@ def fetch_page(url: str):
     if not peer_ip.is_global:
         response.close()
         raise HTTPException(403, "Website resolved to a non-public network destination")
-    if response.status_code in {301, 302, 303, 307, 308}:
+    if 300 <= response.status_code < 400:
         response.close()
         raise HTTPException(422, "Website redirects are not followed; crawl the final public URL directly")
     if response.status_code >= 400:
+        response.close()
         raise HTTPException(422, "Website returned HTTP " + str(response.status_code))
+    declared_length = response.headers.get("content-length")
+    if declared_length:
+        try:
+            if int(declared_length) > MAX_BYTES:
+                response.close()
+                raise HTTPException(413, "Website page exceeds the 2 MiB indexing limit")
+        except ValueError:
+            response.close()
+            raise HTTPException(502, "Website returned an invalid content length")
     content_type = response.headers.get("content-type", "").lower()
     if "text/html" not in content_type and "text/plain" not in content_type:
         response.close()
         raise HTTPException(415, "Only HTML and plain-text pages can be indexed")
     data = bytearray()
-    for chunk in response.iter_content(65536):
-        data.extend(chunk)
-        if len(data) > MAX_BYTES:
-            response.close()
-            raise HTTPException(413, "Website page exceeds the 2 MiB indexing limit")
-    response.close()
+    try:
+        for chunk in response.iter_content(65536):
+            if not chunk:
+                continue
+            data.extend(chunk)
+            if len(data) > MAX_BYTES:
+                raise HTTPException(413, "Website page exceeds the 2 MiB indexing limit")
+    finally:
+        response.close()
     if "text/plain" in content_type:
         title, text = safe_url, data.decode(response.encoding or "utf-8", errors="replace")
     else:
@@ -113,7 +129,7 @@ def fetch_page(url: str):
     if "text/plain" in content_type:
         links = []
     text = re.sub(r"\s+", " ", text).strip()[:100000]
-    return title[:500], text, links[:100]
+    return title[:500], text, links[:MAX_LINKS_PER_PAGE], len(data)
 
 
 class CrawlRequest(BaseModel):
@@ -144,7 +160,8 @@ def crawl(request: CrawlRequest, authorization: Optional[str] = Header(default=N
     visited = set()
     indexed_pages = []
     total_characters = 0
-    while pending and len(visited) < 5:
+    total_bytes = 0
+    while pending and len(visited) < MAX_CRAWL_PAGES:
         current = validate_url(pending.pop(0))
         parsed = urlparse(current)
         current_port = parsed.port or (443 if parsed.scheme == "https" else 80)
@@ -152,11 +169,15 @@ def crawl(request: CrawlRequest, authorization: Optional[str] = Header(default=N
             continue
         visited.add(current)
         try:
-            title, text, links = fetch_page(current)
+            title, text, links, page_bytes = fetch_page(current)
         except HTTPException:
             if current == url:
                 raise
             continue
+        if total_bytes + page_bytes > MAX_CRAWL_BYTES:
+            if current == url and not indexed_pages:
+                raise HTTPException(413, "Crawl exceeds the 10 MiB total indexing limit")
+            break
         if len(text) < 40:
             if current == url:
                 raise HTTPException(422, "Website did not contain enough readable text")
@@ -169,8 +190,11 @@ def crawl(request: CrawlRequest, authorization: Optional[str] = Header(default=N
             db.execute("INSERT INTO pages_fts(title,text,url) VALUES(?,?,?)", (title,text,current))
         indexed_pages.append({"page_id": page_id, "url": current, "title": title, "characters_indexed": len(text)})
         total_characters += len(text)
+        total_bytes += page_bytes
         for link in links:
             candidate = urldefrag(link)[0]
+            if len(candidate) > 2048:
+                continue
             link_parsed = urlparse(candidate)
             link_port = link_parsed.port or (443 if link_parsed.scheme == "https" else 80)
             if link_parsed.scheme == root_scheme and link_parsed.hostname == root_host and link_port == root_port and candidate not in visited and candidate not in pending:
