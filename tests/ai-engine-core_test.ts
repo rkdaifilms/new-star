@@ -572,7 +572,7 @@ Deno.test("Creator Studio exposes only the private worker's supported video sett
 
 Deno.test("private search adapter enforces HTTPS and authenticated private endpoints", async () => {
   const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/private-search.ts", import.meta.url));
-  for (const required of ['u.protocol!=="https:"', 'Authorization:"Bearer "+key', 'redirect:"error"', '"/v1/search"', '"/v1/crawl"']) {
+  for (const required of ['url.protocol !== "https:"', 'Authorization: "Bearer " + key', 'redirect: "error"', '"/v1/search"', '"/v1/crawl"']) {
     if (!source.includes(required)) throw new Error("Private search adapter missing " + required);
   }
 });
