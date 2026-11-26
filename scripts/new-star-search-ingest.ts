@@ -115,7 +115,7 @@ async function createEmbedding(base: string, key: string, text: string): Promise
   const response = await fetchWithTimeout(base + "/embeddings", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
-    body: JSON.stringify({ model: "new-star-embedding", input: text }),
+    body: JSON.stringify({ model: "local-model", input: text }),
     redirect: "error"
   }, 30000);
   const payload = await readJsonResponse(response, 1024 * 1024) as Record<string, unknown>;
