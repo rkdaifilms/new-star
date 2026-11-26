@@ -9,3 +9,5 @@
 
 /* Chat-first composer layout */
 .ns-hero,.ns-capabilities{display:none!important}.ns-main{max-width:820px;padding-top:12px}.ns-top small{font-size:12px}.ns-panel-head{min-height:54px}.ns-panel-head small{display:none!important}.ns-workspace{min-height:calc(100dvh - 105px);display:flex;flex-direction:column}.ns-output{flex:1;min-height:240px;max-height:none}.ns-composer{position:sticky;bottom:0;z-index:4;padding:12px;background:#101722;border-top:1px solid var(--line)}.ns-composer textarea{min-height:54px;max-height:180px;resize:vertical}.ns-controls{display:flex;gap:8px;align-items:center}.ns-controls #ns-mic{margin-left:0;min-width:92px;background:#252437;border-color:#55516a}.ns-controls #ns-submit{margin-left:auto;min-width:86px}.ns-controls button{cursor:pointer}.ns-controls button:disabled{cursor:wait}.ns-footnote{font-size:10px}.ns-panel-actions .ns-chip{display:none}@media(max-width:480px){.ns-main{padding:8px}.ns-workspace{min-height:calc(100dvh - 82px)}.ns-controls{gap:7px}.ns-controls #ns-mic{min-width:84px;padding:10px}.ns-controls #ns-submit{min-width:76px;padding:10px}}
+
+.ns-footnote{display:none!important}
