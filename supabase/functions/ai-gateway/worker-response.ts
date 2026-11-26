@@ -12,7 +12,7 @@ export async function readWorkerJson(
 
   const declaredLength = response.headers.get("content-length");
   if (declaredLength !== null) {
-    if (!/^\d+$/.test(declaredLength.trim())) {
+    if (!/^[0-9]+$/.test(declaredLength.trim())) {
       return { ok: false, error: "invalid_json" };
     }
     if (Number(declaredLength) > maxBytes) {
@@ -76,7 +76,7 @@ export async function readWorkerBytes(
   }
   const declaredLength = response.headers.get("content-length");
   if (declaredLength !== null) {
-    if (!/^\\d+$/.test(declaredLength.trim())) {
+    if (!/^[0-9]+$/.test(declaredLength.trim())) {
       return { ok: false, error: "response_unreadable" };
     }
     if (Number(declaredLength) > maxBytes) {
