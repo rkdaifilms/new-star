@@ -281,7 +281,7 @@ The optional `search` profile provides a private crawler and persistent SQLite F
 4. Set Supabase Edge Function secrets `NEW_STAR_SEARCH_BASE_URL` and `NEW_STAR_SEARCH_API_KEY`.
 5. Call the authenticated gateway action `crawl` with a public URL to index a page; then use `search` to query the private index.
 
-The crawler accepts public HTTP/HTTPS hosts, rejects local/private/reserved IP resolutions, does not follow redirects, accepts HTML/plain text only, limits pages to 2 MiB and extracted text to 100,000 characters, and removes script/style/navigation/footer content. Search uses SQLite FTS5 and returns source URLs, snippets, and fetch timestamps. It follows same-host links only, with a maximum depth/breadth of five pages per submitted root URL; it does not crawl third-party domains. The worker is source code only until deployed and tested.
+The crawler accepts public HTTP/HTTPS hosts, rejects local/private/reserved or mixed public/private DNS answers, verifies the connected peer IP before reading response content, does not follow redirects, and accepts HTML/plain text only. It limits each page to 2 MiB, each crawl to 10 MiB of downloaded response data, discovered links to 100 per page, pages to five per submitted root URL, and extracted text to 100,000 characters per page. It also removes script/style/navigation/footer content. Search uses SQLite FTS5 and returns source URLs, snippets, and fetch timestamps. It follows links only on the original host, scheme, and port; it does not crawl third-party domains. The worker is source code only until deployed and tested.
 
 ## Private image understanding (vision)
 
