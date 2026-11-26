@@ -101,6 +101,49 @@ button{cursor:pointer}
  .modal{max-width:520px;left:50%;transform:translateX(-50%)}
 }
 
+/* Compact, transparent video-feed controls: keep every option, remove colored button plates. */
+.categories{gap:4px!important;margin-top:5px!important;padding:0 0 2px!important;background:transparent!important}
+.category,.category.active{
+ background:transparent!important;
+ background-color:transparent!important;
+ border:0!important;
+ border-radius:0!important;
+ box-shadow:none!important;
+ padding:4px 7px!important;
+ min-height:28px!important;
+ font-size:10px!important;
+ line-height:1.1!important;
+ color:#fff!important;
+}
+.category.active{font-weight:800!important;text-decoration:underline;text-decoration-color:#fff;text-decoration-thickness:2px;text-underline-offset:4px}
+.actions{background:transparent!important;background-color:transparent!important;box-shadow:none!important;border:0!important;padding:0!important;gap:5px!important}
+.actions::before,.actions::after{content:none!important;display:none!important}
+.action{background:transparent!important;background-color:transparent!important;box-shadow:none!important;border:0!important;min-width:30px!important;padding:0!important;font-size:8px!important;line-height:1!important}
+.action-icon,#likeBtn .action-icon,#commentBtn .action-icon,#giftBtn .action-icon,#shareBtn .action-icon,#reportVideoBtn .action-icon,#downloadBtn .action-icon{
+ width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;
+ margin:0 auto 1px!important;padding:0!important;
+ border:0!important;border-radius:0!important;
+ background:transparent!important;background-color:transparent!important;
+ box-shadow:none!important;font-size:16px!important;
+}
+.action.liked .action-icon{color:#fff!important}
+#followCreatorBtn{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important;
+ margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+ background:transparent!important;background-color:transparent!important;
+ box-shadow:none!important;color:transparent!important;
+ font-size:0!important;line-height:0!important;overflow:visible!important;
+}
+#followCreatorBtn::before{content:"＋";display:block;color:#fff;font-size:23px;font-weight:400;line-height:1}
+#followCreatorBtn.following::before{content:"✓";font-size:19px;font-weight:700}
+#feed{background:#000!important}
+#video{display:block;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;object-position:center center!important;background:#000!important}
+#feed.video-expanded .actions{background:transparent!important;box-shadow:none!important}
+#feed.video-expanded .action-icon{background:transparent!important;border:0!important;box-shadow:none!important}
+#feed.video-expanded .action{font-size:8px!important}
+#videoSettingsBtn{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+
 /* Full-screen video viewing and flying like-heart feedback */
 #video{cursor:pointer;touch-action:manipulation}
 #feed.video-expanded{position:fixed!important;inset:0!important;z-index:99999!important;width:100vw!important;height:100vh!important;height:100dvh!important;background:#000!important;overflow:hidden!important}
