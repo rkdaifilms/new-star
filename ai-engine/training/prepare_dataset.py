@@ -8,6 +8,9 @@ SECRET_PATTERNS = [
     re.compile(r"(?i)\b(sk-[a-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{30,})\b"),
     re.compile(r"(?i)\b(password|passwd|secret|api[_ -]?key|access[_ -]?token)\s*[:=]\s*[^\s,;]{8,}"),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b"),
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+    re.compile(r"(?i)-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
+    re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/-]{24,}={0,2}"),
     re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),
 ]
 
