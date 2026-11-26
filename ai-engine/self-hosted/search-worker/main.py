@@ -174,9 +174,9 @@ def fetch_page(url: str):
     except (ValueError, OSError, IndexError):
         response.close()
         raise HTTPException(502, "Website network destination could not be verified")
-    if not peer_ip.is_global:
+    if not peer_ip.is_global or str(peer_ip) not in pinned_addresses:
         response.close()
-        raise HTTPException(403, "Website resolved to a non-public network destination")
+        raise HTTPException(403, "Website connected to an unvalidated network destination")
     if 300 <= response.status_code < 400:
         response.close()
         raise HTTPException(422, "Website redirects are not followed; crawl the final public URL directly")
