@@ -12,6 +12,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+from urllib3 import PoolManager
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -76,6 +77,16 @@ class _PinnedHTTPSConnectionPool(HTTPSConnectionPool):
     ConnectionCls = _PinnedHTTPSConnection
 
 
+class _PinnedPoolManager(PoolManager):
+    def connection_from_context(self, request_context):
+        # Keep the pin out of PoolKey fields while still passing it to the pool.
+        key_context = dict(request_context)
+        key_context.pop("pinned_ips", None)
+        scheme = key_context["scheme"].lower()
+        pool_key = self.key_fn_by_scheme[scheme](key_context)
+        return self.connection_from_pool_key(pool_key, request_context=request_context)
+
+
 class PinnedAddressAdapter(HTTPAdapter):
     """Pin TCP destinations while retaining hostname-based TLS verification."""
 
@@ -84,12 +95,17 @@ class PinnedAddressAdapter(HTTPAdapter):
         super().__init__(max_retries=0)
 
     def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
-        super().init_poolmanager(connections, maxsize, block=block, **pool_kwargs)
+        self.poolmanager = _PinnedPoolManager(
+            num_pools=connections,
+            headers=self.headers,
+            block=block,
+            pinned_ips=self.pinned_ips,
+            **pool_kwargs,
+        )
         classes = dict(self.poolmanager.pool_classes_by_scheme)
         classes["http"] = _PinnedHTTPConnectionPool
         classes["https"] = _PinnedHTTPSConnectionPool
         self.poolmanager.pool_classes_by_scheme = classes
-        self.poolmanager.connection_pool_kw["pinned_ips"] = self.pinned_ips
 
 
 def resolve_public_addresses(host: str, port: int) -> list[str]:
