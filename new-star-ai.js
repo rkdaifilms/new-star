@@ -17,7 +17,83 @@ function setResearchMode(privateOnly){
 function bubble(text,kind="ai"){const el=document.createElement("div");el.className="ns-message "+(kind==="user"?"ns-user":"ns-ai");el.textContent=text;output.append(el);output.scrollTop=output.scrollHeight;return el;}
 function toBase64(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(new Error("Could not read voice recording."));reader.readAsDataURL(blob);});}
 async function transcribeVoice(blob){const client=window.supabaseClient||window.cloudClient;if(!client?.functions)throw new Error("New Star AI connection is not ready. Reload the page.");const mime=(blob.type||"audio/webm").split(";")[0];const audio=await toBase64(blob);const result=await client.functions.invoke("ai-gateway",{body:{action:"transcribe",audio,mimeType:mime}});if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"Voice transcription failed."));lastTranscriptionLanguage=result.data.language&&result.data.language!=="und"?result.data.language:"";lastInputWasVoice=true;prompt.value=(prompt.value.trim()?prompt.value.trim()+" ":"")+result.data.transcript;prompt.focus();bubble("Voice transcript: "+result.data.transcript,"user");}
-async function toggleVoice(){const mic=$("ns-mic");if(recorder&&recorder.state==="recording"){recorder.stop();mic.textContent="Processing…";mic.disabled=true;return;}if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){bubble("Voice recording is not supported in this browser. Try an updated Chrome browser.","ai");return;}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});const preferred=["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(type=>MediaRecorder.isTypeSupported(type));recorder=preferred?new MediaRecorder(stream,{mimeType:preferred}):new MediaRecorder(stream);recordedChunks=[];recorder.ondataavailable=e=>{if(e.data?.size)recordedChunks.push(e.data);};recorder.onerror=()=>{stream.getTracks().forEach(t=>t.stop());mic.disabled=false;mic.textContent="🎙 Voice";bubble("Voice recording failed. Check microphone permission and try again.","ai");};recorder.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());try{const blob=new Blob(recordedChunks,{type:recorder.mimeType||"audio/webm"});if(blob.size<100)throw new Error("Recording was too short. Please try again.");await transcribeVoice(blob);}catch(error){bubble(error.message||"Voice transcription failed.","ai");}finally{mic.disabled=false;mic.textContent="🎙 Voice";recorder=null;}};recorder.start();mic.textContent="■ Stop recording";}catch(error){mic.disabled=false;mic.textContent="🎙 Voice";bubble(error.name==="NotAllowedError"?"Microphone permission was denied. Allow microphone access in browser settings.":error.message||"Could not start microphone.","ai");}}
+let speechRecognition=null,speechBaseText="",speechFinalText="";
+function speechLocale(){
+ const code=selectedAppLanguage().toLowerCase();
+ const locales={hi:"hi-IN",ne:"ne-NP",en:"en-US",bn:"bn-IN",ur:"ur-PK",es:"es-ES",fr:"fr-FR",ar:"ar-SA",pt:"pt-BR",ru:"ru-RU",zh:"zh-CN",ja:"ja-JP"};
+ return locales[code]||navigator.language||"en-US";
+}
+function resetMicButton(){const mic=$("ns-mic");mic.disabled=false;mic.textContent="🎙 Voice";mic.setAttribute("aria-label","Record voice");}
+function startBrowserSpeechRecognition(){
+ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SpeechRecognition)return false;
+ const mic=$("ns-mic");
+ speechRecognition=new SpeechRecognition();
+ speechRecognition.lang=speechLocale();
+ speechRecognition.continuous=true;
+ speechRecognition.interimResults=true;
+ speechRecognition.maxAlternatives=1;
+ speechBaseText=prompt.value.trim();
+ speechFinalText="";
+ speechRecognition.onstart=()=>{mic.textContent="■ Stop · Listening";mic.setAttribute("aria-label","Stop voice recording");};
+ speechRecognition.onresult=event=>{
+  let interim="";
+  for(let i=event.resultIndex;i<event.results.length;i++){
+   const result=event.results[i];
+   const transcript=result[0]?.transcript||"";
+   if(result.isFinal)speechFinalText+=transcript;
+   else interim+=transcript;
+  }
+  const recognized=(speechFinalText+" "+interim).trim();
+  prompt.value=(speechBaseText? speechBaseText+" ":"")+recognized;
+  prompt.dispatchEvent(new Event("input",{bubbles:true}));
+  prompt.focus();
+ };
+ speechRecognition.onerror=event=>{
+  const messages={not_allowed:"Microphone permission denied. Allow microphone access for this site.",service_not_allowed:"Voice recognition service is blocked by the browser.",no_speech:"No speech detected. Tap the microphone and speak again.",network:"Voice recognition network error. Check your internet connection.",audio_capture:"No microphone was found or it is busy."};
+  bubble(messages[event.error]||("Voice recognition error: "+event.error),"ai");
+ };
+ speechRecognition.onend=()=>{
+  const recognized=speechFinalText.trim();
+  if(recognized){
+   lastInputWasVoice=true;
+   lastTranscriptionLanguage=speechLocale().split("-")[0];
+   prompt.value=(speechBaseText? speechBaseText+" ":"")+recognized;
+   prompt.focus();
+  }
+  speechRecognition=null;
+  resetMicButton();
+ };
+ try{speechRecognition.start();return true;}
+ catch(error){speechRecognition=null;resetMicButton();bubble(error.message||"Could not start voice recognition. Try again.","ai");return true;}
+}
+async function toggleVoice(){
+ const mic=$("ns-mic");
+ if(speechRecognition){mic.textContent="Finalizing…";mic.disabled=true;try{speechRecognition.stop();}catch(_){speechRecognition=null;resetMicButton();}return;}
+ if(recorder&&recorder.state==="recording"){recorder.stop();mic.textContent="Processing…";mic.disabled=true;return;}
+ if(startBrowserSpeechRecognition())return;
+ if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){bubble("This browser does not support voice input. Open this page in updated Chrome and allow microphone access.","ai");return;}
+ try{
+  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  const preferred=["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(type=>MediaRecorder.isTypeSupported(type));
+  recorder=preferred?new MediaRecorder(stream,{mimeType:preferred}):new MediaRecorder(stream);
+  recordedChunks=[];
+  recorder.ondataavailable=e=>{if(e.data?.size)recordedChunks.push(e.data);};
+  recorder.onerror=()=>{stream.getTracks().forEach(t=>t.stop());resetMicButton();bubble("Voice recording failed. Check microphone permission and try again.","ai");};
+  recorder.onstop=async()=>{
+   stream.getTracks().forEach(t=>t.stop());
+   try{const blob=new Blob(recordedChunks,{type:recorder.mimeType||"audio/webm"});if(blob.size<100)throw new Error("Recording was too short. Please try again.");await transcribeVoice(blob);}
+   catch(error){bubble(error.message||"Voice transcription failed.","ai");}
+   finally{resetMicButton();recorder=null;}
+  };
+  recorder.start();
+  mic.textContent="■ Stop recording";
+  mic.setAttribute("aria-label","Stop voice recording");
+ }catch(error){
+  resetMicButton();
+  bubble(error.name==="NotAllowedError"?"Microphone permission was denied. Allow microphone access in browser settings.":error.message||"Could not start microphone.","ai");
+ }
+}
 function pcmToWav(pcm,sampleRate){const header=new ArrayBuffer(44);const view=new DataView(header);const write=(offset,value)=>{for(let i=0;i<value.length;i++)view.setUint8(offset+i,value.charCodeAt(i));};write(0,"RIFF");view.setUint32(4,36+pcm.byteLength,true);write(8,"WAVE");write(12,"fmt ");view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,sampleRate,true);view.setUint32(28,sampleRate*2,true);view.setUint16(32,2,true);view.setUint16(34,16,true);write(36,"data");view.setUint32(40,pcm.byteLength,true);return new Blob([header,pcm],{type:"audio/wav"});}
 async function speakText(text,button,language=requestLanguage()){const client=window.supabaseClient||window.cloudClient;if(!client?.functions){bubble("New Star AI connection is not ready.","ai");return;}button.disabled=true;const old=button.textContent;let audioUrl="";let audioElement=null;const cleanup=()=>{if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl="";}button.textContent=old;button.disabled=false;};button.textContent="Preparing voice…";try{const result=await client.functions.invoke("ai-gateway",{body:{action:"speak",text,language}});if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"AI voice is unavailable."));if(typeof result.data.audio!=="string"||!result.data.audio)throw new Error("AI voice returned no audio data.");const binary=atob(result.data.audio);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);const mime=String(result.data.mimeType||"audio/mpeg");const rate=Number(mime.match(/rate=(\d+)/i)?.[1]||24000);const blob=/audio\/(?:l16|pcm)/i.test(mime)?pcmToWav(bytes,rate):new Blob([bytes],{type:mime});audioUrl=URL.createObjectURL(blob);audioElement=new Audio(audioUrl);button.textContent="Playing…";audioElement.onended=cleanup;audioElement.onerror=cleanup;await audioElement.play();}catch(error){cleanup();bubble(error.message||"Voice playback failed.","ai");}}
 function setMode(next){if(next!=="chat"){lastInputWasVoice=false;lastTranscriptionLanguage="";}mode=next;document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));$("mode-title").textContent=modes[mode][0];$("mode-help").textContent=modes[mode][1];prompt.placeholder=mode==="image"?"Describe the image you want to generate…":mode==="video"?"Describe the video you want to create…":"Ask anything…";$("ns-size").hidden=mode!=="image";$("ns-video-controls").hidden=mode!=="video";$("ns-upload").hidden=!(mode==="chat"||mode==="image");$("ns-mic").hidden=mode!=="chat";submit.textContent=mode==="image"?"Generate image ↗":mode==="video"?"Generate video ↗":"Send ↗";}
