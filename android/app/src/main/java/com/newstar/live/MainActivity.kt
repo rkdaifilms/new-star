@@ -243,11 +243,76 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread {
                         status.visibility = View.GONE
                         if (found.isEmpty()) results.addView(label("No matching creators found."))
-                        found.forEach { results.addView(label(it)) }
+                        found.forEach { creator ->
+                            val row = LinearLayout(this).apply {
+                                orientation = LinearLayout.VERTICAL
+                                setPadding(dp(12), dp(10), dp(12), dp(10))
+                                setBackgroundColor(Color.rgb(20, 23, 35))
+                            }
+                            row.addView(label("@" + creator.username, 17f, true))
+                            if (creator.fullName.isNotBlank()) row.addView(label(creator.fullName, 14f))
+                            if (creator.bio.isNotBlank()) row.addView(label(creator.bio, 13f))
+                            row.setOnClickListener { showCreatorProfile(creator.userId) }
+                            results.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+                        }
                     }
                 } catch (e: Exception) { runOnUiThread { showStatus(e.message ?: "Search failed.") } }
             }
         }
+    }
+
+    private fun showCreatorProfile(creatorId: String) {
+        baseScreen("Creator Profile")
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(16), dp(18), dp(16)) }
+        val heading = label("Loading creator profile…", 16f, true)
+        panel.addView(heading)
+        content.addView(ScrollView(this).apply { addView(panel) }, FrameLayout.LayoutParams(-1, -1))
+        val active = session
+        worker.execute {
+            try {
+                val creator = api.loadCreatorProfile(active?.accessToken, creatorId)
+                    ?: throw IllegalStateException("Creator profile is unavailable.")
+                val following = if (active != null && active.userId != creatorId) api.isFollowing(active.accessToken, active.userId, creatorId) else false
+                val videos = api.loadCreatorVideos(active?.accessToken, creatorId)
+                runOnUiThread {
+                    panel.removeAllViews()
+                    panel.addView(label("@" + creator.username, 23f, true))
+                    if (creator.fullName.isNotBlank()) panel.addView(label(creator.fullName, 17f, true))
+                    if (creator.bio.isNotBlank()) panel.addView(label(creator.bio, 15f))
+                    if (creator.about.isNotBlank()) panel.addView(label(creator.about, 14f))
+                    panel.addView(label(creator.followerCount.toString() + " followers", 14f))
+                    if (active?.userId != creatorId) {
+                        val follow = button(if (following) "Following" else if (creator.isPrivate) "Private account" else "Follow")
+                        follow.isEnabled = !creator.isPrivate
+                        panel.addView(follow, LinearLayout.LayoutParams(-1, dp(48)))
+                        follow.setOnClickListener {
+                            follow.isEnabled = false
+                            worker.execute {
+                                try {
+                                    val nowFollowing = api.toggleFollow(active!!.accessToken, active.userId, creatorId)
+                                    val refreshed = api.loadCreatorProfile(active.accessToken, creatorId)
+                                    runOnUiThread {
+                                        follow.text = if (nowFollowing) "Following" else "Follow"
+                                        follow.isEnabled = true
+                                        val count = refreshed?.followerCount ?: creator.followerCount
+                                        val countView = panel.getChildAt(4) as? TextView
+                                        countView?.text = count.toString() + " followers"
+                                    }
+                                } catch (e: Exception) {
+                                    runOnUiThread { follow.isEnabled = true; showStatus(e.message ?: "Could not update follow status.") }
+                                }
+                            }
+                        }
+                    }
+                    panel.addView(label(if (creator.isPrivate) "This creator has a private account." else "Videos", 18f, true))
+                    if (videos.isEmpty()) panel.addView(label(if (creator.isPrivate) "Videos are visible to approved followers only." else "No public videos yet.", 14f))
+                    videos.forEachIndexed { index, video -> panel.addView(videoCard(video, index == 0)) }
+                }
+            } catch (e: Exception) {
+                runOnUiThread { panel.removeAllViews(); panel.addView(label(e.message ?: "Could not load creator profile.")) }
+            }
+        }
+        addBottomNav("Search")
     }
 
     private fun showProfile() {
