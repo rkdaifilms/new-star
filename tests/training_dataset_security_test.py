@@ -30,7 +30,10 @@ class DatasetValidationTests(unittest.TestCase):
 
     def test_rejects_conversation_without_user_or_final_assistant(self):
         with self.assertRaisesRegex(ValueError, "end with assistant"):
-            prepare.clean_record({"messages": [{"role": "assistant", "content": "Only assistant"}]}, 2)
+            prepare.clean_record({"messages": [
+                {"role": "user", "content": "Question"},
+                {"role": "system", "content": "System note"},
+            ]}, 2)
 
     def test_rejects_invalid_role(self):
         with self.assertRaisesRegex(ValueError, "invalid message role"):
