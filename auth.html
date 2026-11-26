@@ -185,23 +185,23 @@ function getSafeNextPage(){
  const requested=params.get("next");
 
  /* next न हो तो Profile */
- if(!requested)return "profile.html";
+ if(!requested)return "index.html";
 
  try{
   const parsed=new URL(requested,location.origin);
 
   /* बाहरी वेबसाइट की अनुमति नहीं */
-  if(parsed.origin!==location.origin)return "profile.html";
+  if(parsed.origin!==location.origin)return "index.html";
 
   const page=parsed.pathname.split("/").pop();
 
   const allowed=[
-   "index.html","profile.html","camera.html","upload.html",
+   "index.html","profile.html","new-star-ai.html","camera.html","upload.html",
    "wallet.html","inbox.html","settings.html",
    "monetization.html","live.html","gaming.html","campaign.html","admin.html"
   ];
 
-  if(!allowed.includes(page))return "profile.html";
+  if(!allowed.includes(page))return "index.html";
 
   return page+parsed.search+parsed.hash;
 
@@ -300,7 +300,7 @@ async function handleAuthAction(){
     email,
     password,
     options:{
-     emailRedirectTo:new URL("./profile.html",location.href).href
+     emailRedirectTo:new URL("./index.html",location.href).href
     }
    });
 
