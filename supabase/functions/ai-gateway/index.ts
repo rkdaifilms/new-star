@@ -1258,6 +1258,13 @@ Deno.serve(async (req: Request) => {
     if (jobError) return json({ ok: false, error: "Could not read video job status." }, 503, headers);
     if (!job) return json({ ok: false, error: "Video job not found." }, 404, headers);
     if (selfHostedVideo) {
+      // A completed private job already has a durable Storage object. Never download
+      // the worker's MP4 or upload a second copy on subsequent status polls.
+      if (job.status === "completed" && job.storage_path) {
+        const { data: signed, error: signedError } = await videoAdmin.storage.from("new-star-ai-videos").createSignedUrl(job.storage_path, 3600);
+        if (signedError || !signed?.signedUrl) return json({ ok: false, error: "The private video is saved, but a secure playback link could not be created." }, 503, headers);
+        return json({ ok: true, status: "completed", videoUrl: signed.signedUrl, storagePath: job.storage_path, mimeType: "video/mp4", model: job.provider_model, expiresInSeconds: 3600 }, 200, headers);
+      }
       const privateState = await privateVideoStatus(Deno.env.get("NEW_STAR_VIDEO_BASE_URL") || "", Deno.env.get("NEW_STAR_VIDEO_API_KEY") || "", job.provider_interaction_id);
       if (!privateState.ok) return json({ ok: false, error: privateState.error, code: "NEW_STAR_PRIVATE_VIDEO_STATUS_UNAVAILABLE" }, privateState.status, headers);
       if (privateState.status === "failed") {
