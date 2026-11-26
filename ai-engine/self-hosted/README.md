@@ -108,7 +108,7 @@ set +a
 python3 verify-workers.py
 ```
 
-Run actual image, vision, speech-synthesis, and private-index search inference (this downloads/loads model weights as needed and consumes GPU resources):
+Run actual image and vision inference, a private speech synthesis-to-transcription round trip (TTS + STT), and private-index search inference (this downloads/loads model weights as needed and consumes GPU resources):
 
 ```sh
 python3 verify-workers.py --infer
