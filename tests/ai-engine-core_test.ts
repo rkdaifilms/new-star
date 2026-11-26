@@ -579,6 +579,10 @@ Deno.test("private search adapter enforces HTTPS and authenticated private endpo
 
 Deno.test("private crawler rejects non-public targets and limits indexed content", async () => {
   const worker = await Deno.readTextFile(new URL("../ai-engine/self-hosted/search-worker/main.py", import.meta.url));
+  const dockerfile = await Deno.readTextFile(new URL("../ai-engine/self-hosted/search-worker/Dockerfile", import.meta.url));
+  if (!dockerfile.includes("FROM python:3.12-slim") || dockerfile.includes("torch==") || dockerfile.includes("nvidia/cuda")) {
+    throw new Error("Private search worker must use its lightweight CPU-only runtime, not a CUDA/PyTorch image");
+  }
   for (const required of ["ipaddress.ip_address", "address.is_global", "allow_redirects=False", "MAX_BYTES = 2 * 1024 * 1024", "100000", "pages_fts", "/v1/crawl", "/v1/search", "MAX_CRAWL_PAGES = 5", "MAX_CRAWL_BYTES = 10 * 1024 * 1024", "MAX_LINKS_PER_PAGE = 100", "parsed.hostname != root_host", "pages_indexed", "peer_ip.is_global", "sock.getpeername()", "port not in {80, 443}", "parsed.scheme != root_scheme", "current_port != root_port", "link_port == root_port"]) {
     if (!worker.includes(required)) throw new Error("Private crawler missing security/index rule " + required);
   }
