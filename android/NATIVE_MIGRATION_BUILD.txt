@@ -1,1 +1,2 @@
 Native Android migration build trigger. Source of truth: android/app/src/main/java/com/newstar/live/MainActivity.kt and NewStarApi.kt.
+Native feed engagement: likes, comments, share; secure video-url request omits Authorization for anonymous feed.
