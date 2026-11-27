@@ -625,17 +625,15 @@ private fun NativeLiveInvitations(session: NativeSession) {
 @Composable
 private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHost: Boolean) {
     var participants by remember(roomId) { mutableStateOf<List<JSONObject>>(emptyList()) }
-    var inviteeId by remember(roomId) { mutableStateOf("") }
+    var creatorQuery by remember(roomId) { mutableStateOf("") }
+    var creatorResults by remember(roomId) { mutableStateOf<List<NativeLiveCreator>>(emptyList()) }
+    var searchingCreators by remember(roomId) { mutableStateOf(false) }
     var busy by remember(roomId) { mutableStateOf(false) }
     var notice by remember(roomId) { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     suspend fun reloadParticipants() {
-        val result = NativeSupabase.invokeFunction("cloudflare-live",
-            JSONObject().put("action", "live-participants-list").put("room_id", roomId), session)
-        if (!result.optBoolean("ok")) throw IllegalStateException(result.optString("error", "Participants load नहीं हुए।"))
-        val array = result.optJSONArray("participants") ?: org.json.JSONArray()
-        participants = (0 until array.length()).mapNotNull { array.optJSONObject(it) }
+        participants = NativeLiveRepository.listParticipants(roomId, session)
     }
 
     LaunchedEffect(roomId) {
@@ -652,9 +650,7 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                 busy = true
                 scope.launch {
                     try {
-                        val r = NativeSupabase.invokeFunction("cloudflare-live",
-                            JSONObject().put("action", "live-seat-request").put("room_id", roomId), session)
-                        if (!r.optBoolean("ok")) throw IllegalStateException(r.optString("error", "Seat request नहीं भेजी गई।"))
+                        NativeLiveRepository.requestSeat(roomId, session)
                         notice = "Seat request भेज दी गई।"
                         reloadParticipants()
                     } catch (e: Exception) { notice = e.message ?: "Request failed" }
@@ -667,9 +663,7 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                     busy = true
                     scope.launch {
                         try {
-                            val r = NativeSupabase.invokeFunction("cloudflare-live",
-                                JSONObject().put("action", "live-seat-leave").put("room_id", roomId), session)
-                            if (!r.optBoolean("ok")) throw IllegalStateException(r.optString("error", "Seat leave नहीं हुआ।"))
+                            NativeLiveRepository.leaveSeat(roomId, session)
                             notice = "आप LIVE seat से निकल गए।"
                             reloadParticipants()
                         } catch (e: Exception) { notice = e.message ?: "Leave failed" }
@@ -678,22 +672,65 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                 }) { Text("Leave seat") }
             }
         } else {
-            OutlinedTextField(value = inviteeId, onValueChange = { inviteeId = it.trim() },
-                label = { Text("Creator User ID") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(enabled = !busy && inviteeId.isNotBlank(), onClick = {
-                busy = true
-                scope.launch {
-                    try {
-                        val r = NativeSupabase.invokeFunction("cloudflare-live",
-                            JSONObject().put("action", "live-invite-create").put("room_id", roomId)
-                                .put("invitee_id", inviteeId), session)
-                        if (!r.optBoolean("ok")) throw IllegalStateException(r.optString("error", "Invite नहीं भेजा गया।"))
-                        notice = "Invitation भेज दिया गया।"
-                        inviteeId = ""
-                    } catch (e: Exception) { notice = e.message ?: "Invite failed" }
-                    finally { busy = false }
+            OutlinedTextField(
+                value = creatorQuery,
+                onValueChange = { creatorQuery = it.take(80) },
+                label = { Text("Creator name या username खोजें") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedButton(
+                enabled = !busy && !searchingCreators && creatorQuery.trim().length >= 2,
+                onClick = {
+                    searchingCreators = true
+                    notice = ""
+                    scope.launch {
+                        try {
+                            creatorResults = NativeLiveRepository.searchCreators(creatorQuery, session.userId, session)
+                            if (creatorResults.isEmpty()) notice = "इस नाम से कोई creator नहीं मिला।"
+                        } catch (e: Exception) {
+                            notice = e.message ?: "Creator search नहीं हो पाया।"
+                            creatorResults = emptyList()
+                        } finally { searchingCreators = false }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (searchingCreators) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                else Text("Search creators")
+            }
+            creatorResults.forEach { creator ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = creator.avatarUrl.takeIf { it.isNotBlank() },
+                        contentDescription = "Creator avatar",
+                        modifier = Modifier.size(40.dp).clip(CircleShape)
+                    )
+                    Column(Modifier.weight(1f)) {
+                        Text(creator.displayName, style = MaterialTheme.typography.bodyMedium)
+                        if (creator.username.isNotBlank()) {
+                            Text("@${creator.username}", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    TextButton(enabled = !busy, onClick = {
+                        busy = true
+                        scope.launch {
+                            try {
+                                NativeLiveRepository.createInvite(roomId, creator.userId, session)
+                                notice = "${creator.displayName} को LIVE invitation भेज दिया गया।"
+                                creatorResults = creatorResults.filterNot { it.userId == creator.userId }
+                            } catch (e: Exception) {
+                                notice = e.message ?: "Invitation नहीं भेजा गया।"
+                            } finally { busy = false }
+                        }
+                    }) { Text("Invite") }
                 }
-            }) { Text("Invite creator") }
+            }
             participants.forEach { person ->
                 val status = person.optString("status")
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
@@ -705,10 +742,7 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                             busy = true
                             scope.launch {
                                 try {
-                                    val r = NativeSupabase.invokeFunction("cloudflare-live",
-                                        JSONObject().put("action", "live-seat-admit").put("room_id", roomId)
-                                            .put("participant_id", person.optString("id")), session)
-                                    if (!r.optBoolean("ok")) throw IllegalStateException(r.optString("error", "Guest admit नहीं हुआ।"))
+                                    NativeLiveRepository.admitGuest(roomId, person.optString("id"), session)
                                     notice = "Guest seat admit हो गई।"
                                     reloadParticipants()
                                 } catch (e: Exception) { notice = e.message ?: "Admit failed" }
@@ -721,10 +755,7 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                             busy = true
                             scope.launch {
                                 try {
-                                    val r = NativeSupabase.invokeFunction("cloudflare-live",
-                                        JSONObject().put("action", "live-seat-remove").put("room_id", roomId)
-                                            .put("participant_id", person.optString("id")), session)
-                                    if (!r.optBoolean("ok")) throw IllegalStateException(r.optString("error", "Guest remove नहीं हुआ।"))
+                                    NativeLiveRepository.removeGuest(roomId, person.optString("id"), session)
                                     notice = "Guest हटाया गया।"
                                     reloadParticipants()
                                 } catch (e: Exception) { notice = e.message ?: "Remove failed" }
