@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -282,6 +283,13 @@ fun NativeInboxScreen(session: NativeSession) {
         }.sortedBy { it.optString("created_at") }
     }
 
+    LaunchedEffect(session.userId) {
+        while (true) {
+            delay(15_000)
+            refresh++
+        }
+    }
+
     LaunchedEffect(session.userId, refresh) {
         busy = true
         error = ""
@@ -318,7 +326,10 @@ fun NativeInboxScreen(session: NativeSession) {
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Inbox", style = MaterialTheme.typography.headlineSmall)
+            Column {
+                Text("Inbox", style = MaterialTheme.typography.headlineSmall)
+                Text("Messages auto-refresh every 15 seconds", style = MaterialTheme.typography.labelSmall)
+            }
             TextButton(onClick = { refresh++ }, enabled = !busy) { Text("Refresh") }
         }
         if (peers.isNotEmpty()) {
