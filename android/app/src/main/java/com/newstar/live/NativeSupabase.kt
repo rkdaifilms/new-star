@@ -181,6 +181,11 @@ object NativeSupabase {
             JSONObject(request("PUT", "/auth/v1/user", JSONObject().put("data", data), session.accessToken))
         }
 
+    suspend fun updateAuthUser(data: JSONObject, session: NativeSession): JSONObject =
+        withContext(Dispatchers.IO) {
+            JSONObject(request("PUT", "/auth/v1/user", data, session.accessToken))
+        }
+
     suspend fun signUp(email: String, password: String): JSONObject =
         withContext(Dispatchers.IO) {
             JSONObject(request(
@@ -268,6 +273,12 @@ object NativeSupabase {
 
     suspend fun deleteSession(context: Context, session: NativeSession) = withContext(Dispatchers.IO) {
         try { request("POST", "/auth/v1/logout", token = session.accessToken) } finally {
+            NativeSessionStore.clear(context)
+        }
+    }
+
+    suspend fun deleteAllSessions(context: Context, session: NativeSession) = withContext(Dispatchers.IO) {
+        try { request("POST", "/auth/v1/logout?scope=global", token = session.accessToken) } finally {
             NativeSessionStore.clear(context)
         }
     }
