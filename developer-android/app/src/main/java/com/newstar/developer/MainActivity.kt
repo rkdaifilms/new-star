@@ -199,7 +199,7 @@ class MainActivity : Activity() {
                 val s = authorizedSession()
                 val response = request("POST", "/functions/v1/admin-overview",
                     JSONObject().put("action", "claim_owner"), s.access)
-                if (!response.optBoolean("ok") || !response.optBoolean("is_owner", true)) {
+                if (!response.optBoolean("ok") || !response.optBoolean("is_owner", false)) {
                     error(response.optString("error", "Owner access activation failed"))
                 }
                 runOnUiThread { busy = false; loadDashboard() }
