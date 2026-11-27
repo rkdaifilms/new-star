@@ -510,6 +510,7 @@ fun NativeUploadScreen(session: NativeSession) {
     var description by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("General") }
     var progress by remember { mutableIntStateOf(0) }
+    var editingProgress by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf("3 घंटे तक का वीडियो चुनें। अधिकतम आकार 5 GiB है।") }
     var uploading by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
@@ -588,6 +589,10 @@ fun NativeUploadScreen(session: NativeSession) {
                 FilterChip(selected = selectedFilter == "grayscale", onClick = { selectedFilter = "grayscale" }, label = { Text("Grayscale") })
                 FilterChip(selected = selectedFilter == "inverted", onClick = { selectedFilter = "inverted" }, label = { Text("Inverted") })
             }
+            if (uploading && status.contains("edit/export")) {
+                LinearProgressIndicator(progress = { editingProgress / 100f }, modifier = Modifier.fillMaxWidth())
+                Text("Export $editingProgress%")
+            }
             Button(enabled = !uploading, onClick = {
                 val input = selected ?: return@Button
                 val start = trimStartSeconds.toLongOrNull()
@@ -597,10 +602,11 @@ fun NativeUploadScreen(session: NativeSession) {
                     return@Button
                 }
                 uploading = true
+                editingProgress = 0
                 status = "वीडियो edit/export हो रहा है…"
                 scope.launch {
                     try {
-                        val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter)
+                        val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter) { value -> editingProgress = value }
                         selected = Uri.fromFile(output)
                         sourceDurationSeconds = (end - start).toInt()
                         trimStartSeconds = "0"
@@ -608,6 +614,7 @@ fun NativeUploadScreen(session: NativeSession) {
                         rotationDegrees = 0
                         muteOriginalAudio = false
                         editing = false
+                        editingProgress = 100
                         status = "Edited video तैयार है। अब Publish दबाएँ।"
                     } catch (e: Exception) { status = e.message ?: "Video editing असफल हुई।" }
                     finally { uploading = false }
@@ -645,7 +652,7 @@ private fun stableConversationId(first: String, second: String): String {
 
 @OptIn(UnstableApi::class)
 private object NativeVideoEditor {
-    suspend fun export(context: Context, input: Uri, startMs: Long, endMs: Long, rotation: Int, muteAudio: Boolean, filter: String): java.io.File =
+    suspend fun export(context: Context, input: Uri, startMs: Long, endMs: Long, rotation: Int, muteAudio: Boolean, filter: String, onProgress: (Int) -> Unit): java.io.File =
         suspendCancellableCoroutine { continuation ->
             val output = java.io.File(context.cacheDir, "newstar-edit-" + System.currentTimeMillis() + ".mp4")
             val clipping = MediaItem.ClippingConfiguration.Builder().setStartPositionMs(startMs).setEndPositionMs(endMs).build()
@@ -660,6 +667,10 @@ private object NativeVideoEditor {
             }
             val edited = EditedMediaItem.Builder(mediaItem).setEffects(Effects(emptyList(), videoEffects)).setRemoveAudio(muteAudio).build()
             val transformer = Transformer.Builder(context).addListener(object : Transformer.Listener {
+                override fun onProgress(composition: Composition, progress: Float) {
+                    val percent = (progress.coerceIn(0f, 1f) * 100).toInt()
+                    android.os.Handler(android.os.Looper.getMainLooper()).post { if (continuation.isActive) onProgress(percent) }
+                }
                 override fun onCompleted(composition: Composition, exportResult: ExportResult) {
                     if (continuation.isActive) continuation.resume(output)
                 }
