@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -200,6 +201,7 @@ private fun NativeApp(
     var session by remember { mutableStateOf<NativeSession?>(null) }
     var checkingSession by remember { mutableStateOf(true) }
     var page by remember { mutableStateOf("Home") }
+    var selectedCreatorId by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -234,7 +236,7 @@ private fun NativeApp(
     }
 
     if (page == "Home") {
-        NativeHome(session = session) { page = it }
+        NativeHome(session = session, onOpenCreator = { selectedCreatorId = it; page = "Creator" }) { page = it }
     } else if (session == null) {
         NativeAuthScreen(onSignedIn = { session = it; page = "Home" }, onGoogleSignIn = onGoogleSignIn)
     } else {
@@ -252,6 +254,7 @@ private fun NativeApp(
                     onStart = { title -> onStartGaming(session!!, title) },
                     onStop = { onStopGaming(session!!) }
                 )
+                "Creator" -> selectedCreatorId?.let { NativePublicCreatorScreen(it, session!!) }
                 "Profile" -> NativeProfileScreen(session!!) {
                     val current = session
                     if (current != null) scope.launch {
@@ -259,15 +262,107 @@ private fun NativeApp(
                         finally { session = null; page = "Home" }
                     }
                 }
-                else -> NativeHome(session = session) { page = it }
+                else -> NativeHome(session = session, onOpenCreator = { selectedCreatorId = it; page = "Creator" }) { page = it }
             }
         }
     }
 }
 
+
+@Composable
+private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession) {
+    var profile by remember { mutableStateOf<JSONObject?>(null) }
+    var videos by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var following by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(creatorId, session.userId) {
+        try {
+            val safeId = Uri.encode(creatorId)
+            val profiles = NativeSupabase.get(
+                "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,bio,is_private&user_id=eq.$safeId",
+                session
+            )
+            profile = profiles.optJSONObject(0)
+            val relation = NativeSupabase.get(
+                "/rest/v1/followers?select=id&follower_id=eq.${Uri.encode(session.userId)}&following_id=eq.$safeId",
+                session
+            )
+            following = relation.length() > 0
+            val rows = NativeSupabase.get(
+                "/rest/v1/videos?select=id,caption,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$safeId&order=created_at.desc&limit=60",
+                session
+            )
+            videos = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+        } catch (e: Exception) {
+            error = e.message ?: "Creator profile लोड नहीं हुई।"
+        }
+    }
+
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        if (profile == null && error.isBlank()) CircularProgressIndicator()
+        profile?.let { creator ->
+            val avatar = creator.optString("avatar_url")
+            if (avatar.isNotBlank()) {
+                AsyncImage(model = avatar, contentDescription = "Creator photo",
+                    modifier = Modifier.size(88.dp).clip(RoundedCornerShape(44.dp)),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+            }
+            Text(creator.optString("full_name").ifBlank { creator.optString("username") },
+                style = MaterialTheme.typography.headlineSmall)
+            Text("@${creator.optString("username")}")
+            if (creator.optString("bio").isNotBlank()) Text(creator.optString("bio"))
+            if (creatorId != session.userId) {
+                Button(enabled = !busy, onClick = {
+                    busy = true
+                    scope.launch {
+                        try {
+                            if (following) {
+                                NativeSupabase.delete(
+                                    "/rest/v1/followers?follower_id=eq.${Uri.encode(session.userId)}&following_id=eq.${Uri.encode(creatorId)}",
+                                    session
+                                )
+                                following = false
+                            } else {
+                                NativeSupabase.post("/rest/v1/followers", JSONObject()
+                                    .put("follower_id", session.userId)
+                                    .put("following_id", creatorId), session)
+                                following = true
+                            }
+                        } catch (e: Exception) {
+                            error = e.message ?: "Follow update नहीं हुआ।"
+                        } finally { busy = false }
+                    }
+                }) { Text(if (busy) "Please wait…" else if (following) "Following" else "Follow") }
+            }
+            if (creator.optBoolean("is_private")) {
+                Text("यह Private Creator account है।")
+            } else {
+                Text("Videos", style = MaterialTheme.typography.titleLarge)
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(videos) { video ->
+                        Card(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text(video.optString("caption").ifBlank { "Untitled video" })
+                                Text("${video.optString("category")} · ${video.optString("video_type")}",
+                                    style = MaterialTheme.typography.labelSmall)
+                                Text("${video.optInt("views_count")} views · ${video.optInt("likes_count")} likes",
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NativeHome(session: NativeSession?, onNavigate: (String) -> Unit) {
+private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit, onNavigate: (String) -> Unit) {
     var category by remember { mutableStateOf("All") }
     var search by remember { mutableStateOf("") }
     var creatorResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
@@ -310,7 +405,7 @@ private fun NativeHome(session: NativeSession?, onNavigate: (String) -> Unit) {
             try {
                 val filter = Uri.encode("(username.ilike.*$term*,full_name.ilike.*$term*)")
                 val rows = NativeSupabase.get(
-                    "/rest/v1/profiles?select=user_id,username,full_name,avatar_url,bio,is_private&or=$filter&order=username.asc&limit=20",
+                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,bio,is_private&or=$filter&order=username.asc&limit=20",
                     session
                 )
                 creatorResults = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
@@ -354,7 +449,7 @@ private fun NativeHome(session: NativeSession?, onNavigate: (String) -> Unit) {
                         creatorResults.isEmpty() -> Text("इस नाम से कोई Creator नहीं मिला।", style = MaterialTheme.typography.bodySmall)
                         else -> creatorResults.forEach { creator ->
                             Row(
-                                Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                Modifier.fillMaxWidth().padding(vertical = 6.dp).clickable { onOpenCreator(creator.optString("user_id")) },
                                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                             ) {
                                 val avatar = creator.optString("avatar_url")
