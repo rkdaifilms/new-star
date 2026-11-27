@@ -98,7 +98,12 @@ class LegacyWebActivity : AppCompatActivity() {
             @Suppress("DEPRECATION")
             registerReceiver(receiver, f)
         }
-        if (savedInstanceState == null) web.loadUrl(HOME_URL) else web.restoreState(savedInstanceState)
+        if (savedInstanceState == null) {
+            val requestedPage = intent.getStringExtra("page")
+            val allowedPages = setOf("profile.html", "camera.html", "inbox.html", "gaming.html", "live.html", "wallet.html", "monetization.html")
+            val target = requestedPage?.takeIf { allowedPages.contains(it) } ?: "profile.html"
+            web.loadUrl(HOME_URL + target)
+        } else web.restoreState(savedInstanceState)
     }
 
     private fun launchGamingScreenPermission() {
