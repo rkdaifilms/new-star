@@ -65,3 +65,18 @@ Open the New Star project in Supabase Dashboard.
 4. Leaked-password protection is enabled where plan support permits.
 5. RLS tests confirm a user cannot read or modify another user's private rows.
 6. Production site deployment is verified separately from GitHub commits.
+
+
+## Native Android Google Sign-In
+
+The native Android app uses Android Credential Manager with Google ID tokens and exchanges the token with Supabase Auth. This presents the Google account chooser from accounts already added to the phone; the user can select the account they want.
+
+Required configuration before Google sign-in can complete:
+
+1. In Google Cloud Console, create an OAuth 2.0 **Web application** client ID. Add the Supabase Auth callback URL shown in Authentication → Providers → Google as an authorized redirect URI.
+2. Configure that Web client ID and its client secret in Supabase Authentication → Providers → Google. Keep the client secret only in Supabase.
+3. Add the Web client ID (the public client ID ending in `.apps.googleusercontent.com`) as the GitHub Actions repository variable `GOOGLE_WEB_CLIENT_ID`. Do not add a client secret to GitHub or the Android app.
+4. Confirm the Android package name is `com.newstar.live`; register the app's actual signing SHA-1/SHA-256 fingerprints in the matching Google Cloud Android OAuth client if required by the Google project setup.
+5. Build a fresh APK and test account selection and a successful Supabase session on a real Android device.
+
+The Google button remains visible in the native login screen. If the Web client ID is not configured at build time, the app displays a configuration message instead of pretending that sign-in is ready.
