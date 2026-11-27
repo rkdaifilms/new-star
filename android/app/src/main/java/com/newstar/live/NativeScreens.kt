@@ -365,7 +365,7 @@ fun NativeInboxScreen(session: NativeSession) {
 
     LaunchedEffect(session.userId) {
         while (true) {
-            delay(15_000)
+            delay(5_000)
             refresh++
         }
     }
