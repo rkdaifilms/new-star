@@ -16,8 +16,7 @@ function setResearchMode(privateOnly){
 }
 function bubble(text,kind="ai"){const el=document.createElement("div");el.className="ns-message "+(kind==="user"?"ns-user":"ns-ai");el.textContent=text;output.append(el);output.scrollTop=output.scrollHeight;return el;}
 function toBase64(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(new Error("Could not read voice recording."));reader.readAsDataURL(blob);});}
-async function transcribeVoice(blob){const client=window.supabaseClient||window.cloudClient;if(!client?.functions)throw new Error("New Star AI connection is not ready. Reload the page.");const mime=(blob.type||"audio/webm").split(";")[0];const audio=await toBase64(blob);const result=await client.functions.invoke("ai-gateway",{body:{action:"transcribe",audio,mimeType:mime}});if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"Voice transcription failed."));lastTranscriptionLanguage=result.data.language&&result.data.language!=="und"?result.data.language:"";lastInputWasVoice=true;prompt.value=(prompt.value.trim()?prompt.value.trim()+" ":"")+result.data.transcript;prompt.focus();bubble("Voice transcript: "+result.data.transcript,"user");}
-let recordingStartedAt=0,recordingLimitTimer=null,voiceStream=null;let voiceSendPending=false;
+let recordingLimitTimer=null,voiceStream=null,voiceSendPending=false;
 function resetMicButton(){
  const mic=$("ns-mic");
  mic.disabled=false;
@@ -103,7 +102,6 @@ async function toggleVoice(){
    }finally{mic.disabled=false;mic.textContent="🎙 Voice";}
   };
   recorder.start(250);
-  recordingStartedAt=Date.now();
   mic.disabled=false;
   mic.textContent="■ Stop recording";
   mic.setAttribute("aria-label","Stop voice recording");
