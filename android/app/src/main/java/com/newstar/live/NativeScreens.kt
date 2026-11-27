@@ -66,6 +66,11 @@ import java.security.MessageDigest
 import androidx.media3.common.MediaItem
 import androidx.media3.common.C
 import androidx.media3.common.audio.SpeedProvider
+import androidx.media3.common.audio.GainProcessor
+import androidx.media3.common.audio.ToInt16PcmAudioProcessor
+import androidx.media3.common.audio.ChannelMixingAudioProcessor
+import androidx.media3.common.audio.ChannelMixingMatrix
+import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -1740,13 +1745,17 @@ fun NativeUploadScreen(session: NativeSession) {
                 scope.launch {
                     val created = mutableListOf<java.io.File>()
                     try {
-                        val first = NativeVideoEditor.export(context, input, start * 1000L, split * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText) { value ->
-                            editingProgress = (value / 2).coerceIn(0, 49)
-                        }
+                        val first = NativeVideoEditor.export(
+                            context, input, start * 1000L, split * 1000L, rotationDegrees,
+                            muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
+                            onProgress = { value -> editingProgress = (value / 2).coerceIn(0, 49) }
+                        )
                         created.add(first)
-                        val second = NativeVideoEditor.export(context, input, split * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText) { value ->
-                            editingProgress = (50 + value / 2).coerceIn(50, 99)
-                        }
+                        val second = NativeVideoEditor.export(
+                            context, input, split * 1000L, end * 1000L, rotationDegrees,
+                            muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
+                            onProgress = { value -> editingProgress = (50 + value / 2).coerceIn(50, 99) }
+                        )
                         created.add(second)
                         val previousSelection = input
                         splitParts = created.map { Uri.fromFile(it) }
@@ -1798,7 +1807,7 @@ fun NativeUploadScreen(session: NativeSession) {
                 }
             }
             Text("Audio & Music Preview", style = MaterialTheme.typography.titleMedium)
-            Text("Music और Voice Preview उपलब्ध हैं; वेबसाइट की तरह ये अभी Exported Video में mix नहीं होते।", style = MaterialTheme.typography.bodySmall)
+            Text("Apply edits पर चुना हुआ Music और Voiceover, video audio के साथ final MP4 में mix होंगे। Music पूरे वीडियो में loop होगा।", style = MaterialTheme.typography.bodySmall)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { musicPicker.launch(arrayOf("audio/*")) }, enabled = !uploading, modifier = Modifier.weight(1f)) {
                     Text(if (musicUri == null) "Select Music" else "Change Music")
@@ -1944,7 +1953,13 @@ fun NativeUploadScreen(session: NativeSession) {
                 status = "वीडियो edit/export हो रहा है…"
                 scope.launch {
                     try {
-                        val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText) { value -> editingProgress = value }
+                        val output = NativeVideoEditor.export(
+                            context, input, start * 1000L, end * 1000L, rotationDegrees,
+                            muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
+                            musicUri = musicUri, voiceoverFile = voiceoverFile,
+                            musicVolume = musicVolume, voiceVolume = voiceVolume,
+                            onProgress = { value -> editingProgress = value }
+                        )
                         val previousSelection = input
                         selected = Uri.fromFile(output)
                         if (previousSelection != selected) deleteNativeEditorTemp(context, previousSelection)
@@ -1966,6 +1981,14 @@ fun NativeUploadScreen(session: NativeSession) {
                         overlayText = ""
                         editing = false
                         editingProgress = 100
+                        val mixedAudio = musicUri != null || voiceoverFile != null
+                        if (mixedAudio) {
+                            musicPlayer?.pause()
+                            voicePlayer?.pause()
+                            musicUri = null
+                            voiceoverFile = null
+                            audioStatus = "Music और Voiceover final video में mix हो गए।"
+                        }
                         status = "Edited video तैयार है। अब Publish दबाएँ।"
                     } catch (e: Exception) { status = e.message ?: "Video editing असफल हुई।" }
                     finally { uploading = false }
@@ -2044,76 +2067,147 @@ private fun stableConversationId(first: String, second: String): String {
 
 @OptIn(UnstableApi::class)
 private object NativeVideoEditor {
-    suspend fun export(context: Context, input: Uri, startMs: Long, endMs: Long, rotation: Int, muteAudio: Boolean, filter: String, centerCrop: Boolean, speed: Float, overlayText: String, onProgress: (Int) -> Unit): java.io.File =
-        suspendCancellableCoroutine { continuation ->
-            val output = java.io.File(context.cacheDir, "newstar-edit-" + System.currentTimeMillis() + ".mp4")
-            val clipping = MediaItem.ClippingConfiguration.Builder().setStartPositionMs(startMs).setEndPositionMs(endMs).build()
-            val mediaItem = MediaItem.Builder().setUri(input).setClippingConfiguration(clipping).build()
-            val videoEffects = mutableListOf<androidx.media3.common.Effect>()
-            if (rotation != 0) videoEffects.add(ScaleAndRotateTransformation.Builder().setRotationDegrees(rotation.toFloat()).build())
-            if (centerCrop) videoEffects.add(Crop(-0.8f, 0.8f, -0.8f, 0.8f))
-            when (filter) {
-                "grayscale" -> videoEffects.add(RgbFilter.createGrayscaleFilter())
-                "inverted" -> videoEffects.add(RgbFilter.createInvertedFilter())
-                "none" -> Unit
-                else -> error("Unsupported video filter.")
+    private fun audioEffects(volume: Float): Effects {
+        require(volume in 0f..1f) { "Audio volume 0 से 100% के बीच होना चाहिए।" }
+        val channelMixer = ChannelMixingAudioProcessor()
+        for (channels in 1..6) {
+            channelMixer.putChannelMixingMatrix(
+                ChannelMixingMatrix.createForConstantPower(channels, 2)
+            )
+        }
+        val gain = GainProcessor(object : GainProcessor.GainProvider {
+            override fun getGainFactorAtSamplePosition(samplePosition: Long, sampleRate: Int): Float = volume
+            override fun isUnityUntil(samplePosition: Long, sampleRate: Int): Long =
+                if (volume == 1f) C.TIME_END_OF_SOURCE else C.TIME_UNSET
+        })
+        return Effects(listOf(ToInt16PcmAudioProcessor(), channelMixer, gain), emptyList())
+    }
+
+    suspend fun export(
+        context: Context,
+        input: Uri,
+        startMs: Long,
+        endMs: Long,
+        rotation: Int,
+        muteAudio: Boolean,
+        filter: String,
+        centerCrop: Boolean,
+        speed: Float,
+        overlayText: String,
+        musicUri: Uri? = null,
+        voiceoverFile: File? = null,
+        musicVolume: Float = 0.4f,
+        voiceVolume: Float = 1f,
+        onProgress: (Int) -> Unit
+    ): File = suspendCancellableCoroutine { continuation ->
+        val output = File(context.cacheDir, "newstar-edit-" + System.currentTimeMillis() + ".mp4")
+        val clipping = MediaItem.ClippingConfiguration.Builder()
+            .setStartPositionMs(startMs)
+            .setEndPositionMs(endMs)
+            .build()
+        val mediaItem = MediaItem.Builder().setUri(input).setClippingConfiguration(clipping).build()
+        val videoEffects = mutableListOf<androidx.media3.common.Effect>()
+        if (rotation != 0) {
+            videoEffects.add(ScaleAndRotateTransformation.Builder().setRotationDegrees(rotation.toFloat()).build())
+        }
+        if (centerCrop) videoEffects.add(Crop(-0.8f, 0.8f, -0.8f, 0.8f))
+        when (filter) {
+            "grayscale" -> videoEffects.add(RgbFilter.createGrayscaleFilter())
+            "inverted" -> videoEffects.add(RgbFilter.createInvertedFilter())
+            "none" -> Unit
+            else -> error("Unsupported video filter.")
+        }
+        if (overlayText.isNotBlank()) {
+            val text = SpannableString(overlayText.trim().take(100))
+            text.setSpan(ForegroundColorSpan(Color.WHITE), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            text.setSpan(BackgroundColorSpan(Color.argb(170, 0, 0, 0)), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            text.setSpan(AbsoluteSizeSpan(64), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            videoEffects.add(OverlayEffect(listOf(TextOverlay.createStaticTextOverlay(text))))
+        }
+        require(speed in 0.5f..2f) { "वीडियो speed 0.5x से 2x के बीच रखें।" }
+        val speedProvider = object : SpeedProvider {
+            override fun getSpeed(timeUs: Long): Float = speed
+            override fun getNextSpeedChangeTimeUs(timeUs: Long): Long = C.TIME_UNSET
+        }
+        val hasExternalAudio = musicUri != null || voiceoverFile != null
+        val videoAudioEffects = if (muteAudio) emptyList() else audioEffects(1f).audioProcessors
+        val editedVideo = EditedMediaItem.Builder(mediaItem)
+            .setEffects(Effects(videoAudioEffects, videoEffects))
+            .setRemoveAudio(muteAudio)
+            .setSpeed(speedProvider)
+            .build()
+
+        val composition = if (hasExternalAudio) {
+            val sequences = mutableListOf<EditedMediaItemSequence>()
+            sequences.add(EditedMediaItemSequence.withAudioAndVideoFrom(listOf(editedVideo)))
+            musicUri?.let { uri ->
+                val musicItem = EditedMediaItem.Builder(MediaItem.fromUri(uri))
+                    .setEffects(audioEffects(musicVolume))
+                    .build()
+                sequences.add(
+                    EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO))
+                        .addItem(musicItem)
+                        .setIsLooping(true)
+                        .build()
+                )
             }
-            if (overlayText.isNotBlank()) {
-                val text = SpannableString(overlayText.trim().take(100))
-                text.setSpan(ForegroundColorSpan(Color.WHITE), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                text.setSpan(BackgroundColorSpan(Color.argb(170, 0, 0, 0)), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                text.setSpan(AbsoluteSizeSpan(64), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                videoEffects.add(OverlayEffect(listOf(TextOverlay.createStaticTextOverlay(text))))
+            voiceoverFile?.let { file ->
+                require(file.isFile && file.length() > 0L) { "Voice recording file उपलब्ध नहीं है। दोबारा रिकॉर्ड करें।" }
+                val voiceItem = EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(file)))
+                    .setEffects(audioEffects(voiceVolume))
+                    .build()
+                sequences.add(
+                    EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO))
+                        .addItem(voiceItem)
+                        .build()
+                )
             }
-            require(speed in 0.5f..2f) { "वीडियो speed 0.5x से 2x के बीच रखें।" }
-            val speedProvider = object : SpeedProvider {
-                override fun getSpeed(timeUs: Long): Float = speed
-                override fun getNextSpeedChangeTimeUs(timeUs: Long): Long = C.TIME_UNSET
-            }
-            val edited = EditedMediaItem.Builder(mediaItem).setEffects(Effects(emptyList(), videoEffects)).setRemoveAudio(muteAudio).setSpeed(speedProvider).build()
-            val progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
-            val progressHolder = androidx.media3.transformer.ProgressHolder()
-            lateinit var progressPoll: Runnable
-            val transformer = Transformer.Builder(context).addListener(object : Transformer.Listener {
-                override fun onCompleted(composition: Composition, exportResult: ExportResult) {
-                    progressHandler.removeCallbacks(progressPoll)
-                    if (continuation.isActive) {
-                        onProgress(100)
-                        continuation.resume(output)
-                    }
-                }
-                override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) {
-                    progressHandler.removeCallbacks(progressPoll)
-                    output.delete()
-                    if (continuation.isActive) continuation.resumeWithException(exportException)
-                }
-            }).build()
-            progressPoll = object : Runnable {
-                override fun run() {
-                    if (!continuation.isActive) return
-                    try {
-                        transformer.getProgress(progressHolder)
-                        onProgress(progressHolder.progress.coerceIn(0, 99))
-                    } catch (_: Exception) { }
-                    if (continuation.isActive) progressHandler.postDelayed(this, 300L)
-                }
-            }
-            continuation.invokeOnCancellation {
+            Composition.Builder(sequences).build()
+        } else null
+
+        val progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        val progressHolder = androidx.media3.transformer.ProgressHolder()
+        lateinit var progressPoll: Runnable
+        val transformer = Transformer.Builder(context).addListener(object : Transformer.Listener {
+            override fun onCompleted(compositionResult: Composition, exportResult: ExportResult) {
                 progressHandler.removeCallbacks(progressPoll)
-                try { transformer.cancel() } catch (_: Exception) { }
-                output.delete()
+                if (continuation.isActive) {
+                    onProgress(100)
+                    continuation.resume(output)
+                }
             }
-            try {
-                transformer.start(edited, output.absolutePath)
-                progressHandler.post(progressPoll)
-            } catch (e: Exception) {
+            override fun onError(compositionResult: Composition, exportResult: ExportResult, exportException: ExportException) {
                 progressHandler.removeCallbacks(progressPoll)
                 output.delete()
-                if (continuation.isActive) continuation.resumeWithException(e)
+                if (continuation.isActive) continuation.resumeWithException(exportException)
+            }
+        }).build()
+        progressPoll = object : Runnable {
+            override fun run() {
+                if (!continuation.isActive) return
+                try {
+                    transformer.getProgress(progressHolder)
+                    onProgress(progressHolder.progress.coerceIn(0, 99))
+                } catch (_: Exception) { }
+                if (continuation.isActive) progressHandler.postDelayed(this, 300L)
             }
         }
+        continuation.invokeOnCancellation {
+            progressHandler.removeCallbacks(progressPoll)
+            try { transformer.cancel() } catch (_: Exception) { }
+            output.delete()
+        }
+        try {
+            if (composition != null) transformer.start(composition, output.absolutePath)
+            else transformer.start(editedVideo, output.absolutePath)
+            progressHandler.post(progressPoll)
+        } catch (e: Exception) {
+            progressHandler.removeCallbacks(progressPoll)
+            output.delete()
+            if (continuation.isActive) continuation.resumeWithException(e)
+        }
+    }
 }
-
 private object NativeVideoUploader {
     suspend fun upload(
         context: Context, uri: Uri, session: NativeSession, title: String, description: String,
