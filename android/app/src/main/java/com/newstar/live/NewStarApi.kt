@@ -42,7 +42,13 @@ class NewStarApi {
             val stream = if (code in 200..299) c.inputStream else c.errorStream
             val text = stream?.bufferedReader()?.use { it.readText() } ?: ""
             if (code !in 200..299) {
-                val message = runCatching { JSONObject(text).optString("msg").ifBlank { JSONObject(text).optString("message") } }.getOrNull()
+                val message = runCatching {
+                    val error = JSONObject(text)
+                    error.optString("error_description")
+                        .ifBlank { error.optString("msg") }
+                        .ifBlank { error.optString("message") }
+                        .ifBlank { error.optString("error") }
+                }.getOrNull()
                 throw IllegalStateException(message?.ifBlank { null } ?: "Server request failed (" + code + ")")
             }
             return text
@@ -63,6 +69,14 @@ class NewStarApi {
     fun signUp(email: String, password: String): NewStarSession? {
         val raw = request("/auth/v1/signup", "POST", body = JSONObject().put("email", email.trim()).put("password", password))
         return if (JSONObject(raw).has("access_token")) parseSession(raw) else null
+    }
+
+    fun signInWithGoogleIdToken(idToken: String): NewStarSession {
+        require(idToken.isNotBlank()) { "Google did not return an ID token." }
+        val body = JSONObject()
+            .put("provider", "google")
+            .put("id_token", idToken)
+        return parseSession(request("/auth/v1/token?grant_type=id_token", "POST", body = body))
     }
 
     fun loadFeed(token: String?): List<NewStarVideo> = loadFeedForUsers(token, null)
