@@ -757,7 +757,7 @@ fun NativeCreatorAiScreen(session: NativeSession) {
                                 JSONObject().put("messages", payload).put("mode", "creator"),
                                 session
                             )
-                            if (!response.optBoolean("ok")) error(response.optString("error", "AI reply उपलब्ध नहीं है।"))
+                            if (!response.optBoolean("ok")) throw IllegalStateException(response.optString("error", "AI reply उपलब्ध नहीं है।"))
                             val answer = response.optString("answer").trim()
                             require(answer.isNotBlank()) { "AI ने खाली जवाब दिया।" }
                             messages = messages + NativeAiMessage("assistant", answer)
@@ -784,12 +784,12 @@ fun NativeCreatorAiScreen(session: NativeSession) {
                                     .put("aspectRatio", imageRatio).put("imageSize", "1K"),
                                 session
                             )
-                            if (!response.optBoolean("ok")) error(response.optString("error", "Image generation failed"))
+                            if (!response.optBoolean("ok")) throw IllegalStateException(response.optString("error", "Image generation failed"))
                             val encoded = response.optString("image")
                             require(encoded.isNotBlank()) { "AI ने image data नहीं लौटाया।" }
                             val bytes = Base64.decode(encoded, Base64.DEFAULT)
                             generatedImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                ?: error("Generated image decode नहीं हुई।")
+                                ?: throw IllegalStateException("Generated image decode नहीं हुई।")
                             prompt = ""
                         } catch (e: Exception) {
                             error = e.message ?: "Image generation असफल हुई।"
