@@ -584,7 +584,33 @@ private fun NativeLiveInvitations(session: NativeSession) {
                 Text("LIVE Invitations", style = MaterialTheme.typography.titleMedium)
                 invitations.forEach { invite ->
                     val id = invite.optString("id")
-                    Text("${invite.optString("inviter_name").ifBlank { "New Star Creator" }} invited you to ${invite.optString("room_title").ifBlank { "New Star Live" }}", style = MaterialTheme.typography.bodyMedium)
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        AsyncImage(
+                            model = invite.optString("inviter_avatar_url").takeIf { it.startsWith("https://") },
+                            contentDescription = "Inviting creator avatar",
+                            modifier = Modifier.size(42.dp).clip(CircleShape)
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                invite.optString("inviter_name").ifBlank { "New Star Creator" },
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            val inviterUsername = invite.optString("inviter_username")
+                            if (inviterUsername.isNotBlank()) {
+                                Text("@$inviterUsername", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(
+                                "Invited you to ${invite.optString("room_title").ifBlank { "New Star Live" }}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(enabled = busyId.isBlank(), onClick = {
                             busyId = id
