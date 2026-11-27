@@ -5,6 +5,10 @@ val releaseStorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSW
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
 val googleWebClientId = providers.environmentVariable("GOOGLE_WEB_CLIENT_ID").orElse("").get()
+val ciStoreFile = providers.environmentVariable("ANDROID_KEYSTORE_FILE").orNull
+val ciStorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
+val ciKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
+val ciKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
 
 android {
     namespace = "com.newstar.live"
@@ -19,6 +23,14 @@ android {
         versionName = "1.2.0"
     }
     signingConfigs {
+        if (ciStoreFile != null && ciStorePassword != null && ciKeyAlias != null && ciKeyPassword != null) {
+            create("ci") {
+                storeFile = file(ciStoreFile)
+                storePassword = ciStorePassword
+                keyAlias = ciKeyAlias
+                keyPassword = ciKeyPassword
+            }
+        }
         if (releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
             create("release") {
                 storeFile = file(releaseStoreFile)
@@ -29,6 +41,9 @@ android {
         }
     }
     buildTypes {
+        getByName("debug") {
+            if (ciStoreFile != null && ciStorePassword != null && ciKeyAlias != null && ciKeyPassword != null) signingConfig = signingConfigs.getByName("ci")
+        }
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
