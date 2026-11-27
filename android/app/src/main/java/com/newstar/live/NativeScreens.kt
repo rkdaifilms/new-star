@@ -321,7 +321,7 @@ private object NativeVideoUploader {
             put("username", username); put("likes_count", 0); put("views_count", 0)
             put("duration_seconds", duration); put("width", width); put("height", height)
             put("video_type", if (width < height) "short" else "long")
-            put("visibility", "public"); put("audience_type", "everyone")
+            put("visibility", "public"); put("audience_type", "all")
             put("media_kind", "video"); put("aspect_ratio_setting", "original")
             put("quality_preference", "original"); put("source_quality", "${width}x$height")
             put("frame_fit", "contain")
