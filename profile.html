@@ -9,12 +9,10 @@
   if (params.get("native_oauth") !== "1") return;
   var code = params.get("code");
   var state = params.get("oauth_state");
-  var verifier = params.get("code_verifier");
-  if (!code || !state || !verifier) return;
+  if (!code || !state) return;
   var callback = new URL("com.newstar.live://auth/callback");
   callback.searchParams.set("code", code);
   callback.searchParams.set("state", state);
-  callback.searchParams.set("verifier", verifier);
   window.location.replace(callback.toString());
 })();
 </script>
