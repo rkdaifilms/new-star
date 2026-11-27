@@ -828,6 +828,13 @@ async function saveCover(){
 
   user=data.user;
 
+  const {error:extrasError}=await db.from("creator_profile_extras").upsert({
+   user_id:user.id,
+   cover_url:coverUrl,
+   cover_transform:cleanCoverTransform(updated.cover_transform)
+  },{onConflict:"user_id"});
+  if(extrasError)throw extrasError;
+
   setCover(coverUrl);
   coverTransform=cleanCoverTransform(updated.cover_transform);
   applyCoverTransform();
@@ -1012,6 +1019,18 @@ async function saveProfile(){
    :await db.from("profiles").insert(values);
 
   if(result.error)throw result.error;
+
+  const {error:extrasError}=await db.from("creator_profile_extras").upsert({
+   user_id:user.id,
+   cover_url:updated.cover_url||null,
+   cover_transform:cleanCoverTransform(updated.cover_transform),
+   website:updated.website||"",
+   facebook:updated.facebook||"",
+   instagram:updated.instagram||"",
+   youtube:updated.youtube||"",
+   tiktok:updated.tiktok||""
+  },{onConflict:"user_id"});
+  if(extrasError)throw extrasError;
 
   profileRow={...(profileRow||{}),...values};
 
