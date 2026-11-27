@@ -50,4 +50,4 @@ jobs:
           node --check new-star-ai.js
           node --check ai-chat.js
       - name: Run New Star AI regression tests
-        run: deno test --no-check tests/ai-engine-core_test.ts
+        run: deno test --no-check --allow-read=. tests/ai-engine-core_test.ts
