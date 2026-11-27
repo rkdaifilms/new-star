@@ -47,6 +47,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.ScaleAndRotateTransformation
+import androidx.media3.effect.Crop
 import androidx.media3.effect.RgbFilter
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
@@ -520,6 +521,7 @@ fun NativeUploadScreen(session: NativeSession) {
     var rotationDegrees by remember { mutableIntStateOf(0) }
     var muteOriginalAudio by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("none") }
+    var centerCrop by remember { mutableStateOf(false) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         selected = uri
         if (uri != null) {
@@ -538,6 +540,7 @@ fun NativeUploadScreen(session: NativeSession) {
                 rotationDegrees = 0
                 muteOriginalAudio = false
                 selectedFilter = "none"
+                centerCrop = false
                 editing = true
                 status = "वीडियो चुना गया। Trim, rotate या mute सेट करके Apply edits दबाएँ।"
             } catch (e: Exception) { status = e.message ?: "वीडियो metadata पढ़ नहीं सके।" }
@@ -582,12 +585,14 @@ fun NativeUploadScreen(session: NativeSession) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { rotationDegrees = (rotationDegrees + 90) % 360 }, enabled = !uploading) { Text("Rotate $rotationDegrees°") }
                 FilterChip(selected = muteOriginalAudio, onClick = { muteOriginalAudio = !muteOriginalAudio }, label = { Text(if (muteOriginalAudio) "Original audio muted" else "Keep original audio") })
+                FilterChip(selected = centerCrop, onClick = { centerCrop = !centerCrop }, label = { Text(if (centerCrop) "Center crop on" else "Center crop off") })
                 OutlinedButton(onClick = {
                     trimStartSeconds = "0"
                     trimEndSeconds = sourceDurationSeconds.toString()
                     rotationDegrees = 0
                     muteOriginalAudio = false
                     selectedFilter = "none"
+                    centerCrop = false
                     status = "Editor settings reset हो गईं।"
                 }, enabled = !uploading) { Text("Reset") }
             }
@@ -614,7 +619,7 @@ fun NativeUploadScreen(session: NativeSession) {
                 status = "वीडियो edit/export हो रहा है…"
                 scope.launch {
                     try {
-                        val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter) { value -> editingProgress = value }
+                        val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop) { value -> editingProgress = value }
                         selected = Uri.fromFile(output)
                         sourceDurationSeconds = (end - start).toInt()
                         trimStartSeconds = "0"
@@ -660,13 +665,14 @@ private fun stableConversationId(first: String, second: String): String {
 
 @OptIn(UnstableApi::class)
 private object NativeVideoEditor {
-    suspend fun export(context: Context, input: Uri, startMs: Long, endMs: Long, rotation: Int, muteAudio: Boolean, filter: String, onProgress: (Int) -> Unit): java.io.File =
+    suspend fun export(context: Context, input: Uri, startMs: Long, endMs: Long, rotation: Int, muteAudio: Boolean, filter: String, centerCrop: Boolean, onProgress: (Int) -> Unit): java.io.File =
         suspendCancellableCoroutine { continuation ->
             val output = java.io.File(context.cacheDir, "newstar-edit-" + System.currentTimeMillis() + ".mp4")
             val clipping = MediaItem.ClippingConfiguration.Builder().setStartPositionMs(startMs).setEndPositionMs(endMs).build()
             val mediaItem = MediaItem.Builder().setUri(input).setClippingConfiguration(clipping).build()
             val videoEffects = mutableListOf<androidx.media3.common.Effect>()
             if (rotation != 0) videoEffects.add(ScaleAndRotateTransformation.Builder().setRotationDegrees(rotation.toFloat()).build())
+            if (centerCrop) videoEffects.add(Crop(-0.8f, 0.8f, -0.8f, 0.8f))
             when (filter) {
                 "grayscale" -> videoEffects.add(RgbFilter.createGrayscaleFilter())
                 "inverted" -> videoEffects.add(RgbFilter.createInvertedFilter())
