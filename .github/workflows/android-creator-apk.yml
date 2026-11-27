@@ -93,7 +93,7 @@ jobs:
           echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" >> "$GITHUB_ENV"
           echo "Google Web Client ID format validated (value hidden)."
 
-      - name: Prepare stable Android signing key (optional until repository secrets are added)
+      - name: Require and verify stable Android signing key
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -102,20 +102,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -n "${ANDROID_KEYSTORE_BASE64:-}" ]]; then
-            : "${ANDROID_KEYSTORE_PASSWORD:?ANDROID_KEYSTORE_PASSWORD is required}"
-            : "${ANDROID_KEY_ALIAS:?ANDROID_KEY_ALIAS is required}"
-            : "${ANDROID_KEY_PASSWORD:?ANDROID_KEY_PASSWORD is required}"
-            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/newstar-upload.jks"
-            test -s "$RUNNER_TEMP/newstar-upload.jks"
-            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/newstar-upload.jks" >> "$GITHUB_ENV"
-            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
-            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
-            echo "Stable Android signing key loaded."
-          else
-            echo "::warning::Stable Android signing key is not configured; this APK will use a temporary debug key and Google OAuth fingerprint will change on the next clean runner."
+          : "${ANDROID_KEYSTORE_BASE64:?ANDROID_KEYSTORE_BASE64 secret is missing}"
+          : "${ANDROID_KEYSTORE_PASSWORD:?ANDROID_KEYSTORE_PASSWORD secret is missing}"
+          : "${ANDROID_KEY_ALIAS:?ANDROID_KEY_ALIAS secret is missing}"
+          : "${ANDROID_KEY_PASSWORD:?ANDROID_KEY_PASSWORD secret is missing}"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/newstar-upload.jks"
+          test -s "$RUNNER_TEMP/newstar-upload.jks"
+          KEY_SHA1="$(keytool -list -v -keystore "$RUNNER_TEMP/newstar-upload.jks" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | awk -F': ' '/SHA1:/{print $2; exit}' | tr '[:lower:]' '[:upper:]')"
+          EXPECTED_SHA1="43:35:BD:90:21:F6:33:09:6E:9D:B6:43:3C:A8:9D:B5:19:27:3D:57"
+          if [[ "$KEY_SHA1" != "$EXPECTED_SHA1" ]]; then
+            echo "::error::Wrong Android signing key. Expected the registered New Star SHA-1 fingerprint."
+            exit 1
           fi
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/newstar-upload.jks" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "Stable Android signing key verified (fingerprint hidden)."
 
       - name: Build New Star Android APK
         run: gradle -p android :app:assembleDebug --no-daemon
