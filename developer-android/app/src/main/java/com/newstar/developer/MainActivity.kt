@@ -254,11 +254,53 @@ class MainActivity : Activity() {
         if (reports == null || reports.length() == 0) body.addView(label("No content reports"))
         else for (i in 0 until minOf(reports.length(), 50)) {
             val row = reports.optJSONObject(i) ?: continue
-            body.addView(label(
-                "${row.optString("target_type")} • ${row.optString("reason")}\n" +
+            val reportCard = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(10), dp(8), dp(10), dp(8))
+                setBackgroundColor(Color.rgb(23, 29, 41))
+            }
+            reportCard.addView(label(
+                "${row.optString("target_type")} • ${row.optString("reason")}\\n" +
                 "${row.optString("status")} • ${row.optString("created_at")}", 13f, Color.LTGRAY))
+            val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            listOf("reviewing" to "Review", "actioned" to "Actioned", "dismissed" to "Dismiss").forEach { (nextStatus, title) ->
+                actions.addView(Button(this@MainActivity).apply {
+                    text = title
+                    isAllCaps = false
+                    setOnClickListener { updateReportStatus(row.optString("id"), nextStatus) }
+                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            }
+            reportCard.addView(actions)
+            body.addView(reportCard, matchWrap())
+        }
+        body.addView(label("WATCH-RISK REVIEW QUEUE", 17f))
+        val riskRows = data.optJSONArray("watch_risk_review_queue")
+        if (riskRows == null || riskRows.length() == 0) body.addView(label("No watch-risk signals waiting for review."))
+        else for (i in 0 until minOf(riskRows.length(), 30)) {
+            val row = riskRows.optJSONObject(i) ?: continue
+            body.addView(label(
+                "Risk score: ${row.opt("risk_score")} • Occurrences: ${row.optInt("occurrence_count")}\\n" +
+                "Review status: ${row.optString("review_status")} • Last seen: ${row.optString("last_seen_at")}", 13f, Color.LTGRAY))
         }
         body.addView(label("यह स्क्रीन वास्तविक server data दिखाती है। कोई demo counters नहीं।", 12f, Color.LTGRAY))
+    }
+
+    private fun updateReportStatus(reportId: String, nextStatus: String) {
+        if (busy || reportId.isBlank()) return
+        busy = true
+        status.text = "Content report update server पर भेजा जा रहा है…"
+        thread {
+            try {
+                val s = authorizedSession()
+                val response = request("POST", "/functions/v1/admin-overview",
+                    JSONObject().put("action", "review_content_report")
+                        .put("report_id", reportId).put("status", nextStatus), s.access)
+                if (!response.optBoolean("ok")) error(response.optString("error", "Report update failed"))
+                runOnUiThread { busy = false; loadDashboard() }
+            } catch (e: Exception) {
+                runOnUiThread { busy = false; status.text = e.message ?: "Report update failed" }
+            }
+        }
     }
 
     private fun request(method: String, path: String, body: JSONObject? = null, token: String? = null): JSONObject {
