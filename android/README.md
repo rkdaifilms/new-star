@@ -4,17 +4,16 @@ The creator Android app is a native Jetpack Compose application. APK workflows a
 
 ## Test APK workflow
 
-A test APK can be built only after the Android implementation is ready for a test cycle:
+Until the complete native app is finished, GitHub Actions runs compile/package/signature verification only. It deliberately does not publish an APK artifact. The final installable APK will be produced only after native feature parity, integration checks and device testing are complete.
 
 1. Open the repository on GitHub and select **Actions**.
 2. Select **Android App (automatic APK)** or **New Star Creator Android APK**.
 3. Use **Run workflow** on the intended branch.
-4. Open the successful run and download its artifact ZIP.
-5. Extract the ZIP and install `app-debug.apk` on an Android test device.
+4. Open the run and confirm the compile, package and signature verification steps passed. The verification artifact contains only a checksum, not an installable APK.
 
 **Do not use Code -> Download ZIP as the Android installer.** That ZIP contains source code, not an APK.
 
-The debug APK is signed with Android's standard debug key and is for controlled testing, not public distribution. The separate signed release workflow requires a configured persistent upload keystore. No APK is produced merely by committing source changes.
+The debug APK is used internally by CI for compile/package/signature checks, but is not exposed as a downloadable artifact while native work is incomplete. The separate signed release workflow requires a configured persistent upload keystore. No APK is released merely by committing source changes.
 
 ## Important build and security notes
 
