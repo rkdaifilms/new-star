@@ -898,7 +898,12 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit, onNavigate: (String) -> Unit) {
+private fun NativeHome(
+    session: NativeSession?,
+    onOpenCreator: (String) -> Unit,
+    onAskAi: (String) -> Unit,
+    onNavigate: (String) -> Unit
+) {
     var category by remember { mutableStateOf("All") }
     var feedMode by remember { mutableStateOf("For You") }
     var search by remember { mutableStateOf("") }
@@ -1010,7 +1015,7 @@ private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit,
                 trailingIcon = { if (search.isNotEmpty()) TextButton(onClick = { search = "" }) { Text("Clear") } }
             )
             if (search.trim().isNotEmpty()) {
-                TextButton(onClick = { onNavigate("Creator AI") },
+                TextButton(onClick = { onAskAi(search.trim()) },
                     modifier = Modifier.padding(horizontal = 12.dp)) {
                     Text("New Star AI Engine से पूछें: ${search.trim().take(45)}")
                 }
