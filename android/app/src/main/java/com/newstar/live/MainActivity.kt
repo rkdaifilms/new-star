@@ -52,7 +52,16 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun NativeHome(openPage: (String) -> Unit) {
     var category by remember { mutableStateOf("All") }
+    var search by remember { mutableStateOf("") }
     var feed by remember { mutableStateOf<List<NativeVideo>>(emptyList()) }
+    val visibleFeed = remember(feed, search) {
+        val term = search.trim().lowercase()
+        if (term.isEmpty()) feed else feed.filter { video ->
+            video.caption.lowercase().contains(term) ||
+                video.username.lowercase().contains(term) ||
+                video.category.lowercase().contains(term)
+        }
+    }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var refresh by remember { mutableIntStateOf(0) }
@@ -88,6 +97,16 @@ private fun NativeHome(openPage: (String) -> Unit) {
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            OutlinedTextField(
+                value = search,
+                onValueChange = { search = it },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                singleLine = true,
+                label = { Text("इस Feed में वीडियो या Creator खोजें") },
+                trailingIcon = {
+                    if (search.isNotEmpty()) TextButton(onClick = { search = "" }) { Text("Clear") }
+                }
+            )
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
@@ -109,12 +128,18 @@ private fun NativeHome(openPage: (String) -> Unit) {
                     Spacer(Modifier.height(12.dp))
                     Button(onClick = { refresh++ }) { Text("Retry") }
                 }
+                else if (visibleFeed.isEmpty() -> Box(
+                    Modifier.fillMaxSize().padding(24.dp),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    Text("इस खोज में कोई वीडियो नहीं मिला।")
+                }
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(feed, key = { it.id }) { video -> NativeVideoCard(video) }
+                    items(visibleFeed, key = { it.id }) { video -> NativeVideoCard(video) }
                 }
             }
         }
