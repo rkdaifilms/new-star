@@ -74,6 +74,21 @@ jobs:
       - name: Run New Star AI regression tests
         run: deno test --no-check --allow-read=. tests/ai-engine-core_test.ts
 
+      - name: Validate native Google Sign-In configuration
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${GOOGLE_WEB_CLIENT_ID:-}" ]]; then
+            echo "::error::GOOGLE_WEB_CLIENT_ID is missing from GitHub Actions repository variables. Refusing to build an APK with a non-functional Google Sign-In button."
+            exit 1
+          fi
+          if [[ ! "$GOOGLE_WEB_CLIENT_ID" =~ \.apps\.googleusercontent\.com$ ]]; then
+            echo "::error::GOOGLE_WEB_CLIENT_ID does not look like a Google OAuth Web client ID."
+            exit 1
+          fi
+
       - name: Build New Star Android APK
         env:
           GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
