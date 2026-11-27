@@ -1,4 +1,4 @@
-name: New Star Developer Android APK
+name: New Star Developer compile verification (no APK release)
 
 on:
   push:
@@ -34,10 +34,10 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build standalone Developer APK
+      - name: Compile native Developer app
         run: gradle -p developer-android :app:assembleDebug --no-daemon
 
-      - name: Verify APK package
+      - name: Verify Developer APK package and signature
         shell: bash
         run: |
           set -euo pipefail
@@ -50,12 +50,10 @@ jobs:
           "$APKSIGNER" verify --verbose "$APK"
           sha256sum "$APK" | tee new-star-developer-apk-sha256.txt
 
-      - name: Upload installable APK
+      - name: Upload verification checksum only (no APK release)
         uses: actions/upload-artifact@v4
         with:
-          name: new-star-developer-android-${{ github.sha }}
-          path: |
-            developer-android/app/build/outputs/apk/debug/app-debug.apk
-            new-star-developer-apk-sha256.txt
+          name: new-star-developer-build-verification-${{ github.sha }}
+          path: new-star-developer-apk-sha256.txt
           if-no-files-found: error
           retention-days: 30
