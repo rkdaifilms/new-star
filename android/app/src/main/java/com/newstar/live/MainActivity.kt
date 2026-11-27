@@ -249,6 +249,7 @@ private fun NativeApp(
             when (page) {
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!)
+                "Wallet" -> NativeWalletScreen(session!!)
                 "Gaming" -> NativeGamingScreen(
                     session = session!!,
                     onStart = { title -> onStartGaming(session!!, title) },
@@ -454,6 +455,7 @@ private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit,
                 NavigationBarItem(false, { onNavigate("Upload") }, icon = { Text("+") }, label = { Text("Upload") })
                 NavigationBarItem(false, { onNavigate("Inbox") }, icon = { Text("✉") }, label = { Text("Inbox") })
                 NavigationBarItem(false, { onNavigate("Gaming") }, icon = { Text("▣") }, label = { Text("Gaming") })
+                NavigationBarItem(false, { onNavigate("Wallet") }, icon = { Text("₹") }, label = { Text("Wallet") })
                 NavigationBarItem(false, { onNavigate("Profile") }, icon = { Text("●") }, label = { Text("Profile") })
             }
         }
