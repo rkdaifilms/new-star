@@ -1,49 +1,57 @@
-create or replace function public.get_public_creator_profile_extras(p_creator_id uuid)
-returns jsonb
-language plpgsql
-stable
-security definer
-set search_path = public, auth, pg_temp
-as $$
-declare
-  profile_is_private boolean;
-  creator_metadata jsonb;
-begin
-  if auth.uid() is null then
-    raise exception 'Authentication required';
-  end if;
+create table if not exists public.creator_profile_extras (
+  user_id text primary key references auth.users(id) on delete cascade,
+  cover_url text,
+  cover_transform jsonb not null default '{}'::jsonb,
+  website text,
+  facebook text,
+  instagram text,
+  youtube text,
+  tiktok text,
+  updated_at timestamptz not null default now()
+);
 
-  select coalesce(p.is_private, true)
-    into profile_is_private
-  from public.creator_public_profiles p
-  where p.user_id = p_creator_id;
+alter table public.creator_profile_extras enable row level security;
 
-  if not found or profile_is_private then
-    return null;
-  end if;
+grant select, insert, update, delete on public.creator_profile_extras to authenticated;
 
-  select u.raw_user_meta_data
-    into creator_metadata
-  from auth.users u
-  where u.id = p_creator_id;
+drop policy if exists "Creator extras are visible to public profiles" on public.creator_profile_extras;
+create policy "Creator extras are visible to public profiles"
+on public.creator_profile_extras
+for select
+to authenticated
+using (
+  (select auth.uid())::text = user_id
+  or exists (
+    select 1
+    from public.profiles p
+    where p.user_id = creator_profile_extras.user_id
+      and coalesce(p.is_private, false) = false
+  )
+);
 
-  if creator_metadata is null then
-    return '{}'::jsonb;
-  end if;
+drop policy if exists "Creators insert their own extras" on public.creator_profile_extras;
+create policy "Creators insert their own extras"
+on public.creator_profile_extras
+for insert
+to authenticated
+with check ((select auth.uid())::text = user_id);
 
-  return jsonb_strip_nulls(jsonb_build_object(
-    'cover_url', creator_metadata ->> 'cover_url',
-    'cover_transform', creator_metadata -> 'cover_transform',
-    'website', creator_metadata ->> 'website',
-    'facebook', creator_metadata ->> 'facebook',
-    'instagram', creator_metadata ->> 'instagram',
-    'youtube', creator_metadata ->> 'youtube',
-    'tiktok', creator_metadata ->> 'tiktok'
-  ));
-end;
-$$;
+drop policy if exists "Creators update their own extras" on public.creator_profile_extras;
+create policy "Creators update their own extras"
+on public.creator_profile_extras
+for update
+to authenticated
+using ((select auth.uid())::text = user_id)
+with check ((select auth.uid())::text = user_id);
 
-revoke all on function public.get_public_creator_profile_extras(uuid) from public, anon;
-grant execute on function public.get_public_creator_profile_extras(uuid) to authenticated;
+drop policy if exists "Creators delete their own extras" on public.creator_profile_extras;
+create policy "Creators delete their own extras"
+on public.creator_profile_extras
+for delete
+to authenticated
+using ((select auth.uid())::text = user_id);
+
+create index if not exists creator_profile_extras_user_id_idx
+on public.creator_profile_extras(user_id);
 
 notify pgrst, 'reload schema';
