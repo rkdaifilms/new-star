@@ -79,7 +79,7 @@ class GamingStreamService : Service() {
             override fun onStop() { emit("error", "Android screen sharing was stopped."); stopStreaming() }
         })
         capturer!!.initialize(texture!!, applicationContext, source!!.capturerObserver)
-        capturer!!.startCapture(1280, 720, 30)
+        capturer!!.startCapture(1920, 1080, 30)
         track = factory!!.createVideoTrack("newstar-screen", source)
         if (includeMic) {
             audioSource = factory!!.createAudioSource(MediaConstraints())
