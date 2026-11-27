@@ -41,6 +41,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import androidx.media3.common.MediaItem
+import androidx.media3.common.C
+import androidx.media3.common.audio.SpeedProvider
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -524,6 +526,7 @@ fun NativeUploadScreen(session: NativeSession) {
     var muteOriginalAudio by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("none") }
     var centerCrop by remember { mutableStateOf(false) }
+    var exportSpeed by remember { mutableFloatStateOf(1f) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         selected = uri
         if (uri != null) {
@@ -545,6 +548,7 @@ fun NativeUploadScreen(session: NativeSession) {
                 muteOriginalAudio = false
                 selectedFilter = "none"
                 centerCrop = false
+                exportSpeed = 1f
                 editing = true
                 status = "वीडियो चुना गया। Trim, rotate या mute सेट करके Apply edits दबाएँ।"
             } catch (e: Exception) { status = e.message ?: "वीडियो metadata पढ़ नहीं सके।" }
@@ -600,8 +604,15 @@ fun NativeUploadScreen(session: NativeSession) {
                     muteOriginalAudio = false
                     selectedFilter = "none"
                     centerCrop = false
+                    exportSpeed = 1f
                     status = "Editor settings reset हो गईं।"
                 }, enabled = !uploading) { Text("Reset") }
+            }
+            Text("Export speed", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(0.5f, 1f, 1.5f, 2f).forEach { speed ->
+                    FilterChip(selected = exportSpeed == speed, onClick = { exportSpeed = speed }, enabled = !uploading, label = { Text("${speed}x") })
+                }
             }
             Text("Color filter", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -626,13 +637,14 @@ fun NativeUploadScreen(session: NativeSession) {
                 status = "वीडियो edit/export हो रहा है…"
                 scope.launch {
                     try {
-                        val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop) { value -> editingProgress = value }
+                        val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop, exportSpeed) { value -> editingProgress = value }
                         selected = Uri.fromFile(output)
                         sourceDurationSeconds = (end - start).toInt()
                         trimStartSeconds = "0"
                         trimEndSeconds = sourceDurationSeconds.toString()
                         rotationDegrees = 0
                         muteOriginalAudio = false
+                        exportSpeed = 1f
                         editing = false
                         editingProgress = 100
                         status = "Edited video तैयार है। अब Publish दबाएँ।"
@@ -672,7 +684,7 @@ private fun stableConversationId(first: String, second: String): String {
 
 @OptIn(UnstableApi::class)
 private object NativeVideoEditor {
-    suspend fun export(context: Context, input: Uri, startMs: Long, endMs: Long, rotation: Int, muteAudio: Boolean, filter: String, centerCrop: Boolean, onProgress: (Int) -> Unit): java.io.File =
+    suspend fun export(context: Context, input: Uri, startMs: Long, endMs: Long, rotation: Int, muteAudio: Boolean, filter: String, centerCrop: Boolean, speed: Float, onProgress: (Int) -> Unit): java.io.File =
         suspendCancellableCoroutine { continuation ->
             val output = java.io.File(context.cacheDir, "newstar-edit-" + System.currentTimeMillis() + ".mp4")
             val clipping = MediaItem.ClippingConfiguration.Builder().setStartPositionMs(startMs).setEndPositionMs(endMs).build()
@@ -686,7 +698,12 @@ private object NativeVideoEditor {
                 "none" -> Unit
                 else -> error("Unsupported video filter.")
             }
-            val edited = EditedMediaItem.Builder(mediaItem).setEffects(Effects(emptyList(), videoEffects)).setRemoveAudio(muteAudio).build()
+            require(speed in 0.5f..2f) { "वीडियो speed 0.5x से 2x के बीच रखें।" }
+            val speedProvider = object : SpeedProvider {
+                override fun getSpeed(timeUs: Long): Float = speed
+                override fun getNextSpeedChangeTimeUs(timeUs: Long): Long = C.TIME_UNSET
+            }
+            val edited = EditedMediaItem.Builder(mediaItem).setEffects(Effects(emptyList(), videoEffects)).setRemoveAudio(muteAudio).setSpeed(speedProvider).build()
             val progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
             val progressHolder = androidx.media3.transformer.ProgressHolder()
             lateinit var progressPoll: Runnable
