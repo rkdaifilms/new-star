@@ -1,6 +1,7 @@
 package com.newstar.live
 
 import android.content.Context
+import android.webkit.MimeTypeMap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -8,6 +9,10 @@ import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -86,17 +91,71 @@ fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit, onGoogleSignIn: () -> 
 
 @Composable
 fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
+    val context = LocalContext.current
     var profile by remember { mutableStateOf<JSONObject?>(null) }
     var videos by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var avatarUrl by remember { mutableStateOf("") }
+    var coverUrl by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
     var saving by remember { mutableStateOf(false) }
+    var photoBusy by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     var fullName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
+
+    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            photoBusy = true
+            error = ""
+            try {
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: error("Avatar फोटो पढ़ नहीं सकी।")
+                require(bytes.size in 1..(5 * 1024 * 1024)) { "Avatar फोटो 5 MB से छोटी होनी चाहिए।" }
+                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+                require(mime.startsWith("image/")) { "कृपया image file चुनें।" }
+                val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)?.lowercase() ?: "jpg"
+                val path = "${session.userId}/avatar_${System.currentTimeMillis()}.$ext"
+                val url = NativeSupabase.uploadPublicObject("avatars", path, bytes, mime, session)
+                val user = NativeSupabase.currentUser(session)
+                val metadata = user.optJSONObject("user_metadata") ?: JSONObject()
+                metadata.put("avatar_url", url)
+                NativeSupabase.updateUserMetadata(metadata, session)
+                NativeSupabase.patch("/rest/v1/profiles?user_id=eq.${Uri.encode(session.userId)}",
+                    JSONObject().put("avatar_url", url), session)
+                avatarUrl = url
+                refresh++
+            } catch (e: Exception) { error = e.message ?: "Avatar upload असफल हुआ।" }
+            finally { photoBusy = false }
+        }
+    }
+
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            photoBusy = true
+            error = ""
+            try {
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: error("Cover फोटो पढ़ नहीं सकी।")
+                require(bytes.size in 1..(8 * 1024 * 1024)) { "Cover फोटो 8 MB से छोटी होनी चाहिए।" }
+                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+                require(mime.startsWith("image/")) { "कृपया image file चुनें।" }
+                val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)?.lowercase() ?: "jpg"
+                val path = "${session.userId}/cover_${System.currentTimeMillis()}.$ext"
+                val url = NativeSupabase.uploadPublicObject("avatars", path, bytes, mime, session)
+                val user = NativeSupabase.currentUser(session)
+                val metadata = user.optJSONObject("user_metadata") ?: JSONObject()
+                metadata.put("cover_url", url)
+                NativeSupabase.updateUserMetadata(metadata, session)
+                coverUrl = url
+            } catch (e: Exception) { error = e.message ?: "Cover upload असफल हुआ।" }
+            finally { photoBusy = false }
+        }
+    }
+
     LaunchedEffect(session.userId, refresh) {
         loading = true; error = ""
         try {
@@ -106,11 +165,15 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
             fullName = profile?.optString("full_name").orEmpty()
             username = profile?.optString("username").orEmpty()
             bio = profile?.optString("bio").orEmpty()
+            avatarUrl = profile?.optString("avatar_url").orEmpty()
+            val user = NativeSupabase.currentUser(session)
+            coverUrl = user.optJSONObject("user_metadata")?.optString("cover_url").orEmpty()
             val videoRows = NativeSupabase.get("/rest/v1/videos?select=id,caption,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$id&order=created_at.desc&limit=100", session)
             videos = (0 until videoRows.length()).mapNotNull { videoRows.optJSONObject(it) }
         } catch (e: Exception) { error = e.message ?: "Profile लोड नहीं हुई।" }
         finally { loading = false }
     }
+
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("My Profile", style = MaterialTheme.typography.headlineSmall)
@@ -118,8 +181,29 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
         }
         if (loading) CircularProgressIndicator()
         else {
-            Text(fullName.ifBlank { username.ifBlank { session.email } }, style = MaterialTheme.typography.titleLarge)
-            Text("@$username")
+            if (coverUrl.isNotBlank()) {
+                AsyncImage(model = coverUrl, contentDescription = "Profile cover",
+                    modifier = Modifier.fillMaxWidth().height(112.dp), contentScale = ContentScale.Crop)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                if (avatarUrl.isNotBlank()) {
+                    AsyncImage(model = avatarUrl, contentDescription = "Profile photo",
+                        modifier = Modifier.size(76.dp).clip(CircleShape), contentScale = ContentScale.Crop)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(fullName.ifBlank { username.ifBlank { session.email } }, style = MaterialTheme.typography.titleLarge)
+                    Text("@$username")
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(enabled = !photoBusy, onClick = { avatarPicker.launch(arrayOf("image/*")) }) {
+                    Text(if (photoBusy) "Uploading…" else "Change photo")
+                }
+                OutlinedButton(enabled = !photoBusy, onClick = { coverPicker.launch(arrayOf("image/*")) }) {
+                    Text("Change cover")
+                }
+            }
             if (editing) {
                 OutlinedTextField(fullName, { fullName = it }, Modifier.fillMaxWidth(), label = { Text("Display name") }, singleLine = true)
                 OutlinedTextField(username, { username = it.trim().replace(" ", "") }, Modifier.fillMaxWidth(), label = { Text("Username") }, singleLine = true)
@@ -153,7 +237,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
             }
             Text("आपकी वीडियो पोस्ट: ${videos.size}")
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = { refresh++ }, enabled = !saving) { Text("Refresh") }
+            TextButton(onClick = { refresh++ }, enabled = !saving && !photoBusy) { Text("Refresh") }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(videos) { item ->
                     Card(Modifier.fillMaxWidth()) {
