@@ -653,7 +653,7 @@ class MainActivity : AppCompatActivity() {
         tabs.forEach { item ->
             val tab = TextView(this).apply { text = item; gravity = Gravity.CENTER; textSize = 13f; setTextColor(if (item == selected) Color.WHITE else Color.LTGRAY) }
             nav.addView(tab, LinearLayout.LayoutParams(0, dp(52), 1f))
-            tab.setOnClickListener { when (item) { "Home" -> showHome(); "Search" -> showSearch(); else -> showProfile() } }
+            tab.setOnClickListener { when (item) { "Home" -> showHome(); "Inbox" -> startActivity(Intent(this, NativeInboxActivity::class.java)); "Search" -> showSearch(); else -> showProfile() } }
         }
         root.addView(nav)
     }
