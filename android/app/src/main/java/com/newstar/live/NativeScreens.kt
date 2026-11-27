@@ -370,6 +370,32 @@ fun NativeInboxScreen(session: NativeSession) {
         }
     }
 
+    LaunchedEffect(peer, messages, session.userId) {
+        if (peer.isNotBlank()) {
+            val unreadIds = messages.filter {
+                it.optString("sender_id") == peer &&
+                    it.optString("recipient_id") == session.userId && it.isNull("read_at")
+            }.map { it.optString("id") }.filter { it.isNotBlank() }
+            if (unreadIds.isNotEmpty()) {
+                val readAt = java.time.Instant.now().toString()
+                try {
+                    val ids = Uri.encode("(${unreadIds.joinToString(",")})")
+                    NativeSupabase.patch(
+                        "/rest/v1/messages?id=in.$ids&recipient_id=eq.${Uri.encode(session.userId)}",
+                        JSONObject().put("read_at", readAt),
+                        session
+                    )
+                    messages = messages.map { item ->
+                        if (item.optString("id") in unreadIds) JSONObject(item.toString()).put("read_at", readAt)
+                        else item
+                    }
+                } catch (e: Exception) {
+                    error = e.message ?: "Read receipt अपडेट नहीं हुआ।"
+                }
+            }
+        }
+    }
+
     LaunchedEffect(session.userId, refresh) {
         busy = true
         error = ""
@@ -387,17 +413,6 @@ fun NativeInboxScreen(session: NativeSession) {
                     val recipient = item.optString("recipient_id")
                     (if (sender == session.userId) recipient else sender).takeIf { it.isNotBlank() }
                 }.orEmpty()
-            }
-            val unreadIds = loadedMessages.filter {
-                it.optString("recipient_id") == session.userId && it.isNull("read_at")
-            }.map { it.optString("id") }.filter { it.isNotBlank() }
-            if (unreadIds.isNotEmpty()) {
-                val ids = Uri.encode("(${unreadIds.joinToString(",")})")
-                NativeSupabase.patch(
-                    "/rest/v1/messages?id=in.$ids&recipient_id=eq.${Uri.encode(session.userId)}",
-                    JSONObject().put("read_at", java.time.Instant.now().toString()),
-                    session
-                )
             }
         } catch (e: Exception) {
             error = e.message ?: "Inbox लोड नहीं हुई।"
