@@ -83,6 +83,28 @@ object NativeSessionStore {
         } catch (_: Exception) { null }
     }
 
+    fun savePendingOAuth(context: Context, state: String, verifier: String) {
+        val plain = JSONObject().put("state", state).put("verifier", verifier).toString().toByteArray(Charsets.UTF_8)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey())
+        val packed = cipher.iv + cipher.doFinal(plain)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString("pending_oauth", Base64.encodeToString(packed, Base64.NO_WRAP)).apply()
+    }
+
+    fun consumePendingOAuth(context: Context): Pair<String, String>? {
+        return try {
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val encoded = prefs.getString("pending_oauth", null) ?: return null
+            prefs.edit().remove("pending_oauth").apply()
+            val packed = Base64.decode(encoded, Base64.NO_WRAP)
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(128, packed.copyOfRange(0, 12)))
+            val json = JSONObject(String(cipher.doFinal(packed.copyOfRange(12, packed.size)), Charsets.UTF_8))
+            json.getString("state") to json.getString("verifier")
+        } catch (_: Exception) { null }
+    }
+
     fun clear(context: Context) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(ENTRY).apply()
     }
@@ -149,6 +171,22 @@ object NativeSupabase {
                 result.getString("access_token"), result.getString("refresh_token"),
                 System.currentTimeMillis() / 1000 + result.optLong("expires_in", 3600),
                 user.getString("id"), user.optString("email", email)
+            )
+            NativeSessionStore.save(context, session)
+            session
+        }
+
+    suspend fun exchangeCode(context: Context, code: String, verifier: String): NativeSession =
+        withContext(Dispatchers.IO) {
+            val result = JSONObject(request(
+                "POST", "/auth/v1/token?grant_type=pkce",
+                JSONObject().put("auth_code", code).put("code_verifier", verifier)
+            ))
+            val user = result.getJSONObject("user")
+            val session = NativeSession(
+                result.getString("access_token"), result.getString("refresh_token"),
+                System.currentTimeMillis() / 1000 + result.optLong("expires_in", 3600),
+                user.getString("id"), user.optString("email")
             )
             NativeSessionStore.save(context, session)
             session
