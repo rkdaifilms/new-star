@@ -587,8 +587,11 @@ fun NativeUploadScreen(session: NativeSession) {
     var centerCrop by remember { mutableStateOf(false) }
     var exportSpeed by remember { mutableFloatStateOf(1f) }
     var overlayText by remember { mutableStateOf("") }
+    var splitAtSeconds by remember { mutableStateOf("") }
+    var splitParts by remember { mutableStateOf<List<Uri>>(emptyList()) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         selected = uri
+        splitParts = emptyList()
         if (uri != null) {
             try { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
             try {
@@ -650,6 +653,49 @@ fun NativeUploadScreen(session: NativeSession) {
         }
         if (editing && selected != null) {
             Text("Native editor · कुल अवधि $sourceDurationSeconds सेकंड", style = MaterialTheme.typography.titleSmall)
+            OutlinedTextField(value = splitAtSeconds, onValueChange = { splitAtSeconds = it.filter(Char::isDigit) }, modifier = Modifier.fillMaxWidth(), label = { Text("Split point (seconds)") }, singleLine = true, enabled = !uploading)
+            Button(enabled = !uploading && selected != null, onClick = {
+                val input = selected ?: return@Button
+                val start = trimStartSeconds.toLongOrNull()
+                val end = trimEndSeconds.toLongOrNull()
+                val split = splitAtSeconds.toLongOrNull()
+                if (start == null || end == null || split == null || split <= start || split >= end || start < 0 || end > sourceDurationSeconds) {
+                    status = "Split point, Trim start और Trim end के बीच होना चाहिए।"
+                    return@Button
+                }
+                uploading = true
+                editingProgress = 0
+                status = "दोनों वीडियो segments export हो रहे हैं…"
+                scope.launch {
+                    val created = mutableListOf<java.io.File>()
+                    try {
+                        val first = NativeVideoEditor.export(context, input, start * 1000L, split * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText) { value ->
+                            editingProgress = (value / 2).coerceIn(0, 49)
+                        }
+                        created.add(first)
+                        val second = NativeVideoEditor.export(context, input, split * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText) { value ->
+                            editingProgress = (50 + value / 2).coerceIn(50, 99)
+                        }
+                        created.add(second)
+                        splitParts = created.map { Uri.fromFile(it) }
+                        selected = splitParts.first()
+                        editing = false
+                        editingProgress = 100
+                        val meta = MediaMetadataRetriever()
+                        try {
+                            meta.setDataSource(first.absolutePath)
+                            sourceDurationSeconds = ((meta.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000L).toInt()
+                            sourceWidth = meta.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: sourceWidth
+                            sourceHeight = meta.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: sourceHeight
+                        } finally { meta.release() }
+                        status = "दोनों clips तैयार हैं। नीचे Clip 1 या Clip 2 चुनकर अलग-अलग Publish करें।"
+                    } catch (e: Exception) {
+                        created.forEach { it.delete() }
+                        splitParts = emptyList()
+                        status = e.message ?: "Video split असफल हुआ।"
+                    } finally { uploading = false }
+                }
+            }) { Text("Split into 2 clips") }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = trimStartSeconds, onValueChange = { trimStartSeconds = it.filter(Char::isDigit) }, modifier = Modifier.weight(1f), label = { Text("Trim start (sec)") }, singleLine = true)
                 OutlinedTextField(value = trimEndSeconds, onValueChange = { trimEndSeconds = it.filter(Char::isDigit) }, modifier = Modifier.weight(1f), label = { Text("Trim end (sec)") }, singleLine = true)
@@ -731,6 +777,24 @@ fun NativeUploadScreen(session: NativeSession) {
                     finally { uploading = false }
                 }
             }) { Text("Apply edits and save") }
+        }
+        if (splitParts.isNotEmpty()) {
+            Text("Split clips · एक बार में चुनी हुई clip Publish होगी।", style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                splitParts.forEachIndexed { index, part ->
+                    OutlinedButton(enabled = !uploading, onClick = {
+                        selected = part
+                        val meta = MediaMetadataRetriever()
+                        try {
+                            meta.setDataSource(part.path!!)
+                            sourceDurationSeconds = ((meta.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000L).toInt()
+                            sourceWidth = meta.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: sourceWidth
+                            sourceHeight = meta.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: sourceHeight
+                        } finally { meta.release() }
+                        status = "Clip ${index + 1} चुनी गई। Publish दबाएँ।"
+                    }) { Text("Clip ${index + 1}") }
+                }
+            }
         }
         OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Title") })
         OutlinedTextField(description, { description = it }, Modifier.fillMaxWidth(), label = { Text("Description") })
