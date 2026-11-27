@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
     private var pendingGamingRoomId: String? = null
     private var pendingGamingWhip: String? = null
     private var activeGamingRoomId: String? = null
+    private val oauthSession = mutableStateOf<NativeSession?>(null)
 
     private val screenPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val session = pendingGamingSession
@@ -76,12 +77,41 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleOAuthCallback(intent)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 NativeApp(
+                    googleSession = oauthSession.value,
+                    onGoogleSignIn = { NativeGoogleOAuth.launch(this) },
                     onStartGaming = ::prepareGaming,
                     onStopGaming = ::stopGaming
                 )
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleOAuthCallback(intent)
+    }
+
+    private fun handleOAuthCallback(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme != "com.newstar.live" || uri.host != "auth" || uri.path != "/callback") return
+        val code = uri.getQueryParameter("code") ?: return
+        val state = uri.getQueryParameter("state") ?: return
+        val verifier = uri.getQueryParameter("verifier") ?: return
+        lifecycleScope.launch {
+            val pending = NativeSessionStore.consumePendingOAuth(this@MainActivity)
+            if (pending == null || pending.first != state) {
+                android.widget.Toast.makeText(this@MainActivity, "Google Login state verification failed.", android.widget.Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            try {
+                oauthSession.value = NativeSupabase.exchangeCode(this@MainActivity, code, verifier)
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(this@MainActivity, e.message ?: "Google Login failed.", android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -122,6 +152,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun NativeApp(
+    googleSession: NativeSession?,
+    onGoogleSignIn: () -> Unit,
     onStartGaming: (NativeSession, String) -> Unit,
     onStopGaming: (NativeSession) -> Unit
 ) {
@@ -134,6 +166,12 @@ private fun NativeApp(
         session = NativeSupabase.validSession(context)
         checkingSession = false
     }
+    LaunchedEffect(googleSession) {
+        if (googleSession != null) {
+            session = googleSession
+            page = "Home"
+        }
+    }
 
     if (checkingSession) {
         Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
@@ -145,7 +183,7 @@ private fun NativeApp(
     if (page == "Home") {
         NativeHome { page = it }
     } else if (session == null) {
-        NativeAuthScreen { session = it; page = "Home" }
+        NativeAuthScreen(onSignedIn = { session = it; page = "Home" }, onGoogleSignIn = onGoogleSignIn)
     } else {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.Start) {
