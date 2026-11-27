@@ -301,6 +301,13 @@ private fun NativeApp(
                 Text(page, modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
             }
             when (page) {
+                "Settings" -> NativeSettingsScreen(session!!) {
+                    val current = session
+                    if (current != null) scope.launch {
+                        try { NativeSupabase.deleteSession(context, current) }
+                        finally { session = null; page = "Home" }
+                    }
+                }
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!)
                 "Wallet" -> NativeWalletScreen(session!!)
@@ -979,6 +986,7 @@ private fun NativeHome(
                             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                                 listOf(
                                     "My Profile" to "Profile",
+                                    "Settings" to "Settings",
                                     "Creator Studio AI" to "Creator AI",
                                     "Upload Video" to "Upload",
                                     "Inbox / Messages" to "Inbox",
