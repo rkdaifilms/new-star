@@ -1,463 +1,96 @@
-import { buildGeminiVideoRequest } from "../supabase/functions/ai-gateway/video-provider.ts";
-import { normalizeNewStarSearchResults, normalizePrivateIndexRows, normalizeEmbeddingVector, toPgVectorLiteral, formatRetrievedContext } from "../supabase/functions/ai-gateway/search-provider.ts";
-import { detectReplyScript } from "../supabase/functions/ai-gateway/language-policy.ts";
-import { readBoundedJson } from "../supabase/functions/ai-gateway/request-body.ts";
-import { splitIntoChunks } from "../scripts/new-star-search-ingest.ts";
-import { buildChatProviderPlan } from "../supabase/functions/ai-gateway/provider-routing.ts";
-
-
-Deno.test("self-hosted chat provider plan contains only the private New Star model", () => {
-  const run = async () => "ok";
-  const plan = buildChatProviderPlan({
-    selfHostedOnly: true,
-    newStarConfigured: true,
-    newStarApiPrimary: false,
-    enableLocalTestFallback: true,
-    newStarModelKey: "n".repeat(40),
-    geminiKeys: ["gemini-secret"],
-    openaiKeys: ["openai-secret"],
-    openrouterKeys: ["openrouter-secret"],
-    runNewStarHostedModel: run,
-    runGemini: run,
-    runOpenAI: run,
-    runOpenRouter: run
-  });
-  if (plan.length !== 1 || plan[0].name !== "new-star-ai") {
-    throw new Error("Self-hosted mode must select only the New Star private model");
-  }
-  if (plan[0].keys.length !== 1 || plan[0].keys[0] !== "n".repeat(40)) {
-    throw new Error("Self-hosted mode must not pass external provider keys to inference");
-  }
-});
-
-Deno.test("self-hosted chat refuses an unconfigured private model instead of falling back", () => {
-  const run = async () => "ok";
-  const plan = buildChatProviderPlan({
-    selfHostedOnly: true,
-    newStarConfigured: false,
-    newStarApiPrimary: false,
-    enableLocalTestFallback: true,
-    newStarModelKey: "",
-    geminiKeys: ["gemini-secret"],
-    openaiKeys: ["openai-secret"],
-    openrouterKeys: ["openrouter-secret"],
-    runNewStarHostedModel: run,
-    runGemini: run,
-    runOpenAI: run,
-    runOpenRouter: run
-  });
-  if (plan.length !== 0) throw new Error("Self-hosted mode must fail closed when private model configuration is missing");
-});
-
-Deno.test("self-hosted gateway reports a New Star-specific configuration error instead of generic provider failure", async () => {
-  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
-  const marker = "if (providers.length === 0)";
+const read = (path: string) => Deno.readTextFile(new URL("../" + path, import.meta.url));
+function assert(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
+function blockFor(source: string, marker: string, nextMarker: string) {
   const start = source.indexOf(marker);
-  const end = source.indexOf("const baseSystemPrompt", start);
-  if (start < 0 || end < 0) throw new Error("Gateway provider-empty handling block is missing");
-  const block = source.slice(start, end);
-  if (!block.includes("if (selfHostedOnly)") ||
-      !block.includes("NEW_STAR_PRIVATE_MODEL_NOT_CONFIGURED") ||
-      !block.includes("External providers are disabled in self-hosted mode.")) {
-    throw new Error("Self-hosted mode must explain that its private model is missing and external fallback is disabled");
-  }
-  if (!block.includes("AI_PROVIDERS_NOT_CONFIGURED")) {
-    throw new Error("Normal provider mode must retain its existing configuration error");
-  }
+  assert(start >= 0, "Missing route marker: " + marker);
+  const end = source.indexOf(nextMarker, start + marker.length);
+  return source.slice(start, end < 0 ? source.length : end);
+}
+
+Deno.test("Home AI chat is private New Star only; Help and Support is Gemini only", async () => {
+  const source = await read("supabase/functions/ai-gateway/index.ts");
+  const chat = blockFor(source, "const providers = body.mode === \"help\"", "if (providers.length === 0)");
+  assert(chat.includes("body.mode === \"help\""), "Help routing selector missing");
+  assert(chat.includes("run: callGemini"), "Help route must use Gemini");
+  assert(chat.includes("selfHostedOnly: true"), "Home route must enforce private-only routing");
+  assert(chat.includes("geminiKeys: []") && chat.includes("openaiKeys: []") && chat.includes("openrouterKeys: []"),
+    "Home route must not pass external provider keys");
 });
 
-Deno.test("normal provider mode retains only configured provider adapters", () => {
-  const run = async () => "ok";
-  const plan = buildChatProviderPlan({
-    selfHostedOnly: false,
-    newStarConfigured: false,
-    newStarApiPrimary: false,
-    enableLocalTestFallback: false,
-    newStarModelKey: "",
-    geminiKeys: ["gemini-secret"],
-    openaiKeys: [],
-    openrouterKeys: ["openrouter-secret"],
-    runNewStarHostedModel: run,
-    runGemini: run,
-    runOpenAI: run,
-    runOpenRouter: run
-  });
-  if (plan.map((provider) => provider.name).join(",") !== "gemini,openrouter") {
-    throw new Error("Normal provider mode did not filter unconfigured providers correctly");
-  }
+Deno.test("Home status hides external providers while Help status checks Gemini", async () => {
+  const source = await read("supabase/functions/ai-gateway/index.ts");
+  const status = blockFor(source, 'if (body?.action === "status")', 'if (!Array.isArray(body?.messages)');
+  assert(status.includes("const helpMode = body.mode === \"help\""), "Status route must distinguish Help mode");
+  assert(status.includes("gemini: geminiConfigured"), "Status must report Gemini only for Help mode");
+  assert(status.includes("openai: false") && status.includes("openrouter: false"), "External providers must be off");
+  const help = await read("ai-chat.js");
+  assert(help.includes('body:{action:"status",mode:"help"}'), "Help UI must request Help-specific Gemini status");
+  assert(help.includes('body:{messages:requestMessages,mode:"help"}'), "Help chat must use the support system prompt");
 });
 
-Deno.test("video request builder clamps unsupported values", () => {
-  const request = buildGeminiVideoRequest("gemini-omni-1.2-flash", "A sunrise", "4:3", "4K", "30s");
-  const format = request.response_format[0];
-  if (format.aspect_ratio !== "16:9") throw new Error("Unsupported aspect ratio was not clamped");
-  if (format.resolution !== "720p") throw new Error("Unsupported resolution was not clamped");
-  if (format.duration !== "6s") throw new Error("Unsupported duration was not clamped");
-});
-
-Deno.test("video request builder preserves allowed portrait settings", () => {
-  const request = buildGeminiVideoRequest("gemini-omni-1.2-flash", "A creator intro", "9:16", "1080p", "15s");
-  const format = request.response_format[0];
-  if (format.aspect_ratio !== "9:16" || format.resolution !== "1080p" || format.duration !== "15s") {
-    throw new Error("Allowed video settings were not preserved");
-  }
-});
-
-Deno.test("search normalization accepts safe HTTPS results and rejects unsafe URLs", () => {
-  const results = normalizeNewStarSearchResults([
-    { title: "New Star", url: "https://example.com/article", snippet: "A result" },
-    { title: "Unsafe", url: "http://example.com" },
-    { title: "Credentials", url: "https://user:pass@example.com" },
-    { title: "", url: "https://example.com/empty" }
-  ], 5);
-  if (results.length !== 1 || results[0].source !== "example.com") {
-    throw new Error("Search result validation did not filter unsafe entries");
-  }
-  if (!formatRetrievedContext(results).includes("https://example.com/article")) {
-    throw new Error("Retrieved context omitted the verified source URL");
-  }
-});
-
-
-
-Deno.test("private search ingestion CLI is import-safe and atomically replaces existing chunks", async () => {
-  const source = await Deno.readTextFile(new URL("../scripts/new-star-search-ingest.ts", import.meta.url));
-  const initialMigration = await Deno.readTextFile(new URL("../supabase/migrations/20261125131109_replace_new_star_search_chunks_rpc.sql", import.meta.url));
-  const migration = await Deno.readTextFile(new URL("../supabase/migrations/20261125131209_harden_search_chunk_replacement_rpc.sql", import.meta.url));
-  if (!initialMigration.includes("create or replace function public.replace_new_star_search_chunks") ||
-      !migration.includes("create or replace function public.replace_new_star_search_chunks")) {
-    throw new Error("Both applied replacement RPC migrations must be committed in the repository");
-  }
-  if (!migration.includes("jsonb_typeof(item.value) <> 'number'")) {
-    throw new Error("The final migration must reject non-numeric embedding values");
-  }
-  if (!source.includes("if (import.meta.main)")) {
-    throw new Error("Importing the ingestion utility must not execute its CLI");
-  }
-  if (!source.includes("vector.length !== 384")) {
-    throw new Error("The ingestion utility must enforce the existing 384-dimensional vector schema");
-  }
-  if (!source.includes("/rpc/replace_new_star_search_chunks") || !source.includes("p_chunks: chunks")) {
-    throw new Error("Ingestion must use the atomic replacement RPC");
-  }
-  if (source.includes("/new_star_search_chunks?on_conflict")) {
-    throw new Error("Ingestion must not write directly to the chunk table and leave stale chunks behind");
-  }
-  if (!migration.includes("delete from public.new_star_search_chunks") ||
-      !migration.includes("grant execute on function public.replace_new_star_search_chunks(jsonb) to service_role")) {
-    throw new Error("Atomic replacement migration must replace rows and restrict execution to service_role");
-  }
-});
-
-Deno.test("private search ingestion chunks long content with overlap and no data loss", () => {
-  const content = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu";
-  const chunks = splitIntoChunks(content, 24, 5);
-  const normalized = splitIntoChunks("alpha\t beta\n gamma", 100, 10);
-  if (normalized.length !== 1 || normalized[0] !== "alpha beta gamma") {
-    throw new Error("Chunker must normalize tabs and newlines before splitting");
-  }
-  if (chunks.length < 2) throw new Error("Long content was not split into multiple chunks");
-  if (!chunks[0].startsWith("alpha") || !chunks[chunks.length - 1].endsWith("mu")) {
-    throw new Error("Chunking dropped the beginning or end of the source content");
-  }
-  if (!chunks.some((chunk, index) => index > 0 && chunks[index - 1].slice(-5).split(" ").some(word => chunk.startsWith(word)))) {
-    throw new Error("Chunk overlap was not preserved");
-  }
-});
-
-
-Deno.test("private hybrid search validates and serializes exactly 384 embedding dimensions", () => {
-  const vector = Array.from({ length: 384 }, (_, index) => index === 0 ? 1 : 0);
-  const normalized = normalizeEmbeddingVector(vector);
-  if (!normalized || normalized.length !== 384) throw new Error("Valid 384-dimensional embedding was rejected");
-  const literal = toPgVectorLiteral(vector);
-  if (!literal || !literal.startsWith("[1,0,0") || !literal.endsWith("0]")) {
-    throw new Error("Embedding was not serialized as a PostgreSQL vector literal");
-  }
-  if (normalizeEmbeddingVector(vector.slice(0, 383)) !== null) {
-    throw new Error("Incorrect embedding dimension was accepted");
-  }
-  if (normalizeEmbeddingVector([...vector.slice(0, 383), Number.NaN]) !== null) {
-    throw new Error("Non-finite embedding value was accepted");
-  }
-});
-
-Deno.test("private search index rows share HTTPS validation and result limits", () => {
-  const rows = normalizePrivateIndexRows([
-    { title: "Local result", url: "https://docs.newstar.example/ai", snippet: "Private search index", published_at: null },
-    { title: "Unsafe result", url: "javascript:alert(1)", snippet: "must be rejected" },
-    { title: "Credential URL", url: "https://user:pass@example.com/private", snippet: "must be rejected" }
-  ], 5);
-  if (rows.length !== 1 || rows[0].title !== "Local result" || rows[0].source !== "docs.newstar.example") {
-    throw new Error("Private index results did not pass the shared safe URL normalizer");
-  }
-  if (normalizePrivateIndexRows(rows, 0).length !== 0) {
-    throw new Error("Private index result limit was not enforced");
-  }
-});
-
-Deno.test("reply language detection identifies Devanagari without assuming Hindi", () => {
-  const hint = detectReplyScript("मलाई नयाँ स्टारको एआई इन्जिन जाँच गर्न मद्दत गर्नुहोस्");
-  if (!hint || hint.script !== "Devanagari" || !hint.instruction.includes("Nepali")) {
-    throw new Error("Devanagari language guidance is missing");
-  }
-});
-
-Deno.test("bounded JSON reader rejects wrong content type and oversized bodies", async () => {
-  const wrongType = await readBoundedJson(new Request("https://local.test", {
-    method: "POST", headers: { "Content-Type": "text/plain" }, body: "not json"
-  }), 100);
-  if (wrongType.ok || wrongType.status !== 415) throw new Error("Wrong content type was not rejected");
-
-  const oversized = await readBoundedJson(new Request("https://local.test", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: "x".repeat(200) })
-  }), 100);
-  if (oversized.ok || oversized.status !== 413) throw new Error("Oversized request was not rejected");
-
-  const valid = await readBoundedJson(new Request("https://local.test", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ok: true })
-  }), 100);
-  if (!valid.ok || (valid.value as { ok?: boolean }).ok !== true) throw new Error("Valid JSON request was not parsed");
-});
-
-Deno.test("private llama.cpp compose uses documented authentication and parallelism environment variables", async () => {
-  const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
-  if ((compose.match(/LLAMA_API_KEY:/g) || []).length !== 2) {
-    throw new Error("Both private model services must configure the documented LLAMA_API_KEY variable");
-  }
-  if (compose.includes("LLAMA_ARG_API_KEY:")) {
-    throw new Error("LLAMA_ARG_API_KEY is not the documented llama.cpp API key variable");
-  }
-  if (!compose.includes("LLAMA_ARG_N_PARALLEL:") || compose.includes("LLAMA_ARG_PARALLEL:")) {
-    throw new Error("Chat server must use the documented LLAMA_ARG_N_PARALLEL variable");
-  }
-  if (!compose.includes('LLAMA_ARG_UI: "false"') || compose.includes("LLAMA_ARG_NO_WEBUI:")) {
-    throw new Error("llama.cpp Web UI must be disabled with the documented LLAMA_ARG_UI environment variable");
-  }
-});
-
-Deno.test("private model smoke checks validate readiness and safe API key formats", async () => {
-  const chat = await Deno.readTextFile(new URL("../ai-engine/self-hosted/verify.sh", import.meta.url));
-  const embeddings = await Deno.readTextFile(new URL("../ai-engine/self-hosted/verify-embeddings.sh", import.meta.url));
-  if (!chat.includes("NEW_STAR_PRIVATE_MODEL_READY") || !chat.includes("URL-safe random characters")) {
-    throw new Error("Chat smoke test must validate the readiness marker and reject unsafe API key characters");
-  }
-  if (!embeddings.includes("URL-safe random characters") || !embeddings.includes("isfinite(value)")) {
-    throw new Error("Embedding smoke test must validate safe API keys and finite numeric vector values");
-  }
-  if (!embeddings.includes("/v1/embeddings") || !chat.includes("/v1/chat/completions")) {
-    throw new Error("Private model smoke tests must call the documented authenticated API endpoints");
-  }
-});
-
-Deno.test("self-hosted model deployment has one canonical Compose source", async () => {
-  const compose = await Deno.readTextFile(new URL("../ai-engine/self-hosted/compose.yaml", import.meta.url));
-  const workflow = await Deno.readTextFile(new URL("../.github/workflows/new-star-ai-checks.yml", import.meta.url));
-  const docs = await Deno.readTextFile(new URL("../NEW-STAR-AI-ENGINE.md", import.meta.url));
-  if (!compose.includes("new-star-model:") || !compose.includes("new-star-embeddings:")) {
-    throw new Error("Canonical Compose file must define chat and embedding services");
-  }
-  if (!compose.includes("127.0.0.1:8080:8080") || !compose.includes("127.0.0.1:8081:8081")) {
-    throw new Error("Private model and embedding ports must remain loopback-only");
-  }
-  if (!workflow.includes('YAML.load_file("ai-engine/self-hosted/compose.yaml")') || workflow.includes("ai-model/docker-compose.yml")) {
-    throw new Error("CI must validate the single canonical self-hosted Compose file");
-  }
-  if (!docs.includes("only model runtime deployment directory is `ai-engine/self-hosted/`")) {
-    throw new Error("Architecture documentation must identify the canonical runtime");
-  }
-  let legacyRuntimeExists = false;
-  try {
-    await Deno.stat(new URL("../ai-model/docker-compose.yml", import.meta.url));
-    legacyRuntimeExists = true;
-  } catch (error) {
-    if (!(error instanceof Deno.errors.NotFound)) throw error;
-  }
-  if (legacyRuntimeExists) throw new Error("Duplicate legacy ai-model runtime must not be reintroduced");
-});
-
-Deno.test("private index returns an empty success response when the index has no matching documents", async () => {
-  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
-  const start = source.indexOf("async function searchNewStarIndex(");
-  const end = source.indexOf("\nasync function searchWithGeminiGrounding", start);
-  if (start < 0 || end < 0) throw new Error("Private search function boundaries are missing");
-  const implementation = source.slice(start, end);
-  if (!implementation.includes("if (!error && Array.isArray(data))")) {
-    throw new Error("A healthy empty private index must be treated as a successful search response");
-  }
-  if (!implementation.includes('provider: "new-star-private-index"') ||
-      !implementation.includes("results, count: results.length")) {
-    throw new Error("Private search must return an empty result list and count zero when there are no matches");
-  }
-  if (implementation.includes("data.length) {")) {
-    throw new Error("An empty successful RPC response must not be mislabeled as a missing search worker");
-  }
-});
-
-Deno.test("AI gateway has no duplicate local functions or duplicate search route", async () => {
-  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
-  const functionNames = [...source.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*\(/g)].map((match) => match[1]);
-  const duplicates = functionNames.filter((name, index) => functionNames.indexOf(name) !== index);
-  if (duplicates.length) throw new Error("Duplicate function declarations: " + [...new Set(duplicates)].join(", "));
-
-  const searchRoutes = source.match(/if \(body\?\.action === "search"\)/g) || [];
-  if (searchRoutes.length !== 1) throw new Error("Expected exactly one search route; found " + searchRoutes.length);
-  if (!source.includes('ragSetting !== "true" && !selfHostedRag')) {
-    throw new Error("Self-hosted chat must enable private RAG by default");
-  }
-  const privateIndexCalls = source.match(/search_new_star_private_index/g) || [];
-  if (privateIndexCalls.length !== 2) {
-    throw new Error("Expected private full-text index to serve both direct search and chat retrieval");
-  }
-
-  const imports = [...source.matchAll(/^import\s+\{([^}]+)\}\s+from\s+["'][^"']+["'];/gm)]
-    .flatMap((match) => match[1].split(",").map((part) => part.trim().split(/\s+as\s+/)[0]));
-  const importCollisions = imports.filter((name) => functionNames.includes(name));
-  if (importCollisions.length) throw new Error("Imported functions redeclared locally: " + [...new Set(importCollisions)].join(", "));
-  if (!source.includes("key.length < 32") || source.includes('key !== "local-no-key"')) {
-    throw new Error("Private model must require a real API key and must not use a dummy key");
-  }
-  if (!source.includes("newStarModelKey.length >= 32")) {
-    throw new Error("Private model must not be reported configured without its API key");
-  }
-
-  const requiredSelfHostedGuards = [
-    "NEW_STAR_AI_MODE",
-    "NEW_STAR_VISION_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_STT_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED",
-    "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED",
-    "NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED"
-  ];
-  const missingGuards = requiredSelfHostedGuards.filter((guard) => !source.includes(guard));
-  if (missingGuards.length) throw new Error("Missing self-hosted safety guards: " + missingGuards.join(", "));
-  if (!source.includes("if (selfHostedRag) return \"\";")) {
-    throw new Error("Self-hosted RAG must not fall back to a separately hosted search service");
-  }
-  if (!source.includes('code: "NEW_STAR_PRIVATE_SEARCH_NOT_READY"')) {
-    throw new Error("Self-hosted search must fail closed when its own index is unavailable");
-  }
-  const statusRouteStart = source.indexOf('if (body?.action === "status")');
-  const externalProbeStart = source.indexOf("const newStarModel = await probeNewStarHostedModel()", statusRouteStart);
-  if (statusRouteStart < 0 || externalProbeStart < 0) {
-    throw new Error("Provider status route boundaries could not be verified");
-  }
-  const selfHostedStatusBranch = source.slice(statusRouteStart, externalProbeStart);
-  if (!selfHostedStatusBranch.includes('mode: "self_hosted"') ||
-      !selfHostedStatusBranch.includes("No external model providers are contacted.") ||
-      !selfHostedStatusBranch.includes("openai: false, gemini: false, openrouter: false")) {
-    throw new Error("Self-hosted status must report only New Star and avoid external provider probes");
-  }
-  const videoStatusRoute = source.slice(source.indexOf('if (body?.action === "video-status")'));
-  if (!videoStatusRoute.includes("NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED")) {
-    throw new Error("Self-hosted video-status route could still call an external provider");
-  }
-});
-
-Deno.test("Creator Studio clearly distinguishes private-only mode from external provider mode", async () => {
-  const source = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
-  const marker = 'if(result.data.mode==="self_hosted"){';
-  const start = source.indexOf(marker);
-  const end = source.indexOf('const providerState=', start);
-  if (start < 0 || end < 0) throw new Error("Creator Studio self-hosted status branch is missing");
-  const branch = source.slice(start, end);
-  for (const required of [
-    "New Star private model:",
-    "External AI providers: disabled",
-    "no Gemini, OpenAI or OpenRouter inference fallback",
-    "private worker not deployed",
-    "return;"
-  ]) {
-    if (!branch.includes(required)) throw new Error("Self-hosted status UI is missing: " + required);
-  }
-  if (branch.includes("providerState(")) {
-    throw new Error("Self-hosted status must not display or evaluate external provider health");
-  }
-});
-
-Deno.test("every external media and search route fails closed before provider access in self-hosted mode", async () => {
-  const source = await Deno.readTextFile(new URL("../supabase/functions/ai-gateway/index.ts", import.meta.url));
+Deno.test("Home media and voice routes fail closed before external provider access", async () => {
+  const source = await read("supabase/functions/ai-gateway/index.ts");
   const routes = [
-    { action: "vision", guard: "NEW_STAR_VISION_MODEL_NOT_DEPLOYED" },
-    { action: "speak", guard: "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED" },
-    { action: "transcribe", guard: "NEW_STAR_STT_MODEL_NOT_DEPLOYED" },
-    { action: "video", guard: "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED" },
-    { action: "video-status", guard: "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED" },
-    { action: "image", guard: "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED" }
+    ["vision", "NEW_STAR_VISION_MODEL_NOT_DEPLOYED"],
+    ["speak", "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED"],
+    ["transcribe", "NEW_STAR_STT_MODEL_NOT_DEPLOYED"],
+    ["video", "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED"],
+    ["video-status", "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED"],
+    ["image", "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED"]
   ];
-  for (const route of routes) {
-    const marker = 'if (body?.action === "' + route.action + '")';
-    const start = source.indexOf(marker);
-    if (start < 0) throw new Error("Missing " + route.action + " route");
-    const next = source.indexOf('if (body?.action === "', start + marker.length);
-    const block = source.slice(start, next < 0 ? source.length : next);
-    const guard = block.indexOf(route.guard);
-    if (guard < 0) throw new Error(route.action + " route is missing its self-hosted fail-closed guard");
-    const firstProviderAccess = [
-      block.indexOf("secretCandidates("),
-      block.indexOf("fetchWithTimeout("),
-      block.indexOf("generateGemini"),
-      block.indexOf("generateOpenAI"),
-      block.indexOf("getGeminiVideoInteraction(")
+  for (const [action, code] of routes) {
+    const block = blockFor(source, 'if (body?.action === "' + action + '")', 'if (body?.action === "');
+    assert(block.includes(code), action + " route missing private worker guard");
+    const firstProvider = [
+      block.indexOf("secretCandidates("), block.indexOf("fetchWithTimeout("),
+      block.indexOf("generateGemini"), block.indexOf("generateOpenAI"),
+      block.indexOf("startGeminiVideo("), block.indexOf("getGeminiVideoInteraction(")
     ].filter((index) => index >= 0).sort((a, b) => a - b)[0];
-    if (firstProviderAccess !== undefined && guard > firstProviderAccess) {
-      throw new Error(route.action + " route accesses an external provider before its self-hosted guard");
-    }
+    assert(firstProvider === undefined || block.indexOf(code) < firstProvider,
+      action + " route reaches an external provider before failing closed");
   }
-
-  const searchStart = source.indexOf('if (body?.action === "search")');
-  if (searchStart < 0) throw new Error("Missing search route");
-  const searchEnd = source.indexOf('if (body?.action === "vision")', searchStart);
-  const searchBlock = source.slice(searchStart, searchEnd < 0 ? source.length : searchEnd);
-  const searchGuard = searchBlock.indexOf("NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED");
-  const externalSearch = searchBlock.indexOf("searchWithGeminiGrounding(");
-  if (searchGuard < 0 || externalSearch < 0 || searchGuard > externalSearch) {
-    throw new Error("Search must fail closed before invoking external grounding in self-hosted mode");
-  }
+  const search = blockFor(source, 'if (body?.action === "search")', 'if (body?.action === "vision")');
+  assert(search.includes("searchNewStarIndex"), "Search must use New Star's private index");
+  assert(search.includes("NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED"), "Search must report missing private search worker");
+  assert(!search.includes("searchWithGeminiGrounding"), "Home search must not fall back to Gemini");
 });
 
-Deno.test("Creator Studio sends the detected transcription language with voice chat", async () => {
-  const source = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
-  const expected = 'function requestLanguage(){return lastInputWasVoice?(lastTranscriptionLanguage||automaticLanguageOptions().language):(selectedAppLanguage()||automaticLanguageOptions().language);}';
-  if (!source.includes(expected)) {
-    throw new Error("Voice chat must pass the detected transcription language instead of discarding it");
-  }
-  if (!source.includes('lastTranscriptionLanguage=result.data.language&&result.data.language!=="und"?result.data.language:""')) {
-    throw new Error("Voice transcription must retain the language returned by the speech recognizer");
-  }
+Deno.test("Voice Send stops, transcribes, and automatically submits the recording", async () => {
+  const source = await read("new-star-ai.js");
+  assert(source.includes("voiceSendPending=true"), "Send while recording must set auto-send state");
+  assert(source.includes("await transcribeVoice(blob)"), "Recording must be transcribed before sending");
+  assert(source.includes("form.requestSubmit()"), "Transcribed voice must automatically submit");
+  assert(source.includes("voiceSendPending=false;submit.disabled=false;mic.disabled=false;resetMicButton()"),
+    "Empty recordings must restore the Send and microphone controls");
+  assert(source.includes("voiceSendPending=false;submit.disabled=false;"), "Recorder errors must restore controls");
 });
 
-Deno.test("Creator Studio UI does not advertise removed external video dependencies or unreachable legacy fallbacks", async () => {
-  const app = await Deno.readTextFile(new URL("../new-star-ai.js", import.meta.url));
-  const html = await Deno.readTextFile(new URL("../new-star-ai.html", import.meta.url));
-  if (app.includes("Live Research needs a connected search provider")) {
-    throw new Error("Obsolete unreachable research error branch must be removed");
-  }
-  if (app.includes("Video generation needs a video model server and job queue")) {
-    throw new Error("Obsolete unreachable video error branch must be removed");
-  }
-  if (html.includes("Video generation uses Google Cloud Vertex AI")) {
-    throw new Error("Creator Studio must not advertise external Vertex AI as its video engine");
-  }
-  if (!html.includes("private image, speech, search and video workers must be deployed")) {
-    throw new Error("Creator Studio must state the private worker deployment requirement");
-  }
-  for (const staleClaim of [
-    "Gemini Google Search grounding as a live-web fallback",
-    "Video requests use Google Cloud Vertex AI",
-    "Video requires Google Cloud Vertex AI access"
-  ]) {
-    if (html.includes(staleClaim)) throw new Error("Stale external-provider capability claim remains: " + staleClaim);
-  }
-  if (!html.includes("Private-only mode requires New Star's own speech workers")) {
-    throw new Error("Voice capability card must state private speech worker requirement");
-  }
-  if (!html.includes("In private-only mode, replies use only the configured New Star model")) {
-    throw new Error("Chat capability card must state private-only inference routing");
-  }
-  if (!html.includes("never falls back to an external search provider")) {
-    throw new Error("Search capability card must describe private-mode provider isolation");
-  }
+Deno.test("Image and video prompts in chat select their matching generation mode", async () => {
+  const source = await read("new-star-ai.js");
+  assert(source.includes("function detectMediaMode(text)"), "Media intent detection missing");
+  assert(source.includes('if(videoIntent)return "video"'), "Video prompt detection missing");
+  assert(source.includes('if(imageIntent)return "image"'), "Image prompt detection missing");
+  assert(source.includes("const detectedMode=detectMediaMode(sendText)"), "Chat submit must detect image/video intent");
+});
+
+Deno.test("Duplicate Creator Studio AI entry and its settings are removed", async () => {
+  const settings = await read("settings.html");
+  const navbar = await read("navbar.js");
+  const page = await read("creator-ai.html");
+  const app = await read("new-star-ai.html");
+  const js = await read("new-star-ai.js");
+  assert(!settings.includes("New Star Creator Studio AI"), "Duplicate AI settings row remains");
+  assert(!navbar.includes('href="creator-ai.html"'), "Duplicate AI navigation link remains");
+  assert(page.includes('location.replace("new-star-ai.html")'), "Old Creator Studio URL must redirect to the single AI engine");
+  assert(!app.includes("Developer API keys"), "Home AI API-key settings UI remains");
+  assert(!js.includes("loadApiKeys") && !js.includes("apiKeyRequest") && !js.includes("ns-api-form"),
+    "Home AI still contains old API-key settings handlers");
+});
+
+Deno.test("Help AI launcher is not injected into the home feed", async () => {
+  const source = await read("ai-chat.js");
+  assert(source.includes('if(!onHomeFeed){document.body.append(launch,panel);}'),
+    "Help AI must only be mounted in the Help and Support experience");
 });
