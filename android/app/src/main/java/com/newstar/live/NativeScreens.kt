@@ -687,6 +687,9 @@ private object NativeVideoEditor {
                 else -> error("Unsupported video filter.")
             }
             val edited = EditedMediaItem.Builder(mediaItem).setEffects(Effects(emptyList(), videoEffects)).setRemoveAudio(muteAudio).build()
+            val progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+            val progressHolder = androidx.media3.transformer.ProgressHolder()
+            lateinit var progressPoll: Runnable
             val transformer = Transformer.Builder(context).addListener(object : Transformer.Listener {
                 override fun onCompleted(composition: Composition, exportResult: ExportResult) {
                     progressHandler.removeCallbacks(progressPoll)
@@ -701,9 +704,7 @@ private object NativeVideoEditor {
                     if (continuation.isActive) continuation.resumeWithException(exportException)
                 }
             }).build()
-            val progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
-            val progressHolder = androidx.media3.transformer.ProgressHolder()
-            val progressPoll = object : Runnable {
+            progressPoll = object : Runnable {
                 override fun run() {
                     if (!continuation.isActive) return
                     try {
