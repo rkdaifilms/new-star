@@ -217,7 +217,7 @@ async function refreshEngineStatus(){
  if(!session){status.textContent="Sign in required";status.style.color="#f6c66b";const note=$("ns-auth-note");if(note)note.hidden=false;return;}
  const note=$("ns-auth-note");if(note)note.hidden=true;
  if(!client?.functions){status.textContent="Backend unavailable";status.style.color="#ff9b9b";return;}
- status.textContent="Checking AI providers…";
+ status.textContent="Checking New Star AI Engine…";
  try{
   const result=await client.functions.invoke("ai-gateway",{body:{action:"status"}});
   if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"Gateway status check failed"));
