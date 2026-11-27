@@ -78,6 +78,17 @@ class NewStarApi {
         return NewStarSession(a, r, id, u.optString("email"))
     }
 
+    fun refreshSession(refreshToken: String): NewStarSession {
+        require(refreshToken.isNotBlank()) { "Saved login session is incomplete." }
+        return parseSession(
+            request(
+                "/auth/v1/token?grant_type=refresh_token",
+                "POST",
+                body = JSONObject().put("refresh_token", refreshToken)
+            )
+        )
+    }
+
     fun signIn(email: String, password: String) = parseSession(
         request(
             "/auth/v1/token?grant_type=password",
