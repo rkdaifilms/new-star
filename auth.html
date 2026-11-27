@@ -231,7 +231,7 @@ async function checkExistingSession(){
   const {data,error}=await client.auth.getSession();
   if(error)throw error;
 
-  if(data?.session){
+  if(data?.session && !isRecoveryMode){
    goAfterLogin();
   }
 
