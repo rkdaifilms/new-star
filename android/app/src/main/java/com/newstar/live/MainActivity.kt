@@ -828,6 +828,7 @@ private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
                 }
                 val rows = result.optJSONArray("messages") ?: JSONArray()
                 chatMessages = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                reactionCounts = NativeLiveRepository.getReactionCounts(roomId, session)
                 error = ""
             } catch (e: Exception) {
                 error = e.message ?: "LIVE chat लोड नहीं हुई।"
@@ -859,7 +860,7 @@ private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
                         scope.launch {
                             try {
                                 val total = NativeLiveRepository.sendReaction(roomId, reaction, session)
-                                reactionCounts = reactionCounts + (reaction to total)
+                                reactionCounts = NativeLiveRepository.getReactionCounts(roomId, session)
                                 notice = "$label भेजा गया · कुल $total"
                                 error = ""
                             } catch (e: Exception) {
