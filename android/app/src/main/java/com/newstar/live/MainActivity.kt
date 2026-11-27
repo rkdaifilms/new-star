@@ -799,6 +799,7 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
     var profile by remember { mutableStateOf<JSONObject?>(null) }
     var videos by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var following by remember { mutableStateOf(false) }
+    var followRequestPending by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     var videoTab by remember(creatorId) { mutableStateOf("All") }
@@ -828,6 +829,15 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
                 session
             )
             following = relation.length() > 0
+            if (creator.optBoolean("is_private") && !following && creatorId != session.userId) {
+                val requests = NativeSupabase.get(
+                    "/rest/v1/follow_requests?select=id&requester_id=eq.${Uri.encode(session.userId)}&target_user_id=eq.$safeId&status=eq.pending&limit=1",
+                    session
+                )
+                followRequestPending = requests.length() > 0
+            } else {
+                followRequestPending = false
+            }
 
             // Never request private creator video rows until the viewer follows them.
             val canViewVideos = !creator.optBoolean("is_private") ||
@@ -894,6 +904,19 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
                                     session
                                 )
                                 following = false
+                            } else if (creator.optBoolean("is_private")) {
+                                val safeCreatorId = Uri.encode(creatorId)
+                                val existing = NativeSupabase.get(
+                                    "/rest/v1/follow_requests?select=id&requester_id=eq.${Uri.encode(session.userId)}&target_user_id=eq." + safeCreatorId + "&status=eq.pending&limit=1",
+                                    session
+                                )
+                                if (existing.length() == 0) {
+                                    NativeSupabase.post("/rest/v1/follow_requests", JSONObject()
+                                        .put("requester_id", session.userId)
+                                        .put("target_user_id", creatorId)
+                                        .put("status", "pending"), session)
+                                }
+                                followRequestPending = true
                             } else {
                                 NativeSupabase.post("/rest/v1/followers", JSONObject()
                                     .put("follower_id", session.userId)
@@ -904,10 +927,23 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
                             error = e.message ?: "Follow update नहीं हुआ।"
                         } finally { busy = false }
                     }
-                }) { Text(if (busy) "Please wait…" else if (following) "Following" else "Follow") }
+                }) {
+                    Text(
+                        when {
+                            busy -> "Please wait…"
+                            following -> "Following"
+                            followRequestPending -> "Requested"
+                            creator.optBoolean("is_private") -> "Request Follow"
+                            else -> "Follow"
+                        }
+                    )
+                }
             }
             if (creator.optBoolean("is_private") && !following && creatorId != session.userId) {
-                Text("यह Private Creator account है। वीडियो देखने के लिए Follow request स्वीकार होना जरूरी है।")
+                Text(
+                    if (followRequestPending) "आपकी Follow Request Pending है। Creator की मंज़ूरी के बाद ही वीडियो दिखेंगे।"
+                    else "यह Private Creator account है। वीडियो देखने के लिए Follow request स्वीकार होना जरूरी है।"
+                )
             } else {
                 Text("Videos", style = MaterialTheme.typography.titleLarge)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
