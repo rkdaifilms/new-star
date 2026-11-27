@@ -582,6 +582,14 @@ fun NativeUploadScreen(session: NativeSession) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { rotationDegrees = (rotationDegrees + 90) % 360 }, enabled = !uploading) { Text("Rotate $rotationDegrees°") }
                 FilterChip(selected = muteOriginalAudio, onClick = { muteOriginalAudio = !muteOriginalAudio }, label = { Text(if (muteOriginalAudio) "Original audio muted" else "Keep original audio") })
+                OutlinedButton(onClick = {
+                    trimStartSeconds = "0"
+                    trimEndSeconds = sourceDurationSeconds.toString()
+                    rotationDegrees = 0
+                    muteOriginalAudio = false
+                    selectedFilter = "none"
+                    status = "Editor settings reset हो गईं।"
+                }, enabled = !uploading) { Text("Reset") }
             }
             Text("Color filter", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
