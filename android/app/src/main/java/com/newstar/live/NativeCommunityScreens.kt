@@ -152,3 +152,152 @@ private fun CommunityCountCard(label: String, count: Int, modifier: Modifier = M
         }
     }
 }
+
+@androidx.compose.runtime.Composable
+internal fun NativeLiveHostControls(session: NativeSession) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var title by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var seats by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(1) }
+    var busy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var notice by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var roomId by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var publisher by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<NativeWhipPublisher?>(null) }
+    var micEnabled by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
+    var cameraEnabled by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
+    val currentPublisher by androidx.compose.runtime.rememberUpdatedState(publisher)
+    val currentRoomId by androidx.compose.runtime.rememberUpdatedState(roomId)
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val cameraGranted = permissions[android.Manifest.permission.CAMERA] == true ||
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        val microphoneGranted = permissions[android.Manifest.permission.RECORD_AUDIO] == true ||
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!cameraGranted) {
+            notice = "LIVE शुरू करने के लिए Camera permission आवश्यक है।"
+        } else {
+            scope.launch {
+                busy = true
+                var preparedRoom: String? = null
+                try {
+                    val prepared = NativeSupabase.invokeFunction("cloudflare-live", org.json.JSONObject()
+                        .put("action", "prepare").put("room_title", title.trim())
+                        .put("room_type", "live").put("seat_capacity", seats), session)
+                    if (!prepared.optBoolean("ok")) throw IllegalStateException(prepared.optString("error", "LIVE room तैयार नहीं हुआ।"))
+                    preparedRoom = prepared.getString("room_id")
+                    val livePublisher = NativeWhipPublisher.start(context, prepared.getString("whip_url"), microphoneGranted)
+                    val confirmed = NativeSupabase.invokeFunction("cloudflare-live",
+                        org.json.JSONObject().put("action", "confirm").put("room_id", preparedRoom), session)
+                    if (!confirmed.optBoolean("ok")) throw IllegalStateException(confirmed.optString("error", "LIVE room confirm नहीं हुआ।"))
+                    roomId = preparedRoom
+                    publisher = livePublisher
+                    micEnabled = microphoneGranted
+                    cameraEnabled = true
+                    notice = if (microphoneGranted) "आप Cloudflare पर LIVE हैं। Camera और microphone broadcast हो रहे हैं।"
+                        else "आप LIVE हैं। Microphone permission नहीं मिली, इसलिए केवल camera broadcast हो रहा है।"
+                } catch (e: Exception) {
+                    preparedRoom?.let { id ->
+                        runCatching { NativeSupabase.invokeFunction("cloudflare-live",
+                            org.json.JSONObject().put("action", "stop").put("room_id", id), session) }
+                    }
+                    notice = e.message ?: "Native LIVE शुरू नहीं हुआ।"
+                } finally { busy = false }
+            }
+        }
+    }
+
+    androidx.compose.runtime.DisposableEffect(session.userId) {
+        onDispose {
+            val activePublisher = currentPublisher
+            val activeRoom = currentRoomId
+            if (activePublisher != null || activeRoom != null) {
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
+                    runCatching { activePublisher?.stop() }
+                    if (activeRoom != null) runCatching {
+                        NativeSupabase.invokeFunction("cloudflare-live",
+                            org.json.JSONObject().put("action", "stop").put("room_id", activeRoom), session)
+                    }
+                }
+            }
+        }
+    }
+
+    androidx.compose.material3.Card(androidx.compose.ui.Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+        androidx.compose.foundation.layout.Column(
+            androidx.compose.ui.Modifier.padding(12.dp),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+        ) {
+            androidx.compose.material3.Text("Start Native Video LIVE", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+            androidx.compose.material3.Text("100% native Camera2 + WebRTC WHIP publishing to Cloudflare Stream. LIVE eligibility is verified by the server.")
+            if (roomId == null) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = title, onValueChange = { title = it.take(120) },
+                    label = { androidx.compose.material3.Text("LIVE room title") },
+                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                androidx.compose.material3.Text("Guest seat capacity")
+                androidx.compose.material3.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    listOf(1, 4, 10).forEach { count ->
+                        androidx.compose.material3.FilterChip(
+                            selected = seats == count, onClick = { seats = count },
+                            label = { androidx.compose.material3.Text("$count seats") }
+                        )
+                    }
+                }
+                androidx.compose.material3.Button(
+                    enabled = !busy && title.isNotBlank(),
+                    onClick = {
+                        permissionLauncher.launch(arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO))
+                    },
+                    modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+                ) {
+                    if (busy) androidx.compose.material3.CircularProgressIndicator(
+                        modifier = androidx.compose.ui.Modifier.size(18.dp), strokeWidth = 2.dp
+                    ) else androidx.compose.material3.Text("🔴 Go LIVE Now")
+                }
+            } else {
+                androidx.compose.material3.Text("● LIVE · Room " + roomId!!.take(8),
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                    style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                androidx.compose.material3.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.OutlinedButton(onClick = {
+                        micEnabled = !micEnabled
+                        publisher?.setMicrophoneEnabled(micEnabled)
+                    }) { androidx.compose.material3.Text(if (micEnabled) "Mic ON" else "Mic OFF") }
+                    androidx.compose.material3.OutlinedButton(onClick = {
+                        cameraEnabled = !cameraEnabled
+                        publisher?.setCameraEnabled(cameraEnabled)
+                    }) { androidx.compose.material3.Text(if (cameraEnabled) "Camera ON" else "Camera OFF") }
+                }
+                androidx.compose.material3.Button(
+                    enabled = !busy, onClick = {
+                        scope.launch {
+                            busy = true
+                            try {
+                                publisher?.stop()
+                                val r = NativeSupabase.invokeFunction("cloudflare-live",
+                                    org.json.JSONObject().put("action", "stop").put("room_id", roomId), session)
+                                if (!r.optBoolean("ok")) throw IllegalStateException(r.optString("error", "LIVE बंद नहीं हुआ।"))
+                                publisher = null
+                                roomId = null
+                                notice = "LIVE room सफलतापूर्वक बंद हुआ।"
+                            } catch (e: Exception) {
+                                notice = e.message ?: "LIVE बंद नहीं हुआ।"
+                            } finally { busy = false }
+                        }
+                    },
+                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.error
+                    )
+                ) { androidx.compose.material3.Text("End LIVE") }
+            }
+            if (notice.isNotBlank()) androidx.compose.material3.Text(notice, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
