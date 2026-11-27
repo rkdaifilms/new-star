@@ -173,22 +173,18 @@ class MainActivity : AppCompatActivity() {
         trigger.isEnabled = false
         try {
             val verifierBytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
-            val stateBytes = ByteArray(24).also { SecureRandom().nextBytes(it) }
             val verifier = Base64.encodeToString(verifierBytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
-            val state = Base64.encodeToString(stateBytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
             val challengeBytes = MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII))
             val challenge = Base64.encodeToString(challengeBytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
             val redirectUri = Uri.parse("newstar://auth/callback")
             prefs.edit()
                 .putString("oauth_pkce_verifier", verifier)
-                .putString("oauth_state", state)
                 .apply()
             val authorizeUri = Uri.parse(NewStarApi.BASE_URL + "/auth/v1/authorize").buildUpon()
                 .appendQueryParameter("provider", "google")
                 .appendQueryParameter("redirect_to", redirectUri.toString())
                 .appendQueryParameter("code_challenge", challenge)
                 .appendQueryParameter("code_challenge_method", "s256")
-                .appendQueryParameter("state", state)
                 .build()
             showStatus("Supabase के जरिए Google Login खोला जा रहा है…")
             startActivity(Intent(Intent.ACTION_VIEW, authorizeUri))
@@ -205,22 +201,18 @@ class MainActivity : AppCompatActivity() {
         val error = uri.getQueryParameter("error_description")
             ?: uri.getQueryParameter("error")
         if (!error.isNullOrBlank()) {
-            prefs.edit().remove("oauth_pkce_verifier").remove("oauth_state").apply()
+            prefs.edit().remove("oauth_pkce_verifier").apply()
             showStatus("Google Login पूरा नहीं हुआ: " + error)
             return
         }
         val code = uri.getQueryParameter("code")
-        val returnedState = uri.getQueryParameter("state")
-        val expectedState = prefs.getString("oauth_state", null)
         val verifier = prefs.getString("oauth_pkce_verifier", null)
-        if (code.isNullOrBlank() || returnedState.isNullOrBlank() ||
-            expectedState.isNullOrBlank() || verifier.isNullOrBlank() ||
-            !MessageDigest.isEqual(returnedState.toByteArray(Charsets.UTF_8), expectedState.toByteArray(Charsets.UTF_8))) {
-            prefs.edit().remove("oauth_pkce_verifier").remove("oauth_state").apply()
+        if (code.isNullOrBlank() || verifier.isNullOrBlank()) {
+            prefs.edit().remove("oauth_pkce_verifier").apply()
             showStatus("Google Login callback सत्यापित नहीं हो पाया। कृपया दोबारा कोशिश करें।")
             return
         }
-        prefs.edit().remove("oauth_pkce_verifier").remove("oauth_state").apply()
+        prefs.edit().remove("oauth_pkce_verifier").apply()
         showStatus("Supabase Login session सुरक्षित रूप से बनाया जा रहा है…")
         worker.execute {
             try {
