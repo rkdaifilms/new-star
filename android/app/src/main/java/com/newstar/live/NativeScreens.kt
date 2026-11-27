@@ -287,8 +287,16 @@ fun NativeInboxScreen(session: NativeSession) {
                 "/rest/v1/messages?select=id,conversation_id,sender_id,recipient_id,body,media_url,created_at,read_at&or=$filter&order=created_at.desc&limit=250",
                 session
             )
-            messages = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
-            val unreadIds = messages.filter {
+            val loadedMessages = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+            messages = loadedMessages
+            if (peer.isBlank()) {
+                peer = loadedMessages.firstNotNullOfOrNull { item ->
+                    val sender = item.optString("sender_id")
+                    val recipient = item.optString("recipient_id")
+                    (if (sender == session.userId) recipient else sender).takeIf { it.isNotBlank() }
+                }.orEmpty()
+            }
+            val unreadIds = loadedMessages.filter {
                 it.optString("recipient_id") == session.userId && it.isNull("read_at")
             }.map { it.optString("id") }.filter { it.isNotBlank() }
             if (unreadIds.isNotEmpty()) {
@@ -299,7 +307,6 @@ fun NativeInboxScreen(session: NativeSession) {
                     session
                 )
             }
-            if (peer.isBlank() && peers.isNotEmpty()) peer = peers.first()
         } catch (e: Exception) {
             error = e.message ?: "Inbox लोड नहीं हुई।"
         } finally { busy = false }
