@@ -256,6 +256,7 @@ private fun NativeApp(
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!)
                 "Wallet" -> NativeWalletScreen(session!!)
+                "Creator AI" -> NativeCreatorAiScreen(session!!)
                 "Live" -> NativeLiveDiscoveryScreen(session!!)
                 "Gaming" -> NativeGamingScreen(
                     session = session!!,
@@ -521,7 +522,7 @@ private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit,
         topBar = {
             TopAppBar(
                 title = { Text("🌟 New Star", fontWeight = FontWeight.Bold) },
-                actions = { TextButton(onClick = { onNavigate("Profile") }) { Text("Creator Hub") } }
+                actions = { Row { TextButton(onClick = { onNavigate("Creator AI") }) { Text("Studio AI") }; TextButton(onClick = { onNavigate("Profile") }) { Text("Creator Hub") } } }
             )
         },
         bottomBar = {
