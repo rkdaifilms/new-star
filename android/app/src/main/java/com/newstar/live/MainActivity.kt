@@ -231,7 +231,7 @@ private fun NativeApp(
     }
 
     if (page == "Home") {
-        NativeHome { page = it }
+        NativeHome(session = session) { page = it }
     } else if (session == null) {
         NativeAuthScreen(onSignedIn = { session = it; page = "Home" }, onGoogleSignIn = onGoogleSignIn)
     } else {
@@ -264,9 +264,12 @@ private fun NativeApp(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NativeHome(onNavigate: (String) -> Unit) {
+private fun NativeHome(session: NativeSession?, onNavigate: (String) -> Unit) {
     var category by remember { mutableStateOf("All") }
     var search by remember { mutableStateOf("") }
+    var creatorResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var creatorSearchLoading by remember { mutableStateOf(false) }
+    var creatorSearchError by remember { mutableStateOf<String?>(null) }
     var feed by remember { mutableStateOf<List<NativeVideo>>(emptyList()) }
     val visibleFeed = remember(feed, search) {
         val term = search.trim().lowercase()
@@ -289,6 +292,30 @@ private fun NativeHome(onNavigate: (String) -> Unit) {
         } catch (e: Exception) {
             error = e.message ?: "Feed लोड नहीं हो सकी।"
         } finally { loading = false }
+    }
+
+    LaunchedEffect(search, session?.userId) {
+        val term = search.trim().replace("%", "").replace("*", "").replace(",", " ").replace("(", " ").replace(")", " ")
+        if (term.length < 2) {
+            creatorResults = emptyList()
+            creatorSearchError = null
+            creatorSearchLoading = false
+        } else {
+            delay(350)
+            creatorSearchLoading = true
+            creatorSearchError = null
+            try {
+                val filter = Uri.encode("(username.ilike.*$term*,full_name.ilike.*$term*)")
+                val rows = NativeSupabase.get(
+                    "/rest/v1/profiles?select=user_id,username,full_name,avatar_url,bio,is_private&or=$filter&order=username.asc&limit=20",
+                    session
+                )
+                creatorResults = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+            } catch (e: Exception) {
+                creatorResults = emptyList()
+                creatorSearchError = e.message ?: "Creator search नहीं हो सकी।"
+            } finally { creatorSearchLoading = false }
+        }
     }
 
     Scaffold(
@@ -315,6 +342,51 @@ private fun NativeHome(onNavigate: (String) -> Unit) {
                 singleLine = true, label = { Text("इस Feed में वीडियो या Creator खोजें") },
                 trailingIcon = { if (search.isNotEmpty()) TextButton(onClick = { search = "" }) { Text("Clear") } }
             )
+            if (search.trim().length >= 2) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+                    Text("Creator खोज", style = MaterialTheme.typography.titleMedium)
+                    when {
+                        creatorSearchLoading -> LinearProgressIndicator(Modifier.fillMaxWidth())
+                        creatorSearchError != null -> Text(creatorSearchError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                        creatorResults.isEmpty() -> Text("इस नाम से कोई Creator नहीं मिला।", style = MaterialTheme.typography.bodySmall)
+                        else -> creatorResults.forEach { creator ->
+                            Row(
+                                Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                val avatar = creator.optString("avatar_url")
+                                if (avatar.isNotBlank()) {
+                                    AsyncImage(
+                                        model = avatar,
+                                        contentDescription = "Creator profile photo",
+                                        modifier = Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)),
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    )
+                                } else {
+                                    Surface(Modifier.size(44.dp), shape = RoundedCornerShape(22.dp),
+                                        color = MaterialTheme.colorScheme.secondaryContainer) {
+                                        Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                            Text(creator.optString("username").take(1).uppercase())
+                                        }
+                                    }
+                                }
+                                Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                                    Text(creator.optString("full_name").ifBlank { creator.optString("username") },
+                                        style = MaterialTheme.typography.titleSmall)
+                                    Text("@${creator.optString("username")}" +
+                                        if (creator.optBoolean("is_private")) " · Private" else "",
+                                        style = MaterialTheme.typography.bodySmall)
+                                    if (creator.optString("bio").isNotBlank()) {
+                                        Text(creator.optString("bio"), maxLines = 1,
+                                            style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                            }
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            }
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
