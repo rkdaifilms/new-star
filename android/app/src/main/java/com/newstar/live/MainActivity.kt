@@ -165,22 +165,10 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
-                val message = e.message.orEmpty().lowercase()
-                val refreshRejected = message.contains("invalid_grant") ||
-                    message.contains("refresh_token_not_found") ||
-                    message.contains("invalid refresh token") ||
-                    message.contains("refresh token not found")
-                if (refreshRejected) {
-                    runOnUiThread {
-                        if (!isFinishing && !isDestroyed && session?.userId == saved.userId) {
-                            prefs.edit().remove("access").remove("refresh").remove("user_id").remove("email").apply()
-                            session = null
-                            showAuth()
-                            showStatus("आपका लॉगिन सत्र समाप्त हो गया है। कृपया एक बार फिर लॉगिन करें।")
-                        }
-                    }
-                }
-                // For temporary network/server errors, keep the saved session and home screen.
+                // Never force the user back to the login screen because a background
+                // refresh failed. Keep the locally saved session until explicit Sign out
+                // or app data removal. A later foreground/API retry can refresh it again.
+                android.util.Log.w("NewStarAuth", "Silent session refresh failed; keeping local session.", e)
             }
         }
     }
@@ -203,11 +191,19 @@ class MainActivity : AppCompatActivity() {
         panel.addView(label("Welcome to New Star", 26f, true))
         panel.addView(label("Sign in to watch and connect", 14f))
         val email = EditText(this).apply { hint = "Email address"; setSingleLine(); inputType = 33; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY); setPadding(dp(14), 0, dp(14), 0); setBackgroundColor(Color.rgb(28, 31, 43)) }
-        val password = EditText(this).apply { hint = "Password"; setSingleLine(); inputType = 129; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY); setPadding(dp(14), 0, dp(14), 0); setBackgroundColor(Color.rgb(28, 31, 43)) }
+        val password = EditText(this).apply { hint = "Password"; setSingleLine(); inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY); setPadding(dp(14), 0, dp(14), 0); setBackgroundColor(Color.rgb(28, 31, 43)); imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE }
+        val passwordToggle = TextView(this).apply { text = "Show password"; textSize = 13f; setTextColor(Color.LTGRAY); gravity = Gravity.END; setPadding(0, dp(6), 0, dp(6)) }
+        passwordToggle.setOnClickListener {
+            val visible = (password.inputType and android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            password.inputType = if (visible) android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD else android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            password.setSelection(password.text.length)
+            passwordToggle.text = if (visible) "Show password" else "Hide password"
+        }
         val signIn = button("Sign in"); val signUp = button("Create account")
         val googleSignIn = button("Continue with Google")
         panel.addView(email, LinearLayout.LayoutParams(-1, dp(52))); panel.addView(space(12))
-        panel.addView(password, LinearLayout.LayoutParams(-1, dp(52))); panel.addView(space(18))
+        panel.addView(password, LinearLayout.LayoutParams(-1, dp(52)))
+        panel.addView(passwordToggle, LinearLayout.LayoutParams(-1, dp(30))); panel.addView(space(12))
         panel.addView(signIn, LinearLayout.LayoutParams(-1, dp(50))); panel.addView(space(8))
         panel.addView(signUp, LinearLayout.LayoutParams(-1, dp(50))); panel.addView(space(14))
         panel.addView(label("OR", 13f)); panel.addView(space(8))
