@@ -14,13 +14,9 @@ import android.widget.*
 import org.json.JSONObject
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.CustomCredential
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import kotlinx.coroutines.launch
+import java.security.MessageDigest
+import java.security.SecureRandom
+import android.util.Base64
 import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
@@ -52,7 +48,14 @@ class MainActivity : AppCompatActivity() {
             runCatching { runtimeConfig = JSONObject(cached) }
         }
         if (session == null) showAuth() else showHome()
+        handleSupabaseOAuthCallback(intent)
         loadRuntimeConfig(force = true)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleSupabaseOAuthCallback(intent)
     }
 
     override fun onResume() {
@@ -167,55 +170,67 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun signInWithGoogle(trigger: Button) {
-        val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.trim()
-        if (webClientId.isBlank()) {
-            showStatus("Google Sign-In अभी कॉन्फ़िगर नहीं है। Build में Google Web OAuth Client ID और Supabase Google provider सेट करना बाकी है।")
+        trigger.isEnabled = false
+        try {
+            val verifierBytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
+            val stateBytes = ByteArray(24).also { SecureRandom().nextBytes(it) }
+            val verifier = Base64.encodeToString(verifierBytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+            val state = Base64.encodeToString(stateBytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+            val challengeBytes = MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII))
+            val challenge = Base64.encodeToString(challengeBytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+            val redirectUri = Uri.parse("newstar://auth/callback")
+            prefs.edit()
+                .putString("oauth_pkce_verifier", verifier)
+                .putString("oauth_state", state)
+                .apply()
+            val authorizeUri = Uri.parse(NewStarApi.BASE_URL + "/auth/v1/authorize").buildUpon()
+                .appendQueryParameter("provider", "google")
+                .appendQueryParameter("redirect_to", redirectUri.toString())
+                .appendQueryParameter("code_challenge", challenge)
+                .appendQueryParameter("code_challenge_method", "s256")
+                .appendQueryParameter("state", state)
+                .build()
+            showStatus("Supabase के जरिए Google Login खोला जा रहा है…")
+            startActivity(Intent(Intent.ACTION_VIEW, authorizeUri))
+            trigger.isEnabled = true
+        } catch (e: Exception) {
+            trigger.isEnabled = true
+            showStatus(e.message ?: "Google Login शुरू नहीं हो पाया।")
+        }
+    }
+
+    private fun handleSupabaseOAuthCallback(callbackIntent: Intent?) {
+        val uri = callbackIntent?.data ?: return
+        if (uri.scheme != "newstar" || uri.host != "auth" || uri.path != "/callback") return
+        val error = uri.getQueryParameter("error_description")
+            ?: uri.getQueryParameter("error")
+        if (!error.isNullOrBlank()) {
+            prefs.edit().remove("oauth_pkce_verifier").remove("oauth_state").apply()
+            showStatus("Google Login पूरा नहीं हुआ: " + error)
             return
         }
-        trigger.isEnabled = false
-        showStatus("फोन पर मौजूद Google खातों की सूची खोली जा रही है…")
-        lifecycleScope.launch {
+        val code = uri.getQueryParameter("code")
+        val returnedState = uri.getQueryParameter("state")
+        val expectedState = prefs.getString("oauth_state", null)
+        val verifier = prefs.getString("oauth_pkce_verifier", null)
+        if (code.isNullOrBlank() || returnedState.isNullOrBlank() ||
+            expectedState.isNullOrBlank() || verifier.isNullOrBlank() ||
+            !MessageDigest.isEqual(returnedState.toByteArray(Charsets.UTF_8), expectedState.toByteArray(Charsets.UTF_8))) {
+            prefs.edit().remove("oauth_pkce_verifier").remove("oauth_state").apply()
+            showStatus("Google Login callback सत्यापित नहीं हो पाया। कृपया दोबारा कोशिश करें।")
+            return
+        }
+        prefs.edit().remove("oauth_pkce_verifier").remove("oauth_state").apply()
+        showStatus("Supabase Login session सुरक्षित रूप से बनाया जा रहा है…")
+        worker.execute {
             try {
-                val googleOption = GetGoogleIdOption.Builder()
-                    .setServerClientId(webClientId)
-                    .setFilterByAuthorizedAccounts(false)
-                    .setAutoSelectEnabled(false)
-                    .build()
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleOption)
-                    .build()
-                val result = CredentialManager.create(this@MainActivity)
-                    .getCredential(this@MainActivity, request)
-                val credential = result.credential
-                if (credential !is CustomCredential ||
-                    credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                ) {
-                    throw IllegalStateException("Google account से valid sign-in token नहीं मिला।")
-                }
-                val googleToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
-                showStatus("Google खाते की पुष्टि की जा रही है…")
-                worker.execute {
-                    try {
-                        val signedIn = api.signInWithGoogleIdToken(googleToken)
-                        runOnUiThread {
-                            trigger.isEnabled = true
-                            saveSession(signedIn)
-                            showHome()
-                        }
-                    } catch (e: Exception) {
-                        runOnUiThread {
-                            trigger.isEnabled = true
-                            showStatus(e.message ?: "Google से लॉगिन नहीं हो पाया।")
-                        }
-                    }
+                val signedIn = api.exchangeOAuthCode(code, verifier)
+                runOnUiThread {
+                    saveSession(signedIn)
+                    showHome()
                 }
             } catch (e: Exception) {
-                trigger.isEnabled = true
-                showStatus(
-                    if (e::class.java.simpleName.contains("Cancellation", true))
-                        "Google account selection रद्द कर दी गई।"
-                    else e.message ?: "Google Sign-In शुरू नहीं हो पाया।"
-                )
+                runOnUiThread { showStatus(e.message ?: "Google Login session नहीं बन पाया।") }
             }
         }
     }
