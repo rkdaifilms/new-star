@@ -205,7 +205,13 @@ Deno.serve(async (req: Request) => {
               joined_at: null, left_at: null, last_seen_at: new Date().toISOString(),
               camera_enabled: false, microphone_enabled: false,
             });
-        if (participantWrite.error) return json({ error: "Invitation accepted, but the seat request could not be created." }, 503, headers);
+        if (participantWrite.error) {
+          // Restore the invitation to pending so the guest can retry instead of losing it.
+          await admin.from("live_room_invites").update({
+            status: "pending", responded_at: null,
+          }).eq("id", inviteId).eq("status", "accepted");
+          return json({ error: "Invitation response could not finish. The invitation is available to retry." }, 503, headers);
+        }
       }
     }
     return json({ ok: true, status: decision }, 200, headers);
