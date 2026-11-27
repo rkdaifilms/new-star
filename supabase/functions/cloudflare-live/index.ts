@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
   const { data: auth, error: authError } = await userClient.auth.getUser();
   if (authError || !auth.user) return json({ error: "Valid login required." }, 401, headers);
 
-  let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string };
+  let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string; microphone_enabled?: boolean; camera_enabled?: boolean };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
   const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave"];
@@ -358,7 +358,7 @@ Deno.serve(async (req: Request) => {
       room_id: body.room_id, user_id: creatorId, display_name: displayName,
       role: "host", status: "admitted", seat_number: 1,
       joined_at: new Date().toISOString(), left_at: null,
-      camera_enabled: true, microphone_enabled: true,
+      camera_enabled: body.camera_enabled !== false, microphone_enabled: body.microphone_enabled === true,
     }, { onConflict: "room_id,user_id" });
     if (hostError) return json({ error: "LIVE started, but host seat could not be registered." }, 503, headers);
     return json({ ok: true }, 200, headers);
