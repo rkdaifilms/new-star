@@ -14,7 +14,7 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Supabase Realtime subscription for private Inbox messages and incoming follow requests.
+ * Supabase Realtime subscription for private Inbox messages, incoming follow requests, and user notifications.
  * The server still applies the table's RLS policies to each subscribed row.
  */
 class NativeRealtimeMessages(
@@ -67,6 +67,13 @@ class NativeRealtimeMessages(
                             .put("schema", "public")
                             .put("table", "follow_requests")
                             .put("filter", "target_user_id=eq.$userId")
+                    )
+                    .put(
+                        JSONObject()
+                            .put("event", "*")
+                            .put("schema", "public")
+                            .put("table", "notifications")
+                            .put("filter", "user_id=eq.$userId")
                     )
                 val config = JSONObject()
                     .put("broadcast", JSONObject().put("ack", false).put("self", false))
