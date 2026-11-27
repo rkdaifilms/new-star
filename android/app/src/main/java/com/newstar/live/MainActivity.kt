@@ -311,6 +311,7 @@ private fun NativeApp(
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!)
                 "Wallet" -> NativeWalletScreen(session!!)
+                "Monetization" -> NativeMonetizationScreen(session!!) { page = "Wallet" }
                 "Creator AI" -> NativeCreatorAiScreen(session!!, initialPrompt = aiInitialPrompt)
                 "Live" -> NativeLiveDiscoveryScreen(session!!)
                 "Gaming" -> NativeGamingScreen(
@@ -991,6 +992,7 @@ private fun NativeHome(
                                     "Upload Video" to "Upload",
                                     "Inbox / Messages" to "Inbox",
                                     "Wallet / Coins" to "Wallet",
+                                    "Creator Monetization Hub" to "Monetization",
                                     "LIVE" to "Live",
                                     "Gaming LIVE" to "Gaming"
                                 ).forEach { item ->
