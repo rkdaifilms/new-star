@@ -184,12 +184,15 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
             scope.launch {
                 busy = true
                 try {
-                    NativeSupabase.patch(
-                        "/rest/v1/profiles?user_id=eq.${session.userId}",
+                    val response = NativeSupabase.patch(
+                        "/rest/v1/profiles?user_id=eq.${Uri.encode(session.userId)}",
                         JSONObject().put("is_private", enabled), session
                     )
+                    if (response.isBlank() || response == "[]") {
+                        throw IllegalStateException("Profile row नहीं मिला; privacy setting सेव नहीं हुई।")
+                    }
                     status = "Private account सेटिंग सेव हो गई।"
-                } catch (e: Exception) { status = e.message ?: "Privacy setting सेव नहीं हुई।" }
+                } catch (e: Exception) { privateAccount = !enabled; status = e.message ?: "Privacy setting सेव नहीं हुई।" }
                 busy = false
             }
         }
