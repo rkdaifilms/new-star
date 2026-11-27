@@ -680,7 +680,7 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
         try {
             val future = ProcessCameraProvider.getInstance(context)
             if (recordedUri != null) {
-                future.addListener({ runCatching { future.get().unbindAll() } }, mainExecutor)
+                runCatching { future.get().unbindAll() }
                 capture = null
                 return@LaunchedEffect
             }
