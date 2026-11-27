@@ -101,7 +101,6 @@ class MainActivity : ComponentActivity() {
         if (uri.scheme != "com.newstar.live" || uri.host != "auth" || uri.path != "/callback") return
         val code = uri.getQueryParameter("code") ?: return
         val state = uri.getQueryParameter("state") ?: return
-        val verifier = uri.getQueryParameter("verifier") ?: return
         lifecycleScope.launch {
             val pending = NativeSessionStore.consumePendingOAuth(this@MainActivity)
             if (pending == null || pending.first != state) {
@@ -109,7 +108,7 @@ class MainActivity : ComponentActivity() {
                 return@launch
             }
             try {
-                oauthSession.value = NativeSupabase.exchangeCode(this@MainActivity, code, verifier)
+                oauthSession.value = NativeSupabase.exchangeCode(this@MainActivity, code, pending.second)
             } catch (e: Exception) {
                 android.widget.Toast.makeText(this@MainActivity, e.message ?: "Google Login failed.", android.widget.Toast.LENGTH_LONG).show()
             }
