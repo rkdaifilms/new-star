@@ -21,7 +21,7 @@ Every push to `main` starts a fresh Android build. The artifact is tied to the e
 - Android or Play Protect may still show a warning for a sideloaded or unfamiliar app. A successful signature check does not mean Google has certified the app as safe.
 - Do not disable Android security protections to install it.
 - A public release requires a securely managed, persistent upload key and a signed release build. Never commit a keystore or share its passwords in chat.
-- The app currently wraps the New Star website in Android WebView. A native wrapper does not automatically remove browser/WebView restrictions; camera, microphone, file selection, notifications and other device features need explicit native permission handling and device testing.
+- The Android launcher now opens a Jetpack Compose native Home feed. It calls the existing public Supabase recommended-feed RPC, resolves playback URLs through the existing `video-url` Edge Function, and plays HLS/MP4 media with AndroidX Media3. Upload, Inbox, Gaming and Profile shortcuts still open the existing web implementation in a separate legacy activity; those sections are not yet fully native.
 - Gaming LIVE native publishing sends screen video and an optional separate microphone track when Android microphone permission is granted. Mixing game/system playback audio with the microphone, face-camera overlay and Calls guest-seat publishing are not implemented in this native path.
 - Real-device testing is required for login, navigation, uploads, permissions, network behavior and streaming before public release.
 - Google Play publishing also requires store listing assets, privacy policy, Data safety declarations, content rating, target API compliance and Play Console review.
