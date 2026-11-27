@@ -301,13 +301,23 @@ private fun NativeApp(
                 Text(page, modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
             }
             when (page) {
-                "Settings" -> NativeSettingsScreen(session!!) {
-                    val current = session
-                    if (current != null) scope.launch {
-                        try { NativeSupabase.deleteSession(context, current) }
-                        finally { session = null; page = "Home" }
+                "Settings" -> NativeSettingsScreen(
+                    session = session!!,
+                    onLogout = {
+                        val current = session
+                        if (current != null) scope.launch {
+                            try { NativeSupabase.deleteSession(context, current) }
+                            finally { session = null; page = "Home" }
+                        }
+                    },
+                    onLogoutAll = {
+                        val current = session
+                        if (current != null) scope.launch {
+                            try { NativeSupabase.deleteAllSessions(context, current) }
+                            finally { session = null; page = "Home" }
+                        }
                     }
-                }
+                )
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!)
                 "Wallet" -> NativeWalletScreen(session!!)
