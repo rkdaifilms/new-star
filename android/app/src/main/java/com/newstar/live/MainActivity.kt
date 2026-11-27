@@ -363,6 +363,7 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
     var refresh by remember { mutableIntStateOf(0) }
     var creatorProfiles by remember { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
     var followingIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var followRequestPendingIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var followBusyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     val scope = rememberCoroutineScope()
 
@@ -399,11 +400,24 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
             creatorProfiles = if (creatorIds.isEmpty()) emptyMap() else {
                 val ids = Uri.encode("(${creatorIds.joinToString(",")})")
                 val profiles = NativeSupabase.get(
-                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url&user_id=in.$ids",
+                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,is_private&user_id=in.$ids",
                     session
                 )
                 (0 until profiles.length()).mapNotNull { profiles.optJSONObject(it) }
                     .associateBy { it.optString("user_id") }
+            }
+            val privateCreatorIds = creatorProfiles.values
+                .filter { it.optBoolean("is_private") }
+                .map { it.optString("user_id") }
+                .filter { it.isNotBlank() && it !in followingIds }
+            followRequestPendingIds = if (privateCreatorIds.isEmpty()) emptySet() else {
+                val targetIds = Uri.encode("(${privateCreatorIds.joinToString(",")})")
+                val pending = NativeSupabase.get(
+                    "/rest/v1/follow_requests?select=target_user_id&requester_id=eq.${Uri.encode(session.userId)}&status=eq.pending&target_user_id=in.$targetIds",
+                    session
+                )
+                (0 until pending.length()).mapNotNull { pending.optJSONObject(it)?.optString("target_user_id") }
+                    .filter { it.isNotBlank() }.toSet()
             }
         } catch (e: Exception) {
             error = e.message ?: "Live rooms लोड नहीं हुए।"
@@ -458,13 +472,27 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
                                                 )
                                                 followingIds = followingIds - creatorId
                                             } else {
-                                                NativeSupabase.post(
-                                                    "/rest/v1/followers",
-                                                    JSONObject().put("follower_id", session.userId)
-                                                        .put("following_id", creatorId),
-                                                    session
-                                                )
-                                                followingIds = followingIds + creatorId
+                                                val creator = creatorProfiles[creatorId]
+                                                if (creator?.optBoolean("is_private") == true) {
+                                                    if (creatorId !in followRequestPendingIds) {
+                                                        NativeSupabase.post(
+                                                            "/rest/v1/follow_requests",
+                                                            JSONObject().put("requester_id", session.userId)
+                                                                .put("target_user_id", creatorId)
+                                                                .put("status", "pending"),
+                                                            session
+                                                        )
+                                                        followRequestPendingIds = followRequestPendingIds + creatorId
+                                                    }
+                                                } else {
+                                                    NativeSupabase.post(
+                                                        "/rest/v1/followers",
+                                                        JSONObject().put("follower_id", session.userId)
+                                                            .put("following_id", creatorId),
+                                                        session
+                                                    )
+                                                    followingIds = followingIds + creatorId
+                                                }
                                             }
                                         } catch (e: Exception) {
                                             error = e.message ?: "Follow update नहीं हुआ।"
@@ -474,7 +502,16 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
                                     }
                                 }
                             ) {
-                                Text(if (creatorId in followBusyIds) "Please wait…" else if (isFollowing) "Following" else "Follow")
+                                Text(
+                                    when {
+                                        creatorId in followBusyIds -> "Please wait…"
+                                        isFollowing -> "Following"
+                                        creatorProfiles[creatorId]?.optBoolean("is_private") == true &&
+                                            creatorId in followRequestPendingIds -> "Requested"
+                                        creatorProfiles[creatorId]?.optBoolean("is_private") == true -> "Request Follow"
+                                        else -> "Follow"
+                                    }
+                                )
                             }
                         }
                         if (playback.startsWith("https://")) {
