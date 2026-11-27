@@ -86,7 +86,7 @@ class NativeInboxActivity : Activity() {
     }
     private fun openThread(id:String,name:String,existingId:String) {
         peer=id; peerName=name; conversation=existingId
-        if(conversation.isBlank()) conversation=null
+        if(conversation.isNullOrBlank()) conversation=null
         list.removeAllViews(); status.text="Loading chat with $name…"
         worker.execute {
             try {
