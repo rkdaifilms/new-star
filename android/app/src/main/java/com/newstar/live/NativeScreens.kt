@@ -263,6 +263,13 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                 metadata.put("cover_url", url)
                 metadata.put("cover_transform", JSONObject().put("scale", coverScale).put("x", coverX).put("y", coverY))
                 NativeSupabase.updateUserMetadata(metadata, session)
+                NativeSupabase.upsert(
+                    "/rest/v1/creator_profile_extras",
+                    JSONObject().put("user_id", session.userId)
+                        .put("cover_url", url)
+                        .put("cover_transform", metadata.optJSONObject("cover_transform") ?: JSONObject()),
+                    session
+                )
                 coverUrl = url
             } catch (e: Exception) { error = e.message ?: "Cover upload असफल हुआ।" }
             finally { photoBusy = false }
@@ -290,12 +297,22 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                 else null
             val user = NativeSupabase.currentUser(session)
             val metadata = user.optJSONObject("user_metadata") ?: JSONObject()
-            coverUrl = metadata.optString("cover_url").orEmpty()
-            val coverTransform = metadata.optJSONObject("cover_transform") ?: JSONObject()
+            val extrasRows = NativeSupabase.get(
+                "/rest/v1/creator_profile_extras?select=cover_url,cover_transform,website,facebook,instagram,youtube,tiktok&user_id=eq.$id",
+                session
+            )
+            val extras = extrasRows.optJSONObject(0)
+            coverUrl = extras?.optString("cover_url")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: metadata.optString("cover_url").orEmpty()
+            val coverTransform = extras?.optJSONObject("cover_transform")
+                ?: metadata.optJSONObject("cover_transform") ?: JSONObject()
             coverScale = coverTransform.optDouble("scale", 1.0).toFloat().coerceIn(1f, 3.5f)
             coverX = coverTransform.optDouble("x", 0.0).toFloat().coerceIn(-50f, 50f)
             coverY = coverTransform.optDouble("y", 0.0).toFloat().coerceIn(-50f, 50f)
-            socialLinks = socialLinks.mapValues { (key, _) -> metadata.optString(key).takeUnless { it == "null" }.orEmpty() }
+            socialLinks = socialLinks.mapValues { (key, _) ->
+                extras?.optString(key)?.takeIf { it.isNotBlank() && it != "null" }
+                    ?: metadata.optString(key).takeUnless { it == "null" }.orEmpty()
+            }
             val videoRows = NativeSupabase.get("/rest/v1/videos?select=id,caption,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$id&order=created_at.desc&limit=100", session)
             videos = (0 until videoRows.length()).mapNotNull { videoRows.optJSONObject(it) }
         } catch (e: Exception) { error = e.message ?: "Profile लोड नहीं हुई।" }
@@ -357,6 +374,18 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                                     .put("y", coverY.coerceIn(-50f, 50f))
                                 metadata.put("cover_url", coverUrl).put("cover_transform", transform)
                                 NativeSupabase.updateUserMetadata(metadata, session)
+                                NativeSupabase.upsert(
+                                    "/rest/v1/creator_profile_extras",
+                                    JSONObject().put("user_id", session.userId)
+                                        .put("cover_url", coverUrl)
+                                        .put("cover_transform", transform)
+                                        .put("website", socialLinks["website"].orEmpty())
+                                        .put("facebook", socialLinks["facebook"].orEmpty())
+                                        .put("instagram", socialLinks["instagram"].orEmpty())
+                                        .put("youtube", socialLinks["youtube"].orEmpty())
+                                        .put("tiktok", socialLinks["tiktok"].orEmpty()),
+                                    session
+                                )
                             } catch (e: Exception) {
                                 error = e.message ?: "Cover position सेव नहीं हुई।"
                             } finally { coverSaveBusy = false }
@@ -480,6 +509,19 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                                     .put("bio", cleanBio)
                                 socialLinks.forEach { (key, value) -> metadata.put(key, value.trim()) }
                                 NativeSupabase.updateUserMetadata(metadata, session)
+                                NativeSupabase.upsert(
+                                    "/rest/v1/creator_profile_extras",
+                                    JSONObject().put("user_id", session.userId)
+                                        .put("cover_url", coverUrl.ifBlank { JSONObject.NULL.toString() })
+                                        .put("cover_transform", JSONObject().put("scale", coverScale)
+                                            .put("x", coverX).put("y", coverY))
+                                        .put("website", socialLinks["website"].orEmpty().trim())
+                                        .put("facebook", socialLinks["facebook"].orEmpty().trim())
+                                        .put("instagram", socialLinks["instagram"].orEmpty().trim())
+                                        .put("youtube", socialLinks["youtube"].orEmpty().trim())
+                                        .put("tiktok", socialLinks["tiktok"].orEmpty().trim()),
+                                    session
+                                )
                                 NativeSupabase.patch("/rest/v1/profiles?user_id=eq.$id",
                                     JSONObject().put("full_name", cleanName)
                                         .put("username", cleanUsername)
