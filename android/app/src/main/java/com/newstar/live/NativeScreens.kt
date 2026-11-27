@@ -649,8 +649,9 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                     "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url&user_id=in.$idsFilter",
                     session
                 )
-                peerProfiles = (0 until rows.length()).mapNotNull { it.optJSONObject(it) }
-                    .associateBy { it.optString("user_id") }
+                peerProfiles = (0 until rows.length()).mapNotNull { index ->
+                    rows.optJSONObject(index)
+                }.associateBy { profileRow -> profileRow.optString("user_id") }
             }
         } catch (e: Exception) {
             error = e.message ?: "Creator details लोड नहीं हुए।"
