@@ -329,3 +329,33 @@ private object NativeVideoUploader {
 
     private fun b64(value: String) = Base64.encodeToString(value.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
 }
+
+
+@Composable
+fun NativeGamingScreen(
+    session: NativeSession,
+    onStart: (String) -> Unit,
+    onStop: () -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var preparing by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf("Gaming LIVE Android screen capture") }
+    Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Native Gaming LIVE", style = MaterialTheme.typography.headlineSmall)
+        Text("यह स्क्रीन Android MediaProjection permission और native GamingStreamService का उपयोग करती है। LIVE eligibility server पर जाँची जाएगी।")
+        OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Gaming room title") })
+        Button(
+            enabled = !preparing && title.trim().isNotEmpty(),
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                preparing = true
+                message = "Cloudflare LIVE room तैयार हो रहा है…"
+                onStart(title.trim())
+                preparing = false
+            }
+        ) { Text(if (preparing) "Preparing…" else "Start Gaming LIVE") }
+        OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Stop Gaming LIVE") }
+        Text(message)
+        Text("Streaming के लिए Android की screen-capture अनुमति आवश्यक है। Game/system audio की उपलब्धता Android version और device restrictions पर निर्भर करती है।", style = MaterialTheme.typography.bodySmall)
+    }
+}
