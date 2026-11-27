@@ -688,20 +688,41 @@ private object NativeVideoEditor {
             }
             val edited = EditedMediaItem.Builder(mediaItem).setEffects(Effects(emptyList(), videoEffects)).setRemoveAudio(muteAudio).build()
             val transformer = Transformer.Builder(context).addListener(object : Transformer.Listener {
-                override fun onProgress(composition: Composition, progress: Float) {
-                    val percent = (progress.coerceIn(0f, 1f) * 100).toInt()
-                    android.os.Handler(android.os.Looper.getMainLooper()).post { if (continuation.isActive) onProgress(percent) }
-                }
                 override fun onCompleted(composition: Composition, exportResult: ExportResult) {
-                    if (continuation.isActive) continuation.resume(output)
+                    progressHandler.removeCallbacks(progressPoll)
+                    if (continuation.isActive) {
+                        onProgress(100)
+                        continuation.resume(output)
+                    }
                 }
                 override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) {
+                    progressHandler.removeCallbacks(progressPoll)
                     output.delete()
                     if (continuation.isActive) continuation.resumeWithException(exportException)
                 }
             }).build()
-            continuation.invokeOnCancellation { try { transformer.cancel() } catch (_: Exception) { }; output.delete() }
-            try { transformer.start(edited, output.absolutePath) } catch (e: Exception) {
+            val progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+            val progressHolder = androidx.media3.transformer.ProgressHolder()
+            val progressPoll = object : Runnable {
+                override fun run() {
+                    if (!continuation.isActive) return
+                    try {
+                        transformer.getProgress(progressHolder)
+                        onProgress(progressHolder.progress.coerceIn(0, 99))
+                    } catch (_: Exception) { }
+                    if (continuation.isActive) progressHandler.postDelayed(this, 300L)
+                }
+            }
+            continuation.invokeOnCancellation {
+                progressHandler.removeCallbacks(progressPoll)
+                try { transformer.cancel() } catch (_: Exception) { }
+                output.delete()
+            }
+            try {
+                transformer.start(edited, output.absolutePath)
+                progressHandler.post(progressPoll)
+            } catch (e: Exception) {
+                progressHandler.removeCallbacks(progressPoll)
                 output.delete()
                 if (continuation.isActive) continuation.resumeWithException(e)
             }
