@@ -1140,12 +1140,25 @@ fun NativeWalletScreen(session: NativeSession) {
         error = ""
         try {
             val userId = Uri.encode(session.userId)
+            var balanceTotal = 0L
+            var pageStart = 0
+            var pageSize: Int
+            do {
+                val balancePage = NativeSupabase.getRange(
+                    "/rest/v1/wallet_ledger?select=coin_delta&user_id=eq.$userId&order=created_at.asc",
+                    session, pageStart, pageStart + 499
+                )
+                pageSize = balancePage.length()
+                balanceTotal += (0 until pageSize).sumOf { balancePage.optJSONObject(it)?.optLong("coin_delta") ?: 0L }
+                pageStart += pageSize
+            } while (pageSize == 500)
+            coinBalance = balanceTotal
+
             val ledgerRows = NativeSupabase.get(
                 "/rest/v1/wallet_ledger?select=entry_type,coin_delta,amount_minor,currency,created_at&user_id=eq.$userId&order=created_at.desc&limit=30",
                 session
             )
             ledger = (0 until ledgerRows.length()).mapNotNull { ledgerRows.optJSONObject(it) }
-            coinBalance = ledger.sumOf { it.optLong("coin_delta") }
 
             val earningsRows = NativeSupabase.get(
                 "/rest/v1/creator_gift_earnings?select=coins,gross_coins,platform_fee_coins&creator_id=eq.$userId",
