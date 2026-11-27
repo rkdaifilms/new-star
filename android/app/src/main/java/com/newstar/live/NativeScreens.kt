@@ -144,6 +144,16 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
     var username by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
+    var videoTab by remember { mutableStateOf("All Videos") }
+    val filteredVideos = remember(videos, videoTab) {
+        videos.filter { row ->
+            when (videoTab) {
+                "Short Videos" -> row.optString("video_type").equals("short", true)
+                "Long Videos" -> row.optString("video_type").equals("long", true)
+                else -> true
+            }
+        }
+    }
     val scope = rememberCoroutineScope()
 
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -275,10 +285,15 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                 TextButton(onClick = { editing = true }) { Text("Edit profile") }
             }
             Text("आपकी वीडियो पोस्ट: ${videos.size}")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("All Videos", "Short Videos", "Long Videos").forEach { tab ->
+                    FilterChip(selected = videoTab == tab, onClick = { videoTab = tab }, label = { Text(tab) })
+                }
+            }
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
             TextButton(onClick = { refresh++ }, enabled = !saving && !photoBusy) { Text("Refresh") }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(videos) { item ->
+                items(filteredVideos) { item ->
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             Text(item.optString("caption").ifBlank { "Untitled video" })
@@ -287,6 +302,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                         }
                     }
                 }
+                if (filteredVideos.isEmpty()) item { Text("इस श्रेणी में अभी कोई वीडियो नहीं है।") }
             }
         }
     }
