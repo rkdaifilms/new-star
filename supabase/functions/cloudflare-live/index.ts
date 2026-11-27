@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
   let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string; microphone_enabled?: boolean; camera_enabled?: boolean };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
-  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave"];
+  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave"];
   if (!supportedActions.includes(String(action))) return json({ error: "This LIVE interaction is not enabled on the server yet." }, 501, headers);
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -89,6 +89,22 @@ Deno.serve(async (req: Request) => {
       .select("id,sender_id,display_name,message,created_at").single();
     if (error || !data) return json({ error: "Could not send LIVE chat message." }, 503, headers);
     return json({ ok: true, message: data }, 200, headers);
+  }
+
+  if (action === "live-reaction-counts") {
+    const { data: room, error: roomError } = await getActiveRoom(String(body.room_id || ""));
+    if (roomError || !room) return json({ error: "Active LIVE room not found." }, 404, headers);
+    const reactions = ["like", "heart", "clap", "fire"];
+    const results = await Promise.all(reactions.map((reaction) =>
+      admin.from("live_room_reactions").select("id", { count: "exact", head: true })
+        .eq("room_id", room.id).eq("reaction", reaction)
+    ));
+    if (results.some((result) => result.error)) {
+      return json({ error: "Could not load LIVE reaction totals." }, 503, headers);
+    }
+    const counts: Record<string, number> = {};
+    reactions.forEach((reaction, index) => { counts[reaction] = results[index].count || 0; });
+    return json({ ok: true, counts }, 200, headers);
   }
 
   if (action === "live-react") {
