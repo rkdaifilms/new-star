@@ -776,21 +776,6 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
         onDispose { realtime.close() }
     }
 
-    LaunchedEffect(session.userId, realtimeStatus) {
-        while (true) {
-            delay(25_000)
-            // Phoenix heartbeat keeps the Realtime socket alive while this screen is active.
-            // The message list itself is refreshed only by actual database events or manual refresh.
-            // The socket client ignores heartbeat when the join has not completed.
-            // Its lifetime is tied to the Inbox screen via DisposableEffect.
-            // This coroutine is cancelled automatically when the screen leaves composition.
-            // Heartbeat is sent through the currently active connection.
-            // No polling request is made here.
-            delay(1)
-            break
-        }
-    }
-
     LaunchedEffect(peer, messages, session.userId) {
         if (peer.isNotBlank()) {
             val unreadIds = messages.filter {
