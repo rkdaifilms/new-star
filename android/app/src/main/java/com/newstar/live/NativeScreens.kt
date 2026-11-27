@@ -553,6 +553,7 @@ fun NativeGamingScreen(
     onStart: (String) -> Unit,
     onStop: () -> Unit
 ) {
+    val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var preparing by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Gaming LIVE Android screen capture") }
