@@ -1294,6 +1294,8 @@ private data class NativeAiMessage(val role: String, val content: String)
 
 @Composable
 fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
+    val context = LocalContext.current
+    val appLanguage = remember { context.getSharedPreferences("newstar_preferences", Context.MODE_PRIVATE).getString("language", "hi") ?: "hi" }
     var prompt by remember { mutableStateOf(initialPrompt) }
     var messages by remember { mutableStateOf<List<NativeAiMessage>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
@@ -1306,6 +1308,15 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
         Text("New Star Creator Studio AI", style = MaterialTheme.typography.headlineSmall)
         Text("AI chat और image generation — native Android", style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(8.dp))
+        Text("Creator tools", style = MaterialTheme.typography.titleSmall)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            AssistChip(onClick = { prompt = "Give me 10 original video ideas for my channel." }, label = { Text("Video ideas") })
+            AssistChip(onClick = { prompt = "Write an engaging video title, description and hashtags for this topic: " }, label = { Text("Title & tags") })
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            AssistChip(onClick = { prompt = "Write an original short story about: " }, label = { Text("Story writer") })
+            AssistChip(onClick = { prompt = "Create a content plan for my next 7 videos about: " }, label = { Text("7-day plan") })
+        }
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -1360,7 +1371,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                         try {
                             val response = NativeSupabase.invokeFunction(
                                 "ai-gateway",
-                                JSONObject().put("messages", payload).put("mode", "creator"),
+                                JSONObject().put("messages", payload).put("mode", "creator").put("language", appLanguage),
                                 session
                             )
                             if (!response.optBoolean("ok")) throw IllegalStateException(response.optString("error", "AI reply उपलब्ध नहीं है।"))
@@ -1387,7 +1398,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                             val response = NativeSupabase.invokeFunction(
                                 "ai-gateway",
                                 JSONObject().put("action", "image").put("prompt", text)
-                                    .put("aspectRatio", imageRatio).put("imageSize", "1K"),
+                                    .put("aspectRatio", imageRatio).put("imageSize", "1K").put("language", appLanguage),
                                 session
                             )
                             if (!response.optBoolean("ok")) throw IllegalStateException(response.optString("error", "Image generation failed"))
