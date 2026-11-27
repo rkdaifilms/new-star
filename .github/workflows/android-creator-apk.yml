@@ -76,7 +76,7 @@ jobs:
 
       - name: Validate native Google Sign-In configuration
         env:
-          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID || secrets.GOOGLE_WEB_CLIENT_ID }}
         shell: bash
         run: |
           set -euo pipefail
@@ -91,7 +91,7 @@ jobs:
 
       - name: Build New Star Android APK
         env:
-          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID || secrets.GOOGLE_WEB_CLIENT_ID }}
         run: gradle -p android :app:assembleDebug --no-daemon
 
       - name: Verify APK
