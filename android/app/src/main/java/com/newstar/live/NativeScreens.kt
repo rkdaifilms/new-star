@@ -160,6 +160,12 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
     var fullName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
+    var isPrivate by remember { mutableStateOf(false) }
+    var locationVisibility by remember { mutableStateOf("hidden") }
+    var socialLinks by remember { mutableStateOf(mapOf(
+        "website" to "", "facebook" to "", "instagram" to "", "youtube" to "",
+        "tiktok" to "", "whatsapp" to "", "phone" to ""
+    )) }
     var refresh by remember { mutableIntStateOf(0) }
     var videoTab by remember { mutableStateOf("All Videos") }
     val filteredVideos = remember(videos, videoTab) {
@@ -226,14 +232,18 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
         loading = true; error = ""
         try {
             val id = Uri.encode(session.userId)
-            val rows = NativeSupabase.get("/rest/v1/profiles?select=user_id,username,full_name,avatar_url,bio&user_id=eq.$id", session)
+            val rows = NativeSupabase.get("/rest/v1/profiles?select=user_id,username,full_name,avatar_url,bio,is_private,creator_location_visibility&user_id=eq.$id", session)
             profile = rows.optJSONObject(0)
             fullName = profile?.optString("full_name").orEmpty()
             username = profile?.optString("username").orEmpty()
             bio = profile?.optString("bio").orEmpty()
             avatarUrl = profile?.optString("avatar_url").orEmpty()
+            isPrivate = profile?.optBoolean("is_private") ?: false
+            locationVisibility = profile?.optString("creator_location_visibility").takeUnless { it.isNullOrBlank() || it == "null" } ?: "hidden"
             val user = NativeSupabase.currentUser(session)
-            coverUrl = user.optJSONObject("user_metadata")?.optString("cover_url").orEmpty()
+            val metadata = user.optJSONObject("user_metadata") ?: JSONObject()
+            coverUrl = metadata.optString("cover_url").orEmpty()
+            socialLinks = socialLinks.mapValues { (key, _) -> metadata.optString(key).takeUnless { it == "null" }.orEmpty() }
             val videoRows = NativeSupabase.get("/rest/v1/videos?select=id,caption,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$id&order=created_at.desc&limit=100", session)
             videos = (0 until videoRows.length()).mapNotNull { videoRows.optJSONObject(it) }
         } catch (e: Exception) { error = e.message ?: "Profile लोड नहीं हुई।" }
@@ -274,15 +284,62 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                 OutlinedTextField(fullName, { fullName = it }, Modifier.fillMaxWidth(), label = { Text("Display name") }, singleLine = true)
                 OutlinedTextField(username, { username = it.trim().replace(" ", "") }, Modifier.fillMaxWidth(), label = { Text("Username") }, singleLine = true)
                 OutlinedTextField(bio, { bio = it }, Modifier.fillMaxWidth(), label = { Text("Bio") }, minLines = 3)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Private account", style = MaterialTheme.typography.titleSmall)
+                        Text("केवल approved followers आपकी private videos देख पाएँगे।",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = isPrivate, onCheckedChange = { isPrivate = it })
+                }
+                Text("Creator location visibility", style = MaterialTheme.typography.titleSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = locationVisibility == "hidden",
+                        onClick = { locationVisibility = "hidden" }, label = { Text("Hidden") })
+                    FilterChip(selected = locationVisibility == "public",
+                        onClick = { locationVisibility = "public" }, label = { Text("Public") })
+                }
+                Text("Social links", style = MaterialTheme.typography.titleSmall)
+                listOf("website" to "Website", "facebook" to "Facebook",
+                    "instagram" to "Instagram", "youtube" to "YouTube",
+                    "tiktok" to "TikTok", "whatsapp" to "WhatsApp", "phone" to "Phone"
+                ).forEach { (key, label) ->
+                    OutlinedTextField(
+                        value = socialLinks[key].orEmpty(),
+                        onValueChange = { value -> socialLinks = socialLinks.toMutableMap().apply { put(key, value) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(label) },
+                        singleLine = true
+                    )
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(enabled = !saving && username.matches(Regex("[A-Za-z0-9_.]{3,30}")), onClick = {
                         saving = true; error = ""
                         scope.launch {
                             try {
                                 val id = Uri.encode(session.userId)
+                                val cleanName = fullName.trim()
+                                val cleanUsername = username.trim()
+                                val cleanBio = bio.trim()
+                                val user = NativeSupabase.currentUser(session)
+                                val metadata = user.optJSONObject("user_metadata") ?: JSONObject()
+                                metadata.put("full_name", cleanName)
+                                    .put("username", cleanUsername)
+                                    .put("bio", cleanBio)
+                                socialLinks.forEach { (key, value) -> metadata.put(key, value.trim()) }
+                                NativeSupabase.updateUserMetadata(metadata, session)
                                 NativeSupabase.patch("/rest/v1/profiles?user_id=eq.$id",
-                                    JSONObject().put("full_name", fullName.trim())
-                                        .put("username", username.trim()).put("bio", bio.trim()), session)
+                                    JSONObject().put("full_name", cleanName)
+                                        .put("username", cleanUsername)
+                                        .put("bio", cleanBio)
+                                        .put("is_private", isPrivate)
+                                        .put("creator_location_visibility", locationVisibility), session)
+                                profile = (profile ?: JSONObject()).put("full_name", cleanName)
+                                    .put("username", cleanUsername).put("bio", cleanBio)
+                                    .put("is_private", isPrivate)
+                                    .put("creator_location_visibility", locationVisibility)
                                 editing = false
                                 refresh++
                             } catch (e: Exception) { error = e.message ?: "Profile save नहीं हुई।" }
@@ -293,6 +350,9 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                         fullName = profile?.optString("full_name").orEmpty()
                         username = profile?.optString("username").orEmpty()
                         bio = profile?.optString("bio").orEmpty()
+                        isPrivate = profile?.optBoolean("is_private") ?: false
+                        locationVisibility = profile?.optString("creator_location_visibility")
+                            .takeUnless { it.isNullOrBlank() || it == "null" } ?: "hidden"
                         editing = false
                     }) { Text("Cancel") }
                 }
