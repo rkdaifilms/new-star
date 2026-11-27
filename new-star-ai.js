@@ -68,6 +68,7 @@ async function toggleVoice(){
   recordedChunks=[];
   recorder.ondataavailable=event=>{if(event.data&&event.data.size>0)recordedChunks.push(event.data);};
   recorder.onerror=event=>{
+    voiceSendPending=false;submit.disabled=false;
    stopVoiceTracks();
    if(recordingLimitTimer){clearTimeout(recordingLimitTimer);recordingLimitTimer=null;}
    recorder=null;
@@ -82,7 +83,7 @@ async function toggleVoice(){
    recorder=null;
    recordedChunks=[];
    resetMicButton();
-   if(blob.size<100){bubble("Recording is empty or too short. Tap the microphone and try again.","ai");return;}
+   if(blob.size<100){voiceSendPending=false;submit.disabled=false;mic.disabled=false;resetMicButton();bubble("Recording is empty or too short. Tap the microphone and try again.","ai");return;}
    mic.disabled=true;
    mic.textContent="Transcribing…";
    try{
