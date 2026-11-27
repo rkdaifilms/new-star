@@ -47,7 +47,17 @@ class MainActivity : ComponentActivity() {
     private var pendingGamingRoomId: String? = null
     private var pendingGamingWhip: String? = null
     private var activeGamingRoomId: String? = null
+    private var queuedGamingSession: NativeSession? = null
+    private var queuedGamingTitle: String? = null
     private val oauthSession = mutableStateOf<NativeSession?>(null)
+
+    private val microphonePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val session = queuedGamingSession
+        val title = queuedGamingTitle
+        queuedGamingSession = null
+        queuedGamingTitle = null
+        if (session != null && title != null) createGamingRoom(session, title, granted)
+    }
 
     private val screenPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val session = pendingGamingSession
@@ -66,13 +76,24 @@ class MainActivity : ComponentActivity() {
                 putExtra(GamingStreamService.INCLUDE_MIC, micGranted)
             }
             ContextCompat.startForegroundService(this, intent)
-            activeGamingRoomId = roomId
             lifecycleScope.launch {
                 try {
                     NativeSupabase.invokeFunction("cloudflare-live", JSONObject()
                         .put("action", "confirm").put("room_id", roomId), session)
-                } catch (_: Exception) { }
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(this@MainActivity, e.message ?: "LIVE confirm नहीं हुआ।", android.widget.Toast.LENGTH_LONG).show()
+                }
             }
+        } else if (session != null && roomId != null) {
+            activeGamingRoomId = roomId
+            lifecycleScope.launch {
+                try {
+                    NativeSupabase.invokeFunction("cloudflare-live",
+                        JSONObject().put("action", "stop").put("room_id", roomId), session)
+                } catch (_: Exception) { }
+                finally { if (activeGamingRoomId == roomId) activeGamingRoomId = null }
+            }
+            android.widget.Toast.makeText(this, "Screen sharing रद्द हुई; LIVE room बंद कर दिया गया।", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -117,6 +138,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun prepareGaming(session: NativeSession, title: String) {
+        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            createGamingRoom(session, title, true)
+        } else {
+            queuedGamingSession = session
+            queuedGamingTitle = title
+            microphonePermission.launch(android.Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    private fun createGamingRoom(session: NativeSession, title: String, micGranted: Boolean) {
         lifecycleScope.launch {
             try {
                 val response = NativeSupabase.invokeFunction("cloudflare-live", JSONObject()
@@ -125,9 +156,14 @@ class MainActivity : ComponentActivity() {
                     .put("room_type", "gaming")
                     .put("seat_capacity", 1), session)
                 if (!response.optBoolean("ok")) throw IllegalStateException(response.optString("error", "Gaming room तैयार नहीं हुआ।"))
+                val roomId = response.getString("room_id")
                 pendingGamingSession = session
-                pendingGamingRoomId = response.getString("room_id")
+                pendingGamingRoomId = roomId
                 pendingGamingWhip = response.getString("whip_url")
+                activeGamingRoomId = roomId
+                if (!micGranted) {
+                    android.widget.Toast.makeText(this@MainActivity, "Microphone अनुमति नहीं मिली; LIVE केवल screen video के साथ शुरू होगा।", android.widget.Toast.LENGTH_LONG).show()
+                }
                 val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                 screenPermission.launch(manager.createScreenCaptureIntent())
             } catch (e: Exception) {
