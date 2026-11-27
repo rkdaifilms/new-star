@@ -324,6 +324,14 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
+    var creatorProfiles by remember { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
+
+    LaunchedEffect(session.userId) {
+        while (true) {
+            delay(20_000)
+            refresh++
+        }
+    }
 
     LaunchedEffect(session.userId, refresh) {
         loading = true
@@ -333,7 +341,18 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
                 "/rest/v1/live_rooms?select=id,creator_id,room_title,stream_playback_url,viewer_count,room_type,started_at&is_live=eq.true&order=started_at.desc&limit=50",
                 session
             )
-            rooms = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+            val loaded = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+            rooms = loaded
+            val creatorIds = loaded.map { it.optString("creator_id") }.filter { it.isNotBlank() }.distinct()
+            creatorProfiles = if (creatorIds.isEmpty()) emptyMap() else {
+                val ids = Uri.encode("(${creatorIds.joinToString(",")})")
+                val profiles = NativeSupabase.get(
+                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url&user_id=in.$ids",
+                    session
+                )
+                (0 until profiles.length()).mapNotNull { profiles.optJSONObject(it) }
+                    .associateBy { it.optString("user_id") }
+            }
         } catch (e: Exception) {
             error = e.message ?: "Live rooms लोड नहीं हुए।"
         } finally { loading = false }
@@ -354,7 +373,21 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
                     Column(Modifier.padding(12.dp)) {
                         Text(room.optString("room_title").ifBlank { "New Star Live" },
                             style = MaterialTheme.typography.titleLarge)
-                        Text("Creator: ${room.optString("creator_id")} · ${room.optInt("viewer_count")} viewers")
+                        val creator = creatorProfiles[room.optString("creator_id")]
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            AsyncImage(
+                                model = creator?.optString("avatar_url")?.takeIf { it.startsWith("https://") },
+                                contentDescription = "LIVE creator avatar",
+                                modifier = Modifier.size(34.dp).clip(CircleShape)
+                            )
+                            Column(Modifier.padding(start = 8.dp)) {
+                                Text(creator?.optString("full_name").orEmpty().ifBlank {
+                                    creator?.optString("username").orEmpty().ifBlank { "New Star Creator" }
+                                })
+                                Text("@${creator?.optString("username").orEmpty()} · ${room.optInt("viewer_count")} viewers",
+                                    style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                         if (playback.startsWith("https://")) {
                             val context = LocalContext.current
                             val player = remember(playback) {
