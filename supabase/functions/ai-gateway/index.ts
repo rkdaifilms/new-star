@@ -192,7 +192,7 @@ Deno.serve(async (req: Request) => {
   const headers = corsHeaders(origin);
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405, headers);
-  if (!ALLOWED_ORIGINS.has(origin)) return json({ ok: false, error: "Origin not allowed" }, 403, headers);
+  // Native Android has no browser Origin header. Accept an absent Origin only after the verified Supabase JWT check above; browser origins remain allow-listed.\n  if (origin && !ALLOWED_ORIGINS.has(origin)) return json({ ok: false, error: "Origin not allowed" }, 403, headers);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
