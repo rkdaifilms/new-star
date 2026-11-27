@@ -262,6 +262,15 @@ object NativeSupabase {
     suspend fun get(path: String, session: NativeSession? = null): JSONArray =
         withContext(Dispatchers.IO) { JSONArray(request("GET", path, token = session?.accessToken)) }
 
+    suspend fun getRange(path: String, session: NativeSession, from: Int, to: Int): JSONArray =
+        withContext(Dispatchers.IO) {
+            require(from >= 0 && to >= from)
+            JSONArray(request(
+                "GET", path, token = session.accessToken,
+                extraHeaders = mapOf("Range-Unit" to "items", "Range" to "$from-$to")
+            ))
+        }
+
     suspend fun post(path: String, body: JSONObject, session: NativeSession): String =
         withContext(Dispatchers.IO) { request("POST", path, body, session.accessToken, mapOf("Prefer" to "return=representation")) }
 
