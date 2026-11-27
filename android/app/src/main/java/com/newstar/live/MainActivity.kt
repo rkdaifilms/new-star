@@ -47,7 +47,13 @@ class MainActivity : AppCompatActivity() {
         prefs.getString("runtime_config_json", null)?.let { cached ->
             runCatching { runtimeConfig = JSONObject(cached) }
         }
-        if (session == null) showAuth() else showHome()
+        if (session == null) {
+            showAuth()
+        } else {
+            // Keep the creator signed in across app restarts; refresh tokens silently.
+            showHome()
+            refreshSavedSession()
+        }
         handleSupabaseOAuthCallback(intent)
         loadRuntimeConfig(force = true)
     }
@@ -134,6 +140,37 @@ class MainActivity : AppCompatActivity() {
     private fun saveSession(value: NewStarSession) {
         session = value
         prefs.edit().putString("access", value.accessToken).putString("refresh", value.refreshToken).putString("user_id", value.userId).putString("email", value.email).apply()
+    }
+
+    private fun refreshSavedSession() {
+        val saved = session ?: return
+        worker.execute {
+            try {
+                val refreshed = api.refreshSession(saved.refreshToken)
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed && session?.userId == saved.userId) {
+                        saveSession(refreshed)
+                    }
+                }
+            } catch (e: Exception) {
+                val message = e.message.orEmpty().lowercase()
+                val refreshRejected = message.contains("invalid_grant") ||
+                    message.contains("refresh_token_not_found") ||
+                    message.contains("invalid refresh token") ||
+                    message.contains("refresh token not found")
+                if (refreshRejected) {
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed && session?.userId == saved.userId) {
+                            prefs.edit().remove("access").remove("refresh").remove("user_id").remove("email").apply()
+                            session = null
+                            showAuth()
+                            showStatus("आपका लॉगिन सत्र समाप्त हो गया है। कृपया एक बार फिर लॉगिन करें।")
+                        }
+                    }
+                }
+                // For temporary network/server errors, keep the saved session and home screen.
+            }
+        }
     }
 
     private fun baseScreen(title: String) {
