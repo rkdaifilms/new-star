@@ -22,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -847,6 +848,8 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
     var error by remember { mutableStateOf("") }
     var videoTab by remember(creatorId) { mutableStateOf("All") }
     var locationName by remember { mutableStateOf("") }
+    var publicExtras by remember { mutableStateOf<JSONObject?>(null) }
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val visibleVideos = remember(videos, videoTab) {
         when (videoTab) {
@@ -867,6 +870,14 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                 ?: throw IllegalStateException("Creator profile उपलब्ध नहीं है।")
             profile = creator
             locationName = creator.optString("location_name")
+            publicExtras = if (creator.optBoolean("is_private")) null else try {
+                val response = NativeSupabase.post(
+                    "/rest/v1/rpc/get_public_creator_profile_extras",
+                    JSONObject().put("p_creator_id", creatorId),
+                    session
+                )
+                JSONObject(response)
+            } catch (_: Exception) { null }
             val relation = NativeSupabase.get(
                 "/rest/v1/followers?select=id&follower_id=eq.${Uri.encode(session.userId)}&following_id=eq.$safeId",
                 session
@@ -923,6 +934,27 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         if (profile == null && error.isBlank()) CircularProgressIndicator()
         profile?.let { creator ->
+            val extras = publicExtras
+            val cover = extras?.optString("cover_url").orEmpty()
+            if (cover.startsWith("https://")) {
+                val transform = extras?.optJSONObject("cover_transform") ?: JSONObject()
+                val scale = transform.optDouble("scale", 1.0).toFloat().coerceIn(1f, 3.5f)
+                val offsetX = transform.optDouble("x", 0.0).toFloat().coerceIn(-50f, 50f)
+                val offsetY = transform.optDouble("y", 0.0).toFloat().coerceIn(-50f, 50f)
+                AsyncImage(
+                    model = cover,
+                    contentDescription = "Creator profile cover",
+                    modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            translationX = offsetX / 100f * size.width
+                            translationY = offsetY / 100f * size.height
+                        },
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            }
             val avatar = creator.optString("avatar_url")
             if (avatar.isNotBlank()) {
                 AsyncImage(model = avatar, contentDescription = "Creator photo",
@@ -933,6 +965,29 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                 style = MaterialTheme.typography.headlineSmall)
             Text("@${creator.optString("username")}")
             if (creator.optString("bio").isNotBlank()) Text(creator.optString("bio"))
+            val socialLabels = listOf(
+                "website" to "Website", "facebook" to "Facebook",
+                "instagram" to "Instagram", "youtube" to "YouTube", "tiktok" to "TikTok"
+            )
+            val availableSocials = socialLabels.mapNotNull { (key, label) ->
+                extras?.optString(key)?.takeIf { it.isNotBlank() && it != "null" }?.let { label to it }
+            }
+            if (availableSocials.isNotEmpty()) {
+                Text("Social Links", style = MaterialTheme.typography.titleSmall)
+                availableSocials.chunked(2).forEach { pair ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        pair.forEach { (label, rawUrl) ->
+                            TextButton(onClick = {
+                                try {
+                                    val url = if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) rawUrl
+                                        else "https://$rawUrl"
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                } catch (_: Exception) { error = "यह Social Link नहीं खुल सका।" }
+                            }) { Text(label) }
+                        }
+                    }
+                }
+            }
             if (locationName.isNotBlank()) {
                 Text("📍 $locationName", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
