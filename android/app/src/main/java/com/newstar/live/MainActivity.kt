@@ -2,6 +2,7 @@ package com.newstar.live
 
 import android.content.Context
 import android.content.Intent
+import android.app.ProgressDialog
 import android.app.AlertDialog
 import android.graphics.Color
 import android.net.Uri
@@ -22,8 +23,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var content: FrameLayout
     private lateinit var status: TextView
 
-    private val videoPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri != null) Toast.makeText(this, "Selected video: " + uri.lastPathSegment, Toast.LENGTH_SHORT).show()
+    private val videoPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            promptVideoTitle(uri)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -315,13 +319,90 @@ class MainActivity : AppCompatActivity() {
         addBottomNav("Search")
     }
 
+
+    private fun promptVideoTitle(uri: Uri) {
+        val titleInput = EditText(this).apply {
+            hint = "Video title"
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.GRAY)
+            setSingleLine()
+            setPadding(dp(14), dp(8), dp(14), dp(8))
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Publish video")
+            .setMessage("Selected video will be uploaded to New Star.")
+            .setView(titleInput)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Upload", null)
+            .create().also { dialog ->
+                dialog.setOnShowListener {
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                        val active = session
+                        if (active == null) { dialog.dismiss(); showAuth(); return@setOnClickListener }
+                        dialog.dismiss()
+                        startNativeUpload(uri, titleInput.text.toString(), active)
+                    }
+                }
+                dialog.show()
+            }
+    }
+
+    private fun startNativeUpload(uri: Uri, title: String, active: NewStarSession) {
+        val progress = ProgressDialog(this).apply {
+            setTitle("Uploading to New Star")
+            setMessage("Preparing video… 0%")
+            setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
+            max = 100
+            progress = 0
+            setCancelable(false)
+            show()
+        }
+        worker.execute {
+            try {
+                val streamId = api.uploadVideo(this, active.accessToken, active.userId, uri, title) { percent ->
+                    runOnUiThread {
+                        if (!isFinishing && progress.isShowing) {
+                            progress.progress = percent
+                            progress.setMessage("Uploading video… " + percent + "%")
+                        }
+                    }
+                }
+                runOnUiThread {
+                    if (!isFinishing) {
+                        progress.dismiss()
+                        AlertDialog.Builder(this)
+                            .setTitle("Upload submitted")
+                            .setMessage("New Star received the video. Processing may take a short time. Reference: " + streamId)
+                            .setPositiveButton("OK") { _, _ -> showProfile() }
+                            .show()
+                    }
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    if (!isFinishing) {
+                        progress.dismiss()
+                        AlertDialog.Builder(this)
+                            .setTitle("Upload failed")
+                            .setMessage(e.message ?: "Could not upload video.")
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
+                }
+            }
+        }
+    }
+
     private fun showProfile() {
         baseScreen("Your Account")
         val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(24), dp(20), dp(20)) }
         panel.addView(label("Signed in as\n" + (session?.email ?: "New Star creator"), 16f))
+        val upload = button("Upload video")
         val logout = button("Sign out")
+        panel.addView(upload, LinearLayout.LayoutParams(-1, dp(50)))
+        panel.addView(space(10))
         panel.addView(logout, LinearLayout.LayoutParams(-1, dp(50)))
         content.addView(panel)
+        upload.setOnClickListener { videoPicker.launch(arrayOf("video/*")) }
         logout.setOnClickListener { prefs.edit().clear().apply(); session = null; showAuth() }
     }
 
