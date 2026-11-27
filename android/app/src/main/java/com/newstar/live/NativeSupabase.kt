@@ -172,6 +172,54 @@ object NativeSupabase {
         "$SUPABASE_URL/storage/v1/object/public/$bucket/$safePath"
     }
 
+    suspend fun uploadPrivateObject(
+        bucket: String, path: String, bytes: ByteArray, mimeType: String, session: NativeSession
+    ): String = withContext(Dispatchers.IO) {
+        require(bucket == "message-media") { "Private upload bucket अमान्य है।" }
+        require(bytes.isNotEmpty() && bytes.size <= 20 * 1024 * 1024) { "Attachment 20 MB से छोटी होनी चाहिए।" }
+        require(mimeType.startsWith("image/") || mimeType.startsWith("video/") ||
+            mimeType == "application/pdf" || mimeType.startsWith("audio/")) {
+            "यह file type भेजने की अनुमति नहीं है।"
+        }
+        val safePath = path.split("/").joinToString("/") { Uri.encode(it) }
+        val connection = (URL("$SUPABASE_URL/storage/v1/object/$bucket/$safePath").openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 20000
+            readTimeout = 90000
+            doOutput = true
+            setRequestProperty("apikey", SUPABASE_KEY)
+            setRequestProperty("Authorization", "Bearer ${session.accessToken}")
+            setRequestProperty("Content-Type", mimeType)
+            setRequestProperty("x-upsert", "false")
+        }
+        connection.outputStream.use { it.write(bytes) }
+        val code = connection.responseCode
+        val response = (if (code in 200..299) connection.inputStream else connection.errorStream)
+            ?.bufferedReader()?.use { it.readText() }.orEmpty()
+        connection.disconnect()
+        if (code !in 200..299) throw IllegalStateException("Private media upload failed ($code): ${response.take(180)}")
+        path
+    }
+
+    suspend fun createSignedObjectUrl(
+        bucket: String, path: String, session: NativeSession, expiresInSeconds: Int = 3600
+    ): String = withContext(Dispatchers.IO) {
+        require(bucket == "message-media") { "Private media bucket अमान्य है।" }
+        require(path.isNotBlank() && !path.startsWith("/") && !path.contains("..")) {
+            "Attachment path अमान्य है।"
+        }
+        val encodedPath = path.split("/").joinToString("/") { Uri.encode(it) }
+        val response = request(
+            "POST",
+            "/storage/v1/object/sign/$bucket/$encodedPath",
+            JSONObject().put("expiresIn", expiresInSeconds.coerceIn(60, 86400)),
+            session.accessToken
+        )
+        val signed = JSONObject(response).optString("signedURL")
+        require(signed.isNotBlank()) { "Signed attachment URL नहीं मिला।" }
+        if (signed.startsWith("https://")) signed else "$SUPABASE_URL/storage/v1${if (signed.startsWith("/")) signed else "/$signed"}"
+    }
+
     suspend fun currentUser(session: NativeSession): JSONObject = withContext(Dispatchers.IO) {
         JSONObject(request("GET", "/auth/v1/user", token = session.accessToken))
     }
