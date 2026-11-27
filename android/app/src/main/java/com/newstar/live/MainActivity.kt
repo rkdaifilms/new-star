@@ -142,7 +142,7 @@ class MainActivity : ComponentActivity() {
         }
         handleOAuthCallback(intent)
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme()) {
+            NewStarNativeTheme {
                 NativeApp(
                     googleSession = oauthSession.value,
                     onGoogleSignIn = { NativeGoogleOAuth.launch(this) },
