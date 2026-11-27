@@ -142,6 +142,7 @@ body{
 "use strict";
 
 let isSignupMode = false;
+const isRecoveryMode = new URLSearchParams(window.location.search).get("mode") === "recovery";
 let authBusy = false;
 
 const $ = id => document.getElementById(id);
