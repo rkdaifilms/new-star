@@ -1,6 +1,7 @@
 package com.newstar.live
 
 import android.content.Context
+import android.net.Uri
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
@@ -144,6 +145,41 @@ object NativeSupabase {
         }
         return response
     }
+
+
+    suspend fun uploadPublicObject(
+        bucket: String, path: String, bytes: ByteArray, mimeType: String, session: NativeSession
+    ): String = withContext(Dispatchers.IO) {
+        require(bucket.matches(Regex("[A-Za-z0-9_-]+"))) { "Storage bucket अमान्य है।" }
+        require(bytes.isNotEmpty()) { "फोटो खाली है।" }
+        val safePath = path.split("/").joinToString("/") { Uri.encode(it) }
+        val connection = (URL("$SUPABASE_URL/storage/v1/object/$bucket/$safePath").openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 20000
+            readTimeout = 60000
+            doOutput = true
+            setRequestProperty("apikey", SUPABASE_KEY)
+            setRequestProperty("Authorization", "Bearer ${session.accessToken}")
+            setRequestProperty("Content-Type", mimeType)
+            setRequestProperty("x-upsert", "false")
+        }
+        connection.outputStream.use { it.write(bytes) }
+        val code = connection.responseCode
+        val response = (if (code in 200..299) connection.inputStream else connection.errorStream)
+            ?.bufferedReader()?.use { it.readText() }.orEmpty()
+        connection.disconnect()
+        if (code !in 200..299) throw IllegalStateException("Photo upload failed ($code): ${response.take(180)}")
+        "$SUPABASE_URL/storage/v1/object/public/$bucket/$safePath"
+    }
+
+    suspend fun currentUser(session: NativeSession): JSONObject = withContext(Dispatchers.IO) {
+        JSONObject(request("GET", "/auth/v1/user", token = session.accessToken))
+    }
+
+    suspend fun updateUserMetadata(data: JSONObject, session: NativeSession): JSONObject =
+        withContext(Dispatchers.IO) {
+            JSONObject(request("PUT", "/auth/v1/user", JSONObject().put("data", data), session.accessToken))
+        }
 
     suspend fun signUp(email: String, password: String): JSONObject =
         withContext(Dispatchers.IO) {
