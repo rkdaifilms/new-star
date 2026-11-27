@@ -363,7 +363,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                                         .put("id", feature.optString("id"))
                                         .put("name", feature.optString("name").take(240))
                                         .put("longitude", center!!.optDouble(0))
-                                        .put("latitude", center.optDouble(1))
+                                        .put("latitude", center!!.optDouble(1))
                                     locationQuery = feature.optString("name").take(240)
                                     locationResults = emptyList()
                                 },
