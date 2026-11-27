@@ -70,14 +70,13 @@ class MainActivity : AppCompatActivity() {
                 val remote = api.loadRuntimeConfig()
                 runOnUiThread {
                     runtimeConfigFetchInFlight = false
-                    val previousFlags = runtimeConfig.optJSONObject("feature_flags")?.toString().orEmpty()
+                    val previousConfig = runtimeConfig.toString()
                     runtimeConfig = remote.config
                     prefs.edit()
                         .putString("runtime_config_json", remote.config.toString())
                         .putLong("runtime_config_version", remote.version)
                         .apply()
-                    val newFlags = runtimeConfig.optJSONObject("feature_flags")?.toString().orEmpty()
-                    if (previousFlags != newFlags) refreshVisibleScreenForRemoteFlags()
+                    if (previousConfig != runtimeConfig.toString()) refreshVisibleScreenForRemoteFlags()
                     showRuntimeConfigNotice(remote.config, remote.version)
                 }
             } catch (_: Exception) {
