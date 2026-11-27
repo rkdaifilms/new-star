@@ -561,7 +561,8 @@ fun NativeGamingScreen(
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 message = intent?.getStringExtra("message") ?: "Gaming LIVE status update"
-                preparing = intent?.getStringExtra("status") in setOf("starting", "connecting")
+                val state = intent?.getStringExtra("status").orEmpty()
+                preparing = state == "starting" || state == "connecting"
             }
         }
         ContextCompat.registerReceiver(
