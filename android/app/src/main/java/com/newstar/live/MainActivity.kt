@@ -801,13 +801,21 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
 private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
     var chatMessages by remember(roomId) { mutableStateOf<List<JSONObject>>(emptyList()) }
     var draft by remember(roomId) { mutableStateOf("") }
-    var loading by remember(roomId) { mutableStateOf(false) }
     var sending by remember(roomId) { mutableStateOf(false) }
+    var reactionBusy by remember(roomId) { mutableStateOf<String?>(null) }
+    var reactionCounts by remember(roomId) { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    var notice by remember(roomId) { mutableStateOf("") }
     var error by remember(roomId) { mutableStateOf("") }
     var refresh by remember(roomId) { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
+    val reactions = listOf(
+        "like" to "👍 Like",
+        "heart" to "❤️ Heart",
+        "clap" to "👏 Clap",
+        "fire" to "🔥 Fire"
+    )
 
-    LaunchedEffect(roomId, session.userId) {
+    LaunchedEffect(roomId, session.userId, refresh) {
         while (true) {
             try {
                 val result = NativeSupabase.invokeFunction(
@@ -815,7 +823,9 @@ private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
                     JSONObject().put("action", "live-chat-list").put("room_id", roomId),
                     session
                 )
-                if (!result.optBoolean("ok")) throw IllegalStateException(result.optString("error", "LIVE chat लोड नहीं हुई।"))
+                if (!result.optBoolean("ok")) {
+                    throw IllegalStateException(result.optString("error", "LIVE chat लोड नहीं हुई।"))
+                }
                 val rows = result.optJSONArray("messages") ?: JSONArray()
                 chatMessages = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
                 error = ""
@@ -827,7 +837,52 @@ private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
     }
 
     Column(Modifier.fillMaxWidth().padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("LIVE Chat", style = MaterialTheme.typography.titleMedium)
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("LIVE Chat", style = MaterialTheme.typography.titleMedium)
+            TextButton(onClick = { refresh++ }) { Text("Refresh") }
+        }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            reactions.forEach { (reaction, label) ->
+                OutlinedButton(
+                    enabled = reactionBusy == null,
+                    onClick = {
+                        reactionBusy = reaction
+                        notice = ""
+                        scope.launch {
+                            try {
+                                val total = NativeLiveRepository.sendReaction(roomId, reaction, session)
+                                reactionCounts = reactionCounts + (reaction to total)
+                                notice = "$label भेजा गया · कुल $total"
+                                error = ""
+                            } catch (e: Exception) {
+                                error = e.message ?: "LIVE reaction नहीं भेजा गया।"
+                            } finally {
+                                reactionBusy = null
+                            }
+                        }
+                    },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        if (reactionBusy == reaction) "…" else
+                            reactionCounts[reaction]?.let { "$label $it" } ?: label,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+        if (notice.isNotBlank()) {
+            Text(notice, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
+        }
         LazyColumn(
             Modifier.fillMaxWidth().heightIn(max = 190.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -850,8 +905,12 @@ private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
                 }
             }
         }
-        if (chatMessages.isEmpty()) Text("अभी कोई LIVE message नहीं है।", style = MaterialTheme.typography.bodySmall)
-        if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+        if (chatMessages.isEmpty()) {
+            Text("अभी कोई LIVE message नहीं है।", style = MaterialTheme.typography.bodySmall)
+        }
+        if (error.isNotBlank()) {
+            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+        }
         Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             OutlinedTextField(
                 value = draft,
@@ -884,12 +943,17 @@ private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
                                 JSONObject().put("action", "live-chat-list").put("room_id", roomId),
                                 session
                             )
+                            if (!rows.optBoolean("ok")) {
+                                throw IllegalStateException(rows.optString("error", "Message भेजा गया, लेकिन chat refresh नहीं हुई।"))
+                            }
                             val list = rows.optJSONArray("messages") ?: JSONArray()
                             chatMessages = (0 until list.length()).mapNotNull { list.optJSONObject(it) }
                             error = ""
                         } catch (e: Exception) {
                             error = e.message ?: "LIVE message नहीं भेजा गया।"
-                        } finally { sending = false }
+                        } finally {
+                            sending = false
+                        }
                     }
                 }
             ) { Text(if (sending) "…" else "Send") }
