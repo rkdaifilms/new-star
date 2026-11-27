@@ -69,7 +69,7 @@ async function checkProviderStatus(force=false){
  try{
   const {data:sessionData}=await db.auth.getSession();
   if(!sessionData?.session){providerStatus.textContent="AI इस्तेमाल करने के लिए पहले Login करें।";return;}
-  const {data,error}=await db.functions.invoke("ai-gateway",{body:{action:"status"}});
+  const {data,error}=await db.functions.invoke("ai-gateway",{body:{action:"status",mode:"help"}});
   if(error||!data?.ok)throw error||new Error(data?.error||"Status unavailable");
   const ready=data.providers?.gemini?"Gemini":"";
   providerStatus.textContent=ready?"Help & Support AI: Gemini configured. Home New Star AI uses its separate private engine.":"Help & Support AI के लिए Gemini server key configured नहीं है। अधिकृत project owner Supabase Edge Function Secrets में Gemini key जाँचे।";
