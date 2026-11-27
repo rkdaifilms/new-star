@@ -24,6 +24,11 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit, onGoogleSignIn: () -> Unit) {
@@ -291,24 +296,23 @@ private object NativeVideoUploader {
                     if (count < 0) throw IllegalStateException("वीडियो पढ़ते समय फ़ाइल अधूरी मिली।")
                     read += count
                 }
-                val patch = (URL(location).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "PATCH"; connectTimeout = 30000; readTimeout = 120000
-                    doOutput = true
-                    setRequestProperty("Tus-Resumable", "1.0.0")
-                    setRequestProperty("Upload-Offset", offset.toString())
-                    setRequestProperty("Content-Type", "application/offset+octet-stream")
-                    setRequestProperty("Content-Length", wanted.toString())
-                    outputStream.use { it.write(chunk) }
-                }
-                val patchCode = patch.responseCode
-                if (patchCode !in 200..299) {
-                    val error = patch.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
-                    patch.disconnect()
-                    throw IllegalStateException("वीडियो chunk upload असफल ($patchCode): $error")
+                val client = OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(120, TimeUnit.SECONDS)
+                    .writeTimeout(120, TimeUnit.SECONDS)
+                    .build()
+                val request = Request.Builder().url(location)
+                    .header("Tus-Resumable", "1.0.0")
+                    .header("Upload-Offset", offset.toString())
+                    .patch(chunk.toRequestBody("application/offset+octet-stream".toMediaType()))
+                    .build()
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw IllegalStateException("वीडियो chunk upload असफल (${response.code}): ${response.body?.string().orEmpty()}")
+                    }
                 }
                 offset += wanted
                 onProgress(((offset * 100) / size).toInt())
-                patch.disconnect()
             }
         }
         val username = session.email.substringBefore("@").ifBlank { "New Star Creator" }
