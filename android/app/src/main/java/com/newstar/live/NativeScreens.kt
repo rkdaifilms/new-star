@@ -934,16 +934,19 @@ fun NativeUploadScreen(session: NativeSession) {
     DisposableEffect(musicPlayer, voicePlayer) {
         onDispose { musicPlayer?.release(); voicePlayer?.release() }
     }
+    val latestVoiceRecorder by rememberUpdatedState(voiceRecorder)
+    val latestVoiceRecording by rememberUpdatedState(voiceRecording)
+    val latestVoiceRecordingFile by rememberUpdatedState(voiceRecordingFile)
+    val latestVoiceoverFile by rememberUpdatedState(voiceoverFile)
     DisposableEffect(Unit) {
         onDispose {
-            voiceRecorder?.let { recorder ->
-                runCatching { if (voiceRecording) recorder.stop() }
+            latestVoiceRecorder?.let { recorder ->
+                runCatching { if (latestVoiceRecording) recorder.stop() }
                 runCatching { recorder.reset() }
                 runCatching { recorder.release() }
             }
-            voiceRecorder = null
-            voiceRecording = false
-            voiceRecordingFile?.delete()
+            latestVoiceRecordingFile?.delete()
+            latestVoiceoverFile?.delete()
         }
     }
     val scope = rememberCoroutineScope()
