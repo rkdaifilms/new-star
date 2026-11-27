@@ -891,13 +891,6 @@ fun NativeUploadScreen(session: NativeSession) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         acceptSelectedVideo(uri, "gallery")
     }
-    val cameraCapture = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            acceptSelectedVideo(result.data?.data, "camera")
-        } else {
-            status = "Camera recording रद्द हुई।"
-        }
-    }
     val scope = rememberCoroutineScope()
     val previewPlayer = remember(selected) {
         selected?.let { uri ->
