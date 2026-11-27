@@ -512,7 +512,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                                 NativeSupabase.upsert(
                                     "/rest/v1/creator_profile_extras",
                                     JSONObject().put("user_id", session.userId)
-                                        .put("cover_url", coverUrl.ifBlank { JSONObject.NULL.toString() })
+                                        .put("cover_url", coverUrl.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
                                         .put("cover_transform", JSONObject().put("scale", coverScale)
                                             .put("x", coverX).put("y", coverY))
                                         .put("website", socialLinks["website"].orEmpty().trim())
