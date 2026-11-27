@@ -301,6 +301,7 @@ fun NativeInboxScreen(session: NativeSession) {
     var creatorResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var peerProfiles by remember { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
     var body by remember { mutableStateOf("") }
+    var attachmentUrl by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
@@ -473,21 +474,38 @@ fun NativeInboxScreen(session: NativeSession) {
             .ifBlank { peerProfiles[peer]?.optString("username").orEmpty().ifBlank { peer } }))
         OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth(),
             label = { Text("Message") }, minLines = 2)
-        Button(enabled = !busy && peer.isNotBlank() && body.isNotBlank(), onClick = {
+        OutlinedTextField(
+            value = attachmentUrl,
+            onValueChange = { attachmentUrl = it.trim() },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("HTTPS media link (optional)") },
+            singleLine = true
+        )
+        Text("अभी सुरक्षित HTTPS लिंक भेज सकते हैं; फ़ाइल सीधे अपलोड करना अभी उपलब्ध नहीं है।",
+            style = MaterialTheme.typography.labelSmall)
+        Button(enabled = !busy && peer.isNotBlank() && (body.isNotBlank() || attachmentUrl.isNotBlank()), onClick = {
             busy = true
             val messageText = body.trim()
+            val mediaLink = attachmentUrl.trim()
             val target = peer.trim()
             scope.launch {
                 try {
                     require(target != session.userId) { "आप खुद को Message नहीं भेज सकते।" }
                     require(messageText.length <= 5000) { "Message 5000 अक्षरों से छोटा रखें।" }
+                    require(mediaLink.isBlank() || (mediaLink.startsWith("https://") &&
+                        Uri.parse(mediaLink).host?.isNotBlank() == true)) {
+                        "Attachment के लिए valid HTTPS link डालें।"
+                    }
                     val conversation = stableConversationId(session.userId, target)
-                    NativeSupabase.post("/rest/v1/messages", JSONObject()
+                    val payload = JSONObject()
                         .put("conversation_id", conversation)
                         .put("sender_id", session.userId)
                         .put("recipient_id", target)
-                        .put("body", messageText), session)
+                        .put("body", messageText)
+                    if (mediaLink.isNotBlank()) payload.put("media_url", mediaLink)
+                    NativeSupabase.post("/rest/v1/messages", payload, session)
                     body = ""
+                    attachmentUrl = ""
                     refresh++
                 } catch (e: Exception) { error = e.message ?: "Message नहीं भेजा गया।" }
                 finally { busy = false }
