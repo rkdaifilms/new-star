@@ -75,6 +75,64 @@ internal object NativeLiveRepository {
     suspend fun removeGuest(roomId: String, participantId: String, session: NativeSession): JSONObject =
         invokeSeatAction("live-seat-remove", roomId, participantId, session)
 
+    suspend fun listMembers(roomId: String, session: NativeSession): JSONObject {
+        require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
+        val result = NativeSupabase.invokeFunction(
+            "cloudflare-live",
+            JSONObject().put("action", "list-members").put("room_id", roomId),
+            session
+        )
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "LIVE member list लोड नहीं हुई।"))
+        }
+        return result
+    }
+
+    suspend fun setMemberPermissions(
+        roomId: String,
+        targetUserId: String,
+        cameraAllowed: Boolean? = null,
+        microphoneAllowed: Boolean? = null,
+        session: NativeSession
+    ): JSONObject {
+        require(roomId.isNotBlank() && targetUserId.isNotBlank())
+        require(cameraAllowed != null || microphoneAllowed != null)
+        val body = JSONObject().put("action", "set-member-permissions")
+            .put("room_id", roomId).put("target_user_id", targetUserId)
+        cameraAllowed?.let { body.put("camera_allowed", it) }
+        microphoneAllowed?.let { body.put("microphone_allowed", it) }
+        return invokeMemberAction(body, session)
+    }
+
+    suspend fun setModerator(
+        roomId: String,
+        targetUserId: String,
+        moderator: Boolean,
+        session: NativeSession
+    ): JSONObject = invokeMemberAction(
+        JSONObject().put("action", "set-moderator").put("room_id", roomId)
+            .put("target_user_id", targetUserId).put("moderator", moderator),
+        session
+    )
+
+    suspend fun removeMember(
+        roomId: String,
+        targetUserId: String,
+        session: NativeSession
+    ): JSONObject = invokeMemberAction(
+        JSONObject().put("action", "remove-member").put("room_id", roomId)
+            .put("target_user_id", targetUserId),
+        session
+    )
+
+    private suspend fun invokeMemberAction(body: JSONObject, session: NativeSession): JSONObject {
+        val result = NativeSupabase.invokeFunction("cloudflare-live", body, session)
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "LIVE member action पूरी नहीं हुई।"))
+        }
+        return result
+    }
+
     suspend fun getReactionCounts(roomId: String, session: NativeSession): Map<String, Int> {
         require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
         val result = NativeSupabase.invokeFunction(
