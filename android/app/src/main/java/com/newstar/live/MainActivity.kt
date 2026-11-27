@@ -521,7 +521,23 @@ private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
     var likeCount by remember(video.id) { mutableIntStateOf(video.likes) }
     var likeBusy by remember(video.id) { mutableStateOf(false) }
     var likeError by remember(video.id) { mutableStateOf<String?>(null) }
+    var commentsOpen by remember(video.id) { mutableStateOf(false) }
+    var commentRows by remember(video.id) { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var commentDraft by remember(video.id) { mutableStateOf("") }
+    var commentBusy by remember(video.id) { mutableStateOf(false) }
+    var commentError by remember(video.id) { mutableStateOf<String?>(null) }
+    var currentUsername by remember(session?.userId) { mutableStateOf("creator") }
     val scope = rememberCoroutineScope()
+    LaunchedEffect(session?.userId) {
+        val current = session ?: return@LaunchedEffect
+        try {
+            val profile = NativeSupabase.get(
+                "/rest/v1/creator_public_profiles?select=username&user_id=eq.${Uri.encode(current.userId)}&limit=1",
+                current
+            ).optJSONObject(0)
+            currentUsername = profile?.optString("username")?.takeIf { it.isNotBlank() } ?: "creator"
+        } catch (_: Exception) { }
+    }
     LaunchedEffect(video.id, session?.userId) {
         if (session != null) {
             try {
@@ -599,8 +615,90 @@ private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
                 }
                 if (likeError != null) Text(likeError.orEmpty(), color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelSmall)
+                TextButton(onClick = {
+                    commentsOpen = true
+                    commentError = null
+                    scope.launch {
+                        try {
+                            val rows = NativeSupabase.get(
+                                "/rest/v1/video_comments?select=id,user_id,username,comment,created_at&video_id=eq.${Uri.encode(video.id)}&order=created_at.desc&limit=100",
+                                session
+                            )
+                            commentRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                        } catch (e: Exception) {
+                            commentError = e.message ?: "Comments लोड नहीं हुए।"
+                        }
+                    }
+                }) { Text("Comments") }
             }
         }
+    }
+    if (commentsOpen) {
+        AlertDialog(
+            onDismissRequest = { if (!commentBusy) commentsOpen = false },
+            title = { Text("Comments") },
+            text = {
+                Column(Modifier.fillMaxWidth()) {
+                    LazyColumn(Modifier.heightIn(max = 300.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(commentRows) { row ->
+                            Column(Modifier.fillMaxWidth()) {
+                                Text("@${row.optString("username").ifBlank { "creator" }}",
+                                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Text(row.optString("comment"))
+                                Text(row.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+                            }
+                            Divider()
+                        }
+                    }
+                    if (commentRows.isEmpty() && commentError == null) {
+                        Text("अभी कोई Comment नहीं है।")
+                    }
+                    if (commentError != null) Text(commentError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                    OutlinedTextField(
+                        value = commentDraft,
+                        onValueChange = { if (it.length <= 2000) commentDraft = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("अपना Comment लिखें") },
+                        minLines = 2,
+                        enabled = session != null && !commentBusy
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = session != null && commentDraft.isNotBlank() && !commentBusy,
+                    onClick = {
+                        val current = session ?: return@TextButton
+                        val message = commentDraft.trim()
+                        commentBusy = true
+                        commentError = null
+                        scope.launch {
+                            try {
+                                NativeSupabase.post(
+                                    "/rest/v1/video_comments",
+                                    JSONObject().put("video_id", video.id)
+                                        .put("user_id", current.userId)
+                                        .put("username", currentUsername)
+                                        .put("comment", message),
+                                    current
+                                )
+                                commentDraft = ""
+                                val rows = NativeSupabase.get(
+                                    "/rest/v1/video_comments?select=id,user_id,username,comment,created_at&video_id=eq.${Uri.encode(video.id)}&order=created_at.desc&limit=100",
+                                    current
+                                )
+                                commentRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                            } catch (e: Exception) {
+                                commentError = e.message ?: "Comment भेजा नहीं गया।"
+                            } finally { commentBusy = false }
+                        }
+                    }
+                ) { Text(if (commentBusy) "Sending…" else "Send") }
+            },
+            dismissButton = {
+                TextButton(onClick = { commentsOpen = false }, enabled = !commentBusy) { Text("Close") }
+            }
+        )
     }
 }
 
