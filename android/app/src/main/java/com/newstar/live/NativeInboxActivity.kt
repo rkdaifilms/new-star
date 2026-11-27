@@ -22,6 +22,9 @@ class NativeInboxActivity : Activity() {
     private lateinit var root: LinearLayout
     private lateinit var list: LinearLayout
     private lateinit var status: TextView
+    private lateinit var composer: LinearLayout
+    private lateinit var messageInput: EditText
+    private lateinit var sendButton: Button
     private var peer: String? = null
     private var peerName = "Creator"
     private var conversation: String? = null
@@ -43,6 +46,11 @@ class NativeInboxActivity : Activity() {
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(12,8,12,16) }
         scroll.addView(list)
         root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
+        composer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(8,8,8,8); visibility = android.view.View.GONE }
+        messageInput = EditText(this).apply { hint="Type a message"; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY); inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES }
+        sendButton = Button(this).apply { text="Send"; isAllCaps=false }
+        composer.addView(messageInput, LinearLayout.LayoutParams(0,52,1f)); composer.addView(sendButton)
+        root.addView(composer)
         setContentView(root)
         showThreads()
     }
