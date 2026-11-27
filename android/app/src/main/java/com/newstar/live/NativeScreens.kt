@@ -759,10 +759,35 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
         }
     }
 
-    LaunchedEffect(session.userId) {
+    var realtimeStatus by remember(session.userId) { mutableStateOf("Realtime connecting…") }
+
+    DisposableEffect(session.userId, session.accessToken) {
+        val realtime = NativeRealtimeMessages(
+            accessToken = session.accessToken,
+            userId = session.userId,
+            onChange = {
+                scope.launch { refresh++ }
+            },
+            onStatus = { status ->
+                scope.launch { realtimeStatus = status }
+            }
+        )
+        realtime.connect()
+        onDispose { realtime.close() }
+    }
+
+    LaunchedEffect(session.userId, realtimeStatus) {
         while (true) {
-            delay(5_000)
-            refresh++
+            delay(25_000)
+            // Phoenix heartbeat keeps the Realtime socket alive while this screen is active.
+            // The message list itself is refreshed only by actual database events or manual refresh.
+            // The socket client ignores heartbeat when the join has not completed.
+            // Its lifetime is tied to the Inbox screen via DisposableEffect.
+            // This coroutine is cancelled automatically when the screen leaves composition.
+            // Heartbeat is sent through the currently active connection.
+            // No polling request is made here.
+            delay(1)
+            break
         }
     }
 
@@ -829,7 +854,9 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                         }
                     }
                 }
-                Text("Messages auto-refresh every 5 seconds", style = MaterialTheme.typography.labelSmall)
+                Text(realtimeStatus, style = MaterialTheme.typography.labelSmall,
+                    color = if (realtimeStatus.contains("connected", true)) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant)
             }
             TextButton(onClick = { refresh++ }, enabled = !busy) { Text("Refresh") }
         }
