@@ -871,12 +871,10 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
             profile = creator
             locationName = creator.optString("location_name")
             publicExtras = if (creator.optBoolean("is_private")) null else try {
-                val response = NativeSupabase.post(
-                    "/rest/v1/rpc/get_public_creator_profile_extras",
-                    JSONObject().put("p_creator_id", creatorId),
+                NativeSupabase.get(
+                    "/rest/v1/creator_profile_extras?select=cover_url,cover_transform,website,facebook,instagram,youtube,tiktok&user_id=eq.$safeId",
                     session
-                )
-                JSONObject(response)
+                ).optJSONObject(0)
             } catch (_: Exception) { null }
             val relation = NativeSupabase.get(
                 "/rest/v1/followers?select=id&follower_id=eq.${Uri.encode(session.userId)}&following_id=eq.$safeId",
