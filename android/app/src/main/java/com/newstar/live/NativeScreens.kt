@@ -646,6 +646,7 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
     var permissionMessage by remember { mutableStateOf("") }
     var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
     var recording by remember { mutableStateOf(false) }
+    var stopRequested by remember { mutableStateOf(false) }
     var recordingSeconds by remember { mutableIntStateOf(0) }
     var capture by remember { mutableStateOf<VideoCapture<Recorder>?>(null) }
     var activeRecording by remember { mutableStateOf<androidx.camera.video.Recording?>(null) }
@@ -698,6 +699,11 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
         } else {
             AndroidView(factory = { previewView }, modifier = Modifier.fillMaxWidth().height(320.dp))
             Text(if (recording) "Recording चालू · ${recordingSeconds}s / 600s" else "HD recording · अधिकतम 10 मिनट")
+            if (!audioGranted) {
+                TextButton(onClick = { permissionLauncher.launch(arrayOf(android.Manifest.permission.RECORD_AUDIO)) }, enabled = !recording) {
+                    Text("Enable Microphone")
+                }
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = { lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK },
@@ -708,8 +714,7 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
                     onClick = {
                         val currentCapture = capture ?: return@Button
                         if (recording) {
-                            activeRecording?.stop()
-                            recordingSeconds = recordingSeconds.coerceAtLeast(0)
+                            if (!stopRequested) { stopRequested = true; activeRecording?.stop() }
                         } else {
                             val values = ContentValues().apply {
                                 put(MediaStore.Video.Media.DISPLAY_NAME, "newstar-camera-${System.currentTimeMillis()}.mp4")
@@ -726,13 +731,14 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
                             if (audioGranted) pending = pending.withAudioEnabled()
                             activeRecording = pending.start(mainExecutor) { event ->
                                 when (event) {
-                                    is VideoRecordEvent.Start -> { recording = true; recordingSeconds = 0 }
+                                    is VideoRecordEvent.Start -> { recording = true; stopRequested = false; recordingSeconds = 0 }
                                     is VideoRecordEvent.Status -> {
                                         recordingSeconds = (event.recordingStats.recordedDurationNanos / 1_000_000_000L).toInt().coerceAtMost(600)
-                                        if (recordingSeconds >= 600) { activeRecording?.stop(); recording = false }
+                                        if (recordingSeconds >= 600 && !stopRequested) { stopRequested = true; activeRecording?.stop() }
                                     }
                                     is VideoRecordEvent.Finalize -> {
                                         recording = false
+                                        stopRequested = false
                                         recordingSeconds = 0
                                         activeRecording = null
                                         val savedUri = event.outputResults.outputUri
@@ -745,7 +751,7 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
                             }
                         }
                     },
-                    enabled = capture != null,
+                    enabled = capture != null && !stopRequested,
                     modifier = Modifier.weight(1f)
                 ) { Text(if (recording) "Stop Recording" else "● Record") }
             }
