@@ -328,6 +328,7 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
     var creatorProfiles by remember { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
     var followingIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var followBusyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(session.userId) {
         try {
