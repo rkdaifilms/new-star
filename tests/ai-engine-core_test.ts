@@ -89,6 +89,16 @@ Deno.test("Duplicate Creator Studio AI entry and its settings are removed", asyn
     "Home AI still contains old API-key settings handlers");
 });
 
+Deno.test("Unavailable private AI capabilities are disabled in the home UI", async () => {
+  const source = await read("new-star-ai.js");
+  assert(source.includes("function applyCapabilityAvailability(capabilities)"), "Capability availability gate missing");
+  assert(source.includes("research:Boolean(capabilities.webSearch?.configured)"), "Research must require a deployed private search worker");
+  assert(source.includes("image:Boolean(capabilities.imageGeneration?.configured)"), "Image mode must require a deployed private image worker");
+  assert(source.includes("video:Boolean(capabilities.videoGeneration?.configured)"), "Video mode must require a deployed private video worker");
+  assert(source.includes("const ready=Boolean(capabilities.speechTranscription?.configured)"), "Voice input must require a deployed private transcription worker");
+  assert(source.includes("applyCapabilityAvailability(capabilities);"), "Status response must apply capability gates");
+});
+
 Deno.test("Help AI launcher is not injected into the home feed", async () => {
   const source = await read("ai-chat.js");
   assert(source.includes('if(!onHomeFeed){document.body.append(launch,panel);}'),
