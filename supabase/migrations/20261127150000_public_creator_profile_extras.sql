@@ -1,5 +1,5 @@
 create table if not exists public.creator_profile_extras (
-  user_id text primary key references auth.users(id) on delete cascade,
+  user_id uuid primary key references auth.users(id) on delete cascade,
   cover_url text,
   cover_transform jsonb not null default '{}'::jsonb,
   website text,
@@ -20,7 +20,7 @@ on public.creator_profile_extras
 for select
 to authenticated
 using (
-  (select auth.uid())::text = user_id
+  (select auth.uid()) = user_id
   or exists (
     select 1
     from public.profiles p
@@ -34,7 +34,7 @@ create policy "Creators insert their own extras"
 on public.creator_profile_extras
 for insert
 to authenticated
-with check ((select auth.uid())::text = user_id);
+with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Creators update their own extras" on public.creator_profile_extras;
 create policy "Creators update their own extras"
