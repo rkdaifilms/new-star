@@ -140,8 +140,43 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
         HorizontalDivider()
         Text("02 · Account", style = MaterialTheme.typography.titleLarge)
         Text("Signed-in email: ${session.email}")
-        Text("Password बदलने का native flow अभी जोड़ा नहीं गया है।")
+        OutlinedTextField(value = newEmail, onValueChange = { newEmail = it },
+            modifier = Modifier.fillMaxWidth(), label = { Text("New email address") }, singleLine = true)
+        Button(onClick = {
+            val email = newEmail.trim()
+            if (!email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))) {
+                status = "कृपया सही ईमेल पता डालें।"
+            } else scope.launch {
+                busy = true
+                try {
+                    NativeSupabase.updateAuthUser(JSONObject().put("email", email), session)
+                    newEmail = ""
+                    status = "Email update request भेजा गया। नए ईमेल पर verification पूरा करें।"
+                } catch (e: Exception) { status = e.message ?: "Email update नहीं हुआ।" }
+                busy = false
+            }
+        }, enabled = !busy) { Text("Change Email") }
+        OutlinedTextField(value = newPassword, onValueChange = { newPassword = it },
+            modifier = Modifier.fillMaxWidth(), label = { Text("New password (minimum 8 characters)") }, singleLine = true)
+        OutlinedTextField(value = confirmPassword, onValueChange = { confirmPassword = it },
+            modifier = Modifier.fillMaxWidth(), label = { Text("Confirm new password") }, singleLine = true)
+        Button(onClick = {
+            when {
+                newPassword.length < 8 -> status = "Password कम-से-कम 8 अक्षर का होना चाहिए।"
+                newPassword != confirmPassword -> status = "दोनों Password एक जैसे नहीं हैं।"
+                else -> scope.launch {
+                    busy = true
+                    try {
+                        NativeSupabase.updateAuthUser(JSONObject().put("password", newPassword), session)
+                        newPassword = ""; confirmPassword = ""
+                        status = "Password अपडेट हो गया।"
+                    } catch (e: Exception) { status = e.message ?: "Password update नहीं हुआ।" }
+                    busy = false
+                }
+            }
+        }, enabled = !busy) { Text("Change Password") }
         Button(onClick = onLogout) { Text("Log out this device") }
+        OutlinedButton(onClick = onLogoutAll, enabled = !busy) { Text("Log out all sessions") }
         HorizontalDivider()
         Text("03 · Privacy & Security", style = MaterialTheme.typography.titleLarge)
         SettingToggle("Private account", privateAccount) { enabled ->
