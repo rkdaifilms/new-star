@@ -518,6 +518,8 @@ fun NativeUploadScreen(session: NativeSession) {
     var trimStartSeconds by remember { mutableStateOf("0") }
     var trimEndSeconds by remember { mutableStateOf("") }
     var sourceDurationSeconds by remember { mutableIntStateOf(0) }
+    var sourceWidth by remember { mutableIntStateOf(0) }
+    var sourceHeight by remember { mutableIntStateOf(0) }
     var rotationDegrees by remember { mutableIntStateOf(0) }
     var muteOriginalAudio by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("none") }
@@ -531,7 +533,9 @@ fun NativeUploadScreen(session: NativeSession) {
                 try {
                     retriever.setDataSource(context, uri)
                     sourceDurationSeconds = ((retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000L).toInt()
-                    require(sourceDurationSeconds > 0) { "वीडियो की अवधि पढ़ नहीं सके।" }
+                    sourceWidth = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+                    sourceHeight = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+                    require(sourceDurationSeconds > 0 && sourceWidth > 0 && sourceHeight > 0) { "वीडियो की अवधि या resolution पढ़ नहीं सके।" }
                 } finally {
                     retriever.release()
                 }
@@ -563,6 +567,9 @@ fun NativeUploadScreen(session: NativeSession) {
         Text("Native Video Upload", style = MaterialTheme.typography.headlineSmall)
         Button(onClick = { picker.launch(arrayOf("video/*")) }, enabled = !uploading) { Text("Gallery से वीडियो चुनें") }
         Text(selected?.lastPathSegment ?: "कोई वीडियो नहीं चुना गया")
+        if (selected != null && sourceWidth > 0 && sourceHeight > 0) {
+            Text("Video Info · ${sourceWidth} × ${sourceHeight} · ${sourceDurationSeconds}s")
+        }
         if (previewPlayer != null) {
             AndroidView(
                 modifier = Modifier.fillMaxWidth().height(240.dp),
