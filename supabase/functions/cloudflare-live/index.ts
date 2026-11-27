@@ -192,13 +192,32 @@ Deno.serve(async (req: Request) => {
     const { data: profile } = await admin.from("profiles").select("full_name,username")
       .eq("user_id", creatorId).maybeSingle();
     const displayName = String(profile?.full_name || profile?.username || "Creator").trim().slice(0, 80) || "Creator";
-    const { data, error } = await admin.from("live_room_participants").upsert({
-      room_id: roomId, user_id: creatorId, display_name: displayName,
-      role: "guest", status: "requested", seat_number: null, left_at: null,
-      last_seen_at: new Date().toISOString(),
-    }, { onConflict: "room_id,user_id" })
-      .select("id,status").single();
-    if (error || !data) return json({ error: "Could not request a LIVE seat. Check whether an invitation is required." }, 409, headers);
+    const now = new Date().toISOString();
+    const { data: existing, error: existingError } = await admin.from("live_room_participants")
+      .select("id,status,seat_number").eq("room_id", roomId).eq("user_id", creatorId).maybeSingle();
+    if (existingError) return json({ error: "Could not check your existing LIVE seat." }, 503, headers);
+    if (existing?.status === "admitted") {
+      return json({ ok: true, participant: { id: existing.id, status: "admitted", seat_number: existing.seat_number } }, 200, headers);
+    }
+    let data: any = null;
+    let error: any = null;
+    if (existing) {
+      const result = await admin.from("live_room_participants").update({
+        display_name: displayName, role: "guest", status: "requested",
+        seat_number: null, left_at: null, last_seen_at: now,
+        camera_enabled: false, microphone_enabled: false,
+      }).eq("id", existing.id).neq("status", "admitted")
+        .select("id,status").single();
+      data = result.data; error = result.error;
+    } else {
+      const result = await admin.from("live_room_participants").insert({
+        room_id: roomId, user_id: creatorId, display_name: displayName,
+        role: "guest", status: "requested", last_seen_at: now,
+        camera_enabled: false, microphone_enabled: false,
+      }).select("id,status").single();
+      data = result.data; error = result.error;
+    }
+    if (error || !data) return json({ error: "Could not request a LIVE seat. Refresh and retry." }, 409, headers);
     return json({ ok: true, participant: data }, 200, headers);
   }
 
