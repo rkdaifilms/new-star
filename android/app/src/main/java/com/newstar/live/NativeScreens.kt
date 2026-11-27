@@ -35,6 +35,11 @@ import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
@@ -152,6 +157,11 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
     var videos by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var avatarUrl by remember { mutableStateOf("") }
     var coverUrl by remember { mutableStateOf("") }
+    var coverScale by remember { mutableFloatStateOf(1f) }
+    var coverX by remember { mutableFloatStateOf(0f) }
+    var coverY by remember { mutableFloatStateOf(0f) }
+    var coverPreviewSize by remember { mutableStateOf(IntSize.Zero) }
+    var coverSaveBusy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
     var saving by remember { mutableStateOf(false) }
@@ -251,6 +261,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                 val user = NativeSupabase.currentUser(session)
                 val metadata = user.optJSONObject("user_metadata") ?: JSONObject()
                 metadata.put("cover_url", url)
+                metadata.put("cover_transform", JSONObject().put("scale", coverScale).put("x", coverX).put("y", coverY))
                 NativeSupabase.updateUserMetadata(metadata, session)
                 coverUrl = url
             } catch (e: Exception) { error = e.message ?: "Cover upload असफल हुआ।" }
@@ -280,6 +291,10 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
             val user = NativeSupabase.currentUser(session)
             val metadata = user.optJSONObject("user_metadata") ?: JSONObject()
             coverUrl = metadata.optString("cover_url").orEmpty()
+            val coverTransform = metadata.optJSONObject("cover_transform") ?: JSONObject()
+            coverScale = coverTransform.optDouble("scale", 1.0).toFloat().coerceIn(1f, 3.5f)
+            coverX = coverTransform.optDouble("x", 0.0).toFloat().coerceIn(-50f, 50f)
+            coverY = coverTransform.optDouble("y", 0.0).toFloat().coerceIn(-50f, 50f)
             socialLinks = socialLinks.mapValues { (key, _) -> metadata.optString(key).takeUnless { it == "null" }.orEmpty() }
             val videoRows = NativeSupabase.get("/rest/v1/videos?select=id,caption,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$id&order=created_at.desc&limit=100", session)
             videos = (0 until videoRows.length()).mapNotNull { videoRows.optJSONObject(it) }
@@ -295,8 +310,59 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
         if (loading) CircularProgressIndicator()
         else {
             if (coverUrl.isNotBlank()) {
-                AsyncImage(model = coverUrl, contentDescription = "Profile cover",
-                    modifier = Modifier.fillMaxWidth().height(112.dp), contentScale = ContentScale.Crop)
+                Text("Profile cover · 16:9", style = MaterialTheme.typography.titleSmall)
+                Box(
+                    Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp))
+                        .onSizeChanged { coverPreviewSize = it }
+                        .pointerInput(coverPreviewSize) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                if (coverPreviewSize.width > 0 && coverPreviewSize.height > 0) {
+                                    coverX = (coverX + dragAmount.x / coverPreviewSize.width * 100f).coerceIn(-50f, 50f)
+                                    coverY = (coverY + dragAmount.y / coverPreviewSize.height * 100f).coerceIn(-50f, 50f)
+                                }
+                            }
+                        }
+                ) {
+                    AsyncImage(
+                        model = coverUrl, contentDescription = "Profile cover preview",
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
+                            scaleX = coverScale
+                            scaleY = coverScale
+                            translationX = coverX / 100f * coverPreviewSize.width
+                            translationY = coverY / 100f * coverPreviewSize.height
+                        },
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                Text("एक उँगली से फोटो खिसकाएँ। Zoom और Position नीचे सेट करें।",
+                    style = MaterialTheme.typography.bodySmall)
+                Text("Zoom")
+                Slider(value = coverScale, onValueChange = { coverScale = it }, valueRange = 1f..3.5f)
+                Text("Horizontal position")
+                Slider(value = coverX, onValueChange = { coverX = it }, valueRange = -50f..50f)
+                Text("Vertical position")
+                Slider(value = coverY, onValueChange = { coverY = it }, valueRange = -50f..50f)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { coverScale = 1f; coverX = 0f; coverY = 0f }) { Text("Reset position") }
+                    Button(enabled = !coverSaveBusy, onClick = {
+                        scope.launch {
+                            coverSaveBusy = true
+                            error = ""
+                            try {
+                                val user = NativeSupabase.currentUser(session)
+                                val metadata = user.optJSONObject("user_metadata") ?: JSONObject()
+                                val transform = JSONObject().put("scale", coverScale.coerceIn(1f, 3.5f))
+                                    .put("x", coverX.coerceIn(-50f, 50f))
+                                    .put("y", coverY.coerceIn(-50f, 50f))
+                                metadata.put("cover_url", coverUrl).put("cover_transform", transform)
+                                NativeSupabase.updateUserMetadata(metadata, session)
+                            } catch (e: Exception) {
+                                error = e.message ?: "Cover position सेव नहीं हुई।"
+                            } finally { coverSaveBusy = false }
+                        }
+                    }) { Text(if (coverSaveBusy) "Saving…" else "Save cover position") }
+                }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
