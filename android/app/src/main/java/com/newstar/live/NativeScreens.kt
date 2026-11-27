@@ -1334,12 +1334,35 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
             if (generatedImage != null) {
                 item {
                     Card(Modifier.fillMaxWidth()) {
-                        Image(
-                            bitmap = generatedImage!!.asImageBitmap(),
-                            contentDescription = "AI generated creator image",
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Fit
-                        )
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Image(
+                                bitmap = generatedImage!!.asImageBitmap(),
+                                contentDescription = "AI generated creator image",
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                            )
+                            Button(onClick = {
+                                val bitmap = generatedImage
+                                if (bitmap != null) scope.launch {
+                                    try {
+                                        val values = android.content.ContentValues().apply {
+                                            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "new-star-creator-" + System.currentTimeMillis() + ".png")
+                                            put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                                            if (android.os.Build.VERSION.SDK_INT >= 29) put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/New Star")
+                                        }
+                                        val uri = context.contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                                            ?: throw IllegalStateException("Gallery में image save नहीं हो सकी।")
+                                        val saved = context.contentResolver.openOutputStream(uri)?.use { output ->
+                                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+                                        } ?: false
+                                        if (!saved) throw IllegalStateException("Image file लिखी नहीं जा सकी।")
+                                        error = "Image Gallery के Pictures/New Star folder में save हो गई।"
+                                    } catch (e: Exception) {
+                                        error = e.message ?: "Image save नहीं हुई।"
+                                    }
+                                }
+                            }, modifier = Modifier.fillMaxWidth()) { Text("Save image to Gallery") }
+                        }
                     }
                 }
             }
