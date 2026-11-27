@@ -6,6 +6,28 @@ on:
     paths:
       - "android/**"
       - ".github/workflows/android-creator-apk.yml"
+      - "new-star-ai.js"
+      - "new-star-ai.html"
+      - "new-star-ai.css"
+      - "ai-chat.js"
+      - "settings.html"
+      - "navbar.js"
+      - "creator-ai.html"
+      - "supabase/functions/ai-gateway/**"
+      - "tests/ai-engine-core_test.ts"
+  pull_request:
+    paths:
+      - "android/**"
+      - "new-star-ai.js"
+      - "new-star-ai.html"
+      - "new-star-ai.css"
+      - "ai-chat.js"
+      - "settings.html"
+      - "navbar.js"
+      - "creator-ai.html"
+      - "supabase/functions/ai-gateway/**"
+      - "tests/ai-engine-core_test.ts"
+      - ".github/workflows/android-creator-apk.yml"
   workflow_dispatch:
 
 permissions:
@@ -33,6 +55,24 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check AI browser JavaScript syntax
+        run: |
+          node --check new-star-ai.js
+          node --check ai-chat.js
+
+      - name: Run New Star AI regression tests
+        run: deno test --no-check --allow-read=. tests/ai-engine-core_test.ts
 
       - name: Build New Star Android APK
         run: gradle -p android :app:assembleDebug --no-daemon
