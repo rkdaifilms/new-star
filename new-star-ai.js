@@ -4,6 +4,7 @@ const form=$("ns-form"),prompt=$("ns-prompt"),output=$("ns-output"),submit=$("ns
 async function gatewayErrorMessage(result,fallback){const direct=result?.data?.error;if(typeof direct==="string"&&direct.trim())return direct;try{const response=result?.error?.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();if(typeof payload?.error==="string"&&payload.error.trim())return payload.error;}}catch(_){}return fallback;}
 function selectedAppLanguage(){try{const p=window.NewStarPreferences?.get?.()||JSON.parse(localStorage.getItem("newstar_preferences")||"{}");return typeof p.language==="string"&&/^[a-z]{2}$/i.test(p.language)?p.language:"";}catch(_){return "";}}
 function automaticLanguageOptions(){return {language:"auto"};}function setPrivateImageSizeMode(privateOnly){const select=$("ns-size");if(!select)return;for(const option of select.options){const supported=!privateOnly||option.value==="1K";option.disabled=!supported;option.hidden=!supported;}if(privateOnly)select.value="1K";}
+function applyCapabilityAvailability(capabilities){const availability={research:Boolean(capabilities.webSearch?.configured),image:Boolean(capabilities.imageGeneration?.configured),video:Boolean(capabilities.videoGeneration?.configured)};document.querySelectorAll("[data-mode]").forEach(button=>{const name=button.dataset.mode;if(name==="chat")return;const ready=Boolean(availability[name]);button.disabled=!ready;button.title=ready?"":"This New Star private worker is not deployed yet.";button.setAttribute("aria-disabled",String(!ready));});const mic=$("ns-mic");if(mic){const ready=Boolean(capabilities.speechTranscription?.configured);mic.disabled=!ready;mic.title=ready?"":"New Star private speech-recognition worker is not deployed yet.";mic.setAttribute("aria-disabled",String(!ready));}}
 function requestLanguage(){return lastInputWasVoice?(lastTranscriptionLanguage||automaticLanguageOptions().language):(selectedAppLanguage()||automaticLanguageOptions().language);}
 let lastTranscriptionLanguage="",lastInputWasVoice=false;
 let mode="chat",busy=false,attachment=null,conversationId=localStorage.getItem("new-star-ai-conversation")||"",recorder=null,recordedChunks=[];
@@ -227,6 +228,7 @@ async function refreshEngineStatus(){
   const model=health.newStarHostedModel||{};
   const providerHealth=health.providers||{};
   if(result.data.mode==="self_hosted"){
+   applyCapabilityAvailability(capabilities);
    setResearchMode(true);
    setPrivateImageSizeMode(true);
    const privateOnline=Boolean(model.reachable&&model.modelAvailable);
