@@ -80,18 +80,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z "${GOOGLE_WEB_CLIENT_ID:-}" ]]; then
-            echo "::error::GOOGLE_WEB_CLIENT_ID is missing from GitHub Actions repository variables. Refusing to build an APK with a non-functional Google Sign-In button."
+          # Normalize accidental surrounding whitespace or quotes without exposing the ID.
+          GOOGLE_WEB_CLIENT_ID="$(printf '%s' "${GOOGLE_WEB_CLIENT_ID:-}" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
+          if [[ -z "$GOOGLE_WEB_CLIENT_ID" ]]; then
+            echo "::error::GOOGLE_WEB_CLIENT_ID is missing from GitHub Actions repository variables or secrets."
             exit 1
           fi
-          if [[ ! "$GOOGLE_WEB_CLIENT_ID" =~ \.apps\.googleusercontent\.com$ ]]; then
-            echo "::error::GOOGLE_WEB_CLIENT_ID does not look like a Google OAuth Web client ID."
+          if [[ ! "$GOOGLE_WEB_CLIENT_ID" =~ ^[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$ ]]; then
+            echo "::error::GOOGLE_WEB_CLIENT_ID is not a valid-looking Google OAuth Web client ID. Check that the value is the Client ID, not the Client Secret."
             exit 1
           fi
+          echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" >> "$GITHUB_ENV"
+          echo "Google Web Client ID format validated (value hidden)."
 
       - name: Build New Star Android APK
-        env:
-          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID || secrets.GOOGLE_WEB_CLIENT_ID }}
         run: gradle -p android :app:assembleDebug --no-daemon
 
       - name: Verify APK
