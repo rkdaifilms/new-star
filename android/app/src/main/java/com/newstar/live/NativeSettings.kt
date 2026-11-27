@@ -71,26 +71,22 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
     }
 
     suspend fun syncPreferences() {
+        val now = java.time.Instant.now().toString()
         val prefs = JSONObject()
             .put("language", language).put("theme", theme)
             .put("accessibility", JSONObject().put("textScale", textScale.toDouble())
                 .put("reducedMotion", reduceMotion).put("highContrast", highContrast))
             .put("notifications", JSONObject().put("follows", notifyFollow).put("likes", notifyLike)
                 .put("comments", notifyComment).put("messages", notifyMessage))
-            .put("_updatedAt", java.time.Instant.now().toString())
-        val rows = NativeSupabase.get(
-            "/rest/v1/user_preferences?select=preferences&user_id=eq.${session.userId}", session
+            .put("_updatedAt", now)
+        localSave()
+        val result = NativeSupabase.upsert(
+            "/rest/v1/user_preferences",
+            JSONObject().put("user_id", session.userId).put("preferences", prefs).put("updated_at", now),
+            session
         )
-        if (rows.length() > 0) {
-            NativeSupabase.patch(
-                "/rest/v1/user_preferences?user_id=eq.${session.userId}",
-                JSONObject().put("preferences", prefs).put("updated_at", java.time.Instant.now().toString()), session
-            )
-        } else {
-            NativeSupabase.post(
-                "/rest/v1/user_preferences",
-                JSONObject().put("user_id", session.userId).put("preferences", prefs), session
-            )
+        if (result.isBlank() || result == "[]") {
+            throw IllegalStateException("Account preferences सेव नहीं हुईं।")
         }
     }
 
