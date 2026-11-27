@@ -49,6 +49,8 @@ class NewStarApi {
                         .ifBlank { error.optString("msg") }
                         .ifBlank { error.optString("message") }
                         .ifBlank { error.optString("error") }
+                        .ifBlank { error.optString("code") }
+                        .ifBlank { error.optString("error_code") }
                 }.getOrNull()
                 throw IllegalStateException(message?.ifBlank { null } ?: "Server request failed (" + code + ")")
             }
@@ -76,9 +78,15 @@ class NewStarApi {
         return NewStarSession(a, r, id, u.optString("email"))
     }
 
-    fun signIn(email: String, password: String) = parseSession(request("/auth/v1/token?grant_type=password", "POST", body = JSONObject().put("email", email.trim()).put("password", password)))
+    fun signIn(email: String, password: String) = parseSession(
+        request(
+            "/auth/v1/token?grant_type=password",
+            "POST",
+            body = JSONObject().put("email", email.trim().lowercase()).put("password", password)
+        )
+    )
     fun signUp(email: String, password: String): NewStarSession? {
-        val raw = request("/auth/v1/signup", "POST", body = JSONObject().put("email", email.trim()).put("password", password))
+        val raw = request("/auth/v1/signup", "POST", body = JSONObject().put("email", email.trim().lowercase()).put("password", password))
         return if (JSONObject(raw).has("access_token")) parseSession(raw) else null
     }
 
