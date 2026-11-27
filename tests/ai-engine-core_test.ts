@@ -97,6 +97,11 @@ Deno.test("Unavailable private AI capabilities are disabled in the home UI", asy
   assert(source.includes("video:Boolean(capabilities.videoGeneration?.configured)"), "Video mode must require a deployed private video worker");
   assert(source.includes("const ready=Boolean(capabilities.speechTranscription?.configured)"), "Voice input must require a deployed private transcription worker");
   assert(source.includes("applyCapabilityAvailability(capabilities);"), "Status response must apply capability gates");
+  assert(source.includes("if(next!==\"chat\"&&!capabilityAvailability[next])"), "Unavailable modes must not be selectable");
+  assert(source.includes("!capabilityAvailability[detectedMode]"), "Auto-detected unavailable media requests must not be submitted as chat");
+  const html = await read("new-star-ai.html");
+  assert(html.includes('data-mode="image" disabled aria-disabled="true"'), "Image mode must start disabled before status loads");
+  assert(html.includes('id="ns-mic" type="button" disabled aria-disabled="true"'), "Voice must start disabled before status loads");
 });
 
 Deno.test("Help AI launcher is not injected into the home feed", async () => {
