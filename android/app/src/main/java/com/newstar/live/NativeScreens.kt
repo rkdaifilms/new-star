@@ -262,23 +262,80 @@ fun NativeInboxScreen(session: NativeSession) {
     var refresh by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val peers = remember(messages, session.userId) {
+        messages.mapNotNull { row ->
+            val sender = row.optString("sender_id")
+            val recipient = row.optString("recipient_id")
+            (if (sender == session.userId) recipient else sender).takeIf { it.isNotBlank() }
+        }.distinct()
+    }
+    val thread = remember(messages, peer, session.userId) {
+        messages.filter {
+            val sender = it.optString("sender_id")
+            val recipient = it.optString("recipient_id")
+            (sender == session.userId && recipient == peer) ||
+                (sender == peer && recipient == session.userId)
+        }.sortedBy { it.optString("created_at") }
+    }
+
     LaunchedEffect(session.userId, refresh) {
-        busy = true; error = ""
+        busy = true
+        error = ""
         try {
             val filter = Uri.encode("(sender_id.eq.${session.userId},recipient_id.eq.${session.userId})")
-            val rows = NativeSupabase.get("/rest/v1/messages?select=id,conversation_id,sender_id,recipient_id,body,media_url,created_at&or=$filter&order=created_at.desc&limit=250", session)
+            val rows = NativeSupabase.get(
+                "/rest/v1/messages?select=id,conversation_id,sender_id,recipient_id,body,media_url,created_at,read_at&or=$filter&order=created_at.desc&limit=250",
+                session
+            )
             messages = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
-        } catch (e: Exception) { error = e.message ?: "Inbox लोड नहीं हुई।" }
-        finally { busy = false }
+            val unreadIds = messages.filter {
+                it.optString("recipient_id") == session.userId && it.isNull("read_at")
+            }.map { it.optString("id") }.filter { it.isNotBlank() }
+            if (unreadIds.isNotEmpty()) {
+                val ids = Uri.encode("(${unreadIds.joinToString(",")})")
+                NativeSupabase.patch(
+                    "/rest/v1/messages?id=in.$ids&recipient_id=eq.${Uri.encode(session.userId)}",
+                    JSONObject().put("read_at", java.time.Instant.now().toString()),
+                    session
+                )
+            }
+            if (peer.isBlank() && peers.isNotEmpty()) peer = peers.first()
+        } catch (e: Exception) {
+            error = e.message ?: "Inbox लोड नहीं हुई।"
+        } finally { busy = false }
     }
+
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Inbox", style = MaterialTheme.typography.headlineSmall)
-            TextButton(onClick = { refresh++ }) { Text("Refresh") }
+            TextButton(onClick = { refresh++ }, enabled = !busy) { Text("Refresh") }
         }
-        Text("नया संदेश भेजने के लिए प्राप्तकर्ता का User ID डालें।")
-        OutlinedTextField(peer, { peer = it }, Modifier.fillMaxWidth(), label = { Text("Creator User ID") }, singleLine = true)
-        OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth(), label = { Text("Message") })
+        if (peers.isNotEmpty()) {
+            Text("Conversations", style = MaterialTheme.typography.titleMedium)
+            LazyColumn(Modifier.heightIn(max = 150.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(peers) { id ->
+                    val latest = messages.firstOrNull {
+                        it.optString("sender_id") == id || it.optString("recipient_id") == id
+                    }
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().clickable { peer = id },
+                        color = if (peer == id) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text(id, style = MaterialTheme.typography.labelMedium)
+                            Text(latest?.optString("body").orEmpty().ifBlank { "Message" },
+                                maxLines = 1, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+        }
+        Text("नया संदेश भेजने के लिए Creator User ID डालें।")
+        OutlinedTextField(peer, { peer = it }, Modifier.fillMaxWidth(),
+            label = { Text("Creator User ID") }, singleLine = true)
+        OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth(),
+            label = { Text("Message") }, minLines = 2)
         Button(enabled = !busy && peer.isNotBlank() && body.isNotBlank(), onClick = {
             busy = true
             val messageText = body.trim()
@@ -286,6 +343,7 @@ fun NativeInboxScreen(session: NativeSession) {
             scope.launch {
                 try {
                     require(target != session.userId) { "आप खुद को Message नहीं भेज सकते।" }
+                    require(messageText.length <= 5000) { "Message 5000 अक्षरों से छोटा रखें।" }
                     val conversation = stableConversationId(session.userId, target)
                     NativeSupabase.post("/rest/v1/messages", JSONObject()
                         .put("conversation_id", conversation)
@@ -297,15 +355,21 @@ fun NativeInboxScreen(session: NativeSession) {
                 } catch (e: Exception) { error = e.message ?: "Message नहीं भेजा गया।" }
                 finally { busy = false }
             }
-        }) { Text("Send Message") }
+        }) { Text(if (busy) "Please wait…" else "Send Message") }
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(messages) { item ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(10.dp)) {
-                        Text(if (item.optString("sender_id") == session.userId) "You" else item.optString("sender_id"))
-                        Text(item.optString("body").ifBlank { "Media message" })
-                        Text(item.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+        Text("Selected conversation", style = MaterialTheme.typography.titleMedium)
+        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(thread) { item ->
+                val own = item.optString("sender_id") == session.userId
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = if (own) Arrangement.End else Arrangement.Start) {
+                    Card(colors = CardDefaults.cardColors(
+                        containerColor = if (own) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                    )) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text(if (own) "You" else "Creator", style = MaterialTheme.typography.labelSmall)
+                            Text(item.optString("body").ifBlank { "Media message" })
+                            Text(item.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                 }
             }
