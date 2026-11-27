@@ -669,9 +669,14 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
         }
     }
 
+    val isModerator = participants.any {
+        it.optString("user_id") == session.userId &&
+            it.optString("role") == "moderator" && it.optString("status") == "admitted"
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("Guest seats", style = MaterialTheme.typography.titleMedium)
-        if (!isHost) {
+        if (!isHost && !isModerator) {
             OutlinedButton(enabled = !busy, onClick = {
                 busy = true
                 scope.launch {
@@ -698,8 +703,9 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                 }) { Text("Leave seat") }
             }
         } else {
-            OutlinedTextField(
-                value = creatorQuery,
+            if (isHost) {
+                OutlinedTextField(
+                    value = creatorQuery,
                 onValueChange = { creatorQuery = it.take(80) },
                 label = { Text("Creator name या username खोजें") },
                 singleLine = true,
@@ -757,12 +763,19 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                     }) { Text("Invite") }
                 }
             }
+            }
             participants.forEach { person ->
                 val status = person.optString("status")
+                val personId = person.optString("user_id")
+                val personRole = person.optString("role")
+                val cameraAllowed = person.optBoolean("camera_allowed", true)
+                val microphoneAllowed = person.optBoolean("microphone_allowed", true)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Text("${person.optString("display_name")} · $status · seat ${person.optString("seat_number", "-")}",
-                        modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "${person.optString("display_name")} · $personRole · $status · seat ${person.optString("seat_number", "-")}",
+                        modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall
+                    )
                     if (status == "requested") {
                         TextButton(enabled = !busy, onClick = {
                             busy = true
@@ -776,18 +789,71 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                             }
                         }) { Text("Admit") }
                     }
-                    if (status == "requested" || status == "admitted") {
-                        TextButton(enabled = !busy && person.optString("role") == "guest", onClick = {
+                    if (status == "admitted" && personRole != "host" &&
+                        (isHost || (isModerator && personRole == "guest"))) {
+                        TextButton(enabled = !busy, onClick = {
                             busy = true
                             scope.launch {
                                 try {
-                                    NativeLiveRepository.removeGuest(roomId, person.optString("id"), session)
-                                    notice = "Guest हटाया गया।"
+                                    NativeLiveRepository.setMemberPermissions(
+                                        roomId, personId, cameraAllowed = !cameraAllowed, session = session
+                                    )
+                                    notice = if (cameraAllowed) "Camera permission बंद की गई।" else "Camera permission दी गई।"
+                                    reloadParticipants()
+                                } catch (e: Exception) { notice = e.message ?: "Camera permission update failed" }
+                                finally { busy = false }
+                            }
+                        }) { Text(if (cameraAllowed) "Block camera" else "Allow camera") }
+                        TextButton(enabled = !busy, onClick = {
+                            busy = true
+                            scope.launch {
+                                try {
+                                    NativeLiveRepository.setMemberPermissions(
+                                        roomId, personId, microphoneAllowed = !microphoneAllowed, session = session
+                                    )
+                                    notice = if (microphoneAllowed) "Mic permission बंद की गई।" else "Mic permission दी गई।"
+                                    reloadParticipants()
+                                } catch (e: Exception) { notice = e.message ?: "Mic permission update failed" }
+                                finally { busy = false }
+                            }
+                        }) { Text(if (microphoneAllowed) "Block mic" else "Allow mic") }
+                        if (isHost) {
+                            TextButton(enabled = !busy, onClick = {
+                                busy = true
+                                scope.launch {
+                                    try {
+                                        NativeLiveRepository.setModerator(roomId, personId, personRole != "moderator", session)
+                                        notice = if (personRole == "moderator") "Moderator role हटाई गई।" else "Moderator बनाया गया।"
+                                        reloadParticipants()
+                                    } catch (e: Exception) { notice = e.message ?: "Moderator role update failed" }
+                                    finally { busy = false }
+                                }
+                            }) { Text(if (personRole == "moderator") "Remove moderator" else "Make moderator") }
+                        }
+                        TextButton(enabled = !busy, onClick = {
+                            busy = true
+                            scope.launch {
+                                try {
+                                    NativeLiveRepository.removeMember(roomId, personId, session)
+                                    notice = "LIVE member हटाया गया।"
                                     reloadParticipants()
                                 } catch (e: Exception) { notice = e.message ?: "Remove failed" }
                                 finally { busy = false }
                             }
                         }) { Text("Remove") }
+                    }
+                    if (status == "requested" && isHost) {
+                        TextButton(enabled = !busy, onClick = {
+                            busy = true
+                            scope.launch {
+                                try {
+                                    NativeLiveRepository.removeGuest(roomId, person.optString("id"), session)
+                                    notice = "Guest request हटाई गई।"
+                                    reloadParticipants()
+                                } catch (e: Exception) { notice = e.message ?: "Remove failed" }
+                                finally { busy = false }
+                            }
+                        }) { Text("Decline") }
                     }
                 }
             }
