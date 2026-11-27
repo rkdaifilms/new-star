@@ -1,4 +1,4 @@
-name: Android App compile verification (no APK release)
+name: New Star Android debug APK build
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build-debug-apk:
-    name: Compile and verify APK package/signature (artifact withheld)
+    name: Compile, verify and publish installable debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -47,10 +47,12 @@ jobs:
           test -n "$APKSIGNER"
           "$APKSIGNER" verify --verbose "$APK"
           sha256sum "$APK" | tee android-apk-sha256.txt
-      - name: Upload verification checksum only (no APK release)
+      - name: Upload installable debug APK and checksum
         uses: actions/upload-artifact@v4
         with:
-          name: new-star-android-build-verification-${{ github.sha }}
-          path: android-apk-sha256.txt
+          name: new-star-android-debug-apk-${{ github.sha }}
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android-apk-sha256.txt
           if-no-files-found: error
           retention-days: 30
