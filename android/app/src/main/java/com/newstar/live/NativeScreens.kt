@@ -268,6 +268,9 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
 fun NativeInboxScreen(session: NativeSession) {
     var messages by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var peer by remember { mutableStateOf("") }
+    var peerSearch by remember { mutableStateOf("") }
+    var creatorResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var peerProfiles by remember { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
     var body by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
@@ -287,6 +290,41 @@ fun NativeInboxScreen(session: NativeSession) {
             (sender == session.userId && recipient == peer) ||
                 (sender == peer && recipient == session.userId)
         }.sortedBy { it.optString("created_at") }
+    }
+
+    LaunchedEffect(peerSearch, session.userId) {
+        val term = peerSearch.trim().replace("%", "").replace("*", "").replace(",", " ")
+            .replace("(", " ").replace(")", " ")
+        if (term.length < 2) {
+            creatorResults = emptyList()
+        } else {
+            delay(300)
+            try {
+                val filter = Uri.encode("(username.ilike.*$term*,full_name.ilike.*$term*)")
+                val rows = NativeSupabase.get(
+                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url&or=$filter&order=username.asc&limit=15",
+                    session
+                )
+                creatorResults = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                    .filter { it.optString("user_id") != session.userId }
+            } catch (_: Exception) { creatorResults = emptyList() }
+        }
+    }
+
+    LaunchedEffect(peers.joinToString("|"), session.userId) {
+        if (peers.isEmpty()) {
+            peerProfiles = emptyMap()
+        } else {
+            try {
+                val ids = Uri.encode("(${peers.joinToString(",")})")
+                val rows = NativeSupabase.get(
+                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url&user_id=in.$ids",
+                    session
+                )
+                peerProfiles = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                    .associateBy { it.optString("user_id") }
+            } catch (_: Exception) { peerProfiles = emptyMap() }
+        }
     }
 
     LaunchedEffect(session.userId) {
@@ -338,6 +376,37 @@ fun NativeInboxScreen(session: NativeSession) {
             }
             TextButton(onClick = { refresh++ }, enabled = !busy) { Text("Refresh") }
         }
+        OutlinedTextField(
+            value = peerSearch,
+            onValueChange = { peerSearch = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Creator का नाम या @username खोजें") },
+            singleLine = true
+        )
+        if (creatorResults.isNotEmpty()) {
+            LazyColumn(Modifier.heightIn(max = 150.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(creatorResults) { creator ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable {
+                            peer = creator.optString("user_id")
+                            peerSearch = ""
+                            creatorResults = emptyList()
+                        }.padding(8.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        AsyncImage(
+                            model = creator.optString("avatar_url").takeIf { it.startsWith("https://") },
+                            contentDescription = "Creator avatar",
+                            modifier = Modifier.size(36.dp).clip(CircleShape)
+                        )
+                        Column(Modifier.padding(start = 10.dp)) {
+                            Text(creator.optString("full_name").ifBlank { creator.optString("username") })
+                            Text("@${creator.optString("username")}", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+        }
         if (peers.isNotEmpty()) {
             Text("Conversations", style = MaterialTheme.typography.titleMedium)
             LazyColumn(Modifier.heightIn(max = 150.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -345,23 +414,34 @@ fun NativeInboxScreen(session: NativeSession) {
                     val latest = messages.firstOrNull {
                         it.optString("sender_id") == id || it.optString("recipient_id") == id
                     }
+                    val profile = peerProfiles[id]
                     Surface(
                         modifier = Modifier.fillMaxWidth().clickable { peer = id },
                         color = if (peer == id) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Column(Modifier.padding(10.dp)) {
-                            Text(id, style = MaterialTheme.typography.labelMedium)
-                            Text(latest?.optString("body").orEmpty().ifBlank { "Message" },
-                                maxLines = 1, style = MaterialTheme.typography.bodySmall)
+                        Row(Modifier.padding(10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            AsyncImage(
+                                model = profile?.optString("avatar_url")?.takeIf { it.startsWith("https://") },
+                                contentDescription = "Creator avatar",
+                                modifier = Modifier.size(38.dp).clip(CircleShape)
+                            )
+                            Column(Modifier.padding(start = 10.dp)) {
+                                Text(profile?.optString("full_name").orEmpty().ifBlank {
+                                    profile?.optString("username").orEmpty().ifBlank { "Creator" }
+                                })
+                                Text("@${profile?.optString("username").orEmpty()}",
+                                    style = MaterialTheme.typography.labelSmall)
+                                Text(latest?.optString("body").orEmpty().ifBlank { "Media message" },
+                                    maxLines = 1, style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                 }
             }
         }
-        Text("नया संदेश भेजने के लिए Creator User ID डालें।")
-        OutlinedTextField(peer, { peer = it }, Modifier.fillMaxWidth(),
-            label = { Text("Creator User ID") }, singleLine = true)
+        Text("Selected creator: " + (peerProfiles[peer]?.optString("full_name").orEmpty()
+            .ifBlank { peerProfiles[peer]?.optString("username").orEmpty().ifBlank { peer } }))
         OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth(),
             label = { Text("Message") }, minLines = 2)
         Button(enabled = !busy && peer.isNotBlank() && body.isNotBlank(), onClick = {
@@ -394,7 +474,7 @@ fun NativeInboxScreen(session: NativeSession) {
                         containerColor = if (own) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                     )) {
                         Column(Modifier.padding(10.dp)) {
-                            Text(if (own) "You" else "Creator", style = MaterialTheme.typography.labelSmall)
+                            Text(if (own) "You" else peerProfiles[peer]?.optString("full_name").orEmpty().ifBlank { peerProfiles[peer]?.optString("username").orEmpty().ifBlank { "Creator" } }, style = MaterialTheme.typography.labelSmall)
                             Text(item.optString("body").ifBlank { "Media message" })
                             Text(item.optString("created_at"), style = MaterialTheme.typography.labelSmall)
                         }
