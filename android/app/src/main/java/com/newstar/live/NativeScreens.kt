@@ -40,6 +40,18 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.effect.ScaleAndRotateTransformation
+import androidx.media3.transformer.Composition
+import androidx.media3.transformer.EditedMediaItem
+import androidx.media3.transformer.Effects
+import androidx.media3.transformer.ExportException
+import androidx.media3.transformer.ExportResult
+import androidx.media3.transformer.Transformer
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -495,11 +507,28 @@ fun NativeUploadScreen(session: NativeSession) {
     var progress by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf("3 घंटे तक का वीडियो चुनें। अधिकतम आकार 5 GiB है।") }
     var uploading by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf(false) }
+    var trimStartSeconds by remember { mutableStateOf("0") }
+    var trimEndSeconds by remember { mutableStateOf("") }
+    var sourceDurationSeconds by remember { mutableIntStateOf(0) }
+    var rotationDegrees by remember { mutableIntStateOf(0) }
+    var muteOriginalAudio by remember { mutableStateOf(false) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         selected = uri
         if (uri != null) {
             try { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
-            status = "वीडियो चुना गया। अब Publish दबाएँ।"
+            try {
+                val retriever = MediaMetadataRetriever()
+                retriever.setDataSource(context, uri)
+                sourceDurationSeconds = ((retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000L).toInt()
+                retriever.release()
+                trimStartSeconds = "0"
+                trimEndSeconds = sourceDurationSeconds.toString()
+                rotationDegrees = 0
+                muteOriginalAudio = false
+                editing = true
+                status = "वीडियो चुना गया। Trim, rotate या mute सेट करके Apply edits दबाएँ।"
+            } catch (e: Exception) { status = e.message ?: "वीडियो metadata पढ़ नहीं सके।" }
         }
     }
     val scope = rememberCoroutineScope()
@@ -507,6 +536,42 @@ fun NativeUploadScreen(session: NativeSession) {
         Text("Native Video Upload", style = MaterialTheme.typography.headlineSmall)
         Button(onClick = { picker.launch(arrayOf("video/*")) }, enabled = !uploading) { Text("Gallery से वीडियो चुनें") }
         Text(selected?.lastPathSegment ?: "कोई वीडियो नहीं चुना गया")
+        if (editing && selected != null) {
+            Text("Native editor · कुल अवधि $sourceDurationSeconds सेकंड", style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = trimStartSeconds, onValueChange = { trimStartSeconds = it.filter(Char::isDigit) }, modifier = Modifier.weight(1f), label = { Text("Trim start (sec)") }, singleLine = true)
+                OutlinedTextField(value = trimEndSeconds, onValueChange = { trimEndSeconds = it.filter(Char::isDigit) }, modifier = Modifier.weight(1f), label = { Text("Trim end (sec)") }, singleLine = true)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { rotationDegrees = (rotationDegrees + 90) % 360 }, enabled = !uploading) { Text("Rotate $rotationDegrees°") }
+                FilterChip(selected = muteOriginalAudio, onClick = { muteOriginalAudio = !muteOriginalAudio }, label = { Text(if (muteOriginalAudio) "Original audio muted" else "Keep original audio") })
+            }
+            Button(enabled = !uploading, onClick = {
+                val input = selected ?: return@Button
+                val start = trimStartSeconds.toLongOrNull()
+                val end = trimEndSeconds.toLongOrNull()
+                if (start == null || end == null || start < 0 || end > sourceDurationSeconds || end <= start) {
+                    status = "Trim समय सही रखें: Start 0 से शुरू हो और End, Start से बड़ा तथा वीडियो अवधि के अंदर हो।"
+                    return@Button
+                }
+                uploading = true
+                status = "वीडियो edit/export हो रहा है…"
+                scope.launch {
+                    try {
+                        val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio)
+                        selected = Uri.fromFile(output)
+                        sourceDurationSeconds = (end - start).toInt()
+                        trimStartSeconds = "0"
+                        trimEndSeconds = sourceDurationSeconds.toString()
+                        rotationDegrees = 0
+                        muteOriginalAudio = false
+                        editing = false
+                        status = "Edited video तैयार है। अब Publish दबाएँ।"
+                    } catch (e: Exception) { status = e.message ?: "Video editing असफल हुई।" }
+                    finally { uploading = false }
+                }
+            }) { Text("Apply edits and save") }
+        }
         OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Title") })
         OutlinedTextField(description, { description = it }, Modifier.fillMaxWidth(), label = { Text("Description") })
         OutlinedTextField(category, { category = it }, Modifier.fillMaxWidth(), label = { Text("Category") })
@@ -534,6 +599,32 @@ private fun stableConversationId(first: String, second: String): String {
     val hex = digest.take(16).joinToString("") { "%02x".format(it) }
     return hex.substring(0, 8) + "-" + hex.substring(8, 12) + "-5" +
         hex.substring(13, 16) + "-a" + hex.substring(17, 20) + "-" + hex.substring(20, 32)
+}
+
+@OptIn(UnstableApi::class)
+private object NativeVideoEditor {
+    suspend fun export(context: Context, input: Uri, startMs: Long, endMs: Long, rotation: Int, muteAudio: Boolean): java.io.File =
+        suspendCancellableCoroutine { continuation ->
+            val output = java.io.File(context.cacheDir, "newstar-edit-" + System.currentTimeMillis() + ".mp4")
+            val clipping = MediaItem.ClippingConfiguration.Builder().setStartPositionMs(startMs).setEndPositionMs(endMs).build()
+            val mediaItem = MediaItem.Builder().setUri(input).setClippingConfiguration(clipping).build()
+            val videoEffects = if (rotation == 0) emptyList() else listOf(ScaleAndRotateTransformation.Builder().setRotationDegrees(rotation.toFloat()).build())
+            val edited = EditedMediaItem.Builder(mediaItem).setEffects(Effects(emptyList(), videoEffects)).setRemoveAudio(muteAudio).build()
+            val transformer = Transformer.Builder(context).addListener(object : Transformer.Listener {
+                override fun onCompleted(composition: Composition, exportResult: ExportResult) {
+                    if (continuation.isActive) continuation.resume(output)
+                }
+                override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) {
+                    output.delete()
+                    if (continuation.isActive) continuation.resumeWithException(exportException)
+                }
+            }).build()
+            continuation.invokeOnCancellation { try { transformer.cancel() } catch (_: Exception) { }; output.delete() }
+            try { transformer.start(edited, output.absolutePath) } catch (e: Exception) {
+                output.delete()
+                if (continuation.isActive) continuation.resumeWithException(e)
+            }
+        }
 }
 
 private object NativeVideoUploader {
