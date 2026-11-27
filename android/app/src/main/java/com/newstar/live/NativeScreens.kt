@@ -1,6 +1,19 @@
 package com.newstar.live
 
 import android.content.Context
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.FileOutputOptions
+import androidx.camera.video.Quality
+import androidx.camera.video.QualitySelector
+import androidx.camera.video.Recorder
+import androidx.camera.video.VideoCapture
+import androidx.camera.video.PendingRecording
+import androidx.camera.video.VideoRecordEvent
+import androidx.camera.view.PreviewView
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import java.io.File
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -619,6 +632,117 @@ fun NativeInboxScreen(session: NativeSession) {
 }
 
 
+
+@Composable
+private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
+    var cameraGranted by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) }
+    var audioGranted by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) }
+    var permissionMessage by remember { mutableStateOf("") }
+    var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
+    var recording by remember { mutableStateOf(false) }
+    var recordingSeconds by remember { mutableIntStateOf(0) }
+    var capture by remember { mutableStateOf<VideoCapture<Recorder>?>(null) }
+    var activeRecording by remember { mutableStateOf<androidx.camera.video.Recording?>(null) }
+    var cameraError by remember { mutableStateOf("") }
+    val previewView = remember { PreviewView(context).apply {
+        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        scaleType = PreviewView.ScaleType.FILL_CENTER
+    } }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        cameraGranted = result[android.Manifest.permission.CAMERA] == true ||
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        audioGranted = result[android.Manifest.permission.RECORD_AUDIO] == true ||
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        permissionMessage = if (cameraGranted && !audioGranted) "Microphone अनुमति नहीं मिली; वीडियो बिना आवाज़ रिकॉर्ड होगा।" else ""
+    }
+    LaunchedEffect(cameraGranted, lensFacing) {
+        if (!cameraGranted) return@LaunchedEffect
+        try {
+            val future = ProcessCameraProvider.getInstance(context)
+            val provider = kotlinx.coroutines.suspendCancellableCoroutine<ProcessCameraProvider> { continuation ->
+                future.addListener({
+                    try { continuation.resume(future.get()) }
+                    catch (error: Throwable) { continuation.resumeWithException(error) }
+                }, mainExecutor)
+            }
+            val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
+            val recorder = Recorder.Builder().setQualitySelector(QualitySelector.from(Quality.HD)).build()
+            val videoCapture = VideoCapture.withOutput(recorder)
+            val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
+            provider.unbindAll()
+            provider.bindToLifecycle(lifecycleOwner, selector, preview, videoCapture)
+            capture = videoCapture
+            cameraError = ""
+        } catch (error: Exception) { cameraError = error.message ?: "Camera शुरू नहीं हो सका।" }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            runCatching { activeRecording?.stop() }
+            runCatching { ProcessCameraProvider.getInstance(context).get().unbindAll() }
+        }
+    }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Native Camera Studio", style = MaterialTheme.typography.titleMedium)
+            TextButton(onClick = onClose, enabled = !recording) { Text("Close") }
+        }
+        if (!cameraGranted) {
+            Text("Camera permission देकर native recording शुरू करें।")
+            Button(onClick = { permissionLauncher.launch(arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)) }) { Text("Allow Camera & Microphone") }
+        } else {
+            AndroidView(factory = { previewView }, modifier = Modifier.fillMaxWidth().height(320.dp))
+            Text(if (recording) "Recording चालू · ${recordingSeconds}s / 600s" else "HD recording · अधिकतम 10 मिनट")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK },
+                    enabled = !recording && capture != null,
+                    modifier = Modifier.weight(1f)
+                ) { Text("Switch Camera") }
+                Button(
+                    onClick = {
+                        val currentCapture = capture ?: return@Button
+                        if (recording) {
+                            activeRecording?.stop()
+                            recording = false
+                            recordingSeconds = 0
+                        } else {
+                            val output = File(context.cacheDir, "newstar-camera-${System.currentTimeMillis()}.mp4")
+                            val options = FileOutputOptions.Builder(output).build()
+                            var pending: PendingRecording = currentCapture.output.prepareRecording(context, options)
+                            if (audioGranted) pending = pending.withAudioEnabled()
+                            activeRecording = pending.start(mainExecutor) { event ->
+                                when (event) {
+                                    is VideoRecordEvent.Start -> { recording = true; recordingSeconds = 0 }
+                                    is VideoRecordEvent.Status -> {
+                                        recordingSeconds = (event.recordingStats.recordedDurationNanos / 1_000_000_000L).toInt().coerceAtMost(600)
+                                        if (recordingSeconds >= 600) { activeRecording?.stop(); recording = false }
+                                    }
+                                    is VideoRecordEvent.Finalize -> {
+                                        recording = false
+                                        recordingSeconds = 0
+                                        activeRecording = null
+                                        if (event.hasError()) {
+                                            output.delete()
+                                            cameraError = event.cause?.message ?: "Recording save नहीं हुई।"
+                                        } else onVideoReady(Uri.fromFile(output))
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    enabled = capture != null,
+                    modifier = Modifier.weight(1f)
+                ) { Text(if (recording) "Stop Recording" else "● Record") }
+            }
+        }
+        if (permissionMessage.isNotBlank()) Text(permissionMessage, color = MaterialTheme.colorScheme.error)
+        if (cameraError.isNotBlank()) Text(cameraError, color = MaterialTheme.colorScheme.error)
+    }
+}
+
 private fun deleteNativeEditorTemp(context: Context, uri: Uri?) {
     val path = uri?.path ?: return
     runCatching {
@@ -645,6 +769,7 @@ fun NativeUploadScreen(session: NativeSession) {
     var editingProgress by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf("3 घंटे तक का वीडियो चुनें। अधिकतम आकार 5 GiB है।") }
     var uploading by remember { mutableStateOf(false) }
+    var cameraStudioOpen by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     var trimStartSeconds by remember { mutableStateOf("0") }
     var trimEndSeconds by remember { mutableStateOf("") }
@@ -723,20 +848,15 @@ fun NativeUploadScreen(session: NativeSession) {
     }
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Native Video Upload", style = MaterialTheme.typography.headlineSmall)
+        if (cameraStudioOpen) {
+            NativeCameraStudio(
+                onVideoReady = { uri -> acceptSelectedVideo(uri, "camera"); cameraStudioOpen = false },
+                onClose = { cameraStudioOpen = false }
+            )
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = { picker.launch(arrayOf("video/*")) }, enabled = !uploading, modifier = Modifier.weight(1f)) { Text("Gallery से वीडियो चुनें") }
-            OutlinedButton(onClick = {
-                val captureIntent = Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE).apply {
-                    putExtra(android.provider.MediaStore.EXTRA_DURATION_LIMIT, 600)
-                    putExtra(android.provider.MediaStore.EXTRA_VIDEO_QUALITY, 1)
-                }
-                if (captureIntent.resolveActivity(context.packageManager) != null) {
-                    status = "फोन का Camera खुल रहा है। अधिकतम 10 मिनट की recording चुनें।"
-                    cameraCapture.launch(captureIntent)
-                } else {
-                    status = "इस फोन में compatible Camera app उपलब्ध नहीं है। Gallery से वीडियो चुनें।"
-                }
-            }, enabled = !uploading, modifier = Modifier.weight(1f)) { Text("Camera से रिकॉर्ड") }
+            OutlinedButton(onClick = { cameraStudioOpen = true }, enabled = !uploading, modifier = Modifier.weight(1f)) { Text("Native Camera Studio") }
         }
         Text(selected?.lastPathSegment ?: "कोई वीडियो नहीं चुना गया")
         if (selected != null && sourceWidth > 0 && sourceHeight > 0) {
