@@ -978,8 +978,8 @@ fun NativeUploadScreen(session: NativeSession) {
             )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { picker.launch(arrayOf("video/*")) }, enabled = !uploading, modifier = Modifier.weight(1f)) { Text("Gallery से वीडियो चुनें") }
-            OutlinedButton(onClick = { cameraStudioOpen = true }, enabled = !uploading, modifier = Modifier.weight(1f)) { Text("Native Camera Studio") }
+            Button(onClick = { picker.launch(arrayOf("video/*")) }, enabled = !uploading && !voiceRecording, modifier = Modifier.weight(1f)) { Text("Gallery से वीडियो चुनें") }
+            OutlinedButton(onClick = { cameraStudioOpen = true }, enabled = !uploading && !voiceRecording, modifier = Modifier.weight(1f)) { Text("Native Camera Studio") }
         }
         Text(selected?.lastPathSegment ?: "कोई वीडियो नहीं चुना गया")
         if (selected != null && sourceWidth > 0 && sourceHeight > 0) {
@@ -1001,7 +1001,7 @@ fun NativeUploadScreen(session: NativeSession) {
         if (editing && selected != null) {
             Text("Native editor · कुल अवधि $sourceDurationSeconds सेकंड", style = MaterialTheme.typography.titleSmall)
             OutlinedTextField(value = splitAtSeconds, onValueChange = { splitAtSeconds = it.filter(Char::isDigit) }, modifier = Modifier.fillMaxWidth(), label = { Text("Split point (seconds)") }, singleLine = true, enabled = !uploading)
-            Button(enabled = !uploading && selected != null, onClick = {
+            Button(enabled = !uploading && !voiceRecording && selected != null, onClick = {
                 val input = selected ?: return@Button
                 val start = trimStartSeconds.toLongOrNull()
                 val end = trimEndSeconds.toLongOrNull()
@@ -1108,6 +1108,8 @@ fun NativeUploadScreen(session: NativeSession) {
                                 recorder.setAudioSamplingRate(44100)
                                 recorder.setOutputFile(file.absolutePath)
                                 recorder.prepare()
+                                musicPlayer?.pause()
+                                previewPlayer?.pause()
                                 recorder.start()
                                 voiceRecorder = recorder
                                 voiceRecordingFile = file
@@ -1164,7 +1166,10 @@ fun NativeUploadScreen(session: NativeSession) {
                     OutlinedButton(
                         onClick = {
                             val player = voicePlayer
-                            if (player != null) { if (player.isPlaying) player.pause() else player.play() }
+                            if (player != null) {
+                                if (player.isPlaying) { player.pause(); audioStatus = "Voice Preview paused." }
+                                else { player.play(); audioStatus = "Voice Preview चल रहा है।" }
+                            }
                         },
                         enabled = !uploading,
                         modifier = Modifier.weight(1f)
@@ -1202,7 +1207,7 @@ fun NativeUploadScreen(session: NativeSession) {
                 LinearProgressIndicator(progress = { editingProgress / 100f }, modifier = Modifier.fillMaxWidth())
                 Text("Export $editingProgress%")
             }
-            Button(enabled = !uploading, onClick = {
+            Button(enabled = !uploading && !voiceRecording, onClick = {
                 val input = selected ?: return@Button
                 val start = trimStartSeconds.toLongOrNull()
                 val end = trimEndSeconds.toLongOrNull()
@@ -1284,7 +1289,7 @@ fun NativeUploadScreen(session: NativeSession) {
         OutlinedTextField(affiliateLink, { affiliateLink = it.take(1000) }, Modifier.fillMaxWidth(), label = { Text("Affiliate / Promotion HTTPS link (optional)") }, singleLine = true, enabled = !uploading)
         LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth())
         Text("$progress%")
-        Button(enabled = selected != null && !uploading, onClick = {
+        Button(enabled = selected != null && !uploading && !voiceRecording, onClick = {
             val uri = selected ?: return@Button
             uploading = true; progress = 0
             scope.launch {
