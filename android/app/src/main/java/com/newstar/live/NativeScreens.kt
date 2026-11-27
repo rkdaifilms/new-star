@@ -917,6 +917,7 @@ fun NativeUploadScreen(session: NativeSession) {
                 setMediaItem(MediaItem.fromUri(uri))
                 prepare()
                 playWhenReady = false
+                repeatMode = androidx.media3.common.Player.REPEAT_MODE_ONE
             }
         }
     }
@@ -931,6 +932,12 @@ fun NativeUploadScreen(session: NativeSession) {
     }
     LaunchedEffect(musicPlayer, musicVolume) { musicPlayer?.volume = musicVolume }
     LaunchedEffect(voicePlayer, voiceVolume) { voicePlayer?.volume = voiceVolume }
+    LaunchedEffect(editing) {
+        if (!editing) {
+            musicPlayer?.pause()
+            voicePlayer?.pause()
+        }
+    }
     DisposableEffect(musicPlayer, voicePlayer) {
         onDispose { musicPlayer?.release(); voicePlayer?.release() }
     }
