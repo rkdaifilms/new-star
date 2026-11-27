@@ -218,7 +218,8 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                     val livePublisher = NativeWhipPublisher.start(context, prepared.getString("whip_url"), microphoneGranted)
                     createdPublisher = livePublisher
                     val confirmed = NativeSupabase.invokeFunction("cloudflare-live",
-                        org.json.JSONObject().put("action", "confirm").put("room_id", preparedRoom), session)
+                        org.json.JSONObject().put("action", "confirm").put("room_id", preparedRoom)
+                            .put("camera_enabled", true).put("microphone_enabled", microphoneGranted), session)
                     if (!confirmed.optBoolean("ok")) throw IllegalStateException(confirmed.optString("error", "LIVE room confirm नहीं हुआ।"))
                     roomId = preparedRoom
                     publisher = livePublisher
