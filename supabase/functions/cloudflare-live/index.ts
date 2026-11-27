@@ -423,6 +423,65 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true }, 200, headers);
   }
 
+  if (action === "pk-join-queue") {
+    const roomId = String(body.room_id || "");
+    const { data: room, error: roomError } = await admin.from("live_rooms")
+      .select("id,creator_id,is_live").eq("id", roomId).eq("creator_id", creatorId).eq("is_live", true).maybeSingle();
+    if (roomError || !room) return json({ error: "Start your own active LIVE room before matchmaking." }, 403, headers);
+    const { data, error } = await admin.rpc("live_pk_matchmake", { p_user_id: creatorId, p_room_id: roomId });
+    if (error || !data) {
+      console.error("LIVE PK matchmaking failed:", error?.message);
+      return json({ error: "Could not join the friendly LIVE battle queue." }, 503, headers);
+    }
+    return json({ ok: true, ...data }, 200, headers);
+  }
+
+  if (action === "pk-status") {
+    const roomId = String(body.room_id || "");
+    const { data: queue, error: queueError } = await admin.from("live_pk_queue")
+      .select("id,status,match_id").eq("user_id", creatorId).eq("room_id", roomId)
+      .in("status", ["waiting", "matched"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (queueError) return json({ error: "Could not load battle queue status." }, 503, headers);
+    if (!queue) return json({ ok: true, status: "idle" }, 200, headers);
+    if (queue.status === "waiting" || !queue.match_id) return json({ ok: true, status: "waiting" }, 200, headers);
+    const { data: match, error: matchError } = await admin.from("live_pk_matches")
+      .select("id,room_a_id,room_b_id,creator_a_id,creator_b_id,status")
+      .eq("id", queue.match_id).maybeSingle();
+    if (matchError || !match || match.status !== "active") return json({ ok: true, status: "idle" }, 200, headers);
+    const ownIsA = match.creator_a_id === creatorId;
+    const opponentId = ownIsA ? match.creator_b_id : match.creator_a_id;
+    const opponentRoom = ownIsA ? match.room_b_id : match.room_a_id;
+    const ownRoom = ownIsA ? match.room_a_id : match.room_b_id;
+    const [{ data: profile }, { count: ownScore }, { count: opponentScore }] = await Promise.all([
+      admin.from("creator_public_profiles").select("username,full_name").eq("user_id", opponentId).maybeSingle(),
+      admin.from("live_room_reactions").select("id", { count: "exact", head: true }).eq("room_id", ownRoom).eq("reaction", "like"),
+      admin.from("live_room_reactions").select("id", { count: "exact", head: true }).eq("room_id", opponentRoom).eq("reaction", "like")
+    ]);
+    return json({ ok: true, status: "matched", match_id: match.id,
+      opponent_name: String(profile?.full_name || profile?.username || "LIVE creator"),
+      own_score: ownScore || 0, opponent_score: opponentScore || 0 }, 200, headers);
+  }
+
+  if (action === "pk-leave-queue") {
+    const { error } = await admin.from("live_pk_queue").update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("user_id", creatorId).eq("status", "waiting");
+    if (error) return json({ error: "Could not leave the matchmaking queue." }, 503, headers);
+    return json({ ok: true }, 200, headers);
+  }
+
+  if (action === "pk-finish") {
+    const matchId = String(body.match_id || "");
+    if (!matchId) return json({ error: "Battle match ID is required." }, 400, headers);
+    const { data, error } = await admin.from("live_pk_matches").update({
+      status: "completed", ended_at: new Date().toISOString()
+    }).eq("id", matchId).eq("status", "active")
+      .or("creator_a_id.eq." + creatorId + ",creator_b_id.eq." + creatorId)
+      .select("id").maybeSingle();
+    if (error) return json({ error: "Could not end the friendly battle." }, 503, headers);
+    if (!data) return json({ error: "Active battle not found for this creator." }, 404, headers);
+    return json({ ok: true }, 200, headers);
+  }
+
   if (action === "stop") {
     if (!body.room_id) return json({ error: "Room ID is required." }, 400, headers);
     const { data, error } = await admin.from("live_rooms").update({
