@@ -128,6 +128,7 @@ class MainActivity : Activity() {
             root.addView(label("केवल server-verified owner account को dashboard access मिलेगा।", 12f, Color.LTGRAY))
         } else {
             root.addView(button("Refresh dashboard") { loadDashboard() }, matchWrap())
+            root.addView(button("Activate pre-approved owner access") { claimOwnerAccess() }, matchWrap())
             root.addView(button("Logout") {
                 AdminSessionStore.clear(this)
                 session = null
@@ -187,6 +188,25 @@ class MainActivity : Activity() {
         session = s
         AdminSessionStore.save(this, s)
         return s
+    }
+
+    private fun claimOwnerAccess() {
+        if (busy) return
+        busy = true
+        status.text = "Server invitation और verified account जाँचा जा रहा है…"
+        thread {
+            try {
+                val s = authorizedSession()
+                val response = request("POST", "/functions/v1/admin-overview",
+                    JSONObject().put("action", "claim_owner"), s.access)
+                if (!response.optBoolean("ok") || !response.optBoolean("is_owner", true)) {
+                    error(response.optString("error", "Owner access activation failed"))
+                }
+                runOnUiThread { busy = false; loadDashboard() }
+            } catch (e: Exception) {
+                runOnUiThread { busy = false; status.text = e.message ?: "Owner access activation failed" }
+            }
+        }
     }
 
     private fun loadDashboard() {
