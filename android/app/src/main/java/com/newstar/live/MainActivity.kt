@@ -97,6 +97,9 @@ class MainActivity : ComponentActivity() {
                 } catch (_: Exception) { }
                 finally { if (activeGamingRoomId == roomId) activeGamingRoomId = null }
             }
+            sendBroadcast(Intent(GamingStreamService.STATUS).setPackage(packageName)
+                .putExtra("status", "error")
+                .putExtra("message", "Screen sharing permission रद्द हुई; LIVE room बंद कर दिया गया।"))
             android.widget.Toast.makeText(this, "Screen sharing रद्द हुई; LIVE room बंद कर दिया गया।", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
@@ -171,7 +174,10 @@ class MainActivity : ComponentActivity() {
                 val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                 screenPermission.launch(manager.createScreenCaptureIntent())
             } catch (e: Exception) {
-                android.widget.Toast.makeText(this@MainActivity, e.message ?: "Gaming LIVE शुरू नहीं हुआ।", android.widget.Toast.LENGTH_LONG).show()
+                val detail = e.message ?: "Gaming LIVE शुरू नहीं हुआ।"
+                sendBroadcast(Intent(GamingStreamService.STATUS).setPackage(packageName)
+                    .putExtra("status", "error").putExtra("message", detail))
+                android.widget.Toast.makeText(this@MainActivity, detail, android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }
