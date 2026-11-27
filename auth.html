@@ -231,6 +231,14 @@ async function checkExistingSession(){
   const {data,error}=await client.auth.getSession();
   if(error)throw error;
 
+  if(isRecoveryMode){
+   if(!data?.session){
+    showMessage("Recovery session नहीं मिला या लिंक expire हो गया है। Email से नया recovery link माँगें।","error");
+    $("actionBtn").disabled=true;
+   }
+   return;
+  }
+
   if(data?.session){
    goAfterLogin();
   }
@@ -278,6 +286,33 @@ async function handleAuthAction(){
 
  const email=$("userEmail").value.trim();
  const password=$("userPassword").value;
+
+ if(!password || password.length<6){
+  showMessage("Password कम से कम 6 अक्षर का होना चाहिए।","error");
+  return;
+ }
+
+ if(isRecoveryMode){
+  authBusy=true;
+  $("actionBtn").disabled=true;
+  $("actionBtn").textContent="Please wait...";
+  try{
+   const {data,error}=await client.auth.updateUser({password});
+   if(error)throw error;
+   if(!data?.user)throw new Error("Password update की पुष्टि नहीं मिली।");
+   showMessage("Password सफलतापूर्वक बदल गया। Admin पेज खुल रहा है...","success");
+   isRecoveryMode=false;
+   setTimeout(goAfterLogin,700);
+  }catch(error){
+   console.error("Password recovery error:",error);
+   showMessage("Password Update Error: "+(error.message||"कृपया नया recovery link माँगें।"),"error");
+  }finally{
+   authBusy=false;
+   $("actionBtn").disabled=false;
+   $("actionBtn").textContent="Update Password";
+  }
+  return;
+ }
 
  if(!email||!password){
   showMessage("Email और Password दोनों भरें।","error");
