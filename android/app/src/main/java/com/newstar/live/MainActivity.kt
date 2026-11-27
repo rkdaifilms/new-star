@@ -953,15 +953,16 @@ private fun NativeHome(
         error = null
         try {
             feed = when (feedMode) {
-                "Following" -> {
-                    val current = session ?: throw IllegalStateException("Following feed देखने के लिए Login करें।")
+                "Following", "Friends" -> {
+                    val current = session ?: throw IllegalStateException("इस Feed को देखने के लिए Login करें।")
                     NativeFeed.loadFollowing(current)
                 }
                 "Shorts", "Reels" -> NativeFeed.load(category, "short")
                 "Long videos" -> NativeFeed.load(category, "long")
+                "Discover", "For You" -> NativeFeed.load(category)
                 else -> NativeFeed.load(category)
             }
-            if (feed.isEmpty()) error = if (feedMode == "Following") "आप जिन Creators को Follow करते हैं, उनकी अभी कोई सार्वजनिक वीडियो नहीं है।" else "अभी कोई सार्वजनिक वीडियो उपलब्ध नहीं है।"
+            if (feed.isEmpty()) error = if (feedMode == "Following" || feedMode == "Friends") "आप जिन Creators को Follow करते हैं, उनकी अभी कोई सार्वजनिक वीडियो नहीं है।" else "अभी कोई सार्वजनिक वीडियो उपलब्ध नहीं है।"
         } catch (e: Exception) {
             error = e.message ?: "Feed लोड नहीं हो सकी।"
         } finally { loading = false }
@@ -1102,7 +1103,7 @@ private fun NativeHome(
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                items(listOf("For You", "Following", "Shorts", "Reels", "Long videos", "LIVE")) { name ->
+                items(listOf("For You", "Following", "Shorts", "Reels", "Long videos", "Discover", "Friends", "LIVE")) { name ->
                     FilterChip(selected = feedMode == name, onClick = {
                         if (name == "LIVE") onNavigate("Live") else feedMode = name
                     }, label = { Text(name) })
@@ -1418,7 +1419,7 @@ private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
 
 private object NativeFeed {
     suspend fun load(category: String, videoType: String? = null): List<NativeVideo> = withContext(Dispatchers.IO) {
-        val args = JSONObject().put("p_limit", 30).put("p_offset", 0)
+        val args = JSONObject().put("p_limit", 50).put("p_offset", 0)
             .put("p_video_type", videoType ?: JSONObject.NULL)
             .put("p_category", if (category == "All") JSONObject.NULL else category)
         val rows = post("$API_BASE/rest/v1/rpc/get_recommended_video_feed", args) as? JSONArray
