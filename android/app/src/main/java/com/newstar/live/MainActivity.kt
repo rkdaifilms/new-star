@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
     private var pendingGamingSession: NativeSession? = null
     private var pendingGamingRoomId: String? = null
     private var pendingGamingWhip: String? = null
+    private var activeGamingRoomId: String? = null
 
     private val screenPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val session = pendingGamingSession
@@ -63,6 +64,7 @@ class MainActivity : ComponentActivity() {
                 putExtra(GamingStreamService.INCLUDE_MIC, micGranted)
             }
             ContextCompat.startForegroundService(this, intent)
+            activeGamingRoomId = roomId
             lifecycleScope.launch {
                 try {
                     NativeSupabase.invokeFunction("cloudflare-live", JSONObject()
@@ -110,7 +112,9 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 val current = NativeSessionStore.load(this@MainActivity) ?: session
-                NativeSupabase.invokeFunction("cloudflare-live", JSONObject().put("action", "stop"), current)
+                val roomId = activeGamingRoomId ?: return@launch
+            NativeSupabase.invokeFunction("cloudflare-live", JSONObject().put("action", "stop").put("room_id", roomId), current)
+            activeGamingRoomId = null
             } catch (_: Exception) { }
         }
     }
