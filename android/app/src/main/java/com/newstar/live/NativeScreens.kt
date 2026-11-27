@@ -90,13 +90,22 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
     var videos by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var error by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
+    var saving by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf(false) }
+    var fullName by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var bio by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
     LaunchedEffect(session.userId, refresh) {
         loading = true; error = ""
         try {
             val id = Uri.encode(session.userId)
             val rows = NativeSupabase.get("/rest/v1/profiles?select=user_id,username,full_name,avatar_url,bio&user_id=eq.$id", session)
             profile = rows.optJSONObject(0)
+            fullName = profile?.optString("full_name").orEmpty()
+            username = profile?.optString("username").orEmpty()
+            bio = profile?.optString("bio").orEmpty()
             val videoRows = NativeSupabase.get("/rest/v1/videos?select=id,caption,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$id&order=created_at.desc&limit=100", session)
             videos = (0 until videoRows.length()).mapNotNull { videoRows.optJSONObject(it) }
         } catch (e: Exception) { error = e.message ?: "Profile लोड नहीं हुई।" }
@@ -109,12 +118,42 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
         }
         if (loading) CircularProgressIndicator()
         else {
-            Text(profile?.optString("full_name").orEmpty().ifBlank { profile?.optString("username").orEmpty().ifBlank { session.email } }, style = MaterialTheme.typography.titleLarge)
-            Text("@"+profile?.optString("username").orEmpty())
-            Text(profile?.optString("bio").orEmpty())
+            Text(fullName.ifBlank { username.ifBlank { session.email } }, style = MaterialTheme.typography.titleLarge)
+            Text("@$username")
+            if (editing) {
+                OutlinedTextField(fullName, { fullName = it }, Modifier.fillMaxWidth(), label = { Text("Display name") }, singleLine = true)
+                OutlinedTextField(username, { username = it.trim().replace(" ", "") }, Modifier.fillMaxWidth(), label = { Text("Username") }, singleLine = true)
+                OutlinedTextField(bio, { bio = it }, Modifier.fillMaxWidth(), label = { Text("Bio") }, minLines = 3)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(enabled = !saving && username.matches(Regex("[A-Za-z0-9_.]{3,30}")), onClick = {
+                        saving = true; error = ""
+                        scope.launch {
+                            try {
+                                val id = Uri.encode(session.userId)
+                                NativeSupabase.patch("/rest/v1/profiles?user_id=eq.$id",
+                                    JSONObject().put("full_name", fullName.trim())
+                                        .put("username", username.trim()).put("bio", bio.trim()), session)
+                                editing = false
+                                refresh++
+                            } catch (e: Exception) { error = e.message ?: "Profile save नहीं हुई।" }
+                            finally { saving = false }
+                        }
+                    }) { Text(if (saving) "Saving…" else "Save profile") }
+                    TextButton(enabled = !saving, onClick = {
+                        fullName = profile?.optString("full_name").orEmpty()
+                        username = profile?.optString("username").orEmpty()
+                        bio = profile?.optString("bio").orEmpty()
+                        editing = false
+                    }) { Text("Cancel") }
+                }
+                Text("Username में 3–30 अक्षर: English letters, numbers, _ या .")
+            } else {
+                Text(bio)
+                TextButton(onClick = { editing = true }) { Text("Edit profile") }
+            }
             Text("आपकी वीडियो पोस्ट: ${videos.size}")
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = { refresh++ }) { Text("Refresh") }
+            TextButton(onClick = { refresh++ }, enabled = !saving) { Text("Refresh") }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(videos) { item ->
                     Card(Modifier.fillMaxWidth()) {
@@ -312,7 +351,8 @@ private object NativeVideoUploader {
                     }
                 }
                 offset += wanted
-                onProgress(((offset * 100) / size).toInt())
+                val percent = ((offset * 100) / size).toInt()
+                withContext(Dispatchers.Main) { onProgress(percent) }
             }
         }
         val username = session.email.substringBefore("@").ifBlank { "New Star Creator" }
