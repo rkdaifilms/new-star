@@ -48,7 +48,8 @@ jobs:
           echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" >> "$GITHUB_ENV"
           echo "Google Web Client ID validated (value hidden)."
 
-      - name: Prepare stable Android signing key
+      - name: Prepare Android signing key (stable when configured)
+        id: signing
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -57,10 +58,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          : "${ANDROID_KEYSTORE_BASE64:?ANDROID_KEYSTORE_BASE64 secret is required; refusing to build an APK with a temporary signing key}"
-          : "${ANDROID_KEYSTORE_PASSWORD:?ANDROID_KEYSTORE_PASSWORD is required}"
-          : "${ANDROID_KEY_ALIAS:?ANDROID_KEY_ALIAS is required}"
-          : "${ANDROID_KEY_PASSWORD:?ANDROID_KEY_PASSWORD is required}"
+          if [[ -z "${ANDROID_KEYSTORE_BASE64:-}" && -z "${ANDROID_KEYSTORE_PASSWORD:-}" && -z "${ANDROID_KEY_ALIAS:-}" && -z "${ANDROID_KEY_PASSWORD:-}" ]]; then
+            echo "::warning::Stable signing secrets are not configured. Building a TEST APK with Android's default debug key; Google Sign-In will not work unless this debug certificate is registered in Google Cloud."
+            echo "mode=debug-test-key" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          : "${ANDROID_KEYSTORE_BASE64:?ANDROID_KEYSTORE_BASE64 secret is required when configuring stable signing}"
+          : "${ANDROID_KEYSTORE_PASSWORD:?ANDROID_KEYSTORE_PASSWORD is required when configuring stable signing}"
+          : "${ANDROID_KEY_ALIAS:?ANDROID_KEY_ALIAS is required when configuring stable signing}"
+          : "${ANDROID_KEY_PASSWORD:?ANDROID_KEY_PASSWORD is required when configuring stable signing}"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/newstar-upload.jks"
           test -s "$RUNNER_TEMP/newstar-upload.jks"
           KEY_SHA1="$(keytool -list -v -keystore "$RUNNER_TEMP/newstar-upload.jks" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | awk -F': ' '/SHA1:/{print $2; exit}' | tr '[:lower:]' '[:upper:]')"
@@ -73,6 +79,7 @@ jobs:
           echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "mode=stable-signing" >> "$GITHUB_OUTPUT"
           echo "Stable Android signing key loaded and fingerprint verified: $KEY_SHA1"
 
       - name: Build debug APK
@@ -97,7 +104,7 @@ jobs:
       - name: Upload APK and build verification
         uses: actions/upload-artifact@v4
         with:
-          name: new-star-android-apk-${{ github.sha }}
+          name: new-star-android-apk-${{ steps.signing.outputs.mode }}-${{ github.sha }}
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android-apk-sha256.txt
