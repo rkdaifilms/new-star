@@ -75,6 +75,21 @@ internal object NativeLiveRepository {
     suspend fun removeGuest(roomId: String, participantId: String, session: NativeSession): JSONObject =
         invokeSeatAction("live-seat-remove", roomId, participantId, session)
 
+    suspend fun sendReaction(roomId: String, reaction: String, session: NativeSession): Int {
+        require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
+        require(reaction in setOf("like", "heart", "clap", "fire")) { "यह LIVE reaction उपलब्ध नहीं है।" }
+        val result = NativeSupabase.invokeFunction(
+            "cloudflare-live",
+            JSONObject().put("action", "live-react")
+                .put("room_id", roomId).put("reaction", reaction),
+            session
+        )
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "LIVE reaction भेजा नहीं गया।"))
+        }
+        return result.optInt("total")
+    }
+
     private suspend fun invokeSeatAction(
         action: String,
         roomId: String,
