@@ -591,6 +591,10 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
     var peerSearch by remember { mutableStateOf("") }
     var creatorResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var peerProfiles by remember { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
+    var followRequests by remember(session.userId) { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var followRequestProfiles by remember(session.userId) { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
+    var followRequestsLoading by remember(session.userId) { mutableStateOf(true) }
+    var requestActionIds by remember(session.userId) { mutableStateOf<Set<String>>(emptySet()) }
     var body by remember { mutableStateOf("") }
     var attachmentUrl by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
@@ -655,6 +659,38 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
             }
         } catch (e: Exception) {
             error = e.message ?: "Creator details लोड नहीं हुए।"
+        }
+    }
+
+    LaunchedEffect(session.userId, refresh) {
+        followRequestsLoading = true
+        try {
+            val requestRows = NativeSupabase.get(
+                "/rest/v1/follow_requests?select=id,requester_id,created_at,status&target_user_id=eq.${Uri.encode(session.userId)}&status=eq.pending&order=created_at.desc&limit=100",
+                session
+            )
+            val loadedRequests = (0 until requestRows.length()).mapNotNull { index ->
+                requestRows.optJSONObject(index)
+            }
+            followRequests = loadedRequests
+            val requesterIds = loadedRequests.map { it.optString("requester_id") }
+                .filter { it.isNotBlank() }.distinct()
+            if (requesterIds.isEmpty()) {
+                followRequestProfiles = emptyMap()
+            } else {
+                val idsFilter = Uri.encode("(${requesterIds.joinToString(",")})")
+                val profileRows = NativeSupabase.get(
+                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,bio&user_id=in.${idsFilter}",
+                    session
+                )
+                followRequestProfiles = (0 until profileRows.length()).mapNotNull { index ->
+                    profileRows.optJSONObject(index)
+                }.associateBy { it.optString("user_id") }
+            }
+        } catch (e: Exception) {
+            error = e.message ?: "Follow Requests लोड नहीं हुईं।"
+        } finally {
+            followRequestsLoading = false
         }
     }
 
@@ -731,6 +767,103 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                 Text("Messages auto-refresh every 5 seconds", style = MaterialTheme.typography.labelSmall)
             }
             TextButton(onClick = { refresh++ }, enabled = !busy) { Text("Refresh") }
+        }
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text("Follow Requests", style = MaterialTheme.typography.titleMedium)
+                    Text(followRequests.size.toString(), color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge)
+                }
+                if (followRequestsLoading) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                } else if (followRequests.isEmpty()) {
+                    Text("अभी कोई Pending Follow Request नहीं है।",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    LazyColumn(Modifier.heightIn(max = 220.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(followRequests, key = { it.optString("id") }) { request ->
+                            val requestId = request.optString("id")
+                            val requesterId = request.optString("requester_id")
+                            val profile = followRequestProfiles[requesterId]
+                            val actionBusy = requestId in requestActionIds
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                AsyncImage(
+                                    model = profile?.optString("avatar_url")?.takeIf { it.startsWith("https://") },
+                                    contentDescription = "Follow requester avatar",
+                                    modifier = Modifier.size(40.dp).clip(CircleShape)
+                                )
+                                Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                                    Text(profile?.optString("full_name").orEmpty().ifBlank {
+                                        profile?.optString("username").orEmpty().ifBlank { "New Star Creator" }
+                                    }, style = MaterialTheme.typography.titleSmall)
+                                    Text("आपको Follow करना चाहते हैं",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Button(enabled = !actionBusy && requestId.isNotBlank() && requesterId.isNotBlank(),
+                                        onClick = {
+                                            scope.launch {
+                                                requestActionIds = requestActionIds + requestId
+                                                error = ""
+                                                try {
+                                                    NativeSupabase.patch(
+                                                        "/rest/v1/follow_requests?id=eq.${Uri.encode(requestId)}&target_user_id=eq.${Uri.encode(session.userId)}&status=eq.pending",
+                                                        JSONObject().put("status", "accepted"),
+                                                        session
+                                                    )
+                                                    try {
+                                                        NativeSupabase.post(
+                                                            "/rest/v1/followers",
+                                                            JSONObject().put("follower_id", requesterId)
+                                                                .put("following_id", session.userId),
+                                                            session
+                                                        )
+                                                    } catch (insertError: Exception) {
+                                                        val message = insertError.message.orEmpty()
+                                                        if (!message.contains("duplicate", true) &&
+                                                            !message.contains("unique", true)) throw insertError
+                                                    }
+                                                    followRequests = followRequests.filterNot {
+                                                        it.optString("id") == requestId
+                                                    }
+                                                } catch (e: Exception) {
+                                                    error = e.message ?: "Follow Request स्वीकार नहीं हुई।"
+                                                } finally {
+                                                    requestActionIds = requestActionIds - requestId
+                                                }
+                                            }
+                                        }) { Text(if (actionBusy) "…" else "Accept") }
+                                    OutlinedButton(enabled = !actionBusy && requestId.isNotBlank(),
+                                        onClick = {
+                                            scope.launch {
+                                                requestActionIds = requestActionIds + requestId
+                                                error = ""
+                                                try {
+                                                    NativeSupabase.patch(
+                                                        "/rest/v1/follow_requests?id=eq.${Uri.encode(requestId)}&target_user_id=eq.${Uri.encode(session.userId)}&status=eq.pending",
+                                                        JSONObject().put("status", "rejected"),
+                                                        session
+                                                    )
+                                                    followRequests = followRequests.filterNot {
+                                                        it.optString("id") == requestId
+                                                    }
+                                                } catch (e: Exception) {
+                                                    error = e.message ?: "Follow Request अस्वीकार नहीं हुई।"
+                                                } finally {
+                                                    requestActionIds = requestActionIds - requestId
+                                                }
+                                            }
+                                        }) { Text("Decline") }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         OutlinedTextField(
             value = peerSearch,
