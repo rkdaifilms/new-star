@@ -104,7 +104,10 @@ class GamingStreamService : Service() {
             override fun onRenegotiationNeeded() {}
             override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) {}
         }
-        peer = factory!!.createPeerConnection(PeerConnection.RTCConfiguration(emptyList()), observer)
+        val iceServers = listOf(
+            PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer()
+        )
+        peer = factory!!.createPeerConnection(PeerConnection.RTCConfiguration(iceServers), observer)
             ?: error("Could not create WebRTC connection.")
         peer!!.addTrack(track, listOf("newstar-screen"))
         audioTrack?.let { peer!!.addTrack(it, listOf("newstar-screen")) }
