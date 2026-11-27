@@ -131,8 +131,8 @@ $("ns-clear-file").addEventListener("click",()=>{attachment=null;fileInput.value
 async function getSession(){const client=window.supabaseClient||window.cloudClient||window.supabase;if(!client?.auth)return null;const{data}=await client.auth.getSession();return data?.session||null;}
 function detectMediaMode(text){
  const value=String(text||"").trim();
- const imageIntent=/(?:generate|create|make|draw|paint|render|edit)\\b.{0,60}\\b(image|picture|photo|illustration|thumbnail)\\b|\\b(image|picture|photo|illustration|thumbnail)\\b.{0,60}\\b(generate|create|make|draw|paint|render|edit)\\b/i.test(value)||/(?:तस्वीर|फोटो|चित्र|इमेज|छवि).{0,60}(?:बना|तैयार|जनरेट|बदल|एडिट)|(?:बना|तैयार|जनरेट|बदल|एडिट).{0,60}(?:तस्वीर|फोटो|चित्र|इमेज|छवि)/u.test(value);
- const videoIntent=/(?:generate|create|make|produce|render)\\b.{0,60}\\b(video|clip|animation)\\b|\\b(video|clip|animation)\\b.{0,60}\\b(generate|create|make|produce|render)\\b/i.test(value)||/(?:वीडियो|क्लिप|एनीमेशन).{0,60}(?:बना|तैयार|जनरेट)|(?:बना|तैयार|जनरेट).{0,60}(?:वीडियो|क्लिप|एनीमेशन)/u.test(value);
+ const imageIntent=/(?:generate|create|make|draw|paint|render|edit)\b.{0,60}\b(image|picture|photo|illustration|thumbnail)\b|\b(image|picture|photo|illustration|thumbnail)\b.{0,60}\b(generate|create|make|draw|paint|render|edit)\b/i.test(value)||/(?:तस्वीर|फोटो|चित्र|इमेज|छवि).{0,60}(?:बना|तैयार|जनरेट|बदल|एडिट)|(?:बना|तैयार|जनरेट|बदल|एडिट).{0,60}(?:तस्वीर|फोटो|चित्र|इमेज|छवि)/u.test(value);
+ const videoIntent=/(?:generate|create|make|produce|render)\b.{0,60}\b(video|clip|animation)\b|\b(video|clip|animation)\b.{0,60}\b(generate|create|make|produce|render)\b/i.test(value)||/(?:वीडियो|क्लिप|एनीमेशन).{0,60}(?:बना|तैयार|जनरेट)|(?:बना|तैयार|जनरेट).{0,60}(?:वीडियो|क्लिप|एनीमेशन)/u.test(value);
  if(videoIntent)return "video";
  if(imageIntent)return "image";
  return "chat";
