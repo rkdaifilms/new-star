@@ -2,6 +2,9 @@ package com.newstar.live
 
 import android.app.Activity
 import android.content.Intent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Bundle
@@ -51,6 +54,8 @@ class MainActivity : ComponentActivity() {
     private var pendingGamingRoomId: String? = null
     private var pendingGamingWhip: String? = null
     private var activeGamingRoomId: String? = null
+    private var activeGamingSession: NativeSession? = null
+    private var gamingStatusReceiver: BroadcastReceiver? = null
     private var queuedGamingSession: NativeSession? = null
     private var queuedGamingTitle: String? = null
     private val oauthSession = mutableStateOf<NativeSession?>(null)
@@ -80,14 +85,6 @@ class MainActivity : ComponentActivity() {
                 putExtra(GamingStreamService.INCLUDE_MIC, micGranted)
             }
             ContextCompat.startForegroundService(this, intent)
-            lifecycleScope.launch {
-                try {
-                    NativeSupabase.invokeFunction("cloudflare-live", JSONObject()
-                        .put("action", "confirm").put("room_id", roomId), session)
-                } catch (e: Exception) {
-                    android.widget.Toast.makeText(this@MainActivity, e.message ?: "LIVE confirm नहीं हुआ।", android.widget.Toast.LENGTH_LONG).show()
-                }
-            }
         } else if (session != null && roomId != null) {
             activeGamingRoomId = roomId
             lifecycleScope.launch {
@@ -95,7 +92,7 @@ class MainActivity : ComponentActivity() {
                     NativeSupabase.invokeFunction("cloudflare-live",
                         JSONObject().put("action", "stop").put("room_id", roomId), session)
                 } catch (_: Exception) { }
-                finally { if (activeGamingRoomId == roomId) activeGamingRoomId = null }
+                finally { if (activeGamingRoomId == roomId) { activeGamingRoomId = null; activeGamingSession = null } }
             }
             sendBroadcast(Intent(GamingStreamService.STATUS).setPackage(packageName)
                 .putExtra("status", "error")
@@ -106,6 +103,41 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        gamingStatusReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val state = intent?.getStringExtra("status").orEmpty()
+                val roomId = activeGamingRoomId ?: return
+                val session = activeGamingSession ?: return
+                if (state == "connected") {
+                    lifecycleScope.launch {
+                        try {
+                            NativeSupabase.invokeFunction("cloudflare-live",
+                                JSONObject().put("action", "confirm").put("room_id", roomId), session)
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(this@MainActivity,
+                                e.message ?: "LIVE confirm नहीं हुआ।", android.widget.Toast.LENGTH_LONG).show()
+                            stopGaming(session)
+                        }
+                    }
+                } else if (state == "error") {
+                    lifecycleScope.launch {
+                        try {
+                            NativeSupabase.invokeFunction("cloudflare-live",
+                                JSONObject().put("action", "stop").put("room_id", roomId), session)
+                        } catch (_: Exception) { }
+                        finally {
+                            if (activeGamingRoomId == roomId) {
+                                activeGamingRoomId = null
+                                activeGamingSession = null
+                            }
+                        }
+                    }
+                }
+            }
+        }.also { receiver ->
+            ContextCompat.registerReceiver(this, receiver, IntentFilter(GamingStreamService.STATUS),
+                ContextCompat.RECEIVER_NOT_EXPORTED)
+        }
         handleOAuthCallback(intent)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
@@ -117,6 +149,12 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onDestroy() {
+        gamingStatusReceiver?.let { runCatching { unregisterReceiver(it) } }
+        gamingStatusReceiver = null
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -168,6 +206,7 @@ class MainActivity : ComponentActivity() {
                 pendingGamingRoomId = roomId
                 pendingGamingWhip = response.getString("whip_url")
                 activeGamingRoomId = roomId
+                activeGamingSession = session
                 if (!micGranted) {
                     android.widget.Toast.makeText(this@MainActivity, "Microphone अनुमति नहीं मिली; LIVE केवल screen video के साथ शुरू होगा।", android.widget.Toast.LENGTH_LONG).show()
                 }
@@ -191,6 +230,7 @@ class MainActivity : ComponentActivity() {
                 val roomId = activeGamingRoomId ?: return@launch
             NativeSupabase.invokeFunction("cloudflare-live", JSONObject().put("action", "stop").put("room_id", roomId), current)
             activeGamingRoomId = null
+            activeGamingSession = null
             } catch (_: Exception) { }
         }
     }
