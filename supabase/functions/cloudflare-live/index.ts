@@ -43,10 +43,10 @@ Deno.serve(async (req: Request) => {
   const { data: auth, error: authError } = await userClient.auth.getUser();
   if (authError || !auth.user) return json({ error: "Valid login required." }, 401, headers);
 
-  let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string; microphone_enabled?: boolean; camera_enabled?: boolean };
+  let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string; microphone_enabled?: boolean; camera_enabled?: boolean; target_user_id?: string; camera_allowed?: boolean; microphone_allowed?: boolean; moderator?: boolean };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
-  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave"];
+  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "list-members", "set-member-permissions", "set-moderator", "remove-member"];
   if (!supportedActions.includes(String(action))) return json({ error: "This LIVE interaction is not enabled on the server yet." }, 501, headers);
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -261,6 +261,74 @@ Deno.serve(async (req: Request) => {
     const { data, error } = await query.limit(20);
     if (error) return json({ error: "Could not load LIVE participants." }, 503, headers);
     return json({ ok: true, participants: data || [], seat_capacity: (await admin.from("live_rooms").select("seat_capacity").eq("id", room.id).single()).data?.seat_capacity || 1 }, 200, headers);
+  }
+
+  if (action === "list-members") {
+    const { data: room, error: roomError } = await getActiveRoom(String(body.room_id || ""));
+    if (roomError || !room) return json({ error: "Active LIVE room not found." }, 404, headers);
+    const isHost = room.creator_id === creatorId;
+    const { data: actor, error: actorError } = await admin.from("live_room_participants")
+      .select("role,status").eq("room_id", room.id).eq("user_id", creatorId).maybeSingle();
+    if (actorError) return json({ error: "Could not verify moderator permissions." }, 503, headers);
+    const actorRole = isHost ? "host" : actor?.status === "admitted" ? String(actor.role || "guest") : "viewer";
+    if (actorRole !== "host" && actorRole !== "moderator") {
+      return json({ error: "Only the host or an admitted moderator can manage LIVE members." }, 403, headers);
+    }
+    const { data, error } = await admin.from("live_room_participants")
+      .select("id,user_id,display_name,role,status,seat_number,camera_enabled,microphone_enabled,camera_allowed,microphone_allowed")
+      .eq("room_id", room.id).in("status", ["requested", "admitted"])
+      .order("created_at", { ascending: true }).limit(30);
+    if (error) return json({ error: "Could not load LIVE members." }, 503, headers);
+    return json({ ok: true, actor_role: actorRole, members: data || [] }, 200, headers);
+  }
+
+  if (action === "set-member-permissions" || action === "set-moderator" || action === "remove-member") {
+    const { data: room, error: roomError } = await getActiveRoom(String(body.room_id || ""));
+    if (roomError || !room) return json({ error: "Active LIVE room not found." }, 404, headers);
+    const targetUserId = String(body.target_user_id || "");
+    if (!targetUserId || targetUserId === creatorId) return json({ error: "A valid target member is required." }, 400, headers);
+    const isHost = room.creator_id === creatorId;
+    const { data: actor, error: actorError } = await admin.from("live_room_participants")
+      .select("role,status").eq("room_id", room.id).eq("user_id", creatorId).maybeSingle();
+    if (actorError) return json({ error: "Could not verify moderator permissions." }, 503, headers);
+    const actorRole = isHost ? "host" : actor?.status === "admitted" ? String(actor.role || "guest") : "viewer";
+    if (actorRole !== "host" && actorRole !== "moderator") {
+      return json({ error: "Only the host or an admitted moderator can manage LIVE members." }, 403, headers);
+    }
+    const { data: target, error: targetError } = await admin.from("live_room_participants")
+      .select("id,user_id,role,status").eq("room_id", room.id).eq("user_id", targetUserId)
+      .in("status", ["requested", "admitted"]).maybeSingle();
+    if (targetError) return json({ error: "Could not load target member." }, 503, headers);
+    if (!target || target.role === "host") return json({ error: "Target LIVE member was not found or cannot be managed." }, 404, headers);
+    if (!isHost && target.role === "moderator") return json({ error: "Moderators cannot manage another moderator." }, 403, headers);
+
+    if (action === "set-moderator") {
+      if (!isHost) return json({ error: "Only the host can appoint or remove moderators." }, 403, headers);
+      if (target.status !== "admitted") return json({ error: "Only an admitted guest can become a moderator." }, 409, headers);
+      const { error } = await admin.from("live_room_participants")
+        .update({ role: body.moderator === true ? "moderator" : "guest" })
+        .eq("id", target.id).eq("room_id", room.id).eq("status", "admitted");
+      if (error) return json({ error: "Could not update moderator role." }, 503, headers);
+      return json({ ok: true, role: body.moderator === true ? "moderator" : "guest" }, 200, headers);
+    }
+
+    if (action === "set-member-permissions") {
+      const updates: Record<string, boolean> = {};
+      if (typeof body.camera_allowed === "boolean") updates.camera_allowed = body.camera_allowed;
+      if (typeof body.microphone_allowed === "boolean") updates.microphone_allowed = body.microphone_allowed;
+      if (!Object.keys(updates).length) return json({ error: "Choose a camera or microphone permission to change." }, 400, headers);
+      const { error } = await admin.from("live_room_participants").update(updates)
+        .eq("id", target.id).eq("room_id", room.id).in("status", ["requested", "admitted"]);
+      if (error) return json({ error: "Could not update LIVE member permissions." }, 503, headers);
+      return json({ ok: true, permissions: updates }, 200, headers);
+    }
+
+    const { error } = await admin.from("live_room_participants").update({
+      status: "removed", seat_number: null, left_at: new Date().toISOString(),
+      camera_enabled: false, microphone_enabled: false,
+    }).eq("id", target.id).eq("room_id", room.id).in("status", ["requested", "admitted"]);
+    if (error) return json({ error: "Could not remove LIVE member." }, 503, headers);
+    return json({ ok: true }, 200, headers);
   }
 
   if (action === "live-seat-request") {
