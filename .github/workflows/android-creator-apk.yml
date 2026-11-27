@@ -75,6 +75,8 @@ jobs:
         run: deno test --no-check --allow-read=. tests/ai-engine-core_test.ts
 
       - name: Build New Star Android APK
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
         run: gradle -p android :app:assembleDebug --no-daemon
 
       - name: Verify APK
