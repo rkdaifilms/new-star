@@ -1212,8 +1212,8 @@ fun NativeWalletScreen(session: NativeSession) {
 private data class NativeAiMessage(val role: String, val content: String)
 
 @Composable
-fun NativeCreatorAiScreen(session: NativeSession) {
-    var prompt by remember { mutableStateOf("") }
+fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
+    var prompt by remember { mutableStateOf(initialPrompt) }
     var messages by remember { mutableStateOf<List<NativeAiMessage>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
