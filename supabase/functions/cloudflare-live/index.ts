@@ -157,9 +157,26 @@ Deno.serve(async (req: Request) => {
     }
     const { data: invitee, error: inviteeError } = await admin.auth.admin.getUserById(inviteeId);
     if (inviteeError || !invitee?.user) return json({ error: "Creator account not found." }, 404, headers);
+
+    const now = new Date();
+    const { data: pendingInvite, error: pendingError } = await admin.from("live_room_invites")
+      .select("id,room_id,inviter_id,invitee_id,status,expires_at")
+      .eq("room_id", roomId).eq("inviter_id", creatorId).eq("invitee_id", inviteeId)
+      .eq("status", "pending").gt("expires_at", now.toISOString()).maybeSingle();
+    if (pendingError) return json({ error: "Could not check for an existing invitation." }, 503, headers);
+    if (pendingInvite) return json({ ok: true, invite: pendingInvite, already_pending: true }, 200, headers);
+
+    const { count: recentInviteCount, error: rateLimitError } = await admin.from("live_room_invites")
+      .select("id", { count: "exact", head: true }).eq("inviter_id", creatorId)
+      .gte("created_at", new Date(now.getTime() - 60_000).toISOString());
+    if (rateLimitError) return json({ error: "Could not verify invitation rate limit." }, 503, headers);
+    if ((recentInviteCount || 0) >= 20) {
+      return json({ error: "Invitation limit reached. Wait one minute before inviting more creators." }, 429, headers);
+    }
+
     const { data: invite, error } = await admin.from("live_room_invites").insert({
       room_id: roomId, inviter_id: creatorId, invitee_id: inviteeId, status: "pending",
-      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      expires_at: new Date(now.getTime() + 10 * 60 * 1000).toISOString(),
     }).select("id,room_id,inviter_id,invitee_id,status,expires_at").single();
     if (error || !invite) return json({ error: "Could not send LIVE invitation." }, 503, headers);
     return json({ ok: true, invite }, 200, headers);
