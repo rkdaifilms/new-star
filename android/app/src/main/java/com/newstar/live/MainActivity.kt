@@ -906,6 +906,7 @@ private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit,
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var refresh by remember { mutableIntStateOf(0) }
+    var menuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(category, feedMode, refresh, session?.userId) {
         loading = true
@@ -954,7 +955,28 @@ private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit,
         topBar = {
             TopAppBar(
                 title = { Text("🌟 New Star", fontWeight = FontWeight.Bold) },
-                actions = { Row { TextButton(onClick = { onNavigate("Creator AI") }) { Text("Studio AI") }; TextButton(onClick = { onNavigate("Profile") }) { Text("Creator Hub") } } }
+                actions = {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        TextButton(onClick = { onNavigate("Creator AI") }) { Text("AI Engine") }
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }) { Text("⋮", style = MaterialTheme.typography.headlineSmall) }
+                            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                                listOf(
+                                    "My Profile" to "Profile",
+                                    "Creator Studio AI" to "Creator AI",
+                                    "Upload Video" to "Upload",
+                                    "Inbox / Messages" to "Inbox",
+                                    "Wallet / Coins" to "Wallet",
+                                    "LIVE" to "Live",
+                                    "Gaming LIVE" to "Gaming"
+                                ).forEach { item ->
+                                    DropdownMenuItem(text = { Text(item.first) },
+                                        onClick = { menuExpanded = false; onNavigate(item.second) })
+                                }
+                            }
+                        }
+                    }
+                }
             )
         },
         bottomBar = {
@@ -976,6 +998,12 @@ private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit,
                 singleLine = true, label = { Text("इस Feed में वीडियो या Creator खोजें") },
                 trailingIcon = { if (search.isNotEmpty()) TextButton(onClick = { search = "" }) { Text("Clear") } }
             )
+            if (search.trim().isNotEmpty()) {
+                TextButton(onClick = { onNavigate("Creator AI") },
+                    modifier = Modifier.padding(horizontal = 12.dp)) {
+                    Text("New Star AI Engine से पूछें: ${search.trim().take(45)}")
+                }
+            }
             if (search.trim().length >= 2) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
                     Text("Creator खोज", style = MaterialTheme.typography.titleMedium)
