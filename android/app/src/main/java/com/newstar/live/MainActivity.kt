@@ -326,6 +326,20 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
     var creatorProfiles by remember { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
+    var followingIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var followBusyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    LaunchedEffect(session.userId) {
+        try {
+            val followed = NativeSupabase.get(
+                "/rest/v1/followers?select=following_id&follower_id=eq.${Uri.encode(session.userId)}&limit=1000",
+                session
+            )
+            followingIds = (0 until followed.length()).mapNotNull { index ->
+                followed.optJSONObject(index)?.optString("following_id")?.takeIf { it.isNotBlank() }
+            }.toSet()
+        } catch (_: Exception) { }
+    }
 
     LaunchedEffect(session.userId) {
         while (true) {
@@ -387,6 +401,42 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
                                 })
                                 Text("@${creator?.optString("username").orEmpty()} · ${room.optInt("viewer_count")} viewers",
                                     style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                        val creatorId = room.optString("creator_id")
+                        if (creatorId.isNotBlank() && creatorId != session.userId) {
+                            val isFollowing = creatorId in followingIds
+                            OutlinedButton(
+                                enabled = creatorId !in followBusyIds,
+                                onClick = {
+                                    followBusyIds = followBusyIds + creatorId
+                                    val wasFollowing = isFollowing
+                                    scope.launch {
+                                        try {
+                                            if (wasFollowing) {
+                                                NativeSupabase.delete(
+                                                    "/rest/v1/followers?follower_id=eq.${Uri.encode(session.userId)}&following_id=eq.${Uri.encode(creatorId)}",
+                                                    session
+                                                )
+                                                followingIds = followingIds - creatorId
+                                            } else {
+                                                NativeSupabase.post(
+                                                    "/rest/v1/followers",
+                                                    JSONObject().put("follower_id", session.userId)
+                                                        .put("following_id", creatorId),
+                                                    session
+                                                )
+                                                followingIds = followingIds + creatorId
+                                            }
+                                        } catch (e: Exception) {
+                                            error = e.message ?: "Follow update नहीं हुआ।"
+                                        } finally {
+                                            followBusyIds = followBusyIds - creatorId
+                                        }
+                                    }
+                                }
+                            ) {
+                                Text(if (creatorId in followBusyIds) "Please wait…" else if (isFollowing) "Following" else "Follow")
                             }
                         }
                         if (playback.startsWith("https://")) {
