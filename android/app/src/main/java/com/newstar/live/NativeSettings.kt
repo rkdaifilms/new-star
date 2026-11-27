@@ -196,8 +196,24 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
                 busy = false
             }
         }
-        Text("Blocked Accounts और सभी sessions से logout का native control अभी बाकी है.",
-            style = MaterialTheme.typography.bodySmall)
+        Text("Blocked Accounts", style = MaterialTheme.typography.titleMedium)
+        if (blockedAccounts.isEmpty()) Text("अभी कोई blocked account नहीं है।", style = MaterialTheme.typography.bodySmall)
+        blockedAccounts.forEach { (blockId, label) ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(label, modifier = Modifier.weight(1f))
+                TextButton(onClick = {
+                    scope.launch {
+                        busy = true
+                        try {
+                            NativeSupabase.delete("/rest/v1/user_blocks?id=eq." + Uri.encode(blockId) + "&blocker_id=eq." + Uri.encode(session.userId), session)
+                            blockedAccounts = blockedAccounts.filterNot { it.first == blockId }
+                            status = "Account unblock हो गया।"
+                        } catch (e: Exception) { status = e.message ?: "Unblock नहीं हुआ।" }
+                        busy = false
+                    }
+                }, enabled = !busy) { Text("Unblock") }
+            }
+        }
         HorizontalDivider()
         Text("04 · Language & Appearance", style = MaterialTheme.typography.titleLarge)
         Text("App Language")
