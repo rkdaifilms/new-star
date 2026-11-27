@@ -801,18 +801,28 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
     var following by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
+    var videoTab by remember(creatorId) { mutableStateOf("All") }
+    var locationName by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val visibleVideos = remember(videos, videoTab) {
+        when (videoTab) {
+            "Shorts" -> videos.filter { it.optString("video_type").equals("short", true) }
+            "Long videos" -> videos.filter { it.optString("video_type").equals("long", true) }
+            else -> videos
+        }
+    }
 
     LaunchedEffect(creatorId, session.userId) {
         try {
             val safeId = Uri.encode(creatorId)
             val profiles = NativeSupabase.get(
-                "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,bio,is_private&user_id=eq.$safeId",
+                "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,bio,is_private,location_name&user_id=eq.$safeId",
                 session
             )
             val creator = profiles.optJSONObject(0)
                 ?: throw IllegalStateException("Creator profile उपलब्ध नहीं है।")
             profile = creator
+            locationName = creator.optString("location_name")
             val relation = NativeSupabase.get(
                 "/rest/v1/followers?select=id&follower_id=eq.${Uri.encode(session.userId)}&following_id=eq.$safeId",
                 session
@@ -870,6 +880,9 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
                 style = MaterialTheme.typography.headlineSmall)
             Text("@${creator.optString("username")}")
             if (creator.optString("bio").isNotBlank()) Text(creator.optString("bio"))
+            if (locationName.isNotBlank()) {
+                Text("📍 $locationName", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             if (creatorId != session.userId) {
                 Button(enabled = !busy, onClick = {
                     busy = true
@@ -897,8 +910,21 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
                 Text("यह Private Creator account है। वीडियो देखने के लिए Follow request स्वीकार होना जरूरी है।")
             } else {
                 Text("Videos", style = MaterialTheme.typography.titleLarge)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(listOf("All", "Shorts", "Long videos")) { tab ->
+                        FilterChip(
+                            selected = videoTab == tab,
+                            onClick = { videoTab = tab },
+                            label = { Text("$tab (${when (tab) {
+                                "Shorts" -> videos.count { it.optString("video_type").equals("short", true) }
+                                "Long videos" -> videos.count { it.optString("video_type").equals("long", true) }
+                                else -> videos.size
+                            }})") }
+                        )
+                    }
+                }
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(videos) { row ->
+                    items(visibleVideos) { row ->
                         val id = row.optString("id")
                         val nativeVideo = NativeVideo(
                             id = id,
@@ -912,7 +938,9 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
                         )
                         NativeVideoCard(nativeVideo, session)
                     }
-                    if (videos.isEmpty()) item { Text("अभी कोई उपलब्ध वीडियो नहीं है।") }
+                    if (visibleVideos.isEmpty()) item {
+                        Text(if (videos.isEmpty()) "अभी कोई उपलब्ध वीडियो नहीं है।" else "इस Video category में अभी कोई वीडियो नहीं है।")
+                    }
                 }
             }
         }
