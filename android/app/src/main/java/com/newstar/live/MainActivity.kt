@@ -322,6 +322,7 @@ private fun NativeApp(
                 "Inbox" -> NativeInboxScreen(session!!)
                 "Wallet" -> NativeWalletScreen(session!!)
                 "Monetization" -> NativeMonetizationScreen(session!!) { page = "Wallet" }
+                "Fan Support" -> NativeFanSupportScreen(session!!) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
                 "Creator AI" -> NativeCreatorAiScreen(session!!, initialPrompt = aiInitialPrompt)
                 "Live" -> NativeLiveDiscoveryScreen(session!!)
                 "Gaming" -> NativeGamingScreen(
@@ -1003,6 +1004,7 @@ private fun NativeHome(
                                     "Inbox / Messages" to "Inbox",
                                     "Wallet / Coins" to "Wallet",
                                     "Creator Monetization Hub" to "Monetization",
+                                    "Fan Support" to "Fan Support",
                                     "LIVE" to "Live",
                                     "Gaming LIVE" to "Gaming"
                                 ).forEach { item ->
