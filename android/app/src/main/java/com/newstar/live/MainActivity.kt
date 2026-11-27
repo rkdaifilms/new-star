@@ -128,7 +128,7 @@ private fun NativeHome(openPage: (String) -> Unit) {
                     Spacer(Modifier.height(12.dp))
                     Button(onClick = { refresh++ }) { Text("Retry") }
                 }
-                else if (visibleFeed.isEmpty() -> Box(
+                visibleFeed.isEmpty() -> Box(
                     Modifier.fillMaxSize().padding(24.dp),
                     contentAlignment = androidx.compose.ui.Alignment.Center
                 ) {
