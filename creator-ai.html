@@ -1,63 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="hi">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101014">
-<title>New Star Creator Studio</title>
-<style>
-:root{color-scheme:dark;--bg:#101014;--panel:#1b1b23;--line:#34343f;--muted:#a9a9b7;--accent:#fe2c55}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f7f7fb;font:15px system-ui,-apple-system,Segoe UI,sans-serif}
-#creator-ai-app{min-height:100dvh;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
-.top{display:flex;align-items:center;gap:12px;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));border-bottom:1px solid var(--line);background:#15151b;position:sticky;top:0;z-index:5}
-.back{color:white;text-decoration:none;font-size:25px}.brand{flex:1}.brand strong{display:block;font-size:17px}.brand small{color:var(--muted)}
-.status{display:none}
-main{width:min(900px,100%);margin:0 auto;padding:14px;flex:1;display:flex;flex-direction:column;gap:12px}
-.welcome{background:linear-gradient(135deg,#282039,#1c2734);border:1px solid #454052;border-radius:16px;padding:16px}
-.welcome h1{font-size:21px;margin:0 0 6px}.welcome p{margin:0;color:#d0ccdc;line-height:1.5}
-.tools{display:flex;gap:8px;flex-wrap:wrap}.tools button,.secondary{background:#252530;color:#fff;border:1px solid #454552;border-radius:10px;padding:10px 12px;font-weight:600}
-.tools button.active{border-color:var(--accent);background:#46202d}
-#chat-log{display:flex;flex-direction:column;gap:10px;min-height:170px}
-.msg{max-width:92%;padding:12px 14px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
-.user{align-self:flex-end;background:#8f1e3b}.assistant{align-self:flex-start;background:#24242e;border:1px solid #383844}
-.msg-actions{display:flex;gap:8px;margin-top:8px}.msg-actions button{border:1px solid #555;border-radius:8px;background:#30303a;color:#fff;padding:6px 9px}
-#composer{position:sticky;bottom:0;background:#101014;padding:10px 0 calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
-#prompt-wrap{position:relative;width:100%}#prompt{width:100%;min-height:82px;resize:vertical;background:#1b1b23;border:1px solid #454552;border-radius:12px;padding:12px 58px 12px 12px;color:white;font:inherit} .prompt-mic{position:absolute;right:10px;bottom:10px;width:42px;height:42px;border-radius:50%;border:1px solid #686878;background:#fe2c55;color:#fff;font-size:21px;display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 2px 10px #0008}.prompt-mic:disabled{opacity:.55}
-.composer-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.composer-row button{border:0;border-radius:10px;padding:11px 14px;background:var(--accent);color:white;font-weight:700}.composer-row button.secondary{background:#272731;border:1px solid #494956}.composer-row button:disabled{opacity:.55}
-#voice-status,#notice{color:var(--muted);font-size:12px;margin:7px 2px}
-#image-result img{width:100%;max-width:640px;border-radius:14px;border:1px solid var(--line)}
-#image-result{display:grid;gap:8px}
-.toggle{display:flex;align-items:center;gap:7px;color:#ddd;font-size:13px}
-small.hint{color:var(--muted)}
-@media(min-width:760px){main{padding:20px}.welcome{padding:20px}#prompt{min-height:90px}}
-</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
-<script src="i18n.js"></script>
-<script src="preferences.js"></script>
-<script src="navbar.js" defer></script>
-<script src="creator-ai.js" defer></script>
+<meta http-equiv="refresh" content="0;url=new-star-ai.html">
+<title>New Star AI</title>
+<script>location.replace("new-star-ai.html");</script>
 </head>
-<body>
-<div id="creator-ai-app">
-<header class="top"><a class="back" href="index.html" aria-label="Back" data-i18n-aria-label="ai.back">‹</a><div class="brand"><strong data-i18n="ai.title">✦ New Star Creator Studio</strong><small data-i18n="ai.subtitle">Creative assistant · Chat · Voice · Images</small></div><span id="gateway-status" class="status">Connecting…</span></header>
-<main>
-<section class="welcome"><h1 data-i18n="ai.welcomeTitle">Your ideas, in your language.</h1><p data-i18n="ai.welcomeText">Ask questions, write stories and scripts, create video titles, descriptions and hashtags, plan content, or generate an original image. The AI follows the language you type or speak.</p></section>
-<div class="tools" aria-label="Creator tools" data-i18n-aria-label="ai.tools">
-<button type="button" data-starter="Give me 10 original video ideas for my channel.">💡 <span data-i18n="ai.videoIdeas">Video ideas</span></button>
-<button type="button" data-starter="Write an engaging video title, description and relevant hashtags for this topic: ">📝 <span data-i18n="ai.titleDescription">Title & description</span></button>
-<button type="button" data-starter="Write an engaging original story about: ">📖 <span data-i18n="ai.storyWriter">Story writer</span></button>
-<button type="button" id="image-mode">🎨 <span data-i18n="ai.generateImage">Generate image</span></button>
-</div>
-<div id="chat-log" aria-live="polite"><div class="msg assistant" data-i18n="ai.hello">Hello! Tell me what you want to create. I’ll reply in the language you use.</div></div>
-<div id="image-result" hidden></div>
-<section id="composer">
-<div id="prompt-wrap"><textarea id="prompt" maxlength="8000" data-i18n-placeholder="ai.prompt" placeholder="Write a message or tap the mic to speak…"></textarea><button type="button" id="voice" aria-label="Speak with microphone" title="Speak with microphone" data-i18n-aria-label="ai.mic" class="prompt-mic">🎙️</button></div>
-<div class="composer-row"><button type="button" id="send" data-i18n="ai.send">Send</button><button type="button" id="stop-voice" class="secondary" hidden data-i18n="ai.stopRecording">■ Stop recording</button><label class="toggle"><input id="speak-replies" type="checkbox" checked> <span data-i18n="ai.speakAnswers">Speak answers aloud</span></label></div>
-<div id="voice-status" role="status" aria-live="polite" data-i18n="ai.voiceHint">Tap the mic to speak. When recording stops, your voice is converted to text.</div>
-<div id="notice" data-i18n="ai.signinNotice">Sign in required. Do not enter passwords, OTPs, API keys or private financial details.</div>
-</section>
-</main>
-</div>
-</body>
+<body><p>New Star AI खोल रहे हैं… <a href="new-star-ai.html">यहाँ दबाएँ</a></p></body>
 </html>
