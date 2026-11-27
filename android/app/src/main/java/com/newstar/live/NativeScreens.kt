@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -32,6 +33,7 @@ fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit) {
     var signup by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center) {
         Text("🌟 New Star", style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.height(10.dp))
@@ -47,9 +49,24 @@ fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit) {
             onClick = {
                 busy = true
                 message = ""
-                androidx.compose.runtime.LaunchedEffect
-                // Network work is launched from the composition scope below.
-                authAction(context, email.trim(), password, signup, { busy = false; message = it }, onSignedIn)
+                scope.launch {
+                    try {
+                        if (signup) {
+                            val result = NativeSupabase.signUp(email.trim(), password)
+                            val access = result.optString("access_token")
+                            if (access.isBlank()) message = "Account बन गया। Email confirmation के बाद Login करें।"
+                            else {
+                                val user = result.optJSONObject("user") ?: JSONObject()
+                                val session = NativeSession(access, result.optString("refresh_token"),
+                                    System.currentTimeMillis() / 1000 + result.optLong("expires_in", 3600),
+                                    user.optString("id"), user.optString("email", email.trim()))
+                                NativeSessionStore.save(context, session)
+                                onSignedIn(session)
+                            }
+                        } else onSignedIn(NativeSupabase.signIn(context, email.trim(), password))
+                    } catch (e: Exception) { message = e.message ?: "Login नहीं हो सका।" }
+                    finally { busy = false }
+                }
             }
         ) { Text(if (busy) "कृपया प्रतीक्षा करें…" else if (signup) "Create Account" else "Login") }
         TextButton(onClick = { signup = !signup; message = "" }, enabled = !busy) {
@@ -57,31 +74,6 @@ fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit) {
         }
         if (message.isNotBlank()) Text(message, color = MaterialTheme.colorScheme.error)
         Text("Google Login को Native callback में जोड़ने से पहले Supabase redirect allowlist की पुष्टि ज़रूरी है।", style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-@Composable
-private fun authAction(
-    context: Context, email: String, password: String, signup: Boolean,
-    report: (String) -> Unit, onSignedIn: (NativeSession) -> Unit
-) {
-    val scope = rememberCoroutineScope()
-    LaunchedEffect(email, password, signup) {
-        try {
-            if (signup) {
-                val result = NativeSupabase.signUp(email, password)
-                val access = result.optString("access_token")
-                if (access.isBlank()) report("Account बन गया। Email confirmation के बाद Login करें।")
-                else {
-                    val user = result.optJSONObject("user") ?: JSONObject()
-                    val session = NativeSession(access, result.optString("refresh_token"),
-                        System.currentTimeMillis() / 1000 + result.optLong("expires_in", 3600),
-                        user.optString("id"), user.optString("email", email))
-                    NativeSessionStore.save(context, session)
-                    onSignedIn(session)
-                }
-            } else onSignedIn(NativeSupabase.signIn(context, email, password))
-        } catch (e: Exception) { report(e.message ?: "Login नहीं हो सका।") }
     }
 }
 
@@ -139,6 +131,7 @@ fun NativeInboxScreen(session: NativeSession) {
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     LaunchedEffect(session.userId, refresh) {
         busy = true; error = ""
         try {
@@ -158,13 +151,23 @@ fun NativeInboxScreen(session: NativeSession) {
         OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth(), label = { Text("Message") })
         Button(enabled = !busy && peer.isNotBlank() && body.isNotBlank(), onClick = {
             busy = true
-            val message = body.trim()
+            val messageText = body.trim()
             val target = peer.trim()
-            androidx.compose.runtime.LaunchedEffect
-            // send operation is handled by the refresh key coroutine
-            refresh++
-            body = message
-        }) { Text("Refresh / Send") }
+            scope.launch {
+                try {
+                    require(target != session.userId) { "आप खुद को Message नहीं भेज सकते।" }
+                    val conversation = stableConversationId(session.userId, target)
+                    NativeSupabase.post("/rest/v1/messages", JSONObject()
+                        .put("conversation_id", conversation)
+                        .put("sender_id", session.userId)
+                        .put("recipient_id", target)
+                        .put("body", messageText), session)
+                    body = ""
+                    refresh++
+                } catch (e: Exception) { error = e.message ?: "Message नहीं भेजा गया।" }
+                finally { busy = false }
+            }
+        }) { Text("Send Message") }
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(messages) { item ->
@@ -221,6 +224,14 @@ fun NativeUploadScreen(session: NativeSession) {
         }) { Text(if (uploading) "Uploading…" else "Publish Video") }
         Text(status, color = if (status.contains("असफल") || status.contains("Error")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
     }
+}
+
+private fun stableConversationId(first: String, second: String): String {
+    val pair = listOf(first, second).sorted().joinToString(":")
+    val digest = MessageDigest.getInstance("SHA-256").digest(("new-star-dm:" + pair).toByteArray(Charsets.UTF_8))
+    val hex = digest.take(16).joinToString("") { "%02x".format(it) }
+    return hex.substring(0, 8) + "-" + hex.substring(8, 12) + "-5" +
+        hex.substring(13, 16) + "-a" + hex.substring(17, 20) + "-" + hex.substring(20, 32)
 }
 
 private object NativeVideoUploader {
