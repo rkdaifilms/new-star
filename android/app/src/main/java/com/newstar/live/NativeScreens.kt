@@ -560,3 +560,89 @@ fun NativeGamingScreen(
         Text("Streaming के लिए Android की screen-capture अनुमति आवश्यक है। Game/system audio की उपलब्धता Android version और device restrictions पर निर्भर करती है।", style = MaterialTheme.typography.bodySmall)
     }
 }
+
+
+@Composable
+fun NativeWalletScreen(session: NativeSession) {
+    var wallet by remember { mutableStateOf<JSONObject?>(null) }
+    var transactions by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var withdrawals by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf("") }
+    var refresh by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(session.userId, refresh) {
+        loading = true
+        error = ""
+        try {
+            val userId = Uri.encode(session.userId)
+            val walletRows = NativeSupabase.get(
+                "/rest/v1/user_wallets?select=coin_balance,real_balance&user_id=eq.$userId&limit=1", session
+            )
+            wallet = walletRows.optJSONObject(0)
+            val txRows = NativeSupabase.get(
+                "/rest/v1/coin_transactions?select=id,sender_id,receiver_id,gift_name,coins_deducted,created_at&or=(sender_id.eq.$userId,receiver_id.eq.$userId)&order=created_at.desc&limit=30",
+                session
+            )
+            transactions = (0 until txRows.length()).mapNotNull { txRows.optJSONObject(it) }
+            val withdrawalRows = NativeSupabase.get(
+                "/rest/v1/withdrawal_requests?select=id,amount,status,currency,created_at&creator_id=eq.$userId&order=created_at.desc&limit=20",
+                session
+            )
+            withdrawals = (0 until withdrawalRows.length()).mapNotNull { withdrawalRows.optJSONObject(it) }
+        } catch (e: Exception) {
+            error = e.message ?: "Wallet data लोड नहीं हुआ।"
+        } finally { loading = false }
+    }
+
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Wallet & Earnings", style = MaterialTheme.typography.headlineSmall)
+            TextButton(onClick = { refresh++ }, enabled = !loading) { Text("Refresh") }
+        }
+        Text("यहाँ केवल सर्वर पर उपलब्ध वास्तविक बैलेंस और रिकॉर्ड दिखते हैं।")
+        if (loading) CircularProgressIndicator()
+        wallet?.let { balance ->
+            Card(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Coins", style = MaterialTheme.typography.labelLarge)
+                    Text(balance.optInt("coin_balance").toString(), style = MaterialTheme.typography.headlineMedium)
+                    Spacer(Modifier.height(12.dp))
+                    Text("Creator earnings", style = MaterialTheme.typography.labelLarge)
+                    Text(balance.optString("real_balance", "0"), style = MaterialTheme.typography.headlineMedium)
+                }
+            }
+        } ?: if (!loading && error.isBlank()) {
+            Text("इस अकाउंट के लिए Wallet रिकॉर्ड अभी उपलब्ध नहीं है।")
+        }
+        Text("Gift / Coin transactions", style = MaterialTheme.typography.titleLarge)
+        LazyColumn(Modifier.weight(1f, fill = true), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(transactions) { tx ->
+                val sent = tx.optString("sender_id") == session.userId
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(tx.optString("gift_name").ifBlank { "Gift transaction" },
+                            style = MaterialTheme.typography.titleMedium)
+                        Text((if (sent) "Sent" else "Received") + " · " +
+                            tx.optInt("coins_deducted") + " coins")
+                        Text(tx.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            if (transactions.isEmpty() && !loading) item { Text("अभी कोई transaction नहीं है।") }
+            item { Text("Withdrawal history", style = MaterialTheme.typography.titleLarge) }
+            items(withdrawals) { request ->
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text("${request.optString("currency").trim()} ${request.optString("amount")}")
+                        Text("Status: ${request.optString("status")}")
+                        Text(request.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            if (withdrawals.isEmpty() && !loading) item { Text("अभी कोई withdrawal record नहीं है।") }
+        }
+        if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
+    }
+}
