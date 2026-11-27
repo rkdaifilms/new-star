@@ -625,6 +625,10 @@ fun NativeUploadScreen(session: NativeSession) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("General") }
+    var visibility by remember { mutableStateOf("public") }
+    var audienceType by remember { mutableStateOf("all") }
+    var mediaKind by remember { mutableStateOf("video") }
+    var affiliateLink by remember { mutableStateOf("") }
     var progress by remember { mutableIntStateOf(0) }
     var editingProgress by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf("3 घंटे तक का वीडियो चुनें। अधिकतम आकार 5 GiB है।") }
@@ -853,6 +857,24 @@ fun NativeUploadScreen(session: NativeSession) {
         OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Title") })
         OutlinedTextField(description, { description = it }, Modifier.fillMaxWidth(), label = { Text("Description") })
         OutlinedTextField(category, { category = it }, Modifier.fillMaxWidth(), label = { Text("Category") })
+        Text("Video Privacy", style = MaterialTheme.typography.titleSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("public" to "Public", "unlisted" to "Unlisted", "private" to "Private").forEach { (value, label) ->
+                FilterChip(selected = visibility == value, onClick = { visibility = value }, enabled = !uploading, label = { Text(label) })
+            }
+        }
+        Text("Audience", style = MaterialTheme.typography.titleSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FilterChip(selected = audienceType == "all", onClick = { audienceType = "all" }, enabled = !uploading, label = { Text("General") })
+            FilterChip(selected = audienceType == "kids", onClick = { audienceType = "kids" }, enabled = !uploading, label = { Text("Made for Kids") })
+        }
+        Text("Media Type", style = MaterialTheme.typography.titleSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("video" to "Video", "movie" to "Film", "music" to "Music", "story" to "Story").forEach { (value, label) ->
+                FilterChip(selected = mediaKind == value, onClick = { mediaKind = value }, enabled = !uploading, label = { Text(label) })
+            }
+        }
+        OutlinedTextField(affiliateLink, { affiliateLink = it.take(1000) }, Modifier.fillMaxWidth(), label = { Text("Affiliate / Promotion HTTPS link (optional)") }, singleLine = true, enabled = !uploading)
         LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth())
         Text("$progress%")
         Button(enabled = selected != null && !uploading, onClick = {
@@ -860,7 +882,7 @@ fun NativeUploadScreen(session: NativeSession) {
             uploading = true; progress = 0
             scope.launch {
                 try {
-                    NativeVideoUploader.upload(context, uri, session, title, description, category) { progress = it }
+                    NativeVideoUploader.upload(context, uri, session, title, description, category, visibility, audienceType, mediaKind, affiliateLink) { progress = it }
                     progress = 100
                     status = "वीडियो अपलोड हो गया। Processing के बाद दिखाई देगा।"
                 } catch (e: Exception) { status = e.message ?: "Upload असफल हुआ।" }
@@ -954,7 +976,8 @@ private object NativeVideoEditor {
 private object NativeVideoUploader {
     suspend fun upload(
         context: Context, uri: Uri, session: NativeSession, title: String, description: String,
-        category: String, onProgress: (Int) -> Unit
+        category: String, visibility: String, audienceType: String, mediaKind: String, affiliateLink: String,
+        onProgress: (Int) -> Unit
     ) = withContext(Dispatchers.IO) {
         val queriedSize = runCatching {
             context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
@@ -1058,6 +1081,13 @@ private object NativeVideoUploader {
             profileRows.optJSONObject(0)?.optString("username").orEmpty()
         }.getOrDefault("").ifBlank { session.email.substringBefore("@").ifBlank { "New Star Creator" } }
         val caption = listOf(title.trim(), description.trim()).filter { it.isNotBlank() }.joinToString("\n\n").ifBlank { "New Star Video" }
+        val safeAffiliate = affiliateLink.trim().takeIf { it.isNotEmpty() }?.also {
+            val parsed = java.net.URI(it)
+            require(parsed.scheme == "https" && !parsed.host.isNullOrBlank()) { "Affiliate link के लिए HTTPS URL जरूरी है।" }
+        }
+        require(visibility in setOf("public", "unlisted", "private")) { "Video privacy setting अमान्य है।" }
+        require(audienceType in setOf("all", "kids")) { "Audience setting अमान्य है।" }
+        require(mediaKind in setOf("video", "movie", "music", "story")) { "Media type अमान्य है।" }
         val row = JSONObject().apply {
             put("user_id", session.userId); put("video_url", "cloudflare://$streamId")
             put("video_provider", "cloudflare"); put("provider_video_id", streamId)
@@ -1066,8 +1096,9 @@ private object NativeVideoUploader {
             put("username", username); put("likes_count", 0); put("views_count", 0)
             put("duration_seconds", duration); put("width", width); put("height", height)
             put("video_type", if (duration <= 60L) "short" else "long")
-            put("visibility", "public"); put("audience_type", "all")
-            put("media_kind", "video"); put("aspect_ratio_setting", "original")
+            put("visibility", visibility); put("audience_type", audienceType)
+            put("media_kind", mediaKind); put("affiliate_link", safeAffiliate)
+            put("aspect_ratio_setting", "original")
             put("quality_preference", "original"); put("source_quality", "${width}x$height")
             put("frame_fit", "contain")
         }
