@@ -162,6 +162,10 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
     var bio by remember { mutableStateOf("") }
     var isPrivate by remember { mutableStateOf(false) }
     var locationVisibility by remember { mutableStateOf("hidden") }
+    var locationQuery by remember { mutableStateOf("") }
+    var locationResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var selectedLocation by remember { mutableStateOf<JSONObject?>(null) }
+    var locationSearching by remember { mutableStateOf(false) }
     var socialLinks by remember { mutableStateOf(mapOf(
         "website" to "", "facebook" to "", "instagram" to "", "youtube" to "",
         "tiktok" to "", "whatsapp" to "", "phone" to ""
@@ -178,6 +182,32 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
         }
     }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(locationQuery) {
+        val query = locationQuery.trim()
+        if (query.length < 2) {
+            locationResults = emptyList()
+            locationSearching = false
+        } else {
+            kotlinx.coroutines.delay(350)
+            locationSearching = true
+            try {
+                val result = NativeSupabase.invokeFunction(
+                    "mapbox-geocode",
+                    JSONObject().put("query", query).put("scope", "creator"),
+                    session
+                )
+                val features = result.optJSONArray("features") ?: JSONArray()
+                locationResults = (0 until features.length()).mapNotNull { features.optJSONObject(it) }
+                if (locationQuery.trim() == query && locationResults.isEmpty()) error = "इस नाम से कोई शहर या इलाका नहीं मिला।"
+            } catch (e: Exception) {
+                if (locationQuery.trim() == query) error = e.message ?: "Location search नहीं चला।"
+                locationResults = emptyList()
+            } finally {
+                if (locationQuery.trim() == query) locationSearching = false
+            }
+        }
+    }
 
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch {
@@ -232,7 +262,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
         loading = true; error = ""
         try {
             val id = Uri.encode(session.userId)
-            val rows = NativeSupabase.get("/rest/v1/profiles?select=user_id,username,full_name,avatar_url,bio,is_private,creator_location_visibility&user_id=eq.$id", session)
+            val rows = NativeSupabase.get("/rest/v1/profiles?select=user_id,username,full_name,avatar_url,bio,is_private,creator_location_visibility,creator_location_name,creator_location_latitude,creator_location_longitude,creator_mapbox_place_id&user_id=eq.$id", session)
             profile = rows.optJSONObject(0)
             fullName = profile?.optString("full_name").orEmpty()
             username = profile?.optString("username").orEmpty()
@@ -240,6 +270,13 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
             avatarUrl = profile?.optString("avatar_url").orEmpty()
             isPrivate = profile?.optBoolean("is_private") ?: false
             locationVisibility = profile?.optString("creator_location_visibility").takeUnless { it.isNullOrBlank() || it == "null" } ?: "hidden"
+            locationQuery = profile?.optString("creator_location_name").orEmpty()
+            selectedLocation = if (locationQuery.isNotBlank()) JSONObject()
+                .put("id", profile?.optString("creator_mapbox_place_id").orEmpty())
+                .put("name", locationQuery)
+                .put("latitude", profile?.optDouble("creator_location_latitude") ?: Double.NaN)
+                .put("longitude", profile?.optDouble("creator_location_longitude") ?: Double.NaN)
+                else null
             val user = NativeSupabase.currentUser(session)
             val metadata = user.optJSONObject("user_metadata") ?: JSONObject()
             coverUrl = metadata.optString("cover_url").orEmpty()
@@ -294,6 +331,53 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                     }
                     Switch(checked = isPrivate, onCheckedChange = { isPrivate = it })
                 }
+                Text("Creator location", style = MaterialTheme.typography.titleSmall)
+                OutlinedTextField(
+                    value = locationQuery,
+                    onValueChange = { locationQuery = it; selectedLocation = null },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("City, area or country") },
+                    singleLine = true,
+                    trailingIcon = {
+                        if (locationQuery.isNotBlank()) TextButton(onClick = {
+                            locationQuery = ""; selectedLocation = null; locationResults = emptyList()
+                        }) { Text("Clear") }
+                    }
+                )
+                if (locationSearching) {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text("दुनिया भर में जगह खोज रहे हैं…", Modifier.padding(start = 8.dp))
+                    }
+                }
+                if (locationResults.isNotEmpty()) {
+                    Column(Modifier.fillMaxWidth().heightIn(max = 190.dp)) {
+                        locationResults.forEach { feature ->
+                            val center = feature.optJSONArray("center")
+                            val valid = center != null && center.length() >= 2 &&
+                                center.optDouble(0, Double.NaN).isFinite() &&
+                                center.optDouble(1, Double.NaN).isFinite()
+                            if (valid) TextButton(
+                                onClick = {
+                                    selectedLocation = JSONObject()
+                                        .put("id", feature.optString("id"))
+                                        .put("name", feature.optString("name").take(240))
+                                        .put("longitude", center!!.optDouble(0))
+                                        .put("latitude", center.optDouble(1))
+                                    locationQuery = feature.optString("name").take(240)
+                                    locationResults = emptyList()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text(feature.optString("name"), Modifier.fillMaxWidth()) }
+                        }
+                    }
+                }
+                Text(
+                    selectedLocation?.optString("name")?.let { "✓ Selected: $it" }
+                        ?: "नतीजे में से शहर/इलाका चुनें। घर का पता न डालें।",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Text("Creator location visibility", style = MaterialTheme.typography.titleSmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = locationVisibility == "hidden",
@@ -335,11 +419,19 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                                         .put("username", cleanUsername)
                                         .put("bio", cleanBio)
                                         .put("is_private", isPrivate)
-                                        .put("creator_location_visibility", locationVisibility), session)
+                                        .put("creator_location_visibility", locationVisibility)
+                                        .put("creator_location_name", selectedLocation?.optString("name") ?: JSONObject.NULL)
+                                        .put("creator_location_latitude", selectedLocation?.optDouble("latitude")?.takeIf { it.isFinite() } ?: JSONObject.NULL)
+                                        .put("creator_location_longitude", selectedLocation?.optDouble("longitude")?.takeIf { it.isFinite() } ?: JSONObject.NULL)
+                                        .put("creator_mapbox_place_id", selectedLocation?.optString("id") ?: JSONObject.NULL), session)
                                 profile = (profile ?: JSONObject()).put("full_name", cleanName)
                                     .put("username", cleanUsername).put("bio", cleanBio)
                                     .put("is_private", isPrivate)
                                     .put("creator_location_visibility", locationVisibility)
+                                    .put("creator_location_name", selectedLocation?.optString("name") ?: JSONObject.NULL)
+                                    .put("creator_location_latitude", selectedLocation?.optDouble("latitude")?.takeIf { it.isFinite() } ?: JSONObject.NULL)
+                                    .put("creator_location_longitude", selectedLocation?.optDouble("longitude")?.takeIf { it.isFinite() } ?: JSONObject.NULL)
+                                    .put("creator_mapbox_place_id", selectedLocation?.optString("id") ?: JSONObject.NULL)
                                 editing = false
                                 refresh++
                             } catch (e: Exception) { error = e.message ?: "Profile save नहीं हुई।" }
@@ -353,6 +445,13 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                         isPrivate = profile?.optBoolean("is_private") ?: false
                         locationVisibility = profile?.optString("creator_location_visibility")
                             .takeUnless { it.isNullOrBlank() || it == "null" } ?: "hidden"
+                        locationQuery = profile?.optString("creator_location_name").orEmpty()
+                        selectedLocation = if (locationQuery.isNotBlank()) JSONObject()
+                            .put("id", profile?.optString("creator_mapbox_place_id").orEmpty())
+                            .put("name", locationQuery)
+                            .put("latitude", profile?.optDouble("creator_location_latitude") ?: Double.NaN)
+                            .put("longitude", profile?.optDouble("creator_location_longitude") ?: Double.NaN)
+                            else null
                         editing = false
                     }) { Text("Cancel") }
                 }
