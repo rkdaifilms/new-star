@@ -308,7 +308,7 @@ async function handleAuthAction(){
    $("userPassword").value="";
    $("userPassword").placeholder="Enter password";
    $("userPassword").autocomplete="current-password";
-   history.replaceState({},document.title,location.pathname);
+   location.replace("index.html");
    return;
   }
 
