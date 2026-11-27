@@ -644,7 +644,8 @@ fun NativeWalletScreen(session: NativeSession) {
                     Text(balance.optString("real_balance", "0"), style = MaterialTheme.typography.headlineMedium)
                 }
             }
-        } ?: if (!loading && error.isBlank()) {
+        }
+        if (wallet == null && !loading && error.isBlank()) {
             Text("इस अकाउंट के लिए Wallet रिकॉर्ड अभी उपलब्ध नहीं है।")
         }
         Text("Gift / Coin transactions", style = MaterialTheme.typography.titleLarge)
