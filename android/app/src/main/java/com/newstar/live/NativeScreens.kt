@@ -639,10 +639,18 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
     var requestActionIds by remember(session.userId) { mutableStateOf<Set<String>>(emptySet()) }
     var body by remember { mutableStateOf("") }
     var attachmentUrl by remember { mutableStateOf("") }
+    var selectedAttachmentUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedAttachmentName by remember { mutableStateOf("") }
+    var signedMediaUrls by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val attachmentPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        selectedAttachmentUri = uri
+        selectedAttachmentName = uri?.lastPathSegment?.substringAfterLast('/')?.take(100).orEmpty()
+        if (uri != null) attachmentUrl = ""
+    }
     val peers = remember(messages, session.userId) {
         messages.mapNotNull { row ->
             val sender = row.optString("sender_id")
@@ -658,6 +666,21 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                 (sender == peer && recipient == session.userId)
         }.sortedBy { it.optString("created_at") }
     }
+    LaunchedEffect(thread, session.userId) {
+        val paths = thread.map { it.optString("media_url") }
+            .filter { it.isNotBlank() && !it.startsWith("https://") }
+            .distinct()
+        val resolved = mutableMapOf<String, String>()
+        for (path in paths) {
+            try {
+                resolved[path] = NativeSupabase.createSignedObjectUrl("message-media", path, session)
+            } catch (_: Exception) {
+                // Keep unavailable private attachments hidden; refresh can retry.
+            }
+        }
+        signedMediaUrls = resolved
+    }
+
     val unreadByPeer = remember(messages, session.userId) {
         messages.filter {
             it.optString("recipient_id") == session.userId && it.isNull("read_at")
@@ -982,19 +1005,39 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
             .ifBlank { peerProfiles[peer]?.optString("username").orEmpty().ifBlank { peer } }))
         OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth(),
             label = { Text("Message") }, minLines = 2)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            OutlinedButton(
+                enabled = !busy,
+                onClick = { attachmentPicker.launch(arrayOf("image/*", "video/*", "audio/*", "application/pdf")) }
+            ) { Text("Attach file") }
+            if (selectedAttachmentName.isNotBlank()) {
+                Text(selectedAttachmentName, modifier = Modifier.weight(1f),
+                    maxLines = 1, style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = {
+                    selectedAttachmentUri = null
+                    selectedAttachmentName = ""
+                }, enabled = !busy) { Text("Remove") }
+            }
+        }
         OutlinedTextField(
             value = attachmentUrl,
-            onValueChange = { attachmentUrl = it.trim() },
+            onValueChange = { attachmentUrl = it.trim(); if (it.isNotBlank()) {
+                selectedAttachmentUri = null
+                selectedAttachmentName = ""
+            } },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("HTTPS media link (optional)") },
+            label = { Text("External HTTPS link (optional)") },
             singleLine = true
         )
-        Text("अभी सुरक्षित HTTPS लिंक भेज सकते हैं; फ़ाइल सीधे अपलोड करना अभी उपलब्ध नहीं है।",
+        Text("Private attachments Supabase Storage में upload होते हैं और केवल chat के सदस्यों को उपलब्ध रहते हैं। अधिकतम 20 MB।",
             style = MaterialTheme.typography.labelSmall)
-        Button(enabled = !busy && peer.isNotBlank() && (body.isNotBlank() || attachmentUrl.isNotBlank()), onClick = {
+        Button(enabled = !busy && peer.isNotBlank() &&
+            (body.isNotBlank() || attachmentUrl.isNotBlank() || selectedAttachmentUri != null), onClick = {
             busy = true
             val messageText = body.trim()
             val mediaLink = attachmentUrl.trim()
+            val mediaUri = selectedAttachmentUri
             val target = peer.trim()
             scope.launch {
                 try {
@@ -1002,7 +1045,27 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                     require(messageText.length <= 5000) { "Message 5000 अक्षरों से छोटा रखें।" }
                     require(mediaLink.isBlank() || (mediaLink.startsWith("https://") &&
                         Uri.parse(mediaLink).host?.isNotBlank() == true)) {
-                        "Attachment के लिए valid HTTPS link डालें।"
+                        "External attachment के लिए valid HTTPS link डालें।"
+                    }
+                    var storedMedia = mediaLink
+                    if (mediaUri != null) {
+                        val mime = context.contentResolver.getType(mediaUri) ?: "application/octet-stream"
+                        require(mime.startsWith("image/") || mime.startsWith("video/") ||
+                            mime.startsWith("audio/") || mime == "application/pdf") {
+                            "यह file type भेजने की अनुमति नहीं है।"
+                        }
+                        val bytes = withContext(Dispatchers.IO) {
+                            context.contentResolver.openInputStream(mediaUri)?.use { it.readBytes() }
+                        } ?: error("चुनी गई file पढ़ी नहीं जा सकी।")
+                        require(bytes.isNotEmpty() && bytes.size <= 20 * 1024 * 1024) {
+                            "Attachment 20 MB से छोटी होनी चाहिए।"
+                        }
+                        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
+                            ?.lowercase()?.takeIf { it.matches(Regex("[a-z0-9]{1,8}")) } ?: "bin"
+                        val objectPath = "${session.userId}/${java.util.UUID.randomUUID()}.$extension"
+                        storedMedia = NativeSupabase.uploadPrivateObject(
+                            "message-media", objectPath, bytes, mime, session
+                        )
                     }
                     val conversation = stableConversationId(session.userId, target)
                     val payload = JSONObject()
@@ -1010,15 +1073,17 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                         .put("sender_id", session.userId)
                         .put("recipient_id", target)
                         .put("body", messageText)
-                    if (mediaLink.isNotBlank()) payload.put("media_url", mediaLink)
+                    if (storedMedia.isNotBlank()) payload.put("media_url", storedMedia)
                     NativeSupabase.post("/rest/v1/messages", payload, session)
                     body = ""
                     attachmentUrl = ""
+                    selectedAttachmentUri = null
+                    selectedAttachmentName = ""
                     refresh++
                 } catch (e: Exception) { error = e.message ?: "Message नहीं भेजा गया।" }
                 finally { busy = false }
             }
-        }) { Text(if (busy) "Please wait…" else "Send Message") }
+        }) { Text(if (busy) "Uploading / sending…" else "Send Message") }
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
         Text("Selected conversation", style = MaterialTheme.typography.titleMedium)
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1033,24 +1098,27 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                             val messageBody = item.optString("body")
                             if (messageBody.isNotBlank()) Text(messageBody)
                             val mediaUrl = item.optString("media_url")
-                            if (mediaUrl.startsWith("https://")) {
+                            val resolvedMediaUrl = if (mediaUrl.startsWith("https://")) mediaUrl
+                                else signedMediaUrls[mediaUrl].orEmpty()
+                            if (resolvedMediaUrl.isNotBlank()) {
                                 val lowerUrl = mediaUrl.lowercase().substringBefore("?")
                                 if (listOf(".jpg", ".jpeg", ".png", ".webp", ".gif").any { lowerUrl.endsWith(it) }) {
                                     AsyncImage(
-                                        model = mediaUrl,
-                                        contentDescription = "Message attachment",
+                                        model = resolvedMediaUrl,
+                                        contentDescription = "Private message image attachment",
                                         modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(10.dp)),
                                         contentScale = ContentScale.Fit
                                     )
                                 } else {
                                     TextButton(onClick = {
                                         runCatching {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(mediaUrl)))
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(resolvedMediaUrl)))
                                         }.onFailure { error = "Attachment खोलने के लिए compatible app नहीं मिला।" }
                                     }) { Text("Open attachment") }
                                 }
-                            } else if (messageBody.isBlank()) {
-                                Text("Attachment unavailable")
+                            } else if (mediaUrl.isNotBlank()) {
+                                Text("Private attachment लोड हो रहा है या उपलब्ध नहीं है।",
+                                    style = MaterialTheme.typography.labelSmall)
                             }
                             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
