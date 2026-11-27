@@ -524,6 +524,39 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                 Text("Username में 3–30 अक्षर: English letters, numbers, _ या .")
             } else {
                 Text(bio)
+                val visibleSocialLinks = listOf(
+                    "website" to "Website", "facebook" to "Facebook",
+                    "instagram" to "Instagram", "youtube" to "YouTube",
+                    "tiktok" to "TikTok", "whatsapp" to "WhatsApp",
+                    "phone" to "Phone"
+                ).filter { (key, _) -> socialLinks[key].orEmpty().isNotBlank() }
+                if (visibleSocialLinks.isNotEmpty()) {
+                    Text("Social links", style = MaterialTheme.typography.titleSmall)
+                    visibleSocialLinks.forEach { (key, label) ->
+                        TextButton(onClick = {
+                            val raw = socialLinks[key].orEmpty().trim()
+                            val destination = when (key) {
+                                "phone" -> "tel:" + raw.filter { it.isDigit() || it == '+' }
+                                "whatsapp" -> {
+                                    val number = raw.filter { it.isDigit() }
+                                    if (number.isNotBlank()) "https://wa.me/$number"
+                                    else if (raw.startsWith("https://") || raw.startsWith("http://")) raw else ""
+                                }
+                                else -> if (raw.startsWith("https://") || raw.startsWith("http://")) raw
+                                    else if (key == "website" && raw.isNotBlank()) "https://$raw" else ""
+                            }
+                            if (destination.isBlank()) {
+                                error = "इस $label लिंक का सही URL या नंबर उपलब्ध नहीं है।"
+                            } else {
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(destination)))
+                                } catch (e: Exception) {
+                                    error = e.message ?: "$label लिंक नहीं खुल सका।"
+                                }
+                            }
+                        }) { Text("$label · ${socialLinks[key]}") }
+                    }
+                }
                 TextButton(onClick = { editing = true }) { Text("Edit profile") }
             }
             Text("आपकी वीडियो पोस्ट: ${videos.size}")
