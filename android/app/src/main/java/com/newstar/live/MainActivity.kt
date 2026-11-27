@@ -1234,7 +1234,7 @@ private fun NativeHome(
                     videoSearchError != null -> Column(Modifier.weight(1f).fillMaxWidth().padding(16.dp),
                         verticalArrangement = Arrangement.Center) {
                         Text(videoSearchError.orEmpty(), color = MaterialTheme.colorScheme.error)
-                        Button(onClick = { search = search.trim() }) { Text("Retry") }
+                        TextButton(onClick = { search = "" }) { Text("Clear search") }
                     }
                     videoResults.isEmpty() -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
                         Text("इस शब्द से कोई सार्वजनिक Video नहीं मिला।")
@@ -1574,7 +1574,7 @@ private object NativeFeed {
         require(safeTerm.length >= 2) { "कम से कम 2 अक्षर लिखें।" }
         val pattern = Uri.encode("(caption.ilike.*$safeTerm*,username.ilike.*$safeTerm*,category.ilike.*$safeTerm*)")
         val rows = NativeSupabase.get(
-            "/rest/v1/videos?select=id,caption,username,category,likes_count,views_count,video_type,user_id&visibility=eq.public&$" + "or=$pattern&order=created_at.desc&limit=30",
+            "/rest/v1/videos?select=id,caption,username,category,likes_count,views_count,video_type,user_id&visibility=eq.public&or=$pattern&order=created_at.desc&limit=30",
             session
         )
         if (rows.length() == 0) return@withContext emptyList()
