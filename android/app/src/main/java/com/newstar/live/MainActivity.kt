@@ -433,6 +433,7 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
     }
 
     Column(Modifier.fillMaxSize().padding(12.dp)) {
+        NativeLiveHostControls(session)
         NativeLiveInvitations(session)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("LIVE Now", style = MaterialTheme.typography.headlineSmall)
