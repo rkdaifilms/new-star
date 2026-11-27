@@ -123,6 +123,21 @@ object NativeSupabase {
         return response
     }
 
+    suspend fun signUp(email: String, password: String): JSONObject =
+        withContext(Dispatchers.IO) {
+            JSONObject(request(
+                "POST", "/auth/v1/signup",
+                JSONObject().put("email", email).put("password", password)
+            ))
+        }
+
+    suspend fun invokeFunction(name: String, body: JSONObject, session: NativeSession): JSONObject =
+        withContext(Dispatchers.IO) {
+            JSONObject(request(
+                "POST", "/functions/v1/$name", body, session.accessToken
+            ))
+        }
+
     suspend fun signIn(context: Context, email: String, password: String): NativeSession =
         withContext(Dispatchers.IO) {
             val result = JSONObject(request(
