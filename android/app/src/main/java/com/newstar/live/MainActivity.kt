@@ -231,8 +231,9 @@ private object NativeFeed {
             connection.connectTimeout = 15000
             connection.readTimeout = 25000
             connection.doOutput = true
+            // Supabase sb_publishable_* keys belong in apikey only; they are not JWTs.
+            // Do not send them as Authorization: Bearer or PostgREST will reject the request.
             connection.setRequestProperty("apikey", PUBLIC_API_KEY)
-            connection.setRequestProperty("Authorization", "Bearer $PUBLIC_API_KEY")
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("Accept", "application/json")
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
