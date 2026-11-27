@@ -14,7 +14,7 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Minimal Phoenix v2 websocket client for Supabase Realtime Postgres Changes.
+ * Supabase Realtime subscription for private Inbox messages and incoming follow requests.
  * The server still applies the table's RLS policies to each subscribed row.
  */
 class NativeRealtimeMessages(
@@ -54,12 +54,20 @@ class NativeRealtimeMessages(
             .build()
         socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                val changes = JSONArray().put(
-                    JSONObject()
-                        .put("event", "*")
-                        .put("schema", "public")
-                        .put("table", "messages")
-                )
+                val changes = JSONArray()
+                    .put(
+                        JSONObject()
+                            .put("event", "*")
+                            .put("schema", "public")
+                            .put("table", "messages")
+                    )
+                    .put(
+                        JSONObject()
+                            .put("event", "*")
+                            .put("schema", "public")
+                            .put("table", "follow_requests")
+                            .put("filter", "target_user_id=eq.$userId")
+                    )
                 val config = JSONObject()
                     .put("broadcast", JSONObject().put("ack", false).put("self", false))
                     .put("presence", JSONObject().put("key", ""))
