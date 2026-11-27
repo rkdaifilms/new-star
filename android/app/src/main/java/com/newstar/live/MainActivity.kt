@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     private var runtimeConfig = JSONObject()
     private var lastRuntimeConfigFetchAt = 0L
     private var runtimeConfigFetchInFlight = false
+    private var activeScreen = "Auth"
 
     private val videoPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
@@ -47,10 +48,10 @@ class MainActivity : AppCompatActivity() {
         window.statusBarColor = Color.rgb(8, 10, 18)
         window.navigationBarColor = Color.rgb(8, 10, 18)
         session = restoreSession()
-        if (session == null) showAuth() else showHome()
         prefs.getString("runtime_config_json", null)?.let { cached ->
             runCatching { runtimeConfig = JSONObject(cached) }
         }
+        if (session == null) showAuth() else showHome()
         loadRuntimeConfig(force = true)
     }
 
@@ -69,11 +70,14 @@ class MainActivity : AppCompatActivity() {
                 val remote = api.loadRuntimeConfig()
                 runOnUiThread {
                     runtimeConfigFetchInFlight = false
+                    val previousFlags = runtimeConfig.optJSONObject("feature_flags")?.toString().orEmpty()
                     runtimeConfig = remote.config
                     prefs.edit()
                         .putString("runtime_config_json", remote.config.toString())
                         .putLong("runtime_config_version", remote.version)
                         .apply()
+                    val newFlags = runtimeConfig.optJSONObject("feature_flags")?.toString().orEmpty()
+                    if (previousFlags != newFlags) refreshVisibleScreenForRemoteFlags()
                     showRuntimeConfigNotice(remote.config, remote.version)
                 }
             } catch (_: Exception) {
@@ -109,6 +113,15 @@ class MainActivity : AppCompatActivity() {
         return runtimeConfig.optJSONObject("feature_flags")?.optBoolean(name, defaultValue) ?: defaultValue
     }
 
+    private fun refreshVisibleScreenForRemoteFlags() {
+        if (isFinishing || isDestroyed) return
+        when (activeScreen) {
+            "Home" -> showHome()
+            "Search" -> if (isRemoteFeatureEnabled("show_search", true)) showSearch() else showHome()
+            "Profile" -> if (isRemoteFeatureEnabled("show_profile", true)) showProfile() else showHome()
+        }
+    }
+
     private fun restoreSession(): NewStarSession? {
         val access = prefs.getString("access", null) ?: return null
         val refresh = prefs.getString("refresh", null) ?: return null
@@ -133,6 +146,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAuth() {
+        activeScreen = "Auth"
         baseScreen("✦ New Star")
         val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(24), dp(20), dp(24), dp(20)) }
         panel.addView(label("Welcome to New Star", 26f, true))
@@ -223,7 +237,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showHome() {
-        baseScreen("✦ New Star")
+        activeScreen = "Home"
+        val remoteTitle = runtimeConfig.optJSONObject("ui")?.optString("home_title").orEmpty().ifBlank { "✦ New Star" }
+        baseScreen(remoteTitle)
         val toolbar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), 0, dp(16), 0) }
         val forYou = button("For You")
         val following = button("Following")
@@ -357,6 +373,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSearch() {
+        activeScreen = "Search"
         baseScreen("Search New Star")
         val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(16), dp(16), 0) }
         val input = EditText(this).apply { hint = "Search creator"; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY) }
@@ -522,6 +539,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showProfile() {
+        activeScreen = "Profile"
         baseScreen("Your Account")
         val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(24), dp(20), dp(20)) }
         panel.addView(label("Signed in as\n" + (session?.email ?: "New Star creator"), 16f))
