@@ -1124,36 +1124,54 @@ fun NativeGamingScreen(
 
 @Composable
 fun NativeWalletScreen(session: NativeSession) {
-    var wallet by remember { mutableStateOf<JSONObject?>(null) }
-    var transactions by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var coinBalance by remember { mutableLongStateOf(0L) }
+    var giftGross by remember { mutableLongStateOf(0L) }
+    var giftNet by remember { mutableLongStateOf(0L) }
+    var giftFee by remember { mutableLongStateOf(0L) }
+    var ledger by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var orders by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var withdrawals by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(session.userId, refresh) {
         loading = true
         error = ""
         try {
             val userId = Uri.encode(session.userId)
-            val walletRows = NativeSupabase.get(
-                "/rest/v1/user_wallets?select=coin_balance,real_balance&user_id=eq.$userId&limit=1", session
-            )
-            wallet = walletRows.optJSONObject(0)
-            val txRows = NativeSupabase.get(
-                "/rest/v1/coin_transactions?select=id,sender_id,receiver_id,gift_name,coins_deducted,created_at&or=(sender_id.eq.$userId,receiver_id.eq.$userId)&order=created_at.desc&limit=30",
+            val ledgerRows = NativeSupabase.get(
+                "/rest/v1/wallet_ledger?select=entry_type,coin_delta,amount_minor,currency,created_at&user_id=eq.$userId&order=created_at.desc&limit=30",
                 session
             )
-            transactions = (0 until txRows.length()).mapNotNull { txRows.optJSONObject(it) }
+            ledger = (0 until ledgerRows.length()).mapNotNull { ledgerRows.optJSONObject(it) }
+            coinBalance = ledger.sumOf { it.optLong("coin_delta") }
+
+            val earningsRows = NativeSupabase.get(
+                "/rest/v1/creator_gift_earnings?select=coins,gross_coins,platform_fee_coins&creator_id=eq.$userId",
+                session
+            )
+            val earnings = (0 until earningsRows.length()).mapNotNull { earningsRows.optJSONObject(it) }
+            giftGross = earnings.sumOf { it.optLong("gross_coins", it.optLong("coins")) }
+            giftNet = earnings.sumOf { it.optLong("coins") }
+            giftFee = earnings.sumOf { it.optLong("platform_fee_coins") }
+
+            val orderRows = NativeSupabase.get(
+                "/rest/v1/payment_orders?select=id,provider,amount_minor,currency,status,created_at&user_id=eq.$userId&order=created_at.desc&limit=20",
+                session
+            )
+            orders = (0 until orderRows.length()).mapNotNull { orderRows.optJSONObject(it) }
+
             val withdrawalRows = NativeSupabase.get(
-                "/rest/v1/withdrawal_requests?select=id,amount,status,currency,created_at&creator_id=eq.$userId&order=created_at.desc&limit=20",
+                "/rest/v1/withdrawal_requests?select=id,amount,currency,country_code,payout_method,status,created_at&creator_id=eq.$userId&order=created_at.desc&limit=20",
                 session
             )
             withdrawals = (0 until withdrawalRows.length()).mapNotNull { withdrawalRows.optJSONObject(it) }
         } catch (e: Exception) {
             error = e.message ?: "Wallet data लोड नहीं हुआ।"
-        } finally { loading = false }
+        } finally {
+            loading = false
+        }
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -1161,52 +1179,71 @@ fun NativeWalletScreen(session: NativeSession) {
             Text("Wallet & Earnings", style = MaterialTheme.typography.headlineSmall)
             TextButton(onClick = { refresh++ }, enabled = !loading) { Text("Refresh") }
         }
-        Text("यहाँ केवल सर्वर पर उपलब्ध वास्तविक बैलेंस और रिकॉर्ड दिखते हैं।")
+        Text("सिर्फ verified server ledger से मिली जानकारी दिखाई जाती है।")
         if (loading) CircularProgressIndicator()
-        wallet?.let { balance ->
-            Card(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Coins", style = MaterialTheme.typography.labelLarge)
-                    Text(balance.optInt("coin_balance").toString(), style = MaterialTheme.typography.headlineMedium)
-                    Spacer(Modifier.height(12.dp))
-                    Text("Creator earnings", style = MaterialTheme.typography.labelLarge)
-                    Text(balance.optString("real_balance", "0"), style = MaterialTheme.typography.headlineMedium)
-                }
+        Card(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Verified Coin Balance", style = MaterialTheme.typography.labelLarge)
+                Text(coinBalance.toString() + " Coins", style = MaterialTheme.typography.headlineMedium)
+                Spacer(Modifier.height(12.dp))
+                Text("Creator gift earnings", style = MaterialTheme.typography.titleMedium)
+                Text("Gross: $giftGross Coins")
+                Text("Your recorded net: $giftNet Coins")
+                Text("Platform fee: $giftFee Coins")
             }
         }
-        if (wallet == null && !loading && error.isBlank()) {
-            Text("इस अकाउंट के लिए Wallet रिकॉर्ड अभी उपलब्ध नहीं है।")
-        }
-        Text("Gift / Coin transactions", style = MaterialTheme.typography.titleLarge)
-        LazyColumn(Modifier.weight(1f, fill = true), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(transactions) { tx ->
-                val sent = tx.optString("sender_id") == session.userId
+        Text("Coin Ledger", style = MaterialTheme.typography.titleLarge)
+        LazyColumn(
+            Modifier.weight(1f, fill = true),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(ledger) { entry ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
-                        Text(tx.optString("gift_name").ifBlank { "Gift transaction" },
+                        Text(entry.optString("entry_type").ifBlank { "Ledger entry" },
                             style = MaterialTheme.typography.titleMedium)
-                        Text((if (sent) "Sent" else "Received") + " · " +
-                            tx.optInt("coins_deducted") + " coins")
-                        Text(tx.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+                        Text((if (entry.optLong("coin_delta") > 0) "+" else "") +
+                            entry.optLong("coin_delta") + " Coins")
+                        Text(entry.optString("created_at"), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
-            if (transactions.isEmpty() && !loading) item { Text("अभी कोई transaction नहीं है।") }
-            item { Text("Withdrawal history", style = MaterialTheme.typography.titleLarge) }
+            if (ledger.isEmpty() && !loading) item {
+                Text("अभी कोई verified Coin Ledger entry नहीं है।")
+            }
+            item { Text("Payment Orders", style = MaterialTheme.typography.titleLarge) }
+            items(orders) { order ->
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(order.optString("provider").ifBlank { "Payment order" })
+                        Text(order.optString("currency") + " " + order.optString("amount_minor"))
+                        Text("Status: " + order.optString("status"))
+                        Text(order.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            if (orders.isEmpty() && !loading) item { Text("अभी कोई Payment Order नहीं है।") }
+            item { Text("Withdrawal History", style = MaterialTheme.typography.titleLarge) }
             items(withdrawals) { request ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
-                        Text("${request.optString("currency").trim()} ${request.optString("amount")}")
-                        Text("Status: ${request.optString("status")}")
+                        Text(request.optString("payout_method").ifBlank { "Payout request" })
+                        Text(request.optString("currency") + " " + request.optString("amount"))
+                        Text("Status: " + request.optString("status"))
                         Text(request.optString("created_at"), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
-            if (withdrawals.isEmpty() && !loading) item { Text("अभी कोई withdrawal record नहीं है।") }
+            if (withdrawals.isEmpty() && !loading) item { Text("अभी कोई Withdrawal Request नहीं है।") }
         }
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
+        Text(
+            "Coin खरीद और cash payout अभी बंद हैं। किसी payment या payout को इस स्क्रीन से शुरू नहीं किया जा सकता।",
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
+
 
 
 private data class NativeAiMessage(val role: String, val content: String)
