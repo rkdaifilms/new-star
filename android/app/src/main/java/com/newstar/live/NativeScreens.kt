@@ -659,37 +659,53 @@ fun NativeUploadScreen(session: NativeSession) {
     var overlayText by remember { mutableStateOf("") }
     var splitAtSeconds by remember { mutableStateOf("") }
     var splitParts by remember { mutableStateOf<List<Uri>>(emptyList()) }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            deleteNativeEditorTemp(context, selected)
-            splitParts.forEach { deleteNativeEditorTemp(context, it) }
+    fun acceptSelectedVideo(uri: Uri?, source: String) {
+        if (uri == null) {
+            status = if (source == "camera") "Camera से वीडियो वापस नहीं मिला। दोबारा रिकॉर्ड करें या Gallery चुनें।" else status
+            return
         }
+        deleteNativeEditorTemp(context, selected)
+        splitParts.forEach { deleteNativeEditorTemp(context, it) }
         selected = uri
         splitParts = emptyList()
-        if (uri != null) {
-            try { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
+        try {
+            if (source == "gallery") {
+                try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
+            }
+            val retriever = MediaMetadataRetriever()
             try {
-                val retriever = MediaMetadataRetriever()
-                try {
-                    retriever.setDataSource(context, uri)
-                    sourceDurationSeconds = ((retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000L).toInt()
-                    sourceWidth = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
-                    sourceHeight = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
-                    require(sourceDurationSeconds > 0 && sourceWidth > 0 && sourceHeight > 0) { "वीडियो की अवधि या resolution पढ़ नहीं सके।" }
-                } finally {
-                    retriever.release()
-                }
-                trimStartSeconds = "0"
-                trimEndSeconds = sourceDurationSeconds.toString()
-                rotationDegrees = 0
-                muteOriginalAudio = false
-                selectedFilter = "none"
-                centerCrop = false
-                exportSpeed = 1f
-                overlayText = ""
-                editing = true
-                status = "वीडियो चुना गया। Trim, rotate या mute सेट करके Apply edits दबाएँ।"
-            } catch (e: Exception) { status = e.message ?: "वीडियो metadata पढ़ नहीं सके।" }
+                retriever.setDataSource(context, uri)
+                sourceDurationSeconds = ((retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000L).toInt()
+                sourceWidth = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+                sourceHeight = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+                require(sourceDurationSeconds > 0 && sourceWidth > 0 && sourceHeight > 0) { "वीडियो की अवधि या resolution पढ़ नहीं सके।" }
+                if (source == "camera") require(sourceDurationSeconds <= 600) { "Camera recording 10 मिनट से अधिक है। कृपया 10 मिनट या उससे छोटा वीडियो रिकॉर्ड करें।" }
+            } finally {
+                retriever.release()
+            }
+            trimStartSeconds = "0"
+            trimEndSeconds = sourceDurationSeconds.toString()
+            rotationDegrees = 0
+            muteOriginalAudio = false
+            selectedFilter = "none"
+            centerCrop = false
+            exportSpeed = 1f
+            overlayText = ""
+            editing = true
+            status = if (source == "camera") "Camera recording मिल गई। Native editor में बदलाव करके Publish करें।" else "वीडियो चुना गया। Trim, rotate या mute सेट करके Apply edits दबाएँ।"
+        } catch (e: Exception) {
+            selected = null
+            status = e.message ?: "वीडियो metadata पढ़ नहीं सके।"
+        }
+    }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        acceptSelectedVideo(uri, "gallery")
+    }
+    val cameraCapture = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            acceptSelectedVideo(result.data?.data, "camera")
+        } else {
+            status = "Camera recording रद्द हुई।"
         }
     }
     val scope = rememberCoroutineScope()
@@ -707,7 +723,21 @@ fun NativeUploadScreen(session: NativeSession) {
     }
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Native Video Upload", style = MaterialTheme.typography.headlineSmall)
-        Button(onClick = { picker.launch(arrayOf("video/*")) }, enabled = !uploading) { Text("Gallery से वीडियो चुनें") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { picker.launch(arrayOf("video/*")) }, enabled = !uploading, modifier = Modifier.weight(1f)) { Text("Gallery से वीडियो चुनें") }
+            OutlinedButton(onClick = {
+                val captureIntent = Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE).apply {
+                    putExtra(android.provider.MediaStore.EXTRA_DURATION_LIMIT, 600)
+                    putExtra(android.provider.MediaStore.EXTRA_VIDEO_QUALITY, 1)
+                }
+                if (captureIntent.resolveActivity(context.packageManager) != null) {
+                    status = "फोन का Camera खुल रहा है। अधिकतम 10 मिनट की recording चुनें।"
+                    cameraCapture.launch(captureIntent)
+                } else {
+                    status = "इस फोन में compatible Camera app उपलब्ध नहीं है। Gallery से वीडियो चुनें।"
+                }
+            }, enabled = !uploading, modifier = Modifier.weight(1f)) { Text("Camera से रिकॉर्ड") }
+        }
         Text(selected?.lastPathSegment ?: "कोई वीडियो नहीं चुना गया")
         if (selected != null && sourceWidth > 0 && sourceHeight > 0) {
             Text("Video Info · ${sourceWidth} × ${sourceHeight} · ${sourceDurationSeconds}s")
