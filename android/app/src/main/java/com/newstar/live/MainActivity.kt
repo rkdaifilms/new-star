@@ -588,38 +588,48 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
                 "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,bio,is_private&user_id=eq.$safeId",
                 session
             )
-            profile = profiles.optJSONObject(0)
+            val creator = profiles.optJSONObject(0)
+                ?: throw IllegalStateException("Creator profile उपलब्ध नहीं है।")
+            profile = creator
             val relation = NativeSupabase.get(
                 "/rest/v1/followers?select=id&follower_id=eq.${Uri.encode(session.userId)}&following_id=eq.$safeId",
                 session
             )
             following = relation.length() > 0
-            val rows = NativeSupabase.get(
-                "/rest/v1/videos?select=id,caption,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$safeId&order=created_at.desc&limit=60",
-                session
-            )
-            val ids = JSONArray()
-            val sourceRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
-            sourceRows.forEach { ids.put(it.optString("id")) }
-            if (ids.length() > 0) {
-                val resolved = NativeSupabase.invokeFunction(
-                    "video-url", JSONObject().put("video_ids", ids), session
+
+            // Never request private creator video rows until the viewer follows them.
+            val canViewVideos = !creator.optBoolean("is_private") ||
+                following || creatorId == session.userId
+            if (!canViewVideos) {
+                videos = emptyList()
+            } else {
+                val rows = NativeSupabase.get(
+                    "/rest/v1/videos?select=id,caption,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$safeId&order=created_at.desc&limit=60",
+                    session
                 )
-                require(resolved.optBoolean("ok")) { "Creator video playback URL resolve नहीं हुआ।" }
-                val urls = resolved.optJSONObject("urls") ?: JSONObject()
-                videos = sourceRows.mapNotNull { row ->
-                    val id = row.optString("id")
-                    val url = urls.optString(id)
-                    if (!url.startsWith("https://")) null else JSONObject()
-                        .put("id", id).put("url", url)
-                        .put("caption", row.optString("caption"))
-                        .put("category", row.optString("category"))
-                        .put("video_type", row.optString("video_type"))
-                        .put("likes_count", row.optInt("likes_count"))
-                        .put("views_count", row.optInt("views_count"))
-                        .put("username", profile?.optString("username").orEmpty())
-                }
-            } else videos = emptyList()
+                val ids = JSONArray()
+                val sourceRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                sourceRows.forEach { ids.put(it.optString("id")) }
+                if (ids.length() > 0) {
+                    val resolved = NativeSupabase.invokeFunction(
+                        "video-url", JSONObject().put("video_ids", ids), session
+                    )
+                    require(resolved.optBoolean("ok")) { "Creator video playback URL resolve नहीं हुआ।" }
+                    val urls = resolved.optJSONObject("urls") ?: JSONObject()
+                    videos = sourceRows.mapNotNull { row ->
+                        val id = row.optString("id")
+                        val url = urls.optString(id)
+                        if (!url.startsWith("https://")) null else JSONObject()
+                            .put("id", id).put("url", url)
+                            .put("caption", row.optString("caption"))
+                            .put("category", row.optString("category"))
+                            .put("video_type", row.optString("video_type"))
+                            .put("likes_count", row.optInt("likes_count"))
+                            .put("views_count", row.optInt("views_count"))
+                            .put("username", creator.optString("username"))
+                    }
+                } else videos = emptyList()
+            }
         } catch (e: Exception) {
             error = e.message ?: "Creator profile लोड नहीं हुई।"
         }
