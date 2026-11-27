@@ -250,6 +250,7 @@ private fun NativeApp(
     var checkingSession by remember { mutableStateOf(true) }
     var page by remember { mutableStateOf("Home") }
     var selectedCreatorId by remember { mutableStateOf<String?>(null) }
+    var aiInitialPrompt by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -284,7 +285,12 @@ private fun NativeApp(
     }
 
     if (page == "Home") {
-        NativeHome(session = session, onOpenCreator = { selectedCreatorId = it; page = "Creator" }) { page = it }
+        NativeHome(
+            session = session,
+            onOpenCreator = { selectedCreatorId = it; page = "Creator" },
+            onAskAi = { prompt -> aiInitialPrompt = prompt; page = "Creator AI" },
+            onNavigate = { page = it }
+        )
     } else if (session == null) {
         NativeAuthScreen(onSignedIn = { session = it; page = "Home" }, onGoogleSignIn = onGoogleSignIn)
     } else {
@@ -298,7 +304,7 @@ private fun NativeApp(
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!)
                 "Wallet" -> NativeWalletScreen(session!!)
-                "Creator AI" -> NativeCreatorAiScreen(session!!)
+                "Creator AI" -> NativeCreatorAiScreen(session!!, initialPrompt = aiInitialPrompt)
                 "Live" -> NativeLiveDiscoveryScreen(session!!)
                 "Gaming" -> NativeGamingScreen(
                     session = session!!,
@@ -313,7 +319,12 @@ private fun NativeApp(
                         finally { session = null; page = "Home" }
                     }
                 }
-                else -> NativeHome(session = session, onOpenCreator = { selectedCreatorId = it; page = "Creator" }) { page = it }
+                else -> NativeHome(
+                    session = session,
+                    onOpenCreator = { selectedCreatorId = it; page = "Creator" },
+                    onAskAi = { prompt -> aiInitialPrompt = prompt; page = "Creator AI" },
+                    onNavigate = { page = it }
+                )
             }
         }
     }
