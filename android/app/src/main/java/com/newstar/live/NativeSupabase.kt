@@ -263,6 +263,9 @@ object NativeSupabase {
     suspend fun patch(path: String, body: JSONObject, session: NativeSession): String =
         withContext(Dispatchers.IO) { request("PATCH", path, body, session.accessToken, mapOf("Prefer" to "return=representation")) }
 
+    suspend fun delete(path: String, session: NativeSession): String =
+        withContext(Dispatchers.IO) { request("DELETE", path, token = session.accessToken) }
+
     suspend fun deleteSession(context: Context, session: NativeSession) = withContext(Dispatchers.IO) {
         try { request("POST", "/auth/v1/logout", token = session.accessToken) } finally {
             NativeSessionStore.clear(context)
