@@ -294,6 +294,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
 
 @Composable
 fun NativeInboxScreen(session: NativeSession) {
+    val context = LocalContext.current
     var messages by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var peer by remember { mutableStateOf("") }
     var peerSearch by remember { mutableStateOf("") }
@@ -503,7 +504,28 @@ fun NativeInboxScreen(session: NativeSession) {
                     )) {
                         Column(Modifier.padding(10.dp)) {
                             Text(if (own) "You" else peerProfiles[peer]?.optString("full_name").orEmpty().ifBlank { peerProfiles[peer]?.optString("username").orEmpty().ifBlank { "Creator" } }, style = MaterialTheme.typography.labelSmall)
-                            Text(item.optString("body").ifBlank { "Media message" })
+                            val messageBody = item.optString("body")
+                            if (messageBody.isNotBlank()) Text(messageBody)
+                            val mediaUrl = item.optString("media_url")
+                            if (mediaUrl.startsWith("https://")) {
+                                val lowerUrl = mediaUrl.lowercase().substringBefore("?")
+                                if (listOf(".jpg", ".jpeg", ".png", ".webp", ".gif").any { lowerUrl.endsWith(it) }) {
+                                    AsyncImage(
+                                        model = mediaUrl,
+                                        contentDescription = "Message attachment",
+                                        modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(10.dp)),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                } else {
+                                    TextButton(onClick = {
+                                        runCatching {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(mediaUrl)))
+                                        }.onFailure { error = "Attachment खोलने के लिए compatible app नहीं मिला।" }
+                                    }) { Text("Open attachment") }
+                                }
+                            } else if (messageBody.isBlank()) {
+                                Text("Attachment unavailable")
+                            }
                             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(item.optString("created_at"), style = MaterialTheme.typography.labelSmall)
