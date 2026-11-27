@@ -659,7 +659,16 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
     val scope = rememberCoroutineScope()
 
     suspend fun reloadParticipants() {
-        participants = NativeLiveRepository.listParticipants(roomId, session)
+        val current = NativeLiveRepository.listParticipants(roomId, session)
+        val moderator = current.any {
+            it.optString("user_id") == session.userId &&
+                it.optString("role") == "moderator" && it.optString("status") == "admitted"
+        }
+        participants = if (isHost || moderator) {
+            val managed = NativeLiveRepository.listMembers(roomId, session)
+            val rows = managed.optJSONArray("members") ?: JSONArray()
+            (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+        } else current
     }
 
     LaunchedEffect(roomId) {
@@ -776,7 +785,7 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                         "${person.optString("display_name")} · $personRole · $status · seat ${person.optString("seat_number", "-")}",
                         modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall
                     )
-                    if (status == "requested") {
+                    if (status == "requested" && isHost) {
                         TextButton(enabled = !busy, onClick = {
                             busy = true
                             scope.launch {
@@ -842,12 +851,12 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                             }
                         }) { Text("Remove") }
                     }
-                    if (status == "requested" && isHost) {
+                    if (status == "requested" && (isHost || isModerator)) {
                         TextButton(enabled = !busy, onClick = {
                             busy = true
                             scope.launch {
                                 try {
-                                    NativeLiveRepository.removeGuest(roomId, person.optString("id"), session)
+                                    NativeLiveRepository.removeMember(roomId, personId, session)
                                     notice = "Guest request हटाई गई।"
                                     reloadParticipants()
                                 } catch (e: Exception) { notice = e.message ?: "Remove failed" }
