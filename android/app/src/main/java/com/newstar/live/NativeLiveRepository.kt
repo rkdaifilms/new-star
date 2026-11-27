@@ -75,6 +75,20 @@ internal object NativeLiveRepository {
     suspend fun removeGuest(roomId: String, participantId: String, session: NativeSession): JSONObject =
         invokeSeatAction("live-seat-remove", roomId, participantId, session)
 
+    suspend fun getReactionCounts(roomId: String, session: NativeSession): Map<String, Int> {
+        require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
+        val result = NativeSupabase.invokeFunction(
+            "cloudflare-live",
+            JSONObject().put("action", "live-reaction-counts").put("room_id", roomId),
+            session
+        )
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "LIVE reaction totals लोड नहीं हुए।"))
+        }
+        val counts = result.optJSONObject("counts") ?: JSONObject()
+        return listOf("like", "heart", "clap", "fire").associateWith { counts.optInt(it) }
+    }
+
     suspend fun sendReaction(roomId: String, reaction: String, session: NativeSession): Int {
         require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
         require(reaction in setOf("like", "heart", "clap", "fire")) { "यह LIVE reaction उपलब्ध नहीं है।" }
