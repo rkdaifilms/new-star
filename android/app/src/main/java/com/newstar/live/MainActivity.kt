@@ -322,6 +322,7 @@ private fun NativeApp(
                 )
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!, inboxTargetId)
+                "Notifications" -> NativeNotificationsScreen(session!!)
                 "Wallet" -> NativeWalletScreen(session!!)
                 "Monetization" -> NativeMonetizationScreen(session!!) { page = "Wallet" }
                 "Fan Support" -> NativeFanSupportScreen(session!!) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
@@ -1187,6 +1188,7 @@ private fun NativeHome(
                                     "Creator Studio AI" to "Creator AI",
                                     "Upload Video" to "Upload",
                                     "Inbox / Messages" to "Inbox",
+                                    "Notifications" to "Notifications",
                                     "Wallet / Coins" to "Wallet",
                                     "Creator Monetization Hub" to "Monetization",
                                     "Fan Support" to "Fan Support",
