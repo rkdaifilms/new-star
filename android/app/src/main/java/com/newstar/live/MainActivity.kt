@@ -12,6 +12,13 @@ import android.view.View
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.CustomCredential
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
@@ -69,13 +76,71 @@ class MainActivity : AppCompatActivity() {
         val email = EditText(this).apply { hint = "Email address"; setSingleLine(); inputType = 33; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY); setPadding(dp(14), 0, dp(14), 0); setBackgroundColor(Color.rgb(28, 31, 43)) }
         val password = EditText(this).apply { hint = "Password"; setSingleLine(); inputType = 129; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY); setPadding(dp(14), 0, dp(14), 0); setBackgroundColor(Color.rgb(28, 31, 43)) }
         val signIn = button("Sign in"); val signUp = button("Create account")
+        val googleSignIn = button("Continue with Google")
         panel.addView(email, LinearLayout.LayoutParams(-1, dp(52))); panel.addView(space(12))
         panel.addView(password, LinearLayout.LayoutParams(-1, dp(52))); panel.addView(space(18))
         panel.addView(signIn, LinearLayout.LayoutParams(-1, dp(50))); panel.addView(space(8))
-        panel.addView(signUp, LinearLayout.LayoutParams(-1, dp(50)))
-        content.addView(panel, FrameLayout.LayoutParams(-1, -1))
+        panel.addView(signUp, LinearLayout.LayoutParams(-1, dp(50))); panel.addView(space(14))
+        panel.addView(label("OR", 13f)); panel.addView(space(8))
+        panel.addView(googleSignIn, LinearLayout.LayoutParams(-1, dp(50)))
+        content.addView(ScrollView(this).apply { addView(panel) }, FrameLayout.LayoutParams(-1, -1))
         signIn.setOnClickListener { authenticate(email.text.toString(), password.text.toString(), false, signIn) }
         signUp.setOnClickListener { authenticate(email.text.toString(), password.text.toString(), true, signUp) }
+        googleSignIn.setOnClickListener { signInWithGoogle(googleSignIn) }
+    }
+
+    private fun signInWithGoogle(trigger: Button) {
+        val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.trim()
+        if (webClientId.isBlank()) {
+            showStatus("Google Sign-In अभी कॉन्फ़िगर नहीं है। Build में Google Web OAuth Client ID और Supabase Google provider सेट करना बाकी है।")
+            return
+        }
+        trigger.isEnabled = false
+        showStatus("फोन पर मौजूद Google खातों की सूची खोली जा रही है…")
+        lifecycleScope.launch {
+            try {
+                val googleOption = GetGoogleIdOption.Builder()
+                    .setServerClientId(webClientId)
+                    .setFilterByAuthorizedAccounts(false)
+                    .setAutoSelectEnabled(false)
+                    .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleOption)
+                    .build()
+                val result = CredentialManager.create(this@MainActivity)
+                    .getCredential(this@MainActivity, request)
+                val credential = result.credential
+                if (credential !is CustomCredential ||
+                    credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    throw IllegalStateException("Google account से valid sign-in token नहीं मिला।")
+                }
+                val googleToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                showStatus("Google खाते की पुष्टि की जा रही है…")
+                worker.execute {
+                    try {
+                        val signedIn = api.signInWithGoogleIdToken(googleToken)
+                        runOnUiThread {
+                            trigger.isEnabled = true
+                            saveSession(signedIn)
+                            showHome()
+                        }
+                    } catch (e: Exception) {
+                        runOnUiThread {
+                            trigger.isEnabled = true
+                            showStatus(e.message ?: "Google से लॉगिन नहीं हो पाया।")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                trigger.isEnabled = true
+                showStatus(
+                    if (e::class.java.simpleName.contains("Cancellation", true))
+                        "Google account selection रद्द कर दी गई।"
+                    else e.message ?: "Google Sign-In शुरू नहीं हो पाया।"
+                )
+            }
+        }
     }
 
     private fun authenticate(email: String, password: String, create: Boolean, trigger: Button) {
