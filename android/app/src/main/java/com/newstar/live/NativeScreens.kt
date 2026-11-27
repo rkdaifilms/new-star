@@ -641,6 +641,12 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
     var attachmentUrl by remember { mutableStateOf("") }
     var selectedAttachmentUri by remember { mutableStateOf<Uri?>(null) }
     var selectedAttachmentName by remember { mutableStateOf("") }
+    var voiceFile by remember { mutableStateOf<File?>(null) }
+    var voiceRecording by remember { mutableStateOf(false) }
+    var voicePlaying by remember { mutableStateOf(false) }
+    var voiceError by remember { mutableStateOf("") }
+    var voiceRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var voicePlayer by remember { mutableStateOf<android.media.MediaPlayer?>(null) }
     var signedMediaUrls by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
@@ -651,6 +657,105 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
         selectedAttachmentName = uri?.lastPathSegment?.substringAfterLast('/')?.take(100).orEmpty()
         if (uri != null) attachmentUrl = ""
     }
+    val microphonePermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            try {
+                val output = File(context.cacheDir, "inbox-voice-${java.util.UUID.randomUUID()}.m4a")
+                val recorder = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(context) else @Suppress("DEPRECATION") MediaRecorder()
+                recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
+                recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                recorder.setAudioEncodingBitRate(96000)
+                recorder.setAudioSamplingRate(44100)
+                recorder.setOutputFile(output.absolutePath)
+                recorder.prepare()
+                recorder.start()
+                voiceRecorder = recorder
+                voiceFile = output
+                voiceRecording = true
+                voiceError = ""
+            } catch (e: Exception) {
+                runCatching { voiceRecorder?.release() }
+                voiceRecorder = null
+                voiceRecording = false
+                voiceError = e.message ?: "Voice recording शुरू नहीं हुई।"
+            }
+        } else voiceError = "Voice note के लिए Microphone permission आवश्यक है।"
+    }
+
+    fun startVoiceNote() {
+        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            try {
+                val output = File(context.cacheDir, "inbox-voice-${java.util.UUID.randomUUID()}.m4a")
+                val recorder = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(context) else @Suppress("DEPRECATION") MediaRecorder()
+                recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
+                recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                recorder.setAudioEncodingBitRate(96000)
+                recorder.setAudioSamplingRate(44100)
+                recorder.setOutputFile(output.absolutePath)
+                recorder.prepare()
+                recorder.start()
+                voiceRecorder = recorder
+                voiceFile = output
+                voiceRecording = true
+                voiceError = ""
+            } catch (e: Exception) {
+                runCatching { voiceRecorder?.release() }
+                voiceRecorder = null
+                voiceRecording = false
+                voiceError = e.message ?: "Voice recording शुरू नहीं हुई।"
+            }
+        } else microphonePermission.launch(android.Manifest.permission.RECORD_AUDIO)
+    }
+
+    fun stopVoiceNote() {
+        val recorder = voiceRecorder ?: return
+        try {
+            recorder.stop()
+            voiceError = ""
+        } catch (e: Exception) {
+            voiceFile?.delete()
+            voiceFile = null
+            voiceError = "रिकॉर्डिंग बहुत छोटी थी। दोबारा रिकॉर्ड करें।"
+        } finally {
+            runCatching { recorder.reset() }
+            runCatching { recorder.release() }
+            voiceRecorder = null
+            voiceRecording = false
+        }
+    }
+
+    fun playVoiceNote() {
+        val file = voiceFile ?: return
+        try {
+            voicePlayer?.release()
+            voicePlayer = android.media.MediaPlayer().apply {
+                setDataSource(file.absolutePath)
+                setOnCompletionListener { voicePlaying = false }
+                prepare()
+                start()
+            }
+            voicePlaying = true
+            voiceError = ""
+        } catch (e: Exception) {
+            voicePlaying = false
+            voiceError = e.message ?: "Voice note preview नहीं चल सकी।"
+        }
+    }
+
+    DisposableEffect(session.userId) {
+        onDispose {
+            runCatching { voiceRecorder?.stop() }
+            runCatching { voiceRecorder?.release() }
+            runCatching { voicePlayer?.release() }
+            voiceFile?.delete()
+        }
+    }
+
     val peers = remember(messages, session.userId) {
         messages.mapNotNull { row ->
             val sender = row.optString("sender_id")
@@ -1032,6 +1137,35 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                 }, enabled = !busy) { Text("Remove") }
             }
         }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Button(
+                enabled = !busy && !voiceRecording,
+                onClick = { startVoiceNote() }
+            ) { Text("🎙 Record voice") }
+            if (voiceRecording) {
+                Button(onClick = { stopVoiceNote() }, colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )) { Text("Stop recording") }
+                Text("Recording…", color = MaterialTheme.colorScheme.error)
+            } else if (voiceFile != null) {
+                OutlinedButton(onClick = { if (voicePlaying) {
+                    voicePlayer?.pause()
+                    voicePlaying = false
+                } else playVoiceNote() }, enabled = !busy) {
+                    Text(if (voicePlaying) "Pause preview" else "Play preview")
+                }
+                TextButton(onClick = {
+                    voicePlayer?.release()
+                    voicePlayer = null
+                    voicePlaying = false
+                    voiceFile?.delete()
+                    voiceFile = null
+                }, enabled = !busy) { Text("Remove voice") }
+            }
+        }
+        if (voiceError.isNotBlank()) Text(voiceError, color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall)
         OutlinedTextField(
             value = attachmentUrl,
             onValueChange = { attachmentUrl = it.trim(); if (it.isNotBlank()) {
@@ -1045,11 +1179,12 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
         Text("Private attachments Supabase Storage में upload होते हैं और केवल chat के सदस्यों को उपलब्ध रहते हैं। अधिकतम 20 MB।",
             style = MaterialTheme.typography.labelSmall)
         Button(enabled = !busy && peer.isNotBlank() &&
-            (body.isNotBlank() || attachmentUrl.isNotBlank() || selectedAttachmentUri != null), onClick = {
+            (body.isNotBlank() || attachmentUrl.isNotBlank() || selectedAttachmentUri != null || voiceFile != null) && !voiceRecording, onClick = {
             busy = true
             val messageText = body.trim()
             val mediaLink = attachmentUrl.trim()
             val mediaUri = selectedAttachmentUri
+            val recordedVoice = voiceFile
             val target = peer.trim()
             scope.launch {
                 try {
@@ -1060,7 +1195,16 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                         "External attachment के लिए valid HTTPS link डालें।"
                     }
                     var storedMedia = mediaLink
-                    if (mediaUri != null) {
+                    if (recordedVoice != null) {
+                        val bytes = withContext(Dispatchers.IO) { recordedVoice.readBytes() }
+                        require(bytes.isNotEmpty() && bytes.size <= 20 * 1024 * 1024) {
+                            "Voice note 20 MB से छोटी होनी चाहिए।"
+                        }
+                        val objectPath = "${session.userId}/${java.util.UUID.randomUUID()}.m4a"
+                        storedMedia = NativeSupabase.uploadPrivateObject(
+                            "message-media", objectPath, bytes, "audio/mp4", session
+                        )
+                    } else if (mediaUri != null) {
                         val mime = context.contentResolver.getType(mediaUri) ?: "application/octet-stream"
                         require(mime.startsWith("image/") || mime.startsWith("video/") ||
                             mime.startsWith("audio/") || mime == "application/pdf") {
@@ -1091,6 +1235,11 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                     attachmentUrl = ""
                     selectedAttachmentUri = null
                     selectedAttachmentName = ""
+                    voicePlayer?.release()
+                    voicePlayer = null
+                    voicePlaying = false
+                    voiceFile?.delete()
+                    voiceFile = null
                     refresh++
                 } catch (e: Exception) { error = e.message ?: "Message नहीं भेजा गया।" }
                 finally { busy = false }
