@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalContext
 
 private data class NativePalette(
@@ -102,7 +103,7 @@ fun NewStarNativeTheme(content: @Composable () -> Unit) {
         )
     }
     val density = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides density.copy(fontScale = textScale.coerceIn(0.9f, 1.25f))) {
+    CompositionLocalProvider(LocalDensity provides Density(density.density, textScale.coerceIn(0.9f, 1.25f))) {
         MaterialTheme(colorScheme = colors, content = content)
     }
 }
