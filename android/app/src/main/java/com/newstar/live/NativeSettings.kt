@@ -1,6 +1,7 @@
 package com.newstar.live
 
 import android.content.Context
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -37,7 +38,7 @@ private val nsThemes = listOf(
 )
 
 @Composable
-fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit) {
+fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutAll: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val local = remember { context.getSharedPreferences("newstar_preferences", Context.MODE_PRIVATE) }
@@ -51,6 +52,10 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit) {
     var notifyComment by remember { mutableStateOf(local.getBoolean("notifyComment", true)) }
     var notifyMessage by remember { mutableStateOf(local.getBoolean("notifyMessage", true)) }
     var privateAccount by remember { mutableStateOf(false) }
+    var newEmail by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var blockedAccounts by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var languageMenu by remember { mutableStateOf(false) }
     var themeMenu by remember { mutableStateOf(false) }
     var scaleMenu by remember { mutableStateOf(false) }
