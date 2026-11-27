@@ -651,6 +651,19 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
     var capture by remember { mutableStateOf<VideoCapture<Recorder>?>(null) }
     var activeRecording by remember { mutableStateOf<androidx.camera.video.Recording?>(null) }
     var cameraError by remember { mutableStateOf("") }
+    var recordedUri by remember { mutableStateOf<Uri?>(null) }
+    val recordedPlayer = remember(recordedUri) {
+        recordedUri?.let { uri ->
+            ExoPlayer.Builder(context).build().apply {
+                setMediaItem(MediaItem.fromUri(uri))
+                prepare()
+                playWhenReady = false
+            }
+        }
+    }
+    DisposableEffect(recordedPlayer) {
+        onDispose { recordedPlayer?.release() }
+    }
     val previewView = remember { PreviewView(context).apply {
         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         scaleType = PreviewView.ScaleType.FILL_CENTER
@@ -662,10 +675,15 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
             ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
         permissionMessage = if (cameraGranted && !audioGranted) "Microphone अनुमति नहीं मिली; वीडियो बिना आवाज़ रिकॉर्ड होगा।" else ""
     }
-    LaunchedEffect(cameraGranted, lensFacing) {
+    LaunchedEffect(cameraGranted, lensFacing, recordedUri) {
         if (!cameraGranted) return@LaunchedEffect
         try {
             val future = ProcessCameraProvider.getInstance(context)
+            if (recordedUri != null) {
+                future.addListener({ runCatching { future.get().unbindAll() } }, mainExecutor)
+                capture = null
+                return@LaunchedEffect
+            }
             val provider = kotlinx.coroutines.suspendCancellableCoroutine<ProcessCameraProvider> { continuation ->
                 future.addListener({
                     try { continuation.resume(future.get()) }
@@ -696,6 +714,32 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
         if (!cameraGranted) {
             Text("Camera permission देकर native recording शुरू करें।")
             Button(onClick = { permissionLauncher.launch(arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)) }) { Text("Allow Camera & Microphone") }
+        } else if (recordedUri != null) {
+            Text("Recording preview · पसंद आए तो Use Video दबाएँ")
+            AndroidView(
+                factory = { viewContext -> PlayerView(viewContext).apply {
+                    player = recordedPlayer
+                    useController = true
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                } },
+                update = { it.player = recordedPlayer },
+                modifier = Modifier.fillMaxWidth().height(320.dp)
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = {
+                        recordedPlayer?.pause()
+                        runCatching { context.contentResolver.delete(recordedUri!!, null, null) }
+                        recordedUri = null
+                        cameraError = ""
+                    },
+                    modifier = Modifier.weight(1f)
+                ) { Text("Retake") }
+                Button(
+                    onClick = { recordedUri?.let(onVideoReady) },
+                    modifier = Modifier.weight(1f)
+                ) { Text("Use Video") }
+            }
         } else {
             AndroidView(factory = { previewView }, modifier = Modifier.fillMaxWidth().height(320.dp))
             Text(if (recording) "Recording चालू · ${recordingSeconds}s / 600s" else "HD recording · अधिकतम 10 मिनट")
@@ -745,7 +789,10 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
                                         if (event.hasError() || savedUri == Uri.EMPTY) {
                                             if (savedUri != Uri.EMPTY) runCatching { context.contentResolver.delete(savedUri, null, null) }
                                             cameraError = event.cause?.message ?: "Recording save नहीं हुई।"
-                                        } else onVideoReady(savedUri)
+                                        } else {
+                                            recordedUri = savedUri
+                                            cameraError = ""
+                                        }
                                     }
                                 }
                             }
