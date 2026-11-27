@@ -43,10 +43,10 @@ Deno.serve(async (req: Request) => {
   const { data: auth, error: authError } = await userClient.auth.getUser();
   if (authError || !auth.user) return json({ error: "Valid login required." }, 401, headers);
 
-  let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string };
+  let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
-  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react"];
+  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-invite-create", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave"];
   if (!supportedActions.includes(String(action))) return json({ error: "This LIVE interaction is not enabled on the server yet." }, 501, headers);
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -105,6 +105,148 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, total: count || 0 }, 200, headers);
   }
 
+
+  // Guest-seat and invitation actions are performed with the service client only
+  // after the caller's JWT has been verified above. No client can assign its own seat.
+  if (action === "live-invite-create") {
+    const roomId = String(body.room_id || "");
+    const inviteeId = String(body.invitee_id || "");
+    if (!roomId || !inviteeId || inviteeId === creatorId) {
+      return json({ error: "Valid room and another creator are required." }, 400, headers);
+    }
+    const { data: room, error: roomError } = await getActiveRoom(roomId);
+    if (roomError || !room || room.creator_id !== creatorId) {
+      return json({ error: "Only the host of an active room can invite guests." }, 403, headers);
+    }
+    const { data: invitee, error: inviteeError } = await admin.auth.admin.getUserById(inviteeId);
+    if (inviteeError || !invitee?.user) return json({ error: "Creator account not found." }, 404, headers);
+    const { data: invite, error } = await admin.from("live_room_invites").insert({
+      room_id: roomId, inviter_id: creatorId, invitee_id: inviteeId, status: "pending",
+      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    }).select("id,room_id,inviter_id,invitee_id,status,expires_at").single();
+    if (error || !invite) return json({ error: "Could not send LIVE invitation." }, 503, headers);
+    return json({ ok: true, invite }, 200, headers);
+  }
+
+  if (action === "live-invite-respond") {
+    const inviteId = String(body.invite_id || "");
+    const decision = body.message === "accept" ? "accepted" : body.message === "decline" ? "declined" : "";
+    if (!inviteId || !decision) return json({ error: "Choose accept or decline for this invitation." }, 400, headers);
+    const { data: invite, error: inviteError } = await admin.from("live_room_invites")
+      .select("id,room_id,inviter_id,invitee_id,status,expires_at")
+      .eq("id", inviteId).eq("invitee_id", creatorId).eq("status", "pending").maybeSingle();
+    if (inviteError || !invite) return json({ error: "Invitation not found or already answered." }, 404, headers);
+    if (new Date(invite.expires_at).getTime() <= Date.now()) {
+      await admin.from("live_room_invites").update({ status: "expired", responded_at: new Date().toISOString() }).eq("id", inviteId);
+      return json({ error: "This invitation has expired." }, 410, headers);
+    }
+    const { data: room } = await getActiveRoom(invite.room_id);
+    if (!room) return json({ error: "The LIVE room has ended." }, 410, headers);
+    const { data: changed, error } = await admin.from("live_room_invites")
+      .update({ status: decision, responded_at: new Date().toISOString() })
+      .eq("id", inviteId).eq("invitee_id", creatorId).eq("status", "pending")
+      .select("id,status").maybeSingle();
+    if (error || !changed) return json({ error: "Invitation response could not be saved." }, 409, headers);
+    if (decision === "accepted") {
+      const { data: profile } = await admin.from("profiles").select("full_name,username")
+        .eq("user_id", creatorId).maybeSingle();
+      const displayName = String(profile?.full_name || profile?.username || "Creator").trim().slice(0, 80) || "Creator";
+      const { error: participantError } = await admin.from("live_room_participants").upsert({
+        room_id: invite.room_id, user_id: creatorId, display_name: displayName,
+        role: "guest", status: "requested", seat_number: null,
+        joined_at: null, left_at: null, last_seen_at: new Date().toISOString(),
+      }, { onConflict: "room_id,user_id" });
+      if (participantError) return json({ error: "Invitation accepted, but the seat request could not be created." }, 503, headers);
+    }
+    return json({ ok: true, status: decision }, 200, headers);
+  }
+
+  if (action === "live-participants-list") {
+    const { data: room, error: roomError } = await getActiveRoom(String(body.room_id || ""));
+    if (roomError || !room) return json({ error: "Active LIVE room not found." }, 404, headers);
+    const isHost = room.creator_id === creatorId;
+    let query = admin.from("live_room_participants")
+      .select("id,user_id,display_name,role,status,seat_number,camera_enabled,microphone_enabled,camera_allowed,microphone_allowed")
+      .eq("room_id", room.id).order("created_at", { ascending: true });
+    if (!isHost) query = query.eq("status", "admitted");
+    const { data, error } = await query.limit(20);
+    if (error) return json({ error: "Could not load LIVE participants." }, 503, headers);
+    return json({ ok: true, participants: data || [], seat_capacity: (await admin.from("live_rooms").select("seat_capacity").eq("id", room.id).single()).data?.seat_capacity || 1 }, 200, headers);
+  }
+
+  if (action === "live-seat-request") {
+    const roomId = String(body.room_id || "");
+    const { data: room, error: roomError } = await getActiveRoom(roomId);
+    if (roomError || !room) return json({ error: "Active LIVE room not found." }, 404, headers);
+    if (room.creator_id === creatorId) return json({ error: "Host already controls this room." }, 400, headers);
+    const { data: profile } = await admin.from("profiles").select("full_name,username")
+      .eq("user_id", creatorId).maybeSingle();
+    const displayName = String(profile?.full_name || profile?.username || "Creator").trim().slice(0, 80) || "Creator";
+    const { data, error } = await admin.from("live_room_participants").upsert({
+      room_id: roomId, user_id: creatorId, display_name: displayName,
+      role: "guest", status: "requested", seat_number: null, left_at: null,
+      last_seen_at: new Date().toISOString(),
+    }, { onConflict: "room_id,user_id" })
+      .select("id,status").single();
+    if (error || !data) return json({ error: "Could not request a LIVE seat. Check whether an invitation is required." }, 409, headers);
+    return json({ ok: true, participant: data }, 200, headers);
+  }
+
+  if (action === "live-seat-admit") {
+    const participantId = String(body.participant_id || "");
+    const { data: room, error: roomError } = await getActiveRoom(String(body.room_id || ""));
+    if (roomError || !room || room.creator_id !== creatorId) {
+      return json({ error: "Only the host can admit a guest." }, 403, headers);
+    }
+    const { data: participant, error: participantError } = await admin.from("live_room_participants")
+      .select("id,user_id,status,role").eq("id", participantId).eq("room_id", room.id)
+      .eq("status", "requested").maybeSingle();
+    if (participantError || !participant) return json({ error: "Guest request not found." }, 404, headers);
+    const { data: roomConfig } = await admin.from("live_rooms").select("seat_capacity").eq("id", room.id).single();
+    const capacity = Math.max(1, Math.min(10, Number(roomConfig?.seat_capacity || 1)));
+    const { data: occupied, error: occupiedError } = await admin.from("live_room_participants")
+      .select("seat_number").eq("room_id", room.id).eq("status", "admitted").not("seat_number", "is", null);
+    if (occupiedError) return json({ error: "Could not check available guest seats." }, 503, headers);
+    const used = new Set((occupied || []).map((row: any) => Number(row.seat_number)));
+    let seat = 1;
+    while (seat <= capacity && used.has(seat)) seat++;
+    if (seat > capacity) return json({ error: "All LIVE seats are occupied." }, 409, headers);
+    const { data: admitted, error } = await admin.from("live_room_participants").update({
+      status: "admitted", seat_number: seat, joined_at: new Date().toISOString(),
+      left_at: null, last_seen_at: new Date().toISOString(),
+    }).eq("id", participantId).eq("room_id", room.id).eq("status", "requested")
+      .select("id,user_id,display_name,role,status,seat_number").maybeSingle();
+    if (error || !admitted) return json({ error: "Seat assignment conflicted with another host action. Refresh and retry." }, 409, headers);
+    return json({ ok: true, participant: admitted }, 200, headers);
+  }
+
+  if (action === "live-seat-remove") {
+    const participantId = String(body.participant_id || "");
+    const { data: room, error: roomError } = await getActiveRoom(String(body.room_id || ""));
+    if (roomError || !room || room.creator_id !== creatorId) {
+      return json({ error: "Only the host can remove a guest." }, 403, headers);
+    }
+    const { data, error } = await admin.from("live_room_participants").update({
+      status: "removed", seat_number: null, left_at: new Date().toISOString(),
+      camera_enabled: false, microphone_enabled: false,
+    }).eq("id", participantId).eq("room_id", room.id).eq("role", "guest")
+      .in("status", ["requested", "admitted"]).select("id").maybeSingle();
+    if (error || !data) return json({ error: "Guest could not be removed." }, 409, headers);
+    return json({ ok: true }, 200, headers);
+  }
+
+  if (action === "live-seat-leave") {
+    const { data: room, error: roomError } = await getActiveRoom(String(body.room_id || ""));
+    if (roomError || !room) return json({ error: "Active LIVE room not found." }, 404, headers);
+    const { data, error } = await admin.from("live_room_participants").update({
+      status: "left", seat_number: null, left_at: new Date().toISOString(),
+      camera_enabled: false, microphone_enabled: false,
+    }).eq("room_id", room.id).eq("user_id", creatorId).eq("role", "guest")
+      .eq("status", "admitted").select("id").maybeSingle();
+    if (error || !data) return json({ error: "You are not an admitted guest in this room." }, 409, headers);
+    return json({ ok: true }, 200, headers);
+  }
+
   if (action === "stop") {
     if (!body.room_id) return json({ error: "Room ID is required." }, 400, headers);
     const { data, error } = await admin.from("live_rooms").update({
@@ -134,6 +276,16 @@ Deno.serve(async (req: Request) => {
     }).eq("id", body.room_id).eq("creator_id", creatorId).select("id").maybeSingle();
     if (error) return json({ error: "Could not mark the live room active." }, 500, headers);
     if (!data) return json({ error: "Live room not found." }, 404, headers);
+    const { data: profile } = await admin.from("profiles").select("full_name,username")
+      .eq("user_id", creatorId).maybeSingle();
+    const displayName = String(profile?.full_name || profile?.username || "Creator").trim().slice(0, 80) || "Creator";
+    const { error: hostError } = await admin.from("live_room_participants").upsert({
+      room_id: body.room_id, user_id: creatorId, display_name: displayName,
+      role: "host", status: "admitted", seat_number: 1,
+      joined_at: new Date().toISOString(), left_at: null,
+      camera_enabled: true, microphone_enabled: true,
+    }, { onConflict: "room_id,user_id" });
+    if (hostError) return json({ error: "LIVE started, but host seat could not be registered." }, 503, headers);
     return json({ ok: true }, 200, headers);
   }
 
