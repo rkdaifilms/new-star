@@ -413,9 +413,110 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
                         } else {
                             Text("इस Live room का playback अभी उपलब्ध नहीं है।")
                         }
+                        NativeLiveRoomChat(session, room.optString("id"))
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
+    var chatMessages by remember(roomId) { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var draft by remember(roomId) { mutableStateOf("") }
+    var loading by remember(roomId) { mutableStateOf(false) }
+    var sending by remember(roomId) { mutableStateOf(false) }
+    var error by remember(roomId) { mutableStateOf("") }
+    var refresh by remember(roomId) { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(roomId, session.userId) {
+        while (true) {
+            try {
+                val result = NativeSupabase.invokeFunction(
+                    "cloudflare-live",
+                    JSONObject().put("action", "live-chat-list").put("room_id", roomId),
+                    session
+                )
+                if (!result.optBoolean("ok")) throw IllegalStateException(result.optString("error", "LIVE chat लोड नहीं हुई।"))
+                val rows = result.optJSONArray("messages") ?: JSONArray()
+                chatMessages = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                error = ""
+            } catch (e: Exception) {
+                error = e.message ?: "LIVE chat लोड नहीं हुई।"
+            }
+            delay(5_000)
+        }
+    }
+
+    Column(Modifier.fillMaxWidth().padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("LIVE Chat", style = MaterialTheme.typography.titleMedium)
+        LazyColumn(
+            Modifier.fillMaxWidth().heightIn(max = 190.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            items(chatMessages) { message ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(Modifier.padding(horizontal = 10.dp, vertical = 7.dp)) {
+                            Text(
+                                message.optString("display_name").ifBlank { "Creator" },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(message.optString("message"))
+                        }
+                    }
+                }
+            }
+        }
+        if (chatMessages.isEmpty()) Text("अभी कोई LIVE message नहीं है।", style = MaterialTheme.typography.bodySmall)
+        if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = draft,
+                onValueChange = { if (it.length <= 500) draft = it },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                label = { Text("LIVE में message लिखें") },
+                enabled = !sending
+            )
+            Spacer(Modifier.width(8.dp))
+            Button(
+                enabled = draft.isNotBlank() && !sending,
+                onClick = {
+                    val messageText = draft.trim()
+                    sending = true
+                    scope.launch {
+                        try {
+                            val response = NativeSupabase.invokeFunction(
+                                "cloudflare-live",
+                                JSONObject().put("action", "live-chat-send")
+                                    .put("room_id", roomId).put("message", messageText),
+                                session
+                            )
+                            if (!response.optBoolean("ok")) {
+                                throw IllegalStateException(response.optString("error", "Message नहीं भेजा गया।"))
+                            }
+                            draft = ""
+                            val rows = NativeSupabase.invokeFunction(
+                                "cloudflare-live",
+                                JSONObject().put("action", "live-chat-list").put("room_id", roomId),
+                                session
+                            )
+                            val list = rows.optJSONArray("messages") ?: JSONArray()
+                            chatMessages = (0 until list.length()).mapNotNull { list.optJSONObject(it) }
+                            error = ""
+                        } catch (e: Exception) {
+                            error = e.message ?: "LIVE message नहीं भेजा गया।"
+                        } finally { sending = false }
+                    }
+                }
+            ) { Text(if (sending) "…" else "Send") }
         }
     }
 }
