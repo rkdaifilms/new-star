@@ -618,6 +618,18 @@ fun NativeInboxScreen(session: NativeSession) {
     }
 }
 
+
+private fun deleteNativeEditorTemp(context: Context, uri: Uri?) {
+    val path = uri?.path ?: return
+    runCatching {
+        val file = java.io.File(path).canonicalFile
+        val cache = context.cacheDir.canonicalFile
+        if (file.parentFile == cache && file.name.startsWith("newstar-edit-") && file.isFile) {
+            file.delete()
+        }
+    }
+}
+
 @Composable
 fun NativeUploadScreen(session: NativeSession) {
     val context = LocalContext.current
@@ -648,6 +660,10 @@ fun NativeUploadScreen(session: NativeSession) {
     var splitAtSeconds by remember { mutableStateOf("") }
     var splitParts by remember { mutableStateOf<List<Uri>>(emptyList()) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            deleteNativeEditorTemp(context, selected)
+            splitParts.forEach { deleteNativeEditorTemp(context, it) }
+        }
         selected = uri
         splitParts = emptyList()
         if (uri != null) {
@@ -735,8 +751,10 @@ fun NativeUploadScreen(session: NativeSession) {
                             editingProgress = (50 + value / 2).coerceIn(50, 99)
                         }
                         created.add(second)
+                        val previousSelection = input
                         splitParts = created.map { Uri.fromFile(it) }
                         selected = splitParts.first()
+                        if (previousSelection != selected) deleteNativeEditorTemp(context, previousSelection)
                         editing = false
                         editingProgress = 100
                         val meta = MediaMetadataRetriever()
@@ -812,7 +830,9 @@ fun NativeUploadScreen(session: NativeSession) {
                 scope.launch {
                     try {
                         val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText) { value -> editingProgress = value }
+                        val previousSelection = input
                         selected = Uri.fromFile(output)
+                        if (previousSelection != selected) deleteNativeEditorTemp(context, previousSelection)
                         val editedMetadata = MediaMetadataRetriever()
                         try {
                             editedMetadata.setDataSource(output.absolutePath)
@@ -884,6 +904,11 @@ fun NativeUploadScreen(session: NativeSession) {
                 try {
                     NativeVideoUploader.upload(context, uri, session, title, description, category, visibility, audienceType, mediaKind, affiliateLink) { progress = it }
                     progress = 100
+                    deleteNativeEditorTemp(context, uri)
+                    splitParts.forEach { deleteNativeEditorTemp(context, it) }
+                    splitParts = emptyList()
+                    selected = null
+                    editing = false
                     status = "वीडियो अपलोड हो गया। Processing के बाद दिखाई देगा।"
                 } catch (e: Exception) { status = e.message ?: "Upload असफल हुआ।" }
                 finally { uploading = false }
