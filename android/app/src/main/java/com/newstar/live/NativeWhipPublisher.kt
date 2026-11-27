@@ -157,13 +157,25 @@ internal class NativeWhipPublisher private constructor(
                     audioTrack = factory.createAudioTrack("newstar-live-audio", audioSource)
                 }
                 val gathered = CompletableDeferred<Unit>()
-                val config = PeerConnection.RTCConfiguration(emptyList()).apply {
+                val connected = CompletableDeferred<Unit>()
+                val iceServers = listOf(
+                    PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer()
+                )
+                val config = PeerConnection.RTCConfiguration(iceServers).apply {
                     sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
                 }
                 peer = factory.createPeerConnection(config, object : PeerConnection.Observer {
                     override fun onSignalingChange(state: PeerConnection.SignalingState) {}
                     override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {
-                        if (state == PeerConnection.IceConnectionState.FAILED) Log.e("NewStarLIVE", "ICE failed")
+                        when (state) {
+                            PeerConnection.IceConnectionState.CONNECTED,
+                            PeerConnection.IceConnectionState.COMPLETED -> if (!connected.isCompleted) connected.complete(Unit)
+                            PeerConnection.IceConnectionState.FAILED -> {
+                                Log.e("NewStarLIVE", "ICE failed")
+                                if (!connected.isCompleted) connected.completeExceptionally(IllegalStateException("Cloudflare LIVE media connection failed. Network or relay connectivity is unavailable."))
+                            }
+                            else -> Unit
+                        }
                     }
                     override fun onIceConnectionReceivingChange(receiving: Boolean) {}
                     override fun onIceGatheringChange(state: PeerConnection.IceGatheringState) {
@@ -203,6 +215,7 @@ internal class NativeWhipPublisher private constructor(
                     URL(URL(whipUrl), location).toString() to answer
                 }
                 setDescription(peer, SessionDescription(SessionDescription.Type.ANSWER, response.second), false)
+                withTimeout(20000) { connected.await() }
                 return NativeWhipPublisher(factory, egl, capturer, texture, videoSource, videoTrack, audioSource, audioTrack, peer, response.first)
             } catch (e: Exception) {
                 runCatching { capturer.stopCapture() }
