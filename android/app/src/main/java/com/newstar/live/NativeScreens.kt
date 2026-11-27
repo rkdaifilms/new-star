@@ -709,7 +709,15 @@ fun NativeUploadScreen(session: NativeSession) {
                     try {
                         val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText) { value -> editingProgress = value }
                         selected = Uri.fromFile(output)
-                        sourceDurationSeconds = (end - start).toInt()
+                        val editedMetadata = MediaMetadataRetriever()
+                        try {
+                            editedMetadata.setDataSource(output.absolutePath)
+                            sourceDurationSeconds = ((editedMetadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000L).toInt()
+                            sourceWidth = editedMetadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: sourceWidth
+                            sourceHeight = editedMetadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: sourceHeight
+                        } finally {
+                            editedMetadata.release()
+                        }
                         trimStartSeconds = "0"
                         trimEndSeconds = sourceDurationSeconds.toString()
                         rotationDegrees = 0
