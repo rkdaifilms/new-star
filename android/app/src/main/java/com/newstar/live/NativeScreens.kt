@@ -1,6 +1,8 @@
 package com.newstar.live
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
@@ -13,6 +15,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
@@ -676,5 +680,130 @@ fun NativeWalletScreen(session: NativeSession) {
             if (withdrawals.isEmpty() && !loading) item { Text("अभी कोई withdrawal record नहीं है।") }
         }
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
+    }
+}
+
+
+private data class NativeAiMessage(val role: String, val content: String)
+
+@Composable
+fun NativeCreatorAiScreen(session: NativeSession) {
+    var prompt by remember { mutableStateOf("") }
+    var messages by remember { mutableStateOf<List<NativeAiMessage>>(emptyList()) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf("") }
+    var generatedImage by remember { mutableStateOf<Bitmap?>(null) }
+    var imageRatio by remember { mutableStateOf("16:9") }
+    val scope = rememberCoroutineScope()
+
+    Column(Modifier.fillMaxSize().padding(14.dp)) {
+        Text("New Star Creator Studio AI", style = MaterialTheme.typography.headlineSmall)
+        Text("AI chat और image generation — native Android", style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(8.dp))
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(messages.size) { index ->
+                val item = messages[index]
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(if (item.role == "user") "You" else "New Star AI",
+                            style = MaterialTheme.typography.labelMedium)
+                        Text(item.content)
+                    }
+                }
+            }
+            if (generatedImage != null) {
+                item {
+                    Card(Modifier.fillMaxWidth()) {
+                        Image(
+                            bitmap = generatedImage!!.asImageBitmap(),
+                            contentDescription = "AI generated creator image",
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                        )
+                    }
+                }
+            }
+        }
+        if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
+        OutlinedTextField(
+            value = prompt,
+            onValueChange = { if (it.length <= 3500) prompt = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("अपना सवाल या image prompt लिखें") },
+            minLines = 2,
+            maxLines = 5,
+            enabled = !busy
+        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                modifier = Modifier.weight(1f),
+                enabled = !busy && prompt.isNotBlank(),
+                onClick = {
+                    val text = prompt.trim()
+                    val history = (messages + NativeAiMessage("user", text)).takeLast(10)
+                    val payload = JSONArray()
+                    history.forEach { payload.put(JSONObject().put("role", it.role).put("content", it.content)) }
+                    messages = history
+                    prompt = ""
+                    busy = true
+                    error = ""
+                    scope.launch {
+                        try {
+                            val response = NativeSupabase.invokeFunction(
+                                "ai-gateway",
+                                JSONObject().put("messages", payload).put("mode", "creator"),
+                                session
+                            )
+                            if (!response.optBoolean("ok")) error(response.optString("error", "AI reply उपलब्ध नहीं है।"))
+                            val answer = response.optString("answer").trim()
+                            require(answer.isNotBlank()) { "AI ने खाली जवाब दिया।" }
+                            messages = messages + NativeAiMessage("assistant", answer)
+                        } catch (e: Exception) {
+                            error = e.message ?: "AI request असफल हुई।"
+                            messages = messages.dropLast(1)
+                        } finally { busy = false }
+                    }
+                }
+            ) { Text(if (busy) "Working…" else "Ask AI") }
+            OutlinedButton(
+                modifier = Modifier.weight(1f),
+                enabled = !busy && prompt.isNotBlank(),
+                onClick = {
+                    val text = prompt.trim()
+                    busy = true
+                    error = ""
+                    generatedImage = null
+                    scope.launch {
+                        try {
+                            val response = NativeSupabase.invokeFunction(
+                                "ai-gateway",
+                                JSONObject().put("action", "image").put("prompt", text)
+                                    .put("aspectRatio", imageRatio).put("imageSize", "1K"),
+                                session
+                            )
+                            if (!response.optBoolean("ok")) error(response.optString("error", "Image generation failed"))
+                            val encoded = response.optString("image")
+                            require(encoded.isNotBlank()) { "AI ने image data नहीं लौटाया।" }
+                            val bytes = Base64.decode(encoded, Base64.DEFAULT)
+                            generatedImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                ?: error("Generated image decode नहीं हुई।")
+                            prompt = ""
+                        } catch (e: Exception) {
+                            error = e.message ?: "Image generation असफल हुई।"
+                        } finally { busy = false }
+                    }
+                }
+            ) { Text("Create Image") }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = imageRatio == "16:9", onClick = { imageRatio = "16:9" }, label = { Text("16:9") })
+            FilterChip(selected = imageRatio == "9:16", onClick = { imageRatio = "9:16" }, label = { Text("9:16") })
+            FilterChip(selected = imageRatio == "1:1", onClick = { imageRatio = "1:1" }, label = { Text("1:1") })
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = { messages = emptyList(); generatedImage = null; error = "" }, enabled = !busy) { Text("Clear") }
+        }
     }
 }
