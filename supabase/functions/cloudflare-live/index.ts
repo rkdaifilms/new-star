@@ -208,7 +208,7 @@ Deno.serve(async (req: Request) => {
       .select("seat_number").eq("room_id", room.id).eq("status", "admitted").not("seat_number", "is", null);
     if (occupiedError) return json({ error: "Could not check available guest seats." }, 503, headers);
     const used = new Set((occupied || []).map((row: any) => Number(row.seat_number)));
-    let seat = 1;
+    let seat = 2;
     while (seat <= capacity && used.has(seat)) seat++;
     if (seat > capacity) return json({ error: "All LIVE seats are occupied." }, 409, headers);
     const { data: admitted, error } = await admin.from("live_room_participants").update({
