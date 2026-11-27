@@ -25,6 +25,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.webkit.MimeTypeMap
 import android.media.MediaMetadataRetriever
+import android.media.MediaRecorder
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Base64
@@ -849,6 +850,14 @@ fun NativeUploadScreen(session: NativeSession) {
     var overlayText by remember { mutableStateOf("") }
     var splitAtSeconds by remember { mutableStateOf("") }
     var splitParts by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var musicUri by remember { mutableStateOf<Uri?>(null) }
+    var musicVolume by remember { mutableFloatStateOf(0.4f) }
+    var voiceVolume by remember { mutableFloatStateOf(1f) }
+    var voiceoverFile by remember { mutableStateOf<File?>(null) }
+    var voiceRecordingFile by remember { mutableStateOf<File?>(null) }
+    var voiceRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var voiceRecording by remember { mutableStateOf(false) }
+    var audioStatus by remember { mutableStateOf("Music चुनें या Voice recording शुरू करें।") }
     fun acceptSelectedVideo(uri: Uri?, source: String) {
         if (uri == null) {
             status = if (source == "camera") "Camera से वीडियो वापस नहीं मिला। दोबारा रिकॉर्ड करें या Gallery चुनें।" else status
@@ -891,6 +900,51 @@ fun NativeUploadScreen(session: NativeSession) {
     }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         acceptSelectedVideo(uri, "gallery")
+    }
+    val musicPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
+            musicUri = uri
+            audioStatus = "Music चुना गया। Play दबाकर Preview सुनें।"
+        }
+    }
+    val microphonePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        audioStatus = if (granted) "Microphone अनुमति मिल गई। Start Voice दबाएँ।" else "Voice recording के लिए Microphone permission जरूरी है।"
+    }
+    val musicPlayer = remember(musicUri) {
+        musicUri?.let { uri ->
+            ExoPlayer.Builder(context).build().apply {
+                setMediaItem(MediaItem.fromUri(uri))
+                prepare()
+                playWhenReady = false
+            }
+        }
+    }
+    val voicePlayer = remember(voiceoverFile) {
+        voiceoverFile?.let { file ->
+            ExoPlayer.Builder(context).build().apply {
+                setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
+                prepare()
+                playWhenReady = false
+            }
+        }
+    }
+    LaunchedEffect(musicPlayer, musicVolume) { musicPlayer?.volume = musicVolume }
+    LaunchedEffect(voicePlayer, voiceVolume) { voicePlayer?.volume = voiceVolume }
+    DisposableEffect(musicPlayer, voicePlayer) {
+        onDispose { musicPlayer?.release(); voicePlayer?.release() }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            voiceRecorder?.let { recorder ->
+                runCatching { if (voiceRecording) recorder.stop() }
+                runCatching { recorder.reset() }
+                runCatching { recorder.release() }
+            }
+            voiceRecorder = null
+            voiceRecording = false
+            voiceRecordingFile?.delete()
+        }
     }
     val scope = rememberCoroutineScope()
     val previewPlayer = remember(selected) {
@@ -1009,6 +1063,117 @@ fun NativeUploadScreen(session: NativeSession) {
                     FilterChip(selected = exportSpeed == speed, onClick = { exportSpeed = speed }, enabled = !uploading, label = { Text("${speed}x") })
                 }
             }
+            Text("Audio & Music Preview", style = MaterialTheme.typography.titleMedium)
+            Text("Music और Voice Preview उपलब्ध हैं; वेबसाइट की तरह ये अभी Exported Video में mix नहीं होते।", style = MaterialTheme.typography.bodySmall)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { musicPicker.launch(arrayOf("audio/*")) }, enabled = !uploading, modifier = Modifier.weight(1f)) {
+                    Text(if (musicUri == null) "Select Music" else "Change Music")
+                }
+                Button(
+                    onClick = {
+                        val player = musicPlayer
+                        if (player == null) audioStatus = "पहले audio file चुनें।"
+                        else if (player.isPlaying) { player.pause(); audioStatus = "Music Preview paused." }
+                        else { player.play(); audioStatus = "Music Preview चल रहा है।" }
+                    },
+                    enabled = musicPlayer != null && !uploading,
+                    modifier = Modifier.weight(1f)
+                ) { Text(if (musicPlayer?.isPlaying == true) "Pause Music" else "Play Music") }
+            }
+            Text("Background Music Volume · ${(musicVolume * 100).toInt()}%")
+            Slider(value = musicVolume, onValueChange = { musicVolume = it }, enabled = musicPlayer != null && !uploading)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            microphonePermission.launch(android.Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            try {
+                                val file = File(context.cacheDir, "newstar-voiceover-${System.currentTimeMillis()}.m4a")
+                                val recorder = MediaRecorder()
+                                recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
+                                recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                                recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                                recorder.setAudioEncodingBitRate(128000)
+                                recorder.setAudioSamplingRate(44100)
+                                recorder.setOutputFile(file.absolutePath)
+                                recorder.prepare()
+                                recorder.start()
+                                voiceRecorder = recorder
+                                voiceRecordingFile = file
+                                voiceRecording = true
+                                voiceoverFile?.delete()
+                                voiceoverFile = null
+                                audioStatus = "Voice recording चालू है। Stop Voice दबाएँ।"
+                            } catch (e: Exception) {
+                                voiceRecorder?.let { runCatching { it.release() } }
+                                voiceRecorder = null
+                                voiceRecordingFile?.delete()
+                                voiceRecordingFile = null
+                                voiceRecording = false
+                                audioStatus = e.message ?: "Voice recording शुरू नहीं हो सकी।"
+                            }
+                        }
+                    },
+                    enabled = !voiceRecording && !uploading,
+                    modifier = Modifier.weight(1f)
+                ) { Text("Start Voice") }
+                OutlinedButton(
+                    onClick = {
+                        val recorder = voiceRecorder
+                        val file = voiceRecordingFile
+                        if (recorder == null || file == null || !voiceRecording) {
+                            audioStatus = "अभी Voice recording चालू नहीं है।"
+                        } else {
+                            try {
+                                recorder.stop()
+                                recorder.reset()
+                                recorder.release()
+                                voiceRecorder = null
+                                voiceRecordingFile = null
+                                voiceRecording = false
+                                voiceoverFile = file
+                                audioStatus = "Voice recording तैयार है। Play Voice दबाकर सुनें।"
+                            } catch (e: Exception) {
+                                runCatching { recorder.reset() }
+                                runCatching { recorder.release() }
+                                voiceRecorder = null
+                                voiceRecordingFile?.delete()
+                                voiceRecordingFile = null
+                                voiceRecording = false
+                                audioStatus = e.message ?: "Voice recording save नहीं हो सकी।"
+                            }
+                        }
+                    },
+                    enabled = voiceRecording && !uploading,
+                    modifier = Modifier.weight(1f)
+                ) { Text("Stop Voice") }
+            }
+            if (voiceoverFile != null) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            val player = voicePlayer
+                            if (player != null) { if (player.isPlaying) player.pause() else player.play() }
+                        },
+                        enabled = !uploading,
+                        modifier = Modifier.weight(1f)
+                    ) { Text(if (voicePlayer?.isPlaying == true) "Pause Voice" else "Play Voice") }
+                    OutlinedButton(
+                        onClick = {
+                            voicePlayer?.pause()
+                            voiceoverFile?.delete()
+                            voiceoverFile = null
+                            audioStatus = "Voice recording हटाई गई।"
+                        },
+                        enabled = !uploading,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Delete Voice") }
+                }
+                Text("Voice Volume · ${(voiceVolume * 100).toInt()}%")
+                Slider(value = voiceVolume, onValueChange = { voiceVolume = it }, enabled = !uploading)
+            }
+            Text(audioStatus, style = MaterialTheme.typography.bodySmall)
             OutlinedTextField(
                 value = overlayText,
                 onValueChange = { overlayText = it.take(100) },
