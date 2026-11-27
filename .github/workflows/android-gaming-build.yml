@@ -34,11 +34,13 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Build debug APK
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: gradle -p android :app:assembleDebug --no-daemon
+
       - name: Print Android OAuth signing fingerprints
         run: gradle -p android :app:signingReport --no-daemon
-
-      - name: Build debug APK
-        run: gradle -p android :app:assembleDebug --no-daemon
 
       - name: Verify APK package and signature
         shell: bash
