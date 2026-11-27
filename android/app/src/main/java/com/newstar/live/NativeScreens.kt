@@ -647,6 +647,8 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
     var voiceError by remember { mutableStateOf("") }
     var voiceRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
     var voicePlayer by remember { mutableStateOf<android.media.MediaPlayer?>(null) }
+    var remoteAudioPlayer by remember { mutableStateOf<android.media.MediaPlayer?>(null) }
+    var remoteAudioPlayingUrl by remember { mutableStateOf("") }
     var signedMediaUrls by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
@@ -757,11 +759,43 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
         }
     }
 
+    fun playRemoteAudio(url: String) {
+        try {
+            remoteAudioPlayer?.release()
+            remoteAudioPlayer = null
+            remoteAudioPlayingUrl = url
+            remoteAudioPlayer = android.media.MediaPlayer().apply {
+                setDataSource(url)
+                setOnPreparedListener { player ->
+                    player.start()
+                    remoteAudioPlayingUrl = url
+                }
+                setOnCompletionListener {
+                    remoteAudioPlayingUrl = ""
+                    remoteAudioPlayer?.release()
+                    remoteAudioPlayer = null
+                }
+                setOnErrorListener { _, _, _ ->
+                    remoteAudioPlayingUrl = ""
+                    remoteAudioPlayer?.release()
+                    remoteAudioPlayer = null
+                    true
+                }
+                prepareAsync()
+            }
+            voiceError = ""
+        } catch (e: Exception) {
+            remoteAudioPlayingUrl = ""
+            voiceError = e.message ?: "Voice message नहीं चल सका।"
+        }
+    }
+
     DisposableEffect(session.userId) {
         onDispose {
             runCatching { voiceRecorder?.stop() }
             runCatching { voiceRecorder?.release() }
             runCatching { voicePlayer?.release() }
+            runCatching { remoteAudioPlayer?.release() }
             voiceFile?.delete()
         }
     }
@@ -1280,6 +1314,20 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                                         modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(10.dp)),
                                         contentScale = ContentScale.Fit
                                     )
+                                } else if (listOf(".m4a", ".mp3", ".aac", ".wav", ".ogg", ".mp4").any { lowerUrl.endsWith(it) }) {
+                                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                        Button(onClick = {
+                                            if (remoteAudioPlayingUrl == resolvedMediaUrl) {
+                                                runCatching { remoteAudioPlayer?.pause() }
+                                                remoteAudioPlayer?.release()
+                                                remoteAudioPlayer = null
+                                                remoteAudioPlayingUrl = ""
+                                            } else playRemoteAudio(resolvedMediaUrl)
+                                        }) {
+                                            Text(if (remoteAudioPlayingUrl == resolvedMediaUrl) "Stop voice" else "Play voice note")
+                                        }
+                                        Text("Audio message", style = MaterialTheme.typography.labelSmall)
+                                    }
                                 } else {
                                     TextButton(onClick = {
                                         runCatching {
