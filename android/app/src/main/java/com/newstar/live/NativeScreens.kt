@@ -504,7 +504,18 @@ fun NativeInboxScreen(session: NativeSession) {
                         Column(Modifier.padding(10.dp)) {
                             Text(if (own) "You" else peerProfiles[peer]?.optString("full_name").orEmpty().ifBlank { peerProfiles[peer]?.optString("username").orEmpty().ifBlank { "Creator" } }, style = MaterialTheme.typography.labelSmall)
                             Text(item.optString("body").ifBlank { "Media message" })
-                            Text(item.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(item.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+                                if (own) {
+                                    Text(
+                                        if (!item.isNull("read_at")) "Seen" else "Sent",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (!item.isNull("read_at")) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                 }
