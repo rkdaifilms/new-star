@@ -1,6 +1,9 @@
 package com.newstar.live
 
 import android.content.Context
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
 import android.webkit.MimeTypeMap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -8,6 +11,7 @@ import android.provider.OpenableColumns
 import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
@@ -541,6 +545,19 @@ fun NativeGamingScreen(
     var title by remember { mutableStateOf("") }
     var preparing by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Gaming LIVE Android screen capture") }
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                message = intent?.getStringExtra("message") ?: "Gaming LIVE status update"
+                preparing = intent?.getStringExtra("status") in setOf("starting", "connecting")
+            }
+        }
+        ContextCompat.registerReceiver(
+            context, receiver, IntentFilter(GamingStreamService.STATUS),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        onDispose { runCatching { context.unregisterReceiver(receiver) } }
+    }
     Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Native Gaming LIVE", style = MaterialTheme.typography.headlineSmall)
         Text("यह स्क्रीन Android MediaProjection permission और native GamingStreamService का उपयोग करती है। LIVE eligibility server पर जाँची जाएगी।")
@@ -550,9 +567,8 @@ fun NativeGamingScreen(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 preparing = true
-                message = "Cloudflare LIVE room तैयार हो रहा है…"
+                message = "Cloudflare LIVE room तैयार हो रहा है… Android permission prompt की प्रतीक्षा करें।"
                 onStart(title.trim())
-                preparing = false
             }
         ) { Text(if (preparing) "Preparing…" else "Start Gaming LIVE") }
         OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Stop Gaming LIVE") }
