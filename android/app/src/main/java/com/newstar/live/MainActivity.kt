@@ -295,7 +295,28 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
                 "/rest/v1/videos?select=id,caption,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$safeId&order=created_at.desc&limit=60",
                 session
             )
-            videos = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+            val ids = JSONArray()
+            val sourceRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+            sourceRows.forEach { ids.put(it.optString("id")) }
+            if (ids.length() > 0) {
+                val resolved = NativeSupabase.invokeFunction(
+                    "video-url", JSONObject().put("video_ids", ids), session
+                )
+                require(resolved.optBoolean("ok")) { "Creator video playback URL resolve नहीं हुआ।" }
+                val urls = resolved.optJSONObject("urls") ?: JSONObject()
+                videos = sourceRows.mapNotNull { row ->
+                    val id = row.optString("id")
+                    val url = urls.optString(id)
+                    if (!url.startsWith("https://")) null else JSONObject()
+                        .put("id", id).put("url", url)
+                        .put("caption", row.optString("caption"))
+                        .put("category", row.optString("category"))
+                        .put("video_type", row.optString("video_type"))
+                        .put("likes_count", row.optInt("likes_count"))
+                        .put("views_count", row.optInt("views_count"))
+                        .put("username", profile?.optString("username").orEmpty())
+                }
+            } else videos = emptyList()
         } catch (e: Exception) {
             error = e.message ?: "Creator profile लोड नहीं हुई।"
         }
@@ -337,22 +358,26 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
                     }
                 }) { Text(if (busy) "Please wait…" else if (following) "Following" else "Follow") }
             }
-            if (creator.optBoolean("is_private")) {
-                Text("यह Private Creator account है।")
+            if (creator.optBoolean("is_private") && !following && creatorId != session.userId) {
+                Text("यह Private Creator account है। वीडियो देखने के लिए Follow request स्वीकार होना जरूरी है।")
             } else {
                 Text("Videos", style = MaterialTheme.typography.titleLarge)
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(videos) { video ->
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text(video.optString("caption").ifBlank { "Untitled video" })
-                                Text("${video.optString("category")} · ${video.optString("video_type")}",
-                                    style = MaterialTheme.typography.labelSmall)
-                                Text("${video.optInt("views_count")} views · ${video.optInt("likes_count")} likes",
-                                    style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(videos) { row ->
+                        val id = row.optString("id")
+                        val nativeVideo = NativeVideo(
+                            id = id,
+                            url = row.optString("url"),
+                            caption = row.optString("caption"),
+                            username = row.optString("username"),
+                            category = row.optString("category"),
+                            likes = row.optInt("likes_count"),
+                            views = row.optInt("views_count"),
+                            type = row.optString("video_type").ifBlank { "short" }
+                        )
+                        NativeVideoCard(nativeVideo, session)
                     }
+                    if (videos.isEmpty()) item { Text("अभी कोई उपलब्ध वीडियो नहीं है।") }
                 }
             }
         }
