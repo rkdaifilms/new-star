@@ -41,6 +41,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 
 private const val API_BASE = "https://uzsusgoetrkujmofxcmb.supabase.co"
 private const val PUBLIC_API_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr"
@@ -1072,6 +1073,10 @@ private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
     var commentDraft by remember(video.id) { mutableStateOf("") }
     var commentBusy by remember(video.id) { mutableStateOf(false) }
     var commentError by remember(video.id) { mutableStateOf<String?>(null) }
+    var giftDialogOpen by remember(video.id) { mutableStateOf(false) }
+    var giftBusy by remember(video.id) { mutableStateOf(false) }
+    var giftBalance by remember(video.id) { mutableIntStateOf(-1) }
+    var giftMessage by remember(video.id) { mutableStateOf<String?>(null) }
     var currentUsername by remember(session?.userId) { mutableStateOf("creator") }
     val scope = rememberCoroutineScope()
     LaunchedEffect(session?.userId) {
@@ -1161,23 +1166,110 @@ private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
                 }
                 if (likeError != null) Text(likeError.orEmpty(), color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelSmall)
-                TextButton(onClick = {
-                    commentsOpen = true
-                    commentError = null
-                    scope.launch {
-                        try {
-                            val rows = NativeSupabase.get(
-                                "/rest/v1/video_comments?select=id,user_id,username,comment,created_at&video_id=eq.${Uri.encode(video.id)}&order=created_at.desc&limit=100",
-                                session
-                            )
-                            commentRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
-                        } catch (e: Exception) {
-                            commentError = e.message ?: "Comments लोड नहीं हुए।"
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    TextButton(onClick = {
+                        commentsOpen = true
+                        commentError = null
+                        scope.launch {
+                            try {
+                                val rows = NativeSupabase.get(
+                                    "/rest/v1/video_comments?select=id,user_id,username,comment,created_at&video_id=eq.${Uri.encode(video.id)}&order=created_at.desc&limit=100",
+                                    session
+                                )
+                                commentRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                            } catch (e: Exception) {
+                                commentError = e.message ?: "Comments लोड नहीं हुए।"
+                            }
                         }
-                    }
-                }) { Text("Comments") }
+                    }) { Text("Comments") }
+                    TextButton(
+                        enabled = session != null && !giftBusy,
+                        onClick = {
+                            giftDialogOpen = true
+                            giftBalance = -1
+                            giftMessage = null
+                            val current = session ?: return@TextButton
+                            scope.launch {
+                                try {
+                                    val result = NativeSupabase.invokeFunction(
+                                        "video-gift", JSONObject().put("action", "balance"), current
+                                    )
+                                    if (!result.optBoolean("success")) {
+                                        throw IllegalStateException(result.optString("error", "Wallet balance नहीं मिला।"))
+                                    }
+                                    giftBalance = result.optInt("balance", 0)
+                                } catch (e: Exception) {
+                                    giftMessage = e.message ?: "Wallet balance लोड नहीं हुआ।"
+                                }
+                            }
+                        }
+                    ) { Text("🎁 Gift") }
+                }
             }
         }
+    }
+    if (giftDialogOpen) {
+        val giftOptions = listOf(
+            "Rose" to 1, "Coffee" to 5, "Heart" to 10, "Glasses" to 20,
+            "TikTok" to 50, "Car" to 100, "Ring" to 200, "Yacht" to 500,
+            "Lion" to 1000, "Diamond" to 1500, "Crown" to 2000, "Jet" to 3000,
+            "Castle" to 5000, "Dragon" to 10000, "Galaxy" to 20000, "Universe" to 50000
+        )
+        AlertDialog(
+            onDismissRequest = { if (!giftBusy) giftDialogOpen = false },
+            title = { Text("Send a Gift") },
+            text = {
+                Column(Modifier.fillMaxWidth()) {
+                    Text(if (giftBalance >= 0) "Available coins: $giftBalance" else "Wallet balance checking…")
+                    if (giftMessage != null) {
+                        Text(giftMessage.orEmpty(), color = if (giftMessage.orEmpty().startsWith("Gift sent")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                    }
+                    LazyColumn(Modifier.heightIn(max = 300.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        items(giftOptions) { option ->
+                            val (giftName, coins) = option
+                            TextButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !giftBusy && giftBalance >= coins,
+                                onClick = {
+                                    val current = session ?: return@TextButton
+                                    giftBusy = true
+                                    giftMessage = null
+                                    scope.launch {
+                                        try {
+                                            val result = NativeSupabase.invokeFunction(
+                                                "video-gift",
+                                                JSONObject()
+                                                    .put("action", "send")
+                                                    .put("videoId", video.id)
+                                                    .put("giftName", giftName)
+                                                    .put("coins", coins)
+                                                    .put("requestId", UUID.randomUUID().toString()),
+                                                current
+                                            )
+                                            if (!result.optBoolean("success")) {
+                                                throw IllegalStateException(result.optString("error", "Gift नहीं भेजा जा सका।"))
+                                            }
+                                            giftMessage = "Gift sent: $giftName · $coins coins"
+                                            val balance = NativeSupabase.invokeFunction(
+                                                "video-gift", JSONObject().put("action", "balance"), current
+                                            )
+                                            if (balance.optBoolean("success")) giftBalance = balance.optInt("balance", giftBalance)
+                                        } catch (e: Exception) {
+                                            giftMessage = e.message ?: "Gift भेजना असफल हुआ।"
+                                        } finally { giftBusy = false }
+                                    }
+                                }
+                            ) {
+                                Text("$giftName · $coins coins")
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = !giftBusy, onClick = { giftDialogOpen = false }) { Text("Close") }
+            }
+        )
     }
     if (commentsOpen) {
         AlertDialog(
