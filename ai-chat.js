@@ -43,7 +43,7 @@ style.textContent += `
 `;
 const launch=document.createElement("button");launch.id="ns-ai-launch";launch.type="button";launch.textContent="✦ New Star Help AI";
 const panel=document.createElement("section");panel.id="ns-ai-panel";panel.setAttribute("aria-label","New Star AI Help Center");
-panel.innerHTML='<div id="ns-ai-head"><strong>New Star Help Center AI</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-provider-status" role="status" aria-live="polite">AI सर्वर की स्थिति जाँची जा रही है…</div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! मैं New Star Help Center AI हूँ। मैं New Star अकाउंट, लॉगिन, प्रोफ़ाइल, वीडियो अपलोड/प्लेबैक, लाइव, मैसेज, सेटिंग्स, रिपोर्ट, सुरक्षा और अपील से जुड़ी सहायता कर सकता हूँ। रचनात्मक लेखन, कहानी, स्क्रिप्ट, थंबनेल, इमेज और कोडिंग के लिए Creator Studio AI खोलें।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><div id="ns-ai-voice-status" role="status" aria-live="polite"></div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="कुछ भी पूछें…" required><button id="ns-ai-mic" type="button" aria-label="Start voice input" aria-pressed="false" title="Speak your message">🎙️</button><button id="ns-ai-send" type="submit">Send</button></form>';
+panel.innerHTML='<div id="ns-ai-head"><strong>New Star Help Center AI</strong><button type="button" id="ns-ai-close" aria-label="Close">×</button></div><div id="ns-ai-provider-status" role="status" aria-live="polite">AI सर्वर की स्थिति जाँची जा रही है…</div><div id="ns-ai-log" aria-live="polite"><div class="ns-ai-msg ns-ai-bot">नमस्ते! मैं New Star Help Center AI हूँ। मैं New Star अकाउंट, लॉगिन, प्रोफ़ाइल, वीडियो अपलोड/प्लेबैक, लाइव, मैसेज, सेटिंग्स, रिपोर्ट, सुरक्षा और अपील से जुड़ी सहायता कर सकता हूँ। रचनात्मक लेखन, कहानी, स्क्रिप्ट, थंबनेल, इमेज और कोडिंग के लिए होम पेज का New Star AI Engine खोलें।</div></div><div id="ns-ai-note">AI replies may be inaccurate. Do not share passwords, OTPs or private financial details.</div><div id="ns-ai-voice-status" role="status" aria-live="polite"></div><form id="ns-ai-form"><input id="ns-ai-input" maxlength="2000" autocomplete="off" placeholder="कुछ भी पूछें…" required><button id="ns-ai-mic" type="button" aria-label="Start voice input" aria-pressed="false" title="Speak your message">🎙️</button><button id="ns-ai-send" type="submit">Send</button></form>';
 if(onHomeFeed){const host=document.querySelector(".top-area");if(host){host.append(launch,panel);}else{document.body.append(launch,panel);}}else{document.body.append(launch,panel);}
 const log=panel.querySelector("#ns-ai-log"),input=panel.querySelector("#ns-ai-input"),send=panel.querySelector("#ns-ai-send"),providerStatus=panel.querySelector("#ns-ai-provider-status");
 const mic=panel.querySelector("#ns-ai-mic"),voiceStatus=panel.querySelector("#ns-ai-voice-status");
@@ -71,9 +71,8 @@ async function checkProviderStatus(force=false){
   if(!sessionData?.session){providerStatus.textContent="AI इस्तेमाल करने के लिए पहले Login करें।";return;}
   const {data,error}=await db.functions.invoke("ai-gateway",{body:{action:"status"}});
   if(error||!data?.ok)throw error||new Error(data?.error||"Status unavailable");
-  const names=[["openai","OpenAI"],["gemini","Gemini"],["openrouter","OpenRouter"]];
-  const ready=names.filter(([key])=>data.providers?.[key]).map(([,label])=>label);
-  providerStatus.textContent=ready.length?"Server पर configured AI keys: "+ready.join(" · ")+" · यह केवल key की मौजूदगी बताता है, provider की live validity नहीं।":"AI अभी चालू नहीं है: Server पर OpenAI, Gemini या OpenRouter की API Key नहीं मिली। अधिकृत Owner Supabase → Edge Functions → Secrets में Provider Key सेट करे।";
+  const ready=data.providers?.gemini?"Gemini":"";
+  providerStatus.textContent=ready?"Help & Support AI: Gemini configured. Home New Star AI uses its separate private engine.":"Help & Support AI के लिए Gemini server key configured नहीं है। अधिकृत project owner Supabase Edge Function Secrets में Gemini key जाँचे।";
  }catch(error){providerStatus.textContent="AI status जाँच नहीं हो सकी। Login और network connection जाँचें।";}
 }
 let aiHistoryEntry=false;const previousBodyOverflow=document.body.style.overflow;
@@ -104,7 +103,7 @@ panel.querySelector("#ns-ai-form").addEventListener("submit",async e=>{
   let detail=err?.message||"AI सेवा अभी उपलब्ध नहीं है।";
   try{const response=err?.context;if(response&&typeof response.json==="function"){const payload=await response.clone().json();if(payload?.error)detail=payload.error;}}
   catch(_){}
-  pending.textContent=detail.includes("No AI provider is configured")?"AI अभी चालू नहीं है क्योंकि Server पर कोई Provider API Key configured नहीं है। अधिकृत Owner को Supabase Edge Function Secrets में OpenAI, Gemini या OpenRouter की Key जोड़नी होगी।":detail+" कृपया थोड़ी देर बाद फिर कोशिश करें।";
+  pending.textContent=detail+" कृपया थोड़ी देर बाद फिर कोशिश करें।";
  }
  finally{send.disabled=false;mic.disabled=!SpeechRecognition;send.textContent="Send";voiceCaptureLocked=false;input.value="";input.dispatchEvent(new Event("input",{bubbles:true}));input.focus();}
 });
