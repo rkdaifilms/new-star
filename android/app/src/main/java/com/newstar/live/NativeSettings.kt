@@ -100,6 +100,25 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
                 "/rest/v1/profiles?select=is_private&user_id=eq.${session.userId}", session
             )
             if (rows.length() > 0) privateAccount = rows.optJSONObject(0)?.optBoolean("is_private") == true
+            val blocked = NativeSupabase.get(
+                "/rest/v1/user_blocks?select=id,blocked_id&blocker_id=eq.${Uri.encode(session.userId)}&order=created_at.desc", session
+            )
+            val ids = (0 until blocked.length()).mapNotNull { blocked.optJSONObject(it)?.optString("blocked_id")?.takeIf { id -> id.isNotBlank() } }
+            if (ids.isEmpty()) {
+                blockedAccounts = emptyList()
+            } else {
+                val safeIds = ids.joinToString(",") { Uri.encode(it) }
+                val profiles = NativeSupabase.get("/rest/v1/profiles?select=user_id,username&user_id=in.($safeIds)", session)
+                val names = (0 until profiles.length()).mapNotNull { index ->
+                    profiles.optJSONObject(index)?.let { it.optString("user_id") to it.optString("username") }
+                }.toMap()
+                blockedAccounts = (0 until blocked.length()).mapNotNull { index ->
+                    blocked.optJSONObject(index)?.let { row ->
+                        val blockedId = row.optString("blocked_id")
+                        row.optString("id") to (names[blockedId]?.takeIf { it.isNotBlank() } ?: "User " + blockedId.take(8))
+                    }
+                }
+            }
         } catch (_: Exception) { }
     }
 
