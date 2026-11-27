@@ -98,19 +98,14 @@ class NativeInboxActivity : Activity() {
                     status.text=name
                     for(i in 0 until rows.length()){val m=rows.getJSONObject(i); val mine=m.optString("sender_id")==me; val bubble=TextView(this).apply{ text=m.optString("body"); textSize=15f; setTextColor(Color.WHITE); setPadding(14,10,14,10); setBackgroundColor(if(mine)Color.rgb(90,55,170) else Color.rgb(35,38,48)); gravity=if(mine)Gravity.END else Gravity.START }
                         list.addView(bubble,LinearLayout.LayoutParams(-1,-2).apply{setMargins(if(mine)48 else 0,4,if(mine)0 else 48,4)}) }
-                    val composer=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;setPadding(8,8,8,8)}
-                    val input=EditText(this).apply{hint="Type a message";setTextColor(Color.WHITE);setHintTextColor(Color.GRAY);inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES}
-                    val send=Button(this).apply{text="Send";isAllCaps=false}
-                    composer.addView(input,LinearLayout.LayoutParams(0,52,1f));composer.addView(send)
-                    root.removeViewAt(root.childCount-1)
-                    root.addView(composer)
-                    send.setOnClickListener {
-                        val body=input.text.toString().trim(); if(body.isBlank())return@setOnClickListener
-                        send.isEnabled=false
+                    composer.visibility=android.view.View.VISIBLE
+                    sendButton.setOnClickListener {
+                        val body=messageInput.text.toString().trim(); if(body.isBlank())return@setOnClickListener
+                        sendButton.isEnabled=false
                         worker.execute { try {
                             call("/rest/v1/messages","POST",JSONObject().put("conversation_id",conv).put("sender_id",me).put("recipient_id",id).put("body",body))
-                            runOnUiThread { input.setText(""); send.isEnabled=true; root.removeView(composer); openThread(id,name,conv) }
-                        } catch(e:Exception){runOnUiThread{send.isEnabled=true;status.text=e.message?: "Message send failed."}} }
+                            runOnUiThread { messageInput.setText(""); sendButton.isEnabled=true; openThread(id,name,conv) }
+                        } catch(e:Exception){runOnUiThread{sendButton.isEnabled=true;status.text=e.message?: "Message send failed."}} }
                     }
                 }
             } catch(e:Exception){runOnUiThread{status.text=e.message?: "Could not load conversation."}}
