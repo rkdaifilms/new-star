@@ -6,6 +6,13 @@ import android.app.ProgressDialog
 import android.app.AlertDialog
 import android.graphics.Color
 import android.net.Uri
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.CustomCredential
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.Gravity
@@ -14,9 +21,6 @@ import android.widget.*
 import org.json.JSONObject
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import java.security.MessageDigest
-import java.security.SecureRandom
-import android.util.Base64
 import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
@@ -54,14 +58,7 @@ class MainActivity : AppCompatActivity() {
             showHome()
             refreshSavedSession()
         }
-        handleSupabaseOAuthCallback(intent)
         loadRuntimeConfig(force = true)
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        handleSupabaseOAuthCallback(intent)
     }
 
     override fun onResume() {
@@ -215,58 +212,49 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun signInWithGoogle(trigger: Button) {
+        val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.trim()
+        if (webClientId.isBlank()) {
+            showStatus("Google Login कॉन्फ़िगरेशन उपलब्ध नहीं है।")
+            return
+        }
         trigger.isEnabled = false
-        try {
-            val verifierBytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
-            val verifier = Base64.encodeToString(verifierBytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
-            val challengeBytes = MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII))
-            val challenge = Base64.encodeToString(challengeBytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
-            val redirectUri = Uri.parse("newstar://auth/callback")
-            prefs.edit()
-                .putString("oauth_pkce_verifier", verifier)
-                .apply()
-            val authorizeUri = Uri.parse(NewStarApi.BASE_URL + "/auth/v1/authorize").buildUpon()
-                .appendQueryParameter("provider", "google")
-                .appendQueryParameter("redirect_to", redirectUri.toString())
-                .appendQueryParameter("code_challenge", challenge)
-                .appendQueryParameter("code_challenge_method", "s256")
-                .build()
-            showStatus("Supabase के जरिए Google Login खोला जा रहा है…")
-            startActivity(Intent(Intent.ACTION_VIEW, authorizeUri))
-            trigger.isEnabled = true
-        } catch (e: Exception) {
-            trigger.isEnabled = true
-            showStatus(e.message ?: "Google Login शुरू नहीं हो पाया।")
-        }
-    }
-
-    private fun handleSupabaseOAuthCallback(callbackIntent: Intent?) {
-        val uri = callbackIntent?.data ?: return
-        if (uri.scheme != "newstar" || uri.host != "auth" || uri.path != "/callback") return
-        val error = uri.getQueryParameter("error_description")
-            ?: uri.getQueryParameter("error")
-        if (!error.isNullOrBlank()) {
-            prefs.edit().remove("oauth_pkce_verifier").apply()
-            showStatus("Google Login पूरा नहीं हुआ: " + error)
-            return
-        }
-        val code = uri.getQueryParameter("code")
-        val verifier = prefs.getString("oauth_pkce_verifier", null)
-        if (code.isNullOrBlank() || verifier.isNullOrBlank()) {
-            prefs.edit().remove("oauth_pkce_verifier").apply()
-            showStatus("Google Login callback सत्यापित नहीं हो पाया। कृपया दोबारा कोशिश करें।")
-            return
-        }
-        prefs.edit().remove("oauth_pkce_verifier").apply()
-        showStatus("Supabase Login session सुरक्षित रूप से बनाया जा रहा है…")
-        worker.execute {
+        showStatus("Google खाते चुने जा रहे हैं…")
+        lifecycleScope.launch {
             try {
-                val signedIn = api.exchangeOAuthCode(code, verifier)
-                runOnUiThread {
-                    if (saveSession(signedIn)) showHome()
+                val googleOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(webClientId)
+                    .setAutoSelectEnabled(false)
+                    .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleOption)
+                    .build()
+                val result = CredentialManager.create(this@MainActivity)
+                    .getCredential(this@MainActivity, request)
+                val credential = result.credential
+                if (credential !is CustomCredential ||
+                    credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    throw IllegalStateException("Google से मान्य पहचान नहीं मिली।")
+                }
+                val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                val idToken = googleCredential.idToken
+                if (idToken.isBlank()) throw IllegalStateException("Google ID token खाली मिला।")
+                showStatus("Supabase में Google खाते की पुष्टि हो रही है…")
+                val signedIn = with(kotlinx.coroutines.Dispatchers.IO) {
+                    api.signInWithGoogleIdToken(idToken)
+                }
+                if (!isFinishing && !isDestroyed && saveSession(signedIn)) showHome()
+            } catch (e: androidx.credentials.exceptions.GetCredentialException) {
+                if (!isFinishing && !isDestroyed) {
+                    showStatus(e.message?.takeIf { it.isNotBlank() } ?: "Google Login रद्द हुआ या उपलब्ध नहीं है।")
                 }
             } catch (e: Exception) {
-                runOnUiThread { showStatus(e.message ?: "Google Login session नहीं बन पाया।") }
+                if (!isFinishing && !isDestroyed) {
+                    showStatus(e.message?.takeIf { it.isNotBlank() } ?: "Google Login पूरा नहीं हो पाया।")
+                }
+            } finally {
+                if (!isFinishing && !isDestroyed) trigger.isEnabled = true
             }
         }
     }
