@@ -283,6 +283,11 @@ private object NativeVideoUploader {
         val streamId = create.getHeaderField("stream-media-id") ?: error("Cloudflare Stream ID नहीं मिली।")
         create.disconnect()
 
+        val client = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(120, TimeUnit.SECONDS)
+            .build()
         var offset = 0L
         context.contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "वीडियो फ़ाइल पढ़ नहीं सकी।" }
@@ -296,11 +301,6 @@ private object NativeVideoUploader {
                     if (count < 0) throw IllegalStateException("वीडियो पढ़ते समय फ़ाइल अधूरी मिली।")
                     read += count
                 }
-                val client = OkHttpClient.Builder()
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .readTimeout(120, TimeUnit.SECONDS)
-                    .writeTimeout(120, TimeUnit.SECONDS)
-                    .build()
                 val request = Request.Builder().url(location)
                     .header("Tus-Resumable", "1.0.0")
                     .header("Upload-Offset", offset.toString())
