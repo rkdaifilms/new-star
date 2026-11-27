@@ -9,6 +9,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
 
 /**
  * Minimal Phoenix v2 websocket client for Supabase Realtime Postgres Changes.
@@ -27,6 +29,7 @@ class NativeRealtimeMessages(
         .build()
     @Volatile private var socket: WebSocket? = null
     @Volatile private var joined = false
+    private val heartbeatExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
     private val topic = "realtime:public:messages"
     private val joinRef = "1"
 
@@ -36,6 +39,7 @@ class NativeRealtimeMessages(
         val request = Request.Builder()
             .url("wss://$base/realtime/v1/websocket?apikey=$apiKey&vsn=1.0.0")
             .build()
+        heartbeatExecutor.scheduleAtFixedRate({ heartbeat() }, 25, 25, TimeUnit.SECONDS)
         socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 val changes = JSONArray().put(
@@ -119,6 +123,7 @@ class NativeRealtimeMessages(
         joined = false
         socket?.close(1000, "Inbox screen closed")
         socket = null
+        heartbeatExecutor.shutdownNow()
         client.dispatcher.executorService.shutdown()
         client.connectionPool.evictAll()
     }
