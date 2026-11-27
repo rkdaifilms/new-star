@@ -1,19 +1,20 @@
 # New Star Android App
 
-This repository automatically builds a test-installable Android APK from the latest `main` branch.
+The creator Android app is a native Jetpack Compose application. APK workflows are manual and are intentionally not started for every small code change.
 
-## Download the latest APK
+## Test APK workflow
 
-1. Open the repository on GitHub.
-2. Open **Actions**.
-3. Select **Android App (automatic APK)**.
-4. Open the newest successful run (green check mark).
-5. Under **Artifacts**, download `new-star-android-apk-...`.
-6. Extract the ZIP and install `app-debug.apk` on an Android test device.
+A test APK can be built only after the Android implementation is ready for a test cycle:
+
+1. Open the repository on GitHub and select **Actions**.
+2. Select **Android App (automatic APK)** or **New Star Creator Android APK**.
+3. Use **Run workflow** on the intended branch.
+4. Open the successful run and download its artifact ZIP.
+5. Extract the ZIP and install `app-debug.apk` on an Android test device.
 
 **Do not use Code -> Download ZIP as the Android installer.** That ZIP contains source code, not an APK.
 
-Every push to `main` starts a fresh Android build. The artifact is tied to the exact Git commit and includes a SHA-256 checksum. Failed builds stay visible in Actions with their error logs, making it easier to identify which code change caused a regression. Artifacts are retained for 30 days.
+The debug APK is signed with Android's standard debug key and is for controlled testing, not public distribution. The separate signed release workflow requires a configured persistent upload keystore. No APK is produced merely by committing source changes.
 
 ## Important build and security notes
 
@@ -21,7 +22,7 @@ Every push to `main` starts a fresh Android build. The artifact is tied to the e
 - Android or Play Protect may still show a warning for a sideloaded or unfamiliar app. A successful signature check does not mean Google has certified the app as safe.
 - Do not disable Android security protections to install it.
 - A public release requires a securely managed, persistent upload key and a signed release build. Never commit a keystore or share its passwords in chat.
-- The Android launcher and all five primary navigation destinations (Home, Upload, Inbox, Gaming and Profile) now use native Jetpack Compose screens. The legacy WebView activity has been removed from the manifest and source tree; the Vercel site is not loaded as the app's main screen.
+- The creator app launcher and its Home, Upload, Inbox, Live, Gaming, Wallet and Profile routes use native Jetpack Compose screens. The creator app does not load the Vercel site as its main screen. The separate `developer-android` project still uses a WebView for `admin.html`; it is not yet a fully native developer app.
 - Native authentication supports Supabase email/password and a Google OAuth PKCE handoff back into the Android app. Session tokens are stored encrypted with Android Keystore and refreshed when required.
 - Native Upload uses Android's document picker, reads video metadata on-device, and uploads resumably through the existing authenticated Cloudflare TUS proxy before inserting the video record in Supabase.
 - Native Profile currently displays the signed-in creator's profile and video list. Native Inbox currently lists messages and supports sending a text message by recipient user ID; full conversation discovery, realtime updates, media messages, follow-request controls and profile editing are not yet at web-feature parity.
