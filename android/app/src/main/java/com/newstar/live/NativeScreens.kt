@@ -3,6 +3,7 @@ package com.newstar.live
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
@@ -51,6 +52,13 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.effect.Crop
 import androidx.media3.effect.RgbFilter
+import androidx.media3.effect.OverlayEffect
+import androidx.media3.effect.TextOverlay
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
+import android.text.style.BackgroundColorSpan
+import android.text.style.AbsoluteSizeSpan
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.Effects
@@ -527,6 +535,7 @@ fun NativeUploadScreen(session: NativeSession) {
     var selectedFilter by remember { mutableStateOf("none") }
     var centerCrop by remember { mutableStateOf(false) }
     var exportSpeed by remember { mutableFloatStateOf(1f) }
+    var overlayText by remember { mutableStateOf("") }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         selected = uri
         if (uri != null) {
@@ -549,6 +558,7 @@ fun NativeUploadScreen(session: NativeSession) {
                 selectedFilter = "none"
                 centerCrop = false
                 exportSpeed = 1f
+                overlayText = ""
                 editing = true
                 status = "वीडियो चुना गया। Trim, rotate या mute सेट करके Apply edits दबाएँ।"
             } catch (e: Exception) { status = e.message ?: "वीडियो metadata पढ़ नहीं सके।" }
@@ -605,6 +615,7 @@ fun NativeUploadScreen(session: NativeSession) {
                     selectedFilter = "none"
                     centerCrop = false
                     exportSpeed = 1f
+                    overlayText = ""
                     status = "Editor settings reset हो गईं।"
                 }, enabled = !uploading) { Text("Reset") }
             }
@@ -614,6 +625,14 @@ fun NativeUploadScreen(session: NativeSession) {
                     FilterChip(selected = exportSpeed == speed, onClick = { exportSpeed = speed }, enabled = !uploading, label = { Text("${speed}x") })
                 }
             }
+            OutlinedTextField(
+                value = overlayText,
+                onValueChange = { overlayText = it.take(100) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Video text overlay (optional)") },
+                maxLines = 2,
+                enabled = !uploading
+            )
             Text("Color filter", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = selectedFilter == "none", onClick = { selectedFilter = "none" }, label = { Text("Original") })
@@ -637,7 +656,7 @@ fun NativeUploadScreen(session: NativeSession) {
                 status = "वीडियो edit/export हो रहा है…"
                 scope.launch {
                     try {
-                        val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop, exportSpeed) { value -> editingProgress = value }
+                        val output = NativeVideoEditor.export(context, input, start * 1000L, end * 1000L, rotationDegrees, muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText) { value -> editingProgress = value }
                         selected = Uri.fromFile(output)
                         sourceDurationSeconds = (end - start).toInt()
                         trimStartSeconds = "0"
@@ -645,6 +664,7 @@ fun NativeUploadScreen(session: NativeSession) {
                         rotationDegrees = 0
                         muteOriginalAudio = false
                         exportSpeed = 1f
+                        overlayText = ""
                         editing = false
                         editingProgress = 100
                         status = "Edited video तैयार है। अब Publish दबाएँ।"
@@ -684,7 +704,7 @@ private fun stableConversationId(first: String, second: String): String {
 
 @OptIn(UnstableApi::class)
 private object NativeVideoEditor {
-    suspend fun export(context: Context, input: Uri, startMs: Long, endMs: Long, rotation: Int, muteAudio: Boolean, filter: String, centerCrop: Boolean, speed: Float, onProgress: (Int) -> Unit): java.io.File =
+    suspend fun export(context: Context, input: Uri, startMs: Long, endMs: Long, rotation: Int, muteAudio: Boolean, filter: String, centerCrop: Boolean, speed: Float, overlayText: String, onProgress: (Int) -> Unit): java.io.File =
         suspendCancellableCoroutine { continuation ->
             val output = java.io.File(context.cacheDir, "newstar-edit-" + System.currentTimeMillis() + ".mp4")
             val clipping = MediaItem.ClippingConfiguration.Builder().setStartPositionMs(startMs).setEndPositionMs(endMs).build()
@@ -697,6 +717,13 @@ private object NativeVideoEditor {
                 "inverted" -> videoEffects.add(RgbFilter.createInvertedFilter())
                 "none" -> Unit
                 else -> error("Unsupported video filter.")
+            }
+            if (overlayText.isNotBlank()) {
+                val text = SpannableString(overlayText.trim().take(100))
+                text.setSpan(ForegroundColorSpan(Color.WHITE), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                text.setSpan(BackgroundColorSpan(Color.argb(170, 0, 0, 0)), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                text.setSpan(AbsoluteSizeSpan(64), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                videoEffects.add(OverlayEffect(listOf(TextOverlay.createStaticTextOverlay(text))))
             }
             require(speed in 0.5f..2f) { "वीडियो speed 0.5x से 2x के बीच रखें।" }
             val speedProvider = object : SpeedProvider {
