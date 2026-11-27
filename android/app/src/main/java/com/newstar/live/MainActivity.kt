@@ -466,6 +466,7 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
 @Composable
 private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit, onNavigate: (String) -> Unit) {
     var category by remember { mutableStateOf("All") }
+    var feedMode by remember { mutableStateOf("For You") }
     var search by remember { mutableStateOf("") }
     var creatorResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var creatorSearchLoading by remember { mutableStateOf(false) }
@@ -483,12 +484,20 @@ private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit,
     var error by remember { mutableStateOf<String?>(null) }
     var refresh by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(category, refresh) {
+    LaunchedEffect(category, feedMode, refresh, session?.userId) {
         loading = true
         error = null
         try {
-            feed = NativeFeed.load(category)
-            if (feed.isEmpty()) error = "अभी कोई सार्वजनिक वीडियो उपलब्ध नहीं है।"
+            feed = when (feedMode) {
+                "Following" -> {
+                    val current = session ?: throw IllegalStateException("Following feed देखने के लिए Login करें।")
+                    NativeFeed.loadFollowing(current)
+                }
+                "Shorts", "Reels" -> NativeFeed.load(category, "short")
+                "Long videos" -> NativeFeed.load(category, "long")
+                else -> NativeFeed.load(category)
+            }
+            if (feed.isEmpty()) error = if (feedMode == "Following") "आप जिन Creators को Follow करते हैं, उनकी अभी कोई सार्वजनिक वीडियो नहीं है।" else "अभी कोई सार्वजनिक वीडियो उपलब्ध नहीं है।"
         } catch (e: Exception) {
             error = e.message ?: "Feed लोड नहीं हो सकी।"
         } finally { loading = false }
@@ -591,7 +600,18 @@ private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit,
             }
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(listOf("For You", "Following", "Shorts", "Reels", "Long videos", "LIVE")) { name ->
+                    FilterChip(selected = feedMode == name, onClick = {
+                        if (name == "LIVE") onNavigate("Live") else feedMode = name
+                    }, label = { Text(name) })
+                }
+            }
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 items(listOf("All", "Comedy", "Music", "Gaming", "Tech", "Vlogs")) { name ->
@@ -807,9 +827,9 @@ private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
 }
 
 private object NativeFeed {
-    suspend fun load(category: String): List<NativeVideo> = withContext(Dispatchers.IO) {
+    suspend fun load(category: String, videoType: String? = null): List<NativeVideo> = withContext(Dispatchers.IO) {
         val args = JSONObject().put("p_limit", 30).put("p_offset", 0)
-            .put("p_video_type", JSONObject.NULL)
+            .put("p_video_type", videoType ?: JSONObject.NULL)
             .put("p_category", if (category == "All") JSONObject.NULL else category)
         val rows = post("$API_BASE/rest/v1/rpc/get_recommended_video_feed", args) as? JSONArray
             ?: throw IllegalStateException("Feed response invalid.")
@@ -835,6 +855,35 @@ private object NativeFeed {
         }.toList()
     }
 
+    suspend fun loadFollowing(session: NativeSession): List<NativeVideo> = withContext(Dispatchers.IO) {
+        val followRows = NativeSupabase.get(
+            "/rest/v1/followers?select=following_id&follower_id=eq." + Uri.encode(session.userId) + "&limit=500",
+            session
+        )
+        val creatorIds = (0 until followRows.length()).mapNotNull {
+            followRows.optJSONObject(it)?.optString("following_id")?.takeIf { id -> id.isNotBlank() }
+        }.distinct()
+        if (creatorIds.isEmpty()) return@withContext emptyList()
+        val idsFilter = Uri.encode("(" + creatorIds.joinToString(",") + ")")
+        val rows = NativeSupabase.get(
+            "/rest/v1/videos?select=id,caption,username,category,likes_count,views_count,video_type,user_id&user_id=in." + idsFilter + "&visibility=eq.public&order=created_at.desc&limit=60",
+            session
+        )
+        val sourceRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+        if (sourceRows.isEmpty()) return@withContext emptyList()
+        val videoIds = JSONArray()
+        sourceRows.forEach { videoIds.put(it.optString("id")) }
+        val resolved = NativeSupabase.invokeFunction("video-url", JSONObject().put("video_ids", videoIds), session)
+        if (!resolved.optBoolean("ok")) throw IllegalStateException("Following video playback URL resolve नहीं हुआ।")
+        val urls = resolved.optJSONObject("urls") ?: JSONObject()
+        sourceRows.mapNotNull { row ->
+            val id = row.optString("id")
+            val playback = urls.optString(id).takeIf { it.startsWith("https://") } ?: return@mapNotNull null
+            NativeVideo(id, playback, row.optString("caption"), row.optString("username"),
+                row.optString("category"), row.optInt("likes_count"), row.optInt("views_count"),
+                row.optString("video_type").ifBlank { "short" })
+        }
+    }
     private fun post(endpoint: String, body: JSONObject): Any {
         val connection = URL(endpoint).openConnection() as HttpURLConnection
         try {
