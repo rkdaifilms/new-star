@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -153,9 +154,11 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
             }
         }, enabled = !busy) { Text("Change Email") }
         OutlinedTextField(value = newPassword, onValueChange = { newPassword = it },
-            modifier = Modifier.fillMaxWidth(), label = { Text("New password (minimum 8 characters)") }, singleLine = true)
+            modifier = Modifier.fillMaxWidth(), label = { Text("New password (minimum 8 characters)") }, singleLine = true,
+            visualTransformation = PasswordVisualTransformation())
         OutlinedTextField(value = confirmPassword, onValueChange = { confirmPassword = it },
-            modifier = Modifier.fillMaxWidth(), label = { Text("Confirm new password") }, singleLine = true)
+            modifier = Modifier.fillMaxWidth(), label = { Text("Confirm new password") }, singleLine = true,
+            visualTransformation = PasswordVisualTransformation())
         Button(onClick = {
             when {
                 newPassword.length < 8 -> status = "Password कम-से-कम 8 अक्षर का होना चाहिए।"
