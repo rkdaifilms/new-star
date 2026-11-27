@@ -601,6 +601,7 @@ class MainActivity : AppCompatActivity() {
         panel.addView(label("Your videos", 19f, true))
         val videosPanel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         panel.addView(videosPanel)
+        videosPanel.addView(label("Loading your videos…", 14f))
 
         upload.setOnClickListener { videoPicker.launch(arrayOf("video/*")) }
         logout.setOnClickListener {
