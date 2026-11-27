@@ -502,7 +502,7 @@ private fun NativeLiveInvitations(session: NativeSession) {
                 Text("LIVE Invitations", style = MaterialTheme.typography.titleMedium)
                 invitations.forEach { invite ->
                     val id = invite.optString("id")
-                    Text("Host invitation · Room ${invite.optString("room_id").take(8)}")
+                    Text("${invite.optString("inviter_name").ifBlank { "New Star Creator" }} invited you to ${invite.optString("room_title").ifBlank { "New Star Live" }}", style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(enabled = busyId.isBlank(), onClick = {
                             busyId = id
