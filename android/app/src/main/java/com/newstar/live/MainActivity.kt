@@ -508,15 +508,33 @@ private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) { items(visibleFeed, key = { it.id }) { video -> NativeVideoCard(video) } }
+                ) { items(visibleFeed, key = { it.id }) { video -> NativeVideoCard(video, session) } }
             }
         }
     }
 }
 
 @Composable
-private fun NativeVideoCard(video: NativeVideo) {
+private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
     val context = LocalContext.current
+    var liked by remember(video.id, session?.userId) { mutableStateOf(false) }
+    var likeCount by remember(video.id) { mutableIntStateOf(video.likes) }
+    var likeBusy by remember(video.id) { mutableStateOf(false) }
+    var likeError by remember(video.id) { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(video.id, session?.userId) {
+        if (session != null) {
+            try {
+                val rows = NativeSupabase.get(
+                    "/rest/v1/likes?select=id&user_id=eq.${Uri.encode(session.userId)}&video_id=eq.${Uri.encode(video.id)}&limit=1",
+                    session
+                )
+                liked = rows.length() > 0
+            } catch (e: Exception) {
+                likeError = e.message ?: "Like status नहीं मिल सका।"
+            }
+        }
+    }
     val exoPlayer = remember(video.url) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(video.url)); prepare(); playWhenReady = false
@@ -541,9 +559,46 @@ private fun NativeVideoCard(video: NativeVideo) {
                 Text("@${video.username.ifBlank { "creator" }}", fontWeight = FontWeight.Bold)
                 if (video.caption.isNotBlank()) { Spacer(Modifier.height(4.dp)); Text(video.caption) }
                 Spacer(Modifier.height(6.dp))
-                Text("${video.category} · ${video.likes} likes · ${video.views} views",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text("${video.category} · $likeCount likes · ${video.views} views",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(
+                        enabled = session != null && !likeBusy,
+                        onClick = {
+                            val current = session ?: return@TextButton
+                            likeBusy = true
+                            likeError = null
+                            scope.launch {
+                                try {
+                                    val user = Uri.encode(current.userId)
+                                    val videoId = Uri.encode(video.id)
+                                    if (liked) {
+                                        NativeSupabase.delete(
+                                            "/rest/v1/likes?user_id=eq.$user&video_id=eq.$videoId",
+                                            current
+                                        )
+                                        liked = false
+                                        likeCount = (likeCount - 1).coerceAtLeast(0)
+                                    } else {
+                                        NativeSupabase.post(
+                                            "/rest/v1/likes",
+                                            JSONObject().put("user_id", current.userId).put("video_id", video.id),
+                                            current
+                                        )
+                                        liked = true
+                                        likeCount += 1
+                                    }
+                                } catch (e: Exception) {
+                                    likeError = e.message ?: "Like update नहीं हुआ।"
+                                } finally { likeBusy = false }
+                            }
+                        }
+                    ) { Text(if (likeBusy) "…" else if (liked) "♥ Liked" else "♡ Like") }
+                }
+                if (likeError != null) Text(likeError.orEmpty(), color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelSmall)
             }
         }
     }
