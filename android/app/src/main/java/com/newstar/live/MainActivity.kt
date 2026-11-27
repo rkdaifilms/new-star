@@ -579,18 +579,67 @@ class MainActivity : AppCompatActivity() {
     private fun showProfile() {
         activeScreen = "Profile"
         baseScreen("Your Account")
-        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(24), dp(20), dp(20)) }
-        panel.addView(label("Signed in as\n" + (session?.email ?: "New Star creator"), 16f))
+        val active = session ?: run { showAuth(); return }
+        val scroll = ScrollView(this)
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(16), dp(18), dp(24))
+        }
+        scroll.addView(panel)
+        content.addView(scroll, FrameLayout.LayoutParams(-1, -1))
+
+        panel.addView(label("My New Star profile", 22f, true))
+        panel.addView(label("Signed in as " + active.email, 14f))
         val upload = button("Upload video")
         upload.isEnabled = isRemoteFeatureEnabled("allow_video_upload", true)
         if (!upload.isEnabled) upload.text = "Video uploads temporarily unavailable"
         val logout = button("Sign out")
         panel.addView(upload, LinearLayout.LayoutParams(-1, dp(50)))
-        panel.addView(space(10))
-        panel.addView(logout, LinearLayout.LayoutParams(-1, dp(50)))
-        content.addView(panel)
+        panel.addView(space(8))
+        panel.addView(logout, LinearLayout.LayoutParams(-1, dp(48)))
+        panel.addView(space(18))
+        panel.addView(label("Your videos", 19f, true))
+        val videosPanel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        panel.addView(videosPanel)
+
         upload.setOnClickListener { videoPicker.launch(arrayOf("video/*")) }
-        logout.setOnClickListener { prefs.edit().clear().apply(); session = null; showAuth() }
+        logout.setOnClickListener {
+            prefs.edit().clear().apply()
+            session = null
+            showAuth()
+        }
+
+        worker.execute {
+            try {
+                val creator = api.loadCreatorProfile(active.accessToken, active.userId)
+                val videos = api.loadCreatorVideos(active.accessToken, active.userId)
+                runOnUiThread {
+                    if (isFinishing || isDestroyed || activeScreen != "Profile") return@runOnUiThread
+                    creator?.let {
+                        val displayName = it.fullName.ifBlank { it.username.ifBlank { "New Star Creator" } }
+                        panel.addView(label(displayName, 20f, true), 2)
+                        if (it.username.isNotBlank()) panel.addView(label("@"+it.username, 15f), 3)
+                        if (it.bio.isNotBlank()) panel.addView(label(it.bio, 14f), 4)
+                        panel.addView(label(it.followerCount.toString()+" followers", 13f), 5)
+                    }
+                    videosPanel.removeAllViews()
+                    if (videos.isEmpty()) {
+                        videosPanel.addView(label("You have not published any public videos yet.", 14f))
+                    } else {
+                        videos.forEachIndexed { index, video ->
+                            videosPanel.addView(videoCard(video, index == 0))
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed && activeScreen == "Profile") {
+                        videosPanel.addView(label("Could not load your videos: " + (e.message ?: "Network error"), 13f))
+                    }
+                }
+            }
+        }
+        addBottomNav("Profile")
     }
 
     private fun addBottomNav(selected: String) {
