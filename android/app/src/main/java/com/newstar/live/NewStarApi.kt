@@ -14,6 +14,7 @@ import java.io.IOException
 import java.io.InputStream
 
 data class NewStarSession(val accessToken: String, val refreshToken: String, val userId: String, val email: String)
+data class NewStarRuntimeConfig(val version: Long, val config: JSONObject)
 data class NewStarVideo(val id: String, val userId: String, val username: String, val caption: String, val videoUrl: String, val likes: Int, val views: Int)
 data class NewStarComment(val username: String, val comment: String)
 data class NewStarCreator(val userId: String, val username: String, val fullName: String, val avatarUrl: String, val bio: String, val about: String, val isPrivate: Boolean, val followerCount: Int)
@@ -53,6 +54,16 @@ class NewStarApi {
             }
             return text
         } finally { c.disconnect() }
+    }
+
+    fun loadRuntimeConfig(): NewStarRuntimeConfig {
+        val rows = JSONArray(request("/rest/v1/app_runtime_config?select=version,config&id=eq.true&limit=1"))
+        if (rows.length() == 0) throw IllegalStateException("New Star runtime configuration is not available.")
+        val row = rows.getJSONObject(0)
+        return NewStarRuntimeConfig(
+            row.optLong("version", 1L),
+            row.optJSONObject("config") ?: JSONObject()
+        )
     }
 
     private fun parseSession(raw: String): NewStarSession {
