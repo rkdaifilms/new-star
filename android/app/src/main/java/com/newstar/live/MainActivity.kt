@@ -250,6 +250,7 @@ private fun NativeApp(
     var checkingSession by remember { mutableStateOf(true) }
     var page by remember { mutableStateOf("Home") }
     var selectedCreatorId by remember { mutableStateOf<String?>(null) }
+    var inboxTargetId by remember { mutableStateOf<String?>(null) }
     var aiInitialPrompt by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
@@ -319,7 +320,7 @@ private fun NativeApp(
                     }
                 )
                 "Upload" -> NativeUploadScreen(session!!)
-                "Inbox" -> NativeInboxScreen(session!!)
+                "Inbox" -> NativeInboxScreen(session!!, inboxTargetId)
                 "Wallet" -> NativeWalletScreen(session!!)
                 "Monetization" -> NativeMonetizationScreen(session!!) { page = "Wallet" }
                 "Fan Support" -> NativeFanSupportScreen(session!!) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
@@ -335,7 +336,12 @@ private fun NativeApp(
                     onStart = { title -> onStartGaming(session!!, title) },
                     onStop = { onStopGaming(session!!) }
                 )
-                "Creator" -> selectedCreatorId?.let { NativePublicCreatorScreen(it, session!!) }
+                "Creator" -> selectedCreatorId?.let { creatorId ->
+                    NativePublicCreatorScreen(creatorId, session!!) {
+                        inboxTargetId = creatorId
+                        page = "Inbox"
+                    }
+                }
                 "Profile" -> NativeProfileScreen(session!!) {
                     val current = session
                     if (current != null) scope.launch {
@@ -832,7 +838,7 @@ private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
 }
 
 @Composable
-private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession) {
+private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession, onMessage: () -> Unit) {
     var profile by remember { mutableStateOf<JSONObject?>(null) }
     var videos by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var following by remember { mutableStateOf(false) }
@@ -931,6 +937,9 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession)
                 Text("📍 $locationName", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (creatorId != session.userId) {
+                OutlinedButton(onClick = onMessage, modifier = Modifier.fillMaxWidth()) {
+                    Text("✉ Message")
+                }
                 Button(enabled = !busy, onClick = {
                     busy = true
                     scope.launch {
