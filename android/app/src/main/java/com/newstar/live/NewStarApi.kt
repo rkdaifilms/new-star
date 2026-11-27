@@ -90,12 +90,12 @@ class NewStarApi {
         return if (JSONObject(raw).has("access_token")) parseSession(raw) else null
     }
 
-    fun signInWithGoogleIdToken(idToken: String): NewStarSession {
-        require(idToken.isNotBlank()) { "Google did not return an ID token." }
+    fun exchangeOAuthCode(authCode: String, codeVerifier: String): NewStarSession {
+        require(authCode.isNotBlank() && codeVerifier.isNotBlank()) { "OAuth callback is incomplete." }
         val body = JSONObject()
-            .put("provider", "google")
-            .put("id_token", idToken)
-        return parseSession(request("/auth/v1/token?grant_type=id_token", "POST", body = body))
+            .put("auth_code", authCode)
+            .put("code_verifier", codeVerifier)
+        return parseSession(request("/auth/v1/token?grant_type=pkce", "POST", body = body))
     }
 
     fun loadFeed(token: String?): List<NewStarVideo> = loadFeedForUsers(token, null)
