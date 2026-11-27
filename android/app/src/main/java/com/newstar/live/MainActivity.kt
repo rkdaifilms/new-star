@@ -250,6 +250,7 @@ private fun NativeApp(
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!)
                 "Wallet" -> NativeWalletScreen(session!!)
+                "Live" -> NativeLiveDiscoveryScreen(session!!)
                 "Gaming" -> NativeGamingScreen(
                     session = session!!,
                     onStart = { title -> onStartGaming(session!!, title) },
@@ -269,6 +270,74 @@ private fun NativeApp(
     }
 }
 
+
+@Composable
+private fun NativeLiveDiscoveryScreen(session: NativeSession) {
+    var rooms by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf("") }
+    var refresh by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(session.userId, refresh) {
+        loading = true
+        error = ""
+        try {
+            val rows = NativeSupabase.get(
+                "/rest/v1/live_rooms?select=id,creator_id,room_title,stream_playback_url,viewer_count,room_type,started_at&is_live=eq.true&order=started_at.desc&limit=50",
+                session
+            )
+            rooms = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+        } catch (e: Exception) {
+            error = e.message ?: "Live rooms लोड नहीं हुए।"
+        } finally { loading = false }
+    }
+
+    Column(Modifier.fillMaxSize().padding(12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("LIVE Now", style = MaterialTheme.typography.headlineSmall)
+            TextButton(onClick = { refresh++ }, enabled = !loading) { Text("Refresh") }
+        }
+        if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+        if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
+        if (!loading && rooms.isEmpty() && error.isBlank()) Text("अभी कोई Creator Live नहीं है।")
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(rooms) { room ->
+                val playback = room.optString("stream_playback_url")
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(room.optString("room_title").ifBlank { "New Star Live" },
+                            style = MaterialTheme.typography.titleLarge)
+                        Text("Creator: ${room.optString("creator_id")} · ${room.optInt("viewer_count")} viewers")
+                        if (playback.startsWith("https://")) {
+                            val context = LocalContext.current
+                            val player = remember(playback) {
+                                ExoPlayer.Builder(context).build().apply {
+                                    setMediaItem(MediaItem.fromUri(playback))
+                                    prepare()
+                                    playWhenReady = false
+                                }
+                            }
+                            DisposableEffect(player) { onDispose { player.release() } }
+                            AndroidView(
+                                factory = { viewContext ->
+                                    PlayerView(viewContext).apply {
+                                        useController = true
+                                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                                        this.player = player
+                                    }
+                                },
+                                update = { it.player = player },
+                                modifier = Modifier.fillMaxWidth().height(220.dp)
+                            )
+                        } else {
+                            Text("इस Live room का playback अभी उपलब्ध नहीं है।")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession) {
@@ -454,6 +523,7 @@ private fun NativeHome(session: NativeSession?, onOpenCreator: (String) -> Unit,
                 NavigationBarItem(true, { category = "All" }, icon = { Text("⌂") }, label = { Text("Home") })
                 NavigationBarItem(false, { onNavigate("Upload") }, icon = { Text("+") }, label = { Text("Upload") })
                 NavigationBarItem(false, { onNavigate("Inbox") }, icon = { Text("✉") }, label = { Text("Inbox") })
+                NavigationBarItem(false, { onNavigate("Live") }, icon = { Text("●") }, label = { Text("Live") })
                 NavigationBarItem(false, { onNavigate("Gaming") }, icon = { Text("▣") }, label = { Text("Gaming") })
                 NavigationBarItem(false, { onNavigate("Wallet") }, icon = { Text("₹") }, label = { Text("Wallet") })
                 NavigationBarItem(false, { onNavigate("Profile") }, icon = { Text("●") }, label = { Text("Profile") })
