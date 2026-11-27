@@ -115,7 +115,34 @@ Deno.serve(async (req: Request) => {
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false }).limit(20);
     if (error) return json({ error: "Could not load pending LIVE invitations." }, 503, headers);
-    return json({ ok: true, invitations: data || [] }, 200, headers);
+    const rows = data || [];
+    const inviterIds = [...new Set(rows.map((row: any) => String(row.inviter_id)))];
+    const roomIds = [...new Set(rows.map((row: any) => String(row.room_id)))];
+    const [profilesResult, roomsResult] = await Promise.all([
+      inviterIds.length
+        ? admin.from("creator_public_profiles").select("user_id,full_name,username,avatar_url").in("user_id", inviterIds)
+        : Promise.resolve({ data: [], error: null }),
+      roomIds.length
+        ? admin.from("live_rooms").select("id,room_title").in("id", roomIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (profilesResult.error || roomsResult.error) {
+      return json({ error: "Could not load LIVE invitation details." }, 503, headers);
+    }
+    const profiles = new Map((profilesResult.data || []).map((p: any) => [p.user_id, p]));
+    const rooms = new Map((roomsResult.data || []).map((r: any) => [r.id, r]));
+    const invitations = rows.map((row: any) => {
+      const profile: any = profiles.get(row.inviter_id) || {};
+      const room: any = rooms.get(row.room_id) || {};
+      return {
+        ...row,
+        inviter_name: profile.full_name || profile.username || "New Star Creator",
+        inviter_username: profile.username || "",
+        inviter_avatar_url: profile.avatar_url || "",
+        room_title: room.room_title || "New Star Live",
+      };
+    });
+    return json({ ok: true, invitations }, 200, headers);
   }
 
   if (action === "live-invite-create") {
