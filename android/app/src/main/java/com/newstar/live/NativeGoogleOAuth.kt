@@ -28,7 +28,6 @@ object NativeGoogleOAuth {
         val redirect = Uri.parse(REDIRECT_PAGE).buildUpon()
             .appendQueryParameter("native_oauth", "1")
             .appendQueryParameter("oauth_state", state)
-            .appendQueryParameter("code_verifier", verifier)
             .build()
         val authorize = Uri.parse("$SUPABASE_URL/auth/v1/authorize").buildUpon()
             .appendQueryParameter("provider", "google")
