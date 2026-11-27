@@ -240,7 +240,7 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                     singleLine = true
                 )
                 androidx.compose.material3.Text("Guest seat capacity")
-                androidx.compose.material3.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                     listOf(1, 4, 10).forEach { count ->
                         androidx.compose.material3.FilterChip(
                             selected = seats == count, onClick = { seats = count },
@@ -263,7 +263,7 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                 androidx.compose.material3.Text("● LIVE · Room " + roomId!!.take(8),
                     color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
                     style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
-                androidx.compose.material3.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                     androidx.compose.material3.OutlinedButton(onClick = {
                         micEnabled = !micEnabled
                         publisher?.setMicrophoneEnabled(micEnabled)
