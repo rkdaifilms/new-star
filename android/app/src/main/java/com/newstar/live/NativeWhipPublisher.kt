@@ -18,6 +18,8 @@ import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import org.webrtc.SurfaceTextureHelper
+import org.webrtc.SurfaceViewRenderer
+import java.util.concurrent.atomic.AtomicBoolean
 import org.webrtc.VideoSource
 import org.webrtc.VideoTrack
 import java.net.HttpURLConnection
@@ -38,10 +40,36 @@ internal class NativeWhipPublisher private constructor(
     private val peer: PeerConnection,
     private val resourceUrl: String
 ) {
+    private val stopped = AtomicBoolean(false)
+    @Volatile private var previewRenderer: SurfaceViewRenderer? = null
+
     fun setMicrophoneEnabled(enabled: Boolean) { audioTrack?.setEnabled(enabled) }
     fun setCameraEnabled(enabled: Boolean) { videoTrack.setEnabled(enabled) }
 
+    fun attachPreview(renderer: SurfaceViewRenderer) {
+        check(!stopped.get()) { "LIVE publisher बंद हो चुका है।" }
+        if (previewRenderer === renderer) return
+        previewRenderer?.let { videoTrack.removeSink(it) }
+        renderer.init(egl.eglBaseContext, null)
+        renderer.setEnableHardwareScaler(true)
+        renderer.setMirror(true)
+        videoTrack.addSink(renderer)
+        previewRenderer = renderer
+    }
+
+    fun detachPreview(renderer: SurfaceViewRenderer) {
+        if (previewRenderer === renderer) {
+            runCatching { videoTrack.removeSink(renderer) }
+            previewRenderer = null
+        }
+    }
+
     suspend fun stop() {
+        if (!stopped.compareAndSet(false, true)) return
+        previewRenderer?.let { renderer ->
+            runCatching { videoTrack.removeSink(renderer) }
+            previewRenderer = null
+        }
         withContext(Dispatchers.IO) {
             runCatching {
                 val c = URL(resourceUrl).openConnection() as HttpURLConnection
