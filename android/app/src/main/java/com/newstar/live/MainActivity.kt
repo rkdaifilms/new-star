@@ -1044,6 +1044,9 @@ private fun NativeHome(
     var creatorResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var creatorSearchLoading by remember { mutableStateOf(false) }
     var creatorSearchError by remember { mutableStateOf<String?>(null) }
+    var videoResults by remember { mutableStateOf<List<NativeVideo>>(emptyList()) }
+    var videoSearchLoading by remember { mutableStateOf(false) }
+    var videoSearchError by remember { mutableStateOf<String?>(null) }
     var feed by remember { mutableStateOf<List<NativeVideo>>(emptyList()) }
     val visibleFeed = remember(feed, search) {
         val term = search.trim().lowercase()
@@ -1081,13 +1084,18 @@ private fun NativeHome(
     LaunchedEffect(search, session?.userId) {
         val term = search.trim().replace("%", "").replace("*", "").replace(",", " ").replace("(", " ").replace(")", " ")
         if (term.length < 2) {
+            videoResults = emptyList()
+            videoSearchError = null
+            videoSearchLoading = false
             creatorResults = emptyList()
             creatorSearchError = null
             creatorSearchLoading = false
         } else {
             delay(350)
             creatorSearchLoading = true
+            videoSearchLoading = true
             creatorSearchError = null
+            videoSearchError = null
             try {
                 val filter = Uri.encode("(username.ilike.*$term*,full_name.ilike.*$term*)")
                 val rows = NativeSupabase.get(
@@ -1099,6 +1107,14 @@ private fun NativeHome(
                 creatorResults = emptyList()
                 creatorSearchError = e.message ?: "Creator search नहीं हो सकी।"
             } finally { creatorSearchLoading = false }
+            try {
+                videoResults = NativeFeed.search(term, session)
+            } catch (e: Exception) {
+                videoResults = emptyList()
+                videoSearchError = e.message ?: "Video search नहीं हो सकी।"
+            } finally {
+                videoSearchLoading = false
+            }
         }
     }
 
@@ -1154,7 +1170,7 @@ private fun NativeHome(
             OutlinedTextField(
                 value = search, onValueChange = { search = it },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                singleLine = true, label = { Text("इस Feed में वीडियो या Creator खोजें") },
+                singleLine = true, label = { Text("दुनिया भर में Creator और Videos खोजें") },
                 trailingIcon = { if (search.isNotEmpty()) TextButton(onClick = { search = "" }) { Text("Clear") } }
             )
             if (search.trim().isNotEmpty()) {
@@ -1208,6 +1224,30 @@ private fun NativeHome(
                     }
                 }
             }
+            if (search.trim().length >= 2) {
+                Text("Video खोज", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.titleMedium)
+                when {
+                    videoSearchLoading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                    videoSearchError != null -> Column(Modifier.weight(1f).fillMaxWidth().padding(16.dp),
+                        verticalArrangement = Arrangement.Center) {
+                        Text(videoSearchError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                        Button(onClick = { search = search.trim() }) { Text("Retry") }
+                    }
+                    videoResults.isEmpty() -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Text("इस शब्द से कोई सार्वजनिक Video नहीं मिला।")
+                    }
+                    else -> LazyColumn(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentPadding = PaddingValues(bottom = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(videoResults, key = { it.id }) { video -> NativeVideoCard(video, session) }
+                    }
+                }
+            } else {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
@@ -1243,6 +1283,7 @@ private fun NativeHome(
                     contentPadding = PaddingValues(bottom = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) { items(visibleFeed, key = { it.id }) { video -> NativeVideoCard(video, session) } }
+            }
             }
         }
     }
@@ -1528,6 +1569,38 @@ private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
 }
 
 private object NativeFeed {
+    suspend fun search(term: String, session: NativeSession?): List<NativeVideo> = withContext(Dispatchers.IO) {
+        val safeTerm = term.trim().take(100)
+        require(safeTerm.length >= 2) { "कम से कम 2 अक्षर लिखें।" }
+        val pattern = Uri.encode("(caption.ilike.*$safeTerm*,username.ilike.*$safeTerm*,category.ilike.*$safeTerm*)")
+        val rows = NativeSupabase.get(
+            "/rest/v1/videos?select=id,caption,username,category,likes_count,views_count,video_type,user_id&visibility=eq.public&$" + "or=$pattern&order=created_at.desc&limit=30",
+            session
+        )
+        if (rows.length() == 0) return@withContext emptyList()
+        val videoIds = JSONArray()
+        val byId = LinkedHashMap<String, JSONObject>()
+        for (index in 0 until rows.length()) {
+            val row = rows.optJSONObject(index) ?: continue
+            val id = row.optString("id")
+            if (id.isNotBlank()) {
+                byId[id] = row
+                videoIds.put(id)
+            }
+        }
+        if (videoIds.length() == 0) return@withContext emptyList()
+        val resolved = post("$API_BASE/functions/v1/video-url", JSONObject().put("video_ids", videoIds)) as? JSONObject
+            ?: throw IllegalStateException("Video search playback response invalid.")
+        if (!resolved.optBoolean("ok")) throw IllegalStateException("Video search playback URL resolve नहीं हुआ।")
+        val urls = resolved.optJSONObject("urls") ?: JSONObject()
+        byId.mapNotNull { (id, row) ->
+            val playback = urls.optString(id).takeIf { it.startsWith("https://") } ?: return@mapNotNull null
+            NativeVideo(id, playback, row.optString("caption"), row.optString("username"),
+                row.optString("category"), row.optInt("likes_count"), row.optInt("views_count"),
+                row.optString("video_type").ifBlank { "short" })
+        }
+    }
+
     suspend fun load(category: String, videoType: String? = null): List<NativeVideo> = withContext(Dispatchers.IO) {
         val args = JSONObject().put("p_limit", 50).put("p_offset", 0)
             .put("p_video_type", videoType ?: JSONObject.NULL)
