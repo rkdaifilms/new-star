@@ -26,7 +26,7 @@ import java.net.URL
 import java.security.MessageDigest
 
 @Composable
-fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit) {
+fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit, onGoogleSignIn: () -> Unit) {
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -72,8 +72,10 @@ fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit) {
         TextButton(onClick = { signup = !signup; message = "" }, enabled = !busy) {
             Text(if (signup) "पहले से अकाउंट है? Login" else "नया अकाउंट बनाएँ")
         }
+        OutlinedButton(onClick = onGoogleSignIn, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+            Text("Continue with Google")
+        }
         if (message.isNotBlank()) Text(message, color = MaterialTheme.colorScheme.error)
-        Text("Google Login को Native callback में जोड़ने से पहले Supabase redirect allowlist की पुष्टि ज़रूरी है।", style = MaterialTheme.typography.bodySmall)
     }
 }
 
