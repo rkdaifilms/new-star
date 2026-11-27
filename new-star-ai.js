@@ -17,7 +17,7 @@ function setResearchMode(privateOnly){
 function bubble(text,kind="ai"){const el=document.createElement("div");el.className="ns-message "+(kind==="user"?"ns-user":"ns-ai");el.textContent=text;output.append(el);output.scrollTop=output.scrollHeight;return el;}
 function toBase64(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(new Error("Could not read voice recording."));reader.readAsDataURL(blob);});}
 async function transcribeVoice(blob){const client=window.supabaseClient||window.cloudClient;if(!client?.functions)throw new Error("New Star AI connection is not ready. Reload the page.");const mime=(blob.type||"audio/webm").split(";")[0];const audio=await toBase64(blob);const result=await client.functions.invoke("ai-gateway",{body:{action:"transcribe",audio,mimeType:mime}});if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"Voice transcription failed."));lastTranscriptionLanguage=result.data.language&&result.data.language!=="und"?result.data.language:"";lastInputWasVoice=true;prompt.value=(prompt.value.trim()?prompt.value.trim()+" ":"")+result.data.transcript;prompt.focus();bubble("Voice transcript: "+result.data.transcript,"user");}
-let recordingStartedAt=0,recordingLimitTimer=null,voiceStream=null;
+let recordingStartedAt=0,recordingLimitTimer=null,voiceStream=null;let voiceSendPending=false;
 function resetMicButton(){
  const mic=$("ns-mic");
  mic.disabled=false;
@@ -88,8 +88,17 @@ async function toggleVoice(){
    mic.textContent="Transcribing…";
    try{
     await transcribeVoice(blob);
-    bubble("Voice converted to text. Review it, then tap Send ↗.","ai");
+    if(voiceSendPending){
+     voiceSendPending=false;
+     submit.disabled=false;
+     bubble("Voice message transcribed. Sending to New Star AI…","ai");
+     form.requestSubmit();
+    }else{
+     bubble("Voice converted to text. Review it, then tap Send ↗.","ai");
+    }
    }catch(error){
+    voiceSendPending=false;
+    submit.disabled=false;
     bubble(error.message||"Voice transcription failed. Your recording was not sent.","ai");
    }finally{mic.disabled=false;mic.textContent="🎙 Voice";}
   };
@@ -122,7 +131,7 @@ $("ns-clear-file").addEventListener("click",()=>{attachment=null;fileInput.value
 async function getSession(){const client=window.supabaseClient||window.cloudClient||window.supabase;if(!client?.auth)return null;const{data}=await client.auth.getSession();return data?.session||null;}
 function mediaUrl(value){try{const u=new URL(value,location.href);return ["https:","http:"].includes(u.protocol)?u.href:null;}catch{return null;}}
 function renderResult(data,pending){pending.textContent=data.answer||data.message||"Completed.";const image=mediaUrl(data.imageUrl||data.image_url);if(image){const img=document.createElement("img");img.alt="AI-generated image";img.loading="lazy";img.src=image;pending.append(img);}const video=mediaUrl(data.videoUrl||data.video_url);if(video){const v=document.createElement("video");v.controls=true;v.playsInline=true;v.src=video;v.style.cssText="width:100%;max-width:640px;border-radius:12px;margin-top:10px";pending.append(v);}if(Array.isArray(data.sources)&&data.sources.length){const list=document.createElement("div");for(const s of data.sources){const url=mediaUrl(s?.url);if(!url)continue;const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=s.title||url;a.style.display="block";list.append(a);}pending.append(list);}if(mode==="image"&&!image)pending.textContent+=" No image URL was returned by the backend.";if(mode==="video"&&!video)pending.textContent+=" No video URL was returned by the backend.";}
-async function run(event){event?.preventDefault();const text=prompt.value.trim();if((!text&&!attachment)||busy)return;if(text&&!lastInputWasVoice)lastTranscriptionLanguage="";busy=true;submit.disabled=true;const sendText=text;const responseLanguage=requestLanguage();bubble(text||"Attached image","user");const pending=bubble(mode==="image"?"Creating your image…":mode==="video"?"Preparing video request…":"Working…");prompt.value="";
+async function run(event){event?.preventDefault();if(recorder&&recorder.state==="recording"){voiceSendPending=true;submit.disabled=true;const mic=$("ns-mic");mic.textContent="Transcribing & sending…";if(recordingLimitTimer){clearTimeout(recordingLimitTimer);recordingLimitTimer=null;}try{recorder.stop();}catch(error){voiceSendPending=false;submit.disabled=false;resetMicButton();bubble(error.message||"Could not stop the recording.","ai");}return;}const text=prompt.value.trim();if((!text&&!attachment)||busy)return;if(text&&!lastInputWasVoice)lastTranscriptionLanguage="";busy=true;submit.disabled=true;const sendText=text;const responseLanguage=requestLanguage();bubble(text||"Attached image","user");const pending=bubble(mode==="image"?"Creating your image…":mode==="video"?"Preparing video request…":"Working…");prompt.value="";
 try{
  const client=window.supabaseClient||window.cloudClient;
  if(!client?.auth)throw new Error("Supabase connection is not ready. Reload and sign in.");
@@ -145,7 +154,16 @@ try{
    }
    if(sources.length){const heading=document.createElement("strong");heading.textContent="Sources";heading.style.display="block";heading.style.marginTop="12px";pending.append(heading);for(const source of sources){const url=mediaUrl(source.url);if(!url)continue;const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.title||url;link.style.display="block";link.style.marginTop="6px";pending.append(link);}}
  }else if(mode==="chat"){
-   const result=await client.functions.invoke("ai-gateway",{body:{messages:[{role:"user",content:sendText}],conversationId:conversationId||undefined,language:responseLanguage}});
+   const chatMessages=[{role:"user",content:sendText}];
+   let result=await client.functions.invoke("ai-gateway",{body:{messages:chatMessages,conversationId:conversationId||undefined,language:responseLanguage}});
+   if((result.error||!result.data?.ok)&&conversationId){
+     const detail=await gatewayErrorMessage(result,"");
+     if(/conversation (?:id is invalid|not found)|could not load this conversation/i.test(detail)){
+       conversationId="";
+       localStorage.removeItem("new-star-ai-conversation");
+       result=await client.functions.invoke("ai-gateway",{body:{messages:chatMessages,language:responseLanguage}});
+     }
+   }
    if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"New Star AI chat service is unavailable."));
    pending.textContent=result.data.answer||"The AI returned an empty response.";if(result.data.memorySaved===false){const memoryNote=document.createElement("small");memoryNote.textContent="This reply was generated, but conversation saving is temporarily unavailable.";memoryNote.style.display="block";memoryNote.style.opacity=".75";pending.append(memoryNote);}
    lastInputWasVoice=false;lastTranscriptionLanguage="";conversationId=result.data.conversationId||conversationId;if(conversationId)localStorage.setItem("new-star-ai-conversation",conversationId);const voiceButton=document.createElement("button");voiceButton.type="button";voiceButton.textContent="▶ Listen";voiceButton.className="ns-listen";voiceButton.addEventListener("click",()=>speakText(result.data.answer||"",voiceButton,responseLanguage));pending.append(voiceButton);
@@ -180,7 +198,7 @@ try{
    const save=document.createElement("a");save.href=videoUrl;save.download="new-star-ai-video.mp4";save.textContent="Save video";save.style.display="inline-block";save.style.marginTop="10px";pending.append(video,save);
  }
  attachment=null;fileInput.value="";$("ns-attachment-wrap").hidden=true;
-}catch(error){pending.textContent=error.message||"AI backend unavailable.";pending.dataset.error="true";if(!prompt.value.trim())prompt.value=sendText;}
+}catch(error){pending.textContent=error.message||"AI backend unavailable.";pending.dataset.error="true";if(sendText&&!prompt.value.trim())prompt.value=sendText;}
 finally{busy=false;submit.disabled=false;prompt.focus();}
 }
 $("ns-mic").addEventListener("click",toggleVoice);
@@ -222,56 +240,8 @@ async function refreshEngineStatus(){
   foot.textContent=capabilitySummary+". Configuration checks do not prove provider billing, quota or successful generation.";
  }catch(error){status.textContent="AI service unavailable";status.style.color="#ff9b9b";foot.textContent=error.message||"Could not check New Star AI service status.";}
 }
-window.addEventListener("load",()=>{refreshEngineStatus();loadApiKeys();});
-async function apiKeyRequest(body){
- const client=window.supabaseClient||window.cloudClient;
- if(!client?.functions)throw new Error("New Star connection is not ready.");
- const {data:sessionData}=await client.auth.getSession();
- if(!sessionData?.session)throw new Error("Sign in to New Star to manage API keys.");
- const result=await client.functions.invoke("ai-gateway",{body});
- if(result.error||!result.data?.ok)throw new Error(await gatewayErrorMessage(result,"API key request failed."));
- return result.data;
-}
-function apiKeyMessage(text,isError=false){
- const box=$("ns-api-new");box.hidden=false;box.replaceChildren();
- const p=document.createElement("p");p.textContent=text;p.style.color=isError?"#ffaaaa":"#a8e7bf";box.append(p);
-}
-async function loadApiKeys(){
- const list=$("ns-api-list");list.textContent="Loading API keys…";
- try{
-  const data=await apiKeyRequest({action:"api_key_list"});
-  list.replaceChildren();
-  if(!data.keys.length){const p=document.createElement("p");p.textContent="No API keys created yet.";list.append(p);return;}
-  for(const key of data.keys){
-   const card=document.createElement("div");card.className="ns-api-key-item";
-   const info=document.createElement("div");
-   const name=document.createElement("b");name.textContent=key.name+" · "+key.key_prefix+"…";
-   const meta=document.createElement("small");meta.textContent=(key.scopes||[]).join(", ")+" · "+key.rate_limit+"/min · "+(key.revoked_at?"Revoked":key.expires_at?"Expires "+new Date(key.expires_at).toLocaleDateString():"No expiry");
-   info.append(name,meta);card.append(info);
-   if(!key.revoked_at){const revoke=document.createElement("button");revoke.type="button";revoke.textContent="Revoke";revoke.addEventListener("click",async()=>{
-    if(!confirm("Revoke this API key? Any app using it will stop working."))return;
-    revoke.disabled=true;try{await apiKeyRequest({action:"api_key_revoke",keyId:key.id});apiKeyMessage("API key revoked.");await loadApiKeys();}catch(error){apiKeyMessage(error.message,true);revoke.disabled=false;}
-   });card.append(revoke);}
-   list.append(card);
-  }
- }catch(error){list.textContent=error.message||"Could not load API keys.";}
-}
-$("ns-api-form").addEventListener("submit",async event=>{
- event.preventDefault();const button=$("ns-api-create");button.disabled=true;
- try{
-  const scopes=Array.from($("ns-api-scopes").selectedOptions).map(option=>option.value);
-  if(!scopes.length)throw new Error("Choose at least one permission.");
-  const expiry=$("ns-api-expiry").value;
-  const result=await apiKeyRequest({action:"api_key_create",name:$("ns-api-name").value,scopes,rateLimit:Number($("ns-api-limit").value),expiresAt:expiry?new Date(expiry+"T23:59:59").toISOString():null});
-  const box=$("ns-api-new");box.hidden=false;box.replaceChildren();
-  const title=document.createElement("b");title.textContent="Copy your new API key now — it will not be shown again.";
-  const value=document.createElement("code");value.className="ns-api-secret";value.textContent=result.key;
-  const copy=document.createElement("button");copy.type="button";copy.textContent="Copy key";copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(result.key);copy.textContent="Copied";}catch{apiKeyMessage("Clipboard unavailable. Select and copy the key manually.",true);}});
-  box.append(title,value,copy);$("ns-api-name").value="";await loadApiKeys();
- }catch(error){apiKeyMessage(error.message||"Could not create API key.",true);}
- finally{button.disabled=false;}
-});
-$("ns-api-refresh").addEventListener("click",loadApiKeys);
+window.addEventListener("load",()=>{refreshEngineStatus();});
+
 
 setMode("chat");
 })();
