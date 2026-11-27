@@ -433,7 +433,7 @@ fun NativeInboxScreen(session: NativeSession) {
                         }
                     }
                 }
-                Text("Messages auto-refresh every 15 seconds", style = MaterialTheme.typography.labelSmall)
+                Text("Messages auto-refresh every 5 seconds", style = MaterialTheme.typography.labelSmall)
             }
             TextButton(onClick = { refresh++ }, enabled = !busy) { Text("Refresh") }
         }
