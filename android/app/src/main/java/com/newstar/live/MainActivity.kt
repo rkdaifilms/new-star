@@ -7,6 +7,7 @@ import android.app.AlertDialog
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.Gravity
 import android.view.View
 import android.widget.*
@@ -29,6 +30,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var root: LinearLayout
     private lateinit var content: FrameLayout
     private lateinit var status: TextView
+    private var runtimeConfig = JSONObject()
+    private var lastRuntimeConfigFetchAt = 0L
+    private var runtimeConfigFetchInFlight = false
 
     private val videoPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
@@ -43,6 +47,65 @@ class MainActivity : AppCompatActivity() {
         window.navigationBarColor = Color.rgb(8, 10, 18)
         session = restoreSession()
         if (session == null) showAuth() else showHome()
+        prefs.getString("runtime_config_json", null)?.let { cached ->
+            runCatching { runtimeConfig = JSONObject(cached) }
+        }
+        loadRuntimeConfig(force = true)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadRuntimeConfig()
+    }
+
+    private fun loadRuntimeConfig(force: Boolean = false) {
+        val now = SystemClock.elapsedRealtime()
+        if (runtimeConfigFetchInFlight || (!force && now - lastRuntimeConfigFetchAt < 5 * 60 * 1000L)) return
+        runtimeConfigFetchInFlight = true
+        lastRuntimeConfigFetchAt = now
+        worker.execute {
+            try {
+                val remote = api.loadRuntimeConfig()
+                runOnUiThread {
+                    runtimeConfigFetchInFlight = false
+                    runtimeConfig = remote.config
+                    prefs.edit()
+                        .putString("runtime_config_json", remote.config.toString())
+                        .putLong("runtime_config_version", remote.version)
+                        .apply()
+                    showRuntimeConfigNotice(remote.config, remote.version)
+                }
+            } catch (_: Exception) {
+                runtimeConfigFetchInFlight = false
+            }
+        }
+    }
+
+    private fun showRuntimeConfigNotice(config: JSONObject, version: Long) {
+        if (isFinishing || isDestroyed) return
+        val shownVersion = prefs.getLong("runtime_notice_version", -1L)
+        if (version <= shownVersion) return
+        val maintenance = config.optBoolean("maintenance_mode", false)
+        val announcementEnabled = config.optBoolean("announcement_enabled", false)
+        val announcement = config.optString("announcement").trim()
+        val message = if (maintenance) {
+            config.optString("maintenance_message").ifBlank { "New Star is temporarily under maintenance. Please try again soon." }
+        } else if (announcementEnabled && announcement.isNotBlank()) {
+            announcement
+        } else {
+            prefs.edit().putLong("runtime_notice_version", version).apply()
+            return
+        }
+        prefs.edit().putLong("runtime_notice_version", version).apply()
+        AlertDialog.Builder(this)
+            .setTitle(if (maintenance) "New Star maintenance" else "New Star announcement")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun isRemoteFeatureEnabled(name: String, defaultValue: Boolean = true): Boolean {
+        return runtimeConfig.optJSONObject("feature_flags")?.optBoolean(name, defaultValue) ?: defaultValue
     }
 
     private fun restoreSession(): NewStarSession? {
@@ -462,6 +525,8 @@ class MainActivity : AppCompatActivity() {
         val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(24), dp(20), dp(20)) }
         panel.addView(label("Signed in as\n" + (session?.email ?: "New Star creator"), 16f))
         val upload = button("Upload video")
+        upload.isEnabled = isRemoteFeatureEnabled("allow_video_upload", true)
+        if (!upload.isEnabled) upload.text = "Video uploads temporarily unavailable"
         val logout = button("Sign out")
         panel.addView(upload, LinearLayout.LayoutParams(-1, dp(50)))
         panel.addView(space(10))
@@ -473,7 +538,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun addBottomNav(selected: String) {
         val nav = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setBackgroundColor(Color.rgb(16, 18, 28)) }
-        listOf("Home", "Search", "Profile").forEach { item ->
+        val tabs = buildList {
+            add("Home")
+            if (isRemoteFeatureEnabled("show_search", true)) add("Search")
+            if (isRemoteFeatureEnabled("show_profile", true)) add("Profile")
+        }
+        tabs.forEach { item ->
             val tab = TextView(this).apply { text = item; gravity = Gravity.CENTER; textSize = 13f; setTextColor(if (item == selected) Color.WHITE else Color.LTGRAY) }
             nav.addView(tab, LinearLayout.LayoutParams(0, dp(52), 1f))
             tab.setOnClickListener { when (item) { "Home" -> showHome(); "Search" -> showSearch(); else -> showProfile() } }
