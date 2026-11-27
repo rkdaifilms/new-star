@@ -41,6 +41,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.transformer.Composition
@@ -519,9 +523,13 @@ fun NativeUploadScreen(session: NativeSession) {
             try { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
             try {
                 val retriever = MediaMetadataRetriever()
-                retriever.setDataSource(context, uri)
-                sourceDurationSeconds = ((retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000L).toInt()
-                retriever.release()
+                try {
+                    retriever.setDataSource(context, uri)
+                    sourceDurationSeconds = ((retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000L).toInt()
+                    require(sourceDurationSeconds > 0) { "वीडियो की अवधि पढ़ नहीं सके।" }
+                } finally {
+                    retriever.release()
+                }
                 trimStartSeconds = "0"
                 trimEndSeconds = sourceDurationSeconds.toString()
                 rotationDegrees = 0
@@ -532,10 +540,35 @@ fun NativeUploadScreen(session: NativeSession) {
         }
     }
     val scope = rememberCoroutineScope()
+    val previewPlayer = remember(selected) {
+        selected?.let { uri ->
+            ExoPlayer.Builder(context).build().apply {
+                setMediaItem(MediaItem.fromUri(uri))
+                prepare()
+                playWhenReady = false
+            }
+        }
+    }
+    DisposableEffect(previewPlayer) {
+        onDispose { previewPlayer?.release() }
+    }
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Native Video Upload", style = MaterialTheme.typography.headlineSmall)
         Button(onClick = { picker.launch(arrayOf("video/*")) }, enabled = !uploading) { Text("Gallery से वीडियो चुनें") }
         Text(selected?.lastPathSegment ?: "कोई वीडियो नहीं चुना गया")
+        if (previewPlayer != null) {
+            AndroidView(
+                modifier = Modifier.fillMaxWidth().height(240.dp),
+                factory = { viewContext ->
+                    PlayerView(viewContext).apply {
+                        player = previewPlayer
+                        useController = true
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    }
+                },
+                update = { it.player = previewPlayer }
+            )
+        }
         if (editing && selected != null) {
             Text("Native editor · कुल अवधि $sourceDurationSeconds सेकंड", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
