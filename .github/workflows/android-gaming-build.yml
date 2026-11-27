@@ -2,6 +2,11 @@ name: Android App (automatic APK)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android-gaming-build.yml"
 
 permissions:
   contents: read
