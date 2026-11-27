@@ -670,12 +670,18 @@ private object NativeVideoUploader {
                 if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else -1L
             } ?: -1L
         }.getOrDefault(-1L)
-        val descriptorSize = runCatching {
+        val assetDescriptorSize = runCatching {
             context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { descriptor ->
-                descriptor.length.takeIf { it > 0 } ?: descriptor.statSize
+                descriptor.length
             } ?: -1L
         }.getOrDefault(-1L)
-        val size = listOf(queriedSize, descriptorSize).firstOrNull { it > 0 } ?: -1L
+        val parcelDescriptorSize = runCatching {
+            context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
+                descriptor.statSize
+            } ?: -1L
+        }.getOrDefault(-1L)
+        val size = listOf(queriedSize, assetDescriptorSize, parcelDescriptorSize)
+            .firstOrNull { it > 0 } ?: -1L
         require(size in 1..(5L * 1024 * 1024 * 1024)) {
             "वीडियो का आकार इस फ़ाइल provider से नहीं पढ़ा जा सका या 5 GiB से बड़ा है। कृपया फ़ाइल को डिवाइस में डाउनलोड करके फिर चुनें।"
         }
