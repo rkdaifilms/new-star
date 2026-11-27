@@ -449,7 +449,9 @@ fun NativeInboxScreen(session: NativeSession) {
                 items(creatorResults) { creator ->
                     Row(
                         Modifier.fillMaxWidth().clickable {
-                            peer = creator.optString("user_id")
+                            val selectedId = creator.optString("user_id")
+                            peerProfiles = peerProfiles + (selectedId to JSONObject(creator.toString()))
+                            peer = selectedId
                             peerSearch = ""
                             creatorResults = emptyList()
                         }.padding(8.dp),
