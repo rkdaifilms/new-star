@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -87,11 +88,12 @@ private fun NativeHome(openPage: (String) -> Unit) {
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                listOf("All", "Comedy", "Music", "Gaming", "Tech", "Vlogs").forEach { name ->
+                items(listOf("All", "Comedy", "Music", "Gaming", "Tech", "Vlogs")) { name ->
                     FilterChip(selected = category == name, onClick = { category = name }, label = { Text(name) })
                 }
             }
@@ -122,14 +124,14 @@ private fun NativeHome(openPage: (String) -> Unit) {
 @Composable
 private fun NativeVideoCard(video: NativeVideo) {
     val context = LocalContext.current
-    val player = remember(video.url) {
+    val exoPlayer = remember(video.url) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(video.url))
             prepare()
             playWhenReady = false
         }
     }
-    DisposableEffect(player) { onDispose { player.release() } }
+    DisposableEffect(exoPlayer) { onDispose { exoPlayer.release() } }
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
         shape = RoundedCornerShape(16.dp),
@@ -140,12 +142,12 @@ private fun NativeVideoCard(video: NativeVideo) {
                 modifier = Modifier.fillMaxWidth().height(if (video.type == "long") 235.dp else 500.dp),
                 factory = { ctx ->
                     PlayerView(ctx).apply {
-                        player = this@NativeVideoCard.run { player }
+                        player = exoPlayer
                         useController = true
                         resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     }
                 },
-                update = { it.player = player }
+                update = { it.player = exoPlayer }
             )
             Column(Modifier.fillMaxWidth().padding(14.dp)) {
                 Text("@${video.username.ifBlank { "creator" }}", fontWeight = FontWeight.Bold)
