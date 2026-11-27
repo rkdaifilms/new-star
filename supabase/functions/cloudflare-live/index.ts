@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
   let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
-  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-invite-create", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave"];
+  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave"];
   if (!supportedActions.includes(String(action))) return json({ error: "This LIVE interaction is not enabled on the server yet." }, 501, headers);
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -108,6 +108,16 @@ Deno.serve(async (req: Request) => {
 
   // Guest-seat and invitation actions are performed with the service client only
   // after the caller's JWT has been verified above. No client can assign its own seat.
+  if (action === "live-invites-list") {
+    const { data, error } = await admin.from("live_room_invites")
+      .select("id,room_id,inviter_id,status,expires_at,created_at")
+      .eq("invitee_id", creatorId).eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false }).limit(20);
+    if (error) return json({ error: "Could not load pending LIVE invitations." }, 503, headers);
+    return json({ ok: true, invitations: data || [] }, 200, headers);
+  }
+
   if (action === "live-invite-create") {
     const roomId = String(body.room_id || "");
     const inviteeId = String(body.invitee_id || "");
