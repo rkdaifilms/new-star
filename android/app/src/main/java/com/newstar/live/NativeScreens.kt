@@ -716,7 +716,10 @@ private object NativeVideoUploader {
             val error = create.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
             throw IllegalStateException("Upload session नहीं बनी ($code): $error")
         }
-        val location = create.getHeaderField("Location") ?: error("Cloudflare upload location नहीं मिली।")
+        val locationHeader = create.getHeaderField("Location") ?: error("Cloudflare upload location नहीं मिली।")
+        val createUrl = URL("https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy")
+        val uploadUrl = URL(createUrl, locationHeader)
+        require(uploadUrl.protocol == "https") { "Cloudflare upload URL सुरक्षित HTTPS नहीं है।" }
         val streamId = create.getHeaderField("stream-media-id") ?: error("Cloudflare Stream ID नहीं मिली।")
         create.disconnect()
 
@@ -738,7 +741,7 @@ private object NativeVideoUploader {
                     if (count < 0) throw IllegalStateException("वीडियो पढ़ते समय फ़ाइल अधूरी मिली।")
                     read += count
                 }
-                val request = Request.Builder().url(location)
+                val request = Request.Builder().url(uploadUrl)
                     .header("Tus-Resumable", "1.0.0")
                     .header("Upload-Offset", offset.toString())
                     .patch(chunk.toRequestBody("application/offset+octet-stream".toMediaType()))
@@ -747,13 +750,22 @@ private object NativeVideoUploader {
                     if (!response.isSuccessful) {
                         throw IllegalStateException("वीडियो chunk upload असफल (${response.code}): ${response.body?.string().orEmpty()}")
                     }
+                    val confirmedOffset = response.header("Upload-Offset")?.toLongOrNull()
+                    if (confirmedOffset != null && confirmedOffset != offset + wanted) {
+                        throw IllegalStateException("Cloudflare ने upload offset की पुष्टि नहीं की; वीडियो सुरक्षित रूप से जारी नहीं किया गया।")
+                    }
                 }
                 offset += wanted
                 val percent = ((offset * 100) / size).toInt()
                 withContext(Dispatchers.Main) { onProgress(percent) }
             }
         }
-        val username = session.email.substringBefore("@").ifBlank { "New Star Creator" }
+        val username = runCatching {
+            val profileRows = NativeSupabase.get(
+                "/rest/v1/profiles?select=username&user_id=eq.${Uri.encode(session.userId)}&limit=1", session
+            )
+            profileRows.optJSONObject(0)?.optString("username").orEmpty()
+        }.getOrDefault("").ifBlank { session.email.substringBefore("@").ifBlank { "New Star Creator" } }
         val caption = listOf(title.trim(), description.trim()).filter { it.isNotBlank() }.joinToString("\n\n").ifBlank { "New Star Video" }
         val row = JSONObject().apply {
             put("user_id", session.userId); put("video_url", "cloudflare://$streamId")
