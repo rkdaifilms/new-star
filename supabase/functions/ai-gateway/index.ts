@@ -969,11 +969,10 @@ Deno.serve(async (req: Request) => {
     if (searchLimitError || searchAllowed !== true) return json({ ok: false, error: searchLimitError ? "Security rate-limit check unavailable." : "Too many requests. Please wait one minute." }, searchLimitError ? 503 : 429, headers);
     const indexed = await searchNewStarIndex(query, language, limit, headers, adminClient);
     if (indexed) return indexed;
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private web-crawl and search-index workers are not deployed yet. External search providers are disabled in self-hosted mode.", code: "NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED" }, 503, headers);
-    return await searchWithGeminiGrounding(query, language, limit, headers);
+    return json({ ok: false, error: "New Star private web-crawl and search-index workers are not deployed. Home AI does not use Gemini grounding or external search providers.", code: "NEW_STAR_SEARCH_WORKER_NOT_DEPLOYED" }, 503, headers);
   }
   if (body?.action === "vision") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private image-understanding model is not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_VISION_MODEL_NOT_DEPLOYED" }, 503, headers);
+    return json({ ok: false, error: "New Star private image-understanding worker is not deployed. Home AI never sends your image to Gemini or OpenAI.", code: "NEW_STAR_VISION_MODEL_NOT_DEPLOYED" }, 503, headers);
     const image = typeof body.image === "string" ? body.image : "";
     const rawMimeType = typeof body.mimeType === "string" ? body.mimeType.split(";")[0].trim().toLowerCase() : "";
     const mimeType = ["image/png", "image/jpeg", "image/webp"].includes(rawMimeType) ? rawMimeType : "";
@@ -1011,7 +1010,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body?.action === "speak") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private speech-generation model is not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED" }, 503, headers);
+    return json({ ok: false, error: "New Star private speech-generation worker is not deployed. External speech providers are disabled for Home AI.", code: "NEW_STAR_SPEECH_MODEL_NOT_DEPLOYED" }, 503, headers);
     const spokenText = typeof body.text === "string" ? body.text.trim() : "";
     if (!spokenText || spokenText.length > 3500) return json({ ok: false, error: "Text for speech must be between 1 and 3,500 characters." }, 400, headers);
     const geminiKeys = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
@@ -1090,7 +1089,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body?.action === "transcribe") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private speech-recognition model is not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_STT_MODEL_NOT_DEPLOYED" }, 503, headers);
+    return json({ ok: false, error: "New Star private speech-recognition worker is not deployed. External transcription providers are disabled for Home AI.", code: "NEW_STAR_STT_MODEL_NOT_DEPLOYED" }, 503, headers);
     const audio = body.audio;
     const rawMimeType = typeof body.mimeType === "string" ? body.mimeType : "audio/webm";
     const mimeType = rawMimeType.split(";")[0].trim().toLowerCase();
@@ -1149,7 +1148,7 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "Voice transcription providers failed: " + failures.join("; "), attempted: failures }, 502, headers);
   }
   if (body?.action === "video") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private video-generation model and GPU worker are not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED" }, 503, headers);
+    return json({ ok: false, error: "New Star private video-generation model and GPU worker are not deployed. External video providers are disabled for Home AI.", code: "NEW_STAR_VIDEO_MODEL_NOT_DEPLOYED" }, 503, headers);
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = ["16:9", "9:16"].includes(String(body.aspectRatio || "")) ? String(body.aspectRatio) : "16:9";
     const resolution = ["360p", "720p", "1080p"].includes(String(body.resolution || "")) ? String(body.resolution) : "720p";
@@ -1193,7 +1192,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body?.action === "video-status") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "Private New Star video job polling is not available until the private video worker is deployed. External video providers are disabled in self-hosted mode.", code: "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED" }, 503, headers);
+    return json({ ok: false, error: "New Star private video job worker is not deployed. External video providers are disabled for Home AI.", code: "NEW_STAR_VIDEO_WORKER_NOT_DEPLOYED" }, 503, headers);
     const jobId = typeof body.jobId === "string" ? body.jobId.trim() : "";
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(jobId)) {
       return json({ ok: false, error: "A valid video job ID is required." }, 400, headers);
@@ -1263,7 +1262,7 @@ Deno.serve(async (req: Request) => {
   }
 
     if (body?.action === "image") {
-    if (Deno.env.get("NEW_STAR_AI_MODE") === "self_hosted") return json({ ok: false, error: "New Star's private image-generation model and GPU worker are not deployed yet. External providers are disabled in self-hosted mode.", code: "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED" }, 503, headers);
+    return json({ ok: false, error: "New Star private image-generation model and GPU worker are not deployed. Home AI never sends image requests to Gemini, OpenRouter, or OpenAI.", code: "NEW_STAR_IMAGE_MODEL_NOT_DEPLOYED" }, 503, headers);
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = requestedImageAspectRatio(prompt, body.aspectRatio);
     const imageSize = ["1K", "2K", "4K"].includes(String(body.imageSize || "")) ? String(body.imageSize) : "1K";
@@ -1336,7 +1335,8 @@ Deno.serve(async (req: Request) => {
     const { data: statusAllowed, error: statusLimitError } = await consumeAiGatewayRateLimit(adminClient, userId, apiKeyAuth, apiKeyId, apiKeyRateLimit, 20);
     if (statusLimitError || statusAllowed !== true) return json({ ok: false, error: statusLimitError ? "Security rate-limit check unavailable." : "Provider status check limit reached. Wait before checking again." }, statusLimitError ? 503 : 429, headers);
     const hosted = await probeNewStarHostedModel();
-    const geminiConfigured = secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY").length > 0;
+    const helpMode = body.mode === "help";
+    const geminiConfigured = helpMode && secretCandidates("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY").length > 0;
     return json({
       ok: true,
       status: true,
