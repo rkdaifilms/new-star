@@ -1,10 +1,13 @@
 package com.newstar.live
 
 import android.content.Context
+import android.content.ContentValues
+import android.os.Build
+import android.provider.MediaStore
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.FileOutputOptions
+import androidx.camera.video.MediaStoreOutputOptions
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
@@ -706,11 +709,19 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
                         val currentCapture = capture ?: return@Button
                         if (recording) {
                             activeRecording?.stop()
-                            recording = false
-                            recordingSeconds = 0
+                            recordingSeconds = recordingSeconds.coerceAtLeast(0)
                         } else {
-                            val output = File(context.cacheDir, "newstar-camera-${System.currentTimeMillis()}.mp4")
-                            val options = FileOutputOptions.Builder(output).build()
+                            val values = ContentValues().apply {
+                                put(MediaStore.Video.Media.DISPLAY_NAME, "newstar-camera-${System.currentTimeMillis()}.mp4")
+                                put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                    put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/New Star")
+                                }
+                            }
+                            val options = MediaStoreOutputOptions.Builder(
+                                context.contentResolver,
+                                MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                            ).setContentValues(values).build()
                             var pending: PendingRecording = currentCapture.output.prepareRecording(context, options)
                             if (audioGranted) pending = pending.withAudioEnabled()
                             activeRecording = pending.start(mainExecutor) { event ->
@@ -724,10 +735,11 @@ private fun NativeCameraStudio(onVideoReady: (Uri) -> Unit, onClose: () -> Unit)
                                         recording = false
                                         recordingSeconds = 0
                                         activeRecording = null
-                                        if (event.hasError()) {
-                                            output.delete()
+                                        val savedUri = event.outputResults.outputUri
+                                        if (event.hasError() || savedUri == Uri.EMPTY) {
+                                            if (savedUri != Uri.EMPTY) runCatching { context.contentResolver.delete(savedUri, null, null) }
                                             cameraError = event.cause?.message ?: "Recording save नहीं हुई।"
-                                        } else onVideoReady(Uri.fromFile(output))
+                                        } else onVideoReady(savedUri)
                                     }
                                 }
                             }
