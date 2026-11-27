@@ -137,9 +137,21 @@ class MainActivity : AppCompatActivity() {
         return NewStarSession(access, refresh, id, prefs.getString("email", "") ?: "")
     }
 
-    private fun saveSession(value: NewStarSession) {
-        session = value
-        prefs.edit().putString("access", value.accessToken).putString("refresh", value.refreshToken).putString("user_id", value.userId).putString("email", value.email).apply()
+    private fun saveSession(value: NewStarSession): Boolean {
+        // Supabase refresh tokens rotate. Commit synchronously so a force-close/relaunch
+        // cannot restore the already-consumed previous refresh token.
+        val persisted = prefs.edit()
+            .putString("access", value.accessToken)
+            .putString("refresh", value.refreshToken)
+            .putString("user_id", value.userId)
+            .putString("email", value.email)
+            .commit()
+        if (persisted) {
+            session = value
+        } else {
+            showStatus("लॉगिन सुरक्षित नहीं हो पाया। कृपया दोबारा कोशिश करें।")
+        }
+        return persisted
     }
 
     private fun refreshSavedSession() {
@@ -255,8 +267,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 val signedIn = api.exchangeOAuthCode(code, verifier)
                 runOnUiThread {
-                    saveSession(signedIn)
-                    showHome()
+                    if (saveSession(signedIn)) showHome()
                 }
             } catch (e: Exception) {
                 runOnUiThread { showStatus(e.message ?: "Google Login session नहीं बन पाया।") }
@@ -273,7 +284,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     trigger.isEnabled = true
                     if (result == null) showStatus("Account created. Verify your email, then sign in.")
-                    else { saveSession(result); showHome() }
+                    else if (saveSession(result)) showHome()
                 }
             } catch (e: Exception) { runOnUiThread { trigger.isEnabled = true; showStatus(e.message ?: "Authentication failed.") } }
         }
