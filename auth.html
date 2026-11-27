@@ -279,7 +279,7 @@ async function handleAuthAction(){
  const email=$("userEmail").value.trim();
  const password=$("userPassword").value;
 
- if(!email||!password){
+ if((!isRecoveryMode&&!email)||!password){
   showMessage("Email और Password दोनों भरें।","error");
   return;
  }
@@ -369,12 +369,12 @@ async function handleAuthAction(){
  }finally{
   authBusy=false;
   $("actionBtn").disabled=false;
-  $("actionBtn").textContent=isSignupMode?"Create Account":"Login";
+  $("actionBtn").textContent=isRecoveryMode?"Update Password":(isSignupMode?"Create Account":"Login");
  }
 }
 
 $("forgotPassword").addEventListener("click",async()=>{const client=getAuthClient(),email=$("userEmail").value.trim();if(!client){showMessage("Supabase उपलब्ध नहीं है।","error");return;}if(!email){showMessage("पहले अपना Owner Gmail लिखें।","error");return;}try{const redirectTo=new URL("./auth.html?mode=recovery&next=admin.html",location.href).href;const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo});if(error)throw error;showMessage("यदि इस ईमेल का अकाउंट है, तो पासवर्ड रिकवरी लिंक भेजा गया है। अपने ईमेल में लिंक खोलें।","success");}catch(error){showMessage(error.message||"Recovery email नहीं भेजा जा सका।","error");}});
-if(isRecoveryMode){$("formTitle").textContent="Set a new password";$("subtitle")?.textContent; $("actionBtn").textContent="Update Password";$("userEmail").style.display="none";$("forgotPassword").style.display="none";$("toggleMode").style.display="none";$("userPassword").autocomplete="new-password";$("userPassword").placeholder="Enter new password";$("userPassword").value="";}
+if(isRecoveryMode){$("formTitle").textContent="Set a new password";$("actionBtn").textContent="Update Password";$("userEmail").style.display="none";$("forgotPassword").style.display="none";$("toggleMode").style.display="none";$("userPassword").autocomplete="new-password";$("userPassword").placeholder="Enter new password";$("userPassword").value="";}
 $("actionBtn").addEventListener("click",handleAuthAction);
 $("toggleMode").addEventListener("click",toggleAuthMode);
 
