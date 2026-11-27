@@ -93,11 +93,11 @@ class NewStarApi {
         request(
             "/auth/v1/token?grant_type=password",
             "POST",
-            body = JSONObject().put("email", email.trim().lowercase()).put("password", password)
+            body = JSONObject().put("email", email.trim()).put("password", password)
         )
     )
     fun signUp(email: String, password: String): NewStarSession? {
-        val raw = request("/auth/v1/signup", "POST", body = JSONObject().put("email", email.trim().lowercase()).put("password", password))
+        val raw = request("/auth/v1/signup", "POST", body = JSONObject().put("email", email.trim()).put("password", password))
         return if (JSONObject(raw).has("access_token")) parseSession(raw) else null
     }
 
