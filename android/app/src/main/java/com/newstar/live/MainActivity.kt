@@ -27,6 +27,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -160,6 +161,7 @@ private fun NativeApp(
     var session by remember { mutableStateOf<NativeSession?>(null) }
     var checkingSession by remember { mutableStateOf(true) }
     var page by remember { mutableStateOf("Home") }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         session = NativeSupabase.validSession(context)
@@ -169,6 +171,19 @@ private fun NativeApp(
         if (googleSession != null) {
             session = googleSession
             page = "Home"
+        }
+    }
+    LaunchedEffect(session?.refreshToken) {
+        while (session != null) {
+            delay(60_000)
+            val refreshed = NativeSupabase.validSession(context)
+            if (refreshed == null) {
+                NativeSessionStore.clear(context)
+                session = null
+                page = "Home"
+                break
+            }
+            session = refreshed
         }
     }
 
@@ -199,9 +214,11 @@ private fun NativeApp(
                     onStop = { onStopGaming(session!!) }
                 )
                 "Profile" -> NativeProfileScreen(session!!) {
-                    NativeSessionStore.clear(context)
-                    session = null
-                    page = "Home"
+                    val current = session
+                    if (current != null) scope.launch {
+                        try { NativeSupabase.deleteSession(context, current) }
+                        finally { session = null; page = "Home" }
+                    }
                 }
                 else -> NativeHome { page = it }
             }
