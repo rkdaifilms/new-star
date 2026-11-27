@@ -11,6 +11,7 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Minimal Phoenix v2 websocket client for Supabase Realtime Postgres Changes.
@@ -30,16 +31,27 @@ class NativeRealtimeMessages(
     @Volatile private var socket: WebSocket? = null
     @Volatile private var joined = false
     private val heartbeatExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private val closed = AtomicBoolean(false)
     private val topic = "realtime:public:messages"
     private val joinRef = "1"
 
     fun connect() {
+        if (closed.get()) return
+        heartbeatExecutor.scheduleAtFixedRate({
+            heartbeat()
+            if (!closed.get() && !joined && socket == null) openSocket()
+        }, 5, 5, TimeUnit.SECONDS)
+        openSocket()
+    }
+
+    @Synchronized
+    private fun openSocket() {
+        if (closed.get() || joined || socket != null) return
         val base = SUPABASE_URL.removePrefix("https://").removePrefix("http://").trimEnd('/')
         val apiKey = URLEncoder.encode(SUPABASE_KEY, Charsets.UTF_8.name())
         val request = Request.Builder()
             .url("wss://$base/realtime/v1/websocket?apikey=$apiKey&vsn=1.0.0")
             .build()
-        heartbeatExecutor.scheduleAtFixedRate({ heartbeat() }, 25, 25, TimeUnit.SECONDS)
         socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 val changes = JSONArray().put(
@@ -77,6 +89,7 @@ class NativeRealtimeMessages(
                             onStatus("Realtime Inbox connected")
                         } else if (status == "error") {
                             joined = false
+                            socket = null
                             onStatus("Realtime subscription असफल: ${payload.optJSONObject("response")?.toString()?.take(160).orEmpty()}")
                         }
                     } else if (event == "postgres_changes") {
@@ -91,17 +104,20 @@ class NativeRealtimeMessages(
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                 joined = false
+                if (socket === webSocket) socket = null
                 onStatus("Realtime connection बंद हो रहा है…")
                 webSocket.close(code, reason)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 joined = false
+                if (socket === webSocket) socket = null
                 onStatus("Realtime disconnected")
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 joined = false
+                if (socket === webSocket) socket = null
                 onStatus("Realtime unavailable: ${t.message ?: "network error"}")
             }
         })
@@ -120,6 +136,7 @@ class NativeRealtimeMessages(
     }
 
     fun close() {
+        closed.set(true)
         joined = false
         socket?.close(1000, "Inbox screen closed")
         socket = null
