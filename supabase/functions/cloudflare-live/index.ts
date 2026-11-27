@@ -161,12 +161,25 @@ Deno.serve(async (req: Request) => {
       const { data: profile } = await admin.from("profiles").select("full_name,username")
         .eq("user_id", creatorId).maybeSingle();
       const displayName = String(profile?.full_name || profile?.username || "Creator").trim().slice(0, 80) || "Creator";
-      const { error: participantError } = await admin.from("live_room_participants").upsert({
-        room_id: invite.room_id, user_id: creatorId, display_name: displayName,
-        role: "guest", status: "requested", seat_number: null,
-        joined_at: null, left_at: null, last_seen_at: new Date().toISOString(),
-      }, { onConflict: "room_id,user_id" });
-      if (participantError) return json({ error: "Invitation accepted, but the seat request could not be created." }, 503, headers);
+      const { data: existingParticipant, error: lookupError } = await admin.from("live_room_participants")
+        .select("id,status,seat_number").eq("room_id", invite.room_id).eq("user_id", creatorId).maybeSingle();
+      if (lookupError) return json({ error: "Invitation accepted, but the existing seat could not be checked." }, 503, headers);
+      if (existingParticipant?.status !== "admitted") {
+        const participantWrite = existingParticipant
+          ? await admin.from("live_room_participants").update({
+              display_name: displayName, role: "guest", status: "requested",
+              seat_number: null, joined_at: null, left_at: null,
+              last_seen_at: new Date().toISOString(),
+              camera_enabled: false, microphone_enabled: false,
+            }).eq("id", existingParticipant.id).neq("status", "admitted")
+          : await admin.from("live_room_participants").insert({
+              room_id: invite.room_id, user_id: creatorId, display_name: displayName,
+              role: "guest", status: "requested", seat_number: null,
+              joined_at: null, left_at: null, last_seen_at: new Date().toISOString(),
+              camera_enabled: false, microphone_enabled: false,
+            });
+        if (participantWrite.error) return json({ error: "Invitation accepted, but the seat request could not be created." }, 503, headers);
+      }
     }
     return json({ ok: true, status: decision }, 200, headers);
   }
