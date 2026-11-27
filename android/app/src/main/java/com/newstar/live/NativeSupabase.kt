@@ -17,8 +17,8 @@ import javax.crypto.spec.GCMParameterSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private const val SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co"
-private const val SUPABASE_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr"
+internal const val SUPABASE_URL = "https://uzsusgoetrkujmofxcmb.supabase.co"
+internal const val SUPABASE_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr"
 
 data class NativeSession(
     val accessToken: String,
