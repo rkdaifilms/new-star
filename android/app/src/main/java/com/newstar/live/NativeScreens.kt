@@ -982,14 +982,14 @@ fun NativeUploadScreen(session: NativeSession) {
                 }
             }) { Text("Split into 2 clips") }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = trimStartSeconds, onValueChange = { trimStartSeconds = it.filter(Char::isDigit) }, modifier = Modifier.weight(1f), label = { Text("Trim start (sec)") }, singleLine = true)
-                OutlinedTextField(value = trimEndSeconds, onValueChange = { trimEndSeconds = it.filter(Char::isDigit) }, modifier = Modifier.weight(1f), label = { Text("Trim end (sec)") }, singleLine = true)
+                OutlinedTextField(value = trimStartSeconds, onValueChange = { trimStartSeconds = it.filter(Char::isDigit) }, modifier = Modifier.weight(1f), label = { Text("Trim start (sec)") }, singleLine = true, enabled = !uploading)
+                OutlinedTextField(value = trimEndSeconds, onValueChange = { trimEndSeconds = it.filter(Char::isDigit) }, modifier = Modifier.weight(1f), label = { Text("Trim end (sec)") }, singleLine = true, enabled = !uploading)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { rotationDegrees = (rotationDegrees + 270) % 360 }, enabled = !uploading) { Text("Rotate left") }
                 OutlinedButton(onClick = { rotationDegrees = (rotationDegrees + 90) % 360 }, enabled = !uploading) { Text("Rotate right") }
-                FilterChip(selected = muteOriginalAudio, onClick = { muteOriginalAudio = !muteOriginalAudio }, label = { Text(if (muteOriginalAudio) "Original audio muted" else "Keep original audio") })
-                FilterChip(selected = centerCrop, onClick = { centerCrop = !centerCrop }, label = { Text(if (centerCrop) "Center crop on" else "Center crop off") })
+                FilterChip(selected = muteOriginalAudio, onClick = { muteOriginalAudio = !muteOriginalAudio }, enabled = !uploading, label = { Text(if (muteOriginalAudio) "Original audio muted" else "Keep original audio") })
+                FilterChip(selected = centerCrop, onClick = { centerCrop = !centerCrop }, enabled = !uploading, label = { Text(if (centerCrop) "Center crop on" else "Center crop off") })
                 OutlinedButton(onClick = {
                     trimStartSeconds = "0"
                     trimEndSeconds = sourceDurationSeconds.toString()
@@ -1019,9 +1019,9 @@ fun NativeUploadScreen(session: NativeSession) {
             )
             Text("Color filter", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = selectedFilter == "none", onClick = { selectedFilter = "none" }, label = { Text("Original") })
-                FilterChip(selected = selectedFilter == "grayscale", onClick = { selectedFilter = "grayscale" }, label = { Text("Grayscale") })
-                FilterChip(selected = selectedFilter == "inverted", onClick = { selectedFilter = "inverted" }, label = { Text("Inverted") })
+                FilterChip(selected = selectedFilter == "none", onClick = { selectedFilter = "none" }, enabled = !uploading, label = { Text("Original") })
+                FilterChip(selected = selectedFilter == "grayscale", onClick = { selectedFilter = "grayscale" }, enabled = !uploading, label = { Text("Grayscale") })
+                FilterChip(selected = selectedFilter == "inverted", onClick = { selectedFilter = "inverted" }, enabled = !uploading, label = { Text("Inverted") })
             }
             if (uploading && status.contains("edit/export")) {
                 LinearProgressIndicator(progress = { editingProgress / 100f }, modifier = Modifier.fillMaxWidth())
