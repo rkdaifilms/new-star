@@ -375,6 +375,7 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
     }
 
     Column(Modifier.fillMaxSize().padding(12.dp)) {
+        NativeLiveInvitations(session)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("LIVE Now", style = MaterialTheme.typography.headlineSmall)
             TextButton(onClick = { refresh++ }, enabled = !loading) { Text("Refresh") }
@@ -468,6 +469,72 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
                         NativeLiveRoomChat(session, room.optString("id"))
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NativeLiveInvitations(session: NativeSession) {
+    var invitations by remember(session.userId) { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var notice by remember(session.userId) { mutableStateOf("") }
+    var busyId by remember(session.userId) { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    suspend fun refreshInvites() {
+        val result = NativeSupabase.invokeFunction("cloudflare-live",
+            JSONObject().put("action", "live-invites-list"), session)
+        if (!result.optBoolean("ok")) throw IllegalStateException(result.optString("error", "Invitations load नहीं हुए।"))
+        val array = result.optJSONArray("invitations") ?: org.json.JSONArray()
+        invitations = (0 until array.length()).mapNotNull { array.optJSONObject(it) }
+    }
+
+    LaunchedEffect(session.userId) {
+        while (true) {
+            try { refreshInvites() } catch (e: Exception) { notice = e.message ?: "Invitations load नहीं हुए।" }
+            delay(15_000)
+        }
+    }
+
+    if (invitations.isNotEmpty() || notice.isNotBlank()) {
+        Card(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("LIVE Invitations", style = MaterialTheme.typography.titleMedium)
+                invitations.forEach { invite ->
+                    val id = invite.optString("id")
+                    Text("Host invitation · Room ${invite.optString("room_id").take(8)}")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(enabled = busyId.isBlank(), onClick = {
+                            busyId = id
+                            scope.launch {
+                                try {
+                                    val r = NativeSupabase.invokeFunction("cloudflare-live",
+                                        JSONObject().put("action", "live-invite-respond")
+                                            .put("invite_id", id).put("message", "accept"), session)
+                                    if (!r.optBoolean("ok")) throw IllegalStateException(r.optString("error", "Invitation accept नहीं हुई।"))
+                                    notice = "Invitation accepted. Host से seat admit करवाएँ।"
+                                    refreshInvites()
+                                } catch (e: Exception) { notice = e.message ?: "Accept failed" }
+                                finally { busyId = "" }
+                            }
+                        }) { Text(if (busyId == id) "Please wait…" else "Accept") }
+                        OutlinedButton(enabled = busyId.isBlank(), onClick = {
+                            busyId = id
+                            scope.launch {
+                                try {
+                                    val r = NativeSupabase.invokeFunction("cloudflare-live",
+                                        JSONObject().put("action", "live-invite-respond")
+                                            .put("invite_id", id).put("message", "decline"), session)
+                                    if (!r.optBoolean("ok")) throw IllegalStateException(r.optString("error", "Invitation decline नहीं हुई।"))
+                                    notice = "Invitation declined."
+                                    refreshInvites()
+                                } catch (e: Exception) { notice = e.message ?: "Decline failed" }
+                                finally { busyId = "" }
+                            }
+                        }) { Text("Decline") }
+                    }
+                }
+                if (notice.isNotBlank()) Text(notice, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
