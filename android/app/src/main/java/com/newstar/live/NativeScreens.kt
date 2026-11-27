@@ -584,10 +584,10 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
 }
 
 @Composable
-fun NativeInboxScreen(session: NativeSession) {
+fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
     val context = LocalContext.current
     var messages by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
-    var peer by remember { mutableStateOf("") }
+    var peer by remember(initialPeer) { mutableStateOf(initialPeer.orEmpty()) }
     var peerSearch by remember { mutableStateOf("") }
     var creatorResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var peerProfiles by remember { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
@@ -638,19 +638,22 @@ fun NativeInboxScreen(session: NativeSession) {
         }
     }
 
-    LaunchedEffect(peers.joinToString("|"), session.userId) {
-        if (peers.isEmpty()) {
-            peerProfiles = emptyMap()
-        } else {
-            try {
-                val ids = Uri.encode("(${peers.joinToString(",")})")
+    LaunchedEffect(peers.joinToString("|"), initialPeer, session.userId) {
+        try {
+            val ids = (peers + listOfNotNull(initialPeer)).distinct()
+            if (ids.isEmpty()) {
+                peerProfiles = emptyMap()
+            } else {
+                val idsFilter = Uri.encode("(${ids.joinToString(",")})")
                 val rows = NativeSupabase.get(
-                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url&user_id=in.$ids",
+                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url&user_id=in.$idsFilter",
                     session
                 )
-                peerProfiles = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                peerProfiles = (0 until rows.length()).mapNotNull { it.optJSONObject(it) }
                     .associateBy { it.optString("user_id") }
-            } catch (_: Exception) { peerProfiles = emptyMap() }
+            }
+        } catch (e: Exception) {
+            error = e.message ?: "Creator details लोड नहीं हुए।"
         }
     }
 
