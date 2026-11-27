@@ -5,12 +5,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 
 private data class NativePalette(
@@ -58,16 +60,24 @@ fun NewStarNativeTheme(content: @Composable () -> Unit) {
         context.getSharedPreferences("newstar_preferences", android.content.Context.MODE_PRIVATE)
     }
     var selected by remember { mutableStateOf(prefs.getString("theme", "dark") ?: "dark") }
+    var textScale by remember { mutableStateOf(prefs.getString("textScale", "1")?.toFloatOrNull() ?: 1f) }
+    var highContrast by remember { mutableStateOf(prefs.getBoolean("highContrast", false)) }
 
     DisposableEffect(prefs) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "theme") selected = prefs.getString("theme", "dark") ?: "dark"
+            if (key == "textScale") textScale = prefs.getString("textScale", "1")?.toFloatOrNull() ?: 1f
+            if (key == "highContrast") highContrast = prefs.getBoolean("highContrast", false)
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
-    val palette = nativePalettes[selected] ?: nativePalettes.getValue("dark")
+    val basePalette = nativePalettes[selected] ?: nativePalettes.getValue("dark")
+    val palette = if (highContrast) {
+        if (selected == "light") basePalette.copy(foreground = "#000000", muted = "#222222", accent = "#000000")
+        else basePalette.copy(background = "#000000", foreground = "#ffffff", muted = "#ffffff", accent = "#ffffff")
+    } else basePalette
     val colors = if (selected == "light") {
         lightColorScheme(
             primary = nativeColor(palette.accent),
@@ -91,5 +101,8 @@ fun NewStarNativeTheme(content: @Composable () -> Unit) {
             onSecondary = Color.Black
         )
     }
-    MaterialTheme(colorScheme = colors, content = content)
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides density.copy(fontScale = textScale.coerceIn(0.9f, 1.25f))) {
+        MaterialTheme(colorScheme = colors, content = content)
+    }
 }
