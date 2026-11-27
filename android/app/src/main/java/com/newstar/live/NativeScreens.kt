@@ -321,6 +321,12 @@ fun NativeInboxScreen(session: NativeSession) {
                 (sender == peer && recipient == session.userId)
         }.sortedBy { it.optString("created_at") }
     }
+    val unreadByPeer = remember(messages, session.userId) {
+        messages.filter {
+            it.optString("recipient_id") == session.userId && it.isNull("read_at")
+        }.groupingBy { it.optString("sender_id") }.eachCount()
+    }
+    val totalUnread = remember(unreadByPeer) { unreadByPeer.values.sum() }
 
     LaunchedEffect(peerSearch, session.userId) {
         val term = peerSearch.trim().replace("%", "").replace("*", "").replace(",", " ")
@@ -401,7 +407,17 @@ fun NativeInboxScreen(session: NativeSession) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
-                Text("Inbox", style = MaterialTheme.typography.headlineSmall)
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Inbox", style = MaterialTheme.typography.headlineSmall)
+                    if (totalUnread > 0) {
+                        Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(20.dp)) {
+                            Text("$totalUnread unread", modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
                 Text("Messages auto-refresh every 15 seconds", style = MaterialTheme.typography.labelSmall)
             }
             TextButton(onClick = { refresh++ }, enabled = !busy) { Text("Refresh") }
@@ -462,6 +478,11 @@ fun NativeInboxScreen(session: NativeSession) {
                                 })
                                 Text("@${profile?.optString("username").orEmpty()}",
                                     style = MaterialTheme.typography.labelSmall)
+                                val unread = unreadByPeer[id] ?: 0
+                                if (unread > 0) {
+                                    Text("$unread unread", color = MaterialTheme.colorScheme.primary,
+                                        style = MaterialTheme.typography.labelSmall)
+                                }
                                 Text(latest?.optString("body").orEmpty().ifBlank { "Media message" },
                                     maxLines = 1, style = MaterialTheme.typography.bodySmall)
                             }
