@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import org.webrtc.SurfaceViewRenderer
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -153,6 +155,30 @@ private fun CommunityCountCard(label: String, count: Int, modifier: Modifier = M
     }
 }
 
+@Composable
+private fun NativeLiveCameraPreview(
+    publisher: NativeWhipPublisher,
+    modifier: Modifier = Modifier
+) {
+    var renderer by remember { mutableStateOf<SurfaceViewRenderer?>(null) }
+    AndroidView(
+        factory = { viewContext ->
+            SurfaceViewRenderer(viewContext).also { renderer = it }
+        },
+        modifier = modifier
+    )
+    val activeRenderer = renderer
+    DisposableEffect(activeRenderer, publisher) {
+        if (activeRenderer != null) publisher.attachPreview(activeRenderer)
+        onDispose {
+            if (activeRenderer != null) {
+                publisher.detachPreview(activeRenderer)
+                runCatching { activeRenderer.release() }
+            }
+        }
+    }
+}
+
 @androidx.compose.runtime.Composable
 internal fun NativeLiveHostControls(session: NativeSession) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -182,6 +208,7 @@ internal fun NativeLiveHostControls(session: NativeSession) {
             scope.launch {
                 busy = true
                 var preparedRoom: String? = null
+                var createdPublisher: NativeWhipPublisher? = null
                 try {
                     val prepared = NativeSupabase.invokeFunction("cloudflare-live", org.json.JSONObject()
                         .put("action", "prepare").put("room_title", title.trim())
@@ -189,6 +216,7 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                     if (!prepared.optBoolean("ok")) throw IllegalStateException(prepared.optString("error", "LIVE room तैयार नहीं हुआ।"))
                     preparedRoom = prepared.getString("room_id")
                     val livePublisher = NativeWhipPublisher.start(context, prepared.getString("whip_url"), microphoneGranted)
+                    createdPublisher = livePublisher
                     val confirmed = NativeSupabase.invokeFunction("cloudflare-live",
                         org.json.JSONObject().put("action", "confirm").put("room_id", preparedRoom), session)
                     if (!confirmed.optBoolean("ok")) throw IllegalStateException(confirmed.optString("error", "LIVE room confirm नहीं हुआ।"))
@@ -199,6 +227,7 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                     notice = if (microphoneGranted) "आप Cloudflare पर LIVE हैं। Camera और microphone broadcast हो रहे हैं।"
                         else "आप LIVE हैं। Microphone permission नहीं मिली, इसलिए केवल camera broadcast हो रहा है।"
                 } catch (e: Exception) {
+                    runCatching { createdPublisher?.stop() }
                     preparedRoom?.let { id ->
                         runCatching { NativeSupabase.invokeFunction("cloudflare-live",
                             org.json.JSONObject().put("action", "stop").put("room_id", id), session) }
@@ -260,6 +289,12 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                     ) else androidx.compose.material3.Text("🔴 Go LIVE Now")
                 }
             } else {
+                publisher?.let { activePublisher ->
+                    NativeLiveCameraPreview(
+                        publisher = activePublisher,
+                        modifier = androidx.compose.ui.Modifier.fillMaxWidth().height(300.dp)
+                    )
+                }
                 androidx.compose.material3.Text("● LIVE · Room " + roomId!!.take(8),
                     color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
                     style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
