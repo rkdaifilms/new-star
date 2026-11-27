@@ -653,6 +653,13 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val attachmentPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            voicePlayer?.release()
+            voicePlayer = null
+            voicePlaying = false
+            voiceFile?.delete()
+            voiceFile = null
+        }
         selectedAttachmentUri = uri
         selectedAttachmentName = uri?.lastPathSegment?.substringAfterLast('/')?.take(100).orEmpty()
         if (uri != null) attachmentUrl = ""
@@ -663,7 +670,7 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
         if (granted) {
             try {
                 val output = File(context.cacheDir, "inbox-voice-${java.util.UUID.randomUUID()}.m4a")
-                val recorder = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(context) else @Suppress("DEPRECATION") MediaRecorder()
+                val recorder = MediaRecorder()
                 recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
                 recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -686,6 +693,9 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
     }
 
     fun startVoiceNote() {
+        selectedAttachmentUri = null
+        selectedAttachmentName = ""
+        attachmentUrl = ""
         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED) {
             try {
