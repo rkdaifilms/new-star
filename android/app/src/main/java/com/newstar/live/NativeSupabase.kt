@@ -122,10 +122,9 @@ object NativeSessionStore {
             .apply()
     }
 
-    fun consumePendingReferral(context: Context): String? {
+    fun pendingReferral(context: Context): String? {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val encoded = prefs.getString("pending_referral", null) ?: return null
-        prefs.edit().remove("pending_referral").apply()
         return try {
             val packed = Base64.decode(encoded, Base64.NO_WRAP)
             require(packed.size > 12)
@@ -138,11 +137,18 @@ object NativeSessionStore {
             val json = JSONObject(String(cipher.doFinal(packed.copyOfRange(12, packed.size)), Charsets.UTF_8))
             val savedAt = json.optLong("saved_at")
             val age = System.currentTimeMillis() - savedAt
-            if (savedAt <= 0L || age < 0L || age > 24L * 60L * 60L * 1000L) return null
+            if (savedAt <= 0L || age < 0L || age > 24L * 60L * 60L * 1000L) {
+                clearPendingReferral(context)
+                return null
+            }
             json.optString("referrer").takeIf {
                 it.matches(Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))
+            } ?: run {
+                clearPendingReferral(context)
+                null
             }
         } catch (_: Exception) {
+            clearPendingReferral(context)
             null
         }
     }
