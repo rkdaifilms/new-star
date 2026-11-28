@@ -432,19 +432,12 @@ internal object NativeLiveRepository {
         session: NativeSession
     ) {
         require(roomId.isNotBlank() && targetUserId.isNotBlank()) { "LIVE room और member आवश्यक हैं।" }
-        require(action in setOf("set-member-permissions", "set-moderator", "remove-member")) {
+        require(action in setOf("set-moderator", "remove-member")) {
             "यह participant action उपलब्ध नहीं है।"
         }
         val body = JSONObject().put("action", action)
             .put("room_id", roomId).put("target_user_id", targetUserId)
-        when (action) {
-            "set-member-permissions" -> {
-                require(enabled != null) { "Permission state आवश्यक है।" }
-                // The caller supplies the permission key separately through the action suffix.
-                throw IllegalArgumentException("Use manageLiveMemberPermission for camera or microphone.")
-            }
-            "set-moderator" -> body.put("moderator", enabled == true)
-        }
+        if (action == "set-moderator") body.put("moderator", enabled == true)
         val result = NativeSupabase.invokeFunction("cloudflare-live", body, session)
         if (!result.optBoolean("ok")) {
             throw IllegalStateException(result.optString("error", "LIVE participant action पूरी नहीं हुई।"))
