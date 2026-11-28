@@ -79,6 +79,7 @@ class MainActivity : ComponentActivity() {
     private val notificationCreatorId = mutableStateOf<String?>(null)
     private val notificationRowId = mutableStateOf<String?>(null)
     private val notificationType = mutableStateOf<String?>(null)
+    private val openGamingSignal = mutableIntStateOf(0)
     private val sharedVideoId = mutableStateOf<String?>(null)
     private val referralId = mutableStateOf<String?>(null)
     private var referralSyncInProgress = false
@@ -173,6 +174,7 @@ class MainActivity : ComponentActivity() {
                     notificationCreatorId = notificationCreatorId.value,
                     notificationRowId = notificationRowId.value,
                     notificationType = notificationType.value,
+                    openGamingSignal = openGamingSignal.intValue,
                     onNotificationIntentHandled = {
                         notificationCreatorId.value = null
                         notificationRowId.value = null
@@ -261,6 +263,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleNotificationIntent(intent: Intent?) {
+        if (intent?.action == NativeSystemNotifications.ACTION_OPEN_GAMING) {
+            openGamingSignal.intValue++
+            return
+        }
         if (intent?.action != NativeSystemNotifications.ACTION_OPEN_CREATOR) return
         notificationCreatorId.value = intent.getStringExtra(NativeSystemNotifications.EXTRA_CREATOR_ID)
         notificationRowId.value = intent.getStringExtra(NativeSystemNotifications.EXTRA_NOTIFICATION_ID)
@@ -350,6 +356,7 @@ private fun NativeApp(
     notificationCreatorId: String?,
     notificationRowId: String?,
     notificationType: String?,
+    openGamingSignal: Int,
     onNotificationIntentHandled: () -> Unit,
     sharedVideoId: String?,
     onSharedVideoIntentHandled: () -> Unit,
@@ -375,6 +382,8 @@ private fun NativeApp(
     var notificationRefreshQueued by remember(session?.userId) { mutableStateOf(false) }
     var notificationRefreshCounter by remember(session?.userId) { mutableIntStateOf(0) }
     var notificationRealtimeStatus by remember(session?.userId) { mutableStateOf("Realtime connecting…") }
+    var liveInviteAlertRefreshBusy by remember(session?.userId) { mutableStateOf(false) }
+    var liveInviteAlertRefreshQueued by remember(session?.userId) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     DisposableEffect(context) {
@@ -481,7 +490,43 @@ private fun NativeApp(
                         }
                     }
                 },
-                onStatus = { status -> scope.launch { notificationRealtimeStatus = status } }
+                onStatus = { status -> scope.launch { notificationRealtimeStatus = status } },
+                includeLiveInvites = true,
+                onLiveInvite = {
+                    scope.launch {
+                        if (liveInviteAlertRefreshBusy) {
+                            liveInviteAlertRefreshQueued = true
+                            return@launch
+                        }
+                        liveInviteAlertRefreshBusy = true
+                        try {
+                            do {
+                                liveInviteAlertRefreshQueued = false
+                                val invitations = NativeLiveRepository.listInvitations(current)
+                                val preferences = context.getSharedPreferences(
+                                    "newstar_live_invite_alerts",
+                                    Context.MODE_PRIVATE
+                                )
+                                val key = "seen_${current.userId}"
+                                val seen = NativeLiveInviteAlertPolicy.decode(preferences.getString(key, null))
+                                val fresh = NativeLiveInviteAlertPolicy.unseen(invitations, seen)
+                                fresh.forEach { NativeSystemNotifications.showLiveInvite(context, it) }
+                                val updated = NativeLiveInviteAlertPolicy.mergeSeenIds(
+                                    seen,
+                                    invitations.map { it.optString("id") }
+                                )
+                                preferences.edit()
+                                    .putString(key, NativeLiveInviteAlertPolicy.encode(updated))
+                                    .apply()
+                            } while (liveInviteAlertRefreshQueued)
+                        } catch (error: Exception) {
+                            notificationRealtimeStatus = error.message
+                                ?: "LIVE invitation alert refresh failed"
+                        } finally {
+                            liveInviteAlertRefreshBusy = false
+                        }
+                    }
+                }
             )
             observer.connect()
             onDispose { observer.close() }
@@ -497,6 +542,9 @@ private fun NativeApp(
             session = googleSession
             if (page != "Shared Video") page = "Home"
         }
+    }
+    LaunchedEffect(openGamingSignal, session?.userId) {
+        if (openGamingSignal > 0 && session != null) page = "Gaming"
     }
     LaunchedEffect(sharedVideoId) {
         val incomingId = sharedVideoId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
