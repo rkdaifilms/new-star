@@ -76,6 +76,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.compose.ui.viewinterop.AndroidView
+import org.webrtc.SurfaceViewRenderer
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.effect.Crop
@@ -3008,6 +3009,27 @@ fun NativeGamingScreen(
         factory = remember(session.userId) { NativeGamingViewModel.Factory(session) }
     )
     val state by gamingViewModel.state.collectAsStateWithLifecycle()
+    val guestCameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        val cameraGranted = grants[android.Manifest.permission.CAMERA] == true ||
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (cameraGranted && state.guestRoomId.isNotBlank()) {
+            val micGranted = grants[android.Manifest.permission.RECORD_AUDIO] == true ||
+                ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            gamingViewModel.startGuestPublisher(context, state.guestRoomId, micGranted)
+        }
+    }
+    val guestPreview = remember(context, state.guestPublisherReady) {
+        if (state.guestPublisherReady) SurfaceViewRenderer(context) else null
+    }
+    DisposableEffect(guestPreview, gamingViewModel) {
+        guestPreview?.let(gamingViewModel::attachGuestPreview)
+        onDispose {
+            guestPreview?.let {
+                gamingViewModel.detachGuestPreview(it)
+                runCatching { it.release() }
+            }
+        }
+    }
 
     DisposableEffect(context, gamingViewModel) {
         val receiver = object : BroadcastReceiver() {
@@ -3043,6 +3065,17 @@ fun NativeGamingScreen(
         while (true) {
             delay(12_000)
             gamingViewModel.refreshInvitations()
+        }
+    }
+
+    LaunchedEffect(session.userId, state.guestRoomId) {
+        val guestRoom = state.guestRoomId
+        if (guestRoom.isNotBlank()) {
+            gamingViewModel.refreshGuestSeat(guestRoom)
+            while (true) {
+                delay(4_000)
+                gamingViewModel.refreshGuestSeat(guestRoom)
+            }
         }
     }
 
@@ -3103,17 +3136,67 @@ fun NativeGamingScreen(
                                 Button(
                                     enabled = state.invitationBusyId.isBlank(),
                                     modifier = Modifier.weight(1f),
-                                    onClick = { gamingViewModel.respondToCreatorInvite(inviteId, true) }
+                                    onClick = { gamingViewModel.respondToCreatorInvite(inviteId, invite.optString("room_id"), true) }
                                 ) { Text(if (state.invitationBusyId == inviteId) "Please wait…" else "Accept") }
                                 OutlinedButton(
                                     enabled = state.invitationBusyId.isBlank(),
                                     modifier = Modifier.weight(1f),
-                                    onClick = { gamingViewModel.respondToCreatorInvite(inviteId, false) }
+                                    onClick = { gamingViewModel.respondToCreatorInvite(inviteId, invite.optString("room_id"), false) }
                                 ) { Text("Decline") }
                             }
                         }
                         HorizontalDivider()
                     }
+                }
+            }
+        }
+
+        if (state.guestRoomId.isNotBlank() && roomId.isNullOrBlank()) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("LIVE guest seat", style = MaterialTheme.typography.titleMedium)
+                    Text("Seat status: ${state.guestSeatStatus.ifBlank { "checking" }}")
+                    if (state.guestSeatNumber > 0) Text("Seat number: ${state.guestSeatNumber}")
+                    Text(
+                        "Camera: ${if (state.guestCameraAllowed) "allowed" else "waiting for host permission"} · Microphone: ${if (state.guestMicrophoneAllowed) "allowed" else "not allowed"}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    if (state.guestPublisherError.isNotBlank()) {
+                        Text(state.guestPublisherError, color = if (state.guestPublisherReady) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (state.guestPublisherReady && guestPreview != null) {
+                        AndroidView(
+                            factory = { guestPreview },
+                            modifier = Modifier.fillMaxWidth().height(240.dp)
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                modifier = Modifier.weight(1f),
+                                onClick = { gamingViewModel.setGuestCameraEnabled(!state.guestPublisherReady || state.guestPublisherMicEnabled) }
+                            ) { Text("Camera control") }
+                            OutlinedButton(
+                                modifier = Modifier.weight(1f),
+                                enabled = state.guestMicrophoneAllowed,
+                                onClick = { gamingViewModel.setGuestMicrophoneEnabled(!state.guestPublisherMicEnabled) }
+                            ) { Text(if (state.guestPublisherMicEnabled) "Mute mic" else "Unmute mic") }
+                        }
+                    } else if (state.guestSeatStatus == "admitted" && state.guestCameraAllowed) {
+                        Button(
+                            enabled = !state.guestPublisherStarting,
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                guestCameraPermission.launch(
+                                    arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)
+                                )
+                            }
+                        ) { Text(if (state.guestPublisherStarting) "Connecting camera…" else "Join LIVE with camera") }
+                    } else if (state.guestSeatStatus == "requested") {
+                        Text("Host की approval का इंतज़ार करें।")
+                    }
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { gamingViewModel.leaveGuestSeat(state.guestRoomId) }
+                    ) { Text("Leave guest invitation / seat") }
                 }
             }
         }
