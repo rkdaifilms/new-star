@@ -217,26 +217,74 @@ internal fun NativeLiveGuestSeatPanel(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        OutlinedButton(
-                            enabled = busyParticipantId.isBlank() && participantId.isNotBlank(),
-                            onClick = {
-                                busyParticipantId = participantId
-                                notice = ""
-                                scope.launch {
-                                    try {
-                                        NativeLiveRepository.removeGuest(roomId, participantId, session)
-                                        notice = "Guest LIVE seat से हटा दिया गया।"
-                                        reloadParticipants()
-                                    } catch (e: Exception) {
-                                        notice = e.message ?: "Guest remove नहीं हुआ।"
-                                    } finally {
-                                        busyParticipantId = ""
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            val cameraAllowed = participant.optBoolean("camera_allowed")
+                            val microphoneAllowed = participant.optBoolean("microphone_allowed")
+                            OutlinedButton(
+                                enabled = busyParticipantId.isBlank() && participant.optString("user_id").isNotBlank(),
+                                onClick = {
+                                    busyParticipantId = participantId
+                                    scope.launch {
+                                        try {
+                                            NativeLiveRepository.setMemberPermissions(
+                                                roomId = roomId,
+                                                targetUserId = participant.optString("user_id"),
+                                                cameraAllowed = !cameraAllowed,
+                                                session = session
+                                            )
+                                            notice = if (cameraAllowed) "Guest camera permission बंद की गई।" else "Guest camera permission चालू की गई।"
+                                            reloadParticipants()
+                                        } catch (e: Exception) {
+                                            notice = e.message ?: "Camera permission update नहीं हुई।"
+                                        } finally {
+                                            busyParticipantId = ""
+                                        }
                                     }
                                 }
+                            ) { Text(if (cameraAllowed) "Camera allowed" else "Allow camera") }
+                            OutlinedButton(
+                                enabled = busyParticipantId.isBlank() && participant.optString("user_id").isNotBlank(),
+                                onClick = {
+                                    busyParticipantId = participantId
+                                    scope.launch {
+                                        try {
+                                            NativeLiveRepository.setMemberPermissions(
+                                                roomId = roomId,
+                                                targetUserId = participant.optString("user_id"),
+                                                microphoneAllowed = !microphoneAllowed,
+                                                session = session
+                                            )
+                                            notice = if (microphoneAllowed) "Guest microphone permission बंद की गई।" else "Guest microphone permission चालू की गई।"
+                                            reloadParticipants()
+                                        } catch (e: Exception) {
+                                            notice = e.message ?: "Microphone permission update नहीं हुई।"
+                                        } finally {
+                                            busyParticipantId = ""
+                                        }
+                                    }
+                                }
+                            ) { Text(if (microphoneAllowed) "Mic allowed" else "Allow mic") }
+                            OutlinedButton(
+                                enabled = busyParticipantId.isBlank() && participantId.isNotBlank(),
+                                onClick = {
+                                    busyParticipantId = participantId
+                                    notice = ""
+                                    scope.launch {
+                                        try {
+                                            NativeLiveRepository.removeGuest(roomId, participantId, session)
+                                            notice = "Guest LIVE seat से हटा दिया गया।"
+                                            reloadParticipants()
+                                        } catch (e: Exception) {
+                                            notice = e.message ?: "Guest remove नहीं हुआ।"
+                                        } finally {
+                                            busyParticipantId = ""
+                                        }
+                                    }
+                                }
+                            ) {
+                                if (busyParticipantId == participantId) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                                else Text("Remove")
                             }
-                        ) {
-                            if (busyParticipantId == participantId) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                            else Text("Remove")
                         }
                     }
                 }
@@ -332,6 +380,40 @@ internal fun NativeLiveSeatRequestPanel(
     var error by remember(roomId, session.userId) { mutableStateOf("") }
     var notice by remember(roomId, session.userId) { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var guestPublisher by remember(roomId, session.userId) {
+        mutableStateOf<NativeSfuPublisher?>(null)
+    }
+    var requestedMicrophoneAllowed by remember(roomId, session.userId) { mutableStateOf(false) }
+    val cameraPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val cameraGranted = permissions[android.Manifest.permission.CAMERA] == true ||
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        val microphoneGranted = requestedMicrophoneAllowed && (
+            permissions[android.Manifest.permission.RECORD_AUDIO] == true ||
+                androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+        if (!cameraGranted) {
+            error = "Guest broadcast शुरू करने के लिए Camera permission आवश्यक है।"
+        } else {
+            busy = true
+            scope.launch {
+                try {
+                    guestPublisher = NativeSfuPublisher.start(context, roomId, session, microphoneGranted)
+                    notice = if (microphoneGranted) "आपका camera और microphone LIVE में publish हो रहा है।"
+                        else "आपका camera LIVE में publish हो रहा है।"
+                    error = ""
+                } catch (e: Exception) {
+                    error = e.message ?: "Guest camera broadcast शुरू नहीं हुआ।"
+                } finally {
+                    busy = false
+                }
+            }
+        }
+    }
 
     suspend fun refreshSeat() {
         try {
@@ -356,6 +438,28 @@ internal fun NativeLiveSeatRequestPanel(
     val status = participant?.optString("status").orEmpty()
     val admitted = status == "admitted"
     val requested = status == "requested"
+    val cameraAllowed = participant?.optBoolean("camera_allowed") == true
+    val microphoneAllowed = participant?.optBoolean("microphone_allowed") == true
+
+    LaunchedEffect(status, guestPublisher) {
+        if (status != "admitted" && guestPublisher != null) {
+            runCatching { guestPublisher?.stop() }
+            guestPublisher = null
+        }
+    }
+
+    androidx.compose.runtime.DisposableEffect(roomId, session.userId) {
+        onDispose {
+            val activePublisher = guestPublisher
+            if (activePublisher != null) {
+                kotlinx.coroutines.CoroutineScope(
+                    kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
+                ).launch {
+                    runCatching { activePublisher.stop() }
+                }
+            }
+        }
+    }
 
     Card(Modifier.fillMaxWidth()) {
         Column(
@@ -376,7 +480,54 @@ internal fun NativeLiveSeatRequestPanel(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        "आपकी guest seat active है। Camera और microphone publishing host की अनुमति और device permissions के बाद चालू होंगे।",
+                        "Camera permission: ${if (cameraAllowed) "Allowed" else "Waiting for host"} · Microphone permission: ${if (microphoneAllowed) "Allowed" else "Blocked"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    guestPublisher?.let { activePublisher ->
+                        NativeLiveCameraPreview(
+                            publisher = activePublisher,
+                            modifier = Modifier.fillMaxWidth().size(1.dp)
+                        )
+                        OutlinedButton(
+                            enabled = !busy,
+                            onClick = {
+                                busy = true
+                                scope.launch {
+                                    try {
+                                        activePublisher.stop()
+                                        guestPublisher = null
+                                        notice = "Guest broadcast बंद कर दिया गया।"
+                                    } catch (e: Exception) {
+                                        error = e.message ?: "Guest broadcast बंद नहीं हुआ।"
+                                    } finally {
+                                        busy = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Stop guest broadcast") }
+                    }
+                    if (guestPublisher == null) {
+                        Button(
+                            enabled = !busy && cameraAllowed,
+                            onClick = {
+                                requestedMicrophoneAllowed = microphoneAllowed
+                                val permissions = if (microphoneAllowed) {
+                                    arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)
+                                } else {
+                                    arrayOf(android.Manifest.permission.CAMERA)
+                                }
+                                cameraPermissionLauncher.launch(permissions)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            else Text(if (cameraAllowed) "Start guest camera" else "Waiting for host camera permission")
+                        }
+                    }
+                    Text(
+                        "Host की अनुमति के बिना camera या microphone broadcast नहीं होगा।",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -387,6 +538,8 @@ internal fun NativeLiveSeatRequestPanel(
                             notice = ""
                             scope.launch {
                                 try {
+                                    guestPublisher?.stop()
+                                    guestPublisher = null
                                     NativeLiveRepository.leaveSeat(roomId, session)
                                     notice = "आप LIVE guest seat से बाहर आ गए।"
                                     refreshSeat()
