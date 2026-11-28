@@ -3627,6 +3627,19 @@ fun NativeGamingScreen(
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("LIVE guest seat", style = MaterialTheme.typography.titleMedium)
                     Text("Seat status: ${state.guestSeatStatus.ifBlank { "checking" }}")
+                    if (state.guestSeatStatus in setOf("not_member", "removed", "left")) {
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !state.guestSeatRequesting,
+                            onClick = { gamingViewModel.requestGuestSeatAgain(state.guestRoomId) }
+                        ) {
+                            if (state.guestSeatRequesting) {
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            } else {
+                                Text("Request LIVE seat again")
+                            }
+                        }
+                    }
                     if (state.guestSeatNumber > 0) Text("Seat number: ${state.guestSeatNumber}")
                     Text(
                         "Camera: ${if (state.guestCameraAllowed) "allowed" else "waiting for host permission"} · Microphone: ${if (state.guestMicrophoneAllowed) "allowed" else "not allowed"}",
