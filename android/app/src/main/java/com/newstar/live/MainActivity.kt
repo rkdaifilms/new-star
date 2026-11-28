@@ -78,6 +78,7 @@ class MainActivity : ComponentActivity() {
     private val notificationCreatorId = mutableStateOf<String?>(null)
     private val notificationRowId = mutableStateOf<String?>(null)
     private val sharedVideoId = mutableStateOf<String?>(null)
+    private val referralId = mutableStateOf<String?>(null)
 
     private val microphonePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val session = queuedGamingSession
@@ -161,6 +162,7 @@ class MainActivity : ComponentActivity() {
         handleNotificationIntent(intent)
         handleOAuthCallback(intent)
         handleSharedVideoIntent(intent)
+        handleReferralIntent(intent)
         setContent {
             NewStarNativeTheme {
                 NativeApp(
@@ -173,6 +175,7 @@ class MainActivity : ComponentActivity() {
                     },
                     sharedVideoId = sharedVideoId.value,
                     onSharedVideoIntentHandled = { sharedVideoId.value = null },
+                    referralId = referralId.value,
                     onGoogleSignIn = { NativeGoogleOAuth.launch(this) },
                     gamingRoomId = activeGamingRoomState.value,
                     onStartGaming = ::prepareGaming,
@@ -194,6 +197,17 @@ class MainActivity : ComponentActivity() {
         handleNotificationIntent(intent)
         handleOAuthCallback(intent)
         handleSharedVideoIntent(intent)
+        handleReferralIntent(intent)
+    }
+
+    private fun handleReferralIntent(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (!uri.scheme.equals("https", ignoreCase = true) ||
+            !uri.host.equals("new-star-delta.vercel.app", ignoreCase = true)) return
+        val candidate = uri.getQueryParameter("ref") ?: return
+        if (candidate.matches(Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))) {
+            referralId.value = candidate
+        }
     }
 
     private fun handleSharedVideoIntent(intent: Intent?) {
@@ -226,7 +240,14 @@ class MainActivity : ComponentActivity() {
                 return@launch
             }
             try {
-                oauthSession.value = NativeSupabase.exchangeCode(this@MainActivity, code, pending.second)
+                val signedIn = NativeSupabase.exchangeCode(this@MainActivity, code, pending.second)
+                referralId.value?.let { referrer ->
+                    runCatching {
+                        NativeSupabase.post("/rest/v1/rpc/record_referral_attribution",
+                            JSONObject().put("p_referrer_id", referrer), signedIn)
+                    }
+                }
+                oauthSession.value = signedIn
             } catch (e: Exception) {
                 android.widget.Toast.makeText(this@MainActivity, e.message ?: "Google Login failed.", android.widget.Toast.LENGTH_LONG).show()
             }
@@ -297,6 +318,7 @@ private fun NativeApp(
     onNotificationIntentHandled: () -> Unit,
     sharedVideoId: String?,
     onSharedVideoIntentHandled: () -> Unit,
+    referralId: String?,
     onGoogleSignIn: () -> Unit,
     gamingRoomId: String?,
     onStartGaming: (NativeSession, String) -> Unit,
@@ -505,7 +527,7 @@ private fun NativeApp(
             onNavigate = { page = it }
         )
     } else if (session == null) {
-        NativeAuthScreen(onSignedIn = { session = it; page = "Home" }, onGoogleSignIn = onGoogleSignIn)
+        NativeAuthScreen(onSignedIn = { session = it; page = "Home" }, onGoogleSignIn = onGoogleSignIn, referrerId = referralId)
     } else {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.Start) {
