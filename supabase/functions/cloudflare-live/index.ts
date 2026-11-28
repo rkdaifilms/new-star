@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
   let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string; microphone_enabled?: boolean; camera_enabled?: boolean; target_user_id?: string; camera_allowed?: boolean; microphone_allowed?: boolean; moderator?: boolean; match_id?: string; session_id?: string; role?: string; session_description?: { type?: string; sdp?: string }; tracks?: Array<{ mid?: string; trackName?: string; sessionId?: string; location?: string }>; track_names?: string[] };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
-  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "list-members", "set-member-permissions", "set-moderator", "remove-member", "pk-join-queue", "pk-status", "pk-leave-queue", "pk-finish", "sfu-health", "sfu-create-session", "sfu-publish", "sfu-subscribe", "sfu-renegotiate", "sfu-close", "sfu-list-pubs", "sfu-abandon"];
+  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "list-members", "set-member-permissions", "set-moderator", "remove-member", "pk-join-queue", "pk-status", "pk-leave-queue", "pk-finish", "sfu-health", "sfu-create-session", "sfu-publish", "sfu-subscribe", "sfu-unsubscribe", "sfu-renegotiate", "sfu-close", "sfu-list-pubs", "sfu-abandon"];
   if (!supportedActions.includes(String(action))) return json({ error: "This LIVE interaction is not enabled on the server yet." }, 501, headers);
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -702,9 +702,51 @@ Deno.serve(async (req: Request) => {
           if (!pub) return json({ error: "A requested publication is no longer active in this room." }, 409, headers);
         }
         const result = await sfuRequest("/sessions/" + encodeURIComponent(sessionId) + "/tracks/new", "POST", { tracks: requested });
+        const negotiated = Array.isArray(result.tracks) ? result.tracks : [];
+        const subscribed = requested.map((track, index) => ({
+          ...track,
+          mid: String(negotiated[index]?.mid || ""),
+        }));
+        if (subscribed.some((track) => !isValidSfuMid(track.mid))) {
+          return json({ error: "Cloudflare did not return a valid MID for every subscription." }, 502, headers);
+        }
+        const previous = Array.isArray(session.subscribed_tracks) ? session.subscribed_tracks : [];
+        const byMid = new Map<string, Record<string, unknown>>();
+        for (const track of previous) {
+          if (track && isValidSfuMid((track as {mid?: unknown}).mid)) {
+            byMid.set(String((track as {mid: unknown}).mid), track as Record<string, unknown>);
+          }
+        }
+        for (const track of subscribed) byMid.set(track.mid, track);
         const { error: updateError } = await admin.from("live_sfu_sessions")
-          .update({ subscribed_tracks: requested, updated_at: new Date().toISOString() }).eq("id", session.id);
+          .update({ subscribed_tracks: [...byMid.values()], updated_at: new Date().toISOString() }).eq("id", session.id);
         if (updateError) return json({ error: "Subscription negotiation started but state could not be saved." }, 503, headers);
+        return json({ ok: true, ...result }, 200, headers);
+      }
+
+      if (action === "sfu-unsubscribe") {
+        if (session.role !== "subscriber") return json({ error: "Only subscriber sessions can unsubscribe remote tracks." }, 403, headers);
+        const requested = Array.isArray(body.tracks) ? body.tracks : [];
+        if (!requested.length || requested.length > 20 || requested.some((track) => !isValidSfuMid(track.mid))) {
+          return json({ error: "At least one valid subscribed media MID is required." }, 400, headers);
+        }
+        const current = Array.isArray(session.subscribed_tracks) ? session.subscribed_tracks : [];
+        const requestedMids = new Set(requested.map((track) => String(track.mid)));
+        const knownMids = new Set(current
+          .filter((track: {mid?: unknown}) => isValidSfuMid(track?.mid))
+          .map((track: {mid: unknown}) => String(track.mid)));
+        if ([...requestedMids].some((mid) => !knownMids.has(mid))) {
+          return json({ error: "One or more tracks are not subscribed by this SFU session." }, 409, headers);
+        }
+        const result = await sfuRequest("/sessions/" + encodeURIComponent(sessionId) + "/tracks/close", "PUT", {
+          tracks: [...requestedMids].map((mid) => ({ mid })), force: true
+        });
+        const remaining = current.filter((track: {mid?: unknown}) =>
+          !isValidSfuMid(track?.mid) || !requestedMids.has(String(track.mid))
+        );
+        const { error: updateError } = await admin.from("live_sfu_sessions")
+          .update({ subscribed_tracks: remaining, updated_at: new Date().toISOString() }).eq("id", session.id);
+        if (updateError) return json({ error: "Tracks were closed but subscription state could not be updated." }, 503, headers);
         return json({ ok: true, ...result }, 200, headers);
       }
 
