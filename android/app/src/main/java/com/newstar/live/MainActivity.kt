@@ -1835,10 +1835,22 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (creatorId != session.userId) {
-                OutlinedButton(onClick = onMessage, modifier = Modifier.fillMaxWidth()) {
-                    Text("✉ Message")
-                }
-                Button(enabled = !busy, onClick = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = onMessage,
+                        enabled = !creator.optBoolean("is_private") || following,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(if (creator.optBoolean("is_private") && !following) "🔒 Follow to Chat" else "💬 Message / Chat")
+                    }
+                    Button(
+                        enabled = !busy,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
                     busy = true
                     scope.launch {
                         try {
@@ -1881,16 +1893,17 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                             error = e.message ?: "Follow update नहीं हुआ।"
                         } finally { busy = false }
                     }
-                }) {
-                    Text(
-                        when {
-                            busy -> "Please wait…"
-                            following -> "Following"
-                            followRequestPending -> "Cancel Request"
-                            creator.optBoolean("is_private") -> "Request Follow"
-                            else -> "Follow"
-                        }
-                    )
+                    ) {
+                        Text(
+                            when {
+                                busy -> "Please wait…"
+                                following -> "Following"
+                                followRequestPending -> "Cancel Request"
+                                creator.optBoolean("is_private") -> "Request Follow"
+                                else -> "Follow"
+                            }
+                        )
+                    }
                 }
             }
             if (creator.optBoolean("is_private") && !following && creatorId != session.userId) {
