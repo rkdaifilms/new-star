@@ -1171,6 +1171,11 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
     var videoTab by remember(creatorId) { mutableStateOf("All") }
     var locationName by remember { mutableStateOf("") }
     var publicExtras by remember { mutableStateOf<JSONObject?>(null) }
+    var followerCount by remember(creatorId) { mutableIntStateOf(0) }
+    var followingCount by remember(creatorId) { mutableIntStateOf(0) }
+    var creatorVideoCount by remember(creatorId) { mutableIntStateOf(0) }
+    var profileRefresh by remember(creatorId) { mutableIntStateOf(0) }
+    var countsLoading by remember(creatorId) { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val visibleVideos = remember(videos, videoTab) {
@@ -1181,10 +1186,12 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
         }
     }
 
-    LaunchedEffect(creatorId, session.userId) {
+    LaunchedEffect(creatorId, session.userId, profileRefresh) {
         try {
             val safeId = Uri.encode(creatorId)
+            countsLoading = true
             val profiles = NativeSupabase.get(
+
                 "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,bio,is_private,location_name&user_id=eq.$safeId",
                 session
             )
@@ -1192,6 +1199,34 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                 ?: throw IllegalStateException("Creator profile उपलब्ध नहीं है।")
             profile = creator
             locationName = creator.optString("location_name")
+            suspend fun countAllRows(path: String): Int {
+                var offset = 0
+                var total = 0
+                while (true) {
+                    val page = NativeSupabase.getRange(path, session, offset, offset + 999)
+                    total += page.length()
+                    if (page.length() < 1000) break
+                    offset += 1000
+                    if (offset >= 100_000) break
+                }
+                return total
+            }
+            val encodedUserId = Uri.encode(creatorId)
+            val counts = kotlinx.coroutines.coroutineScope {
+                val followersDeferred = async {
+                    countAllRows("/rest/v1/followers?select=follower_id&following_id=eq.$encodedUserId&order=follower_id")
+                }
+                val followingDeferred = async {
+                    countAllRows("/rest/v1/followers?select=following_id&follower_id=eq.$encodedUserId&order=following_id")
+                }
+                val videosDeferred = async {
+                    countAllRows("/rest/v1/videos?select=id&user_id=eq.$encodedUserId&order=id")
+                }
+                Triple(followersDeferred.await(), followingDeferred.await(), videosDeferred.await())
+            }
+            followerCount = counts.first
+            followingCount = counts.second
+            creatorVideoCount = counts.third
             publicExtras = if (creator.optBoolean("is_private")) null else try {
                 NativeSupabase.get(
                     "/rest/v1/creator_profile_extras?select=cover_url,cover_transform,website,facebook,instagram,youtube,tiktok&user_id=eq.$safeId",
@@ -1248,6 +1283,8 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
             }
         } catch (e: Exception) {
             error = e.message ?: "Creator profile लोड नहीं हुई।"
+        } finally {
+            countsLoading = false
         }
     }
 
@@ -1311,6 +1348,27 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
             if (locationName.isNotBlank()) {
                 Text("📍 $locationName", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                    Text(creatorVideoCount.toString(), fontWeight = FontWeight.Bold)
+                    Text("Videos", style = MaterialTheme.typography.labelSmall)
+                }
+                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                    Text(followerCount.toString(), fontWeight = FontWeight.Bold)
+                    Text("Followers", style = MaterialTheme.typography.labelSmall)
+                }
+                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                    Text(followingCount.toString(), fontWeight = FontWeight.Bold)
+                    Text("Following", style = MaterialTheme.typography.labelSmall)
+                }
+                TextButton(enabled = !countsLoading, onClick = { profileRefresh++ }) {
+                    Text(if (countsLoading) "Refreshing…" else "Refresh")
+                }
+            }
             if (creatorId != session.userId) {
                 OutlinedButton(onClick = onMessage, modifier = Modifier.fillMaxWidth()) {
                     Text("✉ Message")
@@ -1325,6 +1383,8 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                                     session
                                 )
                                 following = false
+                                followerCount = (followerCount - 1).coerceAtLeast(0)
+                                profileRefresh++
                             } else if (creator.optBoolean("is_private") && followRequestPending) {
                                 NativeSupabase.delete(
                                     "/rest/v1/follow_requests?requester_id=eq.${Uri.encode(session.userId)}&target_user_id=eq.${Uri.encode(creatorId)}&status=eq.pending",
@@ -1349,6 +1409,8 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                                     .put("follower_id", session.userId)
                                     .put("following_id", creatorId), session)
                                 following = true
+                                followerCount += 1
+                                profileRefresh++
                             }
                         } catch (e: Exception) {
                             error = e.message ?: "Follow update नहीं हुआ।"
