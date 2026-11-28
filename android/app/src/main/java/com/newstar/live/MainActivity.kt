@@ -500,6 +500,10 @@ private fun NativeApp(
                     page = "Creator"
                 }
                 "Wallet" -> NativeWalletScreen(session!!)
+                "Offline Library" -> NativeOfflineLibraryScreen { videoId ->
+                    selectedSharedVideoId = videoId
+                    page = "Shared Video"
+                }
                 "Monetization" -> NativeMonetizationScreen(session!!) { page = "Wallet" }
                 "Fan Support" -> NativeFanSupportScreen(session!!) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
                 "Campaigns" -> NativeCampaignScreen(session!!)
@@ -1940,6 +1944,7 @@ private fun NativeHome(
                                     "Inbox / Messages" to "Inbox",
                                     "Notifications" to "Notifications",
                                     "Wallet / Coins" to "Wallet",
+                                    "Offline Library" to "Offline Library",
                                     "Creator Monetization Hub" to "Monetization",
                                     "Fan Support" to "Fan Support",
                                     "Campaigns & Brand Deals" to "Campaigns",
