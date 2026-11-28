@@ -85,6 +85,7 @@ internal fun NativeLiveSfuViewer(session: NativeSession, roomId: String) {
 
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Guest cameras", style = MaterialTheme.typography.titleMedium)
+        NativeLiveSeatRequestPanel(session = session, roomId = roomId)
         if (loading) CircularProgressIndicator()
         if (notice.isNotBlank()) {
             Text(notice, style = MaterialTheme.typography.bodySmall,
