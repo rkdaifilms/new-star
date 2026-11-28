@@ -3047,6 +3047,7 @@ fun NativeGamingScreen(
             runCatching { context.unregisterReceiver(receiver) }
             gamingViewModel.stopPolling()
             gamingViewModel.stopPkPolling()
+            gamingViewModel.stopGuestPublisher()
         }
     }
 
