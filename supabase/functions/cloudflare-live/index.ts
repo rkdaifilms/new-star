@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
   let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string; microphone_enabled?: boolean; camera_enabled?: boolean; target_user_id?: string; camera_allowed?: boolean; microphone_allowed?: boolean; moderator?: boolean; match_id?: string; session_id?: string; role?: string; session_description?: { type?: string; sdp?: string }; tracks?: Array<{ mid?: string; trackName?: string; sessionId?: string; location?: string }>; track_names?: string[] };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
-  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "list-members", "set-member-permissions", "set-moderator", "remove-member", "pk-join-queue", "pk-status", "pk-leave-queue", "pk-finish", "sfu-health", "sfu-create-session", "sfu-publish", "sfu-subscribe", "sfu-unsubscribe", "sfu-renegotiate", "sfu-close", "sfu-list-pubs", "sfu-abandon"];
+  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "live-seat-media-state", "list-members", "set-member-permissions", "set-moderator", "remove-member", "pk-join-queue", "pk-status", "pk-leave-queue", "pk-finish", "sfu-health", "sfu-create-session", "sfu-publish", "sfu-subscribe", "sfu-unsubscribe", "sfu-renegotiate", "sfu-close", "sfu-list-pubs", "sfu-abandon"];
   if (!supportedActions.includes(String(action))) return json({ error: "This LIVE interaction is not enabled on the server yet." }, 501, headers);
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -415,6 +415,36 @@ Deno.serve(async (req: Request) => {
       .in("status", ["requested", "admitted"]).select("id").maybeSingle();
     if (error || !data) return json({ error: "Guest could not be removed." }, 409, headers);
     return json({ ok: true }, 200, headers);
+  }
+
+  if (action === "live-seat-media-state") {
+    const roomId = String(body.room_id || "");
+    const { data: room, error: roomError } = await getActiveRoom(roomId);
+    if (roomError || !room) return json({ error: "Active LIVE room not found." }, 404, headers);
+    const { data: member, error: memberError } = await admin.from("live_room_participants")
+      .select("id,status,role,camera_allowed,microphone_allowed")
+      .eq("room_id", room.id).eq("user_id", creatorId).maybeSingle();
+    if (memberError) return json({ error: "Could not verify guest seat permissions." }, 503, headers);
+    if (!member || member.role !== "guest" || member.status !== "admitted") {
+      return json({ error: "Only an admitted guest can update their own LIVE media state." }, 403, headers);
+    }
+    const hasCamera = typeof body.camera_enabled === "boolean";
+    const hasMicrophone = typeof body.microphone_enabled === "boolean";
+    if (!hasCamera && !hasMicrophone) return json({ error: "At least one media state is required." }, 400, headers);
+    if (hasCamera && body.camera_enabled === true && member.camera_allowed !== true) {
+      return json({ error: "Host camera permission is not enabled." }, 403, headers);
+    }
+    if (hasMicrophone && body.microphone_enabled === true && member.microphone_allowed !== true) {
+      return json({ error: "Host microphone permission is not enabled." }, 403, headers);
+    }
+    const update: Record<string, boolean> = {};
+    if (hasCamera) update.camera_enabled = body.camera_enabled === true;
+    if (hasMicrophone) update.microphone_enabled = body.microphone_enabled === true;
+    const { error: updateError } = await admin.from("live_room_participants")
+      .update(update).eq("id", member.id).eq("status", "admitted");
+    if (updateError) return json({ error: "Could not save LIVE media state." }, 503, headers);
+    return json({ ok: true, camera_enabled: hasCamera ? body.camera_enabled : undefined,
+      microphone_enabled: hasMicrophone ? body.microphone_enabled : undefined }, 200, headers);
   }
 
   if (action === "live-seat-leave") {
