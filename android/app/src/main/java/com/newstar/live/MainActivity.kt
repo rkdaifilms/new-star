@@ -1732,6 +1732,61 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
     }
 }
 
+@Composable
+private fun NativeSharedVideoScreen(
+    videoId: String,
+    session: NativeSession?,
+    onBack: () -> Unit,
+    onOpenCreator: (String) -> Unit
+) {
+    var video by remember(videoId) { mutableStateOf<NativeVideo?>(null) }
+    var loading by remember(videoId) { mutableStateOf(true) }
+    var error by remember(videoId) { mutableStateOf<String?>(null) }
+    var retry by remember(videoId) { mutableIntStateOf(0) }
+
+    LaunchedEffect(videoId, session?.userId, retry) {
+        loading = true
+        error = null
+        video = null
+        try {
+            video = NativeFeed.loadSharedVideo(videoId, session)
+        } catch (e: Exception) {
+            error = e.message ?: "Shared video लोड नहीं हुआ।"
+        } finally {
+            loading = false
+        }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onBack) { Text("← Home") }
+            Text("Shared Video", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+        when {
+            loading -> Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            error != null -> Column(
+                Modifier.fillMaxWidth().padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+            ) {
+                Text(error.orEmpty(), color = MaterialTheme.colorScheme.error)
+                Button(onClick = { retry++ }) { Text("Retry") }
+            }
+            video != null -> NativeVideoCard(
+                video = video!!,
+                session = session,
+                isActive = true,
+                onOpenCreator = if (session != null) onOpenCreator else null
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun NativeHome(
@@ -2084,6 +2139,10 @@ private fun NativeVideoCard(
     onOpenCreator: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val shareUrl = remember(video.id) {
+        Uri.Builder().scheme("https").authority("new-star-delta.vercel.app")
+            .appendQueryParameter("video", video.id).build().toString()
+    }
     var liked by remember(video.id, session?.userId) { mutableStateOf(false) }
     var likeCount by remember(video.id) { mutableIntStateOf(video.likes) }
     var likeBusy by remember(video.id) { mutableStateOf(false) }
@@ -2311,7 +2370,7 @@ private fun NativeVideoCard(
                             val shareText = buildString {
                                 append(video.caption.ifBlank { "Watch this video on New Star" })
                                 append("\n")
-                                append(video.url)
+                                append(shareUrl)
                             }
                             try {
                                 val sendIntent = Intent(Intent.ACTION_SEND).apply {
@@ -2356,7 +2415,7 @@ private fun NativeVideoCard(
                         onClick = {
                             try {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText("New Star video", video.url))
+                                clipboard.setPrimaryClip(ClipData.newPlainText("New Star video", shareUrl))
                                 Toast.makeText(context, "Video link कॉपी हो गया।", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
                                 Toast.makeText(context, e.message ?: "Link कॉपी नहीं हुआ।", Toast.LENGTH_LONG).show()
@@ -2542,7 +2601,7 @@ private object NativeFeed {
             }
         }
         if (videoIds.length() == 0) return@withContext emptyList()
-        val resolved = post("$API_BASE/functions/v1/video-url", JSONObject().put("video_ids", videoIds)) as? JSONObject
+        val resolved = post("$API_BASE/functions/v1/video-url", JSONObject().put("video_ids", videoIds), session) as? JSONObject
             ?: throw IllegalStateException("Video search playback response invalid.")
         if (!resolved.optBoolean("ok")) throw IllegalStateException("Video search playback URL resolve नहीं हुआ।")
         val urls = resolved.optJSONObject("urls") ?: JSONObject()
@@ -2570,7 +2629,7 @@ private object NativeFeed {
         var rpcFailure: Exception? = null
 
         try {
-            val response = post("$API_BASE/rest/v1/rpc/get_recommended_video_feed", args) as? JSONArray
+            val response = post("$API_BASE/rest/v1/rpc/get_recommended_video_feed", args, session) as? JSONArray
                 ?: throw IllegalStateException("Feed response invalid.")
             sourceRows = (0 until response.length()).mapNotNull { response.optJSONObject(it) }
         } catch (error: Exception) {
@@ -2663,12 +2722,38 @@ private object NativeFeed {
                 row.optString("video_type").ifBlank { "short" }, row.optString("user_id"))
         }
     }
-    private fun post(endpoint: String, body: JSONObject): Any {
+    suspend fun loadSharedVideo(videoId: String, session: NativeSession?): NativeVideo = withContext(Dispatchers.IO) {
+        require(videoId.matches(Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"))) {
+            "Shared video ID अमान्य है।"
+        }
+        val filters = "&or=${(processing_status.eq.published,processing_status.is.null)${" +
+            "&or=${(audience_type.eq.all,audience_type.is.null)${"
+        val rows = NativeSupabase.get(
+            "/rest/v1/videos?select=id,caption,username,category,likes_count,views_count,video_type,user_id&id=eq.${Uri.encode(videoId)${&visibility=eq.public$filters&limit=1",
+            session
+        )
+        val row = rows.optJSONObject(0) ?: throw IllegalStateException("यह वीडियो उपलब्ध नहीं है या सार्वजनिक नहीं है।")
+        val ids = JSONArray().put(videoId)
+        val resolved = post("$API_BASE/functions/v1/video-url", JSONObject().put("video_ids", ids), session) as? JSONObject
+            ?: throw IllegalStateException("Secure video response invalid.")
+        if (!resolved.optBoolean("ok")) throw IllegalStateException(resolved.optString("error", "वीडियो access verify नहीं हुआ।"))
+        val playback = resolved.optJSONObject("urls")?.optString(videoId)
+            ?.takeIf { it.startsWith("https://") }
+            ?: throw IllegalStateException("वीडियो अभी उपलब्ध नहीं है, private है, या processing में है।")
+        NativeVideo(
+            videoId, playback, row.optString("caption"), row.optString("username"),
+            row.optString("category"), row.optInt("likes_count"), row.optInt("views_count"),
+            row.optString("video_type").ifBlank { "short" }, row.optString("user_id")
+        )
+    }
+
+    private fun post(endpoint: String, body: JSONObject, session: NativeSession? = null): Any {
         val connection = URL(endpoint).openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "POST"; connection.connectTimeout = 15000; connection.readTimeout = 25000
             connection.doOutput = true
             connection.setRequestProperty("apikey", PUBLIC_API_KEY)
+            if (session != null) connection.setRequestProperty("Authorization", "Bearer " + session.accessToken)
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("Accept", "application/json")
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
