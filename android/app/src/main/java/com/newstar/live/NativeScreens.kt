@@ -1785,6 +1785,7 @@ fun NativeUploadScreen(session: NativeSession) {
     var sourceHeight by remember { mutableIntStateOf(0) }
     var rotationDegrees by remember { mutableIntStateOf(0) }
     var muteOriginalAudio by remember { mutableStateOf(false) }
+    var originalAudioVolume by remember { mutableFloatStateOf(1f) }
     var selectedFilter by remember { mutableStateOf("none") }
     var centerCrop by remember { mutableStateOf(false) }
     var exportSpeed by remember { mutableFloatStateOf(1f) }
@@ -1833,6 +1834,7 @@ fun NativeUploadScreen(session: NativeSession) {
             splitAtSeconds = ""
             rotationDegrees = 0
             muteOriginalAudio = false
+            originalAudioVolume = 1f
             selectedFilter = "none"
             centerCrop = false
             exportSpeed = 1f
@@ -2049,12 +2051,14 @@ fun NativeUploadScreen(session: NativeSession) {
                         val first = NativeVideoEditor.export(
                             context, input, start * 1000L, split * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
+                            sourceVolume = originalAudioVolume,
                             onProgress = { value -> editingProgress = (value / 2).coerceIn(0, 49) }
                         )
                         created.add(first)
                         val second = NativeVideoEditor.export(
                             context, input, split * 1000L, end * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
+                            sourceVolume = originalAudioVolume,
                             onProgress = { value -> editingProgress = (50 + value / 2).coerceIn(50, 99) }
                         )
                         created.add(second)
@@ -2097,6 +2101,7 @@ fun NativeUploadScreen(session: NativeSession) {
                     selectedFilter = "none"
                     centerCrop = false
                     exportSpeed = 1f
+                    originalAudioVolume = 1f
                     overlayText = ""
                     status = "Editor settings reset हो गईं।"
                 }, enabled = !uploading) { Text("Reset") }
@@ -2107,6 +2112,8 @@ fun NativeUploadScreen(session: NativeSession) {
                     FilterChip(selected = exportSpeed == speed, onClick = { exportSpeed = speed }, enabled = !uploading, label = { Text("${speed}x") })
                 }
             }
+            Text("Original Video Volume · ${(originalAudioVolume * 100).toInt()}%", style = MaterialTheme.typography.labelLarge)
+            Slider(value = originalAudioVolume, onValueChange = { originalAudioVolume = it }, enabled = !uploading && !muteOriginalAudio)
             Text("Audio & Music Preview", style = MaterialTheme.typography.titleMedium)
             Text("Apply edits पर चुना हुआ Music और Voiceover, video audio के साथ final MP4 में mix होंगे। Music पूरे वीडियो में loop होगा।", style = MaterialTheme.typography.bodySmall)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -2257,6 +2264,7 @@ fun NativeUploadScreen(session: NativeSession) {
                         val output = NativeVideoEditor.export(
                             context, input, start * 1000L, end * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
+                            sourceVolume = originalAudioVolume,
                             musicUri = musicUri, voiceoverFile = voiceoverFile,
                             musicVolume = musicVolume, voiceVolume = voiceVolume,
                             onProgress = { value -> editingProgress = value }
@@ -2278,6 +2286,7 @@ fun NativeUploadScreen(session: NativeSession) {
                         splitAtSeconds = ""
                         rotationDegrees = 0
                         muteOriginalAudio = false
+                        originalAudioVolume = 1f
                         exportSpeed = 1f
                         overlayText = ""
                         editing = false
@@ -2462,6 +2471,7 @@ private object NativeVideoEditor {
         centerCrop: Boolean,
         speed: Float,
         overlayText: String,
+        sourceVolume: Float = 1f,
         musicUri: Uri? = null,
         voiceoverFile: File? = null,
         musicVolume: Float = 0.4f,
@@ -2498,7 +2508,8 @@ private object NativeVideoEditor {
             override fun getNextSpeedChangeTimeUs(timeUs: Long): Long = C.TIME_UNSET
         }
         val hasExternalAudio = musicUri != null || voiceoverFile != null
-        val videoAudioEffects = if (muteAudio) emptyList() else audioEffects(1f).audioProcessors
+        require(sourceVolume in 0f..1f) { "Original audio volume 0 से 100% के बीच होना चाहिए।" }
+        val videoAudioEffects = if (muteAudio) emptyList() else audioEffects(sourceVolume).audioProcessors
         val editedVideo = EditedMediaItem.Builder(mediaItem)
             .setEffects(Effects(videoAudioEffects, videoEffects))
             .setRemoveAudio(muteAudio)
