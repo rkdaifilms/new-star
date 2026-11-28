@@ -1800,6 +1800,8 @@ fun NativeUploadScreen(session: NativeSession) {
     var overlayTextX by remember { mutableFloatStateOf(0f) }
     var overlayTextY by remember { mutableFloatStateOf(0f) }
     var previewTextSize by remember { mutableStateOf(IntSize.Zero) }
+    var videoInfoExpanded by remember { mutableStateOf(false) }
+    var videoInfoDetails by remember { mutableStateOf("") }
     var splitAtSeconds by remember { mutableStateOf("") }
     var splitParts by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var musicUri by remember { mutableStateOf<Uri?>(null) }
@@ -1810,6 +1812,58 @@ fun NativeUploadScreen(session: NativeSession) {
     var voiceRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
     var voiceRecording by remember { mutableStateOf(false) }
     var audioStatus by remember { mutableStateOf("Music चुनें या Voice recording शुरू करें।") }
+    fun inspectSelectedVideo(uri: Uri) {
+        try {
+            val resolver = context.contentResolver
+            var displayName = uri.lastPathSegment?.substringAfterLast('/') ?: "Video"
+            var fileSize = 0L
+            resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (nameIndex >= 0) displayName = cursor.getString(nameIndex) ?: displayName
+                    if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) fileSize = cursor.getLong(sizeIndex)
+                }
+            }
+            if (fileSize <= 0L && uri.scheme == "file") fileSize = uri.path?.let(::File)?.length() ?: 0L
+            val mimeType = resolver.getType(uri) ?: "Unknown"
+            val width = sourceWidth
+            val height = sourceHeight
+            val ratio = if (height > 0) width.toDouble() / height.toDouble() else 0.0
+            val ratioLabel = when {
+                ratio in 0.55..0.58 -> "9:16 · Vertical"
+                ratio in 0.74..0.76 -> "3:4 · Portrait"
+                ratio in 0.99..1.01 -> "1:1 · Square"
+                ratio in 1.32..1.35 -> "4:3 · Landscape"
+                ratio in 1.76..1.79 -> "16:9 · Widescreen"
+                ratio > 1.0 -> "Landscape · " + "%.2f".format(ratio) + ":1"
+                ratio > 0.0 -> "Portrait · 1:" + "%.2f".format(1.0 / ratio)
+                else -> "Unknown"
+            }
+            val quality = when {
+                width >= 3840 || height >= 3840 -> "4K / UHD"
+                width >= 2560 || height >= 2560 -> "1440p / QHD"
+                width >= 1920 || height >= 1920 -> "1080p / Full HD"
+                width >= 1280 || height >= 1280 -> "720p / HD"
+                else -> "SD"
+            }
+            val sizeLabel = if (fileSize > 0L) "%.2f MB".format(fileSize / 1048576.0) else "Unavailable"
+            videoInfoDetails = listOf(
+                "Name: $displayName",
+                "Resolution: $width × $height",
+                "Aspect ratio: $ratioLabel",
+                "Source quality: $quality",
+                "Duration: $sourceDurationSeconds sec",
+                "File size: $sizeLabel",
+                "Format: $mimeType",
+                "Gallery upload maximum: 10,800 sec (3 hours)"
+            ).joinToString("\n")
+            videoInfoExpanded = true
+        } catch (e: Exception) {
+            status = e.message ?: "Video information पढ़ नहीं सके।"
+            videoInfoExpanded = false
+        }
+    }
     fun acceptSelectedVideo(uri: Uri?, source: String) {
         if (uri == null) {
             status = if (source == "camera") "Camera से वीडियो वापस नहीं मिला। दोबारा रिकॉर्ड करें या Gallery चुनें।" else status
@@ -1854,6 +1908,8 @@ fun NativeUploadScreen(session: NativeSession) {
             overlayTextPosition = "center"
             overlayTextX = 0f
             overlayTextY = 0f
+            videoInfoExpanded = false
+            videoInfoDetails = ""
             editing = true
             status = if (source == "camera") "Camera recording मिल गई। Native editor में बदलाव करके Publish करें।" else "वीडियो चुना गया। Trim, rotate या mute सेट करके Apply edits दबाएँ।"
         } catch (e: Exception) {
@@ -2031,6 +2087,16 @@ fun NativeUploadScreen(session: NativeSession) {
         Text(selected?.lastPathSegment ?: "कोई वीडियो नहीं चुना गया")
         if (selected != null && sourceWidth > 0 && sourceHeight > 0) {
             Text("Video Info · ${sourceWidth} × ${sourceHeight} · ${sourceDurationSeconds}s")
+        }
+        if (selected != null) {
+            OutlinedButton(onClick = { inspectSelectedVideo(selected!!) }, enabled = !uploading, modifier = Modifier.fillMaxWidth()) {
+                Text(if (videoInfoExpanded) "Hide Video Info" else "Inspect Video Information")
+            }
+            if (videoInfoExpanded) {
+                Card(Modifier.fillMaxWidth()) {
+                    Text(videoInfoDetails, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
+                }
+            }
         }
         if (previewPlayer != null) {
             Box(Modifier.fillMaxWidth().height(240.dp).onSizeChanged { previewTextSize = it }) {
