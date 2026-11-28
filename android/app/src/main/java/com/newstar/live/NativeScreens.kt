@@ -2861,7 +2861,11 @@ internal object NativeVideoEditor {
         val durationMs = withContext(Dispatchers.IO) {
             val retriever = MediaMetadataRetriever()
             try {
-                retriever.setDataSource(context, input)
+                if (input.scheme == "http" || input.scheme == "https") {
+                    retriever.setDataSource(input.toString(), emptyMap())
+                } else {
+                    retriever.setDataSource(context, input)
+                }
                 retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
                     ?: error("Original video duration पढ़ी नहीं जा सकी।")
             } finally {
