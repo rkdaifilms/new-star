@@ -79,9 +79,11 @@ internal object NativeVideoCache {
      */
     suspend fun preload(context: Context, url: String) = withContext(Dispatchers.IO) {
         if (!url.startsWith("https://") && !url.startsWith("http://")) return@withContext
-        var dataSource: DataSource? = null
+        var dataSource: androidx.media3.datasource.cache.CacheDataSource? = null
         try {
-            dataSource = dataSourceFactory(context).createDataSource()
+            val cacheFactory = dataSourceFactory(context) as? CacheDataSource.Factory
+                ?: return@withContext
+            dataSource = cacheFactory.createDataSource()
             val spec = DataSpec.Builder()
                 .setUri(Uri.parse(url))
                 .setPosition(0L)
