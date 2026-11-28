@@ -45,6 +45,14 @@ internal object NativeVideoCache {
         }
     }
 
+    fun playbackDataSourceFactory(context: Context, preferOffline: Boolean): DataSource.Factory {
+        if (preferOffline) {
+            runCatching { NativeOfflineDownloads.offlineDataSourceFactory(context) }
+                .getOrNull()?.let { return it }
+        }
+        return dataSourceFactory(context)
+    }
+
     fun dataSourceFactory(context: Context): DataSource.Factory {
         val upstream = DefaultHttpDataSource.Factory()
             .setUserAgent("NewStar-Android")
