@@ -3173,11 +3173,12 @@ fun NativeGamingScreen(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
                                 modifier = Modifier.weight(1f),
+                                enabled = !state.guestMediaUpdating,
                                 onClick = { gamingViewModel.setGuestCameraEnabled(!state.guestPublisherCameraEnabled) }
                             ) { Text(if (state.guestPublisherCameraEnabled) "Turn camera off" else "Turn camera on") }
                             OutlinedButton(
                                 modifier = Modifier.weight(1f),
-                                enabled = state.guestMicrophoneAllowed,
+                                enabled = state.guestMicrophoneAllowed && !state.guestMediaUpdating,
                                 onClick = { gamingViewModel.setGuestMicrophoneEnabled(!state.guestPublisherMicEnabled) }
                             ) { Text(if (state.guestPublisherMicEnabled) "Mute mic" else "Unmute mic") }
                         }
