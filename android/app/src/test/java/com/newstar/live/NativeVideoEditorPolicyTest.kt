@@ -73,4 +73,24 @@ class NativeVideoEditorPolicyTest {
         }
     }
 
+    @Test
+    fun acceptsDraggableTextCoordinatesInsidePreview() {
+        NativeVideoEditorPolicy.requireTextCoordinates(0f, 0f)
+        NativeVideoEditorPolicy.requireTextCoordinates(-0.85f, 0.85f)
+        NativeVideoEditorPolicy.requireTextCoordinates(0.85f, -0.85f)
+    }
+
+    @Test
+    fun rejectsDraggableTextCoordinatesOutsidePreview() {
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.requireTextCoordinates(-0.86f, 0f)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.requireTextCoordinates(0f, 0.86f)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.requireTextCoordinates(Float.NaN, 0f)
+        }
+    }
+
 }
