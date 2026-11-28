@@ -621,7 +621,7 @@ Deno.serve(async (req: Request) => {
       const isHost = room.creator_id === creatorId;
       const member = isHost ? null : await sfuMember(roomId, creatorId);
       const admitted = member?.status === "admitted";
-      const actorCanPublish = isHost || (admitted && member?.camera_allowed === true);
+      const actorCanPublish = isHost || (admitted && (member?.camera_allowed === true || member?.microphone_allowed === true));
       if (action === "sfu-create-session") {
         const role = body.role === "publisher" ? "publisher" : "subscriber";
         if (role === "publisher" && !actorCanPublish) {
@@ -681,7 +681,7 @@ Deno.serve(async (req: Request) => {
         const { data: pubs, error: pubsError } = await admin.from("live_sfu_sessions")
           .select("session_id,user_id,published_tracks").eq("room_id", roomId).eq("role", "publisher").eq("status", "active");
         if (pubsError) return json({ error: "Could not list active LIVE publications." }, 503, headers);
-        const allowed = (pubs || []).filter(p => p.user_id === creatorId || isHost || admitted);
+        const allowed = pubs || [];
         return json({ ok: true, publications: allowed.flatMap(p =>
           (Array.isArray(p.published_tracks) ? p.published_tracks : []).map((t: {trackName?: string; mid?: string}) => ({
             session_id: p.session_id, user_id: p.user_id, track_name: t.trackName, mid: t.mid
