@@ -35,6 +35,7 @@ import androidx.lifecycle.lifecycleScope
 import coil.compose.AsyncImage
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.Dispatchers
@@ -1637,6 +1638,7 @@ private fun NativeHome(
     onAskAi: (String) -> Unit,
     onNavigate: (String) -> Unit
 ) {
+    val feedContext = LocalContext.current.applicationContext
     var category by remember { mutableStateOf("All") }
     var feedMode by remember { mutableStateOf("For You") }
     var search by remember { mutableStateOf("") }
@@ -1691,6 +1693,15 @@ private fun NativeHome(
             feed = emptyList()
             error = e.message ?: "Feed लोड नहीं हो सकी।"
         } finally { loading = false }
+    }
+
+    LaunchedEffect(feedPagerState.currentPage, visibleFeed) {
+        val nextVideo = visibleFeed.getOrNull(feedPagerState.currentPage + 1)
+        if (nextVideo != null) {
+            withContext(Dispatchers.IO) {
+                NativeVideoCache.preload(context = feedContext, url = nextVideo.url)
+            }
+        }
     }
 
     LaunchedEffect(feedPagerState.currentPage, feed.size, canLoadMore, loading, pageRetry, feedMode, category, session?.userId) {
@@ -2008,9 +2019,11 @@ private fun NativeVideoCard(
         }
     }
     val exoPlayer = remember(video.url) {
-        ExoPlayer.Builder(context).build().apply {
-            setMediaItem(MediaItem.fromUri(video.url)); prepare(); playWhenReady = false
-        }
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(NativeVideoCache.dataSourceFactory(context)))
+            .build().apply {
+                setMediaItem(MediaItem.fromUri(video.url)); prepare(); playWhenReady = false
+            }
     }
     DisposableEffect(exoPlayer) { onDispose { exoPlayer.release() } }
     LaunchedEffect(isActive) {
