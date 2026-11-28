@@ -16,6 +16,7 @@ import androidx.camera.video.PendingRecording
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.PreviewView
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.io.File
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -3002,139 +3003,128 @@ fun NativeGamingScreen(
     onStop: () -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var title by remember { mutableStateOf("") }
-    var preparing by remember { mutableStateOf(false) }
-    var streaming by remember { mutableStateOf(false) }
-    var micAvailable by remember { mutableStateOf(false) }
-    var micEnabled by remember { mutableStateOf(false) }
-    var statusMessage by remember { mutableStateOf("Gaming LIVE Android screen capture") }
-    var chatText by remember { mutableStateOf("") }
-    var chatMessages by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
-    var reactionCounts by remember { mutableStateOf(mapOf("like" to 0, "heart" to 0, "clap" to 0, "fire" to 0)) }
-    var chatLoading by remember { mutableStateOf(false) }
-    var chatSending by remember { mutableStateOf(false) }
-    var reactionBusy by remember { mutableStateOf(false) }
-    var chatError by remember { mutableStateOf("") }
+    val gamingViewModel: NativeGamingViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        key = "native-gaming-${session.userId}",
+        factory = remember(session.userId) { NativeGamingViewModel.Factory(session) }
+    )
+    val state by gamingViewModel.state.collectAsStateWithLifecycle()
 
-    fun refreshChat(showLoading: Boolean = false) {
-        val activeRoom = roomId ?: return
-        scope.launch {
-            if (showLoading) chatLoading = true
-            try {
-                chatMessages = NativeLiveRepository.listLiveChat(activeRoom, session)
-                reactionCounts = NativeLiveRepository.getReactionCounts(activeRoom, session)
-                chatError = ""
-            } catch (error: Exception) {
-                chatError = error.message ?: "LIVE chat refresh नहीं हुई।"
-            } finally {
-                chatLoading = false
-            }
-        }
-    }
-
-    LaunchedEffect(roomId, streaming) {
-        if (roomId.isNullOrBlank() || !streaming) {
-            chatMessages = emptyList()
-            reactionCounts = mapOf("like" to 0, "heart" to 0, "clap" to 0, "fire" to 0)
-            return@LaunchedEffect
-        }
-        refreshChat(true)
-        while (true) {
-            delay(5000)
-            refreshChat()
-        }
-    }
-
-    DisposableEffect(context) {
+    DisposableEffect(context, gamingViewModel) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                statusMessage = intent?.getStringExtra("message") ?: "Gaming LIVE status update"
-                val state = intent?.getStringExtra("status").orEmpty()
-                preparing = state == "starting" || state == "connecting"
-                if (state == "connected") streaming = true
-                if (state == "error") streaming = false
-                if (intent?.hasExtra("mic_available") == true) micAvailable = intent.getBooleanExtra("mic_available", false)
-                if (intent?.hasExtra("mic_enabled") == true) micEnabled = intent.getBooleanExtra("mic_enabled", false)
+                gamingViewModel.updateStreamStatus(
+                    status = intent?.getStringExtra("status").orEmpty(),
+                    message = intent?.getStringExtra("message"),
+                    micAvailable = if (intent?.hasExtra("mic_available") == true) intent.getBooleanExtra("mic_available", false) else null,
+                    micEnabled = if (intent?.hasExtra("mic_enabled") == true) intent.getBooleanExtra("mic_enabled", false) else null
+                )
             }
         }
         ContextCompat.registerReceiver(context, receiver, IntentFilter(GamingStreamService.STATUS), ContextCompat.RECEIVER_NOT_EXPORTED)
-        onDispose { runCatching { context.unregisterReceiver(receiver) } }
+        onDispose {
+            runCatching { context.unregisterReceiver(receiver) }
+            gamingViewModel.stopPolling()
+        }
+    }
+
+    LaunchedEffect(roomId, state.streaming) {
+        if (!roomId.isNullOrBlank() && state.streaming) gamingViewModel.startPolling(roomId)
+        else gamingViewModel.stopPolling()
     }
 
     Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Native Gaming LIVE", style = MaterialTheme.typography.headlineSmall)
         Text("यह स्क्रीन Android MediaProjection और native GamingStreamService का उपयोग करती है। LIVE eligibility server पर जाँची जाएगी।")
-        OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Gaming room title") })
-        Button(enabled = !preparing && !streaming && title.trim().isNotEmpty(), modifier = Modifier.fillMaxWidth(), onClick = {
-            preparing = true
-            statusMessage = "Cloudflare LIVE room तैयार हो रहा है…"
-            onStart(title.trim())
-        }) { Text(if (preparing) "Preparing…" else "Start Gaming LIVE") }
-        if (streaming && micAvailable) {
-            OutlinedButton(onClick = {
-                context.startService(Intent(context, GamingStreamService::class.java).setAction(GamingStreamService.SET_MIC).putExtra(GamingStreamService.MIC_ENABLED, !micEnabled))
-            }, modifier = Modifier.fillMaxWidth()) { Text(if (micEnabled) "Mute microphone" else "Unmute microphone") }
+        OutlinedTextField(
+            value = state.title,
+            onValueChange = gamingViewModel::setTitle,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Gaming room title") },
+            enabled = !state.preparing && !state.streaming
+        )
+        Button(
+            enabled = !state.preparing && !state.streaming && state.title.trim().isNotEmpty(),
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                gamingViewModel.beginPreparing()
+                onStart(state.title.trim())
+            }
+        ) { Text(if (state.preparing) "Preparing…" else "Start Gaming LIVE") }
+
+        if (state.streaming && state.micAvailable) {
+            OutlinedButton(
+                onClick = {
+                    context.startService(
+                        Intent(context, GamingStreamService::class.java)
+                            .setAction(GamingStreamService.SET_MIC)
+                            .putExtra(GamingStreamService.MIC_ENABLED, !state.micEnabled)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (state.micEnabled) "Mute microphone" else "Unmute microphone") }
         }
-        if (streaming && !roomId.isNullOrBlank()) {
+
+        if (state.streaming && !roomId.isNullOrBlank()) {
             HorizontalDivider()
             Text("Gaming LIVE chat", style = MaterialTheme.typography.titleMedium)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("like" to "👍", "heart" to "❤️", "clap" to "👏", "fire" to "🔥").forEach { (kind, emoji) ->
-                    OutlinedButton(enabled = !reactionBusy, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp), onClick = {
-                        reactionBusy = true
-                        scope.launch {
-                            try {
-                                NativeLiveRepository.sendReaction(roomId, kind, session)
-                                reactionCounts = NativeLiveRepository.getReactionCounts(roomId, session)
-                                chatError = ""
-                            } catch (error: Exception) { chatError = error.message ?: "Reaction भेजा नहीं गया।" }
-                            finally { reactionBusy = false }
-                        }
-                    }) { Text("$emoji ${reactionCounts[kind] ?: 0}") }
+                    OutlinedButton(
+                        enabled = !state.reactionBusy,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                        onClick = { gamingViewModel.sendReaction(roomId, kind) }
+                    ) { Text("$emoji ${state.reactionCounts[kind] ?: 0}") }
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = chatText, onValueChange = { if (it.length <= 500) chatText = it }, modifier = Modifier.weight(1f), label = { Text("Message (max 500)") }, enabled = !chatSending, maxLines = 3)
-                Button(enabled = !chatSending && chatText.isNotBlank(), onClick = {
-                    val outgoing = chatText.trim()
-                    chatSending = true
-                    scope.launch {
-                        try {
-                            val sent = NativeLiveRepository.sendLiveChatMessage(roomId, outgoing, session)
-                            chatMessages = (chatMessages + sent).distinctBy { it.optString("id") }.takeLast(100)
-                            chatText = ""
-                            chatError = ""
-                        } catch (error: Exception) { chatError = error.message ?: "Message भेजा नहीं गया।" }
-                        finally { chatSending = false }
-                    }
-                }) { Text(if (chatSending) "…" else "Send") }
+                OutlinedTextField(
+                    value = state.chatText,
+                    onValueChange = gamingViewModel::setChatText,
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Message (max 500)") },
+                    enabled = !state.chatSending,
+                    maxLines = 3
+                )
+                Button(
+                    enabled = !state.chatSending && state.chatText.isNotBlank(),
+                    onClick = { gamingViewModel.sendMessage(roomId) }
+                ) { Text(if (state.chatSending) "…" else "Send") }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(if (chatLoading) "Chat loading…" else "${chatMessages.size} messages")
-                TextButton(onClick = { refreshChat(true) }) { Text("Refresh") }
+                Text(if (state.chatLoading) "Chat loading…" else "${state.chatMessages.size} messages")
+                TextButton(onClick = { gamingViewModel.refreshChat(true) }) { Text("Refresh") }
             }
-            if (chatError.isNotBlank()) Text(chatError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            if (chatMessages.isEmpty()) Text("अभी कोई message नहीं है।", style = MaterialTheme.typography.bodySmall)
-            else LazyColumn(Modifier.fillMaxWidth().heightIn(max = 260.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(chatMessages, key = { it.optString("id") }) { item ->
-                    Column(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-                        Text(item.optString("display_name", "Creator"), style = MaterialTheme.typography.labelMedium)
-                        Text(item.optString("message"), style = MaterialTheme.typography.bodyMedium)
+            if (state.chatError.isNotBlank()) {
+                Text(state.chatError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            if (state.chatMessages.isEmpty()) {
+                Text("अभी कोई message नहीं है।", style = MaterialTheme.typography.bodySmall)
+            } else {
+                LazyColumn(Modifier.fillMaxWidth().heightIn(max = 260.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(state.chatMessages, key = { it.optString("id") }) { item ->
+                        Column(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                            Text(item.optString("display_name", "Creator"), style = MaterialTheme.typography.labelMedium)
+                            Text(item.optString("message"), style = MaterialTheme.typography.bodyMedium)
+                        }
                     }
                 }
             }
         }
-        OutlinedButton(onClick = {
-            onStop()
-            preparing = false
-            streaming = false
-            micAvailable = false
-            micEnabled = false
-            chatMessages = emptyList()
-        }, enabled = preparing || streaming || !roomId.isNullOrBlank(), modifier = Modifier.fillMaxWidth()) { Text("Stop Gaming LIVE") }
-        Text(statusMessage)
-        Text("Game/system audio अलग से capture और WebRTC में mix नहीं किया गया है; उपलब्धता Android version और device restrictions पर निर्भर करती है।", style = MaterialTheme.typography.bodySmall)
+
+        OutlinedButton(
+            onClick = {
+                onStop()
+                gamingViewModel.resetAfterStop()
+            },
+            enabled = state.preparing || state.streaming || !roomId.isNullOrBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Stop Gaming LIVE") }
+        Text(state.statusMessage)
+        Text(
+            "Game/system audio अलग से capture और WebRTC में mix नहीं किया गया है; उपलब्धता Android version और device restrictions पर निर्भर करती है।",
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
 
