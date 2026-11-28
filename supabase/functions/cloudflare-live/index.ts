@@ -42,10 +42,10 @@ Deno.serve(async (req: Request) => {
   const { data: auth, error: authError } = await userClient.auth.getUser();
   if (authError || !auth.user) return json({ error: "Valid login required." }, 401, headers);
 
-  let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string; microphone_enabled?: boolean; camera_enabled?: boolean; target_user_id?: string; camera_allowed?: boolean; microphone_allowed?: boolean; moderator?: boolean; match_id?: string };
+  let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string; microphone_enabled?: boolean; camera_enabled?: boolean; target_user_id?: string; camera_allowed?: boolean; microphone_allowed?: boolean; moderator?: boolean; match_id?: string; session_id?: string; role?: string; session_description?: { type?: string; sdp?: string }; tracks?: Array<{ mid?: string; trackName?: string; sessionId?: string; location?: string }>; track_names?: string[] };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
-  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "list-members", "set-member-permissions", "set-moderator", "remove-member", "pk-join-queue", "pk-status", "pk-leave-queue", "pk-finish", "sfu-health"];
+  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "list-members", "set-member-permissions", "set-moderator", "remove-member", "pk-join-queue", "pk-status", "pk-leave-queue", "pk-finish", "sfu-health", "sfu-create-session", "sfu-publish", "sfu-subscribe", "sfu-renegotiate", "sfu-close", "sfu-list-pubs"];
   if (!supportedActions.includes(String(action))) return json({ error: "This LIVE interaction is not enabled on the server yet." }, 501, headers);
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -579,6 +579,162 @@ Deno.serve(async (req: Request) => {
     }).eq("match_id", matchId).eq("status", "matched");
     if (queueError) return json({ error: "Battle ended, but matchmaking cleanup failed. Refresh status." }, 503, headers);
     return json({ ok: true }, 200, headers);
+  }
+
+
+  const sfuAppId = Deno.env.get("CLOUDFLARE_SFU_APP_ID") || "";
+  const sfuAppSecret = Deno.env.get("CLOUDFLARE_SFU_APP_SECRET") || "";
+  const sfuConfigured = /^[a-f0-9]{32}$/i.test(sfuAppId) && /^[a-f0-9]{64}$/i.test(sfuAppSecret);
+  async function sfuRequest(path: string, method: string, payload?: unknown) {
+    const response = await fetch("https://rtc.live.cloudflare.com/v1/apps/" + sfuAppId + path, {
+      method,
+      headers: { "Authorization": "Bearer " + sfuAppSecret, "Content-Type": "application/json" },
+      ...(payload === undefined ? {} : { body: JSON.stringify(payload) })
+    });
+    const raw = await response.text();
+    let parsed: Record<string, unknown> = {};
+    try { parsed = raw ? JSON.parse(raw) : {}; } catch { parsed = { errorDescription: raw.slice(0, 300) }; }
+    if (!response.ok) {
+      console.error("Cloudflare SFU request failed", method, path, response.status, parsed);
+      throw new Error("Cloudflare Realtime request failed (" + response.status + "): " +
+        String(parsed.errorDescription || parsed.error || "Unknown SFU error").slice(0, 220));
+    }
+    return parsed;
+  }
+  async function sfuRoom(roomId: string) {
+    const { data, error } = await getActiveRoom(roomId);
+    if (error || !data) throw new Error("Active LIVE room not found.");
+    return data;
+  }
+  async function sfuMember(roomId: string, userId: string) {
+    const { data, error } = await admin.from("live_room_participants")
+      .select("id,role,status,camera_allowed,microphone_allowed").eq("room_id", roomId).eq("user_id", userId).maybeSingle();
+    if (error) throw new Error("Could not verify LIVE membership.");
+    return data;
+  }
+
+  if (String(action).startsWith("sfu-") && action !== "sfu-health") {
+    if (!sfuConfigured) return json({ error: "Cloudflare Realtime SFU credentials are not configured on the server." }, 503, headers);
+    try {
+      const roomId = String(body.room_id || "");
+      const room = await sfuRoom(roomId);
+      const isHost = room.creator_id === creatorId;
+      const member = isHost ? null : await sfuMember(roomId, creatorId);
+      const admitted = member?.status === "admitted";
+      const actorCanPublish = isHost || (admitted && member?.camera_allowed === true);
+      if (action === "sfu-create-session") {
+        const role = body.role === "publisher" ? "publisher" : "subscriber";
+        if (role === "publisher" && !actorCanPublish) {
+          return json({ error: "Only the host or an admitted guest with camera permission can publish." }, 403, headers);
+        }
+        if (role === "subscriber" && !isHost && !admitted) {
+          const { error: touchError } = await admin.from("live_rooms").select("id").eq("id", roomId).maybeSingle();
+          if (touchError) return json({ error: "Could not verify room access." }, 503, headers);
+        }
+        const created = await sfuRequest("/sessions/new", "POST");
+        const sessionId = String(created.sessionId || "");
+        if (!sessionId) return json({ error: "Cloudflare did not return an SFU session ID." }, 502, headers);
+        const { error: saveError } = await admin.from("live_sfu_sessions").insert({
+          room_id: roomId, user_id: creatorId, session_id: sessionId, role, status: "active"
+        });
+        if (saveError) {
+          await sfuRequest("/sessions/" + encodeURIComponent(sessionId) + "/tracks/close", "PUT", { tracks: [], force: true }).catch(() => {});
+          return json({ error: "Could not save SFU session state." }, 503, headers);
+        }
+        if (role === "publisher" && member) {
+          await admin.from("live_room_participants").update({ sfu_session_id: sessionId, sfu_connected: false })
+            .eq("id", member.id);
+        }
+        return json({ ok: true, session_id: sessionId }, 200, headers);
+      }
+
+      const sessionId = String(body.session_id || "");
+      if (!sessionId) return json({ error: "SFU session ID is required." }, 400, headers);
+      const { data: session, error: sessionError } = await admin.from("live_sfu_sessions")
+        .select("id,room_id,user_id,session_id,role,status,published_tracks,subscribed_tracks")
+        .eq("session_id", sessionId).eq("room_id", roomId).eq("user_id", creatorId).eq("status", "active").maybeSingle();
+      if (sessionError || !session) return json({ error: "Active SFU session not found for this user and room." }, 404, headers);
+
+      if (action === "sfu-publish") {
+        if (session.role !== "publisher" || !actorCanPublish) return json({ error: "Publishing permission is not active." }, 403, headers);
+        if (!body.session_description?.sdp || body.session_description.type !== "offer") {
+          return json({ error: "A complete local SDP offer is required." }, 400, headers);
+        }
+        const requested = Array.isArray(body.tracks) ? body.tracks : [];
+        if (!requested.length || requested.length > 2 || requested.some(t =>
+          t.location !== "local" || !["camera", "microphone"].includes(String(t.trackName)) || !String(t.mid || "").match(/^\d+$/)
+        )) return json({ error: "Publish only the permitted camera and microphone tracks." }, 400, headers);
+        if (requested.some(t => t.trackName === "camera") && !isHost && member?.camera_allowed !== true) return json({ error: "Camera permission was revoked." }, 403, headers);
+        if (requested.some(t => t.trackName === "microphone") && !isHost && member?.microphone_allowed !== true) return json({ error: "Microphone permission was revoked." }, 403, headers);
+        const result = await sfuRequest("/sessions/" + encodeURIComponent(sessionId) + "/tracks/new", "POST", {
+          sessionDescription: body.session_description, tracks: requested
+        });
+        const published = requested.map(t => ({ mid: t.mid, trackName: t.trackName }));
+        const { error: updateError } = await admin.from("live_sfu_sessions")
+          .update({ published_tracks: published, updated_at: new Date().toISOString() }).eq("id", session.id);
+        if (updateError) return json({ error: "Tracks were negotiated but publication state could not be saved. Reconnect the publisher." }, 503, headers);
+        if (member) await admin.from("live_room_participants").update({ sfu_connected: true }).eq("id", member.id);
+        return json({ ok: true, ...result }, 200, headers);
+      }
+
+      if (action === "sfu-list-pubs") {
+        const { data: pubs, error: pubsError } = await admin.from("live_sfu_sessions")
+          .select("session_id,user_id,published_tracks").eq("room_id", roomId).eq("role", "publisher").eq("status", "active");
+        if (pubsError) return json({ error: "Could not list active LIVE publications." }, 503, headers);
+        const allowed = (pubs || []).filter(p => p.user_id === creatorId || isHost || admitted);
+        return json({ ok: true, publications: allowed.flatMap(p =>
+          (Array.isArray(p.published_tracks) ? p.published_tracks : []).map((t: {trackName?: string; mid?: string}) => ({
+            session_id: p.session_id, user_id: p.user_id, track_name: t.trackName, mid: t.mid
+          }))
+        ) }, 200, headers);
+      }
+
+      if (action === "sfu-subscribe") {
+        if (session.role !== "subscriber") return json({ error: "This session cannot subscribe to publications." }, 403, headers);
+        const requested = Array.isArray(body.tracks) ? body.tracks : [];
+        if (!requested.length || requested.length > 20 || requested.some(t =>
+          t.location !== "remote" || !String(t.sessionId || "").trim() || !["camera", "microphone"].includes(String(t.trackName))
+        )) return json({ error: "A valid list of remote camera/microphone publications is required." }, 400, headers);
+        for (const t of requested) {
+          const { data: pub } = await admin.from("live_sfu_sessions").select("id")
+            .eq("room_id", roomId).eq("session_id", t.sessionId).eq("role", "publisher").eq("status", "active").maybeSingle();
+          if (!pub) return json({ error: "A requested publication is no longer active in this room." }, 409, headers);
+        }
+        const result = await sfuRequest("/sessions/" + encodeURIComponent(sessionId) + "/tracks/new", "POST", { tracks: requested });
+        const { error: updateError } = await admin.from("live_sfu_sessions")
+          .update({ subscribed_tracks: requested, updated_at: new Date().toISOString() }).eq("id", session.id);
+        if (updateError) return json({ error: "Subscription negotiation started but state could not be saved." }, 503, headers);
+        return json({ ok: true, ...result }, 200, headers);
+      }
+
+      if (action === "sfu-renegotiate") {
+        if (!body.session_description?.sdp || body.session_description.type !== "answer") {
+          return json({ error: "A complete local SDP answer is required." }, 400, headers);
+        }
+        const result = await sfuRequest("/sessions/" + encodeURIComponent(sessionId) + "/renegotiate", "PUT", {
+          sessionDescription: body.session_description
+        });
+        return json({ ok: true, ...result }, 200, headers);
+      }
+
+      if (action === "sfu-close") {
+        const forceTracks = Array.isArray(body.tracks) ? body.tracks : [];
+        const result = await sfuRequest("/sessions/" + encodeURIComponent(sessionId) + "/tracks/close", "PUT", {
+          tracks: forceTracks.map(t => ({ mid: t.mid })), force: true
+        });
+        const { error: closeError } = await admin.from("live_sfu_sessions").update({
+          status: "closed", updated_at: new Date().toISOString()
+        }).eq("id", session.id);
+        if (closeError) return json({ error: "Media closed but session state cleanup failed." }, 503, headers);
+        if (session.role === "publisher" && member) {
+          await admin.from("live_room_participants").update({ sfu_connected: false, sfu_session_id: null })
+            .eq("id", member.id).eq("sfu_session_id", sessionId);
+        }
+        return json({ ok: true, ...result }, 200, headers);
+      }
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "Cloudflare Realtime operation failed." }, 502, headers);
+    }
   }
 
   if (action === "sfu-health") {
