@@ -58,6 +58,7 @@ data class NativeGamingUiState(
     val guestPublisherStarting: Boolean = false,
     val guestPublisherCameraEnabled: Boolean = true,
     val guestPublisherMicEnabled: Boolean = false,
+    val guestPublisherMicAvailable: Boolean = false,
     val guestMediaUpdating: Boolean = false,
     val guestPublisherError: String = ""
 )
@@ -460,6 +461,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                         guestPublisherReady = true,
                         guestPublisherCameraEnabled = true,
                         guestPublisherMicEnabled = micOn,
+                        guestPublisherMicAvailable = publisher.hasMicrophoneTrack,
                         guestPublisherError = "आपका camera LIVE seat पर publish हो रहा है।"
                     )
                 }
@@ -520,6 +522,10 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
             mutableState.update { it.copy(guestPublisherError = "Host ने microphone permission नहीं दी है।") }
             return
         }
+        if (enabled && !current.guestPublisherMicAvailable) {
+            mutableState.update { it.copy(guestPublisherError = "Android microphone permission दें और camera publisher दोबारा शुरू करें।") }
+            return
+        }
         if (roomId.isBlank() || guestPublisher == null || current.guestMediaUpdating ||
             current.guestPublisherMicEnabled == enabled
         ) return
@@ -554,6 +560,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 guestPublisherReady = false,
                 guestPublisherCameraEnabled = false,
                 guestPublisherMicEnabled = false,
+                guestPublisherMicAvailable = false,
                 guestMediaUpdating = false,
                 guestPublisherStarting = false
             )
