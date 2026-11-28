@@ -642,6 +642,11 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
     var followRequestProfiles by remember(session.userId) { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
     var followRequestsLoading by remember(session.userId) { mutableStateOf(true) }
     var requestActionIds by remember(session.userId) { mutableStateOf<Set<String>>(emptySet()) }
+    var relationTab by remember(session.userId) { mutableStateOf("followers") }
+    var relationRows by remember(session.userId) { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var relationProfiles by remember(session.userId) { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
+    var relationsLoading by remember(session.userId) { mutableStateOf(false) }
+    var relationActionIds by remember(session.userId) { mutableStateOf<Set<String>>(emptySet()) }
     var body by remember { mutableStateOf("") }
     var attachmentUrl by remember { mutableStateOf("") }
     var selectedAttachmentUri by remember { mutableStateOf<Uri?>(null) }
@@ -913,6 +918,38 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
         }
     }
 
+    LaunchedEffect(session.userId, refresh, relationTab) {
+        relationsLoading = true
+        error = ""
+        try {
+            val column = if (relationTab == "followers") "follower_id" else "following_id"
+            val filterColumn = if (relationTab == "followers") "following_id" else "follower_id"
+            val rows = NativeSupabase.get(
+                "/rest/v1/followers?select=follower_id,following_id,created_at&$filterColumn=eq.${Uri.encode(session.userId)}&order=created_at.desc&limit=200",
+                session
+            )
+            relationRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+            val ids = relationRows.mapNotNull { row ->
+                row.optString(column).takeIf { it.isNotBlank() }
+            }.distinct()
+            relationProfiles = if (ids.isEmpty()) emptyMap() else {
+                val encodedIds = Uri.encode("(${ids.joinToString(",")})")
+                val profiles = NativeSupabase.get(
+                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url,bio&user_id=in.$encodedIds",
+                    session
+                )
+                (0 until profiles.length()).mapNotNull { profiles.optJSONObject(it) }
+                    .associateBy { it.optString("user_id") }
+            }
+        } catch (e: Exception) {
+            error = e.message ?: "Followers/Following सूची लोड नहीं हुई।"
+            relationRows = emptyList()
+            relationProfiles = emptyMap()
+        } finally {
+            relationsLoading = false
+        }
+    }
+
     var realtimeStatus by remember(session.userId) { mutableStateOf("Realtime connecting…") }
 
     DisposableEffect(session.userId, session.accessToken) {
@@ -1089,6 +1126,89 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                                                 }
                                             }
                                         }) { Text("Decline") }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Community", style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = relationTab == "followers",
+                        onClick = { relationTab = "followers" },
+                        label = { Text("Followers") }
+                    )
+                    FilterChip(
+                        selected = relationTab == "following",
+                        onClick = { relationTab = "following" },
+                        label = { Text("Following") }
+                    )
+                    Text("${relationRows.size}", style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(top = 10.dp))
+                }
+                if (relationsLoading) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                } else if (relationRows.isEmpty()) {
+                    Text(
+                        if (relationTab == "followers") "अभी कोई follower नहीं है।" else "आप अभी किसी को follow नहीं करते।",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LazyColumn(Modifier.heightIn(max = 190.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(relationRows, key = { row ->
+                            if (relationTab == "followers") row.optString("follower_id") else row.optString("following_id")
+                        }) { relation ->
+                            val creatorId = if (relationTab == "followers") {
+                                relation.optString("follower_id")
+                            } else relation.optString("following_id")
+                            val profile = relationProfiles[creatorId]
+                            val actionBusy = creatorId in relationActionIds
+                            Row(
+                                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                AsyncImage(
+                                    model = profile?.optString("avatar_url")?.takeIf { it.startsWith("https://") },
+                                    contentDescription = "Creator avatar",
+                                    modifier = Modifier.size(38.dp).clip(CircleShape)
+                                )
+                                Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                                    Text(
+                                        profile?.optString("full_name").orEmpty().ifBlank {
+                                            profile?.optString("username").orEmpty().ifBlank { "New Star Creator" }
+                                        },
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    profile?.optString("username")?.takeIf { it.isNotBlank() }?.let {
+                                        Text("@$it", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                if (relationTab == "following") {
+                                    OutlinedButton(enabled = !actionBusy, onClick = {
+                                        scope.launch {
+                                            relationActionIds = relationActionIds + creatorId
+                                            try {
+                                                NativeSupabase.delete(
+                                                    "/rest/v1/followers?follower_id=eq.${Uri.encode(session.userId)}&following_id=eq.${Uri.encode(creatorId)}",
+                                                    session
+                                                )
+                                                relationRows = relationRows.filterNot {
+                                                    it.optString("following_id") == creatorId
+                                                }
+                                                refresh++
+                                            } catch (e: Exception) {
+                                                error = e.message ?: "Unfollow नहीं हुआ।"
+                                            } finally {
+                                                relationActionIds = relationActionIds - creatorId
+                                            }
+                                        }
+                                    }) { Text(if (actionBusy) "…" else "Following") }
                                 }
                             }
                         }
