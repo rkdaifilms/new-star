@@ -402,16 +402,23 @@ private fun NativeApp(
     val scope = rememberCoroutineScope()
 
     DisposableEffect(context) {
-        NativeSystemNotifications.createChannel(context)
+        runCatching { NativeSystemNotifications.createChannel(context) }
+            .onFailure { android.util.Log.e("NewStarStartup", "Notification channel setup failed", it) }
         onDispose { }
     }
 
     LaunchedEffect(session?.userId) {
         val current = session
-        if (current == null) {
-            NativeBackgroundNotificationWork.cancel(context)
-        } else {
-            NativeBackgroundNotificationWork.schedule(context, current.userId)
+        try {
+            if (current == null) {
+                NativeBackgroundNotificationWork.cancel(context)
+            } else {
+                NativeBackgroundNotificationWork.schedule(context, current.userId)
+            }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            android.util.Log.e("NewStarStartup", "Background notification scheduling failed", error)
         }
     }
 
@@ -553,8 +560,16 @@ private fun NativeApp(
     }
 
     LaunchedEffect(Unit) {
-        session = NativeSupabase.validSession(context)
-        checkingSession = false
+        try {
+            session = NativeSupabase.validSession(context)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            android.util.Log.e("NewStarStartup", "Saved session restore failed; continuing signed out", error)
+            session = null
+        } finally {
+            checkingSession = false
+        }
     }
     LaunchedEffect(googleSession) {
         if (googleSession != null) {
