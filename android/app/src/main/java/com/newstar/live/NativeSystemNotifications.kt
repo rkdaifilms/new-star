@@ -17,6 +17,7 @@ object NativeSystemNotifications {
     const val ACTION_OPEN_CREATOR = "com.newstar.live.action.OPEN_CREATOR"
     const val EXTRA_CREATOR_ID = "com.newstar.live.extra.CREATOR_ID"
     const val EXTRA_NOTIFICATION_ID = "com.newstar.live.extra.NOTIFICATION_ID"
+    const val EXTRA_NOTIFICATION_TYPE = "com.newstar.live.extra.NOTIFICATION_TYPE"
     private const val CHANNEL_ID = "new_star_activity"
     private const val CHANNEL_NAME = "New Star activity"
 
@@ -51,6 +52,8 @@ object NativeSystemNotifications {
             if (creatorId.isNotBlank()) putExtra(EXTRA_CREATOR_ID, creatorId)
             val rowId = notification.optString("id")
             if (rowId.isNotBlank()) putExtra(EXTRA_NOTIFICATION_ID, rowId)
+            val type = notification.optString("type")
+            if (type.isNotBlank()) putExtra(EXTRA_NOTIFICATION_TYPE, type)
         }
         val notificationId = notification.optString("id").hashCode()
         val pendingIntent = PendingIntent.getActivity(
