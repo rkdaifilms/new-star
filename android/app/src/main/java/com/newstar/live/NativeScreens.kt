@@ -2508,7 +2508,7 @@ private object NativeVideoEditor {
             override fun getNextSpeedChangeTimeUs(timeUs: Long): Long = C.TIME_UNSET
         }
         val hasExternalAudio = musicUri != null || voiceoverFile != null
-        require(sourceVolume in 0f..1f) { "Original audio volume 0 से 100% के बीच होना चाहिए।" }
+        NativeVideoEditorPolicy.requireSourceVolume(sourceVolume)
         val videoAudioEffects = if (muteAudio) emptyList() else audioEffects(sourceVolume).audioProcessors
         val editedVideo = EditedMediaItem.Builder(mediaItem)
             .setEffects(Effects(videoAudioEffects, videoEffects))
