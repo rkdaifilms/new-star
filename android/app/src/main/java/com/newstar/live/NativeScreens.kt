@@ -3038,6 +3038,14 @@ fun NativeGamingScreen(
         }
     }
 
+    LaunchedEffect(session.userId) {
+        gamingViewModel.refreshInvitations()
+        while (true) {
+            delay(12_000)
+            gamingViewModel.refreshInvitations()
+        }
+    }
+
     LaunchedEffect(roomId, state.streaming) {
         if (!roomId.isNullOrBlank() && state.streaming) gamingViewModel.refreshMembers(roomId)
     }
@@ -3060,6 +3068,88 @@ fun NativeGamingScreen(
                 onStart(state.title.trim())
             }
         ) { Text(if (state.preparing) "Preparing…" else "Start Gaming LIVE") }
+
+        if (!state.streaming || roomId.isNullOrBlank()) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("आने वाले LIVE invitations", style = MaterialTheme.typography.titleMedium)
+                        TextButton(onClick = { gamingViewModel.refreshInvitations() }, enabled = !state.invitationsLoading) {
+                            Text(if (state.invitationsLoading) "Loading…" else "Refresh")
+                        }
+                    }
+                    if (state.invitationStatusMessage.isNotBlank()) {
+                        Text(state.invitationStatusMessage, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (state.invitationError.isNotBlank()) {
+                        Text(state.invitationError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (state.invitations.isEmpty() && !state.invitationsLoading) {
+                        Text("कोई pending LIVE invitation नहीं है।", style = MaterialTheme.typography.bodySmall)
+                    }
+                    state.invitations.forEach { invite ->
+                        val inviteId = invite.optString("id")
+                        Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(invite.optString("inviter_name", "New Star Creator"), style = MaterialTheme.typography.titleSmall)
+                            Text(invite.optString("room_title", "New Star LIVE"), style = MaterialTheme.typography.bodyMedium)
+                            Text("Invitation सीमित समय के लिए मान्य है। स्वीकार करने पर host को guest-seat request मिलेगी।", style = MaterialTheme.typography.bodySmall)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    enabled = state.invitationBusyId.isBlank(),
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { gamingViewModel.respondToCreatorInvite(inviteId, true) }
+                                ) { Text(if (state.invitationBusyId == inviteId) "Please wait…" else "Accept") }
+                                OutlinedButton(
+                                    enabled = state.invitationBusyId.isBlank(),
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { gamingViewModel.respondToCreatorInvite(inviteId, false) }
+                                ) { Text("Decline") }
+                            }
+                        }
+                        HorizontalDivider()
+                    }
+                }
+            }
+        }
+
+        if (state.streaming && state.actorRole == "host" && !roomId.isNullOrBlank()) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Gaming LIVE में creator invite करें", style = MaterialTheme.typography.titleMedium)
+                    OutlinedTextField(
+                        value = state.creatorQuery,
+                        onValueChange = gamingViewModel::setCreatorQuery,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Username या creator name") },
+                        singleLine = true,
+                        enabled = !state.creatorSearching
+                    )
+                    Button(
+                        onClick = { gamingViewModel.searchCreators() },
+                        enabled = !state.creatorSearching && state.creatorQuery.trim().length >= 2,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(if (state.creatorSearching) "Searching…" else "Search creators") }
+                    if (state.invitationError.isNotBlank()) {
+                        Text(state.invitationError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (state.invitationStatusMessage.isNotBlank()) {
+                        Text(state.invitationStatusMessage, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                    }
+                    state.creatorSearchResults.forEach { creator ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(Modifier.weight(1f)) {
+                                Text(creator.displayName, style = MaterialTheme.typography.bodyMedium)
+                                if (creator.username.isNotBlank()) Text("@" + creator.username, style = MaterialTheme.typography.bodySmall)
+                            }
+                            OutlinedButton(
+                                enabled = state.inviteSendingUserId.isBlank(),
+                                onClick = { gamingViewModel.sendCreatorInvite(roomId, creator.userId) }
+                            ) { Text(if (state.inviteSendingUserId == creator.userId) "Sending…" else "Invite") }
+                        }
+                    }
+                }
+            }
+        }
 
         if (state.streaming && state.micAvailable) {
             OutlinedButton(
