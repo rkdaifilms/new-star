@@ -2597,10 +2597,14 @@ private fun NativeVideoCard(
                 if (video.caption.isNotBlank()) { Spacer(Modifier.height(4.dp)); Text(video.caption) }
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Text("${video.category} · $likeCount likes · ${video.views} views",
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (!immersive) {
+                        Text("${video.category} · $likeCount likes · ${video.views} views",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
                     TextButton(
                         enabled = session != null && !likeBusy,
                         onClick = {
