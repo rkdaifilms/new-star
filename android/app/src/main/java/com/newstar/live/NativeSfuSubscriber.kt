@@ -164,11 +164,13 @@ internal class NativeSfuSubscriber private constructor(
             var egl: EglBase? = null
             var peer: PeerConnection? = null
             try {
-                egl = EglBase.create()
-                factory = PeerConnectionFactory.builder()
-                    .setVideoEncoderFactory(org.webrtc.DefaultVideoEncoderFactory(egl.eglBaseContext, true, true))
-                    .setVideoDecoderFactory(org.webrtc.DefaultVideoDecoderFactory(egl.eglBaseContext))
+                val createdEgl = EglBase.create()
+                egl = createdEgl
+                val createdFactory = PeerConnectionFactory.builder()
+                    .setVideoEncoderFactory(org.webrtc.DefaultVideoEncoderFactory(createdEgl.eglBaseContext, true, true))
+                    .setVideoDecoderFactory(org.webrtc.DefaultVideoDecoderFactory(createdEgl.eglBaseContext))
                     .createPeerConnectionFactory()
+                factory = createdFactory
                 val gathered = CompletableDeferred<Unit>()
                 val connected = CompletableDeferred<Unit>()
                 val remoteVideo = java.util.concurrent.atomic.AtomicReference<VideoTrack?>(null)
@@ -233,7 +235,7 @@ internal class NativeSfuSubscriber private constructor(
                     if (mid.matches(Regex("\\d+"))) mids.put(JSONObject().put("mid", mid))
                 }
                 return@withContext NativeSfuSubscriber(
-                    roomId, session, sfuSessionId, factory, egl, createdPeer, mids
+                    roomId, session, sfuSessionId, createdFactory, createdEgl, createdPeer, mids
                 ).also { subscriber ->
                     remoteTrackConsumer.set(subscriber::onRemoteTrack)
                     remoteVideo.get()?.let { subscriber.onRemoteTrack(it) }
