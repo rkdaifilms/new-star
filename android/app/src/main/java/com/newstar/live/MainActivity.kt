@@ -267,7 +267,82 @@ private fun NativeApp(
     var selectedCreatorId by remember { mutableStateOf<String?>(null) }
     var inboxTargetId by remember { mutableStateOf<String?>(null) }
     var aiInitialPrompt by remember { mutableStateOf("") }
+    var lastForegroundNotificationId by remember(session?.userId) { mutableStateOf<String?>(null) }
+    var notificationBaselineReady by remember(session?.userId) { mutableStateOf(false) }
+    var notificationCheckInProgress by remember(session?.userId) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    DisposableEffect(context) {
+        NativeSystemNotifications.createChannel(context)
+        onDispose { }
+    }
+
+    LaunchedEffect(session?.userId) {
+        val current = session ?: return@LaunchedEffect
+        try {
+            val latest = NativeSupabase.get(
+                "/rest/v1/notifications?select=id&user_id=eq.${Uri.encode(current.userId)}&order=created_at.desc&limit=1",
+                current
+            )
+            lastForegroundNotificationId = latest.optJSONObject(0)?.optString("id")
+            notificationBaselineReady = true
+        } catch (_: Exception) {
+            notificationBaselineReady = false
+        }
+    }
+
+    DisposableEffect(session?.userId, session?.accessToken) {
+        val current = session
+        if (current == null) {
+            onDispose { }
+        } else {
+            val observer = NativeRealtimeMessages(
+                accessToken = current.accessToken,
+                userId = current.userId,
+                onChange = {
+                    if (notificationBaselineReady && !notificationCheckInProgress) {
+                        scope.launch {
+                            notificationCheckInProgress = true
+                            try {
+                                val latestRows = NativeSupabase.get(
+                                    "/rest/v1/notifications?select=id,user_id,actor_id,type,message,is_read,created_at&user_id=eq.${Uri.encode(current.userId)}&order=created_at.desc&limit=1",
+                                    current
+                                )
+                                val latest = latestRows.optJSONObject(0)
+                                val latestId = latest?.optString("id").orEmpty()
+                                if (latest != null && latestId.isNotBlank() &&
+                                    latestId != lastForegroundNotificationId
+                                ) {
+                                    lastForegroundNotificationId = latestId
+                                    if (!latest.optBoolean("is_read", false) &&
+                                        NativeSystemNotifications.hasPermission(context)
+                                    ) {
+                                        val actorId = latest.optString("actor_id")
+                                        val actorName = if (actorId.isNotBlank() && actorId != current.userId) {
+                                            val profileRows = NativeSupabase.get(
+                                                "/rest/v1/creator_public_profiles?select=user_id,username,full_name&user_id=eq.${Uri.encode(actorId)}&limit=1",
+                                                current
+                                            )
+                                            val profile = profileRows.optJSONObject(0)
+                                            profile?.optString("full_name").orEmpty()
+                                                .ifBlank { profile?.optString("username").orEmpty() }
+                                        } else ""
+                                        NativeSystemNotifications.show(context, latest, actorName)
+                                    }
+                                }
+                            } catch (_: Exception) {
+                            } finally {
+                                notificationCheckInProgress = false
+                            }
+                        }
+                    }
+                },
+                onStatus = {}
+            )
+            observer.connect()
+            onDispose { observer.close() }
+        }
+    }
 
     LaunchedEffect(Unit) {
         session = NativeSupabase.validSession(context)
