@@ -4180,6 +4180,8 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
     var recorder by remember { mutableStateOf<MediaRecorder?>(null) }
     var recordingFile by remember { mutableStateOf<File?>(null) }
     var generatedImage by remember { mutableStateOf<Bitmap?>(null) }
+    var generatedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var generatedImageMime by remember { mutableStateOf("image/png") }
     var imageRatio by remember { mutableStateOf("16:9") }
     var imageSize by remember { mutableStateOf("1K") }
     var audioPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
@@ -4411,22 +4413,24 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                                 contentScale = androidx.compose.ui.layout.ContentScale.Fit
                             )
                             Button(onClick = {
-                                val bitmap = generatedImage
-                                if (bitmap != null) scope.launch {
+                                val imageBytes = generatedImageBytes
+                                val imageMime = generatedImageMime
+                                if (imageBytes != null) scope.launch {
                                     var insertedUri: Uri? = null
                                     try {
+                                        val extension = NativeCreatorImagePolicy.extensionForMimeType(imageMime)
                                         val values = ContentValues().apply {
-                                            put(MediaStore.Images.Media.DISPLAY_NAME, "new-star-creator-" + System.currentTimeMillis() + ".png")
-                                            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                                            put(MediaStore.Images.Media.DISPLAY_NAME, "new-star-creator-" + System.currentTimeMillis() + "." + extension)
+                                            put(MediaStore.Images.Media.MIME_TYPE, imageMime)
                                             if (Build.VERSION.SDK_INT >= 29) put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/New Star")
                                         }
                                         insertedUri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
                                             ?: throw IllegalStateException("Gallery में image save नहीं हो सकी।")
-                                        val saved = context.contentResolver.openOutputStream(insertedUri!!)?.use { output ->
-                                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
-                                        } ?: false
-                                        if (!saved) throw IllegalStateException("Image file लिखी नहीं जा सकी।")
-                                        error = "Image Gallery के Pictures/New Star folder में save हो गई।"
+                                        context.contentResolver.openOutputStream(insertedUri!!)?.use { output ->
+                                            output.write(imageBytes)
+                                            output.flush()
+                                        } ?: throw IllegalStateException("Image file लिखी नहीं जा सकी।")
+                                        error = "Original quality image Gallery के Pictures/New Star folder में save हो गई।"
                                     } catch (e: Exception) {
                                         insertedUri?.let { context.contentResolver.delete(it, null, null) }
                                         error = e.message ?: "Image save नहीं हुई।"
@@ -4488,7 +4492,9 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                     val text = prompt.trim()
                     busy = true
                     error = ""
+                    generatedImage?.recycle()
                     generatedImage = null
+                    generatedImageBytes = null
                     scope.launch {
                         try {
                             require(text.length <= 1800) { "Image prompt 1,800 characters से छोटा रखें।" }
@@ -4501,9 +4507,29 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                             if (!response.optBoolean("ok")) throw IllegalStateException(response.optString("error", "Image generation failed"))
                             val encoded = response.optString("image")
                             require(encoded.isNotBlank()) { "AI ने image data नहीं लौटाया।" }
+                            require(encoded.length <= NativeCreatorImagePolicy.MAX_BASE64_CHARS) {
+                                "Generated image बहुत बड़ी है। 1K या 2K चुनकर फिर कोशिश करें।"
+                            }
                             val bytes = Base64.decode(encoded, Base64.DEFAULT)
-                            generatedImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                ?: throw IllegalStateException("Generated image decode नहीं हुई।")
+                            require(bytes.size in 1..NativeCreatorImagePolicy.MAX_IMAGE_BYTES) {
+                                "Generated image का आकार समर्थित सीमा से बाहर है।"
+                            }
+                            val mime = NativeCreatorImagePolicy.normalizeMimeType(response.optString("mimeType"))
+                            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                            require(bounds.outWidth > 0 && bounds.outHeight > 0) {
+                                "Generated image का format पढ़ा नहीं जा सका।"
+                            }
+                            val previewOptions = BitmapFactory.Options().apply {
+                                inSampleSize = NativeCreatorImagePolicy.previewSampleSize(bounds.outWidth, bounds.outHeight, 1600)
+                                inPreferredConfig = Bitmap.Config.RGB_565
+                            }
+                            val preview = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, previewOptions)
+                                ?: throw IllegalStateException("Generated image preview decode नहीं हुई।")
+                            generatedImage?.recycle()
+                            generatedImage = preview
+                            generatedImageBytes = bytes
+                            generatedImageMime = mime
                             prompt = ""
                         } catch (e: Exception) {
                             error = e.message ?: "Image generation असफल हुई।"
@@ -4536,7 +4562,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                 FilterChip(selected = imageSize == "2K", onClick = { imageSize = "2K" }, label = { Text("2K") })
                 FilterChip(selected = imageSize == "4K", onClick = { imageSize = "4K" }, label = { Text("4K") })
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = { messages = emptyList(); generatedImage = null; error = "" }, enabled = !busy && !recording) { Text("Clear") }
+                TextButton(onClick = { messages = emptyList(); generatedImage?.recycle(); generatedImage = null; generatedImageBytes = null; error = "" }, enabled = !busy && !recording) { Text("Clear") }
             }
         }
     }
