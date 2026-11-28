@@ -405,23 +405,54 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
             try {
                 val participants = NativeLiveRepository.listParticipants(roomId, session)
                 val own = participants.firstOrNull { it.optString("user_id") == session.userId }
-                if (own != null) {
-                    val status = own.optString("status")
-                    val cameraAllowed = own.optBoolean("camera_allowed")
-                    val microphoneAllowed = own.optBoolean("microphone_allowed")
+                if (own == null) {
+                    stopGuestPublisherInternal()
                     mutableState.update {
                         it.copy(
-                            guestSeatStatus = status,
-                            guestSeatNumber = own.optInt("seat_number"),
-                            guestCameraAllowed = cameraAllowed,
-                            guestMicrophoneAllowed = microphoneAllowed
+                            guestSeatStatus = "not_member",
+                            guestSeatNumber = 0,
+                            guestCameraAllowed = false,
+                            guestMicrophoneAllowed = false,
+                            guestPublisherError = "इस LIVE room में आपकी guest seat उपलब्ध नहीं है।"
                         )
                     }
-                    if (status != "admitted" || !cameraAllowed) {
-                        stopGuestPublisherInternal()
-                    }
+                    return@launch
+                }
+
+                val status = own.optString("status")
+                val cameraAllowed = own.optBoolean("camera_allowed")
+                val microphoneAllowed = own.optBoolean("microphone_allowed")
+                val previous = mutableState.value
+                mutableState.update {
+                    it.copy(
+                        guestSeatStatus = status,
+                        guestSeatNumber = own.optInt("seat_number"),
+                        guestCameraAllowed = cameraAllowed,
+                        guestMicrophoneAllowed = microphoneAllowed
+                    )
+                }
+
+                if (status != "admitted" || !cameraAllowed) {
+                    stopGuestPublisherInternal()
                     if (status == "removed" || status == "left") {
                         mutableState.update { it.copy(guestPublisherError = "Host ने guest seat बंद कर दी है।") }
+                    } else if (status != "admitted" && status != "requested") {
+                        mutableState.update { it.copy(guestPublisherError = "Guest seat अब active नहीं है।") }
+                    }
+                } else if (!microphoneAllowed && previous.guestPublisherMicEnabled) {
+                    // Apply host microphone revocation to the live WebRTC track immediately
+                    // after the next authoritative participant-state refresh.
+                    guestPublisher?.setMicrophoneEnabled(false)
+                    mutableState.update {
+                        it.copy(
+                            guestPublisherMicEnabled = false,
+                            guestPublisherError = "Host ने microphone permission बंद कर दी है।"
+                        )
+                    }
+                } else if (microphoneAllowed && !previous.guestMicrophoneAllowed && guestPublisher != null) {
+                    // Permission restoration does not auto-unmute; the guest must opt in.
+                    mutableState.update {
+                        it.copy(guestPublisherError = "Microphone permission वापस मिल गई है। Unmute करने के लिए बटन दबाएँ।")
                     }
                 }
             } catch (error: Exception) {
