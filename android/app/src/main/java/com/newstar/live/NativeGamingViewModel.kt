@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicBoolean
 
 data class NativeGamingUiState(
     val title: String = "",
@@ -75,7 +76,8 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
     private var pkPollingRoomId: String? = null
     private var guestPublisher: NativeSfuPublisher? = null
     private var guestSeatRefreshBusy = false
-    private var invitationsRefreshQueued = false
+    private val invitationsRefreshBusy = AtomicBoolean(false)
+    private val invitationsRefreshQueued = AtomicBoolean(false)
 
     fun setTitle(value: String) {
         mutableState.update { it.copy(title = value) }
@@ -348,8 +350,8 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
     }
 
     fun refreshInvitations() {
-        if (mutableState.value.invitationsLoading) {
-            invitationsRefreshQueued = true
+        if (!invitationsRefreshBusy.compareAndSet(false, true)) {
+            invitationsRefreshQueued.set(true)
             return
         }
         mutableState.update { it.copy(invitationsLoading = true, invitationError = "") }
@@ -361,10 +363,8 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 mutableState.update { it.copy(invitationError = error.message ?: "LIVE invitations लोड नहीं हुईं।") }
             } finally {
                 mutableState.update { it.copy(invitationsLoading = false) }
-                if (invitationsRefreshQueued) {
-                    invitationsRefreshQueued = false
-                    refreshInvitations()
-                }
+                invitationsRefreshBusy.set(false)
+                if (invitationsRefreshQueued.getAndSet(false)) refreshInvitations()
             }
         }
     }
