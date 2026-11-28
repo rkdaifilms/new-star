@@ -52,6 +52,7 @@ data class NativeGamingUiState(
     val guestRoomId: String = "",
     val guestSeatStatus: String = "",
     val guestSeatNumber: Int = 0,
+    val guestSeatRequesting: Boolean = false,
     val guestCameraAllowed: Boolean = false,
     val guestMicrophoneAllowed: Boolean = false,
     val guestPublisherReady: Boolean = false,
@@ -395,6 +396,33 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 mutableState.update { it.copy(invitationError = error.message ?: "Invitation response सेव नहीं हुआ।") }
             } finally {
                 mutableState.update { it.copy(invitationBusyId = "") }
+            }
+        }
+    }
+
+    fun requestGuestSeatAgain(roomId: String) {
+        if (roomId.isBlank() || mutableState.value.guestSeatRequesting) return
+        mutableState.update { it.copy(guestSeatRequesting = true, guestPublisherError = "") }
+        viewModelScope.launch {
+            try {
+                NativeLiveRepository.requestSeat(roomId, session)
+                mutableState.update {
+                    it.copy(
+                        guestRoomId = roomId,
+                        guestSeatStatus = "requested",
+                        guestSeatNumber = 0,
+                        guestCameraAllowed = false,
+                        guestMicrophoneAllowed = false,
+                        guestPublisherError = "Seat request host को भेज दी गई है। Approval का इंतज़ार करें।"
+                    )
+                }
+                refreshGuestSeat(roomId)
+            } catch (error: Exception) {
+                mutableState.update {
+                    it.copy(guestPublisherError = error.message ?: "LIVE seat request नहीं भेजी गई।")
+                }
+            } finally {
+                mutableState.update { it.copy(guestSeatRequesting = false) }
             }
         }
     }
