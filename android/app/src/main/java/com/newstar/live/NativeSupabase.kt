@@ -211,7 +211,7 @@ object NativeSupabase {
             doOutput = true
             setRequestProperty("apikey", SUPABASE_KEY)
             setRequestProperty("Authorization", "Bearer ${session.accessToken}")
-            setRequestProperty("Content-Type", mimeType)
+            setRequestProperty("Content-Type", normalizedMime)
             setRequestProperty("x-upsert", "false")
         }
         connection.outputStream.use { it.write(bytes) }
@@ -227,11 +227,15 @@ object NativeSupabase {
         bucket: String, path: String, bytes: ByteArray, mimeType: String, session: NativeSession
     ): String = withContext(Dispatchers.IO) {
         require(bucket == "message-media") { "Private upload bucket अमान्य है।" }
-        require(bytes.isNotEmpty() && bytes.size <= 20 * 1024 * 1024) { "Attachment 20 MB से छोटी होनी चाहिए।" }
-        require(mimeType.startsWith("image/") || mimeType.startsWith("video/") ||
-            mimeType == "application/pdf" || mimeType.startsWith("audio/")) {
-            "यह file type भेजने की अनुमति नहीं है।"
+        require(bytes.isNotEmpty() && bytes.size <= NativeInboxAttachmentPolicy.MAX_BYTES) {
+            "Attachment 20 MB से छोटी होनी चाहिए।"
         }
+        val normalizedMime = NativeInboxAttachmentPolicy.normalizeMimeType(mimeType)
+        require(mimeType == normalizedMime) { "Attachment MIME type canonical नहीं है।" }
+        require(
+            path.startsWith("${session.userId}/") &&
+                path.split("/").none { it.isBlank() || it == "." || it == ".." }
+        ) { "Private attachment path आपके account से match नहीं करता।" }
         val safePath = path.split("/").joinToString("/") { Uri.encode(it) }
         val connection = (URL("$SUPABASE_URL/storage/v1/object/$bucket/$safePath").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
