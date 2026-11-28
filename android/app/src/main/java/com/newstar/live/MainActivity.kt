@@ -2006,6 +2006,7 @@ private fun NativeHome(
     var category by remember { mutableStateOf("All") }
     var feedMode by remember { mutableStateOf("For You") }
     var search by remember { mutableStateOf("") }
+    var searchExpanded by remember { mutableStateOf(false) }
     var creatorResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var creatorSearchLoading by remember { mutableStateOf(false) }
     var creatorSearchError by remember { mutableStateOf<String?>(null) }
@@ -2135,6 +2136,9 @@ private fun NativeHome(
                 title = { Text("🌟 New Star", fontWeight = FontWeight.Bold) },
                 actions = {
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        IconButton(onClick = { searchExpanded = !searchExpanded }) {
+                            Text(if (searchExpanded) "×" else "⌕", style = MaterialTheme.typography.headlineSmall)
+                        }
                         TextButton(onClick = { onNavigate("Creator AI") }) { Text("AI Engine") }
                         Box {
                             IconButton(onClick = { menuExpanded = true }) { Text("⋮", style = MaterialTheme.typography.headlineSmall) }
@@ -2181,12 +2185,19 @@ private fun NativeHome(
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            OutlinedTextField(
-                value = search, onValueChange = { search = it },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                singleLine = true, label = { Text("दुनिया भर में Creator और Videos खोजें") },
-                trailingIcon = { if (search.isNotEmpty()) TextButton(onClick = { search = "" }) { Text("Clear") } }
-            )
+            if (searchExpanded || search.isNotBlank()) {
+                OutlinedTextField(
+                    value = search, onValueChange = { search = it },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    singleLine = true, label = { Text("दुनिया भर में Creator और Videos खोजें") },
+                    trailingIcon = {
+                        if (search.isNotEmpty()) TextButton(onClick = {
+                            search = ""
+                            searchExpanded = false
+                        }) { Text("Clear") }
+                    }
+                )
+            }
             if (search.trim().isNotEmpty()) {
                 TextButton(onClick = { onAskAi(search.trim()) },
                     modifier = Modifier.padding(horizontal = 12.dp)) {
