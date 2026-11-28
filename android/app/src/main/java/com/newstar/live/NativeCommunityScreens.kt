@@ -586,67 +586,173 @@ internal fun NativeLiveHostControls(session: NativeSession) {
 
 
 @androidx.compose.runtime.Composable
-private fun NativeSfuSubscriberPreview(
+internal fun NativeSfuSubscriberPreview(
     subscriber: NativeSfuSubscriber,
-    modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier
+    creatorProfiles: Map<String, JSONObject> = emptyMap(),
+    modifier: Modifier = Modifier
 ) {
     val mids by subscriber.remoteVideoMids.collectAsState()
+    val owners by subscriber.remoteVideoOwners.collectAsState()
     if (mids.isEmpty()) {
-        androidx.compose.foundation.layout.Box(
-            modifier = modifier.heightIn(min = 180.dp, max = 230.dp),
-            contentAlignment = androidx.compose.ui.Alignment.Center
-        ) {
-            androidx.compose.material3.Text(
-                "SFU connected — remote camera tracks आने का इंतज़ार है।",
-                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Box(modifier = modifier.heightIn(min = 180.dp, max = 230.dp), contentAlignment = Alignment.Center) {
+            Text("SFU connected — remote camera tracks आने का इंतज़ार है。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else {
         androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
             columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(if (mids.size == 1) 1 else 2),
             modifier = modifier.heightIn(min = 180.dp, max = 460.dp),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(2.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             items(items = mids, key = { it }) { mid ->
-                NativeSfuSubscriberVideoTile(subscriber, mid)
+                NativeSfuSubscriberVideoTile(subscriber, mid, owners[mid], creatorProfiles)
             }
         }
     }
 }
 
-@androidx.compose.runtime.Composable
 private fun NativeSfuSubscriberVideoTile(
     subscriber: NativeSfuSubscriber,
-    mid: String
+    mid: String,
+    owner: NativeSfuTrackOwner?,
+    creatorProfiles: Map<String, JSONObject>
 ) {
-    var renderer by androidx.compose.runtime.remember(subscriber, mid) {
-        androidx.compose.runtime.mutableStateOf<org.webrtc.SurfaceViewRenderer?>(null)
-    }
-    androidx.compose.ui.viewinterop.AndroidView(
-        factory = { viewContext ->
-            org.webrtc.SurfaceViewRenderer(viewContext).also { view ->
-                renderer = view
+    val profile = owner?.let { creatorProfiles[it.userId] }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(profile?.optString("full_name").orEmpty().ifBlank {
+            profile?.optString("username").orEmpty().ifBlank { "LIVE Creator" }
+        }, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        val username = profile?.optString("username").orEmpty()
+        if (username.isNotBlank()) Text("@$username", style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        var renderer by androidx.compose.runtime.remember(subscriber, mid) {
+            androidx.compose.runtime.mutableStateOf<org.webrtc.SurfaceViewRenderer?>(null)
+        }
+        androidx.compose.ui.viewinterop.AndroidView(
+            factory = { viewContext ->
+                org.webrtc.SurfaceViewRenderer(viewContext).also { view ->
+                    renderer = view
+                    subscriber.attachRenderer(mid, view)
+                }
+            },
+            update = { view ->
+                if (renderer !== view) renderer = view
                 subscriber.attachRenderer(mid, view)
+            },
+            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+        )
+        androidx.compose.runtime.DisposableEffect(subscriber, mid, renderer) {
+            onDispose {
+                renderer?.let { view ->
+                    subscriber.detachRenderer(mid, view)
+                    runCatching { view.release() }
+                }
             }
-        },
-        update = { view ->
-            if (renderer !== view) renderer = view
-            subscriber.attachRenderer(mid, view)
-        },
-        modifier = androidx.compose.ui.Modifier
-            .fillMaxWidth()
-            .aspectRatio(16f / 9f)
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-    )
-    androidx.compose.runtime.DisposableEffect(subscriber, mid, renderer) {
+        }
+    }
+}
+
+
+@Composable
+internal fun NativeLiveSfuViewer(session: NativeSession, roomId: String) {
+    var publications by remember(roomId) { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var profiles by remember(roomId) { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
+    var subscriber by remember(roomId) { mutableStateOf<NativeSfuSubscriber?>(null) }
+    var loading by remember(roomId) { mutableStateOf(true) }
+    var busy by remember(roomId) { mutableStateOf(false) }
+    var error by remember(roomId) { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val currentSubscriber by rememberUpdatedState(subscriber)
+
+    suspend fun refreshPublications() {
+        val rows = NativeLiveRepository.listSfuPublications(roomId, session)
+        val loaded = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+            .filter { it.optString("track_name") == "camera" && it.optString("user_id").isNotBlank() }
+        publications = loaded.distinctBy { it.optString("session_id") }
+        profiles = NativeLiveRepository.getCreatorProfiles(loaded.map { it.optString("user_id") }, session)
+    }
+
+    LaunchedEffect(roomId, session.userId) {
+        while (true) {
+            try { refreshPublications(); error = "" }
+            catch (e: Exception) { error = e.message ?: "LIVE camera publications लोड नहीं हुए।" }
+            finally { loading = false }
+            delay(8_000)
+        }
+    }
+
+    DisposableEffect(roomId) {
         onDispose {
-            renderer?.let { view ->
-                subscriber.detachRenderer(mid, view)
-                runCatching { view.release() }
+            currentSubscriber?.let { active ->
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
+                    runCatching { active.stop() }
+                }
             }
+        }
+    }
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("Native LIVE video", style = MaterialTheme.typography.titleMedium)
+                Text("${publications.size} creators", style = MaterialTheme.typography.labelSmall)
+            }
+            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+            publications.forEach { publication ->
+                val id = publication.optString("user_id")
+                val profile = profiles[id]
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AsyncImage(model = profile?.optString("avatar_url")?.takeIf { it.startsWith("https://") },
+                        contentDescription = "LIVE creator avatar",
+                        modifier = Modifier.size(34.dp).clip(CircleShape))
+                    Column {
+                        Text(profile?.optString("full_name").orEmpty().ifBlank {
+                            profile?.optString("username").orEmpty().ifBlank { "LIVE Creator" }
+                        }, style = MaterialTheme.typography.bodyMedium)
+                        val username = profile?.optString("username").orEmpty()
+                        if (username.isNotBlank()) Text("@$username", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            subscriber?.let { NativeSfuSubscriberPreview(it, profiles, Modifier.fillMaxWidth()) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(enabled = !busy && publications.isNotEmpty(), onClick = {
+                    busy = true
+                    error = ""
+                    scope.launch {
+                        try {
+                            subscriber?.stop()
+                            subscriber = NativeSfuSubscriber.start(context, roomId, session)
+                        } catch (e: Exception) {
+                            error = e.message ?: "Native LIVE viewer connect नहीं हुआ।"
+                        } finally { busy = false }
+                    }
+                }) {
+                    if (busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    else Text(if (subscriber == null) "Watch native LIVE" else "Reconnect LIVE")
+                }
+                if (subscriber != null) OutlinedButton(enabled = !busy, onClick = {
+                    busy = true
+                    scope.launch {
+                        try { subscriber?.stop(); subscriber = null }
+                        catch (e: Exception) { error = e.message ?: "LIVE disconnect नहीं हुआ।" }
+                        finally { busy = false }
+                    }
+                }) { Text("Stop") }
+            }
+            if (publications.isEmpty() && !loading) {
+                Text("इस room में अभी native camera publisher उपलब्ध नहीं है।",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall)
         }
     }
 }
