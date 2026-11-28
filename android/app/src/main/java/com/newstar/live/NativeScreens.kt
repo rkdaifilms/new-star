@@ -2395,21 +2395,28 @@ private object NativeVideoUploader {
             requestMethod = "POST"; connectTimeout = 20000; readTimeout = 60000
             setRequestProperty("apikey", "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr")
             setRequestProperty("Authorization", "Bearer ${session.accessToken}")
+            setRequestProperty("Origin", "https://new-star-delta.vercel.app")
             setRequestProperty("Tus-Resumable", "1.0.0")
             setRequestProperty("Upload-Length", size.toString())
             setRequestProperty("Upload-Metadata", metadata)
+            setRequestProperty("Cache-Control", "no-store")
         }
         val code = create.responseCode
         if (code !in 200..299) {
-            val error = create.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
-            throw IllegalStateException("Upload session नहीं बनी ($code): $error")
+            val error = (create.errorStream ?: create.inputStream)?.bufferedReader()?.use { it.readText() }.orEmpty()
+            create.disconnect()
+            throw IllegalStateException("Upload session नहीं बनी ($code): ${error.take(500)}")
         }
-        val locationHeader = create.getHeaderField("Location") ?: error("Cloudflare upload location नहीं मिली।")
+        val locationHeader = create.getHeaderField("Location")
+        val streamId = create.getHeaderField("stream-media-id")
+        create.disconnect()
+        require(!locationHeader.isNullOrBlank()) { "Cloudflare upload location नहीं मिली।" }
+        require(!streamId.isNullOrBlank()) { "Cloudflare Stream ID नहीं मिली।" }
         val createUrl = URL("https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy")
         val uploadUrl = URL(createUrl, locationHeader)
-        require(uploadUrl.protocol == "https") { "Cloudflare upload URL सुरक्षित HTTPS नहीं है।" }
-        val streamId = create.getHeaderField("stream-media-id") ?: error("Cloudflare Stream ID नहीं मिली।")
-        create.disconnect()
+        require(uploadUrl.protocol == "https" && uploadUrl.host.isNotBlank()) { "Cloudflare upload URL सुरक्षित HTTPS नहीं है।" }
+        require(uploadUrl.host == "api.cloudflare.com" || uploadUrl.host.endsWith(".cloudflarestream.com") ||
+            uploadUrl.host.endsWith(".videodelivery.net")) { "Cloudflare ने असुरक्षित या अपरिचित upload host लौटाया।" }
 
         val client = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -2439,8 +2446,9 @@ private object NativeVideoUploader {
                         throw IllegalStateException("वीडियो chunk upload असफल (${response.code}): ${response.body?.string().orEmpty()}")
                     }
                     val confirmedOffset = response.header("Upload-Offset")?.toLongOrNull()
-                    if (confirmedOffset != null && confirmedOffset != offset + wanted) {
-                        throw IllegalStateException("Cloudflare ने upload offset की पुष्टि नहीं की; वीडियो सुरक्षित रूप से जारी नहीं किया गया।")
+                        ?: throw IllegalStateException("Cloudflare ने Upload-Offset नहीं लौटाया; वीडियो upload की पुष्टि नहीं हो सकी।")
+                    if (confirmedOffset != offset + wanted) {
+                        throw IllegalStateException("Cloudflare upload offset mismatch है; वीडियो सुरक्षित रूप से जारी नहीं किया गया।")
                     }
                 }
                 offset += wanted
