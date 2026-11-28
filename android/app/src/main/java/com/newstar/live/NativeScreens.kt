@@ -2068,7 +2068,25 @@ fun NativeUploadScreen(session: NativeSession) {
         splitParts = emptyList()
         try {
             if (source == "gallery") {
-                try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
+                require(uri.scheme == "content") {
+                    "Gallery से चुनी गई वीडियो का सुरक्षित file access नहीं मिला। Files app से वीडियो दोबारा चुनें।"
+                }
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (error: SecurityException) {
+                    throw IllegalStateException(
+                        "इस Gallery provider ने background upload के लिए स्थायी file permission नहीं दी। कृपया Files app से वीडियो चुनें।",
+                        error
+                    )
+                } catch (error: IllegalArgumentException) {
+                    throw IllegalStateException(
+                        "यह Gallery file background upload के लिए उपलब्ध नहीं रह सकती। कृपया Files app से वीडियो चुनें।",
+                        error
+                    )
+                }
             }
             val retriever = MediaMetadataRetriever()
             try {
