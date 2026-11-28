@@ -1660,12 +1660,18 @@ private fun NativeHome(
         if (visibleFeed.isNotEmpty()) feedPagerState.scrollToPage(0)
     }
     var loading by remember { mutableStateOf(true) }
+    var loadingMore by remember { mutableStateOf(false) }
+    var canLoadMore by remember { mutableStateOf(false) }
+    var pageError by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var refresh by remember { mutableIntStateOf(0) }
     var menuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(category, feedMode, refresh, session?.userId) {
         loading = true
+        loadingMore = false
+        canLoadMore = false
+        pageError = null
         error = null
         try {
             feed = when (feedMode) {
@@ -1673,15 +1679,42 @@ private fun NativeHome(
                     val current = session ?: throw IllegalStateException("इस Feed को देखने के लिए Login करें।")
                     NativeFeed.loadFollowing(current)
                 }
-                "Shorts", "Reels" -> NativeFeed.load(category, "short", session)
-                "Long videos" -> NativeFeed.load(category, "long", session)
-                "Discover", "For You" -> NativeFeed.load(category, session = session)
-                else -> NativeFeed.load(category, session = session)
+                "Shorts", "Reels" -> NativeFeed.load(category, "short", session, 0)
+                "Long videos" -> NativeFeed.load(category, "long", session, 0)
+                "Discover", "For You" -> NativeFeed.load(category, session = session, offset = 0)
+                else -> NativeFeed.load(category, session = session, offset = 0)
             }
+            canLoadMore = feed.size >= NativeFeed.PAGE_SIZE &&
+                feedMode !in setOf("Following", "Friends")
             if (feed.isEmpty()) error = if (feedMode == "Following" || feedMode == "Friends") "आप जिन Creators को Follow करते हैं, उनकी अभी कोई सार्वजनिक वीडियो नहीं है।" else "अभी कोई सार्वजनिक वीडियो उपलब्ध नहीं है।"
         } catch (e: Exception) {
+            feed = emptyList()
             error = e.message ?: "Feed लोड नहीं हो सकी।"
         } finally { loading = false }
+    }
+
+    LaunchedEffect(feedPagerState.currentPage, feed.size, canLoadMore, loading, loadingMore, feedMode, category, session?.userId) {
+        val current = session
+        val nearEnd = feed.isNotEmpty() && feedPagerState.currentPage >= feed.size - 3
+        if (!nearEnd || !canLoadMore || loading || loadingMore ||
+            feedMode in setOf("Following", "Friends")) return@LaunchedEffect
+        loadingMore = true
+        pageError = null
+        try {
+            val nextPage = when (feedMode) {
+                "Shorts", "Reels" -> NativeFeed.load(category, "short", current, feed.size)
+                "Long videos" -> NativeFeed.load(category, "long", current, feed.size)
+                else -> NativeFeed.load(category, session = current, offset = feed.size)
+            }
+            val existingIds = feed.asSequence().map { it.id }.toHashSet()
+            val uniqueNext = nextPage.filterNot { it.id in existingIds }
+            feed = feed + uniqueNext
+            canLoadMore = nextPage.size >= NativeFeed.PAGE_SIZE && uniqueNext.isNotEmpty()
+        } catch (e: Exception) {
+            pageError = e.message ?: "अगले वीडियो लोड नहीं हो सके।"
+        } finally {
+            loadingMore = false
+        }
     }
 
     LaunchedEffect(search, session?.userId) {
@@ -2237,12 +2270,16 @@ private object NativeFeed {
         }
     }
 
+    const val PAGE_SIZE = 50
+
     suspend fun load(
         category: String,
         videoType: String? = null,
-        session: NativeSession? = null
+        session: NativeSession? = null,
+        offset: Int = 0
     ): List<NativeVideo> = withContext(Dispatchers.IO) {
-        val args = JSONObject().put("p_limit", 50).put("p_offset", 0)
+        val safeOffset = offset.coerceAtLeast(0)
+        val args = JSONObject().put("p_limit", PAGE_SIZE).put("p_offset", safeOffset)
             .put("p_video_type", videoType ?: JSONObject.NULL)
             .put("p_category", if (category == "All") JSONObject.NULL else category)
         var sourceRows = emptyList<JSONObject>()
@@ -2258,14 +2295,14 @@ private object NativeFeed {
 
         // Match the web feed's recovery path: a failed or empty recommendation RPC
         // falls back to published, public, all-audience videos instead of blanking Home.
-        if (sourceRows.isEmpty()) {
+        if (sourceRows.isEmpty() && safeOffset == 0) {
             val fields = "id,caption,username,category,likes_count,views_count,video_type,user_id,created_at"
             val filters = "&or=${Uri.encode("(processing_status.eq.published,processing_status.is.null)")}" +
                 "&or=${Uri.encode("(visibility.eq.public,visibility.is.null)")}" +
                 "&or=${Uri.encode("(audience_type.eq.all,audience_type.is.null)")}"
             try {
                 val direct = NativeSupabase.get(
-                    "/rest/v1/videos?select=$fields$filters&order=created_at.desc&limit=50",
+                    "/rest/v1/videos?select=$fields$filters&order=created_at.desc&limit=$PAGE_SIZE&offset=$safeOffset",
                     session
                 )
                 sourceRows = (0 until direct.length()).mapNotNull { direct.optJSONObject(it) }
