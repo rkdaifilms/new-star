@@ -21,7 +21,8 @@ class NativeRealtimeMessages(
     private val accessToken: String,
     private val userId: String,
     private val onChange: () -> Unit,
-    private val onStatus: (String) -> Unit
+    private val onStatus: (String) -> Unit,
+    private val includeLiveInvites: Boolean = false
 ) {
     private val client = OkHttpClient.Builder()
         .pingInterval(25, TimeUnit.SECONDS)
@@ -75,6 +76,15 @@ class NativeRealtimeMessages(
                             .put("table", "notifications")
                             .put("filter", "user_id=eq.$userId")
                     )
+                if (includeLiveInvites) {
+                    changes.put(
+                        JSONObject()
+                            .put("event", "*")
+                            .put("schema", "public")
+                            .put("table", "live_room_invites")
+                            .put("filter", "invitee_id=eq.$userId")
+                    )
+                }
                 val config = JSONObject()
                     .put("broadcast", JSONObject().put("ack", false).put("self", false))
                     .put("presence", JSONObject().put("key", ""))
