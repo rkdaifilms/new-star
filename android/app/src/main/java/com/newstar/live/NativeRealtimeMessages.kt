@@ -22,7 +22,8 @@ class NativeRealtimeMessages(
     private val userId: String,
     private val onChange: () -> Unit,
     private val onStatus: (String) -> Unit,
-    private val includeLiveInvites: Boolean = false
+    private val includeLiveInvites: Boolean = false,
+    private val onLiveInvite: () -> Unit = {}
 ) {
     private val client = OkHttpClient.Builder()
         .pingInterval(25, TimeUnit.SECONDS)
@@ -118,7 +119,9 @@ class NativeRealtimeMessages(
                             onStatus("Realtime subscription असफल: ${payload.optJSONObject("response")?.toString()?.take(160).orEmpty()}")
                         }
                     } else if (event == "postgres_changes") {
-                        onChange()
+                        val data = payload.optJSONObject("data") ?: JSONObject()
+                        val table = data.optString("table", payload.optString("table"))
+                        if (table == "live_room_invites") onLiveInvite() else onChange()
                     } else if (event == "system") {
                         onStatus(payload.optString("message").ifBlank { "Realtime connection सूचना मिली।" })
                     }
