@@ -102,6 +102,8 @@ internal class NativeSfuSubscriber private constructor(
             } else {
                 NativeLiveRepository.abandonSfuSession(roomId, sfuSessionId, session)
             }
+        }.onFailure {
+            runCatching { NativeLiveRepository.abandonSfuSession(roomId, sfuSessionId, session) }
         }
         runCatching { peer.close(); peer.dispose() }
         runCatching { factory.dispose() }
