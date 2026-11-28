@@ -149,6 +149,7 @@ fun NativeAuthScreen(
                     try {
                         if (signup) {
                             val result = NativeSupabase.signUp(email.trim(), password, referrerId)
+                            if (referrerId != null) NativeSessionStore.clearPendingReferral(context)
                             val access = result.optString("access_token")
                             if (access.isBlank()) message = "Account बन गया। Email confirmation के बाद Login करें।"
                             else {
