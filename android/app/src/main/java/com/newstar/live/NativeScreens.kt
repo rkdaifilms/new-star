@@ -1866,6 +1866,8 @@ fun NativeUploadScreen(session: NativeSession) {
                 }
                 locationResults = found
                 locationSearchMessage = if (found.isEmpty()) "कोई जगह नहीं मिली। नाम बदलकर खोजें।" else "एक सही जगह चुनें।"
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (error: Exception) {
                 locationResults = emptyList()
                 locationSearchMessage = error.message?.take(240) ?: "लोकेशन सर्च उपलब्ध नहीं है।"
@@ -2582,7 +2584,7 @@ private object NativeVideoUploader {
         require(videoId.isNotBlank()) { "वीडियो Cloudflare पर upload हुआ, लेकिन Supabase ने Video ID नहीं लौटाई। Stream ID: $streamId" }
         withContext(Dispatchers.Main) { onStatus("वीडियो upload हो गया। Cloudflare processing status जाँचा जा रहा है…") }
         var finalStatus = "वीडियो upload हो गया। Cloudflare processing जारी है; तैयार होने पर वीडियो प्रोफ़ाइल में दिखेगा।"
-        repeat(6) { attempt ->
+        for (attempt in 0 until 6) {
             try {
                 NativeSupabase.invokeFunction(
                     "video-url",
@@ -2598,13 +2600,15 @@ private object NativeVideoUploader {
                 val provider = rowStatus?.optString("provider_status").orEmpty()
                 if (processing == "published" && provider == "ready") {
                     finalStatus = "वीडियो सफलतापूर्वक तैयार और प्रकाशित हो गया है।"
-                    return@repeat
+                    break
                 }
                 if (processing == "failed" || provider == "error") {
                     finalStatus = "Cloudflare processing असफल हुआ। वीडियो रिकॉर्ड सुरक्षित है; Stream ID: $streamId"
-                    return@repeat
+                    break
                 }
                 finalStatus = "वीडियो upload पूरा है। Cloudflare processing जारी है (${attempt + 1}/6)…"
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (error: Exception) {
                 finalStatus = "वीडियो upload सुरक्षित है। Processing status अभी नहीं मिल सका: ${error.message?.take(160) ?: "अस्थायी त्रुटि"}"
             }
