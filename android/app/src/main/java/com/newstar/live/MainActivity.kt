@@ -159,14 +159,29 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }.also { receiver ->
-            ContextCompat.registerReceiver(this, receiver, IntentFilter(GamingStreamService.STATUS),
-                ContextCompat.RECEIVER_NOT_EXPORTED)
         }
-        handleNotificationIntent(intent)
-        handleOAuthCallback(intent)
-        handleSharedVideoIntent(intent)
-        handleReferralIntent(intent)
+        runCatching {
+            ContextCompat.registerReceiver(
+                this,
+                requireNotNull(gamingStatusReceiver),
+                IntentFilter(GamingStreamService.STATUS),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        }.onFailure { error ->
+            android.util.Log.e("NewStarStartup", "Gaming status receiver registration failed", error)
+        }
+
+        // Deep-link parsing and encrypted referral storage must never prevent the
+        // primary Compose activity from being created.
+        runCatching { handleNotificationIntent(intent) }
+            .onFailure { android.util.Log.e("NewStarStartup", "Notification intent ignored", it) }
+        runCatching { handleOAuthCallback(intent) }
+            .onFailure { android.util.Log.e("NewStarStartup", "OAuth callback ignored", it) }
+        runCatching { handleSharedVideoIntent(intent) }
+            .onFailure { android.util.Log.e("NewStarStartup", "Shared-video intent ignored", it) }
+        runCatching { handleReferralIntent(intent) }
+            .onFailure { android.util.Log.e("NewStarStartup", "Referral intent ignored", it) }
+
         setContent {
             NewStarNativeTheme {
                 NativeApp(
