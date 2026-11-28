@@ -18,4 +18,25 @@ internal object NativeVideoEditorPolicy {
         }
         return speed
     }
+
+    fun requireTextStyle(sizePx: Int, colorHex: String, position: String) {
+        require(sizePx in 14..70) { "Text size 14 से 70 px के बीच रखें।" }
+        require(Regex("^#[0-9A-Fa-f]{6}$").matches(colorHex)) {
+            "Text color valid #RRGGBB format में होना चाहिए।"
+        }
+        require(position in setOf("top", "center", "bottom")) {
+            "Text position top, center या bottom होनी चाहिए।"
+        }
+    }
+
+    fun textPositionAnchorY(position: String): Float {
+        require(position in setOf("top", "center", "bottom")) {
+            "Text position top, center या bottom होनी चाहिए।"
+        }
+        return when (position) {
+            "top" -> 0.72f
+            "bottom" -> -0.72f
+            else -> 0f
+        }
+    }
 }
