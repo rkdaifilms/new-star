@@ -40,7 +40,7 @@ fun NativeNotificationsScreen(
     session: NativeSession,
     refreshSignal: Int,
     realtimeStatus: String,
-    onOpenCreator: (String) -> Unit
+    onOpenNotification: (JSONObject) -> Unit
 ) {
     var notifications by remember(session.userId) { mutableStateOf<List<JSONObject>>(emptyList()) }
     var actorProfiles by remember(session.userId) { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
@@ -114,7 +114,7 @@ fun NativeNotificationsScreen(
                 }
             }
             if (actorId.isNotBlank() && actorId != session.userId) {
-                onOpenCreator(actorId)
+                onOpenNotification(JSONObject(notification.toString()))
             }
         }
     }
