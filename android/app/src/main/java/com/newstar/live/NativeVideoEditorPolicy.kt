@@ -65,6 +65,24 @@ internal object NativeVideoEditorPolicy {
         }
     }
 
+    fun subtitleWindow(
+        startSeconds: Int,
+        endSeconds: Int,
+        trimStartMs: Long,
+        trimEndMs: Long
+    ): Pair<Long, Long>? {
+        require(startSeconds >= 0 && endSeconds > startSeconds) {
+            "Subtitle का End time, Start time से बड़ा होना चाहिए।"
+        }
+        require(trimStartMs >= 0L && trimEndMs > trimStartMs) {
+            "Trim interval valid होना चाहिए।"
+        }
+        val startMs = maxOf(startSeconds.toLong() * 1000L, trimStartMs)
+        val endMs = minOf(endSeconds.toLong() * 1000L, trimEndMs)
+        if (endMs <= startMs) return null
+        return (startMs - trimStartMs) to (endMs - trimStartMs)
+    }
+
     fun requireTextCoordinates(x: Float, y: Float) {
         require(x.isFinite() && y.isFinite() && x in -0.85f..0.85f && y in -0.85f..0.85f) {
             "Text coordinates preview bounds के अंदर होने चाहिए।"
