@@ -74,7 +74,11 @@ internal class NativeSfuPublisher private constructor(
         if (!stopped.compareAndSet(false, true)) return
         renderer?.let { runCatching { videoTrack.removeSink(it) } }
         renderer = null
-        runCatching { NativeLiveRepository.closeSfuSession(roomId, sfuSessionId, trackMids, session) }
+        runCatching {
+            NativeLiveRepository.closeSfuSession(roomId, sfuSessionId, trackMids, session)
+        }.onFailure {
+            runCatching { NativeLiveRepository.abandonSfuSession(roomId, sfuSessionId, session) }
+        }
         runCatching { capturer.stopCapture() }
         runCatching { peer.close(); peer.dispose() }
         runCatching { videoTrack.dispose(); audioTrack?.dispose() }
