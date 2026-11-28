@@ -1,18 +1,17 @@
 package com.newstar.live
 
-import org.json.JSONObject
-
 /**
  * Supabase returns the newest notifications first. This helper identifies rows
  * inserted after the last foreground notification without replaying the baseline.
  */
 internal object NativeNotificationDelta {
-    fun newlyInserted(
-        newestFirst: List<JSONObject>,
-        lastSeenId: String
-    ): List<JSONObject> {
+    fun <T> newlyInserted(
+        newestFirst: List<T>,
+        lastSeenId: String,
+        idOf: (T) -> String
+    ): List<T> {
         if (newestFirst.isEmpty() || lastSeenId.isBlank()) return emptyList()
-        val baselineIndex = newestFirst.indexOfFirst { it.optString("id") == lastSeenId }
+        val baselineIndex = newestFirst.indexOfFirst { idOf(it) == lastSeenId }
         return if (baselineIndex >= 0) {
             newestFirst.take(baselineIndex).asReversed()
         } else {
