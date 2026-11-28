@@ -4388,20 +4388,22 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                             Button(onClick = {
                                 val bitmap = generatedImage
                                 if (bitmap != null) scope.launch {
+                                    var insertedUri: Uri? = null
                                     try {
                                         val values = ContentValues().apply {
                                             put(MediaStore.Images.Media.DISPLAY_NAME, "new-star-creator-" + System.currentTimeMillis() + ".png")
                                             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
                                             if (Build.VERSION.SDK_INT >= 29) put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/New Star")
                                         }
-                                        val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                                        insertedUri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
                                             ?: throw IllegalStateException("Gallery में image save नहीं हो सकी।")
-                                        val saved = context.contentResolver.openOutputStream(uri)?.use { output ->
+                                        val saved = context.contentResolver.openOutputStream(insertedUri!!)?.use { output ->
                                             bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
                                         } ?: false
                                         if (!saved) throw IllegalStateException("Image file लिखी नहीं जा सकी।")
                                         error = "Image Gallery के Pictures/New Star folder में save हो गई।"
                                     } catch (e: Exception) {
+                                        insertedUri?.let { context.contentResolver.delete(it, null, null) }
                                         error = e.message ?: "Image save नहीं हुई।"
                                     }
                                 }
@@ -4485,29 +4487,32 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                 }
             ) { Text("Create Image") }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            if (recording) {
-                Button(onClick = { stopAndTranscribe() }, enabled = !busy) { Text("■ Stop recording") }
-            } else {
-                OutlinedButton(
-                    enabled = !busy && !speaking,
-                    onClick = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                            microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
-                        } else {
-                            microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
-                        }
-                    }
-                ) { Text("🎙️ Speak") }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                if (recording) {
+                    Button(onClick = { stopAndTranscribe() }, enabled = !busy) { Text("■ Stop recording") }
+                } else {
+                    OutlinedButton(
+                        enabled = !busy && !speaking,
+                        onClick = { microphonePermission.launch(Manifest.permission.RECORD_AUDIO) }
+                    ) { Text("🎙️ Speak") }
+                }
+                Text(if (recording) "Recording · max 60 sec" else "Voice input", style = MaterialTheme.typography.bodySmall)
             }
-            FilterChip(selected = imageRatio == "16:9", onClick = { imageRatio = "16:9" }, label = { Text("16:9") })
-            FilterChip(selected = imageRatio == "9:16", onClick = { imageRatio = "9:16" }, label = { Text("9:16") })
-            FilterChip(selected = imageRatio == "1:1", onClick = { imageRatio = "1:1" }, label = { Text("1:1") })
-            FilterChip(selected = imageSize == "1K", onClick = { imageSize = "1K" }, label = { Text("1K") })
-            FilterChip(selected = imageSize == "2K", onClick = { imageSize = "2K" }, label = { Text("2K") })
-            FilterChip(selected = imageSize == "4K", onClick = { imageSize = "4K" }, label = { Text("4K") })
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = { messages = emptyList(); generatedImage = null; error = "" }, enabled = !busy && !recording) { Text("Clear") }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("Aspect", style = MaterialTheme.typography.labelMedium)
+                FilterChip(selected = imageRatio == "16:9", onClick = { imageRatio = "16:9" }, label = { Text("16:9") })
+                FilterChip(selected = imageRatio == "9:16", onClick = { imageRatio = "9:16" }, label = { Text("9:16") })
+                FilterChip(selected = imageRatio == "1:1", onClick = { imageRatio = "1:1" }, label = { Text("1:1") })
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("Size", style = MaterialTheme.typography.labelMedium)
+                FilterChip(selected = imageSize == "1K", onClick = { imageSize = "1K" }, label = { Text("1K") })
+                FilterChip(selected = imageSize == "2K", onClick = { imageSize = "2K" }, label = { Text("2K") })
+                FilterChip(selected = imageSize == "4K", onClick = { imageSize = "4K" }, label = { Text("4K") })
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { messages = emptyList(); generatedImage = null; error = "" }, enabled = !busy && !recording) { Text("Clear") }
+            }
         }
     }
 }
