@@ -3166,6 +3166,21 @@ fun NativeGamingScreen(
                         Text(state.guestPublisherError, color = if (state.guestPublisherReady) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     }
                     if (state.guestPublisherReady && guestPreview != null) {
+                        if (state.guestPublisherConnectionState == "FAILED" || state.guestPublisherConnectionState == "DISCONNECTED") {
+                            Text(
+                                if (state.guestPublisherConnectionState == "FAILED") "LIVE connection failed. Retry करने से नया SFU session बनेगा।" else "Network वापस आने की प्रतीक्षा करें; जरूरत हो तो Retry दबाएँ।",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            OutlinedButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !state.guestPublisherStarting,
+                                onClick = {
+                                    val micGranted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                    gamingViewModel.retryGuestPublisher(context, micGranted)
+                                }
+                            ) { Text(if (state.guestPublisherStarting) "Reconnecting…" else "Retry camera connection") }
+                        }
                         AndroidView(
                             factory = { guestPreview ?: throw IllegalStateException("Guest preview unavailable") },
                             modifier = Modifier.fillMaxWidth().height(240.dp)
