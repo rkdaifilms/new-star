@@ -2150,6 +2150,12 @@ fun NativeUploadScreen(session: NativeSession) {
                     status = "Split point, Trim start और Trim end के बीच होना चाहिए।"
                     return@Button
                 }
+                val splitSubtitleStart = subtitleStartSeconds.toIntOrNull()
+                val splitSubtitleEnd = subtitleEndSeconds.toIntOrNull()
+                if (overlayText.isNotBlank() && (splitSubtitleStart == null || splitSubtitleEnd == null || splitSubtitleStart < 0 || splitSubtitleEnd <= splitSubtitleStart || splitSubtitleEnd > sourceDurationSeconds)) {
+                    status = "Split से पहले Subtitle Start और End का समय सही रखें।"
+                    return@Button
+                }
                 uploading = true
                 editingProgress = 0
                 status = "दोनों वीडियो segments export हो रहे हैं…"
@@ -2157,7 +2163,7 @@ fun NativeUploadScreen(session: NativeSession) {
                     val created = mutableListOf<java.io.File>()
                     try {
                         val firstSubtitleWindow = NativeVideoEditorPolicy.subtitleWindow(
-                            subtitleStartSeconds.toIntOrNull() ?: 0, subtitleEndSeconds.toIntOrNull() ?: sourceDurationSeconds,
+                            splitSubtitleStart ?: 0, splitSubtitleEnd ?: sourceDurationSeconds,
                             start * 1000L, split * 1000L
                         )
                         val first = NativeVideoEditor.export(
@@ -2172,7 +2178,7 @@ fun NativeUploadScreen(session: NativeSession) {
                         )
                         created.add(first)
                         val secondSubtitleWindow = NativeVideoEditorPolicy.subtitleWindow(
-                            subtitleStartSeconds.toIntOrNull() ?: 0, subtitleEndSeconds.toIntOrNull() ?: sourceDurationSeconds,
+                            splitSubtitleStart ?: 0, splitSubtitleEnd ?: sourceDurationSeconds,
                             split * 1000L, end * 1000L
                         )
                         val second = NativeVideoEditor.export(
