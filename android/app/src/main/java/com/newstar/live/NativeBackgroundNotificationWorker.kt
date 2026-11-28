@@ -136,19 +136,20 @@ class NativeBackgroundNotificationWorker(
             val cursorKey = "cursor_$expectedUserId"
             val seenKey = "seen_$expectedUserId"
             val storedCursor = preferences.getString(cursorKey, null)
-            var pageCursor = NativeBackgroundNotificationCursor.decode(storedCursor)
-            if (pageCursor == null) {
-                // Establish a baseline for first install or a corrupted cursor; do not replay history.
-                pageCursor = NativeBackgroundNotificationCursor.Cursor(
-                    createdAt = Instant.now().toString(),
-                    id = NativeBackgroundNotificationCursor.MIN_UUID
-                )
-                preferences.edit()
-                    .putString(cursorKey, NativeBackgroundNotificationCursor.encode(pageCursor))
-                    .putString(seenKey, "[]")
-                    .apply()
-                return Result.success()
-            }
+            val pageCursor = NativeBackgroundNotificationCursor.decode(storedCursor)
+                ?: run {
+                    // Establish a baseline for first install or a corrupted cursor; do not replay history.
+                    val baseline = NativeBackgroundNotificationCursor.Cursor(
+                        createdAt = Instant.now().toString(),
+                        id = NativeBackgroundNotificationCursor.MIN_UUID
+                    )
+                    preferences.edit()
+                        .putString(cursorKey, NativeBackgroundNotificationCursor.encode(baseline))
+                        .putString(seenKey, "[]")
+                        .apply()
+                    return Result.success()
+                }
+            var lastProcessedCursor = pageCursor
 
             runCatching { NativeNotificationPreferences.synchronize(applicationContext, session) }
             val seenIds = NativeBackgroundNotificationCursor.parseSeenIds(
@@ -161,7 +162,7 @@ class NativeBackgroundNotificationWorker(
                 val rows = NativeSupabase.get(
                     "/rest/v1/notifications?select=id,user_id,actor_id,type,message,is_read,created_at" +
                         "&user_id=eq.${Uri.encode(session.userId)}" +
-                        "&${NativeBackgroundNotificationCursor.filter(pageCursor)}" +
+                        "&${NativeBackgroundNotificationCursor.filter(lastProcessedCursor)}" +
                         "&order=created_at.asc,id.asc&limit=$PAGE_SIZE",
                     session
                 )
@@ -170,10 +171,10 @@ class NativeBackgroundNotificationWorker(
                 allRows.addAll(pageRows)
                 val nextCursor = NativeBackgroundNotificationCursor.fromRow(pageRows.last())
                     ?: throw IllegalStateException("Notification row is missing its cursor fields.")
-                if (nextCursor == pageCursor) {
+                if (nextCursor == lastProcessedCursor) {
                     throw IllegalStateException("Notification pagination did not advance.")
                 }
-                pageCursor = nextCursor
+                lastProcessedCursor = nextCursor
                 if (pageRows.size < PAGE_SIZE) break
             }
 
@@ -214,7 +215,7 @@ class NativeBackgroundNotificationWorker(
             )
             preferences.edit().apply {
                 putString(seenKey, updatedSeen)
-                putString(cursorKey, NativeBackgroundNotificationCursor.encode(pageCursor))
+                putString(cursorKey, NativeBackgroundNotificationCursor.encode(lastProcessedCursor))
             }.apply()
             Result.success()
         } catch (cancelled: CancellationException) {
