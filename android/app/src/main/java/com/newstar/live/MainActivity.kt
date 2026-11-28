@@ -2300,24 +2300,47 @@ private fun NativeHome(
                     }
                 }
             } else {
+            // One compact, transparent horizontal selector keeps more vertical
+            // room for the video. Feed tabs and categories share the same swipe row.
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
             ) {
-                items(listOf("For You", "Following", "Shorts", "Reels", "Long videos", "Discover", "Friends", "LIVE")) { name ->
-                    FilterChip(selected = feedMode == name, onClick = {
-                        if (name == "LIVE") onNavigate("Live") else feedMode = name
-                    }, label = { Text(name) })
-                }
-            }
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                items(listOf("All", "Comedy", "Music", "Gaming", "Tech", "Vlogs")) { name ->
-                    FilterChip(selected = category == name, onClick = { category = name }, label = { Text(name) })
+                items(listOf("For You", "Following", "Shorts", "Reels", "Long videos", "Discover", "Friends", "LIVE", "All", "Comedy", "Music", "Gaming", "Tech", "Vlogs")) { name ->
+                    val isFeedTab = name in listOf("For You", "Following", "Shorts", "Reels", "Long videos", "Discover", "Friends", "LIVE")
+                    val selected = if (isFeedTab) feedMode == name else category == name
+                    Column(
+                        modifier = Modifier
+                            .clickable {
+                                if (name == "LIVE") onNavigate("Live")
+                                else if (isFeedTab) feedMode = name
+                                else category = name
+                            }
+                            .padding(horizontal = 2.dp, vertical = 3.dp),
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            name,
+                            maxLines = 1,
+                            softWrap = false,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontSize = 11.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                            ),
+                            color = if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Box(
+                            Modifier
+                                .width(if (selected) 18.dp else 0.dp)
+                                .height(2.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    }
                 }
             }
             when {
@@ -2639,6 +2662,8 @@ private fun NativeVideoCard(
                     )
                     if (followLabel.isNotBlank()) {
                         TextButton(
+                            modifier = Modifier.height(30.dp),
+                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 0.dp),
                             enabled = session != null && !followBusy && followLabel != "Requested",
                             onClick = {
                                 val current = session ?: return@TextButton
@@ -2683,7 +2708,7 @@ private fun NativeVideoCard(
                                     } finally { followBusy = false }
                                 }
                             }
-                        ) { Text(if (followBusy) "…" else followLabel) }
+                        ) { Text(if (followBusy) "…" else followLabel, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), maxLines = 1) }
                     }
                 }
                 if (followError != null) Text(followError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
