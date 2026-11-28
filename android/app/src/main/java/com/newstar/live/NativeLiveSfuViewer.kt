@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -54,7 +53,7 @@ internal fun NativeLiveSfuViewer(session: NativeSession, roomId: String) {
             } else {
                 try {
                     val added = active.refreshPublications()
-                    if (added > 0) notice = "$" + "{added} नए LIVE video track जोड़े गए।"
+                    if (added > 0) notice = "${added} नए LIVE video track जोड़े गए।"
                 } catch (error: Exception) {
                     notice = error.message ?: "LIVE guest media refresh नहीं हो पाया।"
                 }
@@ -75,8 +74,10 @@ internal fun NativeLiveSfuViewer(session: NativeSession, roomId: String) {
     }
 
     val active = subscriber
-    val mids by active?.remoteVideoMids?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
-    val owners by active?.remoteVideoOwners?.collectAsState() ?: remember { mutableStateOf(emptyMap()) }
+    val midsState = active?.remoteVideoMids?.collectAsState()
+    val ownersState = active?.remoteVideoOwners?.collectAsState()
+    val mids = midsState?.value.orEmpty()
+    val owners = ownersState?.value.orEmpty()
 
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Guest cameras", style = MaterialTheme.typography.titleMedium)
@@ -84,12 +85,6 @@ internal fun NativeLiveSfuViewer(session: NativeSession, roomId: String) {
         if (notice.isNotBlank()) {
             Text(notice, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (active == null && !loading) {
-            OutlinedButton(onClick = { notice = "LIVE media connection दोबारा शुरू हो रही है।" },
-                modifier = Modifier.fillMaxWidth()) {
-                Text("Waiting for LIVE publications")
-            }
         }
         mids.forEach { mid ->
             val renderer = remember(active, mid) { SurfaceViewRenderer(context) }
@@ -103,7 +98,7 @@ internal fun NativeLiveSfuViewer(session: NativeSession, roomId: String) {
             val owner = owners[mid]
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 if (owner != null) {
-                    Text("Guest · $" + "{owner.userId.take(8)}", style = MaterialTheme.typography.labelSmall)
+                    Text("Guest · ${owner.userId.take(8)}", style = MaterialTheme.typography.labelSmall)
                 }
                 AndroidView(factory = { renderer }, modifier = Modifier.fillMaxWidth().height(210.dp))
             }
