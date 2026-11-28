@@ -2211,21 +2211,29 @@ private fun NativeVideoCard(
             }
         }
     }
+    LaunchedEffect(video.id) {
+        offlineSaved = withContext(Dispatchers.IO) {
+            NativeOfflineDownloads.isDownloaded(context, video.id)
+        }
+    }
     LaunchedEffect(video.id, downloadRequested) {
-        if (!downloadRequested) {
-            offlineSaved = withContext(Dispatchers.IO) {
-                NativeOfflineDownloads.isDownloaded(context, video.id)
-            }
-        } else {
+        if (downloadRequested) {
             while (true) {
-                val completed = withContext(Dispatchers.IO) {
-                    NativeOfflineDownloads.isDownloaded(context, video.id)
+                val state = withContext(Dispatchers.IO) {
+                    NativeOfflineDownloads.downloadState(context, video.id)
                 }
-                if (completed) {
-                    offlineSaved = true
-                    break
+                when (state) {
+                    androidx.media3.exoplayer.offline.Download.STATE_COMPLETED -> {
+                        offlineSaved = true
+                        break
+                    }
+                    androidx.media3.exoplayer.offline.Download.STATE_FAILED -> {
+                        downloadRequested = false
+                        Toast.makeText(context, "Offline download असफल हुआ। दोबारा कोशिश करें।", Toast.LENGTH_LONG).show()
+                        break
+                    }
+                    else -> kotlinx.coroutines.delay(5_000)
                 }
-                kotlinx.coroutines.delay(5_000)
             }
         }
     }
@@ -2410,15 +2418,25 @@ private fun NativeVideoCard(
                         }
                     ) { Text("Share") }
                     TextButton(
-                        enabled = !downloadBusy && !offlineSaved,
+                        enabled = !downloadBusy && !downloadRequested,
                         onClick = {
+                            if (offlineSaved) {
+                                try {
+                                    NativeOfflineDownloads.remove(context, video.id)
+                                    offlineSaved = false
+                                    Toast.makeText(context, "Offline copy हटाई जा रही है।", Toast.LENGTH_SHORT).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, e.message ?: "Offline copy नहीं हट सकी।", Toast.LENGTH_LONG).show()
+                                }
+                                return@TextButton
+                            }
                             downloadBusy = true
                             try {
                                 NativeOfflineDownloads.enqueue(context, video.id, video.url)
                                 downloadRequested = true
                                 Toast.makeText(
                                     context,
-                                    "Offline download शुरू हुआ। HLS और MP4 दोनों app storage में सेव होंगे; notification में progress देखें।",
+                                    "Offline download शुरू हुआ। HLS और MP4 app storage में सेव होंगे; notification में progress देखें।",
                                     Toast.LENGTH_LONG
                                 ).show()
                             } catch (e: Exception) {
@@ -2427,7 +2445,16 @@ private fun NativeVideoCard(
                                 downloadBusy = false
                             }
                         }
-                    ) { Text(if (downloadBusy) "Starting…" else if (offlineSaved) "Saved offline" else "Download") }
+                    ) {
+                        Text(
+                            when {
+                                downloadBusy -> "Starting…"
+                                offlineSaved -> "Remove offline"
+                                downloadRequested -> "Downloading…"
+                                else -> "Download"
+                            }
+                        )
+                    }
                     TextButton(
                         onClick = {
                             try {
