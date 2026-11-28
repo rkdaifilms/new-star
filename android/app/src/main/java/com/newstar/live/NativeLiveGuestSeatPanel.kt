@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -487,7 +488,7 @@ internal fun NativeLiveSeatRequestPanel(
                     guestPublisher?.let { activePublisher ->
                         NativeLiveCameraPreview(
                             publisher = activePublisher,
-                            modifier = Modifier.fillMaxWidth().size(1.dp)
+                            modifier = Modifier.fillMaxWidth().height(180.dp)
                         )
                         OutlinedButton(
                             enabled = !busy,
