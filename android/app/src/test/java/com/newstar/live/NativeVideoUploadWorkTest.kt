@@ -100,13 +100,13 @@ class NativeVideoUploadWorkTest {
             "public"
         )
 
-        NativeVideoUploadWork.cancel(context, userId)
+        NativeVideoUploadWork.cancel(context, userId).result.get(5, TimeUnit.SECONDS)
         val infos = workManager.getWorkInfosForUniqueWork(
             NativeVideoUploadWork.uniqueName(userId)
         ).get(5, TimeUnit.SECONDS)
 
         assertTrue(infos.isNotEmpty())
-        assertTrue(infos.all { it.state == WorkInfo.State.CANCELLED || it.state == WorkInfo.State.ENQUEUED })
+        assertTrue(infos.all { it.state == WorkInfo.State.CANCELLED })
     }
 
     private class RetryOnlyTestWorker(
