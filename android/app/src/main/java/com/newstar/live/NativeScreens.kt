@@ -679,6 +679,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                                 enabled = !videoManagerState.busy,
                                 onClick = {
                                     selectedVideoForManagement = item
+                                    confirmVideoDelete = false
                                     editVideoTitle = item.optString("caption")
                                     val currentTags = item.optJSONArray("tags") ?: JSONArray()
                                     editVideoTags = (0 until currentTags.length()).joinToString(", ") {
@@ -699,7 +700,12 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
 
     selectedVideoForManagement?.let { selected ->
         AlertDialog(
-            onDismissRequest = { if (!videoManagerState.busy) selectedVideoForManagement = null },
+            onDismissRequest = {
+                if (!videoManagerState.busy) {
+                    selectedVideoForManagement = null
+                    confirmVideoDelete = false
+                }
+            },
             title = { Text("Video settings") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -764,7 +770,10 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                     ) { Text("Delete video") }
                     TextButton(
                         enabled = !videoManagerState.busy,
-                        onClick = { selectedVideoForManagement = null }
+                        onClick = {
+                            selectedVideoForManagement = null
+                            confirmVideoDelete = false
+                        }
                     ) { Text("Cancel") }
                 }
             }
@@ -775,7 +784,20 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
         AlertDialog(
             onDismissRequest = { if (!videoManagerState.busy) confirmVideoDelete = false },
             title = { Text("Delete this video?") },
-            text = { Text("यह वीडियो आपके profile और feed से हट जाएगा। यह कार्रवाई वापस नहीं की जा सकती।") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("यह वीडियो आपके profile और feed से हट जाएगा। यह कार्रवाई वापस नहीं की जा सकती।")
+                    videoManagerState.error?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error)
+                    }
+                    if (videoManagerState.busy) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            Text("Deleting video…")
+                        }
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(
                     enabled = !videoManagerState.busy,
