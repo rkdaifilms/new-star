@@ -3190,7 +3190,7 @@ fun NativeGamingScreen(
                                     style = MaterialTheme.typography.labelLarge
                                 )
                                 Text(
-                                    "Camera ${if (member.optBoolean("camera_allowed")) "allowed" else "blocked"} · Mic ${if (member.optBoolean("microphone_allowed")) "allowed" else "blocked"} · ${if (member.optBoolean("sfu_connected")) "connected" else "not connected"}",
+                                    "Camera permission: ${if (member.optBoolean("camera_allowed")) "allowed" else "blocked"} · Camera active: ${if (member.optBoolean("camera_enabled")) "yes" else "no"} · Mic permission: ${if (member.optBoolean("microphone_allowed")) "allowed" else "blocked"} · Mic active: ${if (member.optBoolean("microphone_enabled")) "yes" else "no"}",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 if (canManage) {
