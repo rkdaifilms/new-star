@@ -314,6 +314,7 @@ private fun NativeApp(
     var lastForegroundNotificationId by remember(session?.userId) { mutableStateOf<String?>(null) }
     var notificationBaselineReady by remember(session?.userId) { mutableStateOf(false) }
     var notificationCheckInProgress by remember(session?.userId) { mutableStateOf(false) }
+    var notificationRefreshQueued by remember(session?.userId) { mutableStateOf(false) }
     var notificationRefreshCounter by remember(session?.userId) { mutableIntStateOf(0) }
     var notificationRealtimeStatus by remember(session?.userId) { mutableStateOf("Realtime connecting…") }
     val scope = rememberCoroutineScope()
@@ -325,6 +326,8 @@ private fun NativeApp(
 
     LaunchedEffect(session?.userId) {
         val current = session ?: return@LaunchedEffect
+        notificationBaselineReady = false
+        lastForegroundNotificationId = null
         try {
             val latest = NativeSupabase.get(
                 "/rest/v1/notifications?select=id&user_id=eq.${Uri.encode(current.userId)}&order=created_at.desc&limit=1",
@@ -346,41 +349,63 @@ private fun NativeApp(
                 accessToken = current.accessToken,
                 userId = current.userId,
                 onChange = {
-                    if (notificationBaselineReady && !notificationCheckInProgress) {
-                        scope.launch {
-                            notificationCheckInProgress = true
-                            try {
-                                val latestRows = NativeSupabase.get(
-                                    "/rest/v1/notifications?select=id,user_id,actor_id,type,message,is_read,created_at&user_id=eq.${Uri.encode(current.userId)}&order=created_at.desc&limit=1",
+                    scope.launch {
+                        if (!notificationBaselineReady) return@launch
+                        if (notificationCheckInProgress) {
+                            notificationRefreshQueued = true
+                            return@launch
+                        }
+                        notificationCheckInProgress = true
+                        try {
+                            do {
+                                notificationRefreshQueued = false
+                                val rows = NativeSupabase.get(
+                                    "/rest/v1/notifications?select=id,user_id,actor_id,type,message,is_read,created_at&user_id=eq.${Uri.encode(current.userId)}&order=created_at.desc&limit=100",
                                     current
                                 )
-                                val latest = latestRows.optJSONObject(0)
-                                val latestId = latest?.optString("id").orEmpty()
-                                if (latest != null && latestId.isNotBlank() &&
-                                    latestId != lastForegroundNotificationId
-                                ) {
-                                    lastForegroundNotificationId = latestId
-                                    notificationRefreshCounter++
-                                    if (!latest.optBoolean("is_read", false) &&
-                                        NativeSystemNotifications.hasPermission(context)
-                                    ) {
-                                        val actorId = latest.optString("actor_id")
-                                        val actorName = if (actorId.isNotBlank() && actorId != current.userId) {
-                                            val profileRows = NativeSupabase.get(
-                                                "/rest/v1/creator_public_profiles?select=user_id,username,full_name&user_id=eq.${Uri.encode(actorId)}&limit=1",
-                                                current
-                                            )
-                                            val profile = profileRows.optJSONObject(0)
-                                            profile?.optString("full_name").orEmpty()
+                                val newestFirst = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                                val newNotifications = NativeNotificationDelta.newlyInserted(
+                                    newestFirst,
+                                    lastForegroundNotificationId.orEmpty()
+                                )
+                                newestFirst.firstOrNull()?.optString("id")
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.let { lastForegroundNotificationId = it }
+
+                                if (newNotifications.isNotEmpty()) {
+                                    notificationRefreshCounter += newNotifications.size
+                                    val unread = newNotifications.filterNot { it.optBoolean("is_read", false) }
+                                    if (unread.isNotEmpty() && NativeSystemNotifications.hasPermission(context)) {
+                                        val actorIds = unread.map { it.optString("actor_id") }
+                                            .filter { it.isNotBlank() && it != current.userId }
+                                            .distinct()
+                                        val profilesById = if (actorIds.isEmpty()) {
+                                            emptyMap()
+                                        } else {
+                                            runCatching {
+                                                val ids = Uri.encode("(${actorIds.joinToString(",")})")
+                                                val profiles = NativeSupabase.get(
+                                                    "/rest/v1/creator_public_profiles?select=user_id,username,full_name&user_id=in.$ids",
+                                                    current
+                                                )
+                                                (0 until profiles.length()).mapNotNull { profiles.optJSONObject(it) }
+                                                    .associateBy { it.optString("user_id") }
+                                            }.getOrDefault(emptyMap())
+                                        }
+                                        unread.forEach { notification ->
+                                            val actorId = notification.optString("actor_id")
+                                            val profile = profilesById[actorId]
+                                            val actorName = profile?.optString("full_name").orEmpty()
                                                 .ifBlank { profile?.optString("username").orEmpty() }
-                                        } else ""
-                                        NativeSystemNotifications.show(context, latest, actorName)
+                                            NativeSystemNotifications.show(context, notification, actorName)
+                                        }
                                     }
                                 }
-                            } catch (_: Exception) {
-                            } finally {
-                                notificationCheckInProgress = false
-                            }
+                            } while (notificationRefreshQueued)
+                        } catch (_: Exception) {
+                            notificationRealtimeStatus = "Realtime notification refresh failed"
+                        } finally {
+                            notificationCheckInProgress = false
                         }
                     }
                 },
