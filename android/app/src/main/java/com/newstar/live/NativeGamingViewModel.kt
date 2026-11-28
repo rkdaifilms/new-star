@@ -178,7 +178,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
         }
     }
 
-    private fun startPkPolling(roomId: String) {
+    fun startPkPolling(roomId: String) {
         if (roomId.isBlank() || pkPollingRoomId == roomId && pkPollingJob?.isActive == true) return
         stopPkPolling()
         pkPollingRoomId = roomId
@@ -243,7 +243,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
         }
     }
 
-    private fun stopPkPolling() {
+    fun stopPkPolling() {
         pkPollingJob?.cancel()
         pkPollingJob = null
         pkPollingRoomId = null
