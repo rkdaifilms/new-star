@@ -94,4 +94,25 @@ class NativeVideoEditorPolicyTest {
         }
     }
 
+    @Test
+    fun formatsCommonVideoAspectRatiosAndQualities() {
+        assertEquals("9:16 · Vertical", NativeVideoEditorPolicy.videoAspectRatioLabel(1080, 1920))
+        assertEquals("16:9 · Widescreen", NativeVideoEditorPolicy.videoAspectRatioLabel(1920, 1080))
+        assertEquals("1:1 · Square", NativeVideoEditorPolicy.videoAspectRatioLabel(1080, 1080))
+        assertEquals("4K / UHD", NativeVideoEditorPolicy.videoQualityLabel(3840, 2160))
+        assertEquals("1080p / Full HD", NativeVideoEditorPolicy.videoQualityLabel(1920, 1080))
+        assertEquals("720p / HD", NativeVideoEditorPolicy.videoQualityLabel(1280, 720))
+        assertEquals("SD", NativeVideoEditorPolicy.videoQualityLabel(640, 480))
+    }
+
+    @Test
+    fun rejectsInvalidVideoDimensionsForMetadata() {
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.videoAspectRatioLabel(0, 1080)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.videoQualityLabel(1920, 0)
+        }
+    }
+
 }
