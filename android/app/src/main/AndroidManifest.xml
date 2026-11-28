@@ -29,6 +29,12 @@
                 <data android:scheme="com.newstar.live" android:host="video"/>
             </intent-filter>
         </activity>
+        <service android:name=".NewStarDownloadService" android:exported="false" android:foregroundServiceType="dataSync">
+            <intent-filter>
+                <action android:name="androidx.media3.exoplayer.downloadService.action.RESTART"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </service>
         <service android:name=".GamingStreamService" android:exported="false" android:foregroundServiceType="mediaProjection|microphone"/>
         <service android:name="androidx.work.impl.foreground.SystemForegroundService" android:foregroundServiceType="dataSync" tools:node="merge"/>
     </application>
