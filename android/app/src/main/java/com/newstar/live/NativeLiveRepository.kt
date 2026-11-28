@@ -109,6 +109,24 @@ internal object NativeLiveRepository {
     suspend fun removeGuest(roomId: String, participantId: String, session: NativeSession): JSONObject =
         invokeSeatAction("live-seat-remove", roomId, participantId, session)
 
+    suspend fun updateGuestMediaState(
+        roomId: String,
+        cameraEnabled: Boolean? = null,
+        microphoneEnabled: Boolean? = null,
+        session: NativeSession
+    ): JSONObject {
+        require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
+        require(cameraEnabled != null || microphoneEnabled != null) { "Media state आवश्यक है।" }
+        val body = JSONObject().put("action", "live-seat-media-state").put("room_id", roomId)
+        cameraEnabled?.let { body.put("camera_enabled", it) }
+        microphoneEnabled?.let { body.put("microphone_enabled", it) }
+        val result = NativeSupabase.invokeFunction("cloudflare-live", body, session)
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "LIVE media state सेव नहीं हुई।"))
+        }
+        return result
+    }
+
     suspend fun listMembers(roomId: String, session: NativeSession): JSONObject {
         require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
         val result = NativeSupabase.invokeFunction(
