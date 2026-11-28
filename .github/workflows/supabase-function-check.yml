@@ -25,5 +25,7 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Test LIVE SFU media MID validation
+        run: deno test --no-lock supabase/functions/cloudflare-live/sfu-validation_test.ts
       - name: Type-check LIVE Edge Function
         run: deno check --no-lock supabase/functions/cloudflare-live/index.ts
