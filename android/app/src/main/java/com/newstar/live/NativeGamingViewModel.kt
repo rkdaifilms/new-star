@@ -1,5 +1,6 @@
 package com.newstar.live
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -47,7 +48,16 @@ data class NativeGamingUiState(
     val invitations: List<JSONObject> = emptyList(),
     val invitationsLoading: Boolean = false,
     val invitationBusyId: String = "",
-    val invitationStatusMessage: String = ""
+    val invitationStatusMessage: String = "",
+    val guestRoomId: String = "",
+    val guestSeatStatus: String = "",
+    val guestSeatNumber: Int = 0,
+    val guestCameraAllowed: Boolean = false,
+    val guestMicrophoneAllowed: Boolean = false,
+    val guestPublisherReady: Boolean = false,
+    val guestPublisherStarting: Boolean = false,
+    val guestPublisherMicEnabled: Boolean = false,
+    val guestPublisherError: String = ""
 )
 
 class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
@@ -58,6 +68,8 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
     private var pollingRoomId: String? = null
     private var pkPollingJob: Job? = null
     private var pkPollingRoomId: String? = null
+    private var guestPublisher: NativeSfuPublisher? = null
+    private var guestSeatRefreshBusy = false
 
     fun setTitle(value: String) {
         mutableState.update { it.copy(title = value) }
@@ -344,17 +356,34 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
         }
     }
 
-    fun respondToCreatorInvite(inviteId: String, accept: Boolean) {
+    fun respondToCreatorInvite(inviteId: String, roomId: String, accept: Boolean) {
         if (inviteId.isBlank() || mutableState.value.invitationBusyId.isNotBlank()) return
+        if (accept && roomId.isBlank()) {
+            mutableState.update { it.copy(invitationError = "Invitation में LIVE room ID नहीं मिला।") }
+            return
+        }
         mutableState.update { it.copy(invitationBusyId = inviteId, invitationError = "", invitationStatusMessage = "") }
         viewModelScope.launch {
             try {
                 NativeLiveRepository.respondToInvitation(inviteId, accept, session)
+                if (accept) {
+                    mutableState.update {
+                        it.copy(
+                            guestRoomId = roomId,
+                            guestSeatStatus = "requested",
+                            guestSeatNumber = 0,
+                            guestCameraAllowed = false,
+                            guestMicrophoneAllowed = false,
+                            guestPublisherError = ""
+                        )
+                    }
+                    refreshGuestSeat(roomId)
+                }
                 refreshInvitations()
                 mutableState.update {
                     it.copy(
                         invitationStatusMessage = if (accept)
-                            "Invitation स्वीकार हुई। अब host की seat approval का इंतज़ार करें।"
+                            "Invitation स्वीकार हुई। Host seat approve करेगा; camera permission मिलने पर आप जुड़ सकते हैं।"
                         else "Invitation अस्वीकार कर दी गई।"
                     )
                 }
@@ -362,6 +391,136 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 mutableState.update { it.copy(invitationError = error.message ?: "Invitation response सेव नहीं हुआ।") }
             } finally {
                 mutableState.update { it.copy(invitationBusyId = "") }
+            }
+        }
+    }
+
+    fun refreshGuestSeat(roomId: String) {
+        if (roomId.isBlank() || guestSeatRefreshBusy) return
+        guestSeatRefreshBusy = true
+        viewModelScope.launch {
+            try {
+                val participants = NativeLiveRepository.listParticipants(roomId, session)
+                val own = participants.firstOrNull { it.optString("user_id") == session.userId }
+                if (own != null) {
+                    val status = own.optString("status")
+                    val cameraAllowed = own.optBoolean("camera_allowed")
+                    val microphoneAllowed = own.optBoolean("microphone_allowed")
+                    mutableState.update {
+                        it.copy(
+                            guestSeatStatus = status,
+                            guestSeatNumber = own.optInt("seat_number"),
+                            guestCameraAllowed = cameraAllowed,
+                            guestMicrophoneAllowed = microphoneAllowed
+                        )
+                    }
+                    if (status != "admitted" || !cameraAllowed) {
+                        stopGuestPublisherInternal()
+                    }
+                    if (status == "removed" || status == "left") {
+                        mutableState.update { it.copy(guestPublisherError = "Host ने guest seat बंद कर दी है।") }
+                    }
+                }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(guestPublisherError = error.message ?: "Guest seat status refresh नहीं हुआ।") }
+            } finally {
+                guestSeatRefreshBusy = false
+            }
+        }
+    }
+
+    fun startGuestPublisher(context: Context, roomId: String, microphoneGranted: Boolean) {
+        val current = mutableState.value
+        if (roomId.isBlank() || current.guestSeatStatus != "admitted" || !current.guestCameraAllowed ||
+            current.guestPublisherStarting || guestPublisher != null
+        ) return
+        mutableState.update { it.copy(guestPublisherStarting = true, guestPublisherError = "") }
+        viewModelScope.launch {
+            try {
+                val publisher = NativeSfuPublisher.start(
+                    context.applicationContext,
+                    roomId,
+                    session,
+                    microphoneGranted && mutableState.value.guestMicrophoneAllowed
+                )
+                guestPublisher = publisher
+                val micOn = microphoneGranted && mutableState.value.guestMicrophoneAllowed
+                mutableState.update {
+                    it.copy(
+                        guestPublisherReady = true,
+                        guestPublisherMicEnabled = micOn,
+                        guestPublisherError = "आपका camera LIVE seat पर publish हो रहा है।"
+                    )
+                }
+            } catch (error: Exception) {
+                mutableState.update {
+                    it.copy(
+                        guestPublisherReady = false,
+                        guestPublisherMicEnabled = false,
+                        guestPublisherError = error.message ?: "Guest camera publish नहीं हो पाया।"
+                    )
+                }
+            } finally {
+                mutableState.update { it.copy(guestPublisherStarting = false) }
+            }
+        }
+    }
+
+    fun attachGuestPreview(renderer: org.webrtc.SurfaceViewRenderer) {
+        guestPublisher?.attachPreview(renderer)
+    }
+
+    fun detachGuestPreview(renderer: org.webrtc.SurfaceViewRenderer) {
+        guestPublisher?.detachPreview(renderer)
+    }
+
+    fun setGuestCameraEnabled(enabled: Boolean) {
+        guestPublisher?.setCameraEnabled(enabled)
+    }
+
+    fun setGuestMicrophoneEnabled(enabled: Boolean) {
+        val current = mutableState.value
+        if (enabled && !current.guestMicrophoneAllowed) {
+            mutableState.update { it.copy(guestPublisherError = "Host ने microphone permission नहीं दी है।") }
+            return
+        }
+        guestPublisher?.setMicrophoneEnabled(enabled)
+        mutableState.update { it.copy(guestPublisherMicEnabled = enabled) }
+    }
+
+    private suspend fun stopGuestPublisherInternal() {
+        val publisher = guestPublisher ?: return
+        guestPublisher = null
+        runCatching { publisher.stop() }
+        mutableState.update {
+            it.copy(
+                guestPublisherReady = false,
+                guestPublisherMicEnabled = false,
+                guestPublisherStarting = false
+            )
+        }
+    }
+
+    fun leaveGuestSeat(roomId: String) {
+        if (roomId.isBlank()) return
+        viewModelScope.launch {
+            try {
+                stopGuestPublisherInternal()
+                if (mutableState.value.guestSeatStatus == "admitted") {
+                    NativeLiveRepository.leaveSeat(roomId, session)
+                }
+                mutableState.update {
+                    it.copy(
+                        guestRoomId = "",
+                        guestSeatStatus = "",
+                        guestSeatNumber = 0,
+                        guestCameraAllowed = false,
+                        guestMicrophoneAllowed = false,
+                        guestPublisherError = "आप LIVE guest seat से निकल गए।"
+                    )
+                }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(guestPublisherError = error.message ?: "Guest seat छोड़ना पूरा नहीं हुआ।") }
             }
         }
     }
@@ -512,7 +671,16 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 invitations = emptyList(),
                 invitationsLoading = false,
                 invitationBusyId = "",
-                invitationStatusMessage = ""
+                invitationStatusMessage = "",
+                guestRoomId = "",
+                guestSeatStatus = "",
+                guestSeatNumber = 0,
+                guestCameraAllowed = false,
+                guestMicrophoneAllowed = false,
+                guestPublisherReady = false,
+                guestPublisherStarting = false,
+                guestPublisherMicEnabled = false,
+                guestPublisherError = ""
             )
         }
     }
@@ -520,6 +688,11 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
     override fun onCleared() {
         stopPolling()
         stopPkPolling()
+        val publisher = guestPublisher
+        guestPublisher = null
+        if (publisher != null) {
+            runCatching { publisher.stop() }
+        }
         super.onCleared()
     }
 
