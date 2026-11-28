@@ -214,6 +214,8 @@ class NativeVideoUploadWorker(
                 message.contains("timeout", true) ||
                 message.contains("Cloudflare", true) ||
                 message.contains("offset", true) ||
+                message.contains("चार कोशिशों", true) ||
+                message.contains("resume check failed", true) ||
                 message.contains("JWT", true) ||
                 message.contains("token", true) ||
                 message.contains("401")
