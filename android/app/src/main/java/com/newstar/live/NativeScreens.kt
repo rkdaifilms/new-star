@@ -2701,7 +2701,12 @@ private object NativeVideoEditor {
             val timedTextOverlay = object : TextOverlay() {
                 override fun getText(presentationTimeUs: Long): SpannableString {
                     val timeMs = presentationTimeUs / 1000L
-                    return if (timeMs in subtitleStartMs..subtitleEndMs) text else SpannableString("")
+                    if (timeMs in subtitleStartMs..subtitleEndMs) return text
+                    return SpannableString(" ").apply {
+                        setSpan(ForegroundColorSpan(Color.TRANSPARENT), 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                        setSpan(BackgroundColorSpan(Color.TRANSPARENT), 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                        setSpan(AbsoluteSizeSpan(1), 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    }
                 }
             }
             videoEffects.add(OverlayEffect(listOf(timedTextOverlay)))
