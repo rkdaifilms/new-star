@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -84,6 +85,11 @@ class GamingStreamService : Service() {
         @Suppress("DEPRECATION")
         val permissionData = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(RESULT_DATA, Intent::class.java) else intent.getParcelableExtra(RESULT_DATA)
         val whipUrl = intent.getStringExtra(WHIP_URL) ?: error("Missing WHIP endpoint.")
+        val endpoint = java.net.URI(whipUrl)
+        require(endpoint.scheme.equals("https", ignoreCase = true) && !endpoint.host.isNullOrBlank() &&
+            endpoint.userInfo == null && endpoint.fragment == null) {
+            "Cloudflare WHIP endpoint must be a valid HTTPS URL."
+        }
         require(resultCode == android.app.Activity.RESULT_OK && permissionData != null) { "Screen permission was not granted." }
 
         PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(applicationContext).createInitializationOptions())
@@ -229,11 +235,19 @@ class GamingStreamService : Service() {
     private fun buildNotification(): Notification {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel(CHANNEL, "Gaming LIVE", NotificationManager.IMPORTANCE_LOW))
+        val stopIntent = Intent(this, GamingStreamService::class.java).apply { action = STOP }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            NOTIFICATION_ID,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         return NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.presence_video_online)
             .setContentTitle("New Star Gaming LIVE")
             .setContentText("Screen sharing is active")
             .setOngoing(true)
+            .addAction(android.R.drawable.ic_media_pause, "Stop LIVE", stopPendingIntent)
             .build()
     }
 
