@@ -422,6 +422,7 @@ internal class NativeInboxViewModel(private val session: NativeSession) : ViewMo
 fun NativeInboxScreen(
     session: NativeSession,
     targetCreatorId: String?,
+    targetRequestId: Int = 0,
     onOpenCreator: (String) -> Unit = {}
 ) {
     val vm = remember(session.userId) { NativeInboxViewModel(session) }
@@ -453,7 +454,7 @@ fun NativeInboxScreen(
         }
     }
 
-    LaunchedEffect(targetCreatorId) {
+    LaunchedEffect(targetCreatorId, targetRequestId) {
         if (!targetCreatorId.isNullOrBlank()) {
             tab = "Messages"
             vm.openTarget(targetCreatorId)
