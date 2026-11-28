@@ -2502,7 +2502,7 @@ private object NativeVideoEditor {
             text.setSpan(AbsoluteSizeSpan(64), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             videoEffects.add(OverlayEffect(listOf(TextOverlay.createStaticTextOverlay(text))))
         }
-        require(speed in 0.5f..2f) { "वीडियो speed 0.5x से 2x के बीच रखें।" }
+        NativeVideoEditorPolicy.requireSpeed(speed)
         val speedProvider = object : SpeedProvider {
             override fun getSpeed(timeUs: Long): Float = speed
             override fun getNextSpeedChangeTimeUs(timeUs: Long): Long = C.TIME_UNSET
