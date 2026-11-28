@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
     private var pendingGamingRoomId: String? = null
     private var pendingGamingWhip: String? = null
     private var activeGamingRoomId: String? = null
+    private val activeGamingRoomState = mutableStateOf<String?>(null)
     private var activeGamingSession: NativeSession? = null
     private var gamingStatusReceiver: BroadcastReceiver? = null
     private var queuedGamingSession: NativeSession? = null
@@ -139,6 +140,7 @@ class MainActivity : ComponentActivity() {
                         finally {
                             if (activeGamingRoomId == roomId) {
                                 activeGamingRoomId = null
+                                activeGamingRoomState.value = null
                                 activeGamingSession = null
                             }
                         }
@@ -162,6 +164,7 @@ class MainActivity : ComponentActivity() {
                         notificationRowId.value = null
                     },
                     onGoogleSignIn = { NativeGoogleOAuth.launch(this) },
+                    gamingRoomId = activeGamingRoomState.value,
                     onStartGaming = ::prepareGaming,
                     onStopGaming = ::stopGaming
                 )
@@ -231,6 +234,7 @@ class MainActivity : ComponentActivity() {
                 pendingGamingRoomId = roomId
                 pendingGamingWhip = response.getString("whip_url")
                 activeGamingRoomId = roomId
+                activeGamingRoomState.value = roomId
                 activeGamingSession = session
                 if (!micGranted) {
                     android.widget.Toast.makeText(this@MainActivity, "Microphone अनुमति नहीं मिली; LIVE केवल screen video के साथ शुरू होगा।", android.widget.Toast.LENGTH_LONG).show()
@@ -255,6 +259,7 @@ class MainActivity : ComponentActivity() {
                 val roomId = activeGamingRoomId ?: return@launch
             NativeSupabase.invokeFunction("cloudflare-live", JSONObject().put("action", "stop").put("room_id", roomId), current)
             activeGamingRoomId = null
+            activeGamingRoomState.value = null
             activeGamingSession = null
             } catch (_: Exception) { }
         }
@@ -268,6 +273,7 @@ private fun NativeApp(
     notificationRowId: String?,
     onNotificationIntentHandled: () -> Unit,
     onGoogleSignIn: () -> Unit,
+    gamingRoomId: String?,
     onStartGaming: (NativeSession, String) -> Unit,
     onStopGaming: (NativeSession) -> Unit
 ) {
@@ -466,6 +472,7 @@ private fun NativeApp(
                 "Live" -> NativeLiveDiscoveryScreen(session!!)
                 "Gaming" -> NativeGamingScreen(
                     session = session!!,
+                    roomId = gamingRoomId,
                     onStart = { title -> onStartGaming(session!!, title) },
                     onStop = { onStopGaming(session!!) }
                 )
