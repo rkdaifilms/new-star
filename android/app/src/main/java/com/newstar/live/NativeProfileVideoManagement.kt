@@ -15,8 +15,10 @@ internal object NativeProfileVideoPolicy {
         return raw.split(Regex("[,\\s]+"))
             .map(String::trim)
             .filter(String::isNotBlank)
-            .map { if (it.startsWith("#")) it else "#$it" }
-            .distinctBy { it.lowercase() }
+            .map { it.removePrefix("#").lowercase(java.util.Locale.ROOT) }
+            .filter(String::isNotBlank)
+            .map { "#$it" }
+            .distinct()
             .take(30)
     }
 
