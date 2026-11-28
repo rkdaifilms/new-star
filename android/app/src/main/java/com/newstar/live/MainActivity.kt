@@ -381,6 +381,9 @@ private fun NativeApp(
         notificationBaselineReady = false
         lastForegroundNotificationId = null
         try {
+            // Restore the latest account notification switches before subscribing.
+            // If offline, the last saved local preferences continue to apply.
+            runCatching { NativeNotificationPreferences.synchronize(context, current) }
             val latest = NativeSupabase.get(
                 "/rest/v1/notifications?select=id&user_id=eq.${Uri.encode(current.userId)}&order=created_at.desc&limit=1",
                 current
@@ -426,7 +429,9 @@ private fun NativeApp(
 
                                 if (newNotifications.isNotEmpty()) {
                                     notificationRefreshCounter += newNotifications.size
-                                    val unread = newNotifications.filterNot { it.optBoolean("is_read", false) }
+                                    val unread = newNotifications
+                                        .filterNot { it.optBoolean("is_read", false) }
+                                        .filter { NativeNotificationPreferences.isEnabled(context, it) }
                                     if (unread.isNotEmpty() && NativeSystemNotifications.hasPermission(context)) {
                                         val actorIds = unread.map { it.optString("actor_id") }
                                             .filter { it.isNotBlank() && it != current.userId }
