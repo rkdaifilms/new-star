@@ -705,7 +705,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = editVideoTitle,
-                        onValueChange = { editVideoTitle = it },
+                        onValueChange = { editVideoTitle = it.take(2000) },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("Title / Caption") },
                         minLines = 2,
@@ -714,7 +714,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                     )
                     OutlinedTextField(
                         value = editVideoTags,
-                        onValueChange = { editVideoTags = it },
+                        onValueChange = { editVideoTags = it.take(1000) },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("Hashtags (comma separated)") },
                         supportingText = { Text("अधिकतम 30 hashtags; # अपने आप जोड़ा जाएगा।") },
