@@ -1,13 +1,18 @@
 package com.newstar.live
 
 import android.app.Activity
+import android.app.DownloadManager
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.IntentFilter
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
+import android.widget.Toast
 import android.os.Bundle
+import android.os.Environment
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -2063,6 +2068,7 @@ private fun NativeVideoCard(
     var followLabel by remember(video.id, session?.userId) { mutableStateOf("") }
     var followBusy by remember(video.id, session?.userId) { mutableStateOf(false) }
     var followError by remember(video.id, session?.userId) { mutableStateOf<String?>(null) }
+    var downloadBusy by remember(video.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(session?.userId) {
         val current = session ?: return@LaunchedEffect
@@ -2267,6 +2273,63 @@ private fun NativeVideoCard(
                             }
                         }
                     }) { Text("Comments") }
+                    TextButton(
+                        onClick = {
+                            val shareText = buildString {
+                                append(video.caption.ifBlank { "Watch this video on New Star" })
+                                append("\\n")
+                                append(video.url)
+                            }
+                            try {
+                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, "New Star Video")
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                }
+                                context.startActivity(Intent.createChooser(sendIntent, "Share video"))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, e.message ?: "Share नहीं हो सका।", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    ) { Text("Share") }
+                    TextButton(
+                        enabled = !downloadBusy,
+                        onClick = {
+                            val parsed = Uri.parse(video.url)
+                            if (parsed.scheme != "https") {
+                                Toast.makeText(context, "सुरक्षित video URL उपलब्ध नहीं है।", Toast.LENGTH_LONG).show()
+                                return@TextButton
+                            }
+                            downloadBusy = true
+                            try {
+                                val safeId = video.id.replace(Regex("[^A-Za-z0-9_-]"), "").take(80).ifBlank { "video" }
+                                val request = DownloadManager.Request(parsed)
+                                    .setTitle("New Star video")
+                                    .setDescription(video.caption.ifBlank { "Downloading video" }.take(120))
+                                    .setMimeType("video/mp4")
+                                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                    .setAllowedOverMetered(true)
+                                    .setAllowedOverRoaming(false)
+                                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "new-star-video-$safeId.mp4")
+                                val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                                manager.enqueue(request)
+                                Toast.makeText(context, "Download शुरू हो गया। Downloads notification में progress देखें।", Toast.LENGTH_LONG).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, e.message ?: "Download शुरू नहीं हो सका।", Toast.LENGTH_LONG).show()
+                            } finally { downloadBusy = false }
+                        }
+                    ) { Text(if (downloadBusy) "Starting…" else "Download") }
+                    TextButton(
+                        onClick = {
+                            try {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("New Star video", video.url))
+                                Toast.makeText(context, "Video link कॉपी हो गया।", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, e.message ?: "Link कॉपी नहीं हुआ।", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    ) { Text("Copy link") }
                     TextButton(
                         enabled = session != null && !giftBusy,
                         onClick = {
