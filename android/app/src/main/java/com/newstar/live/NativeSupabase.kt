@@ -28,6 +28,11 @@ data class NativeSession(
     val email: String
 )
 
+internal class NativeSupabaseHttpException(
+    val statusCode: Int,
+    message: String
+) : IllegalStateException(message)
+
 object NativeSessionStore {
     private const val PREFS = "newstar_secure_session"
     private const val ENTRY = "session"
@@ -192,7 +197,10 @@ object NativeSupabase {
             val message = try { JSONObject(response).optString("message").ifBlank {
                 JSONObject(response).optString("error_description").ifBlank { JSONObject(response).optString("error") }
             } } catch (_: Exception) { response }
-            throw IllegalStateException(message.ifBlank { "Supabase request failed ($code)" })
+            throw NativeSupabaseHttpException(
+                code,
+                message.ifBlank { "Supabase request failed ($code)" }
+            )
         }
         return response
     }
@@ -350,10 +358,29 @@ object NativeSupabase {
 
     suspend fun validSession(context: Context): NativeSession? = withContext(Dispatchers.IO) {
         val saved = NativeSessionStore.load(context) ?: return@withContext null
-        if (saved.expiresAt > System.currentTimeMillis() / 1000 + 90) return@withContext saved
-        try { refresh(context, saved) } catch (_: Exception) {
+        if (saved.accessToken.isBlank() || saved.refreshToken.isBlank() || saved.userId.isBlank()) {
             NativeSessionStore.clear(context)
-            null
+            return@withContext null
+        }
+        if (saved.expiresAt > System.currentTimeMillis() / 1000 + 90) return@withContext saved
+        try {
+            refresh(context, saved)
+        } catch (error: NativeSupabaseHttpException) {
+            if (error.statusCode in setOf(400, 401, 403)) {
+                // Only an explicit auth rejection invalidates the stored login.
+                NativeSessionStore.clear(context)
+                null
+            } else {
+                android.util.Log.w("NewStarAuth", "Session refresh temporarily unavailable; preserving saved login", error)
+                saved
+            }
+        } catch (error: java.io.IOException) {
+            // Offline, timeout and DNS failures must not silently log the creator out.
+            android.util.Log.w("NewStarAuth", "Session refresh deferred until network returns", error)
+            saved
+        } catch (error: Exception) {
+            android.util.Log.e("NewStarAuth", "Session refresh failed unexpectedly; preserving saved login", error)
+            saved
         }
     }
 
