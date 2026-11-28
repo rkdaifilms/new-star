@@ -99,6 +99,19 @@ internal fun NativeLiveModerationScreen(roomId: String, session: NativeSession) 
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (state.actorRole == "host" && member.status == "requested") {
+                                Button(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = state.busyUserId == null,
+                                    onClick = { model.admitGuest(member) }
+                                ) {
+                                    if (state.busyUserId == member.userId) {
+                                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    } else {
+                                        Text("Admit to LIVE seat")
+                                    }
+                                }
+                            }
                             if (canManage) {
                                 val busy = state.busyUserId == member.userId
                                 Row(
