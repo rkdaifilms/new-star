@@ -17,6 +17,7 @@ import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.PreviewView
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -218,6 +219,36 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
         }
     }
     val scope = rememberCoroutineScope()
+    val videoManager: NativeProfileVideoManagementViewModel =
+        viewModel(key = "profile-video-management-${session.userId}")
+    val videoManagerState = videoManager.uiState
+    var selectedVideoForManagement by remember { mutableStateOf<JSONObject?>(null) }
+    var editVideoTitle by remember { mutableStateOf("") }
+    var editVideoTags by remember { mutableStateOf("") }
+    var editVideoVisibility by remember { mutableStateOf("public") }
+    var confirmVideoDelete by remember { mutableStateOf(false) }
+    var videoManagerNotice by remember { mutableStateOf("") }
+
+    LaunchedEffect(videoManagerState.updatedVideo, videoManagerState.deletedVideoId, videoManagerState.message) {
+        val updated = videoManagerState.updatedVideo
+        if (updated != null) {
+            val updatedId = updated.optString("id")
+            videos = videos.map { current ->
+                if (current.optString("id") == updatedId) updated else current
+            }
+            videoManagerNotice = videoManagerState.message.orEmpty()
+            selectedVideoForManagement = null
+            videoManager.clearFeedback()
+        }
+        val deletedId = videoManagerState.deletedVideoId
+        if (!deletedId.isNullOrBlank()) {
+            videos = videos.filterNot { it.optString("id") == deletedId }
+            videoManagerNotice = videoManagerState.message.orEmpty()
+            selectedVideoForManagement = null
+            confirmVideoDelete = false
+            videoManager.clearFeedback()
+        }
+    }
 
     LaunchedEffect(locationQuery) {
         val query = locationQuery.trim()
@@ -339,7 +370,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                 extras?.optString(key)?.takeIf { it.isNotBlank() && it != "null" }
                     ?: metadata.optString(key).takeUnless { it == "null" }.orEmpty()
             }
-            val videoRows = NativeSupabase.get("/rest/v1/videos?select=id,caption,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$id&order=created_at.desc&limit=100", session)
+            val videoRows = NativeSupabase.get("/rest/v1/videos?select=id,caption,tags,visibility,video_url,category,video_type,likes_count,views_count,created_at,processing_status&user_id=eq.$id&order=created_at.desc&limit=100", session)
             videos = (0 until videoRows.length()).mapNotNull { videoRows.optJSONObject(it) }
         } catch (e: Exception) { error = e.message ?: "Profile लोड नहीं हुई।" }
         finally { loading = false }
@@ -634,20 +665,133 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                 }
             }
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = { refresh++ }, enabled = !saving && !photoBusy) { Text("Refresh") }
+            if (videoManagerNotice.isNotBlank()) Text(videoManagerNotice, color = MaterialTheme.colorScheme.primary)
+            TextButton(onClick = { refresh++ }, enabled = !saving && !photoBusy && !videoManagerState.busy) { Text("Refresh") }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(filteredVideos) { item ->
                     Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp)) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Text(item.optString("caption").ifBlank { "Untitled video" })
                             Text("${item.optString("category")} · ${item.optInt("likes_count")} likes · ${item.optInt("views_count")} views")
+                            Text("Privacy: ${item.optString("visibility").ifBlank { "public" }}")
                             Text(item.optString("processing_status"))
+                            OutlinedButton(
+                                enabled = !videoManagerState.busy,
+                                onClick = {
+                                    selectedVideoForManagement = item
+                                    editVideoTitle = item.optString("caption")
+                                    val currentTags = item.optJSONArray("tags") ?: JSONArray()
+                                    editVideoTags = (0 until currentTags.length()).joinToString(", ") {
+                                        currentTags.optString(it)
+                                    }
+                                    editVideoVisibility = item.optString("visibility")
+                                        .takeIf { it in setOf("public", "unlisted", "private") } ?: "public"
+                                    videoManager.clearFeedback()
+                                }
+                            ) { Text("⋮ Manage video") }
                         }
                     }
                 }
                 if (filteredVideos.isEmpty()) item { Text("इस श्रेणी में अभी कोई वीडियो नहीं है।") }
             }
         }
+    }
+
+    selectedVideoForManagement?.let { selected ->
+        AlertDialog(
+            onDismissRequest = { if (!videoManagerState.busy) selectedVideoForManagement = null },
+            title = { Text("Video settings") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = editVideoTitle,
+                        onValueChange = { editVideoTitle = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Title / Caption") },
+                        minLines = 2,
+                        maxLines = 4,
+                        enabled = !videoManagerState.busy
+                    )
+                    OutlinedTextField(
+                        value = editVideoTags,
+                        onValueChange = { editVideoTags = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Hashtags (comma separated)") },
+                        supportingText = { Text("अधिकतम 30 hashtags; # अपने आप जोड़ा जाएगा।") },
+                        enabled = !videoManagerState.busy
+                    )
+                    Text("Video privacy", style = MaterialTheme.typography.titleSmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("public" to "Public", "unlisted" to "Unlisted", "private" to "Private").forEach { option ->
+                            FilterChip(
+                                selected = editVideoVisibility == option.first,
+                                onClick = { editVideoVisibility = option.first },
+                                enabled = !videoManagerState.busy,
+                                label = { Text(option.second) }
+                            )
+                        }
+                    }
+                    videoManagerState.error?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error)
+                    }
+                    if (videoManagerState.busy) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            Text("Saving…")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !videoManagerState.busy,
+                    onClick = {
+                        videoManager.update(
+                            session,
+                            selected.optString("id"),
+                            editVideoTitle,
+                            editVideoTags,
+                            editVideoVisibility
+                        )
+                    }
+                ) { Text("Save details") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        enabled = !videoManagerState.busy,
+                        onClick = { confirmVideoDelete = true }
+                    ) { Text("Delete video") }
+                    TextButton(
+                        enabled = !videoManagerState.busy,
+                        onClick = { selectedVideoForManagement = null }
+                    ) { Text("Cancel") }
+                }
+            }
+        )
+    }
+
+    if (confirmVideoDelete) {
+        AlertDialog(
+            onDismissRequest = { if (!videoManagerState.busy) confirmVideoDelete = false },
+            title = { Text("Delete this video?") },
+            text = { Text("यह वीडियो आपके profile और feed से हट जाएगा। यह कार्रवाई वापस नहीं की जा सकती।") },
+            confirmButton = {
+                TextButton(
+                    enabled = !videoManagerState.busy,
+                    onClick = {
+                        val selected = selectedVideoForManagement ?: return@TextButton
+                        videoManager.delete(session, selected)
+                    }
+                ) { Text(if (videoManagerState.busy) "Deleting…" else "Delete permanently") }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !videoManagerState.busy,
+                    onClick = { confirmVideoDelete = false }
+                ) { Text("Keep video") }
+            }
+        )
     }
 }
 
