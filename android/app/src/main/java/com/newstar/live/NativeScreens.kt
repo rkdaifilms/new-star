@@ -2580,11 +2580,11 @@ private object NativeVideoUploader {
                             offset -> {
                                 // Cloudflare did not accept this chunk; resend identical bytes.
                                 retry++
-                                if (retry < 4) kotlinx.coroutines.delay(1000L shl (retry - 1))
+                                if (retry < 4) kotlinx.coroutines.delay(1000L * (1L shl (retry - 1)))
                             }
                             -1L -> {
                                 retry++
-                                if (retry < 4) kotlinx.coroutines.delay(1000L shl (retry - 1))
+                                if (retry < 4) kotlinx.coroutines.delay(1000L * (1L shl (retry - 1)))
                             }
                             else -> throw IllegalStateException(
                                 "Cloudflare का resumable offset अमान्य है ($serverOffset); expected $offset या $expectedOffset।",
