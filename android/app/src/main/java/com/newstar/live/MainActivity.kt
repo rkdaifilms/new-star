@@ -383,6 +383,15 @@ private fun NativeApp(
     }
 
     LaunchedEffect(session?.userId) {
+        val current = session
+        if (current == null) {
+            NativeBackgroundNotificationWork.cancel(context)
+        } else {
+            NativeBackgroundNotificationWork.schedule(context, current.userId)
+        }
+    }
+
+    LaunchedEffect(session?.userId) {
         val current = session ?: return@LaunchedEffect
         notificationBaselineReady = false
         lastForegroundNotificationId = null
