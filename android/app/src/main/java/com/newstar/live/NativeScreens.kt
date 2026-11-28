@@ -1720,7 +1720,13 @@ fun NativeUploadScreen(session: NativeSession) {
         it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.BLOCKED
     }
     LaunchedEffect(uploadWorkInfos) {
-        val info = uploadWorkInfos.firstOrNull()
+        // Prefer the active request when WorkManager still returns an older
+        // completed request under the same unique-work name.
+        val info = uploadWorkInfos.firstOrNull {
+            it.state == WorkInfo.State.ENQUEUED ||
+                it.state == WorkInfo.State.RUNNING ||
+                it.state == WorkInfo.State.BLOCKED
+        } ?: uploadWorkInfos.firstOrNull()
         if (info != null) {
             val savedDraft = NativeUploadDraftStore.load(context, session.userId)
             if (selected == null && savedDraft != null) {
