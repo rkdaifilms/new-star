@@ -747,8 +747,7 @@ private fun NativeLiveInvitations(session: NativeSession) {
         }
     }
 
-    if (invitations.isNotEmpty() || notice.isNotBlank()) {
-        Card(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+    Card(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -826,10 +825,14 @@ private fun NativeLiveInvitations(session: NativeSession) {
                         }) { Text("Decline") }
                     }
                 }
+                if (invitations.isEmpty() && notice.isBlank()) {
+                    Text("अभी कोई pending LIVE invitation नहीं है।",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 if (notice.isNotBlank()) Text(notice, style = MaterialTheme.typography.bodySmall)
             }
         }
-    }
 }
 
 @Composable
