@@ -11,6 +11,7 @@ import org.json.JSONObject
 import java.io.Closeable
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -36,6 +37,7 @@ internal class NativeFollowRealtime private constructor(
     private val reconnecting = AtomicBoolean(false)
     private val ref = AtomicInteger(1)
     @Volatile private var socket: WebSocket? = null
+    @Volatile private var heartbeatTask: ScheduledFuture<*>? = null
     @Volatile private var retrySeconds = 2L
 
     fun start() {
@@ -87,7 +89,8 @@ internal class NativeFollowRealtime private constructor(
                     .put("join_ref", joinRef)
                 webSocket.send(joined.toString())
                 onStatus("Connected")
-                scheduler.scheduleAtFixedRate({
+                heartbeatTask?.cancel(false)
+                heartbeatTask = scheduler.scheduleAtFixedRate({
                     if (!closed.get()) {
                         val heartbeatRef = ref.getAndIncrement().toString()
                         webSocket.send(JSONObject()
@@ -150,6 +153,8 @@ internal class NativeFollowRealtime private constructor(
 
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
+        heartbeatTask?.cancel(true)
+        heartbeatTask = null
         socket?.close(1000, "Creator profile closed")
         socket = null
         scheduler.shutdownNow()
