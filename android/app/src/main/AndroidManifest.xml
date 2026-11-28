@@ -16,6 +16,18 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="com.newstar.live" android:host="auth" android:path="/callback"/>
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="new-star-delta.vercel.app"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="com.newstar.live" android:host="video"/>
+            </intent-filter>
         </activity>
         <service android:name=".GamingStreamService" android:exported="false" android:foregroundServiceType="mediaProjection|microphone"/>
         <service android:name="androidx.work.impl.foreground.SystemForegroundService" android:foregroundServiceType="dataSync" tools:node="merge"/>
