@@ -50,6 +50,8 @@ jobs:
           sha256sum "$APK" | tee new-star-android-apk-sha256.txt
       - name: Launch app on Android emulator and check for startup crash
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_I_WANT_MY_TCG: "yes"
         with:
           api-level: 35
           target: google_apis
@@ -57,9 +59,6 @@ jobs:
           profile: pixel_2
           disable-animations: true
           emulator-boot-timeout: 900
-          # GitHub-hosted Linux runners may not expose KVM. The emulator
-          # otherwise exits immediately with "Software CPU emulation ... not supported".
-          env: ANDROID_I_WANT_MY_TCG=yes
           script: |
             set -euo pipefail
             APK="android/app/build/outputs/apk/debug/app-debug.apk"
