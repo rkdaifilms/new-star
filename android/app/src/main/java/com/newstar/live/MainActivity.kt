@@ -1694,7 +1694,7 @@ private fun NativeHome(
         } finally { loading = false }
     }
 
-    LaunchedEffect(feedPagerState.currentPage, feed.size, canLoadMore, loading, loadingMore, pageRetry, feedMode, category, session?.userId) {
+    LaunchedEffect(feedPagerState.currentPage, feed.size, canLoadMore, loading, pageRetry, feedMode, category, session?.userId) {
         val current = session
         val nearEnd = feed.isNotEmpty() && feedPagerState.currentPage >= feed.size - 3
         if (!nearEnd || !canLoadMore || loading || loadingMore ||
