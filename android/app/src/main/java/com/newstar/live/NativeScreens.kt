@@ -27,6 +27,9 @@ import android.content.IntentFilter
 import android.webkit.MimeTypeMap
 import android.media.MediaMetadataRetriever
 import android.media.MediaRecorder
+import android.media.MediaPlayer
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Base64
@@ -3638,18 +3641,178 @@ private data class NativeAiMessage(val role: String, val content: String)
 @Composable
 fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
     val context = LocalContext.current
-    val appLanguage = remember { context.getSharedPreferences("newstar_preferences", Context.MODE_PRIVATE).getString("language", "hi") ?: "hi" }
+    val appLanguage = remember {
+        context.getSharedPreferences("newstar_preferences", Context.MODE_PRIVATE)
+            .getString("language", "hi") ?: "hi"
+    }
     var prompt by remember { mutableStateOf(initialPrompt) }
     var messages by remember { mutableStateOf<List<NativeAiMessage>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
+    var voiceStatus by remember { mutableStateOf("माइक दबाकर बोलें। रिकॉर्डिंग रोकने पर आवाज़ टेक्स्ट में बदलेगी।") }
+    var recording by remember { mutableStateOf(false) }
+    var recorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var recordingFile by remember { mutableStateOf<File?>(null) }
     var generatedImage by remember { mutableStateOf<Bitmap?>(null) }
     var imageRatio by remember { mutableStateOf("16:9") }
+    var audioPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+    var speaking by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val microphonePermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            try {
+                val file = File(context.cacheDir, "creator-ai-voice-${System.currentTimeMillis()}.m4a")
+                val activeRecorder = MediaRecorder().apply {
+                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                    setAudioEncodingBitRate(96_000)
+                    setAudioSamplingRate(44_100)
+                    setMaxDuration(60_000)
+                    setMaxFileSize(6_500_000L)
+                    setOutputFile(file.absolutePath)
+                    prepare()
+                    start()
+                }
+                recorder = activeRecorder
+                recordingFile = file
+                recording = true
+                voiceStatus = "रिकॉर्डिंग चालू है… अधिकतम 60 सेकंड। रोकने के लिए Stop recording दबाएँ।"
+                error = ""
+            } catch (e: Exception) {
+                recorder?.runCatching { stop() }
+                recorder?.release()
+                recorder = null
+                recording = false
+                voiceStatus = "माइक रिकॉर्डिंग शुरू नहीं हुई।"
+                error = e.message ?: "Microphone recording शुरू नहीं हो सकी।"
+            }
+        } else {
+            voiceStatus = "माइक अनुमति नहीं मिली। आप लिखकर भी AI से पूछ सकते हैं।"
+        }
+    }
+
+    fun stopAndTranscribe() {
+        val activeRecorder = recorder ?: return
+        val file = recordingFile
+        recorder = null
+        recording = false
+        try {
+            activeRecorder.stop()
+        } catch (e: Exception) {
+            error = "रिकॉर्डिंग बहुत छोटी थी या आवाज़ रिकॉर्ड नहीं हुई। फिर कोशिश करें।"
+            voiceStatus = error
+        } finally {
+            activeRecorder.release()
+        }
+        if (file == null || !file.exists() || file.length() < 256L) {
+            error = "रिकॉर्डिंग खाली है। माइक के पास बोलकर फिर कोशिश करें।"
+            return
+        }
+        voiceStatus = "आवाज़ को टेक्स्ट में बदला जा रहा है…"
+        busy = true
+        scope.launch {
+            try {
+                val encoded = withContext(Dispatchers.IO) {
+                    Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
+                }
+                require(encoded.length <= 11_000_000) { "रिकॉर्डिंग बहुत बड़ी है। छोटा voice message रिकॉर्ड करें।" }
+                val response = NativeSupabase.invokeFunction(
+                    "ai-gateway",
+                    JSONObject()
+                        .put("action", "transcribe")
+                        .put("audio", encoded)
+                        .put("mimeType", "audio/mp4"),
+                    session
+                )
+                if (!response.optBoolean("ok")) {
+                    throw IllegalStateException(response.optString("error", "Voice transcription असफल हुई।"))
+                }
+                val transcript = response.optString("transcript").trim()
+                require(transcript.isNotBlank()) { "आवाज़ से कोई शब्द समझ नहीं आया।" }
+                prompt = transcript
+                voiceStatus = "आवाज़ टेक्स्ट में बदल गई। जाँचकर Ask AI दबाएँ।"
+                error = ""
+            } catch (e: Exception) {
+                error = e.message ?: "Voice transcription असफल हुई।"
+                voiceStatus = "आवाज़ समझ नहीं आई। आप दोबारा बोल सकते हैं या लिख सकते हैं।"
+            } finally {
+                withContext(Dispatchers.IO) { runCatching { file.delete() } }
+                recordingFile = null
+                busy = false
+            }
+        }
+    }
+
+    fun speakReply(text: String) {
+        if (busy || speaking) return
+        speaking = true
+        error = ""
+        scope.launch {
+            var audioFile: File? = null
+            try {
+                val response = NativeSupabase.invokeFunction(
+                    "ai-gateway",
+                    JSONObject().put("action", "speak").put("text", text),
+                    session
+                )
+                if (!response.optBoolean("ok")) {
+                    throw IllegalStateException(response.optString("error", "Spoken reply उपलब्ध नहीं है।"))
+                }
+                val encoded = response.optString("audio")
+                require(encoded.isNotBlank()) { "AI voice ने audio data नहीं लौटाया।" }
+                val bytes = Base64.decode(encoded, Base64.DEFAULT)
+                audioFile = withContext(Dispatchers.IO) {
+                    File(context.cacheDir, "creator-ai-reply-${System.currentTimeMillis()}.audio").apply {
+                        writeBytes(bytes)
+                    }
+                }
+                audioPlayer?.runCatching { stop() }
+                audioPlayer?.release()
+                val player = MediaPlayer()
+                audioPlayer = player
+                player.setDataSource(audioFile.absolutePath)
+                player.setOnPreparedListener { it.start() }
+                player.setOnCompletionListener {
+                    it.release()
+                    if (audioPlayer === it) audioPlayer = null
+                    speaking = false
+                    voiceStatus = "AI का बोलकर जवाब पूरा हुआ।"
+                    audioFile?.delete()
+                }
+                player.setOnErrorListener { failed, _, _ ->
+                    failed.release()
+                    if (audioPlayer === failed) audioPlayer = null
+                    speaking = false
+                    error = "इस डिवाइस पर AI audio नहीं चल सका।"
+                    audioFile?.delete()
+                    true
+                }
+                player.prepareAsync()
+                voiceStatus = "AI जवाब बोल रहा है…"
+            } catch (e: Exception) {
+                audioFile?.delete()
+                speaking = false
+                error = e.message ?: "AI voice उपलब्ध नहीं है।"
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            recorder?.runCatching { stop() }
+            recorder?.release()
+            audioPlayer?.runCatching { stop() }
+            audioPlayer?.release()
+            recordingFile?.delete()
+        }
+    }
 
     Column(Modifier.fillMaxSize().padding(14.dp)) {
         Text("New Star Creator Studio AI", style = MaterialTheme.typography.headlineSmall)
-        Text("AI chat और image generation — native Android", style = MaterialTheme.typography.bodySmall)
+        Text("AI chat · Images · Voice · Multilingual", style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(8.dp))
         Text("Creator tools", style = MaterialTheme.typography.titleSmall)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -3667,10 +3830,16 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
             items(messages.size) { index ->
                 val item = messages[index]
                 Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp)) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(if (item.role == "user") "You" else "New Star AI",
                             style = MaterialTheme.typography.labelMedium)
                         Text(item.content)
+                        if (item.role == "assistant") {
+                            TextButton(
+                                enabled = !speaking && !busy,
+                                onClick = { speakReply(item.content) }
+                            ) { Text("🔊 Read aloud") }
+                        }
                     }
                 }
             }
@@ -3688,12 +3857,12 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                                 val bitmap = generatedImage
                                 if (bitmap != null) scope.launch {
                                     try {
-                                        val values = android.content.ContentValues().apply {
-                                            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "new-star-creator-" + System.currentTimeMillis() + ".png")
-                                            put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
-                                            if (android.os.Build.VERSION.SDK_INT >= 29) put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/New Star")
+                                        val values = ContentValues().apply {
+                                            put(MediaStore.Images.Media.DISPLAY_NAME, "new-star-creator-" + System.currentTimeMillis() + ".png")
+                                            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                                            if (Build.VERSION.SDK_INT >= 29) put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/New Star")
                                         }
-                                        val uri = context.contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                                        val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
                                             ?: throw IllegalStateException("Gallery में image save नहीं हो सकी।")
                                         val saved = context.contentResolver.openOutputStream(uri)?.use { output ->
                                             bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
@@ -3711,6 +3880,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
             }
         }
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
+        Text(voiceStatus, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(
             value = prompt,
             onValueChange = { if (it.length <= 3500) prompt = it },
@@ -3718,12 +3888,12 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
             label = { Text("अपना सवाल या image prompt लिखें") },
             minLines = 2,
             maxLines = 5,
-            enabled = !busy
+            enabled = !busy && !recording
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 modifier = Modifier.weight(1f),
-                enabled = !busy && prompt.isNotBlank(),
+                enabled = !busy && !recording && prompt.isNotBlank(),
                 onClick = {
                     val text = prompt.trim()
                     val history = (messages + NativeAiMessage("user", text)).takeLast(10)
@@ -3753,7 +3923,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
             ) { Text(if (busy) "Working…" else "Ask AI") }
             OutlinedButton(
                 modifier = Modifier.weight(1f),
-                enabled = !busy && prompt.isNotBlank(),
+                enabled = !busy && !recording && prompt.isNotBlank(),
                 onClick = {
                     val text = prompt.trim()
                     busy = true
@@ -3781,12 +3951,26 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                 }
             ) { Text("Create Image") }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            if (recording) {
+                Button(onClick = { stopAndTranscribe() }, enabled = !busy) { Text("■ Stop recording") }
+            } else {
+                OutlinedButton(
+                    enabled = !busy && !speaking,
+                    onClick = {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                            microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    }
+                ) { Text("🎙️ Speak") }
+            }
             FilterChip(selected = imageRatio == "16:9", onClick = { imageRatio = "16:9" }, label = { Text("16:9") })
             FilterChip(selected = imageRatio == "9:16", onClick = { imageRatio = "9:16" }, label = { Text("9:16") })
             FilterChip(selected = imageRatio == "1:1", onClick = { imageRatio = "1:1" }, label = { Text("1:1") })
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = { messages = emptyList(); generatedImage = null; error = "" }, enabled = !busy) { Text("Clear") }
+            TextButton(onClick = { messages = emptyList(); generatedImage = null; error = "" }, enabled = !busy && !recording) { Text("Clear") }
         }
     }
 }
