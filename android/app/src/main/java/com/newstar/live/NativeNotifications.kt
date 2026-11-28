@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 @Composable
-fun NativeNotificationsScreen(session: NativeSession) {
+fun NativeNotificationsScreen(session: NativeSession, onOpenCreator: (String) -> Unit) {
     var notifications by remember(session.userId) { mutableStateOf<List<JSONObject>>(emptyList()) }
     var actorProfiles by remember(session.userId) { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
     var loading by remember(session.userId) { mutableStateOf(true) }
@@ -84,25 +84,30 @@ fun NativeNotificationsScreen(session: NativeSession) {
         }
     }
 
-    fun markRead(notification: JSONObject) {
-        val id = notification.optString("id")
-        if (id.isBlank() || notification.optBoolean("is_read", false)) return
+    fun openNotification(notification: JSONObject) {
         scope.launch {
-            busy = true
-            error = ""
-            try {
-                NativeSupabase.patch(
-                    "/rest/v1/notifications?id=eq.${Uri.encode(id)}&user_id=eq.${Uri.encode(session.userId)}",
-                    JSONObject().put("is_read", true),
-                    session
-                )
-                notifications = notifications.map {
-                    if (it.optString("id") == id) JSONObject(it.toString()).put("is_read", true) else it
+            val id = notification.optString("id")
+            val actorId = notification.optString("actor_id")
+            if (id.isNotBlank() && !notification.optBoolean("is_read", false)) {
+                busy = true
+                error = ""
+                try {
+                    NativeSupabase.patch(
+                        "/rest/v1/notifications?id=eq.${Uri.encode(id)}&user_id=eq.${Uri.encode(session.userId)}",
+                        JSONObject().put("is_read", true),
+                        session
+                    )
+                    notifications = notifications.map {
+                        if (it.optString("id") == id) JSONObject(it.toString()).put("is_read", true) else it
+                    }
+                } catch (e: Exception) {
+                    error = e.message ?: "Notification read mark नहीं हुई।"
+                } finally {
+                    busy = false
                 }
-            } catch (e: Exception) {
-                error = e.message ?: "Notification read mark नहीं हुई।"
-            } finally {
-                busy = false
+            }
+            if (actorId.isNotBlank() && actorId != session.userId) {
+                onOpenCreator(actorId)
             }
         }
     }
@@ -163,8 +168,8 @@ fun NativeNotificationsScreen(session: NativeSession) {
                     .ifBlank { actor?.optString("username").orEmpty() }
                 val read = notification.optBoolean("is_read", false)
                 Card(
-                    modifier = Modifier.fillMaxWidth().clickable(enabled = !read && !busy) {
-                        markRead(notification)
+                    modifier = Modifier.fillMaxWidth().clickable(enabled = !busy) {
+                        openNotification(notification)
                     },
                     colors = CardDefaults.cardColors(
                         containerColor = if (read) MaterialTheme.colorScheme.surface
@@ -186,7 +191,12 @@ fun NativeNotificationsScreen(session: NativeSession) {
                         Text(notification.optString("created_at"),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (!read) {
+                        if (notification.optString("actor_id").isNotBlank() &&
+                            notification.optString("actor_id") != session.userId
+                        ) {
+                            Text("Tap to open creator profile", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary)
+                        } else if (!read) {
                             Text("Tap to mark as read", style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary)
                         }
