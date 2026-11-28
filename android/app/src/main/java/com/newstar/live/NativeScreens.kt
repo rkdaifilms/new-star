@@ -4157,6 +4157,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
     var recordingFile by remember { mutableStateOf<File?>(null) }
     var generatedImage by remember { mutableStateOf<Bitmap?>(null) }
     var imageRatio by remember { mutableStateOf("16:9") }
+    var imageSize by remember { mutableStateOf("1K") }
     var audioPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var speaking by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -4436,7 +4437,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                             val response = NativeSupabase.invokeFunction(
                                 "ai-gateway",
                                 JSONObject().put("action", "image").put("prompt", text)
-                                    .put("aspectRatio", imageRatio).put("imageSize", "1K").put("language", appLanguage),
+                                    .put("aspectRatio", imageRatio).put("imageSize", imageSize).put("language", appLanguage),
                                 session
                             )
                             if (!response.optBoolean("ok")) throw IllegalStateException(response.optString("error", "Image generation failed"))
@@ -4471,6 +4472,9 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
             FilterChip(selected = imageRatio == "16:9", onClick = { imageRatio = "16:9" }, label = { Text("16:9") })
             FilterChip(selected = imageRatio == "9:16", onClick = { imageRatio = "9:16" }, label = { Text("9:16") })
             FilterChip(selected = imageRatio == "1:1", onClick = { imageRatio = "1:1" }, label = { Text("1:1") })
+            FilterChip(selected = imageSize == "1K", onClick = { imageSize = "1K" }, label = { Text("1K") })
+            FilterChip(selected = imageSize == "2K", onClick = { imageSize = "2K" }, label = { Text("2K") })
+            FilterChip(selected = imageSize == "4K", onClick = { imageSize = "4K" }, label = { Text("4K") })
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { messages = emptyList(); generatedImage = null; error = "" }, enabled = !busy && !recording) { Text("Clear") }
         }
