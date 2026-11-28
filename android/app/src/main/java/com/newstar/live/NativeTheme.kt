@@ -54,6 +54,15 @@ private val nativePalettes = mapOf(
 
 private fun nativeColor(value: String): Color = Color(AndroidColor.parseColor(value))
 
+private fun safeNativeTextScale(value: String?): Float {
+    val parsed = value?.toFloatOrNull()
+    return if (parsed != null && parsed.isFinite() && parsed > 0f) {
+        parsed.coerceIn(0.9f, 1.25f)
+    } else {
+        1f
+    }
+}
+
 @Composable
 fun NewStarNativeTheme(content: @Composable () -> Unit) {
     val context = LocalContext.current
@@ -61,13 +70,13 @@ fun NewStarNativeTheme(content: @Composable () -> Unit) {
         context.getSharedPreferences("newstar_preferences", android.content.Context.MODE_PRIVATE)
     }
     var selected by remember { mutableStateOf(prefs.getString("theme", "dark") ?: "dark") }
-    var textScale by remember { mutableStateOf(prefs.getString("textScale", "1")?.toFloatOrNull() ?: 1f) }
+    var textScale by remember { mutableStateOf(safeNativeTextScale(prefs.getString("textScale", "1"))) }
     var highContrast by remember { mutableStateOf(prefs.getBoolean("highContrast", false)) }
 
     DisposableEffect(prefs) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "theme") selected = prefs.getString("theme", "dark") ?: "dark"
-            if (key == "textScale") textScale = prefs.getString("textScale", "1")?.toFloatOrNull() ?: 1f
+            if (key == "textScale") textScale = safeNativeTextScale(prefs.getString("textScale", "1"))
             if (key == "highContrast") highContrast = prefs.getBoolean("highContrast", false)
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -103,7 +112,7 @@ fun NewStarNativeTheme(content: @Composable () -> Unit) {
         )
     }
     val density = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(density.density, textScale.coerceIn(0.9f, 1.25f))) {
+    CompositionLocalProvider(LocalDensity provides Density(density.density, safeNativeTextScale(textScale.toString()))) {
         MaterialTheme(colorScheme = colors, content = content)
     }
 }
