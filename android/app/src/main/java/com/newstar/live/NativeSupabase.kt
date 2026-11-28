@@ -409,7 +409,7 @@ object NativeSupabase {
             "Video storage path owner से match नहीं करता।"
         }
         request(
-            "POST",
+            "DELETE",
             "/storage/v1/object/videos",
             JSONObject().put("prefixes", JSONArray().put(path)),
             session.accessToken
