@@ -35,7 +35,6 @@ Deno.serve(async (req: Request) => {
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
   const token = Deno.env.get("CLOUDFLARE_STREAM_TOKEN");
   if (!url || !anon || !service) return json({ error: "Server configuration incomplete." }, 503, headers);
-  if (!accountId || !token) return json({ error: "Cloudflare Stream is not configured. Ask the project owner to check the server-side Cloudflare secrets." }, 503, headers);
 
   const authorization = req.headers.get("authorization") || "";
   if (!authorization.startsWith("Bearer ")) return json({ error: "Login required." }, 401, headers);
@@ -596,6 +595,7 @@ Deno.serve(async (req: Request) => {
     }, 200, headers);
   }
 
+  if (!accountId || !token) return json({ error: "Cloudflare Stream is not configured. Ask the project owner to check the server-side Cloudflare secrets." }, 503, headers);
   if (action === "stop") {
     if (!body.room_id) return json({ error: "Room ID is required." }, 400, headers);
     const { data, error } = await admin.from("live_rooms").update({
