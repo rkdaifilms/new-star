@@ -3459,6 +3459,8 @@ fun NativeWalletScreen(session: NativeSession) {
     var ledger by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var orders by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var withdrawals by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var packages by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var packagesError by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
@@ -3508,6 +3510,18 @@ fun NativeWalletScreen(session: NativeSession) {
                 session
             )
             withdrawals = (0 until withdrawalRows.length()).mapNotNull { withdrawalRows.optJSONObject(it) }
+
+            try {
+                val packageRows = NativeSupabase.get(
+                    "/rest/v1/coin_packages?select=id,code,coins,bonus_coins,amount_minor,currency,country_code,channel,active&active=eq.true&order=amount_minor.asc",
+                    session
+                )
+                packages = (0 until packageRows.length()).mapNotNull { packageRows.optJSONObject(it) }
+                packagesError = ""
+            } catch (packageFailure: Exception) {
+                packages = emptyList()
+                packagesError = packageFailure.message ?: "Coin package catalogue अभी उपलब्ध नहीं है।"
+            }
         } catch (e: Exception) {
             error = e.message ?: "Wallet data लोड नहीं हुआ।"
         } finally {
@@ -3531,6 +3545,38 @@ fun NativeWalletScreen(session: NativeSession) {
                 Text("Gross: $giftGross Coins")
                 Text("Your recorded net: $giftNet Coins")
                 Text("Platform fee: $giftFee Coins")
+            }
+        }
+        Text("Published Coin Packages", style = MaterialTheme.typography.titleLarge)
+        Text(
+            "नीचे केवल server-published package जानकारी है। Native app से coin खरीद, payment या payout शुरू नहीं किया जा सकता।",
+            style = MaterialTheme.typography.bodySmall
+        )
+        if (packagesError.isNotBlank()) {
+            Text(packagesError, color = MaterialTheme.colorScheme.error)
+        }
+        if (packages.isEmpty() && !loading && packagesError.isBlank()) {
+            Text("अभी कोई active coin package प्रकाशित नहीं है।")
+        }
+        packages.forEach { packageRow ->
+            val baseCoins = packageRow.optLong("coins")
+            val bonusCoins = packageRow.optLong("bonus_coins")
+            val totalCoins = baseCoins + bonusCoins
+            val amountMinor = packageRow.optLong("amount_minor")
+            val currencyCode = packageRow.optString("currency").ifBlank { "USD" }.uppercase()
+            val fractionDigits = runCatching {
+                java.util.Currency.getInstance(currencyCode).defaultFractionDigits
+            }.getOrDefault(2).coerceAtLeast(0)
+            val formattedAmount = java.math.BigDecimal.valueOf(amountMinor, fractionDigits)
+                .setScale(fractionDigits, java.math.RoundingMode.HALF_UP).toPlainString()
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("$baseCoins Coins", style = MaterialTheme.typography.titleMedium)
+                    Text("+$bonusCoins bonus · $totalCoins total")
+                    Text("$currencyCode $formattedAmount · ${packageRow.optString("country_code").ifBlank { "Global" }}")
+                    Text("Channel: ${packageRow.optString("channel").ifBlank { "Not specified" }}")
+                    OutlinedButton(onClick = {}, enabled = false) { Text("Purchase unavailable") }
+                }
             }
         }
         Text("Coin Ledger", style = MaterialTheme.typography.titleLarge)
