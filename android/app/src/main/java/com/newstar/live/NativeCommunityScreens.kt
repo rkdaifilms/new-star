@@ -157,7 +157,7 @@ private fun CommunityCountCard(label: String, count: Int, modifier: Modifier = M
 }
 
 @Composable
-private fun NativeLiveCameraPreview(
+internal fun NativeLiveCameraPreview(
     publisher: NativeLivePublisher,
     modifier: Modifier = Modifier
 ) {
