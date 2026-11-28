@@ -1842,10 +1842,10 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                 ) {
                     OutlinedButton(
                         onClick = onMessage,
-                        enabled = !creator.optBoolean("is_private") || following,
+                        enabled = !creator.optBoolean("is_private"),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(if (creator.optBoolean("is_private") && !following) "🔒 Follow to Chat" else "💬 Message / Chat")
+                        Text(if (creator.optBoolean("is_private")) "🔒 Private Account" else "💬 Message / Chat")
                     }
                     Button(
                         enabled = !busy,
