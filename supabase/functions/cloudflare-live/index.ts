@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
   let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string; microphone_enabled?: boolean; camera_enabled?: boolean; target_user_id?: string; camera_allowed?: boolean; microphone_allowed?: boolean; moderator?: boolean; match_id?: string };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
-  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "list-members", "set-member-permissions", "set-moderator", "remove-member"];
+  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "list-members", "set-member-permissions", "set-moderator", "remove-member", "pk-join-queue", "pk-status", "pk-leave-queue", "pk-finish", "sfu-health"];
   if (!supportedActions.includes(String(action))) return json({ error: "This LIVE interaction is not enabled on the server yet." }, 501, headers);
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -501,6 +501,99 @@ Deno.serve(async (req: Request) => {
     }).eq("match_id", matchId).eq("status", "matched");
     if (queueError) return json({ error: "Battle ended, but matchmaking cleanup failed. Refresh status." }, 503, headers);
     return json({ ok: true }, 200, headers);
+  }
+
+
+  if (action === "pk-join-queue") {
+    const roomId = String(body.room_id || "");
+    const { data: room, error: roomError } = await admin.from("live_rooms")
+      .select("id,creator_id,is_live").eq("id", roomId).eq("creator_id", creatorId).eq("is_live", true).maybeSingle();
+    if (roomError || !room) return json({ error: "Start your own active LIVE room before matchmaking." }, 403, headers);
+    const { data, error } = await admin.rpc("live_pk_matchmake", { p_user_id: creatorId, p_room_id: roomId });
+    if (error || !data) {
+      console.error("LIVE PK matchmaking failed:", error?.message);
+      return json({ error: "Could not join the friendly LIVE battle queue." }, 503, headers);
+    }
+    return json({ ok: true, ...data }, 200, headers);
+  }
+
+  if (action === "pk-status") {
+    const roomId = String(body.room_id || "");
+    const { data: queue, error: queueError } = await admin.from("live_pk_queue")
+      .select("id,status,match_id").eq("user_id", creatorId).eq("room_id", roomId)
+      .in("status", ["waiting", "matched"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (queueError) return json({ error: "Could not load battle queue status." }, 503, headers);
+    if (!queue) return json({ ok: true, status: "idle" }, 200, headers);
+    if (queue.status === "waiting" || !queue.match_id) return json({ ok: true, status: "waiting" }, 200, headers);
+    const { data: match, error: matchError } = await admin.from("live_pk_matches")
+      .select("id,room_a_id,room_b_id,creator_a_id,creator_b_id,status")
+      .eq("id", queue.match_id).maybeSingle();
+    if (matchError) return json({ error: "Could not load active battle." }, 503, headers);
+    if (!match || match.status !== "active") {
+      await admin.from("live_pk_queue").update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("user_id", creatorId).eq("match_id", queue.match_id);
+      return json({ ok: true, status: "idle" }, 200, headers);
+    }
+    const { data: rooms, error: roomStateError } = await admin.from("live_rooms")
+      .select("id,is_live").in("id", [match.room_a_id, match.room_b_id]);
+    if (roomStateError) return json({ error: "Could not verify both LIVE rooms." }, 503, headers);
+    if (!rooms || rooms.length !== 2 || rooms.some((room: { is_live: boolean | null }) => room.is_live !== true)) {
+      await admin.from("live_pk_matches").update({ status: "completed", ended_at: new Date().toISOString() })
+        .eq("id", match.id).eq("status", "active");
+      await admin.from("live_pk_queue").update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("match_id", match.id).eq("status", "matched");
+      return json({ ok: true, status: "idle" }, 200, headers);
+    }
+    const ownIsA = match.creator_a_id === creatorId;
+    const opponentId = ownIsA ? match.creator_b_id : match.creator_a_id;
+    const opponentRoom = ownIsA ? match.room_b_id : match.room_a_id;
+    const ownRoom = ownIsA ? match.room_a_id : match.room_b_id;
+    const [{ data: profile }, { count: ownScore }, { count: opponentScore }] = await Promise.all([
+      admin.from("creator_public_profiles").select("username,full_name").eq("user_id", opponentId).maybeSingle(),
+      admin.from("live_room_reactions").select("id", { count: "exact", head: true }).eq("room_id", ownRoom).eq("reaction", "like"),
+      admin.from("live_room_reactions").select("id", { count: "exact", head: true }).eq("room_id", opponentRoom).eq("reaction", "like")
+    ]);
+    return json({ ok: true, status: "matched", match_id: match.id,
+      opponent_name: String(profile?.full_name || profile?.username || "LIVE creator"),
+      own_score: ownScore || 0, opponent_score: opponentScore || 0 }, 200, headers);
+  }
+
+  if (action === "pk-leave-queue") {
+    const { error } = await admin.from("live_pk_queue").update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("user_id", creatorId).eq("status", "waiting");
+    if (error) return json({ error: "Could not leave the matchmaking queue." }, 503, headers);
+    return json({ ok: true }, 200, headers);
+  }
+
+  if (action === "pk-finish") {
+    const matchId = String(body.match_id || "");
+    if (!matchId) return json({ error: "Battle match ID is required." }, 400, headers);
+    const { data, error } = await admin.from("live_pk_matches").update({
+      status: "completed", ended_at: new Date().toISOString()
+    }).eq("id", matchId).eq("status", "active")
+      .or("creator_a_id.eq." + creatorId + ",creator_b_id.eq." + creatorId)
+      .select("id").maybeSingle();
+    if (error) return json({ error: "Could not end the friendly battle." }, 503, headers);
+    if (!data) return json({ error: "Active battle not found for this creator." }, 404, headers);
+    const { error: queueError } = await admin.from("live_pk_queue").update({
+      status: "cancelled", updated_at: new Date().toISOString()
+    }).eq("match_id", matchId).eq("status", "matched");
+    if (queueError) return json({ error: "Battle ended, but matchmaking cleanup failed. Refresh status." }, 503, headers);
+    return json({ ok: true }, 200, headers);
+  }
+
+  if (action === "sfu-health") {
+    const appId = Deno.env.get("CLOUDFLARE_SFU_APP_ID") || "";
+    const appSecret = Deno.env.get("CLOUDFLARE_SFU_APP_SECRET") || "";
+    const configured = /^[a-f0-9]{32}$/i.test(appId) && /^[a-f0-9]{64}$/i.test(appSecret);
+    return json({
+      ok: true,
+      configured,
+      required_secrets: configured ? [] : ["CLOUDFLARE_SFU_APP_ID", "CLOUDFLARE_SFU_APP_SECRET"],
+      message: configured
+        ? "SFU credentials are present. Media session negotiation is not yet enabled."
+        : "Cloudflare Realtime SFU credentials are not configured. Existing Stream credentials are not interchangeable."
+    }, 200, headers);
   }
 
   if (action === "stop") {
