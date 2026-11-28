@@ -1384,165 +1384,135 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
 
 @Composable
 private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
-    var chatMessages by remember(roomId) { mutableStateOf<List<JSONObject>>(emptyList()) }
-    var draft by remember(roomId) { mutableStateOf("") }
-    var sending by remember(roomId) { mutableStateOf(false) }
-    var reactionBusy by remember(roomId) { mutableStateOf<String?>(null) }
-    var reactionCounts by remember(roomId) { mutableStateOf<Map<String, Int>>(emptyMap()) }
-    var notice by remember(roomId) { mutableStateOf("") }
-    var error by remember(roomId) { mutableStateOf("") }
-    var refresh by remember(roomId) { mutableIntStateOf(0) }
-    val scope = rememberCoroutineScope()
-    val reactions = listOf(
-        "like" to "👍 Like",
-        "heart" to "❤️ Heart",
-        "clap" to "👏 Clap",
-        "fire" to "🔥 Fire"
-    )
+    val chatViewModel: NativeLiveChatViewModel = viewModel(key = "native-live-chat-$roomId")
+    val chatState by chatViewModel.state.collectAsState()
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
 
-    LaunchedEffect(roomId, session.userId, refresh) {
-        while (true) {
-            try {
-                val result = NativeSupabase.invokeFunction(
-                    "cloudflare-live",
-                    JSONObject().put("action", "live-chat-list").put("room_id", roomId),
-                    session
-                )
-                if (!result.optBoolean("ok")) {
-                    throw IllegalStateException(result.optString("error", "LIVE chat लोड नहीं हुई।"))
-                }
-                val rows = result.optJSONArray("messages") ?: JSONArray()
-                chatMessages = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
-                reactionCounts = NativeLiveRepository.getReactionCounts(roomId, session)
-                error = ""
-            } catch (e: Exception) {
-                error = e.message ?: "LIVE chat लोड नहीं हुई।"
-            }
-            delay(5_000)
+    LaunchedEffect(roomId, session.userId, session.accessToken) {
+        chatViewModel.start(roomId, session)
+    }
+    DisposableEffect(chatViewModel, roomId) {
+        onDispose { chatViewModel.stop() }
+    }
+    LaunchedEffect(chatState.messages.size) {
+        if (chatState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(chatState.messages.lastIndex)
         }
     }
 
-    Column(Modifier.fillMaxWidth().padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        Modifier.fillMaxWidth().padding(top = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("LIVE Chat", style = MaterialTheme.typography.titleMedium)
-            TextButton(onClick = { refresh++ }) { Text("Refresh") }
+            if (chatState.loading && chatState.messages.isEmpty()) {
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else {
+                Text(
+                    "${chatState.messages.size} recent messages",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         Row(
             Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
-            reactions.forEach { (reaction, label) ->
+            listOf("like" to "👍", "heart" to "❤️", "clap" to "👏", "fire" to "🔥").forEach { (reaction, emoji) ->
                 OutlinedButton(
-                    enabled = reactionBusy == null,
-                    onClick = {
-                        reactionBusy = reaction
-                        notice = ""
-                        scope.launch {
-                            try {
-                                val total = NativeLiveRepository.sendReaction(roomId, reaction, session)
-                                reactionCounts = NativeLiveRepository.getReactionCounts(roomId, session)
-                                notice = "$label भेजा गया · कुल $total"
-                                error = ""
-                            } catch (e: Exception) {
-                                error = e.message ?: "LIVE reaction नहीं भेजा गया।"
-                            } finally {
-                                reactionBusy = null
-                            }
-                        }
-                    },
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    enabled = chatState.reactionBusy == null,
+                    onClick = { chatViewModel.sendReaction(reaction) },
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 3.dp, vertical = 5.dp)
                 ) {
                     Text(
-                        if (reactionBusy == reaction) "…" else
-                            reactionCounts[reaction]?.let { "$label $it" } ?: label,
+                        "$emoji ${chatState.reactionCounts[reaction] ?: 0}",
                         style = MaterialTheme.typography.labelSmall,
                         maxLines = 1
                     )
                 }
             }
         }
-        if (notice.isNotBlank()) {
-            Text(notice, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
+        if (chatState.messages.isEmpty() && !chatState.loading && chatState.error.isBlank()) {
+            Text(
+                "अभी कोई LIVE message नहीं है। बातचीत शुरू करें।",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         LazyColumn(
-            Modifier.fillMaxWidth().heightIn(max = 190.dp),
+            state = listState,
+            modifier = Modifier.fillMaxWidth().heightIn(max = 210.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            items(chatMessages) { message ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Column(Modifier.padding(horizontal = 10.dp, vertical = 7.dp)) {
-                            Text(
-                                message.optString("display_name").ifBlank { "Creator" },
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(message.optString("message"))
-                        }
+            items(
+                items = chatState.messages,
+                key = { it.optString("id") }
+            ) { message ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Column(Modifier.padding(horizontal = 10.dp, vertical = 7.dp)) {
+                        Text(
+                            message.optString("display_name").ifBlank { "LIVE Viewer" },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(message.optString("message"), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
         }
-        if (chatMessages.isEmpty()) {
-            Text("अभी कोई LIVE message नहीं है।", style = MaterialTheme.typography.bodySmall)
+        if (chatState.error.isNotBlank()) {
+            Text(chatState.error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
         }
-        if (error.isNotBlank()) {
-            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+        if (chatState.reactionNotice.isNotBlank()) {
+            Text(chatState.reactionNotice, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
         }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             OutlinedTextField(
-                value = draft,
-                onValueChange = { if (it.length <= 500) draft = it },
+                value = chatState.draft,
+                onValueChange = chatViewModel::setDraft,
                 modifier = Modifier.weight(1f),
-                singleLine = true,
+                singleLine = false,
+                maxLines = 3,
                 label = { Text("LIVE में message लिखें") },
-                enabled = !sending
-            )
-            Spacer(Modifier.width(8.dp))
-            Button(
-                enabled = draft.isNotBlank() && !sending,
-                onClick = {
-                    val messageText = draft.trim()
-                    sending = true
-                    scope.launch {
-                        try {
-                            val response = NativeSupabase.invokeFunction(
-                                "cloudflare-live",
-                                JSONObject().put("action", "live-chat-send")
-                                    .put("room_id", roomId).put("message", messageText),
-                                session
-                            )
-                            if (!response.optBoolean("ok")) {
-                                throw IllegalStateException(response.optString("error", "Message नहीं भेजा गया।"))
-                            }
-                            draft = ""
-                            val rows = NativeSupabase.invokeFunction(
-                                "cloudflare-live",
-                                JSONObject().put("action", "live-chat-list").put("room_id", roomId),
-                                session
-                            )
-                            if (!rows.optBoolean("ok")) {
-                                throw IllegalStateException(rows.optString("error", "Message भेजा गया, लेकिन chat refresh नहीं हुई।"))
-                            }
-                            val list = rows.optJSONArray("messages") ?: JSONArray()
-                            chatMessages = (0 until list.length()).mapNotNull { list.optJSONObject(it) }
-                            error = ""
-                        } catch (e: Exception) {
-                            error = e.message ?: "LIVE message नहीं भेजा गया।"
-                        } finally {
-                            sending = false
-                        }
+                enabled = !chatState.sending,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Send
+                ),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                    onSend = {
+                        chatViewModel.sendMessage()
+                        keyboard?.hide()
                     }
+                )
+            )
+            Button(
+                enabled = chatState.draft.isNotBlank() && !chatState.sending,
+                onClick = {
+                    chatViewModel.sendMessage()
+                    keyboard?.hide()
                 }
-            ) { Text(if (sending) "…" else "Send") }
+            ) {
+                if (chatState.sending) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else Text("Send")
+            }
         }
     }
 }
