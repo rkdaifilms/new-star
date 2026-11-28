@@ -2387,28 +2387,19 @@ private fun NativeVideoCard(
                     TextButton(
                         enabled = !downloadBusy,
                         onClick = {
-                            val parsed = Uri.parse(video.url)
-                            if (parsed.scheme != "https") {
-                                Toast.makeText(context, "सुरक्षित video URL उपलब्ध नहीं है।", Toast.LENGTH_LONG).show()
-                                return@TextButton
-                            }
                             downloadBusy = true
                             try {
-                                val safeId = video.id.replace(Regex("[^A-Za-z0-9_-]"), "").take(80).ifBlank { "video" }
-                                val request = DownloadManager.Request(parsed)
-                                    .setTitle("New Star video")
-                                    .setDescription(video.caption.ifBlank { "Downloading video" }.take(120))
-                                    .setMimeType("video/mp4")
-                                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                                    .setAllowedOverMetered(true)
-                                    .setAllowedOverRoaming(false)
-                                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "new-star-video-$safeId.mp4")
-                                val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                                manager.enqueue(request)
-                                Toast.makeText(context, "Download शुरू हो गया। Downloads notification में progress देखें।", Toast.LENGTH_LONG).show()
+                                NativeOfflineDownloads.enqueue(context, video.id, video.url)
+                                Toast.makeText(
+                                    context,
+                                    "Offline download शुरू हुआ। HLS और MP4 दोनों app storage में सेव होंगे; notification में progress देखें।",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             } catch (e: Exception) {
-                                Toast.makeText(context, e.message ?: "Download शुरू नहीं हो सका।", Toast.LENGTH_LONG).show()
-                            } finally { downloadBusy = false }
+                                Toast.makeText(context, e.message ?: "यह video format offline download के लिए समर्थित नहीं है।", Toast.LENGTH_LONG).show()
+                            } finally {
+                                downloadBusy = false
+                            }
                         }
                     ) { Text(if (downloadBusy) "Starting…" else "Download") }
                     TextButton(
