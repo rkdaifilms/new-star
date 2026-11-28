@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -62,6 +64,7 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
     var scaleMenu by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("स्थानीय सेटिंग तैयार हैं।") }
     var busy by remember { mutableStateOf(false) }
+    var autoSyncJob by remember { mutableStateOf<Job?>(null) }
 
     fun localSave() {
         local.edit().putString("language", language).putString("theme", theme)
@@ -70,6 +73,16 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
             .putBoolean("notifyLike", notifyLike).putBoolean("notifyComment", notifyComment)
             .putBoolean("notifyMessage", notifyMessage)
             .putString("_updatedAt", java.time.Instant.now().toString()).apply()
+        autoSyncJob?.cancel()
+        autoSyncJob = scope.launch {
+            delay(750)
+            try {
+                syncPreferences()
+                status = "Settings अपने account के साथ sync हो गईं।"
+            } catch (e: Exception) {
+                status = e.message ?: "Cloud sync असफल रही; local settings सुरक्षित हैं।"
+            }
+        }
     }
 
     fun currentPreferencesDocument(): JSONObject {
@@ -293,7 +306,8 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
         Text("08 · Help & About", style = MaterialTheme.typography.titleLarge)
         Text("New Star Creator Hub · Native Android")
         Button(onClick = {
-            localSave()
+            autoSyncJob?.cancel()
+            local.edit().putString("_updatedAt", java.time.Instant.now().toString()).apply()
             scope.launch {
                 busy = true
                 status = "Account preferences sync हो रही हैं…"
