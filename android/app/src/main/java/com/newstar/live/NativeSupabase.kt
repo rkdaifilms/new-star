@@ -234,12 +234,13 @@ object NativeSupabase {
             JSONObject(request("PUT", "/auth/v1/user", data, session.accessToken))
         }
 
-    suspend fun signUp(email: String, password: String): JSONObject =
+    suspend fun signUp(email: String, password: String, referrerId: String? = null): JSONObject =
         withContext(Dispatchers.IO) {
-            JSONObject(request(
-                "POST", "/auth/v1/signup",
-                JSONObject().put("email", email).put("password", password)
-            ))
+            val payload = JSONObject().put("email", email).put("password", password)
+            referrerId?.takeIf {
+                it.matches(Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))
+            }?.let { payload.put("data", JSONObject().put("referrer_id", it)) }
+            JSONObject(request("POST", "/auth/v1/signup", payload))
         }
 
     suspend fun invokeFunction(name: String, body: JSONObject, session: NativeSession): JSONObject =
