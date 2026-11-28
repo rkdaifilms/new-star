@@ -294,12 +294,6 @@ object NativeSupabase {
             JSONObject(request("POST", "/auth/v1/signup", payload))
         }
 
-    suspend fun invokeFunction(name: String, body: JSONObject, session: NativeSession): JSONObject =
-        withContext(Dispatchers.IO) {
-            JSONObject(request(
-                "POST", "/functions/v1/$name", body, session.accessToken
-            ))
-        }
 
     suspend fun signIn(context: Context, email: String, password: String): NativeSession =
         withContext(Dispatchers.IO) {
