@@ -359,6 +359,21 @@ object NativeSupabase {
         }
     }
 
+    suspend fun invokeFunction(
+        functionName: String,
+        body: JSONObject,
+        session: NativeSession
+    ): JSONObject = withContext(Dispatchers.IO) {
+        require(functionName.matches(Regex("[a-z0-9-]+"))) { "Edge Function नाम अमान्य है।" }
+        val response = request(
+            "POST",
+            "/functions/v1/$functionName",
+            body,
+            session.accessToken
+        )
+        JSONObject(response)
+    }
+
     suspend fun get(path: String, session: NativeSession? = null): JSONArray =
         withContext(Dispatchers.IO) { JSONArray(request("GET", path, token = session?.accessToken)) }
 
