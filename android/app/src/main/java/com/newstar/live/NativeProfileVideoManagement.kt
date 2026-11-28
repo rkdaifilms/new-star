@@ -12,11 +12,9 @@ import org.json.JSONObject
 
 internal object NativeProfileVideoPolicy {
     fun normalizeTags(raw: String): List<String> {
-        return raw.split(Regex("[,\\s]+"))
-            .map(String::trim)
+        return raw.split(Regex("[ ,]+"))
             .filter(String::isNotBlank)
             .map { if (it.startsWith("#")) it else "#$it" }
-            .distinctBy { it.lowercase(java.util.Locale.ROOT) }
             .take(30)
     }
 
