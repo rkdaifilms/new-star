@@ -57,10 +57,11 @@ internal fun NativeLiveSfuViewer(session: NativeSession, roomId: String) {
             } else {
                 try {
                     val added = active.refreshPublications()
-                    if (added > 0) notice = "\u0024{added} नए LIVE media tracks जोड़े गए।"
+                    if (added > 0) notice = "$added नए LIVE media tracks जोड़े गए।"
                 } catch (error: Exception) {
                     notice = error.message ?: "LIVE guest media refresh नहीं हो पाया।"
                 }
+            }
             delay(5_000)
         }
     }
