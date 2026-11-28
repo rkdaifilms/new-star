@@ -38,7 +38,16 @@ data class NativeGamingUiState(
     val actorRole: String = "viewer",
     val moderationLoading: Boolean = false,
     val moderationBusyUserId: String = "",
-    val moderationError: String = ""
+    val moderationError: String = "",
+    val creatorQuery: String = "",
+    val creatorSearchResults: List<NativeLiveCreator> = emptyList(),
+    val creatorSearching: Boolean = false,
+    val inviteSendingUserId: String = "",
+    val invitationError: String = "",
+    val invitations: List<JSONObject> = emptyList(),
+    val invitationsLoading: Boolean = false,
+    val invitationBusyId: String = "",
+    val invitationStatusMessage: String = ""
 )
 
 class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
@@ -254,6 +263,81 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
         }
     }
 
+    fun setCreatorQuery(value: String) {
+        mutableState.update { it.copy(creatorQuery = value.take(80), invitationError = "") }
+    }
+
+    fun searchCreators() {
+        val query = mutableState.value.creatorQuery.trim()
+        if (query.length < 2 || mutableState.value.creatorSearching) return
+        mutableState.update { it.copy(creatorSearching = true, invitationError = "") }
+        viewModelScope.launch {
+            try {
+                val creators = NativeLiveRepository.searchCreators(query, session.userId, session)
+                mutableState.update { it.copy(creatorSearchResults = creators, invitationError = "") }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(creatorSearchResults = emptyList(), invitationError = error.message ?: "Creator खोज नहीं हो सकी।") }
+            } finally {
+                mutableState.update { it.copy(creatorSearching = false) }
+            }
+        }
+    }
+
+    fun sendCreatorInvite(roomId: String, creatorId: String) {
+        if (roomId.isBlank() || creatorId.isBlank() || mutableState.value.inviteSendingUserId.isNotBlank()) return
+        mutableState.update { it.copy(inviteSendingUserId = creatorId, invitationError = "", invitationStatusMessage = "") }
+        viewModelScope.launch {
+            try {
+                val result = NativeLiveRepository.createInvite(roomId, creatorId, session)
+                val alreadyPending = result.optBoolean("already_pending")
+                mutableState.update {
+                    it.copy(invitationStatusMessage = if (alreadyPending) "इस creator को invitation पहले से भेजी गई है।" else "LIVE invitation भेज दी गई।")
+                }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(invitationError = error.message ?: "LIVE invitation नहीं भेजी गई।") }
+            } finally {
+                mutableState.update { it.copy(inviteSendingUserId = "") }
+            }
+        }
+    }
+
+    fun refreshInvitations() {
+        if (mutableState.value.invitationsLoading) return
+        mutableState.update { it.copy(invitationsLoading = true, invitationError = "") }
+        viewModelScope.launch {
+            try {
+                val rows = NativeLiveRepository.listInvitations(session)
+                mutableState.update { it.copy(invitations = rows, invitationError = "") }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(invitationError = error.message ?: "LIVE invitations लोड नहीं हुईं।") }
+            } finally {
+                mutableState.update { it.copy(invitationsLoading = false) }
+            }
+        }
+    }
+
+    fun respondToCreatorInvite(inviteId: String, accept: Boolean) {
+        if (inviteId.isBlank() || mutableState.value.invitationBusyId.isNotBlank()) return
+        mutableState.update { it.copy(invitationBusyId = inviteId, invitationError = "", invitationStatusMessage = "") }
+        viewModelScope.launch {
+            try {
+                NativeLiveRepository.respondToInvitation(inviteId, accept, session)
+                refreshInvitations()
+                mutableState.update {
+                    it.copy(
+                        invitationStatusMessage = if (accept)
+                            "Invitation स्वीकार हुई। अब host की seat approval का इंतज़ार करें।"
+                        else "Invitation अस्वीकार कर दी गई।"
+                    )
+                }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(invitationError = error.message ?: "Invitation response सेव नहीं हुआ।") }
+            } finally {
+                mutableState.update { it.copy(invitationBusyId = "") }
+            }
+        }
+    }
+
     fun joinPkQueue(roomId: String) {
         if (roomId.isBlank() || mutableState.value.pkBusy || mutableState.value.pkStatus != "idle") return
         mutableState.update { it.copy(pkBusy = true, chatError = "") }
@@ -391,7 +475,16 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 actorRole = "viewer",
                 moderationLoading = false,
                 moderationBusyUserId = "",
-                moderationError = ""
+                moderationError = "",
+                creatorQuery = "",
+                creatorSearchResults = emptyList(),
+                creatorSearching = false,
+                inviteSendingUserId = "",
+                invitationError = "",
+                invitations = emptyList(),
+                invitationsLoading = false,
+                invitationBusyId = "",
+                invitationStatusMessage = ""
             )
         }
     }
