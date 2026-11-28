@@ -3047,7 +3047,13 @@ fun NativeGamingScreen(
     }
 
     LaunchedEffect(roomId, state.streaming) {
-        if (!roomId.isNullOrBlank() && state.streaming) gamingViewModel.refreshMembers(roomId)
+        if (!roomId.isNullOrBlank() && state.streaming) {
+            gamingViewModel.refreshMembers(roomId)
+            while (true) {
+                delay(5_000)
+                gamingViewModel.refreshMembers(roomId)
+            }
+        }
     }
 
     Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -3285,6 +3291,15 @@ fun NativeGamingScreen(
                                 )
                                 if (canManage) {
                                     val busy = state.moderationBusyUserId.isNotBlank()
+                                    if (state.actorRole == "host" && member.optString("status") == "requested") {
+                                        Button(
+                                            enabled = !busy,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            onClick = { gamingViewModel.admitGuestSeat(roomId, member) }
+                                        ) {
+                                            Text(if (state.moderationBusyUserId == memberId) "Assigning seat…" else "Admit guest to LIVE seat")
+                                        }
+                                    }
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         OutlinedButton(
                                             enabled = !busy,
