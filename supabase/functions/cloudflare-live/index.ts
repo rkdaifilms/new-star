@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isValidSfuMid } from "./sfu-validation.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://new-star-delta.vercel.app",
@@ -718,6 +719,11 @@ Deno.serve(async (req: Request) => {
       }
 
       if (action === "sfu-abandon") {
+        await sfuRequest("/sessions/" + encodeURIComponent(sessionId) + "/tracks/close", "PUT", {
+          tracks: [], force: true
+        }).catch((cleanupError) => {
+          console.error("Cloudflare SFU failed-session cleanup failed", cleanupError);
+        });
         const { error: abandonError } = await admin.from("live_sfu_sessions").update({
           status: "failed", updated_at: new Date().toISOString()
         }).eq("id", session.id);
@@ -731,7 +737,7 @@ Deno.serve(async (req: Request) => {
 
       if (action === "sfu-close") {
         const forceTracks = Array.isArray(body.tracks) ? body.tracks : [];
-        if (!forceTracks.length || forceTracks.length > 20 || forceTracks.some(t => !String(t.mid || "").match(/^\\d+$/))) {
+        if (!forceTracks.length || forceTracks.length > 20 || forceTracks.some(t => !isValidSfuMid(t.mid))) {
           return json({ error: "At least one valid media MID is required to close an SFU session." }, 400, headers);
         }
         const result = await sfuRequest("/sessions/" + encodeURIComponent(sessionId) + "/tracks/close", "PUT", {
