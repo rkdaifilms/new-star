@@ -26,7 +26,7 @@ object NativeVideoUploadWork {
     private const val CHANNEL_ID = "new_star_video_upload"
     private const val CHANNEL_NAME = "Video uploads"
 
-    fun uniqueName(userId: String): String = "new-star-video-upload-$userId"
+    fun uniqueName(userId: String): String = NativeVideoUploadPolicy.uniqueWorkName(userId)
 
     fun enqueue(
         context: Context,
@@ -45,14 +45,14 @@ object NativeVideoUploadWork {
         val data = Data.Builder()
             .putString(KEY_URI, uri.toString())
             .putString(KEY_USER_ID, userId)
-            .putString(KEY_TITLE, title.take(300))
-            .putString(KEY_DESCRIPTION, description.take(3500))
-            .putString(KEY_CATEGORY, category.take(100))
+            .putString(KEY_TITLE, NativeVideoUploadPolicy.bounded(title, NativeVideoUploadPolicy.MAX_TITLE_LENGTH))
+            .putString(KEY_DESCRIPTION, NativeVideoUploadPolicy.bounded(description, NativeVideoUploadPolicy.MAX_DESCRIPTION_LENGTH))
+            .putString(KEY_CATEGORY, NativeVideoUploadPolicy.bounded(category, NativeVideoUploadPolicy.MAX_CATEGORY_LENGTH))
             .putString(KEY_VISIBILITY, visibility)
             .putString(KEY_AUDIENCE, audienceType)
             .putString(KEY_MEDIA_KIND, mediaKind)
-            .putString(KEY_AFFILIATE, affiliateLink.take(1000))
-            .putString(KEY_LOCATION, location?.take(2500))
+            .putString(KEY_AFFILIATE, NativeVideoUploadPolicy.bounded(affiliateLink, NativeVideoUploadPolicy.MAX_AFFILIATE_LENGTH))
+            .putString(KEY_LOCATION, location?.let { NativeVideoUploadPolicy.bounded(it, NativeVideoUploadPolicy.MAX_LOCATION_LENGTH) })
             .putString(KEY_LOCATION_VISIBILITY, locationVisibility)
             .build()
         val request = OneTimeWorkRequestBuilder<NativeVideoUploadWorker>()
@@ -207,19 +207,7 @@ class NativeVideoUploadWorker(
             throw cancelled
         } catch (error: Exception) {
             val message = error.message ?: "Video upload असफल हुआ।"
-            val retryable = error is IOException ||
-                error is SocketTimeoutException ||
-                message.contains("network", true) ||
-                message.contains("connection", true) ||
-                message.contains("timeout", true) ||
-                message.contains("Cloudflare", true) ||
-                message.contains("offset", true) ||
-                message.contains("चार कोशिशों", true) ||
-                message.contains("resume check failed", true) ||
-                message.contains("JWT", true) ||
-                message.contains("token", true) ||
-                message.contains("401")
-            if (retryable && runAttemptCount < 4) {
+            if (NativeVideoUploadPolicy.shouldRetry(error, runAttemptCount)) {
                 Result.retry()
             } else {
                 Result.failure(workDataOf("error" to message.take(1500), "progress" to latestProgress))
