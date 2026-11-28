@@ -244,7 +244,7 @@ object NativeSupabase {
             doOutput = true
             setRequestProperty("apikey", SUPABASE_KEY)
             setRequestProperty("Authorization", "Bearer ${session.accessToken}")
-            setRequestProperty("Content-Type", mimeType)
+            setRequestProperty("Content-Type", normalizedMime)
             setRequestProperty("x-upsert", "false")
         }
         connection.outputStream.use { it.write(bytes) }
