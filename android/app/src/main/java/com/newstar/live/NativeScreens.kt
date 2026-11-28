@@ -1699,6 +1699,11 @@ fun NativeUploadScreen(session: NativeSession) {
     var audienceType by remember { mutableStateOf("all") }
     var mediaKind by remember { mutableStateOf("video") }
     var affiliateLink by remember { mutableStateOf("") }
+    var locationQuery by remember { mutableStateOf("") }
+    var locationResults by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var locationSearchMessage by remember { mutableStateOf("लोकेशन जोड़ना वैकल्पिक है।") }
+    var selectedLocation by remember { mutableStateOf<JSONObject?>(null) }
+    var locationVisibility by remember { mutableStateOf("public") }
     var progress by remember { mutableIntStateOf(0) }
     var editingProgress by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf("3 घंटे तक का वीडियो चुनें। अधिकतम आकार 5 GiB है।") }
@@ -1825,6 +1830,48 @@ fun NativeUploadScreen(session: NativeSession) {
         }
     }
     val scope = rememberCoroutineScope()
+    LaunchedEffect(locationQuery, session.accessToken) {
+        val query = locationQuery.trim()
+        if (query.length < 2) {
+            locationResults = emptyList()
+            locationSearchMessage = "कम से कम 2 अक्षर लिखें।"
+        } else if (selectedLocation?.optString("name") != query) {
+            delay(350)
+            locationSearchMessage = "दुनिया भर में जगह खोजी जा रही है…"
+            try {
+                val response = NativeSupabase.invokeFunction(
+                    "mapbox-geocode",
+                    JSONObject().put("query", query),
+                    session
+                )
+                val features = response.optJSONArray("features")
+                val found = buildList {
+                    if (features != null) {
+                        for (index in 0 until minOf(features.length(), 8)) {
+                            val feature = features.optJSONObject(index) ?: continue
+                            val center = feature.optJSONArray("center") ?: continue
+                            if (center.length() != 2) continue
+                            val longitude = center.optDouble(0, Double.NaN)
+                            val latitude = center.optDouble(1, Double.NaN)
+                            val name = feature.optString("name").trim()
+                            if (name.isNotBlank() && longitude.isFinite() && latitude.isFinite() &&
+                                longitude in -180.0..180.0 && latitude in -90.0..90.0) {
+                                add(JSONObject().put("id", feature.optString("id"))
+                                    .put("name", name.take(240))
+                                    .put("longitude", longitude)
+                                    .put("latitude", latitude))
+                            }
+                        }
+                    }
+                }
+                locationResults = found
+                locationSearchMessage = if (found.isEmpty()) "कोई जगह नहीं मिली। नाम बदलकर खोजें।" else "एक सही जगह चुनें।"
+            } catch (error: Exception) {
+                locationResults = emptyList()
+                locationSearchMessage = error.message?.take(240) ?: "लोकेशन सर्च उपलब्ध नहीं है।"
+            }
+        }
+    }
     val previewPlayer = remember(selected) {
         selected?.let { uri ->
             ExoPlayer.Builder(context).build().apply {
@@ -2173,6 +2220,41 @@ fun NativeUploadScreen(session: NativeSession) {
             }
         }
         OutlinedTextField(affiliateLink, { affiliateLink = it.take(1000) }, Modifier.fillMaxWidth(), label = { Text("Affiliate / Promotion HTTPS link (optional)") }, singleLine = true, enabled = !uploading)
+        Text("Video Location · दुनिया भर की जगह खोजें", style = MaterialTheme.typography.titleSmall)
+        OutlinedTextField(
+            value = locationQuery,
+            onValueChange = {
+                locationQuery = it.take(160)
+                if (selectedLocation?.optString("name") != it.trim()) selectedLocation = null
+            },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("City, region या country") },
+            singleLine = true,
+            enabled = !uploading
+        )
+        if (locationResults.isNotEmpty()) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                locationResults.forEach { feature ->
+                    OutlinedButton(
+                        onClick = {
+                            selectedLocation = feature
+                            locationQuery = feature.optString("name")
+                            locationResults = emptyList()
+                            locationSearchMessage = "✓ चुनी गई लोकेशन: ${feature.optString("name")}"
+                        },
+                        enabled = !uploading,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(feature.optString("name"), modifier = Modifier.fillMaxWidth()) }
+                }
+            }
+        } else {
+            Text(locationSearchMessage, style = MaterialTheme.typography.bodySmall)
+        }
+        Text("Location Visibility", style = MaterialTheme.typography.titleSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = locationVisibility == "public", onClick = { locationVisibility = "public" }, enabled = !uploading, label = { Text("Public location") })
+            FilterChip(selected = locationVisibility == "hidden", onClick = { locationVisibility = "hidden" }, enabled = !uploading, label = { Text("Hide exact location") })
+        }
         LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth())
         Text("$progress%")
         Button(enabled = selected != null && !uploading && !voiceRecording, onClick = {
@@ -2180,7 +2262,12 @@ fun NativeUploadScreen(session: NativeSession) {
             uploading = true; progress = 0
             scope.launch {
                 try {
-                    NativeVideoUploader.upload(context, uri, session, title, description, category, visibility, audienceType, mediaKind, affiliateLink) { progress = it }
+                    NativeVideoUploader.upload(
+                        context, uri, session, title, description, category, visibility,
+                        audienceType, mediaKind, affiliateLink, selectedLocation, locationVisibility,
+                        onProgress = { progress = it },
+                        onStatus = { message -> status = message }
+                    )
                     progress = 100
                     deleteNativeEditorTemp(context, uri)
                     splitParts.forEach { deleteNativeEditorTemp(context, it) }
@@ -2351,7 +2438,8 @@ private object NativeVideoUploader {
     suspend fun upload(
         context: Context, uri: Uri, session: NativeSession, title: String, description: String,
         category: String, visibility: String, audienceType: String, mediaKind: String, affiliateLink: String,
-        onProgress: (Int) -> Unit
+        location: JSONObject?, locationVisibility: String,
+        onProgress: (Int) -> Unit, onStatus: (String) -> Unit
     ) = withContext(Dispatchers.IO) {
         val queriedSize = runCatching {
             context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
@@ -2483,8 +2571,46 @@ private object NativeVideoUploader {
             put("aspect_ratio_setting", "original")
             put("quality_preference", "original"); put("source_quality", "${width}x$height")
             put("frame_fit", "contain")
+            put("location_name", location?.optString("name")?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            put("location_latitude", location?.optDouble("latitude")?.takeIf { it.isFinite() } ?: JSONObject.NULL)
+            put("location_longitude", location?.optDouble("longitude")?.takeIf { it.isFinite() } ?: JSONObject.NULL)
+            put("mapbox_place_id", location?.optString("id")?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            put("location_visibility", if (locationVisibility == "hidden") "hidden" else "public")
         }
-        NativeSupabase.post("/rest/v1/videos", row, session)
+        val savedRows = JSONArray(NativeSupabase.post("/rest/v1/videos", row, session))
+        val videoId = savedRows.optJSONObject(0)?.optString("id").orEmpty()
+        require(videoId.isNotBlank()) { "वीडियो Cloudflare पर upload हुआ, लेकिन Supabase ने Video ID नहीं लौटाई। Stream ID: $streamId" }
+        withContext(Dispatchers.Main) { onStatus("वीडियो upload हो गया। Cloudflare processing status जाँचा जा रहा है…") }
+        var finalStatus = "वीडियो upload हो गया। Cloudflare processing जारी है; तैयार होने पर वीडियो प्रोफ़ाइल में दिखेगा।"
+        repeat(6) { attempt ->
+            try {
+                NativeSupabase.invokeFunction(
+                    "video-url",
+                    JSONObject().put("video_ids", JSONArray().put(videoId)),
+                    session
+                )
+                val rows = NativeSupabase.get(
+                    "/rest/v1/videos?select=processing_status,provider_status&id=eq.${Uri.encode(videoId)}&limit=1",
+                    session
+                )
+                val rowStatus = rows.optJSONObject(0)
+                val processing = rowStatus?.optString("processing_status").orEmpty()
+                val provider = rowStatus?.optString("provider_status").orEmpty()
+                if (processing == "published" && provider == "ready") {
+                    finalStatus = "वीडियो सफलतापूर्वक तैयार और प्रकाशित हो गया है।"
+                    return@repeat
+                }
+                if (processing == "failed" || provider == "error") {
+                    finalStatus = "Cloudflare processing असफल हुआ। वीडियो रिकॉर्ड सुरक्षित है; Stream ID: $streamId"
+                    return@repeat
+                }
+                finalStatus = "वीडियो upload पूरा है। Cloudflare processing जारी है (${attempt + 1}/6)…"
+            } catch (error: Exception) {
+                finalStatus = "वीडियो upload सुरक्षित है। Processing status अभी नहीं मिल सका: ${error.message?.take(160) ?: "अस्थायी त्रुटि"}"
+            }
+            if (attempt < 5) kotlinx.coroutines.delay(5000)
+        }
+        withContext(Dispatchers.Main) { onStatus(finalStatus) }
     }
 
     private fun b64(value: String) = Base64.encodeToString(value.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
