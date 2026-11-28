@@ -36,6 +36,40 @@ internal object NativeLiveRepository {
         }
     }
 
+    suspend fun listInvitations(session: NativeSession): List<JSONObject> {
+        val result = NativeSupabase.invokeFunction(
+            "cloudflare-live",
+            JSONObject().put("action", "live-invites-list"),
+            session
+        )
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "LIVE invitations लोड नहीं हुए।"))
+        }
+        val rows = result.optJSONArray("invitations") ?: JSONArray()
+        return (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+    }
+
+    suspend fun respondToInvitation(
+        inviteId: String,
+        accept: Boolean,
+        session: NativeSession
+    ): JSONObject {
+        require(inviteId.isNotBlank()) { "LIVE invitation ID आवश्यक है।" }
+        val result = NativeSupabase.invokeFunction(
+            "cloudflare-live",
+            JSONObject().put("action", "live-invite-respond")
+                .put("invite_id", inviteId)
+                .put("message", if (accept) "accept" else "decline"),
+            session
+        )
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(
+                result.optString("error", if (accept) "LIVE invitation स्वीकार नहीं हुई।" else "LIVE invitation अस्वीकार नहीं हुई।")
+            )
+        }
+        return result
+    }
+
     suspend fun createInvite(roomId: String, inviteeId: String, session: NativeSession): JSONObject {
         require(roomId.isNotBlank() && inviteeId.isNotBlank())
         return NativeSupabase.invokeFunction(
