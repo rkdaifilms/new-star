@@ -2474,6 +2474,11 @@ private fun NativeVideoCard(
     }
     var playerError by remember(video.id) { mutableStateOf<String?>(null) }
     var playerRetry by remember(video.id) { mutableIntStateOf(0) }
+    // Use the encoded media's real display ratio instead of fixed 500dp/235dp
+    // player heights. This keeps portrait and landscape uploads fully visible.
+    var videoAspectRatio by remember(video.id, video.type) {
+        mutableFloatStateOf(if (video.type.equals("long", true)) 16f / 9f else 9f / 16f)
+    }
     val exoPlayer = remember(video.url, offlineSaved) {
         // Offline cache/index can be unavailable after storage cleanup or an
         // interrupted download. Fall back to the normal network source instead
@@ -2494,6 +2499,15 @@ private fun NativeVideoCard(
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == androidx.media3.common.Player.STATE_READY) playerError = null
+            }
+            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                if (videoSize.width > 0 && videoSize.height > 0) {
+                    val ratio = (videoSize.width.toFloat() * videoSize.pixelWidthHeightRatio) /
+                        videoSize.height.toFloat()
+                    if (ratio.isFinite() && ratio in 0.35f..3.0f) {
+                        videoAspectRatio = ratio
+                    }
+                }
             }
         }
         exoPlayer.addListener(listener)
@@ -2527,12 +2541,18 @@ private fun NativeVideoCard(
     Card(
         modifier = if (immersive) Modifier.fillMaxSize() else Modifier.fillMaxWidth().padding(horizontal = 10.dp),
         shape = RoundedCornerShape(if (immersive) 0.dp else 16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(
+            containerColor = if (immersive) androidx.compose.ui.graphics.Color.Black
+                else MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Column {
             Box(
-                modifier = if (immersive) Modifier.fillMaxWidth().weight(1f)
-                    else Modifier.fillMaxWidth().height(if (video.type == "long") 235.dp else 500.dp)
+                modifier = if (immersive) {
+                    Modifier.fillMaxWidth().weight(1f)
+                } else {
+                    Modifier.fillMaxWidth().aspectRatio(videoAspectRatio)
+                }
             ) {
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
@@ -2545,6 +2565,9 @@ private fun NativeVideoCard(
                     update = { view ->
                         if (view.player !== exoPlayer) view.player = exoPlayer
                         view.useController = !immersive
+                        // Keep FIT applied after recomposition as well as creation;
+                        // ZOOM would crop portrait/landscape frames on some devices.
+                        view.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     }
                 )
                 if (playerError != null) {
