@@ -106,6 +106,12 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
             .apply()
     }
 
+
+    suspend fun syncPreferences() {
+        val synced = NativePreferencesSync.synchronize(session, currentPreferencesDocument())
+        applySyncedPreferences(synced)
+    }
+
     fun localSave() {
         local.edit().putString("language", language).putString("theme", theme)
             .putString("textScale", textScale).putBoolean("reducedMotion", reduceMotion)
@@ -125,10 +131,6 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
         }
     }
 
-    suspend fun syncPreferences() {
-        val synced = NativePreferencesSync.synchronize(session, currentPreferencesDocument())
-        applySyncedPreferences(synced)
-    }
 
     LaunchedEffect(session.userId) {
         try {
