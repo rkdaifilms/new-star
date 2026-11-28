@@ -36,14 +36,18 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 @Composable
-fun NativeNotificationsScreen(session: NativeSession, onOpenCreator: (String) -> Unit) {
+fun NativeNotificationsScreen(
+    session: NativeSession,
+    refreshSignal: Int,
+    realtimeStatus: String,
+    onOpenCreator: (String) -> Unit
+) {
     var notifications by remember(session.userId) { mutableStateOf<List<JSONObject>>(emptyList()) }
     var actorProfiles by remember(session.userId) { mutableStateOf<Map<String, JSONObject>>(emptyMap()) }
     var loading by remember(session.userId) { mutableStateOf(true) }
     var busy by remember(session.userId) { mutableStateOf(false) }
     var error by remember(session.userId) { mutableStateOf("") }
     var refresh by remember(session.userId) { mutableIntStateOf(0) }
-    var realtimeStatus by remember(session.userId) { mutableStateOf("Realtime connecting…") }
     val context = LocalContext.current
     var notificationPermissionGranted by remember { mutableStateOf(NativeSystemNotifications.hasPermission(context)) }
     val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -57,18 +61,7 @@ fun NativeNotificationsScreen(session: NativeSession, onOpenCreator: (String) ->
     }
     val unreadCount = notifications.count { !it.optBoolean("is_read", false) }
 
-    DisposableEffect(session.userId, session.accessToken) {
-        val realtime = NativeRealtimeMessages(
-            accessToken = session.accessToken,
-            userId = session.userId,
-            onChange = { scope.launch { refresh++ } },
-            onStatus = { status -> scope.launch { realtimeStatus = status } }
-        )
-        realtime.connect()
-        onDispose { realtime.close() }
-    }
-
-    LaunchedEffect(session.userId, refresh) {
+    LaunchedEffect(session.userId, refresh, refreshSignal) {
         loading = true
         error = ""
         try {
