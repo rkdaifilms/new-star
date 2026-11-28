@@ -41,7 +41,7 @@ private val nsThemes = listOf(
 )
 
 @Composable
-fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutAll: () -> Unit) {
+fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutAll: () -> Unit, onOpenDeveloperReports: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val local = remember { context.getSharedPreferences("newstar_preferences", Context.MODE_PRIVATE) }
@@ -302,6 +302,11 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
         SettingToggle("Reduce motion", reduceMotion) { reduceMotion = it; localSave() }
         SettingToggle("High contrast", highContrast) { highContrast = it; localSave() }
         HorizontalDivider()
+        Text("06 · Developer Tools", style = MaterialTheme.typography.titleLarge)
+        OutlinedButton(
+            onClick = onOpenDeveloperReports,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Open Content Safety Review") }
         Text("06 · Creator & Monetization", style = MaterialTheme.typography.titleLarge)
         Text("Creator Monetization Hub और Wallet के native screens अलग से उपलब्ध हैं। Provider/payment setup केवल अधिकृत वयस्क account owner के माध्यम से होना चाहिए.")
         Text("07 · Ads & Policies", style = MaterialTheme.typography.titleLarge)
