@@ -21,8 +21,6 @@ data class NativeGamingUiState(
     val streaming: Boolean = false,
     val micAvailable: Boolean = false,
     val micEnabled: Boolean = false,
-    val gameAudioAvailable: Boolean = false,
-    val gameAudioEnabled: Boolean = false,
     val statusMessage: String = "Gaming LIVE Android screen capture",
     val chatText: String = "",
     val chatMessages: List<JSONObject> = emptyList(),
@@ -87,7 +85,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
         }
     }
 
-    fun updateStreamStatus(status: String, message: String?, micAvailable: Boolean?, micEnabled: Boolean?, gameAudioAvailable: Boolean?, gameAudioEnabled: Boolean?) {
+    fun updateStreamStatus(status: String, message: String?, micAvailable: Boolean?, micEnabled: Boolean?) {
         mutableState.update { current ->
             current.copy(
                 statusMessage = message ?: "Gaming LIVE status update",
@@ -98,9 +96,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                     else -> current.streaming
                 },
                 micAvailable = micAvailable ?: current.micAvailable,
-                micEnabled = micEnabled ?: current.micEnabled,
-                gameAudioAvailable = gameAudioAvailable ?: current.gameAudioAvailable,
-                gameAudioEnabled = gameAudioEnabled ?: current.gameAudioEnabled
+                micEnabled = micEnabled ?: current.micEnabled
             )
         }
     }
@@ -776,8 +772,6 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 streaming = false,
                 micAvailable = false,
                 micEnabled = false,
-                gameAudioAvailable = false,
-                gameAudioEnabled = false,
                 chatMessages = emptyList(),
                 reactionCounts = mapOf("like" to 0, "heart" to 0, "clap" to 0, "fire" to 0),
                 chatLoading = false,
