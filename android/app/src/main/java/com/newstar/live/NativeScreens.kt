@@ -3003,6 +3003,9 @@ fun NativeGamingScreen(
     val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var preparing by remember { mutableStateOf(false) }
+    var streaming by remember { mutableStateOf(false) }
+    var micAvailable by remember { mutableStateOf(false) }
+    var micEnabled by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Gaming LIVE Android screen capture") }
     DisposableEffect(context) {
         val receiver = object : BroadcastReceiver() {
@@ -3010,6 +3013,10 @@ fun NativeGamingScreen(
                 message = intent?.getStringExtra("message") ?: "Gaming LIVE status update"
                 val state = intent?.getStringExtra("status").orEmpty()
                 preparing = state == "starting" || state == "connecting"
+                if (state == "connected") streaming = true
+                if (state == "error") streaming = false
+                if (intent?.hasExtra("mic_available") == true) micAvailable = intent.getBooleanExtra("mic_available", false)
+                if (intent?.hasExtra("mic_enabled") == true) micEnabled = intent.getBooleanExtra("mic_enabled", false)
             }
         }
         ContextCompat.registerReceiver(
@@ -3027,11 +3034,37 @@ fun NativeGamingScreen(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 preparing = true
+                streaming = false
+                micAvailable = false
+                micEnabled = false
                 message = "Cloudflare LIVE room तैयार हो रहा है… Android permission prompt की प्रतीक्षा करें।"
                 onStart(title.trim())
             }
         ) { Text(if (preparing) "Preparing…" else "Start Gaming LIVE") }
-        OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Stop Gaming LIVE") }
+        if (streaming && micAvailable) {
+            OutlinedButton(
+                onClick = {
+                    context.startService(
+                        Intent(context, GamingStreamService::class.java)
+                            .setAction(GamingStreamService.SET_MIC)
+                            .putExtra(GamingStreamService.MIC_ENABLED, !micEnabled)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (micEnabled) "Mute microphone" else "Unmute microphone")
+            }
+        }
+        OutlinedButton(
+            onClick = {
+                onStop()
+                preparing = false
+                streaming = false
+                micAvailable = false
+                micEnabled = false
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Stop Gaming LIVE") }
         Text(message)
         Text("Streaming के लिए Android की screen-capture अनुमति आवश्यक है। Game/system audio की उपलब्धता Android version और device restrictions पर निर्भर करती है।", style = MaterialTheme.typography.bodySmall)
     }
