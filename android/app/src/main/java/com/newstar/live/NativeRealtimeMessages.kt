@@ -34,16 +34,26 @@ class NativeRealtimeMessages(
     @Volatile private var joined = false
     private val heartbeatExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
     private val closed = AtomicBoolean(false)
+    private val started = AtomicBoolean(false)
     private val topic = "realtime:public:messages"
     private val joinRef = "1"
 
     fun connect() {
-        if (closed.get()) return
-        heartbeatExecutor.scheduleAtFixedRate({
-            heartbeat()
-            if (!closed.get() && !joined && socket == null) openSocket()
-        }, 5, 5, TimeUnit.SECONDS)
-        openSocket()
+        if (closed.get() || !started.compareAndSet(false, true)) return
+        try {
+            heartbeatExecutor.scheduleAtFixedRate({
+                if (closed.get()) return@scheduleAtFixedRate
+                try {
+                    heartbeat()
+                    if (!closed.get() && !joined && socket == null) openSocket()
+                } catch (error: Exception) {
+                    runCatching { onStatus("Realtime reconnect pending: ${error.message ?: "network error"}") }
+                }
+            }, 5, 5, TimeUnit.SECONDS)
+            openSocket()
+        } catch (error: Exception) {
+            runCatching { onStatus("Realtime unavailable: ${error.message ?: "connection setup failed"}") }
+        }
     }
 
     @Synchronized
@@ -54,7 +64,8 @@ class NativeRealtimeMessages(
         val request = Request.Builder()
             .url("wss://$base/realtime/v1/websocket?apikey=$apiKey&vsn=1.0.0")
             .build()
-        socket = client.newWebSocket(request, object : WebSocketListener() {
+        try {
+            socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 val changes = JSONArray()
                     .put(
@@ -148,25 +159,34 @@ class NativeRealtimeMessages(
                 if (socket === webSocket) socket = null
                 onStatus("Realtime unavailable: ${t.message ?: "network error"}")
             }
-        })
+            })
+        } catch (error: Exception) {
+            socket = null
+            joined = false
+            runCatching { onStatus("Realtime unavailable: ${error.message ?: "connection setup failed"}") }
+        }
     }
 
     fun heartbeat() {
-        if (!joined) return
-        socket?.send(
-            JSONObject()
-                .put("topic", "phoenix")
-                .put("event", "heartbeat")
-                .put("payload", JSONObject())
-                .put("ref", System.nanoTime().toString())
-                .toString()
-        )
+        if (!joined || closed.get()) return
+        try {
+            socket?.send(
+                JSONObject()
+                    .put("topic", "phoenix")
+                    .put("event", "heartbeat")
+                    .put("payload", JSONObject())
+                    .put("ref", System.nanoTime().toString())
+                    .toString()
+            )
+        } catch (error: Exception) {
+            runCatching { onStatus("Realtime heartbeat failed: ${error.message ?: "connection lost"}") }
+        }
     }
 
     fun close() {
-        closed.set(true)
+        if (!closed.compareAndSet(false, true)) return
         joined = false
-        socket?.close(1000, "Inbox screen closed")
+        runCatching { socket?.close(1000, "Inbox screen closed") }
         socket = null
         heartbeatExecutor.shutdownNow()
         client.dispatcher.executorService.shutdown()
