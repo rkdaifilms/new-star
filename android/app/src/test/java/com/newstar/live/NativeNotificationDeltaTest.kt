@@ -1,41 +1,35 @@
 package com.newstar.live
 
-import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
 class NativeNotificationDeltaTest {
     @Test
     fun returnsAllRowsInsertedAfterBaselineInOldestFirstOrder() {
-        val newest = listOf(row("n3"), row("n2"), row("baseline"))
-        val fresh = NativeNotificationDelta.newlyInserted(newest, "baseline")
+        val newest = listOf("n3", "n2", "baseline")
+        val fresh = NativeNotificationDelta.newlyInserted(newest, "baseline") { it }
 
-        assertEquals(listOf("n2", "n3"), fresh.map { it.optString("id") })
+        assertEquals(listOf("n2", "n3"), fresh)
     }
 
     @Test
     fun returnsEmptyWhenRealtimeOnlyReportsAnExistingRowUpdate() {
-        val newest = listOf(row("baseline"), row("older"))
+        val newest = listOf("baseline", "older")
 
-        assertEquals(emptyList<String>(), NativeNotificationDelta.newlyInserted(newest, "baseline").map { it.optString("id") })
+        assertEquals(emptyList<String>(), NativeNotificationDelta.newlyInserted(newest, "baseline") { it })
     }
 
     @Test
     fun doesNotReplayRowsWhenBaselineHasNotBeenLoaded() {
-        val newest = listOf(row("n2"), row("n1"))
+        val newest = listOf("n2", "n1")
 
-        assertEquals(emptyList<String>(), NativeNotificationDelta.newlyInserted(newest, "").map { it.optString("id") })
+        assertEquals(emptyList<String>(), NativeNotificationDelta.newlyInserted(newest, "") { it })
     }
 
     @Test
     fun fallsBackToLatestRowWhenBaselineFallsOutsideRecentWindow() {
-        val newest = listOf(row("latest"), row("previous"))
+        val newest = listOf("latest", "previous")
 
-        assertEquals(listOf("latest"), NativeNotificationDelta.newlyInserted(newest, "older-baseline").map { it.optString("id") })
+        assertEquals(listOf("latest"), NativeNotificationDelta.newlyInserted(newest, "older-baseline") { it })
     }
-
-    private fun row(id: String) = JSONObject().put("id", id)
 }
