@@ -105,7 +105,7 @@ internal object NativeOfflineDownloads {
         require(uri.scheme == "https") { "सिर्फ सुरक्षित HTTPS video URL डाउनलोड किया जा सकता है।" }
         val safeId = videoId.replace(Regex("[^A-Za-z0-9_-]"), "").take(100)
         require(safeId.isNotBlank()) { "Video ID अमान्य है।" }
-        val mimeType = mimeTypeFor(uri)
+        val mimeType = mimeTypeFor(url)
         val request = DownloadRequest.Builder(safeId, uri)
             .setMimeType(mimeType)
             .build()
@@ -117,12 +117,13 @@ internal object NativeOfflineDownloads {
         )
     }
 
-    internal fun mimeTypeFor(uri: Uri): String {
-        val path = uri.path.orEmpty().lowercase()
+    internal fun mimeTypeFor(url: String): String {
+        val path = runCatching { java.net.URI(url).path.orEmpty().lowercase() }
+            .getOrElse { throw IllegalArgumentException("Video URL अमान्य है।", it) }
         return when {
-            path.endsWith(".m3u8") -> MimeTypes.APPLICATION_M3U8
-            path.endsWith(".mpd") -> MimeTypes.APPLICATION_MPD
-            path.endsWith(".mp4") -> MimeTypes.VIDEO_MP4
+            path.endsWith(".m3u8") -> "application/x-mpegURL"
+            path.endsWith(".mpd") -> "application/dash+xml"
+            path.endsWith(".mp4") -> "video/mp4"
             else -> throw IllegalArgumentException(
                 "Video URL का format पहचाना नहीं गया। HLS (.m3u8), DASH (.mpd) या MP4 URL चाहिए।"
             )
