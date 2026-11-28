@@ -222,7 +222,7 @@ private class NativeInboxRepository(private val session: NativeSession) {
     }
 }
 
-class NativeInboxViewModel(session: NativeSession) : ViewModel() {
+internal class NativeInboxViewModel(session: NativeSession) : ViewModel() {
     private val repository = NativeInboxRepository(session)
     var threads by mutableStateOf<List<InboxThread>>(emptyList())
         private set
