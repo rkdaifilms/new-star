@@ -40,10 +40,12 @@ internal class NativeSfuSubscriber private constructor(
     private val egl: EglBase,
     private val peer: PeerConnection,
     private val trackMids: JSONArray,
-    initialPublicationKeys: Set<String>
+    initialPublicationKeys: Set<String>,
+    initialPublicationMids: Map<String, String>
 ) {
     private val refreshMutex = Mutex()
     private val subscribedPublicationKeys = initialPublicationKeys.toMutableSet()
+    private val publicationMids = LinkedHashMap(initialPublicationMids)
     private val stopped = AtomicBoolean(false)
     private val trackLock = Any()
     private val remoteVideos = LinkedHashMap<String, VideoTrack>()
@@ -104,16 +106,42 @@ internal class NativeSfuSubscriber private constructor(
             val publisherId = item.optString("session_id")
             val trackName = item.optString("track_name")
             if (publisherId.isNotBlank() && trackName in setOf("camera", "microphone")) {
-                val key = "$publisherId:$trackName"
-                if (key !in subscribedPublicationKeys) unique[key] = item
+                unique["$publisherId:$trackName"] = item
             }
         }
-        if (unique.isEmpty()) return@withLock 0
-        require(subscribedPublicationKeys.size + unique.size <= 20) {
+        val activeKeys = unique.keys
+        val removedKeys = subscribedPublicationKeys.filter { it !in activeKeys }
+        val removedMids = removedKeys.mapNotNull { publicationMids[it] }.distinct()
+        if (removedMids.isNotEmpty()) {
+            val midsToClose = JSONArray()
+            removedMids.forEach { mid -> midsToClose.put(JSONObject().put("mid", mid)) }
+            NativeLiveRepository.unsubscribeSfuTracks(roomId, sfuSessionId, midsToClose, session)
+            synchronized(trackLock) {
+                removedMids.forEach { mid ->
+                    val renderer = renderers.remove(mid)
+                    val track = remoteVideos.remove(mid)
+                    if (renderer != null && track != null) runCatching { track.removeSink(renderer) }
+                    _remoteVideoOwners.value = _remoteVideoOwners.value - mid
+                    val index = (0 until trackMids.length()).firstOrNull {
+                        trackMids.optJSONObject(it)?.optString("mid") == mid
+                    }
+                    if (index != null) trackMids.remove(index)
+                }
+                _remoteVideoMids.value = remoteVideos.keys.sortedBy { it.toIntOrNull() ?: Int.MAX_VALUE }
+            }
+        }
+        removedKeys.forEach {
+            subscribedPublicationKeys.remove(it)
+            publicationMids.remove(it)
+        }
+        val newPublications = LinkedHashMap<String, JSONObject>()
+        unique.forEach { (key, value) -> if (key !in subscribedPublicationKeys) newPublications[key] = value }
+        if (newPublications.isEmpty()) return@withLock 0
+        require(subscribedPublicationKeys.size + newPublications.size <= 20) {
             "LIVE room में 20 से अधिक media tracks publish हो गए हैं।"
         }
         val requested = JSONArray()
-        unique.values.forEach { item ->
+        newPublications.values.forEach { item ->
             requested.put(JSONObject()
                 .put("location", "remote")
                 .put("sessionId", item.getString("session_id"))
@@ -141,7 +169,7 @@ internal class NativeSfuSubscriber private constructor(
         val returnedTracks = response.optJSONArray("tracks") ?: JSONArray()
         val newOwners = LinkedHashMap(_remoteVideoOwners.value)
         val newMids = ArrayList<String>()
-        val requestedItems = unique.values.toList()
+        val requestedItems = newPublications.entries.toList()
         for (index in 0 until returnedTracks.length()) {
             val returned = returnedTracks.optJSONObject(index) ?: continue
             val mid = returned.optString("mid")
@@ -149,14 +177,15 @@ internal class NativeSfuSubscriber private constructor(
             if ((0 until trackMids.length()).any { trackMids.optJSONObject(it)?.optString("mid") == mid }) continue
             trackMids.put(JSONObject().put("mid", mid))
             newMids.add(mid)
-            val publication = requestedItems.getOrNull(index) ?: continue
+            val (publicationKey, publication) = requestedItems.getOrNull(index) ?: continue
+            publicationMids[publicationKey] = mid
             val userId = publication.optString("user_id")
             val trackName = publication.optString("track_name")
             if (userId.isNotBlank() && trackName == "camera") {
                 newOwners[mid] = NativeSfuTrackOwner(userId, trackName)
             }
         }
-        unique.keys.forEach { subscribedPublicationKeys.add(it) }
+        newPublications.keys.forEach { subscribedPublicationKeys.add(it) }
         _remoteVideoOwners.value = newOwners
         newMids.size
     }
@@ -348,20 +377,25 @@ internal class NativeSfuSubscriber private constructor(
                         .distinct()
                         .forEach { mid -> mids.put(JSONObject().put("mid", mid)) }
                 }
-                val subscriber = NativeSfuSubscriber(
-                    roomId, session, sfuSessionId, createdFactory, createdEgl, createdPeer, mids, unique.keys
-                )
+                val initialPublicationMids = LinkedHashMap<String, String>()
                 val owners = LinkedHashMap<String, NativeSfuTrackOwner>()
                 for (index in 0 until returnedTracks.length()) {
                     val returned = returnedTracks.optJSONObject(index) ?: continue
                     val mid = returned.optString("mid")
-                    val requestedTrack = unique.values.elementAtOrNull(index) ?: continue
-                    val userId = requestedTrack.optString("user_id")
-                    val trackName = requestedTrack.optString("track_name")
+                    val requestedTrack = unique.entries.elementAtOrNull(index) ?: continue
+                    val publication = requestedTrack.value
+                    if (!mid.matches(Regex("\\d+"))) continue
+                    initialPublicationMids[requestedTrack.key] = mid
+                    val userId = publication.optString("user_id")
+                    val trackName = publication.optString("track_name")
                     if (mid.isNotBlank() && userId.isNotBlank() && trackName == "camera") {
                         owners[mid] = NativeSfuTrackOwner(userId, trackName)
                     }
                 }
+                val subscriber = NativeSfuSubscriber(
+                    roomId, session, sfuSessionId, createdFactory, createdEgl, createdPeer,
+                    mids, unique.keys, initialPublicationMids
+                )
                 subscriber._remoteVideoOwners.value = owners
                 subscriberRef.set(subscriber)
                 pendingTracks.forEach { (mid, track) -> subscriber.onRemoteTrack(mid, track) }
