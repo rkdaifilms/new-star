@@ -12,6 +12,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -1626,7 +1629,7 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun NativeHome(
     session: NativeSession?,
@@ -1651,6 +1654,10 @@ private fun NativeHome(
                 video.username.lowercase().contains(term) ||
                 video.category.lowercase().contains(term)
         }
+    }
+    val feedPagerState = rememberPagerState(pageCount = { visibleFeed.size })
+    LaunchedEffect(feedMode, category, visibleFeed.size, search) {
+        if (visibleFeed.isNotEmpty()) feedPagerState.scrollToPage(0)
     }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -1875,11 +1882,19 @@ private fun NativeHome(
                 visibleFeed.isEmpty() -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
                     Text("इस खोज में कोई वीडियो नहीं मिला।")
                 }
-                else -> LazyColumn(
+                else -> VerticalPager(
+                    state = feedPagerState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) { items(visibleFeed, key = { it.id }) { video -> NativeVideoCard(video, session) } }
+                    key = { page -> visibleFeed[page].id }
+                ) { page ->
+                    val video = visibleFeed[page]
+                    NativeVideoCard(
+                        video = video,
+                        session = session,
+                        isActive = feedPagerState.currentPage == page && feedPagerState.isScrollInProgress.not(),
+                        immersive = true
+                    )
+                }
             }
             }
         }
@@ -1887,7 +1902,12 @@ private fun NativeHome(
 }
 
 @Composable
-private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
+private fun NativeVideoCard(
+    video: NativeVideo,
+    session: NativeSession?,
+    isActive: Boolean = false,
+    immersive: Boolean = false
+) {
     val context = LocalContext.current
     var liked by remember(video.id, session?.userId) { mutableStateOf(false) }
     var likeCount by remember(video.id) { mutableIntStateOf(video.likes) }
@@ -1933,6 +1953,16 @@ private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
         }
     }
     DisposableEffect(exoPlayer) { onDispose { exoPlayer.release() } }
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            if (exoPlayer.playbackState == androidx.media3.common.Player.STATE_IDLE) exoPlayer.prepare()
+            exoPlayer.playWhenReady = true
+            exoPlayer.play()
+        } else {
+            exoPlayer.pause()
+            exoPlayer.playWhenReady = false
+        }
+    }
     val watchTracker = remember(exoPlayer, video.id, session?.userId, session?.accessToken) {
         NativeVideoWatchTracker(session, video.id, exoPlayer)
     }
@@ -1940,16 +1970,19 @@ private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
         onDispose { watchTracker.close() }
     }
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = if (immersive) Modifier.fillMaxSize() else Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+        shape = RoundedCornerShape(if (immersive) 0.dp else 16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column {
             AndroidView(
-                modifier = Modifier.fillMaxWidth().height(if (video.type == "long") 235.dp else 500.dp),
+                modifier = if (immersive) Modifier.fillMaxWidth().weight(1f)
+                    else Modifier.fillMaxWidth().height(if (video.type == "long") 235.dp else 500.dp),
                 factory = { ctx -> PlayerView(ctx).apply {
                     player = exoPlayer; useController = true
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    resizeMode = if (immersive && video.type != "long")
+                        AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    else AspectRatioFrameLayout.RESIZE_MODE_FIT
                 } },
                 update = { it.player = exoPlayer }
             )
