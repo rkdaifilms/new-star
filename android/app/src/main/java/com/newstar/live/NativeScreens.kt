@@ -4143,10 +4143,9 @@ private data class NativeAiMessage(val role: String, val content: String)
 @Composable
 fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
     val context = LocalContext.current
-    val appLanguage = remember {
+    fun currentAppLanguage(): String =
         context.getSharedPreferences("newstar_preferences", Context.MODE_PRIVATE)
-            .getString("language", "hi") ?: "hi"
-    }
+            .getString("language", "hi")?.takeIf { it.isNotBlank() } ?: "hi"
     var prompt by remember { mutableStateOf(initialPrompt) }
     var messages by remember { mutableStateOf<List<NativeAiMessage>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
@@ -4160,6 +4159,9 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
     var imageSize by remember { mutableStateOf("1K") }
     var audioPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var speaking by remember { mutableStateOf(false) }
+    var speakingFile by remember { mutableStateOf<File?>(null) }
+    var providerStatus by remember { mutableStateOf("AI सेवा की स्थिति जाँची जा रही है…") }
+    var providerSummary by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val microphonePermission = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
@@ -4272,6 +4274,8 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                         writeBytes(bytes)
                     }
                 }
+                speakingFile?.delete()
+                speakingFile = audioFile
                 audioPlayer?.runCatching { stop() }
                 audioPlayer?.release()
                 val player = MediaPlayer()
@@ -4284,6 +4288,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                     speaking = false
                     voiceStatus = "AI का बोलकर जवाब पूरा हुआ।"
                     audioFile?.delete()
+                    if (speakingFile == audioFile) speakingFile = null
                 }
                 player.setOnErrorListener { failed, _, _ ->
                     failed.release()
@@ -4291,6 +4296,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                     speaking = false
                     error = "इस डिवाइस पर AI audio नहीं चल सका।"
                     audioFile?.delete()
+                    if (speakingFile == audioFile) speakingFile = null
                     true
                 }
                 player.prepareAsync()
@@ -4303,12 +4309,33 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
         }
     }
 
+    LaunchedEffect(session.userId) {
+        providerStatus = "AI सेवा की स्थिति जाँची जा रही है…"
+        try {
+            val status = NativeSupabase.invokeFunction(
+                "ai-gateway",
+                JSONObject().put("action", "status"),
+                session
+            )
+            if (!status.optBoolean("ok")) throw IllegalStateException(status.optString("error", "AI status unavailable"))
+            val providers = status.optJSONObject("providers") ?: JSONObject()
+            val ready = listOf("Gemini" to providers.optBoolean("gemini"), "OpenAI" to providers.optBoolean("openai"))
+                .filter { it.second }.map { it.first }
+            providerSummary = if (ready.isEmpty()) "Chat/image provider configured नहीं है।" else "Configured: ${ready.joinToString(" · ")}"
+            providerStatus = if (ready.isEmpty()) "AI सेवा अभी तैयार नहीं है।" else "AI gateway connected"
+        } catch (e: Exception) {
+            providerStatus = "AI status जाँच नहीं हो सकी।"
+            providerSummary = e.message ?: "कृपया बाद में फिर कोशिश करें।"
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             recorder?.runCatching { stop() }
             recorder?.release()
             audioPlayer?.runCatching { stop() }
             audioPlayer?.release()
+            speakingFile?.delete()
             recordingFile?.delete()
         }
     }
@@ -4316,6 +4343,8 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
     Column(Modifier.fillMaxSize().padding(14.dp)) {
         Text("New Star Creator Studio AI", style = MaterialTheme.typography.headlineSmall)
         Text("AI chat · Images · Voice · Multilingual", style = MaterialTheme.typography.bodySmall)
+        Text(providerStatus, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        if (providerSummary.isNotBlank()) Text(providerSummary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
         Text("Creator tools", style = MaterialTheme.typography.titleSmall)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -4402,7 +4431,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                     val history = (messages + NativeAiMessage("user", text)).takeLast(10)
                     val payload = JSONArray()
                     history.forEach { payload.put(JSONObject().put("role", it.role).put("content", it.content)) }
-                    messages = history
+                    messages = (messages + NativeAiMessage("user", text)).takeLast(40)
                     prompt = ""
                     busy = true
                     error = ""
@@ -4410,7 +4439,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                         try {
                             val response = NativeSupabase.invokeFunction(
                                 "ai-gateway",
-                                JSONObject().put("messages", payload).put("mode", "creator").put("language", appLanguage),
+                                JSONObject().put("messages", payload).put("mode", "creator").put("language", currentAppLanguage()),
                                 session
                             )
                             if (!response.optBoolean("ok")) throw IllegalStateException(response.optString("error", "AI reply उपलब्ध नहीं है।"))
@@ -4420,6 +4449,7 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                         } catch (e: Exception) {
                             error = e.message ?: "AI request असफल हुई।"
                             messages = messages.dropLast(1)
+                            if (prompt.isBlank()) prompt = text
                         } finally { busy = false }
                     }
                 }
@@ -4434,10 +4464,11 @@ fun NativeCreatorAiScreen(session: NativeSession, initialPrompt: String = "") {
                     generatedImage = null
                     scope.launch {
                         try {
+                            require(text.length <= 1800) { "Image prompt 1,800 characters से छोटा रखें।" }
                             val response = NativeSupabase.invokeFunction(
                                 "ai-gateway",
                                 JSONObject().put("action", "image").put("prompt", text)
-                                    .put("aspectRatio", imageRatio).put("imageSize", imageSize).put("language", appLanguage),
+                                    .put("aspectRatio", imageRatio).put("imageSize", imageSize).put("language", currentAppLanguage()),
                                 session
                             )
                             if (!response.optBoolean("ok")) throw IllegalStateException(response.optString("error", "Image generation failed"))
