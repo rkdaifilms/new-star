@@ -20,6 +20,17 @@ object NativeBackgroundNotificationWork {
 
     fun schedule(context: Context, userId: String) {
         require(userId.isNotBlank())
+        val cursorPreferences = context.getSharedPreferences(
+            "newstar_background_notification_cursor",
+            Context.MODE_PRIVATE
+        )
+        val cursorKey = "cursor_$userId"
+        if (cursorPreferences.getString(cursorKey, null).isNullOrBlank()) {
+            cursorPreferences.edit()
+                .putString(cursorKey, Instant.now().toString())
+                .putString("seen_$userId", "[]")
+                .apply()
+        }
         val request = PeriodicWorkRequestBuilder<NativeBackgroundNotificationWorker>(
             15, TimeUnit.MINUTES
         ).setInputData(androidx.work.workDataOf("user_id" to userId))
