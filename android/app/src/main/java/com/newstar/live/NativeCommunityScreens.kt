@@ -157,7 +157,7 @@ private fun CommunityCountCard(label: String, count: Int, modifier: Modifier = M
 
 @Composable
 private fun NativeLiveCameraPreview(
-    publisher: NativeWhipPublisher,
+    publisher: NativeLivePublisher,
     modifier: Modifier = Modifier
 ) {
     var renderer by remember { mutableStateOf<SurfaceViewRenderer?>(null) }
@@ -188,7 +188,7 @@ internal fun NativeLiveHostControls(session: NativeSession) {
     var busy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var notice by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     var roomId by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
-    var publisher by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<NativeWhipPublisher?>(null) }
+    var publisher by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<NativeLivePublisher?>(null) }
     var micEnabled by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
     var cameraEnabled by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
     var pkStatus by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("idle") }
@@ -218,25 +218,42 @@ internal fun NativeLiveHostControls(session: NativeSession) {
             scope.launch {
                 busy = true
                 var preparedRoom: String? = null
-                var createdPublisher: NativeWhipPublisher? = null
+                var createdPublisher: NativeLivePublisher? = null
                 try {
                     val prepared = NativeSupabase.invokeFunction("cloudflare-live", org.json.JSONObject()
                         .put("action", "prepare").put("room_title", title.trim())
                         .put("room_type", "live").put("seat_capacity", seats), session)
                     if (!prepared.optBoolean("ok")) throw IllegalStateException(prepared.optString("error", "LIVE room तैयार नहीं हुआ।"))
                     preparedRoom = prepared.getString("room_id")
-                    val livePublisher = NativeWhipPublisher.start(context, prepared.getString("whip_url"), microphoneGranted)
-                    createdPublisher = livePublisher
-                    val confirmed = NativeSupabase.invokeFunction("cloudflare-live",
-                        org.json.JSONObject().put("action", "confirm").put("room_id", preparedRoom)
-                            .put("camera_enabled", true).put("microphone_enabled", microphoneGranted), session)
-                    if (!confirmed.optBoolean("ok")) throw IllegalStateException(confirmed.optString("error", "LIVE room confirm नहीं हुआ।"))
-                    roomId = preparedRoom
-                    publisher = livePublisher
-                    micEnabled = microphoneGranted
-                    cameraEnabled = true
-                    notice = if (microphoneGranted) "आप Cloudflare पर LIVE हैं। Camera और microphone broadcast हो रहे हैं।"
-                        else "आप LIVE हैं। Microphone permission नहीं मिली, इसलिए केवल camera broadcast हो रहा है।"
+                    val sfuHealth = NativeLiveRepository.getSfuHealth(session)
+                    val useSfu = sfuHealth.optBoolean("configured")
+                    if (useSfu) {
+                        val confirmed = NativeSupabase.invokeFunction("cloudflare-live",
+                            org.json.JSONObject().put("action", "confirm").put("room_id", preparedRoom)
+                                .put("camera_enabled", true).put("microphone_enabled", microphoneGranted), session)
+                        if (!confirmed.optBoolean("ok")) throw IllegalStateException(confirmed.optString("error", "LIVE room confirm नहीं हुआ।"))
+                        val sfuPublisher = NativeSfuPublisher.start(context, preparedRoom, session, microphoneGranted)
+                        createdPublisher = sfuPublisher
+                        roomId = preparedRoom
+                        publisher = sfuPublisher
+                        micEnabled = microphoneGranted
+                        cameraEnabled = true
+                        notice = if (microphoneGranted) "आप Cloudflare Realtime SFU पर LIVE हैं। Camera और microphone publish हो रहे हैं।"
+                            else "आप Cloudflare Realtime SFU पर LIVE हैं। केवल camera publish हो रहा है।"
+                    } else {
+                        val whipPublisher = NativeWhipPublisher.start(context, prepared.getString("whip_url"), microphoneGranted)
+                        createdPublisher = whipPublisher
+                        val confirmed = NativeSupabase.invokeFunction("cloudflare-live",
+                            org.json.JSONObject().put("action", "confirm").put("room_id", preparedRoom)
+                                .put("camera_enabled", true).put("microphone_enabled", microphoneGranted), session)
+                        if (!confirmed.optBoolean("ok")) throw IllegalStateException(confirmed.optString("error", "LIVE room confirm नहीं हुआ।"))
+                        roomId = preparedRoom
+                        publisher = whipPublisher
+                        micEnabled = microphoneGranted
+                        cameraEnabled = true
+                        notice = if (microphoneGranted) "आप Cloudflare Stream WHIP पर LIVE हैं। Camera और microphone broadcast हो रहे हैं।"
+                            else "आप LIVE हैं। Microphone permission नहीं मिली, इसलिए केवल camera broadcast हो रहा है।"
+                    }
                 } catch (e: Exception) {
                     runCatching { createdPublisher?.stop() }
                     preparedRoom?.let { id ->
