@@ -191,6 +191,13 @@ internal fun NativeLiveHostControls(session: NativeSession) {
     var publisher by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<NativeWhipPublisher?>(null) }
     var micEnabled by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
     var cameraEnabled by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
+    var pkStatus by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("idle") }
+    var pkMatchId by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var pkOpponentName by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var pkOwnScore by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    var pkOpponentScore by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    var pkBusy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var pkNotice by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     val currentPublisher by androidx.compose.runtime.rememberUpdatedState(publisher)
     val currentRoomId by androidx.compose.runtime.rememberUpdatedState(roomId)
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -236,6 +243,32 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                     notice = e.message ?: "Native LIVE शुरू नहीं हुआ।"
                 } finally { busy = false }
             }
+        }
+    }
+
+
+    androidx.compose.runtime.LaunchedEffect(roomId) {
+        val activeRoom = roomId ?: return@LaunchedEffect
+        while (true) {
+            try {
+                val status = NativeLiveRepository.getPkStatus(activeRoom, session)
+                val next = status.optString("status", "idle")
+                pkStatus = next
+                pkMatchId = status.optString("match_id")
+                pkOpponentName = status.optString("opponent_name")
+                pkOwnScore = status.optInt("own_score")
+                pkOpponentScore = status.optInt("opponent_score")
+                if (next == "idle") {
+                    pkMatchId = ""
+                    pkOpponentName = ""
+                    pkOwnScore = 0
+                    pkOpponentScore = 0
+                }
+                if (pkNotice.startsWith("Battle status")) pkNotice = ""
+            } catch (e: Exception) {
+                pkNotice = "Battle status: " + (e.message ?: "अभी उपलब्ध नहीं है।")
+            }
+            kotlinx.coroutines.delay(3500)
         }
     }
 
@@ -308,6 +341,76 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                         cameraEnabled = !cameraEnabled
                         publisher?.setCameraEnabled(cameraEnabled)
                     }) { androidx.compose.material3.Text(if (cameraEnabled) "Camera ON" else "Camera OFF") }
+                }
+
+                androidx.compose.material3.Card(androidx.compose.ui.Modifier.fillMaxWidth()) {
+                    androidx.compose.foundation.layout.Column(
+                        androidx.compose.ui.Modifier.padding(12.dp),
+                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(7.dp)
+                    ) {
+                        androidx.compose.material3.Text("Friendly LIVE PK Battle", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                        androidx.compose.material3.Text(
+                            when (pkStatus) {
+                                "waiting" -> "Matchmaking queue में हैं। दूसरे LIVE creator की प्रतीक्षा है।"
+                                "matched" -> "Opponent: $pkOpponentName"
+                                else -> "दूसरे active LIVE creator के साथ friendly matchmaking।"
+                            },
+                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                        )
+                        if (pkStatus == "matched") {
+                            androidx.compose.material3.Text(
+                                "आपके LIVE likes: $pkOwnScore  ·  Opponent likes: $pkOpponentScore",
+                                style = androidx.compose.material3.MaterialTheme.typography.titleSmall
+                            )
+                        }
+                        androidx.compose.material3.Button(
+                            enabled = !pkBusy && (pkStatus == "idle" || pkStatus == "waiting" || pkStatus == "matched"),
+                            onClick = {
+                                pkBusy = true
+                                pkNotice = ""
+                                scope.launch {
+                                    try {
+                                        when (pkStatus) {
+                                            "waiting" -> {
+                                                NativeLiveRepository.leavePkQueue(session)
+                                                pkStatus = "idle"
+                                                pkNotice = "Matchmaking queue छोड़ दी गई।"
+                                            }
+                                            "matched" -> {
+                                                NativeLiveRepository.finishPkMatch(pkMatchId, session)
+                                                pkStatus = "idle"
+                                                pkMatchId = ""
+                                                pkNotice = "Friendly battle समाप्त हुई।"
+                                            }
+                                            else -> {
+                                                val joined = NativeLiveRepository.joinPkQueue(roomId!!, session)
+                                                pkStatus = joined.optString("status", "waiting")
+                                                pkMatchId = joined.optString("match_id")
+                                                pkNotice = if (pkStatus == "matched") "Opponent मिल गया।" else "Matchmaking queue में शामिल हो गए।"
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        pkNotice = e.message ?: "PK matchmaking उपलब्ध नहीं है।"
+                                    } finally { pkBusy = false }
+                                }
+                            },
+                            modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+                        ) {
+                            androidx.compose.material3.Text(
+                                when {
+                                    pkBusy -> "Please wait…"
+                                    pkStatus == "waiting" -> "Cancel matchmaking"
+                                    pkStatus == "matched" -> "End friendly battle"
+                                    else -> "Find LIVE opponent"
+                                }
+                            )
+                        }
+                        if (pkNotice.isNotBlank()) androidx.compose.material3.Text(
+                            pkNotice,
+                            color = if (pkNotice.startsWith("Battle status")) androidx.compose.material3.MaterialTheme.colorScheme.error else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
                 androidx.compose.material3.Button(
                     enabled = !busy, onClick = {
