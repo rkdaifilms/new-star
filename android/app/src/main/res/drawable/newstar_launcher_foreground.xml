@@ -1,4 +1,63 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="512" android:viewportHeight="512">
-    <path android:fillColor="#FE2C55" android:pathData="M256,54 L307,194 458,199 340,292 379,441 256,356 133,441 172,292 54,199 205,194 Z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M256,214 A42,42 0,1 0,256 298 A42,42 0,1 0,256 214"/>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Deep extrusion shadow -->
+    <path android:fillColor="#3A0710" android:translateY="18"
+        android:pathData="M256,48 L316,190 470,202 350,302 389,458 256,369 123,458 162,302 42,202 196,190 Z"/>
+
+    <!-- Polished gold outer star -->
+    <path android:pathData="M256,34 L316,180 474,192 352,294 392,452 256,362 120,452 160,294 38,192 196,180 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="90" android:startY="40" android:endX="410" android:endY="470">
+                <item android:offset="0" android:color="#FFF8C7"/>
+                <item android:offset="0.28" android:color="#FFC52E"/>
+                <item android:offset="0.62" android:color="#D87900"/>
+                <item android:offset="1" android:color="#FFF0A0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#8D3900"
+        android:pathData="M256,67 L306,198 446,207 337,298 371,432 256,356 141,432 175,298 66,207 206,198 Z"/>
+
+    <!-- Glossy ruby/magenta inner star -->
+    <path android:pathData="M256,82 L302,202 432,210 333,294 365,420 256,350 147,420 179,294 80,210 210,202 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="170" android:startY="90" android:endX="350" android:endY="420">
+                <item android:offset="0" android:color="#FFB5E0"/>
+                <item android:offset="0.22" android:color="#FF2D86"/>
+                <item android:offset="0.58" android:color="#E60046"/>
+                <item android:offset="1" android:color="#650020"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Subtle center bevel -->
+    <path android:fillColor="#FF6AAB" android:fillAlpha="0.65"
+        android:pathData="M256,104 L285,211 210,218 104,214 Z"/>
+    <path android:fillColor="#8A002D" android:fillAlpha="0.7"
+        android:pathData="M256,350 L256,235 333,294 365,420 Z"/>
+
+    <!-- Play symbol with dimensional shadow -->
+    <path android:fillColor="#5A001B" android:translateY="8"
+        android:pathData="M224,204 Q213,198 213,216 L213,318 Q213,336 230,326 L319,275 Q337,265 319,255 Z"/>
+    <path android:pathData="M220,194 Q208,188 208,207 L208,309 Q208,327 225,317 L314,266 Q332,256 314,246 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="220" android:startY="190" android:endX="300" android:endY="320">
+                <item android:offset="0" android:color="#FFFFFF"/>
+                <item android:offset="1" android:color="#DCE7FF"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Golden orbital sweep -->
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFD36B"
+        android:strokeWidth="12" android:strokeLineCap="round"
+        android:pathData="M72,352 C158,438 350,374 447,202"/>
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFF0B0"
+        android:strokeWidth="3" android:strokeLineCap="round"
+        android:pathData="M76,347 C164,424 346,364 441,205"/>
 </vector>
