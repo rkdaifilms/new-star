@@ -66,6 +66,9 @@ fun NativeCampaignScreen(session: NativeSession) {
     val createAllowed = access?.optBoolean("campaign_create_access") == true
     val joinAllowed = access?.optBoolean("campaign_join_access") == true
     val followerCount = access?.optInt("follower_count") ?: 0
+    val appliedCampaignIds = remember(applications) {
+        applications.mapNotNull { row -> row.optString("campaign_id").takeIf { it.isNotBlank() } }.toSet()
+    }
 
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -139,6 +142,7 @@ fun NativeCampaignScreen(session: NativeSession) {
             if (campaigns.isEmpty() && !loading) item { Text("अभी कोई सक्रिय payment-verified campaign उपलब्ध नहीं है।") }
             items(campaigns, key = { it.optString("id") }) { campaign ->
                 val id = campaign.optString("id")
+                val alreadyApplied = id in appliedCampaignIds
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(campaign.optString("title"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -149,10 +153,10 @@ fun NativeCampaignScreen(session: NativeSession) {
                             value = proposalById[id].orEmpty(),
                             onValueChange = { value -> proposalById = proposalById + (id to value.take(2000)) },
                             label = { Text("Your proposal (no payment details)") },
-                            modifier = Modifier.fillMaxWidth(), minLines = 2, enabled = joinAllowed && applyingId != id
+                            modifier = Modifier.fillMaxWidth(), minLines = 2, enabled = joinAllowed && applyingId != id && !alreadyApplied
                         )
                         Button(
-                            enabled = joinAllowed && applyingId != id && proposalById[id].orEmpty().isNotBlank(),
+                            enabled = joinAllowed && !alreadyApplied && applyingId != id && proposalById[id].orEmpty().isNotBlank(),
                             onClick = {
                                 scope.launch {
                                     applyingId = id
@@ -167,7 +171,8 @@ fun NativeCampaignScreen(session: NativeSession) {
                                     finally { applyingId = "" }
                                 }
                             }, modifier = Modifier.fillMaxWidth()
-                        ) { Text(if (applyingId == id) "Sending…" else "Send application") }
+                        ) { Text(when { applyingId == id -> "Sending…"; alreadyApplied -> "Application already submitted"; else -> "Send application" }) }
+                        if (alreadyApplied) Text("आप इस campaign में पहले ही आवेदन भेज चुके हैं। मौजूदा आवेदन की स्थिति नीचे देखें।", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
                         if (!joinAllowed) Text("Apply करने के लिए 1,000 genuine followers जरूरी हैं।", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                         if (campaign.optString("destination_url").startsWith("https://")) Text(campaign.optString("destination_url"), style = MaterialTheme.typography.bodySmall)
                     }
