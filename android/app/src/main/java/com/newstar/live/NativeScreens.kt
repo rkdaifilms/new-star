@@ -1708,6 +1708,7 @@ fun NativeUploadScreen(session: NativeSession) {
     var editingProgress by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf("3 घंटे तक का वीडियो चुनें। अधिकतम आकार 5 GiB है।") }
     var uploading by remember { mutableStateOf(false) }
+    var hasRecoverableUpload by remember { mutableStateOf(false) }
     var cameraStudioOpen by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     var trimStartSeconds by remember { mutableStateOf("0") }
@@ -1735,6 +1736,11 @@ fun NativeUploadScreen(session: NativeSession) {
         if (uri == null) {
             status = if (source == "camera") "Camera से वीडियो वापस नहीं मिला। दोबारा रिकॉर्ड करें या Gallery चुनें।" else status
             return
+        }
+        val pendingDraft = NativeUploadDraftStore.load(context, session.userId)
+        if (pendingDraft != null && pendingDraft.optString("uri") != uri.toString()) {
+            NativeUploadDraftStore.clear(context, session.userId)
+            hasRecoverableUpload = false
         }
         deleteNativeEditorTemp(context, selected)
         splitParts.forEach { deleteNativeEditorTemp(context, it) }
@@ -1773,6 +1779,43 @@ fun NativeUploadScreen(session: NativeSession) {
     }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         acceptSelectedVideo(uri, "gallery")
+    }
+    LaunchedEffect(session.userId) {
+        val draft = NativeUploadDraftStore.load(context, session.userId)
+        if (draft != null) {
+            try {
+                val draftUri = Uri.parse(draft.optString("uri"))
+                context.contentResolver.openFileDescriptor(draftUri, "r")?.use { }
+                    ?: throw IllegalStateException("पिछले upload की video file अब उपलब्ध नहीं है।")
+                selected = draftUri
+                title = draft.optString("title")
+                description = draft.optString("description")
+                category = draft.optString("category", "General")
+                visibility = draft.optString("visibility", "public")
+                audienceType = draft.optString("audience_type", "all")
+                mediaKind = draft.optString("media_kind", "video")
+                affiliateLink = draft.optString("affiliate_link")
+                locationVisibility = draft.optString("location_visibility", "public")
+                val savedLocation = draft.optJSONObject("location")
+                selectedLocation = savedLocation
+                locationQuery = savedLocation?.optString("name").orEmpty()
+                sourceDurationSeconds = draft.optInt("duration")
+                sourceWidth = draft.optInt("width")
+                sourceHeight = draft.optInt("height")
+                val total = draft.optLong("size")
+                progress = if (total > 0L) ((draft.optLong("offset") * 100L) / total).toInt().coerceIn(0, 100) else 0
+                hasRecoverableUpload = true
+                status = if (draft.optString("video_id").isNotBlank()) {
+                    "Upload पूरा हो चुका है। Publish record की पुष्टि जारी रख सकते हैं।"
+                } else {
+                    "पिछला अधूरा upload मिला (${progress}%)। Publish Video दबाकर वहीं से जारी करें।"
+                }
+            } catch (e: Exception) {
+                NativeUploadDraftStore.clear(context, session.userId)
+                hasRecoverableUpload = false
+                status = e.message ?: "पिछला upload restore नहीं हो सका। वीडियो फिर से चुनें।"
+            }
+        }
     }
     val musicPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -2276,11 +2319,22 @@ fun NativeUploadScreen(session: NativeSession) {
                     splitParts = emptyList()
                     selected = null
                     editing = false
+                    hasRecoverableUpload = false
                     status = "वीडियो अपलोड हो गया। Processing के बाद दिखाई देगा।"
                 } catch (e: Exception) { status = e.message ?: "Upload असफल हुआ।" }
                 finally { uploading = false }
             }
-        }) { Text(if (uploading) "Uploading…" else "Publish Video") }
+        }) { Text(if (uploading) "Uploading…" else if (hasRecoverableUpload) "Resume Upload" else "Publish Video") }
+        if (hasRecoverableUpload && !uploading) {
+            TextButton(onClick = {
+                NativeUploadDraftStore.clear(context, session.userId)
+                deleteNativeEditorTemp(context, selected)
+                selected = null
+                hasRecoverableUpload = false
+                progress = 0
+                status = "Saved upload हटाया गया। आप नया वीडियो चुन सकते हैं।"
+            }) { Text("Discard saved upload") }
+        }
         Text(status, color = if (status.contains("असफल") || status.contains("Error")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
     }
 }
