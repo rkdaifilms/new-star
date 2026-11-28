@@ -93,6 +93,40 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
 
     LaunchedEffect(session.userId) {
         try {
+            try {
+                val remote = NativePreferencesSync.load(session)
+                if (remote != null) {
+                    NativePreferencesSync.validString(remote, "language", NativePreferencesSync.languages)?.let { language = it }
+                    NativePreferencesSync.validString(remote, "theme", NativePreferencesSync.themes)?.let { theme = it }
+                    val accessibility = remote.optJSONObject("accessibility")
+                    accessibility?.let { values ->
+                        NativePreferencesSync.validTextScale(values)?.let { textScale = it }
+                        NativePreferencesSync.validBoolean(values, "reducedMotion")?.let { reduceMotion = it }
+                        NativePreferencesSync.validBoolean(values, "highContrast")?.let { highContrast = it }
+                    }
+                    val notifications = remote.optJSONObject("notifications")
+                    notifications?.let { values ->
+                        NativePreferencesSync.validBoolean(values, "follows")?.let { notifyFollow = it }
+                        NativePreferencesSync.validBoolean(values, "likes")?.let { notifyLike = it }
+                        NativePreferencesSync.validBoolean(values, "comments")?.let { notifyComment = it }
+                        NativePreferencesSync.validBoolean(values, "messages")?.let { notifyMessage = it }
+                    }
+                    local.edit()
+                        .putString("language", language)
+                        .putString("theme", theme)
+                        .putString("textScale", textScale)
+                        .putBoolean("reducedMotion", reduceMotion)
+                        .putBoolean("highContrast", highContrast)
+                        .putBoolean("notifyFollow", notifyFollow)
+                        .putBoolean("notifyLike", notifyLike)
+                        .putBoolean("notifyComment", notifyComment)
+                        .putBoolean("notifyMessage", notifyMessage)
+                        .apply()
+                    status = "आपकी cloud preferences इस device पर restore हो गईं।"
+                }
+            } catch (preferenceError: Exception) {
+                status = preferenceError.message ?: "Cloud preferences restore नहीं हो सकीं; इस device की saved settings जारी हैं।"
+            }
             val rows = NativeSupabase.get(
                 "/rest/v1/profiles?select=is_private&user_id=eq.${session.userId}", session
             )
