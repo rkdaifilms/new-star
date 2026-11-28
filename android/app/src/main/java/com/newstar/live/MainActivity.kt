@@ -2162,6 +2162,7 @@ private fun NativeVideoCard(
     var followError by remember(video.id, session?.userId) { mutableStateOf<String?>(null) }
     var downloadBusy by remember(video.id) { mutableStateOf(false) }
     var offlineSaved by remember(video.id) { mutableStateOf(false) }
+    var downloadRequested by remember(video.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(session?.userId) {
         val current = session ?: return@LaunchedEffect
@@ -2210,16 +2211,22 @@ private fun NativeVideoCard(
             }
         }
     }
-    LaunchedEffect(video.id) {
-        while (true) {
-            val completed = withContext(Dispatchers.IO) {
+    LaunchedEffect(video.id, downloadRequested) {
+        if (!downloadRequested) {
+            offlineSaved = withContext(Dispatchers.IO) {
                 NativeOfflineDownloads.isDownloaded(context, video.id)
             }
-            if (completed) {
-                offlineSaved = true
-                break
+        } else {
+            while (true) {
+                val completed = withContext(Dispatchers.IO) {
+                    NativeOfflineDownloads.isDownloaded(context, video.id)
+                }
+                if (completed) {
+                    offlineSaved = true
+                    break
+                }
+                kotlinx.coroutines.delay(5_000)
             }
-            kotlinx.coroutines.delay(5_000)
         }
     }
     val exoPlayer = remember(video.url, offlineSaved) {
@@ -2408,6 +2415,7 @@ private fun NativeVideoCard(
                             downloadBusy = true
                             try {
                                 NativeOfflineDownloads.enqueue(context, video.id, video.url)
+                                downloadRequested = true
                                 Toast.makeText(
                                     context,
                                     "Offline download शुरू हुआ। HLS और MP4 दोनों app storage में सेव होंगे; notification में progress देखें।",
