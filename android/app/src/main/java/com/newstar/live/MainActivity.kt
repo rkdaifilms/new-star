@@ -1178,6 +1178,7 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
     var creatorVideoCount by remember(creatorId) { mutableIntStateOf(0) }
     var profileRefresh by remember(creatorId) { mutableIntStateOf(0) }
     var countsLoading by remember(creatorId) { mutableStateOf(false) }
+    var realtimeStatus by remember(creatorId) { mutableStateOf("Connecting") }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val visibleVideos = remember(videos, videoTab) {
@@ -1185,6 +1186,21 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
             "Shorts" -> videos.filter { it.optString("video_type").equals("short", true) }
             "Long videos" -> videos.filter { it.optString("video_type").equals("long", true) }
             else -> videos
+        }
+    }
+
+    LaunchedEffect(creatorId, session.userId, session.accessToken) {
+        val observer = NativeFollowRealtime.observe(
+            session = session,
+            creatorId = creatorId,
+            onChange = { scope.launch { profileRefresh++ } },
+            onStatus = { status -> realtimeStatus = status }
+        )
+        observer.start()
+        try {
+            kotlinx.coroutines.awaitCancellation()
+        } finally {
+            observer.close()
         }
     }
 
@@ -1371,6 +1387,16 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                     Text(if (countsLoading) "Refreshing…" else "Refresh")
                 }
             }
+            Text(
+                when (realtimeStatus) {
+                    "Connected" -> "● Live profile sync active"
+                    "Connecting" -> "○ Connecting live sync…"
+                    "Stopped" -> "Live sync stopped"
+                    else -> "○ Live sync reconnecting"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             if (creatorId != session.userId) {
                 OutlinedButton(onClick = onMessage, modifier = Modifier.fillMaxWidth()) {
                     Text("✉ Message")
