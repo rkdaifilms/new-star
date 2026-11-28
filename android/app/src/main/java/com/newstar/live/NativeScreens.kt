@@ -2639,12 +2639,12 @@ private object NativeVideoUploader {
         draft.put("affiliate_link", affiliateLink)
         draft.put("location", location ?: JSONObject.NULL)
         draft.put("location_visibility", locationVisibility)
-        if (savedDraft == null) NativeUploadDraftStore.save(context, session.userId, draft)
-        else NativeUploadDraftStore.save(context, session.userId, draft)
+        NativeUploadDraftStore.save(context, session.userId, draft)
         var offset = if (finalizedVideoId.isNotBlank()) size else readTusOffset(client, resolvedUploadUrl, size)
         require(offset in 0L..size) { "Cloudflare ने upload का अमान्य resume offset दिया।" }
         draft.put("offset", offset)
         NativeUploadDraftStore.save(context, session.userId, draft)
+        withContext(Dispatchers.Main) { onProgress(((offset * 100L) / size).toInt().coerceIn(0, 100)) }
         if (finalizedVideoId.isBlank()) {
         context.contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "वीडियो फ़ाइल पढ़ नहीं सकी।" }
