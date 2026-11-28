@@ -367,6 +367,7 @@ private fun NativeApp(
     var selectedSharedVideoId by remember { mutableStateOf<String?>(null) }
     var selectedOfflineVideo by remember { mutableStateOf<NativeVideo?>(null) }
     var inboxTargetId by remember { mutableStateOf<String?>(null) }
+    var inboxTargetRequestId by remember { mutableIntStateOf(0) }
     var aiInitialPrompt by remember { mutableStateOf("") }
     var lastForegroundNotificationId by remember(session?.userId) { mutableStateOf<String?>(null) }
     var notificationBaselineReady by remember(session?.userId) { mutableStateOf(false) }
@@ -514,6 +515,7 @@ private fun NativeApp(
             val category = NativeNotificationPreferences.category(type, null)
             if (category == NativeNotificationCategory.MESSAGE && !creatorId.isNullOrBlank()) {
                 inboxTargetId = creatorId
+                inboxTargetRequestId++
                 page = "Inbox"
             } else if (!creatorId.isNullOrBlank()) {
                 selectedCreatorId = creatorId
@@ -599,7 +601,7 @@ private fun NativeApp(
                     }
                 )
                 "Upload" -> NativeUploadScreen(session!!)
-                "Inbox" -> NativeInboxScreen(session!!, inboxTargetId) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
+                "Inbox" -> NativeInboxScreen(session!!, inboxTargetId, inboxTargetRequestId) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
                 "Notifications" -> NativeNotificationsScreen(
                     session!!,
                     notificationRefreshCounter,
@@ -612,6 +614,7 @@ private fun NativeApp(
                     )
                     if (category == NativeNotificationCategory.MESSAGE && creatorId.isNotBlank()) {
                         inboxTargetId = creatorId
+                        inboxTargetRequestId++
                         page = "Inbox"
                     } else if (creatorId.isNotBlank() && creatorId != session!!.userId) {
                         selectedCreatorId = creatorId
