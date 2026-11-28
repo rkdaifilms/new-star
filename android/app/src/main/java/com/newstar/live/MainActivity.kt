@@ -662,15 +662,19 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val currentGuestPublisher by rememberUpdatedState(guestPublisher)
+    val currentGuestParticipant = participants.firstOrNull { it.optString("user_id") == session.userId }
+    val currentGuestMicAllowed = currentGuestParticipant?.optBoolean("microphone_allowed", true) == true
     val guestPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val cameraGranted = permissions[android.Manifest.permission.CAMERA] == true ||
             androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
-        val micGranted = permissions[android.Manifest.permission.RECORD_AUDIO] == true ||
-            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) ==
-            android.content.pm.PackageManager.PERMISSION_GRANTED
+        val micGranted = currentGuestMicAllowed && (
+            permissions[android.Manifest.permission.RECORD_AUDIO] == true ||
+                androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
         if (!cameraGranted) {
             notice = "Guest camera शुरू करने के लिए Android Camera permission आवश्यक है।"
         } else {
