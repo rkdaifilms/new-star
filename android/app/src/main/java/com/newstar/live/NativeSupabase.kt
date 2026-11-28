@@ -106,6 +106,51 @@ object NativeSessionStore {
         } catch (_: Exception) { null }
     }
 
+    fun savePendingReferral(context: Context, referrerId: String) {
+        require(referrerId.matches(Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))) {
+            "Referral ID अमान्य है।"
+        }
+        val plain = JSONObject()
+            .put("referrer", referrerId)
+            .put("saved_at", System.currentTimeMillis())
+            .toString().toByteArray(Charsets.UTF_8)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey())
+        val packed = cipher.iv + cipher.doFinal(plain)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString("pending_referral", Base64.encodeToString(packed, Base64.NO_WRAP))
+            .apply()
+    }
+
+    fun consumePendingReferral(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val encoded = prefs.getString("pending_referral", null) ?: return null
+        prefs.edit().remove("pending_referral").apply()
+        return try {
+            val packed = Base64.decode(encoded, Base64.NO_WRAP)
+            require(packed.size > 12)
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(
+                Cipher.DECRYPT_MODE,
+                secretKey(),
+                GCMParameterSpec(128, packed.copyOfRange(0, 12))
+            )
+            val json = JSONObject(String(cipher.doFinal(packed.copyOfRange(12, packed.size)), Charsets.UTF_8))
+            val savedAt = json.optLong("saved_at")
+            val age = System.currentTimeMillis() - savedAt
+            if (savedAt <= 0L || age < 0L || age > 24L * 60L * 60L * 1000L) return null
+            json.optString("referrer").takeIf {
+                it.matches(Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun clearPendingReferral(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove("pending_referral").apply()
+    }
+
     fun clear(context: Context) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(ENTRY).apply()
     }
