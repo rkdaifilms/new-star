@@ -254,6 +254,17 @@ Deno.serve(async (req: Request) => {
     }), { headers: cors });
   }
 
+  if (body.action === "list_content_reports") {
+    const { data: adminRole, error: roleError } = await admin.schema("private").from("admin_users")
+      .select("role").eq("user_id", user.id).maybeSingle();
+    if (roleError || !adminRole || adminRole.role !== "owner") return fail("Developer owner access only", 403);
+    const { data: reports, error: reportError } = await admin.from("content_reports")
+      .select("id,reporter_id,target_type,target_id,reason,details,status,created_at,reviewed_by,reviewed_at")
+      .order("created_at", { ascending: false }).limit(100);
+    if (reportError) return fail("Could not load content reports", 500);
+    return new Response(JSON.stringify({ ok: true, reports: reports ?? [] }), { headers: cors });
+  }
+
   if (body.action === "review_content_report") {
     const { data: adminRole, error: roleError } = await admin.schema("private").from("admin_users")
       .select("role").eq("user_id", user.id).maybeSingle();
