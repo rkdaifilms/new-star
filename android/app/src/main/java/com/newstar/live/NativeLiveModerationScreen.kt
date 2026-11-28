@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -71,7 +72,7 @@ internal fun NativeLiveModerationScreen(roomId: String, session: NativeSession) 
                 Text("अभी कोई guest request या admitted participant नहीं है।", style = MaterialTheme.typography.bodySmall)
             }
             LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(state.members, key = { it.userId }) { member ->
