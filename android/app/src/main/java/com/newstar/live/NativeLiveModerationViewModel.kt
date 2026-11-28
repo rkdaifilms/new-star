@@ -69,6 +69,17 @@ internal class NativeLiveModerationViewModel : ViewModel() {
         }
     }
 
+    fun admitGuest(member: NativeLiveMember) {
+        if (member.participantId.isBlank() || member.status != "requested") return
+        perform(member.userId) {
+            NativeLiveRepository.admitGuest(
+                roomId ?: return@perform,
+                member.participantId,
+                session ?: return@perform
+            )
+        }
+    }
+
     fun setModerator(userId: String, moderator: Boolean) {
         perform(userId) {
             NativeLiveRepository.manageLiveMember(
