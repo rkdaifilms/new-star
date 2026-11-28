@@ -4,7 +4,7 @@ import android.net.Uri
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal data class NativeLiveCreator(
+data class NativeLiveCreator(
     val userId: String,
     val username: String,
     val fullName: String,
