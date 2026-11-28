@@ -2824,12 +2824,34 @@ private object NativeVideoUploader {
             put("location_visibility", if (locationVisibility == "hidden") "hidden" else "public")
         }
         val videoId = if (finalizedVideoId.isNotBlank()) finalizedVideoId else {
-            val savedRows = JSONArray(NativeSupabase.post("/rest/v1/videos", row, session))
-            val createdId = savedRows.optJSONObject(0)?.optString("id").orEmpty()
-            require(createdId.isNotBlank()) { "वीडियो Cloudflare पर upload हुआ, लेकिन Supabase ने Video ID नहीं लौटाई। Stream ID: $streamId" }
-            draft.put("video_id", createdId)
+            // A process can die after Postgres commits but before video_id is
+            // persisted in the encrypted local draft. Use the provider identity
+            // as the database idempotency key so retry never creates a second row.
+            val conflictTarget = "video_provider,provider_video_id"
+            val savedRows = JSONArray(
+                NativeSupabase.upsert(
+                    "/rest/v1/videos?on_conflict=$conflictTarget",
+                    row,
+                    session,
+                    ignoreDuplicates = true
+                )
+            )
+            val insertedId = savedRows.optJSONObject(0)?.optString("id").orEmpty()
+            val existingId = if (insertedId.isNotBlank()) insertedId else {
+                val existingRows = NativeSupabase.get(
+                    "/rest/v1/videos?select=id&video_provider=eq.cloudflare" +
+                        "&provider_video_id=eq.${Uri.encode(streamId)}" +
+                        "&user_id=eq.${Uri.encode(session.userId)}&limit=1",
+                    session
+                )
+                existingRows.optJSONObject(0)?.optString("id").orEmpty()
+            }
+            require(existingId.isNotBlank()) {
+                "Cloudflare upload सुरक्षित है, लेकिन इस account के लिए उसका Video record नहीं मिला। Stream ID: $streamId"
+            }
+            draft.put("video_id", existingId)
             NativeUploadDraftStore.save(context, session.userId, draft)
-            createdId
+            existingId
         }
         withContext(Dispatchers.Main) { onStatus("वीडियो upload हो गया। Cloudflare processing status जाँचा जा रहा है…") }
         var finalStatus = "वीडियो upload हो गया। Cloudflare processing जारी है; तैयार होने पर वीडियो प्रोफ़ाइल में दिखेगा।"
