@@ -370,6 +370,12 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                     }) { androidx.compose.material3.Text(if (cameraEnabled) "Camera ON" else "Camera OFF") }
                 }
 
+                NativeLiveGuestSeatPanel(
+                    roomId = roomId!!,
+                    session = session,
+                    seatCapacity = seats
+                )
+
                 androidx.compose.material3.Card(androidx.compose.ui.Modifier.fillMaxWidth()) {
                     androidx.compose.foundation.layout.Column(
                         androidx.compose.ui.Modifier.padding(12.dp),
