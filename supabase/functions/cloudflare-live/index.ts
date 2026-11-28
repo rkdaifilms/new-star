@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
   let body: { action?: string; room_title?: string; room_id?: string; room_type?: string; stream_mode?: string; seat_capacity?: number; message?: string; reaction?: string; invitee_id?: string; invite_id?: string; participant_id?: string; microphone_enabled?: boolean; camera_enabled?: boolean; target_user_id?: string; camera_allowed?: boolean; microphone_allowed?: boolean; moderator?: boolean; match_id?: string; session_id?: string; role?: string; session_description?: { type?: string; sdp?: string }; tracks?: Array<{ mid?: string; trackName?: string; sessionId?: string; location?: string }>; track_names?: string[] };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON." }, 400, headers); }
   const action = body.action;
-  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "list-members", "set-member-permissions", "set-moderator", "remove-member", "pk-join-queue", "pk-status", "pk-leave-queue", "pk-finish", "sfu-health", "sfu-create-session", "sfu-publish", "sfu-subscribe", "sfu-renegotiate", "sfu-close", "sfu-list-pubs"];
+  const supportedActions = ["prepare", "confirm", "stop", "live-chat-send", "live-chat-list", "live-react", "live-reaction-counts", "live-invite-create", "live-invites-list", "live-invite-respond", "live-participants-list", "live-seat-request", "live-seat-admit", "live-seat-remove", "live-seat-leave", "list-members", "set-member-permissions", "set-moderator", "remove-member", "pk-join-queue", "pk-status", "pk-leave-queue", "pk-finish", "sfu-health", "sfu-create-session", "sfu-publish", "sfu-subscribe", "sfu-renegotiate", "sfu-close", "sfu-list-pubs", "sfu-abandon"];
   if (!supportedActions.includes(String(action))) return json({ error: "This LIVE interaction is not enabled on the server yet." }, 501, headers);
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -717,8 +717,23 @@ Deno.serve(async (req: Request) => {
         return json({ ok: true, ...result }, 200, headers);
       }
 
+      if (action === "sfu-abandon") {
+        const { error: abandonError } = await admin.from("live_sfu_sessions").update({
+          status: "failed", updated_at: new Date().toISOString()
+        }).eq("id", session.id);
+        if (abandonError) return json({ error: "Could not mark the failed SFU session for cleanup." }, 503, headers);
+        if (session.role === "publisher" && member) {
+          await admin.from("live_room_participants").update({ sfu_connected: false, sfu_session_id: null })
+            .eq("id", member.id).eq("sfu_session_id", sessionId);
+        }
+        return json({ ok: true }, 200, headers);
+      }
+
       if (action === "sfu-close") {
         const forceTracks = Array.isArray(body.tracks) ? body.tracks : [];
+        if (!forceTracks.length || forceTracks.length > 20 || forceTracks.some(t => !String(t.mid || "").match(/^\\d+$/))) {
+          return json({ error: "At least one valid media MID is required to close an SFU session." }, 400, headers);
+        }
         const result = await sfuRequest("/sessions/" + encodeURIComponent(sessionId) + "/tracks/close", "PUT", {
           tracks: forceTracks.map(t => ({ mid: t.mid })), force: true
         });
@@ -746,7 +761,7 @@ Deno.serve(async (req: Request) => {
       configured,
       required_secrets: configured ? [] : ["CLOUDFLARE_SFU_APP_ID", "CLOUDFLARE_SFU_APP_SECRET"],
       message: configured
-        ? "SFU credentials are present. Media session negotiation is not yet enabled."
+        ? "SFU credentials are present. Native publisher session and track signaling endpoints are enabled; subscriber playback integration is still being completed."
         : "Cloudflare Realtime SFU credentials are not configured. Existing Stream credentials are not interchangeable."
     }, 200, headers);
   }
