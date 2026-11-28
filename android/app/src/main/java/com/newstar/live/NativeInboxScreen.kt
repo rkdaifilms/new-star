@@ -22,6 +22,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
@@ -407,6 +408,7 @@ internal class NativeInboxViewModel(private val session: NativeSession) : ViewMo
 
     fun close() {
         realtime.close()
+        viewModelScope.cancel()
     }
 
     override fun onCleared() {
