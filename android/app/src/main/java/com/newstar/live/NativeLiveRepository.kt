@@ -133,6 +133,29 @@ internal object NativeLiveRepository {
         return result
     }
 
+
+    suspend fun joinPkQueue(roomId: String, session: NativeSession): JSONObject =
+        invokePkAction(JSONObject().put("action", "pk-join-queue").put("room_id", roomId), session)
+
+    suspend fun getPkStatus(roomId: String, session: NativeSession): JSONObject =
+        invokePkAction(JSONObject().put("action", "pk-status").put("room_id", roomId), session)
+
+    suspend fun leavePkQueue(session: NativeSession): JSONObject =
+        invokePkAction(JSONObject().put("action", "pk-leave-queue"), session)
+
+    suspend fun finishPkMatch(matchId: String, session: NativeSession): JSONObject {
+        require(matchId.isNotBlank()) { "Battle match ID आवश्यक है।" }
+        return invokePkAction(JSONObject().put("action", "pk-finish").put("match_id", matchId), session)
+    }
+
+    private suspend fun invokePkAction(body: JSONObject, session: NativeSession): JSONObject {
+        val result = NativeSupabase.invokeFunction("cloudflare-live", body, session)
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "LIVE PK action पूरी नहीं हुई।"))
+        }
+        return result
+    }
+
     suspend fun getReactionCounts(roomId: String, session: NativeSession): Map<String, Int> {
         require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
         val result = NativeSupabase.invokeFunction(
