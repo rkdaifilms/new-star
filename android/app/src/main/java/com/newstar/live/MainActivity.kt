@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -2193,13 +2194,20 @@ private fun NativeHome(
         },
         bottomBar = {
             NavigationBar {
-                NavigationBarItem(true, { category = "All" }, icon = { Text("⌂") }, label = { Text("Home") })
-                NavigationBarItem(false, { onNavigate("Upload") }, icon = { Text("+") }, label = { Text("Upload") })
-                NavigationBarItem(false, { onNavigate("Inbox") }, icon = { Text("✉") }, label = { Text("Inbox") })
-                NavigationBarItem(false, { onNavigate("Live") }, icon = { Text("●") }, label = { Text("Live") })
-                NavigationBarItem(false, { onNavigate("Gaming") }, icon = { Text("▣") }, label = { Text("Gaming") })
-                NavigationBarItem(false, { onNavigate("Wallet") }, icon = { Text("₹") }, label = { Text("Wallet") })
-                NavigationBarItem(false, { onNavigate("Profile") }, icon = { Text("●") }, label = { Text("Profile") })
+                NavigationBarItem(true, { category = "All" }, icon = { Text("⌂") },
+                    label = { Text("Home", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)) })
+                NavigationBarItem(false, { onNavigate("Upload") }, icon = { Text("+") },
+                    label = { Text("Post", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)) })
+                NavigationBarItem(false, { onNavigate("Inbox") }, icon = { Text("✉") },
+                    label = { Text("Inbox", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)) })
+                NavigationBarItem(false, { onNavigate("Live") }, icon = { Text("●") },
+                    label = { Text("LIVE", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)) })
+                NavigationBarItem(false, { onNavigate("Gaming") }, icon = { Text("▣") },
+                    label = { Text("Game", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)) })
+                NavigationBarItem(false, { onNavigate("Wallet") }, icon = { Text("₹") },
+                    label = { Text("Coins", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)) })
+                NavigationBarItem(false, { onNavigate("Profile") }, icon = { Text("●") },
+                    label = { Text("Me", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)) })
             }
         }
     ) { padding ->
