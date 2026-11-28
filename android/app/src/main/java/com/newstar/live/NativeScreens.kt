@@ -3024,12 +3024,18 @@ fun NativeGamingScreen(
         onDispose {
             runCatching { context.unregisterReceiver(receiver) }
             gamingViewModel.stopPolling()
+            gamingViewModel.stopPkPolling()
         }
     }
 
-    LaunchedEffect(roomId, state.streaming) {
-        if (!roomId.isNullOrBlank() && state.streaming) gamingViewModel.startPolling(roomId)
-        else gamingViewModel.stopPolling()
+    LaunchedEffect(roomId, state.streaming, state.pkStatus) {
+        if (!roomId.isNullOrBlank() && state.streaming) {
+            gamingViewModel.startPolling(roomId)
+            if (state.pkStatus != "idle") gamingViewModel.startPkPolling(roomId)
+        } else {
+            gamingViewModel.stopPolling()
+            gamingViewModel.stopPkPolling()
+        }
     }
 
     Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -3106,6 +3112,45 @@ fun NativeGamingScreen(
                         Column(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
                             Text(item.optString("display_name", "Creator"), style = MaterialTheme.typography.labelMedium)
                             Text(item.optString("message"), style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (state.streaming && !roomId.isNullOrBlank()) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Friendly LIVE PK Battle", style = MaterialTheme.typography.titleMedium)
+                    Text("केवल अपने active Gaming LIVE के host के रूप में matchmaking शुरू करें।")
+                    when (state.pkStatus) {
+                        "waiting" -> Text("🌐 दूसरे वास्तविक LIVE creator का इंतज़ार हो रहा है…")
+                        "matched" -> {
+                            Text("⚔️ Opponent: ${state.pkOpponentName}")
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("आपके LIVE likes: ${state.pkOwnScore}")
+                                Text("Opponent likes: ${state.pkOpponentScore}")
+                            }
+                        }
+                        else -> Text("कोई सक्रिय PK search या battle नहीं है।")
+                    }
+                    if (state.pkStatus == "idle") {
+                        Button(
+                            enabled = !state.pkBusy,
+                            onClick = { gamingViewModel.joinPkQueue(roomId) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(if (state.pkBusy) "Joining queue…" else "🌐 Find real opponent") }
+                    } else {
+                        OutlinedButton(
+                            enabled = !state.pkBusy,
+                            onClick = { gamingViewModel.cancelPk() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                if (state.pkBusy) "Please wait…"
+                                else if (state.pkStatus == "matched") "End friendly battle"
+                                else "Cancel search"
+                            )
                         }
                     }
                 }
