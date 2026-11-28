@@ -6,8 +6,10 @@
     android:viewportHeight="512">
 
     <!-- Deep extrusion shadow -->
-    <path android:fillColor="#3A0710" android:translateY="18"
-        android:pathData="M256,48 L316,190 470,202 350,302 389,458 256,369 123,458 162,302 42,202 196,190 Z"/>
+    <group android:translateY="18">
+        <path android:fillColor="#3A0710"
+            android:pathData="M256,48 L316,190 470,202 350,302 389,458 256,369 123,458 162,302 42,202 196,190 Z"/>
+    </group>
 
     <!-- Polished gold outer star -->
     <path android:pathData="M256,34 L316,180 474,192 352,294 392,452 256,362 120,452 160,294 38,192 196,180 Z">
@@ -42,8 +44,10 @@
         android:pathData="M256,350 L256,235 333,294 365,420 Z"/>
 
     <!-- Play symbol with dimensional shadow -->
-    <path android:fillColor="#5A001B" android:translateY="8"
-        android:pathData="M224,204 Q213,198 213,216 L213,318 Q213,336 230,326 L319,275 Q337,265 319,255 Z"/>
+    <group android:translateY="8">
+        <path android:fillColor="#5A001B"
+            android:pathData="M224,204 Q213,198 213,216 L213,318 Q213,336 230,326 L319,275 Q337,265 319,255 Z"/>
+    </group>
     <path android:pathData="M220,194 Q208,188 208,207 L208,309 Q208,327 225,317 L314,266 Q332,256 314,246 Z">
         <aapt:attr name="android:fillColor">
             <gradient android:type="linear" android:startX="220" android:startY="190" android:endX="300" android:endY="320">
