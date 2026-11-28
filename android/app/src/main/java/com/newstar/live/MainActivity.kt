@@ -2272,6 +2272,10 @@ private fun NativeVideoCard(
     var offlineSaved by remember(video.id) { mutableStateOf(false) }
     var downloadRequested by remember(video.id) { mutableStateOf(false) }
     var reportDialogOpen by remember(video.id) { mutableStateOf(false) }
+    var blockCreatorDialogOpen by remember(video.id) { mutableStateOf(false) }
+    var blockCreatorBusy by remember(video.id) { mutableStateOf(false) }
+    var blockCreatorError by remember(video.id) { mutableStateOf<String?>(null) }
+    var creatorBlocked by remember(video.id, session?.userId) { mutableStateOf(false) }
     var reportTargetType by remember(video.id) { mutableStateOf("video") }
     var reportTargetId by remember(video.id) { mutableStateOf(video.id) }
     var reportReason by remember(video.id) { mutableStateOf("spam") }
@@ -2312,6 +2316,20 @@ private fun NativeVideoCard(
         } catch (e: Exception) {
             followError = e.message ?: "Follow status लोड नहीं हुआ।"
         }
+    }
+    LaunchedEffect(video.userId, session?.userId) {
+        val current = session ?: run { creatorBlocked = false; return@LaunchedEffect }
+        if (video.userId.isBlank() || video.userId == current.userId) {
+            creatorBlocked = false
+            return@LaunchedEffect
+        }
+        try {
+            val rows = NativeSupabase.get(
+                "/rest/v1/user_blocks?select=id&blocker_id=eq.${Uri.encode(current.userId)}&blocked_id=eq.${Uri.encode(video.userId)}&limit=1",
+                current
+            )
+            creatorBlocked = rows.length() > 0
+        } catch (_: Exception) { }
     }
     LaunchedEffect(video.id, session?.userId) {
         if (session != null) {
@@ -2382,6 +2400,7 @@ private fun NativeVideoCard(
     DisposableEffect(watchTracker) {
         onDispose { watchTracker.close() }
     }
+    if (!creatorBlocked) {
     Card(
         modifier = if (immersive) Modifier.fillMaxSize() else Modifier.fillMaxWidth().padding(horizontal = 10.dp),
         shape = RoundedCornerShape(if (immersive) 0.dp else 16.dp),
@@ -2593,6 +2612,15 @@ private fun NativeVideoCard(
                             reportDialogOpen = true
                         }
                     ) { Text("Report") }
+                    if (session != null && video.userId.isNotBlank() && video.userId != session.userId) {
+                        TextButton(
+                            enabled = !blockCreatorBusy,
+                            onClick = {
+                                blockCreatorError = null
+                                blockCreatorDialogOpen = true
+                            }
+                        ) { Text("Block creator") }
+                    }
                     TextButton(
                         enabled = session != null && !giftBusy,
                         onClick = {
@@ -2618,6 +2646,54 @@ private fun NativeVideoCard(
                 }
             }
         }
+    }
+    }
+    if (blockCreatorDialogOpen) {
+        val current = session
+        AlertDialog(
+            onDismissRequest = { if (!blockCreatorBusy) blockCreatorDialogOpen = false },
+            title = { Text("Block creator?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("इस creator को block करने पर उनके videos आपके Home, Following और Search feed से छिपेंगे। आप Settings → Blocked Accounts से बाद में unblock कर सकते हैं।")
+                    if (blockCreatorError != null) {
+                        Text(blockCreatorError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = current != null && !blockCreatorBusy,
+                    onClick = {
+                        val actor = current ?: return@TextButton
+                        blockCreatorBusy = true
+                        blockCreatorError = null
+                        scope.launch {
+                            try {
+                                NativeSupabase.post(
+                                    "/rest/v1/user_blocks",
+                                    JSONObject().put("blocker_id", actor.userId).put("blocked_id", video.userId),
+                                    actor
+                                )
+                                creatorBlocked = true
+                                blockCreatorDialogOpen = false
+                                Toast.makeText(context, "Creator block हो गया। Settings से unblock कर सकते हैं।", Toast.LENGTH_LONG).show()
+                            } catch (error: Exception) {
+                                val detail = error.message ?: "Creator block नहीं हुआ।"
+                                if (detail.contains("409") || detail.contains("duplicate", true)) {
+                                    creatorBlocked = true
+                                    blockCreatorDialogOpen = false
+                                    Toast.makeText(context, "यह creator पहले से blocked है।", Toast.LENGTH_SHORT).show()
+                                } else blockCreatorError = detail
+                            } finally { blockCreatorBusy = false }
+                        }
+                    }
+                ) { Text(if (blockCreatorBusy) "Blocking…" else "Block creator") }
+            },
+            dismissButton = {
+                TextButton(enabled = !blockCreatorBusy, onClick = { blockCreatorDialogOpen = false }) { Text("Cancel") }
+            }
+        )
     }
     if (reportDialogOpen) {
         val current = session
@@ -2889,6 +2965,17 @@ private fun NativeVideoCard(
 }
 
 private object NativeFeed {
+    private suspend fun blockedCreatorIds(session: NativeSession?): Set<String> {
+        if (session == null) return emptySet()
+        val rows = NativeSupabase.get(
+            "/rest/v1/user_blocks?select=blocked_id&blocker_id=eq.${Uri.encode(session.userId)}&limit=1000",
+            session
+        )
+        return (0 until rows.length()).mapNotNull { index ->
+            rows.optJSONObject(index)?.optString("blocked_id")?.takeIf { it.isNotBlank() }
+        }.toSet()
+    }
+
     suspend fun search(term: String, session: NativeSession?): List<NativeVideo> = withContext(Dispatchers.IO) {
         val safeTerm = term.trim().take(100)
         require(safeTerm.length >= 2) { "कम से कम 2 अक्षर लिखें।" }
@@ -2898,12 +2985,13 @@ private object NativeFeed {
             session
         )
         if (rows.length() == 0) return@withContext emptyList()
+        val blockedIds = blockedCreatorIds(session)
         val videoIds = JSONArray()
         val byId = LinkedHashMap<String, JSONObject>()
         for (index in 0 until rows.length()) {
             val row = rows.optJSONObject(index) ?: continue
             val id = row.optString("id")
-            if (id.isNotBlank()) {
+            if (id.isNotBlank() && row.optString("user_id") !in blockedIds) {
                 byId[id] = row
                 videoIds.put(id)
             }
@@ -2976,6 +3064,9 @@ private object NativeFeed {
         }
 
         if (sourceRows.isEmpty()) return@withContext emptyList()
+        val blockedIds = blockedCreatorIds(session)
+        sourceRows = sourceRows.filter { it.optString("user_id") !in blockedIds }
+        if (sourceRows.isEmpty()) return@withContext emptyList()
         val byId = LinkedHashMap<String, JSONObject>()
         val ids = JSONArray()
         for (row in sourceRows) {
@@ -3010,7 +3101,10 @@ private object NativeFeed {
             followRows.optJSONObject(it)?.optString("following_id")?.takeIf { id -> id.isNotBlank() }
         }.distinct()
         if (creatorIds.isEmpty()) return@withContext emptyList()
-        val idsFilter = Uri.encode("(" + creatorIds.joinToString(",") + ")")
+        val blockedIds = blockedCreatorIds(session)
+        val visibleCreatorIds = creatorIds.filterNot { it in blockedIds }
+        if (visibleCreatorIds.isEmpty()) return@withContext emptyList()
+        val idsFilter = Uri.encode("(" + visibleCreatorIds.joinToString(",") + ")")
         val rows = NativeSupabase.get(
             "/rest/v1/videos?select=id,caption,username,category,likes_count,views_count,video_type,user_id&user_id=in." + idsFilter + "&visibility=eq.public&order=created_at.desc,id.desc&limit=$PAGE_SIZE&offset=$safeOffset",
             session
