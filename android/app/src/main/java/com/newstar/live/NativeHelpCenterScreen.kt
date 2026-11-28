@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal data class NativeHelpMessage(val role: String, val content: String)
+data class NativeHelpMessage(val role: String, val content: String)
 
 data class NativeHelpCenterUiState(
     val messages: List<NativeHelpMessage> = emptyList(),
