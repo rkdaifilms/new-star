@@ -47,7 +47,7 @@ function providerHttpError(status: number, data: any) {
   return `HTTP_${status}`;
 }
 
-async function generateGeminiImage(key: string, prompt: string) {
+async function generateGeminiImage(key: string, prompt: string, aspectRatio: string, imageSize: string) {
   // Gemini 3.1 Flash Image (Nano Banana 2) uses generateContent with
   // responseModalities. Keep Gemini 2.5 Flash Image as compatibility fallback.
   const models = ["gemini-3.1-flash-image", "gemini-2.5-flash-image"];
@@ -60,7 +60,13 @@ async function generateGeminiImage(key: string, prompt: string) {
         headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: "Generate one image based on this description. Return an image, not only text: " + prompt }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+          generationConfig: {
+            responseModalities: ["TEXT", "IMAGE"],
+            imageConfig: {
+              aspectRatio,
+              ...(model === "gemini-3.1-flash-image" ? { imageSize } : {})
+            }
+          }
         })
       },
       60000
@@ -85,11 +91,16 @@ async function generateGeminiImage(key: string, prompt: string) {
   }
   throw new Error(lastFailure);
 }
-async function generateOpenAIImage(key: string, prompt: string) {
+async function generateOpenAIImage(key: string, prompt: string, aspectRatio: string) {
   const response = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "gpt-image-1", prompt, size: "1024x1024", n: 1 })
+    body: JSON.stringify({
+      model: "gpt-image-1",
+      prompt,
+      size: aspectRatio === "16:9" ? "1536x1024" : aspectRatio === "9:16" ? "1024x1536" : "1024x1024",
+      n: 1
+    })
   }, 60000);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(providerHttpError(response.status, data));
@@ -321,6 +332,8 @@ Deno.serve(async (req: Request) => {
   if (body?.action === "image") {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     if (!prompt || prompt.length > 1800) return json({ ok: false, error: "Enter an image description of up to 1,800 characters." }, 400, headers);
+    const aspectRatio = ["1:1", "16:9", "9:16"].includes(body.aspectRatio) ? body.aspectRatio : "1:1";
+    const imageSize = ["1K", "2K", "4K"].includes(body.imageSize) ? body.imageSize : "1K";
     const geminiKey = firstSecret("GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_API_KEY");
     const openaiKey = firstSecret("OPENAI_API_KEY", "OPENAI_KEY");
     if (!geminiKey && !openaiKey) return json({ ok: false, error: "Image generation is not configured. Add a Gemini or OpenAI provider key on the server." }, 503, headers);
@@ -331,7 +344,7 @@ Deno.serve(async (req: Request) => {
     const failures: string[] = [];
     if (geminiKey) {
       try {
-        const result = await generateGeminiImage(geminiKey, prompt);
+        const result = await generateGeminiImage(geminiKey, prompt, aspectRatio, imageSize);
         return json({ ok: true, ...result, provider: "gemini" }, 200, headers);
       } catch (error) {
         failures.push("gemini:" + (error instanceof Error ? error.message : "UNKNOWN"));
@@ -340,7 +353,7 @@ Deno.serve(async (req: Request) => {
     }
     if (openaiKey) {
       try {
-        const result = await generateOpenAIImage(openaiKey, prompt);
+        const result = await generateOpenAIImage(openaiKey, prompt, aspectRatio);
         return json({ ok: true, ...result, provider: "openai" }, 200, headers);
       } catch (error) {
         failures.push("openai:" + (error instanceof Error ? error.message : "UNKNOWN"));
