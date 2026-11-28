@@ -1,10 +1,18 @@
 package com.newstar.live
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -20,7 +28,22 @@ private data class MonetizationProgress(
 )
 
 @Composable
-fun NativeMonetizationScreen(session: NativeSession, onOpenWallet: () -> Unit) {
+fun NativeMonetizationScreen(
+    session: NativeSession,
+    onOpenWallet: () -> Unit,
+    onOpenFanSupport: () -> Unit
+) {
+    val context = LocalContext.current
+    var showReferralDialog by remember { mutableStateOf(false) }
+    var referralFeedback by remember { mutableStateOf("") }
+    val referralLink = remember(session.userId) {
+        Uri.Builder()
+            .scheme("https")
+            .authority("new-star-delta.vercel.app")
+            .appendQueryParameter("ref", session.userId)
+            .build()
+            .toString()
+    }
     var progress by remember { mutableStateOf<MonetizationProgress?>(null) }
     var featureAccess by remember { mutableStateOf<JSONObject?>(null) }
     var loading by remember { mutableStateOf(false) }
@@ -71,8 +94,8 @@ fun NativeMonetizationScreen(session: NativeSession, onOpenWallet: () -> Unit) {
     }
 
     @Composable
-    fun HubRow(title: String, detail: String, state: String) {
-        Card(Modifier.fillMaxWidth()) {
+    fun HubRow(title: String, detail: String, state: String, onClick: (() -> Unit)? = null) {
+        Card(Modifier.fillMaxWidth().clickable(enabled = onClick != null) { onClick?.invoke() }) {
             Column(Modifier.padding(14.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -135,7 +158,8 @@ fun NativeMonetizationScreen(session: NativeSession, onOpenWallet: () -> Unit) {
         item { HubRow("Creator Sponsorship & Brand Deals", "Create a sponsorship draft or apply to eligible campaigns.", if (sponsorAccess) "Unlocked" else "1,000 followers / eligibility pending") }
         item { HubRow("Affiliate Marketing", "Not enabled in the original system.", "Coming soon") }
         item { HubRow("Promote & Boost Video", "Checkout remains disabled until payment gateway and ad-delivery verification are connected.", "Unavailable") }
-        item { HubRow("Creator Fan Support", "Free fan-support feature; native screen integration is still pending.", "Native integration pending") }
+        item { HubRow("New Star Referral Hub", "Share your invite link through Android apps. Sharing does not create payment or guaranteed rewards.", "Share") { referralFeedback = ""; showReferralDialog = true } }
+        item { HubRow("Creator Fan Support", "Free community support: view your real followers and creators you follow.", "Open") { onOpenFanSupport() } }
         item {
             Text("Revenue Share — Draft Only", style = MaterialTheme.typography.titleLarge)
             Text("Video Gifts: 50% platform / 50% creator. LIVE Gifts: 50% / 50%. LIVE Gaming Gifts: 50% / 50%. Sponsorship: 20% / 80%. Ads proposal: 55% creator / 45% platform.")
@@ -151,5 +175,57 @@ fun NativeMonetizationScreen(session: NativeSession, onOpenWallet: () -> Unit) {
             Text("Payment and payout setup is not enabled here. For any future financial account or payout configuration, an adult parent/guardian must manage the verified account. No payment or earnings are promised.",
                 style = MaterialTheme.typography.bodySmall)
         }
+    }
+
+    if (showReferralDialog) {
+        AlertDialog(
+            onDismissRequest = { showReferralDialog = false },
+            title = { Text("New Star Referral Hub") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("अपना invite link WhatsApp, Facebook, Telegram या किसी भी compatible app में share करें। इस link से कोई payment या earning अपने-आप नहीं बनती।")
+                    OutlinedTextField(
+                        value = referralLink,
+                        onValueChange = {},
+                        readOnly = true,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Your invite link") }
+                    )
+                    if (referralFeedback.isNotBlank()) {
+                        Text(referralFeedback, color = MaterialTheme.colorScheme.secondary)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                    if (clipboard == null) {
+                        referralFeedback = "इस डिवाइस पर clipboard उपलब्ध नहीं है।"
+                    } else {
+                        clipboard.setPrimaryClip(ClipData.newPlainText("New Star invite link", referralLink))
+                        referralFeedback = "Invite link copied."
+                        Toast.makeText(context, "Invite link copied", Toast.LENGTH_SHORT).show()
+                    }
+                }) { Text("Copy link") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        try {
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, "New Star Creator Hub")
+                                putExtra(Intent.EXTRA_TEXT, "Join me on New Star Creator Hub: $referralLink")
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share New Star link"))
+                        } catch (e: Exception) {
+                            referralFeedback = e.message ?: "Share sheet नहीं खुल सका।"
+                        }
+                    }) { Text("Share") }
+                    TextButton(onClick = { showReferralDialog = false }) { Text("Close") }
+                }
+            }
+        )
     }
 }
