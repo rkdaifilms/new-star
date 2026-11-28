@@ -302,15 +302,8 @@ internal class NativeInboxViewModel(private val session: NativeSession) : ViewMo
             loading = true
             error = ""
             try {
-                if (peer.isPrivate) {
-                    val relation = NativeSupabase.get(
-                        "/rest/v1/followers?select=id&follower_id=eq.${Uri.encode(session.userId)}" +
-                            "&following_id=eq.${Uri.encode(peer.id)}&limit=1",
-                        session
-                    )
-                    require(relation.length() > 0) {
-                        "यह Private Creator है। Chat करने के लिए पहले Follow Request स्वीकार होनी चाहिए।"
-                    }
+                require(!peer.isPrivate) {
+                    "यह Creator Account Private है। Private Account पर Direct Message नहीं भेज सकते।"
                 }
                 activePeer = peer
                 val conversation = repository.findOrCreateConversation(peer.id)
