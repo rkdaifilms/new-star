@@ -78,6 +78,7 @@ class MainActivity : ComponentActivity() {
     private val oauthSession = mutableStateOf<NativeSession?>(null)
     private val notificationCreatorId = mutableStateOf<String?>(null)
     private val notificationRowId = mutableStateOf<String?>(null)
+    private val notificationType = mutableStateOf<String?>(null)
     private val sharedVideoId = mutableStateOf<String?>(null)
     private val referralId = mutableStateOf<String?>(null)
     private var referralSyncInProgress = false
@@ -171,9 +172,11 @@ class MainActivity : ComponentActivity() {
                     googleSession = oauthSession.value,
                     notificationCreatorId = notificationCreatorId.value,
                     notificationRowId = notificationRowId.value,
+                    notificationType = notificationType.value,
                     onNotificationIntentHandled = {
                         notificationCreatorId.value = null
                         notificationRowId.value = null
+                        notificationType.value = null
                     },
                     sharedVideoId = sharedVideoId.value,
                     onSharedVideoIntentHandled = { sharedVideoId.value = null },
@@ -261,6 +264,7 @@ class MainActivity : ComponentActivity() {
         if (intent?.action != NativeSystemNotifications.ACTION_OPEN_CREATOR) return
         notificationCreatorId.value = intent.getStringExtra(NativeSystemNotifications.EXTRA_CREATOR_ID)
         notificationRowId.value = intent.getStringExtra(NativeSystemNotifications.EXTRA_NOTIFICATION_ID)
+        notificationType.value = intent.getStringExtra(NativeSystemNotifications.EXTRA_NOTIFICATION_TYPE)
     }
 
     private fun handleOAuthCallback(intent: Intent?) {
@@ -345,6 +349,7 @@ private fun NativeApp(
     googleSession: NativeSession?,
     notificationCreatorId: String?,
     notificationRowId: String?,
+    notificationType: String?,
     onNotificationIntentHandled: () -> Unit,
     sharedVideoId: String?,
     onSharedVideoIntentHandled: () -> Unit,
@@ -489,10 +494,11 @@ private fun NativeApp(
         page = "Shared Video"
         onSharedVideoIntentHandled()
     }
-    LaunchedEffect(notificationCreatorId, notificationRowId, session?.userId) {
+    LaunchedEffect(notificationCreatorId, notificationRowId, notificationType, session?.userId) {
         val current = session
         val creatorId = notificationCreatorId
         val rowId = notificationRowId
+        val type = notificationType
         if (current != null && (!creatorId.isNullOrBlank() || !rowId.isNullOrBlank())) {
             if (!rowId.isNullOrBlank()) {
                 try {
@@ -505,7 +511,11 @@ private fun NativeApp(
                 } catch (_: Exception) {
                 }
             }
-            if (!creatorId.isNullOrBlank()) {
+            val category = NativeNotificationPreferences.category(type, null)
+            if (category == NativeNotificationCategory.MESSAGE && !creatorId.isNullOrBlank()) {
+                inboxTargetId = creatorId
+                page = "Inbox"
+            } else if (!creatorId.isNullOrBlank()) {
                 selectedCreatorId = creatorId
                 page = "Creator"
             } else {
@@ -590,9 +600,23 @@ private fun NativeApp(
                 )
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!, inboxTargetId) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
-                "Notifications" -> NativeNotificationsScreen(session!!, notificationRefreshCounter, notificationRealtimeStatus) { creatorId ->
-                    selectedCreatorId = creatorId
-                    page = "Creator"
+                "Notifications" -> NativeNotificationsScreen(
+                    session!!,
+                    notificationRefreshCounter,
+                    notificationRealtimeStatus
+                ) { notification ->
+                    val creatorId = notification.optString("actor_id")
+                    val category = NativeNotificationPreferences.category(
+                        notification.optString("type"),
+                        notification.optString("message")
+                    )
+                    if (category == NativeNotificationCategory.MESSAGE && creatorId.isNotBlank()) {
+                        inboxTargetId = creatorId
+                        page = "Inbox"
+                    } else if (creatorId.isNotBlank() && creatorId != session!!.userId) {
+                        selectedCreatorId = creatorId
+                        page = "Creator"
+                    }
                 }
                 "Wallet" -> NativeWalletScreen(session!!)
                 "Offline Library" -> NativeOfflineLibraryScreen { videoId, mediaUri ->
