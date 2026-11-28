@@ -674,6 +674,7 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                         }
                     }
                 }
+                NativeLiveModerationScreen(roomId!!, session)
                 androidx.compose.material3.Button(
                     enabled = !busy, onClick = {
                         scope.launch {
