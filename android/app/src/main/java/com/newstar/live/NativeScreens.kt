@@ -130,6 +130,7 @@ fun NativeAuthScreen(
         Text("🌟 New Star", style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.height(10.dp))
         Text(if (signup) "नया अकाउंट बनाएँ" else "अपने अकाउंट में Login करें")
+        if (!referrerId.isNullOrBlank()) Text("आपको New Star invite link से आमंत्रित किया गया है।", color = MaterialTheme.colorScheme.secondary)
         if (!referrerId.isNullOrBlank()) {
             Text("आपको New Star invite link से आमंत्रित किया गया है।", color = MaterialTheme.colorScheme.secondary)
         }
