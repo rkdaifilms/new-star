@@ -951,6 +951,22 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
     }
 
     var realtimeStatus by remember(session.userId) { mutableStateOf("Realtime connecting…") }
+    var followRealtimeStatus by remember(session.userId) { mutableStateOf("Follow sync connecting…") }
+
+    DisposableEffect(session.userId, session.accessToken) {
+        val followRealtime = NativeFollowRealtime.observe(
+            session = session,
+            creatorId = session.userId,
+            onChange = {
+                scope.launch { refresh++ }
+            },
+            onStatus = { status ->
+                scope.launch { followRealtimeStatus = status }
+            }
+        )
+        followRealtime.start()
+        onDispose { followRealtime.close() }
+    }
 
     DisposableEffect(session.userId, session.accessToken) {
         val realtime = NativeRealtimeMessages(
@@ -1032,6 +1048,9 @@ fun NativeInboxScreen(session: NativeSession, initialPeer: String? = null) {
                 }
                 Text(realtimeStatus, style = MaterialTheme.typography.labelSmall,
                     color = if (realtimeStatus.contains("connected", true)) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Followers: $followRealtimeStatus", style = MaterialTheme.typography.labelSmall,
+                    color = if (followRealtimeStatus == "Connected") MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant)
             }
             TextButton(onClick = { refresh++ }, enabled = !busy) { Text("Refresh") }
