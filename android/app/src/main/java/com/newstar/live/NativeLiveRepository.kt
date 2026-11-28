@@ -198,6 +198,12 @@ internal object NativeLiveRepository {
         session
     )
 
+    suspend fun abandonSfuSession(roomId: String, sessionId: String, session: NativeSession): JSONObject =
+        invokeSfuAction(
+            JSONObject().put("action", "sfu-abandon").put("room_id", roomId).put("session_id", sessionId),
+            session
+        )
+
     suspend fun closeSfuSession(
         roomId: String,
         sessionId: String,
