@@ -70,6 +70,7 @@ fun NativeNotificationsScreen(
                 session
             )
             val loaded = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                .filter { NativeNotificationPreferences.isEnabled(context, it) }
             notifications = loaded
             val actorIds = loaded.map { it.optString("actor_id") }
                 .filter { it.isNotBlank() && it != session.userId }.distinct()
