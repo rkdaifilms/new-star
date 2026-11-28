@@ -2541,7 +2541,7 @@ private fun NativeVideoCard(
     }
     // Player/cache construction is device- and storage-dependent. Never let a
     // damaged cache or malformed media URL crash the whole authenticated feed.
-    val playerCreation = remember(video.url, offlineSaved) {
+    val playerCreation = remember(video.url, offlineSaved, playerRetry) {
         val cached = runCatching {
             val sourceFactory = NativeVideoCache.playbackDataSourceFactory(context, offlineSaved)
             ExoPlayer.Builder(context)
