@@ -75,6 +75,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
     private var pkPollingRoomId: String? = null
     private var guestPublisher: NativeSfuPublisher? = null
     private var guestSeatRefreshBusy = false
+    private var invitationsRefreshQueued = false
 
     fun setTitle(value: String) {
         mutableState.update { it.copy(title = value) }
@@ -347,7 +348,10 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
     }
 
     fun refreshInvitations() {
-        if (mutableState.value.invitationsLoading) return
+        if (mutableState.value.invitationsLoading) {
+            invitationsRefreshQueued = true
+            return
+        }
         mutableState.update { it.copy(invitationsLoading = true, invitationError = "") }
         viewModelScope.launch {
             try {
@@ -357,6 +361,10 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 mutableState.update { it.copy(invitationError = error.message ?: "LIVE invitations लोड नहीं हुईं।") }
             } finally {
                 mutableState.update { it.copy(invitationsLoading = false) }
+                if (invitationsRefreshQueued) {
+                    invitationsRefreshQueued = false
+                    refreshInvitations()
+                }
             }
         }
     }
