@@ -36,10 +36,13 @@ fun NativeMonetizationScreen(
     val context = LocalContext.current
     var showReferralDialog by remember { mutableStateOf(false) }
     var referralFeedback by remember { mutableStateOf("") }
+    var referralCount by remember { mutableLongStateOf(0L) }
+    var referralStatsError by remember { mutableStateOf("") }
     val referralLink = remember(session.userId) {
         Uri.Builder()
             .scheme("https")
             .authority("new-star-delta.vercel.app")
+            .appendPath("auth.html")
             .appendQueryParameter("ref", session.userId)
             .build()
             .toString()
@@ -70,6 +73,16 @@ fun NativeMonetizationScreen(
         } catch (e: Exception) {
             error = e.message ?: "Creator progress सत्यापित नहीं हो पाया।"
         } finally { loading = false }
+    }
+
+    LaunchedEffect(session.userId, refresh) {
+        referralStatsError = ""
+        try {
+            val result = NativeSupabase.post("/rest/v1/rpc/get_my_referral_stats", JSONObject(), session)
+            referralCount = JSONObject(result).optLong("referral_count")
+        } catch (e: Exception) {
+            referralStatsError = e.message ?: "Referral count लोड नहीं हुआ।"
+        }
     }
 
     val p = progress
@@ -158,7 +171,17 @@ fun NativeMonetizationScreen(
         item { HubRow("Creator Sponsorship & Brand Deals", "Create a sponsorship draft or apply to eligible campaigns.", if (sponsorAccess) "Unlocked" else "1,000 followers / eligibility pending") }
         item { HubRow("Affiliate Marketing", "Not enabled in the original system.", "Coming soon") }
         item { HubRow("Promote & Boost Video", "Checkout remains disabled until payment gateway and ad-delivery verification are connected.", "Unavailable") }
-        item { HubRow("New Star Referral Hub", "Share your invite link through Android apps. Sharing does not create payment or guaranteed rewards.", "Share") { referralFeedback = ""; showReferralDialog = true } }
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("New Star Referral Hub", style = MaterialTheme.typography.titleMedium)
+                    Text("आपके invite link से जुड़े verified signups: $referralCount")
+                    if (referralStatsError.isNotBlank()) Text(referralStatsError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text("कोई reward या payment स्वतः नहीं बनता।", style = MaterialTheme.typography.bodySmall)
+                    Button(onClick = { referralFeedback = ""; showReferralDialog = true }) { Text("Share invite link") }
+                }
+            }
+        }
         item { HubRow("Creator Fan Support", "Free community support: view your real followers and creators you follow.", "Open") { onOpenFanSupport() } }
         item {
             Text("Revenue Share — Draft Only", style = MaterialTheme.typography.titleLarge)
