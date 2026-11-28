@@ -175,6 +175,18 @@ internal object NativeLiveRepository {
             session
         ).optJSONArray("publications") ?: JSONArray()
 
+    suspend fun getCreatorProfiles(userIds: Collection<String>, session: NativeSession): Map<String, JSONObject> {
+        val ids = userIds.filter { it.isNotBlank() }.distinct()
+        if (ids.isEmpty()) return emptyMap()
+        val filter = Uri.encode("(${ids.joinToString(",")})")
+        val rows = NativeSupabase.get(
+            "/rest/v1/creator_public_profiles?select=user_id,username,full_name,avatar_url&user_id=in.$filter",
+            session
+        )
+        return (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+            .associateBy { it.optString("user_id") }
+    }
+
     suspend fun subscribeSfuTracks(
         roomId: String,
         sessionId: String,
