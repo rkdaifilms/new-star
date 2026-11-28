@@ -227,7 +227,7 @@ class MainActivity : ComponentActivity() {
                     .put("action", "prepare")
                     .put("room_title", title)
                     .put("room_type", "gaming")
-                    .put("seat_capacity", 1), session)
+                    .put("seat_capacity", 4), session)
                 if (!response.optBoolean("ok")) throw IllegalStateException(response.optString("error", "Gaming room तैयार नहीं हुआ।"))
                 val roomId = response.getString("room_id")
                 pendingGamingSession = session
