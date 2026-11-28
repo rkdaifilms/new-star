@@ -216,10 +216,15 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleNotificationIntent(intent)
-        handleOAuthCallback(intent)
-        handleSharedVideoIntent(intent)
-        handleReferralIntent(intent)
+        // A malformed external intent must not terminate the foreground app.
+        runCatching { handleNotificationIntent(intent) }
+            .onFailure { android.util.Log.e("NewStarIntent", "Notification intent ignored", it) }
+        runCatching { handleOAuthCallback(intent) }
+            .onFailure { android.util.Log.e("NewStarIntent", "OAuth callback ignored", it) }
+        runCatching { handleSharedVideoIntent(intent) }
+            .onFailure { android.util.Log.e("NewStarIntent", "Shared-video intent ignored", it) }
+        runCatching { handleReferralIntent(intent) }
+            .onFailure { android.util.Log.e("NewStarIntent", "Referral intent ignored", it) }
     }
 
     override fun onResume() {
@@ -951,7 +956,11 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
                                 factory = { viewContext ->
                                     PlayerView(viewContext).apply {
                                         useController = true
-                                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                                        resizeMode = if (immersive && video.type.equals("short", true)) {
+                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        } else {
+                            AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
                                         this.player = player
                                     }
                                 },
@@ -2592,7 +2601,15 @@ private fun NativeVideoCard(
                         view.useController = !immersive
                         // Keep FIT applied after recomposition as well as creation;
                         // ZOOM would crop portrait/landscape frames on some devices.
-                        view.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        // Short videos in the immersive feed should use the available
+                        // screen width instead of appearing as a narrow pillar-boxed strip.
+                        // Long-form landscape videos and all non-immersive cards retain FIT
+                        // so their complete frame remains visible.
+                        view.resizeMode = if (immersive && video.type.equals("short", true)) {
+                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        } else {
+                            AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
                     }
                 )
                 if (playerError != null) {
