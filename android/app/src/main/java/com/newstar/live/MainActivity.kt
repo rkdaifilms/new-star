@@ -2277,7 +2277,7 @@ private fun NativeVideoCard(
                         onClick = {
                             val shareText = buildString {
                                 append(video.caption.ifBlank { "Watch this video on New Star" })
-                                append("\\n")
+                                append("\n")
                                 append(video.url)
                             }
                             try {
