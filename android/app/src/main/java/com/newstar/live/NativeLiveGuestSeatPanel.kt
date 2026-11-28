@@ -386,6 +386,7 @@ internal fun NativeLiveSeatRequestPanel(
         mutableStateOf<NativeSfuPublisher?>(null)
     }
     var requestedMicrophoneAllowed by remember(roomId, session.userId) { mutableStateOf(false) }
+    var guestPublisherHasMicrophone by remember(roomId, session.userId) { mutableStateOf(false) }
     val cameraPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -404,6 +405,7 @@ internal fun NativeLiveSeatRequestPanel(
             scope.launch {
                 try {
                     guestPublisher = NativeSfuPublisher.start(context, roomId, session, microphoneGranted)
+                    guestPublisherHasMicrophone = microphoneGranted
                     notice = if (microphoneGranted) "आपका camera और microphone LIVE में publish हो रहा है।"
                         else "आपका camera LIVE में publish हो रहा है।"
                     error = ""
@@ -443,10 +445,12 @@ internal fun NativeLiveSeatRequestPanel(
     val cameraAllowed = participant?.optBoolean("camera_allowed") == true
     val microphoneAllowed = participant?.optBoolean("microphone_allowed") == true
 
-    LaunchedEffect(status, guestPublisher) {
-        if (status != "admitted" && guestPublisher != null) {
+    LaunchedEffect(status, cameraAllowed, microphoneAllowed, guestPublisher, guestPublisherHasMicrophone) {
+        val permissionRevoked = !cameraAllowed || (guestPublisherHasMicrophone && !microphoneAllowed)
+        if ((status != "admitted" || permissionRevoked) && guestPublisher != null) {
             runCatching { guestPublisher?.stop() }
             guestPublisher = null
+            guestPublisherHasMicrophone = false
         }
     }
 
@@ -499,6 +503,7 @@ internal fun NativeLiveSeatRequestPanel(
                                     try {
                                         activePublisher.stop()
                                         guestPublisher = null
+                                        guestPublisherHasMicrophone = false
                                         notice = "Guest broadcast बंद कर दिया गया।"
                                     } catch (e: Exception) {
                                         error = e.message ?: "Guest broadcast बंद नहीं हुआ।"
@@ -542,6 +547,7 @@ internal fun NativeLiveSeatRequestPanel(
                                 try {
                                     guestPublisher?.stop()
                                     guestPublisher = null
+                                    guestPublisherHasMicrophone = false
                                     NativeLiveRepository.leaveSeat(roomId, session)
                                     notice = "आप LIVE guest seat से बाहर आ गए।"
                                     refreshSeat()
