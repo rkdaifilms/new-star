@@ -2526,22 +2526,79 @@ private object NativeVideoUploader {
                     if (count < 0) throw IllegalStateException("वीडियो पढ़ते समय फ़ाइल अधूरी मिली।")
                     read += count
                 }
-                val request = Request.Builder().url(uploadUrl)
-                    .header("Tus-Resumable", "1.0.0")
-                    .header("Upload-Offset", offset.toString())
-                    .patch(chunk.toRequestBody("application/offset+octet-stream".toMediaType()))
-                    .build()
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        throw IllegalStateException("वीडियो chunk upload असफल (${response.code}): ${response.body?.string().orEmpty()}")
+
+                val expectedOffset = offset + wanted
+                var accepted = false
+                var retry = 0
+                var lastFailure: Exception? = null
+                while (!accepted && retry < 4) {
+                    try {
+                        val request = Request.Builder().url(uploadUrl)
+                            .header("Tus-Resumable", "1.0.0")
+                            .header("Upload-Offset", offset.toString())
+                            .patch(chunk.toRequestBody("application/offset+octet-stream".toMediaType()))
+                            .build()
+                        client.newCall(request).execute().use { response ->
+                            val responseOffset = response.header("Upload-Offset")?.toLongOrNull()
+                            if (response.isSuccessful && responseOffset == expectedOffset) {
+                                offset = expectedOffset
+                                accepted = true
+                            } else {
+                                if (response.code in 400..499 && response.code !in setOf(408, 409, 425, 429)) {
+                                    throw IllegalStateException(
+                                        "Cloudflare ने upload रोक दिया (${response.code}): ${response.body?.string().orEmpty().take(240)}"
+                                    )
+                                }
+                                lastFailure = IllegalStateException(
+                                    "Chunk response ${response.code}; server offset verify किया जा रहा है।"
+                                )
+                            }
+                        }
+                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                        throw cancelled
+                    } catch (error: Exception) {
+                        if (error.message?.startsWith("Cloudflare ने upload रोक दिया") == true) throw error
+                        lastFailure = error
                     }
-                    val confirmedOffset = response.header("Upload-Offset")?.toLongOrNull()
-                        ?: throw IllegalStateException("Cloudflare ने Upload-Offset नहीं लौटाया; वीडियो upload की पुष्टि नहीं हो सकी।")
-                    if (confirmedOffset != offset + wanted) {
-                        throw IllegalStateException("Cloudflare upload offset mismatch है; वीडियो सुरक्षित रूप से जारी नहीं किया गया।")
+
+                    if (!accepted) {
+                        val serverOffset = try {
+                            readTusOffset(client, uploadUrl, size)
+                        } catch (headError: Exception) {
+                            lastFailure = IllegalStateException(
+                                "Upload connection और server offset दोनों verify नहीं हुए: ${headError.message ?: "network error"}",
+                                lastFailure
+                            )
+                            -1L
+                        }
+                        when (serverOffset) {
+                            expectedOffset -> {
+                                // PATCH reached Cloudflare, but its response was lost.
+                                offset = expectedOffset
+                                accepted = true
+                            }
+                            offset -> {
+                                // Cloudflare did not accept this chunk; resend identical bytes.
+                                retry++
+                                if (retry < 4) kotlinx.coroutines.delay(1000L shl (retry - 1))
+                            }
+                            -1L -> {
+                                retry++
+                                if (retry < 4) kotlinx.coroutines.delay(1000L shl (retry - 1))
+                            }
+                            else -> throw IllegalStateException(
+                                "Cloudflare का resumable offset अमान्य है ($serverOffset); expected $offset या $expectedOffset।",
+                                lastFailure
+                            )
+                        }
                     }
                 }
-                offset += wanted
+                if (!accepted) {
+                    throw IllegalStateException(
+                        "वीडियो upload चार कोशिशों के बाद भी जारी नहीं हो सका। नेटवर्क ठीक करके दोबारा Publish करें।",
+                        lastFailure
+                    )
+                }
                 val percent = ((offset * 100) / size).toInt()
                 withContext(Dispatchers.Main) { onProgress(percent) }
             }
@@ -2615,6 +2672,29 @@ private object NativeVideoUploader {
             if (attempt < 5) kotlinx.coroutines.delay(5000)
         }
         withContext(Dispatchers.Main) { onStatus(finalStatus) }
+    }
+
+    private fun readTusOffset(client: OkHttpClient, uploadUrl: URL, expectedSize: Long): Long {
+        val request = Request.Builder().url(uploadUrl)
+            .header("Tus-Resumable", "1.0.0")
+            .head()
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Cloudflare resume check failed (${response.code}).")
+            }
+            val serverLength = response.header("Upload-Length")?.toLongOrNull()
+                ?: throw IllegalStateException("Cloudflare ने Upload-Length नहीं लौटाया।")
+            require(serverLength == expectedSize) {
+                "Cloudflare upload session का file size चुनी गई वीडियो से अलग है।"
+            }
+            val serverOffset = response.header("Upload-Offset")?.toLongOrNull()
+                ?: throw IllegalStateException("Cloudflare ने resumable Upload-Offset नहीं लौटाया।")
+            require(serverOffset in 0L..expectedSize) {
+                "Cloudflare ने upload session का अमान्य offset लौटाया।"
+            }
+            return serverOffset
+        }
     }
 
     private fun b64(value: String) = Base64.encodeToString(value.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
