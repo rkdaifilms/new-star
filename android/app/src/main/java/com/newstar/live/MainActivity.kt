@@ -55,7 +55,8 @@ private const val PUBLIC_API_KEY = "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2it
 
 data class NativeVideo(
     val id: String, val url: String, val caption: String, val username: String,
-    val category: String, val likes: Int, val views: Int, val type: String
+    val category: String, val likes: Int, val views: Int, val type: String,
+    val userId: String = ""
 )
 
 class MainActivity : ComponentActivity() {
@@ -1678,7 +1679,8 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                             category = row.optString("category"),
                             likes = row.optInt("likes_count"),
                             views = row.optInt("views_count"),
-                            type = row.optString("video_type").ifBlank { "short" }
+                            type = row.optString("video_type").ifBlank { "short" },
+                            userId = creatorId
                         )
                         NativeVideoCard(nativeVideo, session)
                     }
@@ -1954,7 +1956,7 @@ private fun NativeHome(
                         contentPadding = PaddingValues(bottom = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(videoResults, key = { it.id }) { video -> NativeVideoCard(video, session) }
+                        items(videoResults, key = { it.id }) { video -> NativeVideoCard(video, session, onOpenCreator = onOpenCreator) }
                     }
                 }
             } else {
@@ -2000,7 +2002,8 @@ private fun NativeHome(
                             video = video,
                             session = session,
                             isActive = feedPagerState.currentPage == page && feedPagerState.isScrollInProgress.not(),
-                            immersive = true
+                            immersive = true,
+                            onOpenCreator = onOpenCreator
                         )
                     }
                     if (loadingMore) {
@@ -2039,7 +2042,8 @@ private fun NativeVideoCard(
     video: NativeVideo,
     session: NativeSession?,
     isActive: Boolean = false,
-    immersive: Boolean = false
+    immersive: Boolean = false,
+    onOpenCreator: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     var liked by remember(video.id, session?.userId) { mutableStateOf(false) }
@@ -2056,6 +2060,9 @@ private fun NativeVideoCard(
     var giftBalance by remember(video.id) { mutableIntStateOf(-1) }
     var giftMessage by remember(video.id) { mutableStateOf<String?>(null) }
     var currentUsername by remember(session?.userId) { mutableStateOf("creator") }
+    var followLabel by remember(video.id, session?.userId) { mutableStateOf("") }
+    var followBusy by remember(video.id, session?.userId) { mutableStateOf(false) }
+    var followError by remember(video.id, session?.userId) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(session?.userId) {
         val current = session ?: return@LaunchedEffect
@@ -2066,6 +2073,30 @@ private fun NativeVideoCard(
             ).optJSONObject(0)
             currentUsername = profile?.optString("username")?.takeIf { it.isNotBlank() } ?: "creator"
         } catch (_: Exception) { }
+    }
+    LaunchedEffect(video.userId, session?.userId) {
+        val current = session ?: run { followLabel = ""; return@LaunchedEffect }
+        val creatorId = video.userId
+        if (creatorId.isBlank() || creatorId == current.userId) { followLabel = ""; return@LaunchedEffect }
+        try {
+            val profile = NativeSupabase.get(
+                "/rest/v1/creator_public_profiles?select=is_private&user_id=eq.\${Uri.encode(creatorId)}&limit=1",
+                current
+            ).optJSONObject(0) ?: run { followLabel = ""; return@LaunchedEffect }
+            val followed = NativeSupabase.get(
+                "/rest/v1/followers?select=id&follower_id=eq.\${Uri.encode(current.userId)}&following_id=eq.\${Uri.encode(creatorId)}&limit=1",
+                current
+            )
+            followLabel = if (followed.length() > 0) "Following" else if (profile.optBoolean("is_private")) {
+                val requests = NativeSupabase.get(
+                    "/rest/v1/follow_requests?select=id&requester_id=eq.\${Uri.encode(current.userId)}&target_user_id=eq.\${Uri.encode(creatorId)}&status=eq.pending&limit=1",
+                    current
+                )
+                if (requests.length() > 0) "Requested" else "Request Follow"
+            } else "Follow"
+        } catch (e: Exception) {
+            followError = e.message ?: "Follow status लोड नहीं हुआ।"
+        }
     }
     LaunchedEffect(video.id, session?.userId) {
         if (session != null) {
@@ -2122,7 +2153,62 @@ private fun NativeVideoCard(
                 update = { it.player = exoPlayer }
             )
             Column(Modifier.fillMaxWidth().padding(14.dp)) {
-                Text("@${video.username.ifBlank { "creator" }}", fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(
+                        "@\${video.username.ifBlank { "creator" }}",
+                        modifier = Modifier.weight(1f).then(if (onOpenCreator != null && video.userId.isNotBlank()) Modifier.clickable { onOpenCreator(video.userId) } else Modifier),
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (followLabel.isNotBlank()) {
+                        TextButton(
+                            enabled = session != null && !followBusy && followLabel != "Requested",
+                            onClick = {
+                                val current = session ?: return@TextButton
+                                val creatorId = video.userId
+                                followBusy = true
+                                followError = null
+                                scope.launch {
+                                    try {
+                                        when (followLabel) {
+                                            "Following" -> {
+                                                val rows = NativeSupabase.get(
+                                                    "/rest/v1/followers?select=id&follower_id=eq.\${Uri.encode(current.userId)}&following_id=eq.\${Uri.encode(creatorId)}&limit=1",
+                                                    current
+                                                )
+                                                val rowId = rows.optJSONObject(0)?.optString("id").orEmpty()
+                                                if (rowId.isBlank()) throw IllegalStateException("Follow record नहीं मिला।")
+                                                NativeSupabase.delete(
+                                                    "/rest/v1/followers?id=eq.\${Uri.encode(rowId)}&follower_id=eq.\${Uri.encode(current.userId)}",
+                                                    current
+                                                )
+                                                followLabel = "Follow"
+                                            }
+                                            "Request Follow" -> {
+                                                NativeSupabase.post(
+                                                    "/rest/v1/follow_requests",
+                                                    JSONObject().put("requester_id", current.userId).put("target_user_id", creatorId).put("status", "pending"),
+                                                    current
+                                                )
+                                                followLabel = "Requested"
+                                            }
+                                            "Follow" -> {
+                                                NativeSupabase.post(
+                                                    "/rest/v1/followers",
+                                                    JSONObject().put("follower_id", current.userId).put("following_id", creatorId),
+                                                    current
+                                                )
+                                                followLabel = "Following"
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        followError = e.message ?: "Follow update नहीं हुआ।"
+                                    } finally { followBusy = false }
+                                }
+                            }
+                        ) { Text(if (followBusy) "…" else followLabel) }
+                    }
+                }
+                if (followError != null) Text(followError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
                 if (video.caption.isNotBlank()) { Spacer(Modifier.height(4.dp)); Text(video.caption) }
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -2368,7 +2454,7 @@ private object NativeFeed {
             val playback = urls.optString(id).takeIf { it.startsWith("https://") } ?: return@mapNotNull null
             NativeVideo(id, playback, row.optString("caption"), row.optString("username"),
                 row.optString("category"), row.optInt("likes_count"), row.optInt("views_count"),
-                row.optString("video_type").ifBlank { "short" })
+                row.optString("video_type").ifBlank { "short" }, row.optString("user_id"))
         }
     }
 
@@ -2447,7 +2533,7 @@ private object NativeFeed {
                 row.optString("username").takeUnless { it == "null" }.orEmpty(),
                 row.optString("category").takeUnless { it == "null" }.orEmpty(),
                 row.optInt("likes_count"), row.optInt("views_count"),
-                row.optString("video_type").ifBlank { "short" })
+                row.optString("video_type").ifBlank { "short" }, row.optString("user_id"))
         }
     }
 
@@ -2478,7 +2564,7 @@ private object NativeFeed {
             val playback = urls.optString(id).takeIf { it.startsWith("https://") } ?: return@mapNotNull null
             NativeVideo(id, playback, row.optString("caption"), row.optString("username"),
                 row.optString("category"), row.optInt("likes_count"), row.optInt("views_count"),
-                row.optString("video_type").ifBlank { "short" })
+                row.optString("video_type").ifBlank { "short" }, row.optString("user_id"))
         }
     }
     private fun post(endpoint: String, body: JSONObject): Any {
