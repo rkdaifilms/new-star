@@ -447,7 +447,12 @@ Deno.serve(async (req: Request) => {
     const { data: match, error: matchError } = await admin.from("live_pk_matches")
       .select("id,room_a_id,room_b_id,creator_a_id,creator_b_id,status")
       .eq("id", queue.match_id).maybeSingle();
-    if (matchError || !match || match.status !== "active") return json({ ok: true, status: "idle" }, 200, headers);
+    if (matchError) return json({ error: "Could not load active battle." }, 503, headers);
+    if (!match || match.status !== "active") {
+      await admin.from("live_pk_queue").update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("user_id", creatorId).eq("match_id", queue.match_id);
+      return json({ ok: true, status: "idle" }, 200, headers);
+    }
     const ownIsA = match.creator_a_id === creatorId;
     const opponentId = ownIsA ? match.creator_b_id : match.creator_a_id;
     const opponentRoom = ownIsA ? match.room_b_id : match.room_a_id;
@@ -479,6 +484,10 @@ Deno.serve(async (req: Request) => {
       .select("id").maybeSingle();
     if (error) return json({ error: "Could not end the friendly battle." }, 503, headers);
     if (!data) return json({ error: "Active battle not found for this creator." }, 404, headers);
+    const { error: queueError } = await admin.from("live_pk_queue").update({
+      status: "cancelled", updated_at: new Date().toISOString()
+    }).eq("match_id", matchId).eq("status", "matched");
+    if (queueError) return json({ error: "Battle ended, but matchmaking cleanup failed. Refresh status." }, 503, headers);
     return json({ ok: true }, 200, headers);
   }
 
