@@ -1325,6 +1325,12 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                                     session
                                 )
                                 following = false
+                            } else if (creator.optBoolean("is_private") && followRequestPending) {
+                                NativeSupabase.delete(
+                                    "/rest/v1/follow_requests?requester_id=eq.${Uri.encode(session.userId)}&target_user_id=eq.${Uri.encode(creatorId)}&status=eq.pending",
+                                    session
+                                )
+                                followRequestPending = false
                             } else if (creator.optBoolean("is_private")) {
                                 val safeCreatorId = Uri.encode(creatorId)
                                 val existing = NativeSupabase.get(
@@ -1353,7 +1359,7 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                         when {
                             busy -> "Please wait…"
                             following -> "Following"
-                            followRequestPending -> "Requested"
+                            followRequestPending -> "Cancel Request"
                             creator.optBoolean("is_private") -> "Request Follow"
                             else -> "Follow"
                         }
@@ -1362,7 +1368,7 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
             }
             if (creator.optBoolean("is_private") && !following && creatorId != session.userId) {
                 Text(
-                    if (followRequestPending) "आपकी Follow Request Pending है। Creator की मंज़ूरी के बाद ही वीडियो दिखेंगे।"
+                    if (followRequestPending) "आपकी Follow Request Pending है। चाहें तो Cancel Request दबाकर इसे वापस ले सकते हैं। Creator की मंज़ूरी के बाद ही वीडियो दिखेंगे।"
                     else "यह Private Creator account है। वीडियो देखने के लिए Follow request स्वीकार होना जरूरी है।"
                 )
             } else {
