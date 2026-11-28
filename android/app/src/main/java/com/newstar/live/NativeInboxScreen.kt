@@ -28,7 +28,7 @@ import java.security.MessageDigest
 import java.text.DateFormat
 import java.util.Date
 
-private data class InboxProfile(
+internal data class InboxProfile(
     val id: String,
     val name: String,
     val username: String,
@@ -36,7 +36,7 @@ private data class InboxProfile(
     val isPrivate: Boolean = false
 )
 
-private data class InboxMessage(
+internal data class InboxMessage(
     val id: String,
     val conversationId: String,
     val senderId: String,
@@ -47,8 +47,8 @@ private data class InboxMessage(
     val readAt: String?
 )
 
-private data class InboxThread(val peer: InboxProfile, val latest: InboxMessage)
-private data class InboxFollowRequest(val id: String, val requesterId: String, val profile: InboxProfile)
+internal data class InboxThread(val peer: InboxProfile, val latest: InboxMessage)
+internal data class InboxFollowRequest(val id: String, val requesterId: String, val profile: InboxProfile)
 
 private fun JSONArray.objects(): List<JSONObject> =
     (0 until length()).mapNotNull { optJSONObject(it) }
@@ -622,7 +622,7 @@ private fun RelationList(
 ) {
     if (profiles.isEmpty()) {
         EmptyInbox(if (canUnfollow) "आप अभी किसी Creator को Follow नहीं करते।" else "अभी कोई Follower नहीं है।")
-    } else LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(vertical = 8.dp)) {
+    } else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
         items(profiles, key = { it.id }) { profile ->
             Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f).clickable { onOpenCreator(profile.id) }, verticalAlignment = Alignment.CenterVertically) {
