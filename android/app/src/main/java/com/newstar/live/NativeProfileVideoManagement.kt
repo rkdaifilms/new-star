@@ -20,8 +20,9 @@ internal object NativeProfileVideoPolicy {
             .take(30)
     }
 
-    fun validate(caption: String, visibility: String) {
-        require(caption.length <= 3000) { "Title 3,000 अक्षरों से छोटा रखें।" }
+    fun validate(caption: String, rawTags: String, visibility: String) {
+        require(caption.length <= 2000) { "Title 2,000 अक्षरों से छोटा रखें।" }
+        require(rawTags.length <= 1000) { "Hashtags 1,000 अक्षरों से छोटे रखें।" }
         require(visibility in setOf("public", "unlisted", "private")) {
             "Video privacy विकल्प अमान्य है।"
         }
@@ -68,7 +69,7 @@ class NativeProfileVideoManagementRepository {
         rawTags: String,
         visibility: String
     ): JSONObject {
-        NativeProfileVideoPolicy.validate(caption, visibility)
+        NativeProfileVideoPolicy.validate(caption, rawTags, visibility)
         require(videoId.isNotBlank()) { "Video ID उपलब्ध नहीं है।" }
         val body = JSONObject()
             .put("caption", caption.trim())
