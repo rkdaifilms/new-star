@@ -16,6 +16,7 @@ import org.json.JSONObject
 object NativeSystemNotifications {
     const val ACTION_OPEN_CREATOR = "com.newstar.live.action.OPEN_CREATOR"
     const val EXTRA_CREATOR_ID = "com.newstar.live.extra.CREATOR_ID"
+    const val EXTRA_NOTIFICATION_ID = "com.newstar.live.extra.NOTIFICATION_ID"
     private const val CHANNEL_ID = "new_star_activity"
     private const val CHANNEL_NAME = "New Star activity"
 
@@ -47,6 +48,8 @@ object NativeSystemNotifications {
             action = ACTION_OPEN_CREATOR
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             if (creatorId.isNotBlank()) putExtra(EXTRA_CREATOR_ID, creatorId)
+            val rowId = notification.optString("id")
+            if (rowId.isNotBlank()) putExtra(EXTRA_NOTIFICATION_ID, rowId)
         }
         val notificationId = notification.optString("id").hashCode()
         val pendingIntent = PendingIntent.getActivity(
