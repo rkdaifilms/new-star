@@ -72,11 +72,11 @@ internal object NativeVideoCache {
 
         try {
             CacheWriter(dataSource, spec, null, null).cache()
-        } catch (_: IOException) {
-            // Preloading is opportunistic. Playback still uses the same upstream
-            // source and reports its own real errors to the video card.
+        } catch (_: Exception) {
+            // Preloading is opportunistic. Cache/index/storage failures must never
+            // take down the feed; playback can still use the upstream source.
         } finally {
-            dataSource.close()
+            runCatching { dataSource.close() }
         }
     }
 }
