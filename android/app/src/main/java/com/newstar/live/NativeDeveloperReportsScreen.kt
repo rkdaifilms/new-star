@@ -116,7 +116,12 @@ class NativeDeveloperReportsViewModel(
             try {
                 val updated = repository.review(session, reportId, status)
                 val reports = state.reports.map { row ->
-                    if (row.optString("id") == reportId) updated else row
+                    if (row.optString("id") == reportId) {
+                        JSONObject(row.toString())
+                            .put("status", updated.optString("status"))
+                            .put("reviewed_by", updated.optString("reviewed_by"))
+                            .put("reviewed_at", updated.optString("reviewed_at"))
+                    } else row
                 }
                 state = state.copy(
                     reports = reports,
