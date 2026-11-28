@@ -18,6 +18,16 @@ import androidx.media3.exoplayer.scheduler.Scheduler
 import java.io.File
 import java.util.concurrent.Executor
 
+internal data class NativeOfflineDownloadEntry(
+    val id: String,
+    val uri: String,
+    val mimeType: String,
+    val state: Int,
+    val bytesDownloaded: Long,
+    val contentLength: Long,
+    val percentDownloaded: Float
+)
+
 /**
  * Persistent Media3 download service. HLS manifests are downloaded as HLS
  * media packages; progressive MP4 files remain progressive downloads.
@@ -80,6 +90,40 @@ internal object NativeOfflineDownloads {
             .setCache(mediaCache)
             .setFlags(CacheDataSource.FLAG_BLOCK_ON_CACHE)
     }
+
+
+    fun savedDownloads(context: Context): List<NativeOfflineDownloadEntry> {
+        val cursor = manager(context).downloadIndex.getDownloads()
+        return try {
+            buildList {
+                while (cursor.moveToNext()) {
+                    val item = cursor.download
+                    add(
+                        NativeOfflineDownloadEntry(
+                            id = item.request.id,
+                            uri = item.request.uri.toString(),
+                            mimeType = item.request.mimeType.orEmpty(),
+                            state = item.state,
+                            bytesDownloaded = item.bytesDownloaded,
+                            contentLength = item.contentLength,
+                            percentDownloaded = item.percentDownloaded
+                        )
+                    )
+                }
+            }
+        } finally {
+            cursor.close()
+        }
+    }
+
+    fun storageBytes(context: Context): Long {
+        val directory = File(context.filesDir, DOWNLOAD_DIRECTORY)
+        if (!directory.exists()) return 0L
+        return directory.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+    }
+
+    fun offlineLibraryDirectory(context: Context): File =
+        File(context.filesDir, DOWNLOAD_DIRECTORY)
 
     fun downloadState(context: Context, videoId: String): Int? {
         val safeId = videoId.replace(Regex("[^A-Za-z0-9_-]"), "").take(100)
