@@ -44,6 +44,7 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
+    testOptions { unitTests.isIncludeAndroidResources = true }
 }
 
 dependencies {
@@ -69,6 +70,9 @@ dependencies {
     implementation("androidx.compose.runtime:runtime-livedata")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.work:work-testing:2.10.0")
+    testImplementation("androidx.test:core:1.6.1")
+    testImplementation("org.robolectric:robolectric:4.14.1")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.activity:activity-ktx:1.10.0")
