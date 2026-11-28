@@ -235,7 +235,7 @@ internal class NativeSfuPublisher private constructor(
                 runCatching { videoSource.dispose(); audioSource?.dispose() }
                 runCatching { capturer.dispose(); texture.dispose() }
                 runCatching { factory.dispose(); egl.release() }
-                runCatching { NativeLiveRepository.closeSfuSession(roomId, sfuSessionId, JSONArray(), session) }
+                runCatching { NativeLiveRepository.abandonSfuSession(roomId, sfuSessionId, session) }
                 Log.e("NewStarSFU", "Publisher setup failed", error)
                 throw error
             }
