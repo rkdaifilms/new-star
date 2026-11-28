@@ -47,6 +47,7 @@ internal class NativeSfuPublisher private constructor(
     private val trackMids: JSONArray
 ) : NativeLivePublisher {
     private val stopped = AtomicBoolean(false)
+    val hasMicrophoneTrack: Boolean get() = audioTrack != null
     @Volatile private var renderer: SurfaceViewRenderer? = null
 
     override fun setMicrophoneEnabled(enabled: Boolean) { audioTrack?.setEnabled(enabled) }
