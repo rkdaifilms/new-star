@@ -79,6 +79,7 @@ class MainActivity : ComponentActivity() {
     private val notificationRowId = mutableStateOf<String?>(null)
     private val sharedVideoId = mutableStateOf<String?>(null)
     private val referralId = mutableStateOf<String?>(null)
+    private var referralSyncInProgress = false
 
     private val microphonePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val session = queuedGamingSession
@@ -200,6 +201,38 @@ class MainActivity : ComponentActivity() {
         handleReferralIntent(intent)
     }
 
+    override fun onResume() {
+        super.onResume()
+        NativeSessionStore.load(this)?.let(::syncPendingReferral)
+    }
+
+    private fun syncPendingReferral(session: NativeSession) {
+        if (referralSyncInProgress) return
+        val referrer = NativeSessionStore.pendingReferral(this) ?: return
+        referralSyncInProgress = true
+        lifecycleScope.launch {
+            try {
+                val nowSeconds = System.currentTimeMillis() / 1000L
+                val activeSession = if (session.expiresAt <= nowSeconds + 30L) {
+                    NativeSupabase.refresh(this@MainActivity, session)
+                } else {
+                    session
+                }
+                NativeSupabase.post(
+                    "/rest/v1/rpc/record_referral_attribution",
+                    JSONObject().put("p_referrer_id", referrer),
+                    activeSession
+                )
+                NativeSessionStore.clearPendingReferral(this@MainActivity)
+                referralId.value = null
+            } catch (_: Exception) {
+                // Keep the encrypted referral intent. onResume retries after connectivity returns.
+            } finally {
+                referralSyncInProgress = false
+            }
+        }
+    }
+
     private fun handleReferralIntent(intent: Intent?) {
         val uri = intent?.data ?: return
         if (!uri.scheme.equals("https", ignoreCase = true) ||
@@ -242,27 +275,7 @@ class MainActivity : ComponentActivity() {
             }
             try {
                 val signedIn = NativeSupabase.exchangeCode(this@MainActivity, code, pending.second)
-                val pendingReferrer = NativeSessionStore.pendingReferral(this@MainActivity)
-                    ?: referralId.value
-                pendingReferrer?.let { referrer ->
-                    try {
-                        val recorded = NativeSupabase.post(
-                            "/rest/v1/rpc/record_referral_attribution",
-                            JSONObject().put("p_referrer_id", referrer),
-                            signedIn
-                        ).trim().equals("true", ignoreCase = true)
-                        if (recorded || !recorded) {
-                            NativeSessionStore.clearPendingReferral(this@MainActivity)
-                            referralId.value = null
-                        }
-                    } catch (referralError: Exception) {
-                        android.widget.Toast.makeText(
-                            this@MainActivity,
-                            "Login सफल है, लेकिन referral sync अभी बाकी है। Internet मिलने पर दोबारा कोशिश करें।",
-                            android.widget.Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
+                syncPendingReferral(signedIn)
                 oauthSession.value = signedIn
             } catch (e: Exception) {
                 android.widget.Toast.makeText(this@MainActivity, e.message ?: "Google Login failed.", android.widget.Toast.LENGTH_LONG).show()
