@@ -1685,8 +1685,7 @@ private fun NativeHome(
                 "Discover", "For You" -> NativeFeed.load(category, session = session, offset = 0)
                 else -> NativeFeed.load(category, session = session, offset = 0)
             }
-            canLoadMore = feed.size >= NativeFeed.PAGE_SIZE &&
-                feedMode !in setOf("Following", "Friends")
+            canLoadMore = feed.size >= NativeFeed.PAGE_SIZE
             if (feed.isEmpty()) error = if (feedMode == "Following" || feedMode == "Friends") "आप जिन Creators को Follow करते हैं, उनकी अभी कोई सार्वजनिक वीडियो नहीं है।" else "अभी कोई सार्वजनिक वीडियो उपलब्ध नहीं है।"
         } catch (e: Exception) {
             feed = emptyList()
@@ -1697,14 +1696,14 @@ private fun NativeHome(
     LaunchedEffect(feedPagerState.currentPage, feed.size, canLoadMore, loading, pageRetry, feedMode, category, session?.userId) {
         val current = session
         val nearEnd = feed.isNotEmpty() && feedPagerState.currentPage >= feed.size - 3
-        if (!nearEnd || !canLoadMore || loading || loadingMore ||
-            feedMode in setOf("Following", "Friends")) return@LaunchedEffect
+        if (!nearEnd || !canLoadMore || loading || loadingMore) return@LaunchedEffect
         loadingMore = true
         pageError = null
         try {
             val nextPage = when (feedMode) {
                 "Shorts", "Reels" -> NativeFeed.load(category, "short", current, feed.size)
                 "Long videos" -> NativeFeed.load(category, "long", current, feed.size)
+                "Following", "Friends" -> current?.let { NativeFeed.loadFollowing(it, feed.size) } ?: emptyList()
                 else -> NativeFeed.load(category, session = current, offset = feed.size)
             }
             val existingIds = feed.asSequence().map { it.id }.toHashSet()
@@ -1920,7 +1919,8 @@ private fun NativeHome(
                     VerticalPager(
                         state = feedPagerState,
                         modifier = Modifier.fillMaxSize(),
-                        key = { page -> visibleFeed[page].id }
+                        key = { page -> visibleFeed[page].id },
+                        beyondViewportPageCount = 0
                     ) { page ->
                         val video = visibleFeed[page]
                         NativeVideoCard(
@@ -2322,7 +2322,7 @@ private object NativeFeed {
 
         // Match the web feed's recovery path: a failed or empty recommendation RPC
         // falls back to published, public, all-audience videos instead of blanking Home.
-        if (sourceRows.isEmpty() && safeOffset == 0) {
+        if (sourceRows.isEmpty()) {
             val fields = "id,caption,username,category,likes_count,views_count,video_type,user_id,created_at"
             val filters = "&or=${Uri.encode("(processing_status.eq.published,processing_status.is.null)")}" +
                 "&or=${Uri.encode("(visibility.eq.public,visibility.is.null)")}" +
@@ -2376,7 +2376,8 @@ private object NativeFeed {
         }
     }
 
-    suspend fun loadFollowing(session: NativeSession): List<NativeVideo> = withContext(Dispatchers.IO) {
+    suspend fun loadFollowing(session: NativeSession, offset: Int = 0): List<NativeVideo> = withContext(Dispatchers.IO) {
+        val safeOffset = offset.coerceAtLeast(0)
         val followRows = NativeSupabase.get(
             "/rest/v1/followers?select=following_id&follower_id=eq." + Uri.encode(session.userId) + "&limit=500",
             session
@@ -2387,7 +2388,7 @@ private object NativeFeed {
         if (creatorIds.isEmpty()) return@withContext emptyList()
         val idsFilter = Uri.encode("(" + creatorIds.joinToString(",") + ")")
         val rows = NativeSupabase.get(
-            "/rest/v1/videos?select=id,caption,username,category,likes_count,views_count,video_type,user_id&user_id=in." + idsFilter + "&visibility=eq.public&order=created_at.desc&limit=60",
+            "/rest/v1/videos?select=id,caption,username,category,likes_count,views_count,video_type,user_id&user_id=in." + idsFilter + "&visibility=eq.public&order=created_at.desc,id.desc&limit=$PAGE_SIZE&offset=$safeOffset",
             session
         )
         val sourceRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
