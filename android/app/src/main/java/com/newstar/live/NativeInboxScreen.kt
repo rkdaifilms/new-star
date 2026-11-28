@@ -145,15 +145,19 @@ private class NativeInboxRepository(private val session: NativeSession) {
     }
 
     suspend fun sendAttachment(peerId: String, conversationId: String, displayName: String, bytes: ByteArray, mime: String) {
-        require(bytes.size <= 20 * 1024 * 1024) { "Attachment 20 MB से छोटी होनी चाहिए।" }
-        val extension = displayName.substringAfterLast('.', "bin").lowercase().replace(Regex("[^a-z0-9]"), "").take(8)
+        require(bytes.size in 1..NativeInboxAttachmentPolicy.MAX_BYTES) {
+            "Attachment 20 MB से छोटी होनी चाहिए।"
+        }
+        val normalizedMime = NativeInboxAttachmentPolicy.normalizeMimeType(mime)
+        val safeName = NativeInboxAttachmentPolicy.safeDisplayName(displayName, normalizedMime)
+        val extension = NativeInboxAttachmentPolicy.extensionForMimeType(normalizedMime)
         val path = "${session.userId}/${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}.$extension"
-        val storedPath = NativeSupabase.uploadPrivateObject("message-media", path, bytes, mime, session)
+        val storedPath = NativeSupabase.uploadPrivateObject("message-media", path, bytes, normalizedMime, session)
         NativeSupabase.post(
             "/rest/v1/messages",
             JSONObject().put("conversation_id", conversationId)
                 .put("sender_id", session.userId).put("recipient_id", peerId)
-                .put("body", "📎 $displayName").put("media_url", storedPath),
+                .put("body", "📎 $safeName").put("media_url", storedPath),
             session
         )
     }
@@ -435,17 +439,18 @@ fun NativeInboxScreen(
         if (uri != null) scope.launch {
             mediaLoading = true
             try {
-                val bytes = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        ?: throw IllegalStateException("Attachment पढ़ी नहीं जा सकी।")
-                }
-                require(bytes.size <= 20 * 1024 * 1024) { "Attachment 20 MB से छोटी होनी चाहिए।" }
+                val mime = NativeInboxAttachmentPolicy.normalizeMimeType(context.contentResolver.getType(uri))
                 val name = context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                     val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
                     if (cursor.moveToFirst() && index >= 0) cursor.getString(index) else "attachment"
                 } ?: "attachment"
-                val mime = context.contentResolver.getType(uri) ?: "application/octet-stream"
-                vm.sendAttachment(name, bytes, mime)
+                val safeName = NativeInboxAttachmentPolicy.safeDisplayName(name, mime)
+                val bytes = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        NativeInboxAttachmentPolicy.readBounded(input)
+                    } ?: throw IllegalStateException("Attachment पढ़ी नहीं जा सकी।")
+                }
+                vm.sendAttachment(safeName, bytes, mime)
             } catch (e: Exception) {
                 android.widget.Toast.makeText(context, e.message ?: "Attachment upload असफल।", android.widget.Toast.LENGTH_LONG).show()
             } finally {
