@@ -3166,14 +3166,14 @@ fun NativeGamingScreen(
                     }
                     if (state.guestPublisherReady && guestPreview != null) {
                         AndroidView(
-                            factory = { guestPreview },
+                            factory = { guestPreview ?: throw IllegalStateException("Guest preview unavailable") },
                             modifier = Modifier.fillMaxWidth().height(240.dp)
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
                                 modifier = Modifier.weight(1f),
-                                onClick = { gamingViewModel.setGuestCameraEnabled(!state.guestPublisherReady || state.guestPublisherMicEnabled) }
-                            ) { Text("Camera control") }
+                                onClick = { gamingViewModel.setGuestCameraEnabled(!state.guestPublisherCameraEnabled) }
+                            ) { Text(if (state.guestPublisherCameraEnabled) "Turn camera off" else "Turn camera on") }
                             OutlinedButton(
                                 modifier = Modifier.weight(1f),
                                 enabled = state.guestMicrophoneAllowed,
@@ -3193,10 +3193,12 @@ fun NativeGamingScreen(
                     } else if (state.guestSeatStatus == "requested") {
                         Text("Host की approval का इंतज़ार करें।")
                     }
-                    OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { gamingViewModel.leaveGuestSeat(state.guestRoomId) }
-                    ) { Text("Leave guest invitation / seat") }
+                    if (state.guestSeatStatus == "admitted") {
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { gamingViewModel.leaveGuestSeat(state.guestRoomId) }
+                        ) { Text("Leave guest seat") }
+                    }
                 }
             }
         }
