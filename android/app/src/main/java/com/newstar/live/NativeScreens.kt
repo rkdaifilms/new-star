@@ -2392,7 +2392,7 @@ fun NativeUploadScreen(session: NativeSession) {
                 status = error.message ?: "Background upload शुरू नहीं हो सका।"
             }
         }) { Text(if (uploading) "Uploading in background…" else if (hasRecoverableUpload) "Resume Upload" else "Publish Video") }
-        if (activeUploadWork != null && !uploading) {
+        if (activeUploadWork != null) {
             TextButton(onClick = { NativeVideoUploadWork.cancel(context, session.userId) }) {
                 Text("Cancel background upload")
             }
