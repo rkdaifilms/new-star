@@ -102,8 +102,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 import androidx.work.WorkManager
 import androidx.work.WorkInfo
-import androidx.work.getWorkInfosForUniqueWorkFlow
-import kotlinx.coroutines.flow.collect
+import androidx.compose.runtime.livedata.observeAsState
 
 @Composable
 fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit, onGoogleSignIn: () -> Unit) {
@@ -1714,9 +1713,9 @@ fun NativeUploadScreen(session: NativeSession) {
     var uploading by remember { mutableStateOf(false) }
     var hasRecoverableUpload by remember { mutableStateOf(false) }
     val uploadWorkName = remember(session.userId) { NativeVideoUploadWork.uniqueName(session.userId) }
-    val uploadWorkInfos by remember(uploadWorkName) {
-        WorkManager.getInstance(context).getWorkInfosForUniqueWorkFlow(uploadWorkName)
-    }.collectAsState(initial = emptyList())
+    val uploadWorkInfos by WorkManager.getInstance(context)
+        .getWorkInfosForUniqueWorkLiveData(uploadWorkName)
+        .observeAsState(initial = emptyList())
     val activeUploadWork = uploadWorkInfos.firstOrNull {
         it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.BLOCKED
     }
