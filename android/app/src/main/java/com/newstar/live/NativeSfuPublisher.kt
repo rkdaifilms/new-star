@@ -139,7 +139,8 @@ internal class NativeSfuPublisher private constructor(
             context: Context,
             roomId: String,
             session: NativeSession,
-            microphoneGranted: Boolean
+            microphoneGranted: Boolean,
+            onConnectionState: (String) -> Unit = {}
         ): NativeSfuPublisher {
             require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
             check(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
