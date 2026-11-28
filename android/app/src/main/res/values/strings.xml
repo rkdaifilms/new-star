@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="new_star_download_channel">New Star offline downloads</string>
+    <string name="new_star_download_channel_description">Shows progress for saved New Star videos.</string>
+</resources>
