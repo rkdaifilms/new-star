@@ -1829,24 +1829,8 @@ fun NativeUploadScreen(session: NativeSession) {
             val mimeType = resolver.getType(uri) ?: "Unknown"
             val width = sourceWidth
             val height = sourceHeight
-            val ratio = if (height > 0) width.toDouble() / height.toDouble() else 0.0
-            val ratioLabel = when {
-                ratio in 0.55..0.58 -> "9:16 · Vertical"
-                ratio in 0.74..0.76 -> "3:4 · Portrait"
-                ratio in 0.99..1.01 -> "1:1 · Square"
-                ratio in 1.32..1.35 -> "4:3 · Landscape"
-                ratio in 1.76..1.79 -> "16:9 · Widescreen"
-                ratio > 1.0 -> "Landscape · " + "%.2f".format(ratio) + ":1"
-                ratio > 0.0 -> "Portrait · 1:" + "%.2f".format(1.0 / ratio)
-                else -> "Unknown"
-            }
-            val quality = when {
-                width >= 3840 || height >= 3840 -> "4K / UHD"
-                width >= 2560 || height >= 2560 -> "1440p / QHD"
-                width >= 1920 || height >= 1920 -> "1080p / Full HD"
-                width >= 1280 || height >= 1280 -> "720p / HD"
-                else -> "SD"
-            }
+            val ratioLabel = NativeVideoEditorPolicy.videoAspectRatioLabel(width, height)
+            val quality = NativeVideoEditorPolicy.videoQualityLabel(width, height)
             val sizeLabel = if (fileSize > 0L) "%.2f MB".format(fileSize / 1048576.0) else "Unavailable"
             videoInfoDetails = listOf(
                 "Name: $displayName",
