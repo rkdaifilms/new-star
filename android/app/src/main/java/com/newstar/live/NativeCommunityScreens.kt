@@ -615,6 +615,7 @@ internal fun NativeSfuSubscriberPreview(
     }
 }
 
+@Composable
 private fun NativeSfuSubscriberVideoTile(
     subscriber: NativeSfuSubscriber,
     mid: String,
