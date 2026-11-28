@@ -77,6 +77,7 @@ class MainActivity : ComponentActivity() {
     private val oauthSession = mutableStateOf<NativeSession?>(null)
     private val notificationCreatorId = mutableStateOf<String?>(null)
     private val notificationRowId = mutableStateOf<String?>(null)
+    private val sharedVideoId = mutableStateOf<String?>(null)
 
     private val microphonePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val session = queuedGamingSession
@@ -159,6 +160,7 @@ class MainActivity : ComponentActivity() {
         }
         handleNotificationIntent(intent)
         handleOAuthCallback(intent)
+        handleSharedVideoIntent(intent)
         setContent {
             NewStarNativeTheme {
                 NativeApp(
@@ -169,6 +171,8 @@ class MainActivity : ComponentActivity() {
                         notificationCreatorId.value = null
                         notificationRowId.value = null
                     },
+                    sharedVideoId = sharedVideoId.value,
+                    onSharedVideoIntentHandled = { sharedVideoId.value = null },
                     onGoogleSignIn = { NativeGoogleOAuth.launch(this) },
                     gamingRoomId = activeGamingRoomState.value,
                     onStartGaming = ::prepareGaming,
@@ -189,6 +193,19 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         handleNotificationIntent(intent)
         handleOAuthCallback(intent)
+        handleSharedVideoIntent(intent)
+    }
+
+    private fun handleSharedVideoIntent(intent: Intent?) {
+        val uri = intent?.data ?: return
+        val isHttpsLink = uri.scheme.equals("https", ignoreCase = true) &&
+            uri.host.equals("new-star-delta.vercel.app", ignoreCase = true)
+        val isAppLink = uri.scheme.equals("com.newstar.live", ignoreCase = true) &&
+            uri.host.equals("video", ignoreCase = true)
+        if (!isHttpsLink && !isAppLink) return
+        val candidate = uri.getQueryParameter("video") ?: if (isAppLink) uri.lastPathSegment else null
+        val safeId = candidate?.takeIf { it.length in 1..128 && it.matches(Regex("[A-Za-z0-9_-]+")) }
+        if (safeId != null) sharedVideoId.value = safeId
     }
 
     private fun handleNotificationIntent(intent: Intent?) {
@@ -278,6 +295,8 @@ private fun NativeApp(
     notificationCreatorId: String?,
     notificationRowId: String?,
     onNotificationIntentHandled: () -> Unit,
+    sharedVideoId: String?,
+    onSharedVideoIntentHandled: () -> Unit,
     onGoogleSignIn: () -> Unit,
     gamingRoomId: String?,
     onStartGaming: (NativeSession, String) -> Unit,
@@ -288,6 +307,7 @@ private fun NativeApp(
     var checkingSession by remember { mutableStateOf(true) }
     var page by remember { mutableStateOf("Home") }
     var selectedCreatorId by remember { mutableStateOf<String?>(null) }
+    var selectedSharedVideoId by remember { mutableStateOf<String?>(null) }
     var inboxTargetId by remember { mutableStateOf<String?>(null) }
     var aiInitialPrompt by remember { mutableStateOf("") }
     var lastForegroundNotificationId by remember(session?.userId) { mutableStateOf<String?>(null) }
@@ -377,8 +397,14 @@ private fun NativeApp(
     LaunchedEffect(googleSession) {
         if (googleSession != null) {
             session = googleSession
-            page = "Home"
+            if (page != "Shared Video") page = "Home"
         }
+    }
+    LaunchedEffect(sharedVideoId) {
+        val incomingId = sharedVideoId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        selectedSharedVideoId = incomingId
+        page = "Shared Video"
+        onSharedVideoIntentHandled()
     }
     LaunchedEffect(notificationCreatorId, notificationRowId, session?.userId) {
         val current = session
@@ -426,7 +452,14 @@ private fun NativeApp(
         return
     }
 
-    if (page == "Home") {
+    if (page == "Shared Video" && !selectedSharedVideoId.isNullOrBlank()) {
+        NativeSharedVideoScreen(
+            videoId = selectedSharedVideoId!!,
+            session = session,
+            onBack = { selectedSharedVideoId = null; page = "Home" },
+            onOpenCreator = { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
+        )
+    } else if (page == "Home") {
         NativeHome(
             session = session,
             onOpenCreator = { selectedCreatorId = it; page = "Creator" },
