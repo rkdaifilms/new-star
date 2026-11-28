@@ -3261,9 +3261,7 @@ fun NativeGamingScreen(
                     status = intent?.getStringExtra("status").orEmpty(),
                     message = intent?.getStringExtra("message"),
                     micAvailable = if (intent?.hasExtra("mic_available") == true) intent.getBooleanExtra("mic_available", false) else null,
-                    micEnabled = if (intent?.hasExtra("mic_enabled") == true) intent.getBooleanExtra("mic_enabled", false) else null,
-                    gameAudioAvailable = if (intent?.hasExtra("game_audio_available") == true) intent.getBooleanExtra("game_audio_available", false) else null,
-                    gameAudioEnabled = if (intent?.hasExtra("game_audio_enabled") == true) intent.getBooleanExtra("game_audio_enabled", false) else null
+                    micEnabled = if (intent?.hasExtra("mic_enabled") == true) intent.getBooleanExtra("mic_enabled", false) else null
                 )
             }
         }
@@ -3484,19 +3482,6 @@ fun NativeGamingScreen(
             }
         }
 
-        if (state.streaming && state.gameAudioAvailable) {
-            OutlinedButton(
-                onClick = {
-                    context.startService(
-                        Intent(context, GamingStreamService::class.java)
-                            .setAction(GamingStreamService.SET_GAME_AUDIO)
-                            .putExtra(GamingStreamService.GAME_AUDIO_ENABLED, !state.gameAudioEnabled)
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (state.gameAudioEnabled) "Mute game/system audio" else "Unmute game/system audio") }
-        }
-
         if (state.streaming && state.micAvailable) {
             OutlinedButton(
                 onClick = {
@@ -3681,14 +3666,10 @@ fun NativeGamingScreen(
             modifier = Modifier.fillMaxWidth()
         ) { Text(if (state.pkBusy) "Stopping LIVE…" else "Stop Gaming LIVE") }
         Text(state.statusMessage)
-        if (state.streaming && !state.gameAudioAvailable) {
-            Text(
-                "Game/system audio इस session में उपलब्ध नहीं है। Android 10+ और game app की capture अनुमति आवश्यक है; microphone अलग से काम कर सकता है।",
-                style = MaterialTheme.typography.bodySmall
-            )
-        } else if (state.streaming) {
-            Text("Game/system audio और microphone अलग-अलग mute controls के साथ mix किए जा रहे हैं।", style = MaterialTheme.typography.bodySmall)
-        }
+        Text(
+            "Game/system audio अलग से capture और WebRTC में mix नहीं किया गया है; उपलब्धता Android version और device restrictions पर निर्भर करती है।",
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
 
