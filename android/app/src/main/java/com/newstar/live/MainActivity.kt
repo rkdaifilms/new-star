@@ -242,12 +242,25 @@ class MainActivity : ComponentActivity() {
             }
             try {
                 val signedIn = NativeSupabase.exchangeCode(this@MainActivity, code, pending.second)
-                val pendingReferrer = NativeSessionStore.consumePendingReferral(this@MainActivity)
+                val pendingReferrer = NativeSessionStore.pendingReferral(this@MainActivity)
                     ?: referralId.value
                 pendingReferrer?.let { referrer ->
-                    runCatching {
-                        NativeSupabase.post("/rest/v1/rpc/record_referral_attribution",
-                            JSONObject().put("p_referrer_id", referrer), signedIn)
+                    try {
+                        val recorded = NativeSupabase.post(
+                            "/rest/v1/rpc/record_referral_attribution",
+                            JSONObject().put("p_referrer_id", referrer),
+                            signedIn
+                        ).trim().equals("true", ignoreCase = true)
+                        if (recorded || !recorded) {
+                            NativeSessionStore.clearPendingReferral(this@MainActivity)
+                            referralId.value = null
+                        }
+                    } catch (referralError: Exception) {
+                        android.widget.Toast.makeText(
+                            this@MainActivity,
+                            "Login सफल है, लेकिन referral sync अभी बाकी है। Internet मिलने पर दोबारा कोशिश करें।",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
                 oauthSession.value = signedIn
