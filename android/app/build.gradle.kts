@@ -56,6 +56,7 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.9.0")
     implementation("androidx.media3:media3-database:1.9.0")
     implementation("androidx.media3:media3-exoplayer-hls:1.9.0")
+    implementation("androidx.media3:media3-exoplayer-dash:1.9.0")
     implementation("androidx.media3:media3-ui:1.9.0")
     implementation("androidx.media3:media3-transformer:1.9.0")
     implementation("androidx.media3:media3-effect:1.9.0")
