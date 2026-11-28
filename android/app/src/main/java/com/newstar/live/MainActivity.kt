@@ -2678,7 +2678,7 @@ private object NativeFeed {
             }
         }
         if (ids.length() == 0) return@withContext emptyList()
-        val resolved = post("$API_BASE/functions/v1/video-url", JSONObject().put("video_ids", ids)) as? JSONObject
+        val resolved = post("$API_BASE/functions/v1/video-url", JSONObject().put("video_ids", ids), session) as? JSONObject
             ?: throw IllegalStateException("Video URL response invalid.")
         if (!resolved.optBoolean("ok")) throw IllegalStateException("वीडियो एक्सेस सत्यापित नहीं हुआ।")
         val urls = resolved.optJSONObject("urls") ?: JSONObject()
@@ -2726,24 +2726,34 @@ private object NativeFeed {
         require(videoId.matches(Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"))) {
             "Shared video ID अमान्य है।"
         }
-        val filters = "&or=${(processing_status.eq.published,processing_status.is.null)${" +
-            "&or=${(audience_type.eq.all,audience_type.is.null)${"
+        val filters = "&or=" + Uri.encode("(processing_status.eq.published,processing_status.is.null)") +
+            "&or=" + Uri.encode("(audience_type.eq.all,audience_type.is.null)")
         val rows = NativeSupabase.get(
-            "/rest/v1/videos?select=id,caption,username,category,likes_count,views_count,video_type,user_id&id=eq.${Uri.encode(videoId)${&visibility=eq.public$filters&limit=1",
+            "/rest/v1/videos?select=id,caption,username,category,likes_count,views_count,video_type,user_id&id=eq." +
+                Uri.encode(videoId) + "&visibility=eq.public" + filters + "&limit=1",
             session
         )
-        val row = rows.optJSONObject(0) ?: throw IllegalStateException("यह वीडियो उपलब्ध नहीं है या सार्वजनिक नहीं है।")
+        val row = rows.optJSONObject(0)
+            ?: throw IllegalStateException("यह वीडियो उपलब्ध नहीं है या सार्वजनिक नहीं है।")
         val ids = JSONArray().put(videoId)
         val resolved = post("$API_BASE/functions/v1/video-url", JSONObject().put("video_ids", ids), session) as? JSONObject
             ?: throw IllegalStateException("Secure video response invalid.")
-        if (!resolved.optBoolean("ok")) throw IllegalStateException(resolved.optString("error", "वीडियो access verify नहीं हुआ।"))
+        if (!resolved.optBoolean("ok")) {
+            throw IllegalStateException(resolved.optString("error", "वीडियो access verify नहीं हुआ।"))
+        }
         val playback = resolved.optJSONObject("urls")?.optString(videoId)
             ?.takeIf { it.startsWith("https://") }
             ?: throw IllegalStateException("वीडियो अभी उपलब्ध नहीं है, private है, या processing में है।")
         NativeVideo(
-            videoId, playback, row.optString("caption"), row.optString("username"),
-            row.optString("category"), row.optInt("likes_count"), row.optInt("views_count"),
-            row.optString("video_type").ifBlank { "short" }, row.optString("user_id")
+            videoId,
+            playback,
+            row.optString("caption").takeUnless { it == "null" }.orEmpty(),
+            row.optString("username").takeUnless { it == "null" }.orEmpty(),
+            row.optString("category").takeUnless { it == "null" }.orEmpty(),
+            row.optInt("likes_count"),
+            row.optInt("views_count"),
+            row.optString("video_type").ifBlank { "short" },
+            row.optString("user_id")
         )
     }
 
