@@ -59,12 +59,12 @@ class NativeRealtimeMessages(
     @Synchronized
     private fun openSocket() {
         if (closed.get() || joined || socket != null) return
-        val base = SUPABASE_URL.removePrefix("https://").removePrefix("http://").trimEnd('/')
+        try {
+            val base = SUPABASE_URL.removePrefix("https://").removePrefix("http://").trimEnd('/')
         val apiKey = URLEncoder.encode(SUPABASE_KEY, Charsets.UTF_8.name())
         val request = Request.Builder()
             .url("wss://$base/realtime/v1/websocket?apikey=$apiKey&vsn=1.0.0")
             .build()
-        try {
             socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 val changes = JSONArray()
