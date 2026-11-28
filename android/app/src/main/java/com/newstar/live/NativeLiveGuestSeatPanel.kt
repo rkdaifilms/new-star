@@ -319,3 +319,131 @@ internal fun NativeLiveGuestSeatPanel(
 private fun LinearProgressIndicatorForGuestSeats() {
     androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
 }
+
+
+@Composable
+internal fun NativeLiveSeatRequestPanel(
+    session: NativeSession,
+    roomId: String
+) {
+    var participant by remember(roomId, session.userId) { mutableStateOf<JSONObject?>(null) }
+    var loading by remember(roomId, session.userId) { mutableStateOf(true) }
+    var busy by remember(roomId, session.userId) { mutableStateOf(false) }
+    var error by remember(roomId, session.userId) { mutableStateOf("") }
+    var notice by remember(roomId, session.userId) { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    suspend fun refreshSeat() {
+        try {
+            participant = NativeLiveRepository.listParticipants(roomId, session)
+                .firstOrNull { it.optString("user_id") == session.userId }
+            error = ""
+        } catch (e: Exception) {
+            error = e.message ?: "आपकी LIVE seat स्थिति लोड नहीं हुई।"
+        } finally {
+            loading = false
+        }
+    }
+
+    LaunchedEffect(roomId, session.userId) {
+        refreshSeat()
+        while (true) {
+            delay(5_000)
+            refreshSeat()
+        }
+    }
+
+    val status = participant?.optString("status").orEmpty()
+    val admitted = status == "admitted"
+    val requested = status == "requested"
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Join this LIVE as a guest", style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold)
+            when {
+                loading -> {
+                    androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+                    Text("आपकी seat स्थिति जाँची जा रही है।", style = MaterialTheme.typography.bodySmall)
+                }
+                admitted -> {
+                    Text(
+                        "Host ने आपको guest seat ${participant?.optInt("seat_number", 0) ?: 0} पर admit कर दिया है।",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "आपकी guest seat active है। Camera और microphone publishing host की अनुमति और device permissions के बाद चालू होंगे।",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(
+                        enabled = !busy,
+                        onClick = {
+                            busy = true
+                            notice = ""
+                            scope.launch {
+                                try {
+                                    NativeLiveRepository.leaveSeat(roomId, session)
+                                    notice = "आप LIVE guest seat से बाहर आ गए।"
+                                    refreshSeat()
+                                } catch (e: Exception) {
+                                    error = e.message ?: "Guest seat छोड़ी नहीं जा सकी।"
+                                } finally {
+                                    busy = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        else Text("Leave guest seat")
+                    }
+                }
+                requested -> {
+                    Text("आपकी request host को भेज दी गई है। Host के admit करने तक प्रतीक्षा करें।",
+                        style = MaterialTheme.typography.bodyMedium)
+                    Text("यह स्थिति अपने-आप refresh होती रहेगी।", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                else -> {
+                    Text("Host से guest seat माँगें। Host के approve करने के बाद आप LIVE guest बनेंगे।",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Button(
+                        enabled = !busy,
+                        onClick = {
+                            busy = true
+                            error = ""
+                            notice = ""
+                            scope.launch {
+                                try {
+                                    NativeLiveRepository.requestSeat(roomId, session)
+                                    notice = "Guest seat request host को भेज दी गई।"
+                                    refreshSeat()
+                                } catch (e: Exception) {
+                                    error = e.message ?: "Guest seat request नहीं भेजी जा सकी।"
+                                } finally {
+                                    busy = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        else Text("Request guest seat")
+                    }
+                }
+            }
+            if (error.isNotBlank()) {
+                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            if (notice.isNotBlank()) {
+                Text(notice, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
