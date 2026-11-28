@@ -2590,7 +2590,6 @@ private fun NativeVideoCard(
                             reportReason = "spam"
                             reportDetails = ""
                             reportViewModel.reset()
-                            reportViewModel.reset()
                             reportDialogOpen = true
                         }
                     ) { Text("Report") }
