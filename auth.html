@@ -332,11 +332,15 @@ async function handleAuthAction(){
 
   if(isSignupMode){
 
+   const referralId=new URLSearchParams(location.search).get("ref")||"";
+   const referralMetadata=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(referralId)
+    ?{referrer_id:referralId}:undefined;
    const {data,error}=await client.auth.signUp({
     email,
     password,
     options:{
-     emailRedirectTo:new URL("./profile.html",location.href).href
+     emailRedirectTo:new URL("./profile.html",location.href).href,
+     ...(referralMetadata?{data:referralMetadata}:{})
     }
    });
 
