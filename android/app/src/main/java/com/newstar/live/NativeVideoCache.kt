@@ -3,6 +3,8 @@ package com.newstar.live
 import android.content.Context
 import android.net.Uri
 import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheWriter
@@ -43,17 +45,23 @@ internal object NativeVideoCache {
         }
     }
 
-    fun dataSourceFactory(context: Context): CacheDataSource.Factory {
+    fun dataSourceFactory(context: Context): DataSource.Factory {
         val upstream = DefaultHttpDataSource.Factory()
             .setUserAgent("NewStar-Android")
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15_000)
             .setReadTimeoutMs(20_000)
 
-        return CacheDataSource.Factory()
-            .setCache(cache(context))
-            .setUpstreamDataSourceFactory(upstream)
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        return try {
+            CacheDataSource.Factory()
+                .setCache(cache(context))
+                .setUpstreamDataSourceFactory(upstream)
+                .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        } catch (_: Exception) {
+            // A damaged/unavailable cache must not prevent online video playback.
+            // Fall back to a normal HTTP/local data source for this process.
+            DefaultDataSource.Factory(context.applicationContext, upstream)
+        }
     }
 
     /**
@@ -63,20 +71,20 @@ internal object NativeVideoCache {
      */
     suspend fun preload(context: Context, url: String) = withContext(Dispatchers.IO) {
         if (!url.startsWith("https://") && !url.startsWith("http://")) return@withContext
-        val dataSource = dataSourceFactory(context).createDataSource()
-        val spec = DataSpec.Builder()
-            .setUri(Uri.parse(url))
-            .setPosition(0L)
-            .setLength(PRELOAD_BYTES)
-            .build()
-
+        var dataSource: DataSource? = null
         try {
+            dataSource = dataSourceFactory(context).createDataSource()
+            val spec = DataSpec.Builder()
+                .setUri(Uri.parse(url))
+                .setPosition(0L)
+                .setLength(PRELOAD_BYTES)
+                .build()
             CacheWriter(dataSource, spec, null, null).cache()
         } catch (_: Exception) {
             // Preloading is opportunistic. Cache/index/storage failures must never
             // take down the feed; playback can still use the upstream source.
         } finally {
-            runCatching { dataSource.close() }
+            runCatching { dataSource?.close() }
         }
     }
 }
