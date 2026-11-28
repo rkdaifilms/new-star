@@ -31,8 +31,21 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Run Android unit tests
-        run: gradle -p android :app:testDebugUnitTest --no-daemon
+      - name: Run Android unit tests (retry once for transient dependency-network failures)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2; do
+            if gradle -p android :app:testDebugUnitTest --no-daemon; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 2 ]; then
+              echo "Android unit tests failed after two attempts."
+              exit 1
+            fi
+            echo "Retrying unit tests once after a possible transient dependency failure."
+            sleep 15
+          done
       - name: Build New Star Android APK
         run: gradle -p android :app:assembleDebug --no-daemon
       - name: Verify APK
@@ -47,6 +60,32 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           sha256sum "$APK" | tee new-star-android-apk-sha256.txt
+      - name: Launch app on Android emulator and check for startup crash
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            APK="android/app/build/outputs/apk/debug/app-debug.apk"
+            adb install -r "$APK"
+            adb logcat -c
+            adb shell am force-stop com.newstar.live
+            adb shell monkey -p com.newstar.live 1
+            sleep 25
+            if ! adb shell pidof com.newstar.live >/dev/null; then
+              echo "New Star process is not running after launch."
+              adb logcat -d -v time
+              exit 1
+            fi
+            if adb logcat -d -v time | grep -E "FATAL EXCEPTION|Fatal signal [0-9]+|Process: com.newstar.live"; then
+              echo "A fatal startup error was recorded in logcat."
+              exit 1
+            fi
+            echo "New Star stayed running for the startup smoke-test window."
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
