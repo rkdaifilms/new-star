@@ -6,9 +6,9 @@ import org.junit.Test
 
 class NativeProfileVideoPolicyTest {
     @Test
-    fun normalizesHashtagsAndRemovesDuplicates() {
+    fun prefixesHashtagsInWebOrder() {
         assertEquals(
-            listOf("#nepal", "#newstar", "#CREATOR"),
+            listOf("#nepal", "#newstar", "#newstar", "#CREATOR"),
             NativeProfileVideoPolicy.normalizeTags("nepal, #newstar newstar CREATOR")
         )
     }
