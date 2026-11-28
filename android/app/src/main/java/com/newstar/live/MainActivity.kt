@@ -367,7 +367,7 @@ private fun NativeApp(
                                 val newNotifications = NativeNotificationDelta.newlyInserted(
                                     newestFirst,
                                     lastForegroundNotificationId.orEmpty()
-                                )
+                                ) { it.optString("id") }
                                 newestFirst.firstOrNull()?.optString("id")
                                     ?.takeIf { it.isNotBlank() }
                                     ?.let { lastForegroundNotificationId = it }
