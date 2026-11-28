@@ -2534,70 +2534,96 @@ private fun NativeVideoCard(
             }
         }
     }
-    var playerError by remember(video.id) { mutableStateOf<String?>(null) }
     var playerRetry by remember(video.id) { mutableIntStateOf(0) }
-    // Use the encoded media's real display ratio instead of fixed 500dp/235dp
-    // player heights. This keeps portrait and landscape uploads fully visible.
+    // Use the encoded media's real display ratio instead of fixed player heights.
     var videoAspectRatio by remember(video.id, video.type) {
         mutableFloatStateOf(if (video.type.equals("long", true)) 16f / 9f else 9f / 16f)
     }
-    val exoPlayer = remember(video.url, offlineSaved) {
-        // Offline cache/index can be unavailable after storage cleanup or an
-        // interrupted download. Fall back to the normal network source instead
-        // of letting player construction crash the feed composition.
-        val sourceFactory = NativeVideoCache.playbackDataSourceFactory(context, offlineSaved)
-        ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(sourceFactory))
-            .build().apply {
-                setMediaItem(MediaItem.fromUri(video.url))
-                prepare()
-                playWhenReady = false
+    // Player/cache construction is device- and storage-dependent. Never let a
+    // damaged cache or malformed media URL crash the whole authenticated feed.
+    val playerCreation = remember(video.url, offlineSaved) {
+        val cached = runCatching {
+            val sourceFactory = NativeVideoCache.playbackDataSourceFactory(context, offlineSaved)
+            ExoPlayer.Builder(context)
+                .setMediaSourceFactory(DefaultMediaSourceFactory(sourceFactory))
+                .build().apply {
+                    setMediaItem(MediaItem.fromUri(video.url))
+                    prepare()
+                    playWhenReady = false
+                }
+        }
+        if (cached.isSuccess) {
+            cached.getOrNull() to null
+        } else {
+            val fallback = runCatching {
+                ExoPlayer.Builder(context).build().apply {
+                    setMediaItem(MediaItem.fromUri(video.url))
+                    prepare()
+                    playWhenReady = false
+                }
             }
+            fallback.getOrNull() to (
+                fallback.exceptionOrNull()?.localizedMessage
+                    ?: cached.exceptionOrNull()?.localizedMessage
+                    ?: "वीडियो प्लेयर शुरू नहीं हो सका।"
+                )
+        }
+    }
+    val exoPlayer = playerCreation.first
+    var playerError by remember(video.id, playerCreation.second) {
+        mutableStateOf(playerCreation.second)
     }
     DisposableEffect(exoPlayer) {
-        val listener = object : androidx.media3.common.Player.Listener {
-            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                playerError = error.localizedMessage ?: "वीडियो चल नहीं सका। नेटवर्क जाँचकर दोबारा कोशिश करें।"
-            }
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == androidx.media3.common.Player.STATE_READY) playerError = null
-            }
-            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
-                if (videoSize.width > 0 && videoSize.height > 0) {
-                    val ratio = (videoSize.width.toFloat() * videoSize.pixelWidthHeightRatio) /
-                        videoSize.height.toFloat()
-                    if (ratio.isFinite() && ratio in 0.35f..3.0f) {
-                        videoAspectRatio = ratio
+        val player = exoPlayer
+        if (player == null) {
+            onDispose { }
+        } else {
+            val listener = object : androidx.media3.common.Player.Listener {
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    playerError = error.localizedMessage
+                        ?: "वीडियो चल नहीं सका। नेटवर्क जाँचकर दोबारा कोशिश करें।"
+                }
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == androidx.media3.common.Player.STATE_READY) playerError = null
+                }
+                override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                    if (videoSize.width > 0 && videoSize.height > 0) {
+                        val ratio = (videoSize.width.toFloat() * videoSize.pixelWidthHeightRatio) /
+                            videoSize.height.toFloat()
+                        if (ratio.isFinite() && ratio in 0.35f..3.0f) {
+                            videoAspectRatio = ratio
+                        }
                     }
                 }
             }
-        }
-        exoPlayer.addListener(listener)
-        onDispose {
-            exoPlayer.removeListener(listener)
-            exoPlayer.release()
+            player.addListener(listener)
+            onDispose {
+                player.removeListener(listener)
+                player.release()
+            }
         }
     }
-    LaunchedEffect(isActive, playerRetry) {
+    LaunchedEffect(isActive, playerRetry, exoPlayer) {
+        val player = exoPlayer ?: return@LaunchedEffect
         try {
             if (isActive) {
-                if (exoPlayer.playbackState == androidx.media3.common.Player.STATE_IDLE ||
-                    exoPlayer.playbackState == androidx.media3.common.Player.STATE_ENDED) exoPlayer.prepare()
-                exoPlayer.playWhenReady = true
-                exoPlayer.play()
+                if (player.playbackState == androidx.media3.common.Player.STATE_IDLE ||
+                    player.playbackState == androidx.media3.common.Player.STATE_ENDED) player.prepare()
+                player.playWhenReady = true
+                player.play()
             } else {
-                exoPlayer.pause()
-                exoPlayer.playWhenReady = false
+                player.pause()
+                player.playWhenReady = false
             }
         } catch (error: Exception) {
             playerError = error.localizedMessage ?: "वीडियो प्लेयर शुरू नहीं हो सका।"
         }
     }
     val watchTracker = remember(exoPlayer, video.id, session?.userId, session?.accessToken) {
-        NativeVideoWatchTracker(session, video.id, exoPlayer)
+        exoPlayer?.let { NativeVideoWatchTracker(session, video.id, it) }
     }
     DisposableEffect(watchTracker) {
-        onDispose { watchTracker.close() }
+        onDispose { watchTracker?.close() }
     }
     if (!creatorBlocked) {
     Card(
@@ -2616,24 +2642,27 @@ private fun NativeVideoCard(
                     Modifier.fillMaxWidth().aspectRatio(videoAspectRatio)
                 }
             ) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { ctx -> PlayerView(ctx).apply {
-                        player = exoPlayer
-                        // Feed swipes should not be intercepted by playback controls.
-                        useController = !immersive
-                        // Always preserve the complete source frame. ZOOM crops portrait
-                        // videos on some devices and makes the subject appear cut off.
-                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    } },
-                    update = { view ->
-                        if (view.player !== exoPlayer) view.player = exoPlayer
-                        view.useController = !immersive
-                        // Keep the whole encoded frame visible after every recomposition.
-                        // FIT letterboxes when necessary rather than cropping the video.
-                        view.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                if (exoPlayer != null) {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { ctx -> PlayerView(ctx).apply {
+                            player = exoPlayer
+                            // Feed swipes should not be intercepted by playback controls.
+                            useController = !immersive
+                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        } },
+                        update = { view ->
+                            if (view.player !== exoPlayer) view.player = exoPlayer
+                            view.useController = !immersive
+                            view.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
+                    )
+                } else {
+                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Text("यह वीडियो अभी नहीं चल सका। Retry दबाकर फिर कोशिश करें।",
+                            color = MaterialTheme.colorScheme.onSurface)
                     }
-                )
+                }
                 if (playerError != null) {
                     Surface(
                         modifier = Modifier.align(androidx.compose.ui.Alignment.Center).padding(20.dp),
