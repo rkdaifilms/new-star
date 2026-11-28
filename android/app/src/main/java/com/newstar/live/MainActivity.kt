@@ -2828,7 +2828,6 @@ private fun NativeVideoCard(
                                             reportReason = "harassment"
                                             reportDetails = ""
                                             reportViewModel.reset()
-                                            reportViewModel.reset()
                                             reportDialogOpen = true
                                         }
                                     ) { Text("Report comment") }
