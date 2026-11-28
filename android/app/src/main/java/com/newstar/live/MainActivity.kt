@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
     private var queuedGamingTitle: String? = null
     private val oauthSession = mutableStateOf<NativeSession?>(null)
     private val notificationCreatorId = mutableStateOf<String?>(null)
+    private val notificationRowId = mutableStateOf<String?>(null)
 
     private val microphonePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val session = queuedGamingSession
@@ -151,7 +152,11 @@ class MainActivity : ComponentActivity() {
                 NativeApp(
                     googleSession = oauthSession.value,
                     notificationCreatorId = notificationCreatorId.value,
-                    onNotificationIntentHandled = { notificationCreatorId.value = null },
+                    notificationRowId = notificationRowId.value,
+                    onNotificationIntentHandled = {
+                        notificationCreatorId.value = null
+                        notificationRowId.value = null
+                    },
                     onGoogleSignIn = { NativeGoogleOAuth.launch(this) },
                     onStartGaming = ::prepareGaming,
                     onStopGaming = ::stopGaming
@@ -176,6 +181,7 @@ class MainActivity : ComponentActivity() {
     private fun handleNotificationIntent(intent: Intent?) {
         if (intent?.action != NativeSystemNotifications.ACTION_OPEN_CREATOR) return
         notificationCreatorId.value = intent.getStringExtra(NativeSystemNotifications.EXTRA_CREATOR_ID)
+        notificationRowId.value = intent.getStringExtra(NativeSystemNotifications.EXTRA_NOTIFICATION_ID)
     }
 
     private fun handleOAuthCallback(intent: Intent?) {
@@ -255,6 +261,7 @@ class MainActivity : ComponentActivity() {
 private fun NativeApp(
     googleSession: NativeSession?,
     notificationCreatorId: String?,
+    notificationRowId: String?,
     onNotificationIntentHandled: () -> Unit,
     onGoogleSignIn: () -> Unit,
     onStartGaming: (NativeSession, String) -> Unit,
@@ -357,11 +364,28 @@ private fun NativeApp(
             page = "Home"
         }
     }
-    LaunchedEffect(notificationCreatorId, session?.userId) {
+    LaunchedEffect(notificationCreatorId, notificationRowId, session?.userId) {
+        val current = session
         val creatorId = notificationCreatorId
-        if (!creatorId.isNullOrBlank() && session != null) {
-            selectedCreatorId = creatorId
-            page = "Creator"
+        val rowId = notificationRowId
+        if (current != null && (!creatorId.isNullOrBlank() || !rowId.isNullOrBlank())) {
+            if (!rowId.isNullOrBlank()) {
+                try {
+                    NativeSupabase.patch(
+                        "/rest/v1/notifications?id=eq.${Uri.encode(rowId)}&user_id=eq.${Uri.encode(current.userId)}",
+                        JSONObject().put("is_read", true),
+                        current
+                    )
+                    notificationRefreshCounter++
+                } catch (_: Exception) {
+                }
+            }
+            if (!creatorId.isNullOrBlank()) {
+                selectedCreatorId = creatorId
+                page = "Creator"
+            } else {
+                page = "Notifications"
+            }
             onNotificationIntentHandled()
         }
     }
