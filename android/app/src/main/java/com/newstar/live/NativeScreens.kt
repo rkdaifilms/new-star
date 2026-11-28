@@ -2321,8 +2321,15 @@ fun NativeUploadScreen(session: NativeSession) {
                     editing = false
                     hasRecoverableUpload = false
                     status = "वीडियो अपलोड हो गया। Processing के बाद दिखाई देगा।"
-                } catch (e: Exception) { status = e.message ?: "Upload असफल हुआ।" }
-                finally { uploading = false }
+                } catch (e: Exception) {
+                    status = e.message ?: "Upload असफल हुआ।"
+                    val pending = NativeUploadDraftStore.load(context, session.userId)
+                    hasRecoverableUpload = pending?.optString("uri") == uri.toString()
+                    if (hasRecoverableUpload && pending != null) {
+                        val total = pending.optLong("size")
+                        progress = if (total > 0L) ((pending.optLong("offset") * 100L) / total).toInt().coerceIn(0, 100) else 0
+                    }
+                } finally { uploading = false }
             }
         }) { Text(if (uploading) "Uploading…" else if (hasRecoverableUpload) "Resume Upload" else "Publish Video") }
         if (hasRecoverableUpload && !uploading) {
@@ -2623,7 +2630,17 @@ private object NativeVideoUploader {
             put("height", height)
             put("file_name", name)
         }
+        draft.put("title", title)
+        draft.put("description", description)
+        draft.put("category", category)
+        draft.put("visibility", visibility)
+        draft.put("audience_type", audienceType)
+        draft.put("media_kind", mediaKind)
+        draft.put("affiliate_link", affiliateLink)
+        draft.put("location", location ?: JSONObject.NULL)
+        draft.put("location_visibility", locationVisibility)
         if (savedDraft == null) NativeUploadDraftStore.save(context, session.userId, draft)
+        else NativeUploadDraftStore.save(context, session.userId, draft)
         var offset = if (finalizedVideoId.isNotBlank()) size else readTusOffset(client, resolvedUploadUrl, size)
         require(offset in 0L..size) { "Cloudflare ने upload का अमान्य resume offset दिया।" }
         draft.put("offset", offset)
