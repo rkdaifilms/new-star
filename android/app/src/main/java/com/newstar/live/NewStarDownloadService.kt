@@ -81,6 +81,25 @@ internal object NativeOfflineDownloads {
             .setFlags(CacheDataSource.FLAG_BLOCK_ON_CACHE)
     }
 
+    fun downloadState(context: Context, videoId: String): Int? {
+        val safeId = videoId.replace(Regex("[^A-Za-z0-9_-]"), "").take(100)
+        if (safeId.isBlank()) return null
+        return runCatching {
+            manager(context).downloadIndex.getDownload(safeId)?.state
+        }.getOrNull()
+    }
+
+    fun remove(context: Context, videoId: String) {
+        val safeId = videoId.replace(Regex("[^A-Za-z0-9_-]"), "").take(100)
+        require(safeId.isNotBlank()) { "Video ID अमान्य है।" }
+        DownloadService.sendRemoveDownload(
+            context.applicationContext,
+            NewStarDownloadService::class.java,
+            safeId,
+            true
+        )
+    }
+
     fun enqueue(context: Context, videoId: String, url: String) {
         val uri = Uri.parse(url)
         require(uri.scheme == "https") { "सिर्फ सुरक्षित HTTPS video URL डाउनलोड किया जा सकता है।" }
