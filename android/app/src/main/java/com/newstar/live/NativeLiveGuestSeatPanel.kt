@@ -436,6 +436,7 @@ internal fun NativeLiveSeatRequestPanel(
         }
     }
 
+    val currentGuestPublisher by androidx.compose.runtime.rememberUpdatedState(guestPublisher)
     val status = participant?.optString("status").orEmpty()
     val admitted = status == "admitted"
     val requested = status == "requested"
@@ -451,7 +452,7 @@ internal fun NativeLiveSeatRequestPanel(
 
     androidx.compose.runtime.DisposableEffect(roomId, session.userId) {
         onDispose {
-            val activePublisher = guestPublisher
+            val activePublisher = currentGuestPublisher
             if (activePublisher != null) {
                 kotlinx.coroutines.CoroutineScope(
                     kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
