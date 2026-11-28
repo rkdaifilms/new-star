@@ -28,6 +28,18 @@ class NativePreferencesSyncTest {
     }
 
     @Test
+    fun newerRemoteDocumentWinsAndNewerLocalDocumentIsPreserved() {
+        assertTrue(NativePreferencesSync.shouldRestoreRemote(
+            "2026-11-28T08:00:00Z", "2026-11-28T09:00:00Z"
+        ))
+        assertFalse(NativePreferencesSync.shouldRestoreRemote(
+            "2026-11-28T10:00:00Z", "2026-11-28T09:00:00Z"
+        ))
+        assertFalse(NativePreferencesSync.shouldRestoreRemote("invalid", "invalid"))
+        assertFalse(NativePreferencesSync.shouldRestoreRemote(null, null))
+    }
+
+    @Test
     fun readsBooleanPreferenceWithoutTreatingInvalidTextAsFalse() {
         assertTrue(NativePreferencesSync.validBoolean(JSONObject().put("enabled", true), "enabled") == true)
         assertFalse(NativePreferencesSync.validBoolean(JSONObject().put("enabled", "false"), "enabled")!!)
