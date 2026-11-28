@@ -78,7 +78,6 @@ internal class NativeSfuSubscriber private constructor(
             }
         }
         runCatching { peer.close(); peer.dispose() }
-        runCatching { remoteVideo?.dispose() }
         remoteVideo = null
         runCatching { factory.dispose() }
         runCatching { egl.release() }
@@ -173,7 +172,8 @@ internal class NativeSfuSubscriber private constructor(
                 val gathered = CompletableDeferred<Unit>()
                 val connected = CompletableDeferred<Unit>()
                 val remoteVideo = java.util.concurrent.atomic.AtomicReference<VideoTrack?>(null)
-                peer = factory.createPeerConnection(
+                val remoteTrackConsumer = java.util.concurrent.atomic.AtomicReference<((VideoTrack) -> Unit)?>(null)
+                val createdPeer = factory.createPeerConnection(
                     PeerConnection.RTCConfiguration(
                         listOf(PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer())
                     ).apply { sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN },
@@ -200,15 +200,16 @@ internal class NativeSfuSubscriber private constructor(
                         override fun onDataChannel(channel: org.webrtc.DataChannel) {}
                         override fun onRenegotiationNeeded() {}
                         override fun onAddTrack(receiver: RtpReceiver, streams: Array<out org.webrtc.MediaStream>) {
-                            (receiver.track() as? VideoTrack)?.let { remoteVideo.set(it) }
+                            (receiver.track() as? VideoTrack)?.let { track -> remoteVideo.set(track); remoteTrackConsumer.get()?.invoke(track) }
                         }
                         override fun onTrack(transceiver: RtpTransceiver) {
-                            (transceiver.receiver.track() as? VideoTrack)?.let { remoteVideo.set(it) }
+                            (transceiver.receiver.track() as? VideoTrack)?.let { track -> remoteVideo.set(track); remoteTrackConsumer.get()?.invoke(track) }
                         }
                         override fun onConnectionChange(state: PeerConnection.PeerConnectionState) {}
                         override fun onSelectedCandidatePairChanged(event: PeerConnection.CandidatePairChangeEvent) {}
                     }
                 ) ?: throw IllegalStateException("SFU subscriber PeerConnection create नहीं हुआ।")
+                peer = createdPeer
 
                 val response = NativeLiveRepository.subscribeSfuTracks(roomId, sfuSessionId, requested, session)
                 val offer = response.optJSONObject("sessionDescription")
@@ -217,11 +218,11 @@ internal class NativeSfuSubscriber private constructor(
                 if (offer.optString("type") != "offer" || offerSdp.isBlank()) {
                     throw IllegalStateException("SFU subscriber offer अमान्य है।")
                 }
-                setDescription(peer, SessionDescription(SessionDescription.Type.OFFER, offerSdp), false)
-                val answer = createAnswer(peer)
-                setDescription(peer, answer, true)
+                setDescription(createdPeer, SessionDescription(SessionDescription.Type.OFFER, offerSdp), false)
+                val answer = createAnswer(createdPeer)
+                setDescription(createdPeer, answer, true)
                 withTimeout(25000) { gathered.await() }
-                val localAnswer = peer.localDescription
+                val localAnswer = createdPeer.localDescription
                     ?: throw IllegalStateException("SFU subscriber SDP answer उपलब्ध नहीं है।")
                 NativeLiveRepository.renegotiateSfuSession(roomId, sfuSessionId, localAnswer.description, session)
                 withTimeout(30000) { connected.await() }
@@ -232,8 +233,9 @@ internal class NativeSfuSubscriber private constructor(
                     if (mid.matches(Regex("\\d+"))) mids.put(JSONObject().put("mid", mid))
                 }
                 return@withContext NativeSfuSubscriber(
-                    roomId, session, sfuSessionId, factory, egl, peer, mids
+                    roomId, session, sfuSessionId, factory, egl, createdPeer, mids
                 ).also { subscriber ->
+                    remoteTrackConsumer.set(subscriber::onRemoteTrack)
                     remoteVideo.get()?.let { subscriber.onRemoteTrack(it) }
                 }
             } catch (error: Exception) {
