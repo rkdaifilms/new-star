@@ -594,6 +594,7 @@ private fun NativeApp(
             when (page) {
                 "Settings" -> NativeSettingsScreen(
                     session = session!!,
+                    onOpenDeveloperReports = { page = "Developer Reports" },
                     onLogout = {
                         val current = session
                         if (current != null) scope.launch {
@@ -608,6 +609,10 @@ private fun NativeApp(
                             finally { session = null; page = "Home" }
                         }
                     }
+                )
+                "Developer Reports" -> NativeDeveloperReportsScreen(
+                    session = session!!,
+                    onBack = { page = "Settings" }
                 )
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!, inboxTargetId, inboxTargetRequestId) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
