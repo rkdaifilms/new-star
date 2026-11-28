@@ -56,6 +56,7 @@ data class NativeGamingUiState(
     val guestMicrophoneAllowed: Boolean = false,
     val guestPublisherReady: Boolean = false,
     val guestPublisherStarting: Boolean = false,
+    val guestPublisherConnectionState: String = "idle",
     val guestPublisherCameraEnabled: Boolean = true,
     val guestPublisherMicEnabled: Boolean = false,
     val guestPublisherMicAvailable: Boolean = false,
@@ -484,12 +485,25 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                     roomId,
                     session,
                     microphoneGranted && mutableState.value.guestMicrophoneAllowed
-                )
+                ) { connectionState ->
+                    mutableState.update { current ->
+                        current.copy(
+                            guestPublisherConnectionState = connectionState,
+                            guestPublisherError = when (connectionState) {
+                                "FAILED" -> "Network connection टूट गया। Retry connection दबाएँ।"
+                                "DISCONNECTED" -> "Network connection अस्थायी रूप से बंद है; reconnect की प्रतीक्षा है।"
+                                "CONNECTED", "COMPLETED" -> if (current.guestPublisherReady) "आपका camera LIVE seat पर publish हो रहा है।" else current.guestPublisherError
+                                else -> current.guestPublisherError
+                            }
+                        )
+                    }
+                }
                 guestPublisher = publisher
                 val micOn = microphoneGranted && mutableState.value.guestMicrophoneAllowed
                 mutableState.update {
                     it.copy(
                         guestPublisherReady = true,
+                        guestPublisherConnectionState = "CONNECTED",
                         guestPublisherCameraEnabled = true,
                         guestPublisherMicEnabled = micOn,
                         guestPublisherMicAvailable = publisher.hasMicrophoneTrack,
@@ -500,6 +514,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 mutableState.update {
                     it.copy(
                         guestPublisherReady = false,
+                        guestPublisherConnectionState = "FAILED",
                         guestPublisherMicEnabled = false,
                         guestPublisherError = error.message ?: "Guest camera publish नहीं हो पाया।"
                     )
@@ -507,6 +522,14 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
             } finally {
                 mutableState.update { it.copy(guestPublisherStarting = false) }
             }
+        }
+    }
+
+    fun retryGuestPublisher(context: Context, microphoneGranted: Boolean) {
+        if (mutableState.value.guestPublisherStarting) return
+        viewModelScope.launch {
+            stopGuestPublisherInternal()
+            startGuestPublisher(context, mutableState.value.guestRoomId, microphoneGranted)
         }
     }
 
@@ -589,6 +612,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
         mutableState.update {
             it.copy(
                 guestPublisherReady = false,
+                guestPublisherConnectionState = "idle",
                 guestPublisherCameraEnabled = false,
                 guestPublisherMicEnabled = false,
                 guestPublisherMicAvailable = false,
@@ -781,6 +805,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 guestMicrophoneAllowed = false,
                 guestPublisherReady = false,
                 guestPublisherStarting = false,
+                guestPublisherConnectionState = "idle",
                 guestPublisherCameraEnabled = false,
                 guestPublisherMicEnabled = false,
                 guestPublisherError = ""
