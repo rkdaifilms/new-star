@@ -2499,16 +2499,59 @@ private object NativeVideoEditor {
 }
 private object NativeUploadDraftStore {
     private const val PREFS = "newstar_native_upload_drafts"
+    private const val KEY_ALIAS = "newstar_native_upload_draft_key"
+
+    private fun encryptionKey(): java.security.Key {
+        val keyStore = java.security.KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        (keyStore.getKey(KEY_ALIAS, null) as? java.security.Key)?.let { return it }
+        val generator = javax.crypto.KeyGenerator.getInstance(
+            android.security.keystore.KeyProperties.KEY_ALGORITHM_AES,
+            "AndroidKeyStore"
+        )
+        generator.init(
+            android.security.keystore.KeyGenParameterSpec.Builder(
+                KEY_ALIAS,
+                android.security.keystore.KeyProperties.PURPOSE_ENCRYPT or
+                    android.security.keystore.KeyProperties.PURPOSE_DECRYPT
+            )
+                .setBlockModes(android.security.keystore.KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(android.security.keystore.KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setRandomizedEncryptionRequired(true)
+                .build()
+        )
+        return generator.generateKey()
+    }
 
     fun load(context: Context, userId: String): JSONObject? {
-        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(userId, null) ?: return null
-        return runCatching { JSONObject(raw) }.getOrNull()
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val raw = prefs.getString(userId, null) ?: return null
+        return try {
+            val envelope = JSONObject(raw)
+            val iv = Base64.decode(envelope.getString("iv"), Base64.NO_WRAP)
+            val ciphertext = Base64.decode(envelope.getString("data"), Base64.NO_WRAP)
+            val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(
+                javax.crypto.Cipher.DECRYPT_MODE,
+                encryptionKey(),
+                javax.crypto.spec.GCMParameterSpec(128, iv)
+            )
+            JSONObject(String(cipher.doFinal(ciphertext), Charsets.UTF_8))
+        } catch (_: Exception) {
+            prefs.edit().remove(userId).commit()
+            null
+        }
     }
 
     fun save(context: Context, userId: String, draft: JSONObject) {
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, encryptionKey())
+        val ciphertext = cipher.doFinal(draft.toString().toByteArray(Charsets.UTF_8))
+        val envelope = JSONObject()
+            .put("iv", Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
+            .put("data", Base64.encodeToString(ciphertext, Base64.NO_WRAP))
+            .toString()
         check(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putString(userId, draft.toString()).commit()) {
+            .edit().putString(userId, envelope).commit()) {
             "Upload recovery state डिवाइस पर सुरक्षित नहीं हो सकी।"
         }
     }
