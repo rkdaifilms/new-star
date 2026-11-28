@@ -30,7 +30,10 @@ fun NativeCampaignScreen(session: NativeSession) {
     var countries by remember { mutableStateOf("NP") }
     var loading by remember { mutableStateOf(true) }
     var saving by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf("") }
+    var accessError by remember { mutableStateOf("") }
+    var campaignsError by remember { mutableStateOf("") }
+    var draftsError by remember { mutableStateOf("") }
+    var applicationsError by remember { mutableStateOf("") }
     var notice by remember { mutableStateOf("") }
     var proposalById by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var applyingId by remember { mutableStateOf("") }
@@ -38,28 +41,48 @@ fun NativeCampaignScreen(session: NativeSession) {
 
     suspend fun reload() {
         loading = true
-        error = ""
+        accessError = ""
+        campaignsError = ""
+        draftsError = ""
+        applicationsError = ""
         try {
             val rawAccess = NativeSupabase.post("/rest/v1/rpc/get_creator_feature_access", JSONObject(), session)
             access = JSONObject(rawAccess)
+        } catch (e: Exception) {
+            access = null
+            accessError = e.message ?: "Creator eligibility उपलब्ध नहीं है।"
+        }
+        try {
             val activeRows = NativeSupabase.get(
                 "/rest/v1/star_campaigns?select=id,title,description,brand_name,destination_url,currency,target_countries,starts_at,ends_at&status=eq.active&payment_status=eq.paid&order=created_at.desc&limit=50",
                 session
             )
             campaigns = (0 until activeRows.length()).mapNotNull { activeRows.optJSONObject(it) }
+        } catch (e: Exception) {
+            campaigns = emptyList()
+            campaignsError = e.message ?: "Active campaigns लोड नहीं हुए।"
+        }
+        try {
             val ownRows = NativeSupabase.get(
                 "/rest/v1/star_campaigns?select=id,title,description,brand_name,destination_url,status,payment_status,created_at&owner_id=eq.${Uri.encode(session.userId)}&order=created_at.desc&limit=50",
                 session
             )
             drafts = (0 until ownRows.length()).mapNotNull { ownRows.optJSONObject(it) }
+        } catch (e: Exception) {
+            drafts = emptyList()
+            draftsError = e.message ?: "आपके drafts लोड नहीं हुए।"
+        }
+        try {
             val appRows = NativeSupabase.get(
                 "/rest/v1/star_campaign_applications?select=id,campaign_id,proposal,status,created_at,star_campaigns(title,brand_name)&creator_id=eq.${Uri.encode(session.userId)}&order=created_at.desc&limit=50",
                 session
             )
             applications = (0 until appRows.length()).mapNotNull { appRows.optJSONObject(it) }
         } catch (e: Exception) {
-            error = e.message ?: "Campaign data लोड नहीं हुआ।"
-        } finally { loading = false }
+            applications = emptyList()
+            applicationsError = e.message ?: "आपकी applications लोड नहीं हुईं।"
+        }
+        loading = false
     }
 
     LaunchedEffect(session.userId) { reload() }
@@ -76,7 +99,7 @@ fun NativeCampaignScreen(session: NativeSession) {
             TextButton(onClick = { scope.launch { reload() } }, enabled = !loading) { Text("Refresh") }
         }
         if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-        if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
+        if (accessError.isNotBlank()) Text("Eligibility unavailable: $accessError", color = MaterialTheme.colorScheme.error)
         Text(
             if (createAllowed) "Unlocked · $followerCount verified followers" else "Locked · Campaign create/apply के लिए 1,000 genuine followers चाहिए। अभी: $followerCount/1,000",
             color = if (createAllowed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -139,6 +162,7 @@ fun NativeCampaignScreen(session: NativeSession) {
                 }
             }
             item { Text("Verified active & paid campaigns", style = MaterialTheme.typography.titleLarge) }
+            if (campaignsError.isNotBlank()) item { Text(campaignsError, color = MaterialTheme.colorScheme.error) }
             if (campaigns.isEmpty() && !loading) item { Text("अभी कोई सक्रिय payment-verified campaign उपलब्ध नहीं है।") }
             items(campaigns, key = { it.optString("id") }) { campaign ->
                 val id = campaign.optString("id")
@@ -167,8 +191,17 @@ fun NativeCampaignScreen(session: NativeSession) {
                                         proposalById = proposalById - id
                                         notice = "Application review के लिए भेजी गई। कोई भुगतान या कमाई नहीं बनी।"
                                         reload()
-                                    } catch (e: Exception) { notice = e.message ?: "Application submit नहीं हुई।" }
-                                    finally { applyingId = "" }
+                                    } catch (e: Exception) {
+                                        val message = e.message.orEmpty()
+                                        if (message.contains("duplicate", ignoreCase = true) ||
+                                            message.contains("unique constraint", ignoreCase = true) ||
+                                            message.contains("23505")) {
+                                            notice = "इस campaign में आपका आवेदन पहले से मौजूद है। सूची refresh की जा रही है।"
+                                            reload()
+                                        } else {
+                                            notice = message.ifBlank { "Application submit नहीं हुई।" }
+                                        }
+                                    } finally { applyingId = "" }
                                 }
                             }, modifier = Modifier.fillMaxWidth()
                         ) { Text(when { applyingId == id -> "Sending…"; alreadyApplied -> "Application already submitted"; else -> "Send application" }) }
@@ -179,6 +212,7 @@ fun NativeCampaignScreen(session: NativeSession) {
                 }
             }
             item { Text("Your applications", style = MaterialTheme.typography.titleLarge) }
+            if (applicationsError.isNotBlank()) item { Text(applicationsError, color = MaterialTheme.colorScheme.error) }
             if (applications.isEmpty() && !loading) item { Text("अभी कोई application नहीं है।") }
             items(applications, key = { it.optString("id") }) { row ->
                 val campaign = row.optJSONObject("star_campaigns")
@@ -191,6 +225,7 @@ fun NativeCampaignScreen(session: NativeSession) {
                 }
             }
             item { Text("Your drafts", style = MaterialTheme.typography.titleLarge) }
+            if (draftsError.isNotBlank()) item { Text(draftsError, color = MaterialTheme.colorScheme.error) }
             if (drafts.isEmpty() && !loading) item { Text("आपने अभी कोई campaign draft नहीं बनाया है।") }
             items(drafts, key = { it.optString("id") }) { row ->
                 Card(Modifier.fillMaxWidth()) {
