@@ -14,6 +14,18 @@ data class NativeLiveCreator(
         get() = fullName.ifBlank { username.ifBlank { "New Star Creator" } }
 }
 
+internal data class NativeLiveMember(
+    val userId: String,
+    val displayName: String,
+    val role: String,
+    val status: String,
+    val seatNumber: Int?,
+    val cameraAllowed: Boolean,
+    val microphoneAllowed: Boolean,
+    val cameraEnabled: Boolean,
+    val microphoneEnabled: Boolean
+)
+
 internal object NativeLiveRepository {
     suspend fun searchCreators(query: String, currentUserId: String, session: NativeSession): List<NativeLiveCreator> {
         val term = query.trim()
@@ -381,4 +393,82 @@ internal object NativeLiveRepository {
             }
         }
     }
+
+    suspend fun listModerationMembers(roomId: String, session: NativeSession): Pair<String, List<NativeLiveMember>> {
+        require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
+        val result = NativeSupabase.invokeFunction(
+            "cloudflare-live",
+            JSONObject().put("action", "list-members").put("room_id", roomId),
+            session
+        )
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "LIVE participants लोड नहीं हुए।"))
+        }
+        val rows = result.optJSONArray("members") ?: JSONArray()
+        val members = (0 until rows.length()).mapNotNull { index ->
+            val row = rows.optJSONObject(index) ?: return@mapNotNull null
+            val userId = row.optString("user_id")
+            if (userId.isBlank()) return@mapNotNull null
+            NativeLiveMember(
+                userId = userId,
+                displayName = row.optString("display_name").ifBlank { "LIVE Guest" },
+                role = row.optString("role").ifBlank { "guest" },
+                status = row.optString("status").ifBlank { "requested" },
+                seatNumber = row.optInt("seat_number").takeIf { it > 0 },
+                cameraAllowed = row.optBoolean("camera_allowed", true),
+                microphoneAllowed = row.optBoolean("microphone_allowed", true),
+                cameraEnabled = row.optBoolean("camera_enabled"),
+                microphoneEnabled = row.optBoolean("microphone_enabled")
+            )
+        }
+        return result.optString("actor_role", "viewer") to members
+    }
+
+    suspend fun manageLiveMember(
+        roomId: String,
+        targetUserId: String,
+        action: String,
+        enabled: Boolean? = null,
+        session: NativeSession
+    ) {
+        require(roomId.isNotBlank() && targetUserId.isNotBlank()) { "LIVE room और member आवश्यक हैं।" }
+        require(action in setOf("set-member-permissions", "set-moderator", "remove-member")) {
+            "यह participant action उपलब्ध नहीं है।"
+        }
+        val body = JSONObject().put("action", action)
+            .put("room_id", roomId).put("target_user_id", targetUserId)
+        when (action) {
+            "set-member-permissions" -> {
+                require(enabled != null) { "Permission state आवश्यक है।" }
+                // The caller supplies the permission key separately through the action suffix.
+                throw IllegalArgumentException("Use manageLiveMemberPermission for camera or microphone.")
+            }
+            "set-moderator" -> body.put("moderator", enabled == true)
+        }
+        val result = NativeSupabase.invokeFunction("cloudflare-live", body, session)
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "LIVE participant action पूरी नहीं हुई।"))
+        }
+    }
+
+    suspend fun manageLiveMemberPermission(
+        roomId: String,
+        targetUserId: String,
+        permission: String,
+        allowed: Boolean,
+        session: NativeSession
+    ) {
+        require(roomId.isNotBlank() && targetUserId.isNotBlank()) { "LIVE room और member आवश्यक हैं।" }
+        require(permission == "camera_allowed" || permission == "microphone_allowed") {
+            "केवल camera और microphone permission बदली जा सकती है।"
+        }
+        val body = JSONObject().put("action", "set-member-permissions")
+            .put("room_id", roomId).put("target_user_id", targetUserId)
+            .put(permission, allowed)
+        val result = NativeSupabase.invokeFunction("cloudflare-live", body, session)
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "LIVE permission update नहीं हुआ।"))
+        }
+    }
+
 }
