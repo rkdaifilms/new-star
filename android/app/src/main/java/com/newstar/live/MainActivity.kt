@@ -2225,6 +2225,7 @@ private fun NativeVideoCard(
                 when (state) {
                     androidx.media3.exoplayer.offline.Download.STATE_COMPLETED -> {
                         offlineSaved = true
+                        downloadRequested = false
                         break
                     }
                     androidx.media3.exoplayer.offline.Download.STATE_FAILED -> {
