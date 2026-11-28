@@ -2,7 +2,6 @@ package com.newstar.live
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.net.Uri
 import org.json.JSONObject
 
 internal enum class NativeNotificationCategory {
@@ -56,14 +55,14 @@ internal object NativeNotificationPreferences {
         val text = message.orEmpty().lowercase()
         return when {
             listOf("followed you", "started following", "new follower", "follow request",
-                "फॉलो किया", "फॉलो रिक्वेस्ट", "अनुसरण").any(text::contains) ->
+                "फॉलो किया", "फॉलो रिक्वेस्ट", "अनुसरण").any { phrase -> text.contains(phrase) } ->
                 NativeNotificationCategory.FOLLOW
-            listOf("liked your", "likes your", "liked a video", "ने लाइक", "पसंद किया").any(text::contains) ->
+            listOf("liked your", "likes your", "liked a video", "ने लाइक", "पसंद किया").any { phrase -> text.contains(phrase) } ->
                 NativeNotificationCategory.LIKE
-            listOf("commented", "new comment", "replied to", "कमेंट", "टिप्पणी").any(text::contains) ->
+            listOf("commented", "new comment", "replied to", "कमेंट", "टिप्पणी").any { phrase -> text.contains(phrase) } ->
                 NativeNotificationCategory.COMMENT
             listOf("sent you a message", "new message", "direct message", "message from",
-                "संदेश भेजा", "नया संदेश").any(text::contains) ->
+                "संदेश भेजा", "नया संदेश").any { phrase -> text.contains(phrase) } ->
                 NativeNotificationCategory.MESSAGE
             else -> null
         }
