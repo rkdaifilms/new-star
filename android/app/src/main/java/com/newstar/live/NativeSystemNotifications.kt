@@ -14,6 +14,8 @@ import androidx.core.content.ContextCompat
 import org.json.JSONObject
 
 object NativeSystemNotifications {
+    const val ACTION_OPEN_GAMING = "com.newstar.live.action.OPEN_GAMING"
+    const val EXTRA_LIVE_INVITE_ID = "com.newstar.live.extra.LIVE_INVITE_ID"
     const val ACTION_OPEN_CREATOR = "com.newstar.live.action.OPEN_CREATOR"
     const val EXTRA_CREATOR_ID = "com.newstar.live.extra.CREATOR_ID"
     const val EXTRA_NOTIFICATION_ID = "com.newstar.live.extra.NOTIFICATION_ID"
@@ -39,6 +41,38 @@ object NativeSystemNotifications {
         return Build.VERSION.SDK_INT < 33 ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
+    }
+
+    fun showLiveInvite(context: Context, invite: JSONObject) {
+        if (!hasPermission(context)) return
+        createChannel(context)
+        val inviteId = invite.optString("id")
+        if (inviteId.isBlank()) return
+        val inviterName = invite.optString("inviter_name").ifBlank { "New Star Creator" }
+        val roomTitle = invite.optString("room_title").ifBlank { "Gaming LIVE" }
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            action = ACTION_OPEN_GAMING
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(EXTRA_LIVE_INVITE_ID, inviteId)
+        }
+        val notificationId = ("live-invite:" + inviteId).hashCode()
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val message = "$inviterName ने आपको $roomTitle में Gaming LIVE के लिए invite किया है।"
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Gaming LIVE invitation")
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(pendingIntent)
+        NotificationManagerCompat.from(context).notify(notificationId, builder.build())
     }
 
     fun show(context: Context, notification: JSONObject, actorName: String) {
