@@ -41,7 +41,7 @@ private val nsThemes = listOf(
 )
 
 @Composable
-fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutAll: () -> Unit, onOpenDeveloperReports: () -> Unit) {
+fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutAll: () -> Unit, onOpenDeveloperReports: () -> Unit, onOpenHelpCenter: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val local = remember { context.getSharedPreferences("newstar_preferences", Context.MODE_PRIVATE) }
@@ -313,6 +313,9 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
         Text("Website AdSense approval और Android AdMob integration अलग प्रक्रियाएँ हैं; अभी native Settings से कोई approval या earning verified नहीं है.")
         Text("08 · Help & About", style = MaterialTheme.typography.titleLarge)
         Text("New Star Creator Hub · Native Android")
+        OutlinedButton(onClick = onOpenHelpCenter, modifier = Modifier.fillMaxWidth()) {
+            Text("Open New Star Help Center AI")
+        }
         Button(onClick = {
             autoSyncJob?.cancel()
             local.edit().putString("_updatedAt", java.time.Instant.now().toString()).apply()
@@ -328,7 +331,7 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
             else Text("Save & Sync Preferences")
         }
         Text(status, style = MaterialTheme.typography.bodySmall)
-        Text("नोट: 25 भाषा/थीम विकल्प उपलब्ध हैं। सभी स्क्रीन का पूर्ण अनुवाद, हर स्क्रीन पर theme application, password/email update, blocked accounts और logout-all अभी पूरा port नहीं हुआ है.",
+        Text("नोट: भाषा, थीम, account email/password update, blocked accounts और logout-all controls native Settings में उपलब्ध हैं। कुछ स्क्रीन का अनुवाद और हर Android device पर व्यवहार अलग से जाँचना बाकी है.",
             style = MaterialTheme.typography.bodySmall)
     }
 }
