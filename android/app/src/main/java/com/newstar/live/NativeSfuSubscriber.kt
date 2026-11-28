@@ -7,19 +7,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 import org.webrtc.EglBase
 import org.webrtc.MediaConstraints
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnectionFactory
-import org.webrtc.RtpReceiver
 import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import org.webrtc.SurfaceViewRenderer
 import org.webrtc.VideoTrack
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -34,42 +38,59 @@ internal class NativeSfuSubscriber private constructor(
 ) {
     private val stopped = AtomicBoolean(false)
     private val trackLock = Any()
-    @Volatile private var remoteVideo: VideoTrack? = null
-    @Volatile private var renderer: SurfaceViewRenderer? = null
+    private val remoteVideos = LinkedHashMap<String, VideoTrack>()
+    private val renderers = LinkedHashMap<String, SurfaceViewRenderer>()
+    private val _remoteVideoMids = MutableStateFlow<List<String>>(emptyList())
+    val remoteVideoMids: StateFlow<List<String>> = _remoteVideoMids.asStateFlow()
 
-    fun attachRenderer(target: SurfaceViewRenderer) {
+    fun attachRenderer(mid: String, target: SurfaceViewRenderer) {
+        require(mid.isNotBlank()) { "Remote video MID उपलब्ध नहीं है।" }
         check(!stopped.get()) { "SFU viewer बंद हो चुका है।" }
-        if (renderer === target) return
-        detachRenderer()
-        target.init(egl.eglBaseContext, null)
-        target.setEnableHardwareScaler(true)
-        target.setMirror(false)
         synchronized(trackLock) {
-            remoteVideo?.addSink(target)
-            renderer = target
+            if (renderers[mid] === target) return
+            renderers.remove(mid)?.let { old ->
+                remoteVideos[mid]?.let { track -> runCatching { track.removeSink(old) } }
+            }
+            target.init(egl.eglBaseContext, null)
+            target.setEnableHardwareScaler(true)
+            target.setMirror(false)
+            renderers[mid] = target
+            remoteVideos[mid]?.addSink(target)
         }
     }
 
-    fun detachRenderer() {
+    fun detachRenderer(mid: String, target: SurfaceViewRenderer) {
         synchronized(trackLock) {
-            val old = renderer
-            val track = remoteVideo
-            if (old != null && track != null) runCatching { track.removeSink(old) }
-            renderer = null
+            if (renderers[mid] !== target) return
+            remoteVideos[mid]?.let { track -> runCatching { track.removeSink(target) } }
+            renderers.remove(mid)
         }
     }
 
-    private fun onRemoteTrack(track: VideoTrack) {
+    private fun onRemoteTrack(mid: String, track: VideoTrack) {
+        if (mid.isBlank() || stopped.get()) return
         synchronized(trackLock) {
-            remoteVideo?.let { previous -> renderer?.let { runCatching { previous.removeSink(it) } } }
-            remoteVideo = track
-            renderer?.let { track.addSink(it) }
+            val previous = remoteVideos.put(mid, track)
+            if (previous !== track) {
+                renderers[mid]?.let { renderer ->
+                    previous?.let { old -> runCatching { old.removeSink(renderer) } }
+                    track.addSink(renderer)
+                }
+            }
+            _remoteVideoMids.value = remoteVideos.keys.sortedBy { it.toIntOrNull() ?: Int.MAX_VALUE }
         }
     }
 
     suspend fun stop() {
         if (!stopped.compareAndSet(false, true)) return
-        detachRenderer()
+        synchronized(trackLock) {
+            renderers.forEach { (mid, renderer) ->
+                remoteVideos[mid]?.let { track -> runCatching { track.removeSink(renderer) } }
+            }
+            renderers.clear()
+            remoteVideos.clear()
+            _remoteVideoMids.value = emptyList()
+        }
         runCatching {
             if (trackMids.length() > 0) {
                 NativeLiveRepository.closeSfuSession(roomId, sfuSessionId, trackMids, session)
@@ -78,7 +99,6 @@ internal class NativeSfuSubscriber private constructor(
             }
         }
         runCatching { peer.close(); peer.dispose() }
-        remoteVideo = null
         runCatching { factory.dispose() }
         runCatching { egl.release() }
     }
@@ -127,7 +147,9 @@ internal class NativeSfuSubscriber private constructor(
                     override fun onCreateFailure(error: String) {
                         if (continuation.isActive) continuation.resumeWithException(IllegalStateException(error))
                     }
-                    override fun onSetFailure(error: String) {}
+                    override fun onSetFailure(error: String) {
+                        if (continuation.isActive) continuation.resumeWithException(IllegalStateException(error))
+                    }
                 }, MediaConstraints())
             }
 
@@ -158,6 +180,7 @@ internal class NativeSfuSubscriber private constructor(
             if (requested.length() == 0) {
                 throw IllegalStateException("इस LIVE room में अभी कोई SFU camera या microphone publication उपलब्ध नहीं है।")
             }
+            require(requested.length() <= 20) { "इस LIVE room में subscribe करने के लिए 20 से अधिक media tracks उपलब्ध हैं।" }
 
             val sfuSessionId = NativeLiveRepository.createSfuSession(roomId, "subscriber", session)
             var factory: PeerConnectionFactory? = null
@@ -173,9 +196,9 @@ internal class NativeSfuSubscriber private constructor(
                 factory = createdFactory
                 val gathered = CompletableDeferred<Unit>()
                 val connected = CompletableDeferred<Unit>()
-                val remoteVideo = java.util.concurrent.atomic.AtomicReference<VideoTrack?>(null)
-                val remoteTrackConsumer = java.util.concurrent.atomic.AtomicReference<((VideoTrack) -> Unit)?>(null)
-                val createdPeer = factory.createPeerConnection(
+                val pendingTracks = ConcurrentHashMap<String, VideoTrack>()
+                val subscriberRef = AtomicReference<NativeSfuSubscriber?>(null)
+                val createdPeer = createdFactory.createPeerConnection(
                     PeerConnection.RTCConfiguration(
                         listOf(PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer())
                     ).apply { sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN },
@@ -201,11 +224,12 @@ internal class NativeSfuSubscriber private constructor(
                         override fun onRemoveStream(stream: org.webrtc.MediaStream) {}
                         override fun onDataChannel(channel: org.webrtc.DataChannel) {}
                         override fun onRenegotiationNeeded() {}
-                        override fun onAddTrack(receiver: RtpReceiver, streams: Array<out org.webrtc.MediaStream>) {
-                            (receiver.track() as? VideoTrack)?.let { track -> remoteVideo.set(track); remoteTrackConsumer.get()?.invoke(track) }
-                        }
+                        override fun onAddTrack(receiver: org.webrtc.RtpReceiver, streams: Array<out org.webrtc.MediaStream>) {}
                         override fun onTrack(transceiver: RtpTransceiver) {
-                            (transceiver.receiver.track() as? VideoTrack)?.let { track -> remoteVideo.set(track); remoteTrackConsumer.get()?.invoke(track) }
+                            val mid = transceiver.mid ?: return
+                            val track = transceiver.receiver.track() as? VideoTrack ?: return
+                            pendingTracks[mid] = track
+                            subscriberRef.get()?.onRemoteTrack(mid, track)
                         }
                         override fun onConnectionChange(state: PeerConnection.PeerConnectionState) {}
                     }
@@ -227,18 +251,24 @@ internal class NativeSfuSubscriber private constructor(
                     ?: throw IllegalStateException("SFU subscriber SDP answer उपलब्ध नहीं है।")
                 NativeLiveRepository.renegotiateSfuSession(roomId, sfuSessionId, localAnswer.description, session)
                 withTimeout(30000) { connected.await() }
+
                 val mids = JSONArray()
                 val returnedTracks = response.optJSONArray("tracks") ?: JSONArray()
                 for (index in 0 until returnedTracks.length()) {
                     val mid = returnedTracks.optJSONObject(index)?.optString("mid").orEmpty()
                     if (mid.matches(Regex("\\d+"))) mids.put(JSONObject().put("mid", mid))
                 }
-                return@withContext NativeSfuSubscriber(
-                    roomId, session, sfuSessionId, createdFactory, createdEgl, createdPeer, mids
-                ).also { subscriber ->
-                    remoteTrackConsumer.set(subscriber::onRemoteTrack)
-                    remoteVideo.get()?.let { subscriber.onRemoteTrack(it) }
+                if (mids.length() == 0) {
+                    createdPeer.transceivers.mapNotNull { it.mid }
+                        .distinct()
+                        .forEach { mid -> mids.put(JSONObject().put("mid", mid)) }
                 }
+                val subscriber = NativeSfuSubscriber(
+                    roomId, session, sfuSessionId, createdFactory, createdEgl, createdPeer, mids
+                )
+                subscriberRef.set(subscriber)
+                pendingTracks.forEach { (mid, track) -> subscriber.onRemoteTrack(mid, track) }
+                return@withContext subscriber
             } catch (error: Exception) {
                 runCatching { peer?.close(); peer?.dispose() }
                 runCatching { factory?.dispose() }
