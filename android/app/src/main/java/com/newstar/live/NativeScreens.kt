@@ -86,6 +86,7 @@ import androidx.media3.effect.Crop
 import androidx.media3.effect.RgbFilter
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.TextOverlay
+import androidx.media3.effect.StaticOverlaySettings
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
@@ -1790,6 +1791,9 @@ fun NativeUploadScreen(session: NativeSession) {
     var centerCrop by remember { mutableStateOf(false) }
     var exportSpeed by remember { mutableFloatStateOf(1f) }
     var overlayText by remember { mutableStateOf("") }
+    var overlayTextSize by remember { mutableIntStateOf(24) }
+    var overlayTextColor by remember { mutableStateOf("#FFFFFF") }
+    var overlayTextPosition by remember { mutableStateOf("center") }
     var splitAtSeconds by remember { mutableStateOf("") }
     var splitParts by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var musicUri by remember { mutableStateOf<Uri?>(null) }
@@ -1839,6 +1843,9 @@ fun NativeUploadScreen(session: NativeSession) {
             centerCrop = false
             exportSpeed = 1f
             overlayText = ""
+            overlayTextSize = 24
+            overlayTextColor = "#FFFFFF"
+            overlayTextPosition = "center"
             editing = true
             status = if (source == "camera") "Camera recording मिल गई। Native editor में बदलाव करके Publish करें।" else "वीडियो चुना गया। Trim, rotate या mute सेट करके Apply edits दबाएँ।"
         } catch (e: Exception) {
@@ -2051,6 +2058,7 @@ fun NativeUploadScreen(session: NativeSession) {
                         val first = NativeVideoEditor.export(
                             context, input, start * 1000L, split * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
+                            textSizePx = overlayTextSize, textColorHex = overlayTextColor, textPosition = overlayTextPosition,
                             sourceVolume = originalAudioVolume,
                             onProgress = { value -> editingProgress = (value / 2).coerceIn(0, 49) }
                         )
@@ -2058,6 +2066,7 @@ fun NativeUploadScreen(session: NativeSession) {
                         val second = NativeVideoEditor.export(
                             context, input, split * 1000L, end * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
+                            textSizePx = overlayTextSize, textColorHex = overlayTextColor, textPosition = overlayTextPosition,
                             sourceVolume = originalAudioVolume,
                             onProgress = { value -> editingProgress = (50 + value / 2).coerceIn(50, 99) }
                         )
@@ -2103,6 +2112,9 @@ fun NativeUploadScreen(session: NativeSession) {
                     exportSpeed = 1f
                     originalAudioVolume = 1f
                     overlayText = ""
+                    overlayTextSize = 24
+                    overlayTextColor = "#FFFFFF"
+                    overlayTextPosition = "center"
                     status = "Editor settings reset हो गईं।"
                 }, enabled = !uploading) { Text("Reset") }
             }
@@ -2238,6 +2250,20 @@ fun NativeUploadScreen(session: NativeSession) {
                 maxLines = 2,
                 enabled = !uploading
             )
+            Text("Text Size · $overlayTextSize px", style = MaterialTheme.typography.labelLarge)
+            Slider(value = overlayTextSize.toFloat(), onValueChange = { overlayTextSize = it.toInt().coerceIn(14, 70) }, valueRange = 14f..70f, enabled = !uploading && overlayText.isNotBlank())
+            Text("Text Color", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                listOf("#FFFFFF" to "White", "#FFFF00" to "Yellow", "#25F4EE" to "Cyan", "#FF4D8D" to "Pink").forEach { (hex, label) ->
+                    FilterChip(selected = overlayTextColor == hex, onClick = { overlayTextColor = hex }, enabled = !uploading, label = { Text(label) })
+                }
+            }
+            Text("Text Position", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("top" to "Top", "center" to "Center", "bottom" to "Bottom").forEach { (value, label) ->
+                    FilterChip(selected = overlayTextPosition == value, onClick = { overlayTextPosition = value }, enabled = !uploading, label = { Text(label) })
+                }
+            }
             Text("Color filter", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = selectedFilter == "none", onClick = { selectedFilter = "none" }, enabled = !uploading, label = { Text("Original") })
@@ -2264,6 +2290,7 @@ fun NativeUploadScreen(session: NativeSession) {
                         val output = NativeVideoEditor.export(
                             context, input, start * 1000L, end * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
+                            textSizePx = overlayTextSize, textColorHex = overlayTextColor, textPosition = overlayTextPosition,
                             sourceVolume = originalAudioVolume,
                             musicUri = musicUri, voiceoverFile = voiceoverFile,
                             musicVolume = musicVolume, voiceVolume = voiceVolume,
@@ -2471,6 +2498,9 @@ private object NativeVideoEditor {
         centerCrop: Boolean,
         speed: Float,
         overlayText: String,
+        textSizePx: Int = 24,
+        textColorHex: String = "#FFFFFF",
+        textPosition: String = "center",
         sourceVolume: Float = 1f,
         musicUri: Uri? = null,
         voiceoverFile: File? = null,
@@ -2496,11 +2526,17 @@ private object NativeVideoEditor {
             else -> error("Unsupported video filter.")
         }
         if (overlayText.isNotBlank()) {
+            NativeVideoEditorPolicy.requireTextStyle(textSizePx, textColorHex, textPosition)
             val text = SpannableString(overlayText.trim().take(100))
-            text.setSpan(ForegroundColorSpan(Color.WHITE), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            text.setSpan(ForegroundColorSpan(Color.parseColor(textColorHex)), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             text.setSpan(BackgroundColorSpan(Color.argb(170, 0, 0, 0)), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            text.setSpan(AbsoluteSizeSpan(64), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            videoEffects.add(OverlayEffect(listOf(TextOverlay.createStaticTextOverlay(text))))
+            text.setSpan(AbsoluteSizeSpan(textSizePx), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            val anchorY = NativeVideoEditorPolicy.textPositionAnchorY(textPosition)
+            val overlaySettings = StaticOverlaySettings.Builder()
+                .setBackgroundFrameAnchor(0f, anchorY)
+                .setOverlayFrameAnchor(0f, 0f)
+                .build()
+            videoEffects.add(OverlayEffect(listOf(TextOverlay.createStaticTextOverlay(text, overlaySettings))))
         }
         NativeVideoEditorPolicy.requireSpeed(speed)
         val speedProvider = object : SpeedProvider {
