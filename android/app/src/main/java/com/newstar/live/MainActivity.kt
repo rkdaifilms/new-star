@@ -2080,16 +2080,16 @@ private fun NativeVideoCard(
         if (creatorId.isBlank() || creatorId == current.userId) { followLabel = ""; return@LaunchedEffect }
         try {
             val profile = NativeSupabase.get(
-                "/rest/v1/creator_public_profiles?select=is_private&user_id=eq.\${Uri.encode(creatorId)}&limit=1",
+                "/rest/v1/creator_public_profiles?select=is_private&user_id=eq.${Uri.encode(creatorId)}&limit=1",
                 current
             ).optJSONObject(0) ?: run { followLabel = ""; return@LaunchedEffect }
             val followed = NativeSupabase.get(
-                "/rest/v1/followers?select=id&follower_id=eq.\${Uri.encode(current.userId)}&following_id=eq.\${Uri.encode(creatorId)}&limit=1",
+                "/rest/v1/followers?select=id&follower_id=eq.${Uri.encode(current.userId)}&following_id=eq.${Uri.encode(creatorId)}&limit=1",
                 current
             )
             followLabel = if (followed.length() > 0) "Following" else if (profile.optBoolean("is_private")) {
                 val requests = NativeSupabase.get(
-                    "/rest/v1/follow_requests?select=id&requester_id=eq.\${Uri.encode(current.userId)}&target_user_id=eq.\${Uri.encode(creatorId)}&status=eq.pending&limit=1",
+                    "/rest/v1/follow_requests?select=id&requester_id=eq.${Uri.encode(current.userId)}&target_user_id=eq.${Uri.encode(creatorId)}&status=eq.pending&limit=1",
                     current
                 )
                 if (requests.length() > 0) "Requested" else "Request Follow"
@@ -2155,7 +2155,7 @@ private fun NativeVideoCard(
             Column(Modifier.fillMaxWidth().padding(14.dp)) {
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Text(
-                        "@\${video.username.ifBlank { "creator" }}",
+                        "@${video.username.ifBlank { "creator" }}",
                         modifier = Modifier.weight(1f).then(if (onOpenCreator != null && video.userId.isNotBlank()) Modifier.clickable { onOpenCreator(video.userId) } else Modifier),
                         fontWeight = FontWeight.Bold
                     )
@@ -2172,13 +2172,13 @@ private fun NativeVideoCard(
                                         when (followLabel) {
                                             "Following" -> {
                                                 val rows = NativeSupabase.get(
-                                                    "/rest/v1/followers?select=id&follower_id=eq.\${Uri.encode(current.userId)}&following_id=eq.\${Uri.encode(creatorId)}&limit=1",
+                                                    "/rest/v1/followers?select=id&follower_id=eq.${Uri.encode(current.userId)}&following_id=eq.${Uri.encode(creatorId)}&limit=1",
                                                     current
                                                 )
                                                 val rowId = rows.optJSONObject(0)?.optString("id").orEmpty()
                                                 if (rowId.isBlank()) throw IllegalStateException("Follow record नहीं मिला।")
                                                 NativeSupabase.delete(
-                                                    "/rest/v1/followers?id=eq.\${Uri.encode(rowId)}&follower_id=eq.\${Uri.encode(current.userId)}",
+                                                    "/rest/v1/followers?id=eq.${Uri.encode(rowId)}&follower_id=eq.${Uri.encode(current.userId)}",
                                                     current
                                                 )
                                                 followLabel = "Follow"
