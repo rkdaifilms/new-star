@@ -15,6 +15,7 @@ data class NativeLiveCreator(
 }
 
 internal data class NativeLiveMember(
+    val participantId: String,
     val userId: String,
     val displayName: String,
     val role: String,
@@ -410,6 +411,7 @@ internal object NativeLiveRepository {
             val userId = row.optString("user_id")
             if (userId.isBlank()) return@mapNotNull null
             NativeLiveMember(
+                participantId = row.optString("id"),
                 userId = userId,
                 displayName = row.optString("display_name").ifBlank { "LIVE Guest" },
                 role = row.optString("role").ifBlank { "guest" },
