@@ -209,6 +209,8 @@ internal fun NativeLiveHostControls(session: NativeSession) {
     val currentPublisher by androidx.compose.runtime.rememberUpdatedState(publisher)
     val currentSubscriber by androidx.compose.runtime.rememberUpdatedState(sfuSubscriber)
     val currentRoomId by androidx.compose.runtime.rememberUpdatedState(roomId)
+    val liveChatViewModel: NativeLiveChatViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val liveChatState by liveChatViewModel.state.collectAsState()
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -296,6 +298,16 @@ internal fun NativeLiveHostControls(session: NativeSession) {
             }
             kotlinx.coroutines.delay(3500)
         }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(roomId, session.userId, session.accessToken) {
+        val activeRoom = roomId
+        if (activeRoom == null) liveChatViewModel.stop()
+        else liveChatViewModel.start(activeRoom, session)
+    }
+
+    androidx.compose.runtime.DisposableEffect(liveChatViewModel) {
+        onDispose { liveChatViewModel.stop() }
     }
 
     androidx.compose.runtime.DisposableEffect(session.userId) {
@@ -438,6 +450,112 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                             color = if (pkNotice.startsWith("Battle status")) androidx.compose.material3.MaterialTheme.colorScheme.error else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                             style = androidx.compose.material3.MaterialTheme.typography.bodySmall
                         )
+                    }
+                }
+                androidx.compose.material3.Card(androidx.compose.ui.Modifier.fillMaxWidth()) {
+                    androidx.compose.foundation.layout.Column(
+                        androidx.compose.ui.Modifier.padding(12.dp),
+                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                    ) {
+                        androidx.compose.material3.Text("LIVE Chat", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                        androidx.compose.material3.Text(
+                            "Room chat और reactions सभी LIVE viewers के साथ server पर sync होते हैं।",
+                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (liveChatState.loading && liveChatState.messages.isEmpty()) {
+                            androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+                        }
+                        if (liveChatState.messages.isEmpty() && !liveChatState.loading) {
+                            androidx.compose.material3.Text(
+                                "अभी कोई message नहीं है। LIVE viewers से बातचीत शुरू करें।",
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            androidx.compose.foundation.lazy.LazyColumn(
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp),
+                                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
+                            ) {
+                                items(
+                                    items = liveChatState.messages.takeLast(30),
+                                    key = { it.optString("id") }
+                                ) { message ->
+                                    androidx.compose.foundation.layout.Column(
+                                        modifier = Modifier.fillMaxWidth()
+                                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                            .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant)
+                                            .padding(horizontal = 9.dp, vertical = 6.dp)
+                                    ) {
+                                        androidx.compose.material3.Text(
+                                            message.optString("display_name").ifBlank { "LIVE Viewer" },
+                                            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        androidx.compose.material3.Text(
+                                            message.optString("message"),
+                                            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        androidx.compose.foundation.layout.Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.OutlinedTextField(
+                                value = liveChatState.draft,
+                                onValueChange = liveChatViewModel::setDraft,
+                                modifier = Modifier.weight(1f),
+                                label = { androidx.compose.material3.Text("Message") },
+                                maxLines = 3,
+                                enabled = !liveChatState.sending
+                            )
+                            androidx.compose.material3.Button(
+                                enabled = liveChatState.draft.trim().isNotEmpty() && !liveChatState.sending,
+                                onClick = liveChatViewModel::sendMessage
+                            ) {
+                                if (liveChatState.sending) {
+                                    androidx.compose.material3.CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp), strokeWidth = 2.dp
+                                    )
+                                } else androidx.compose.material3.Text("Send")
+                            }
+                        }
+                        androidx.compose.foundation.layout.Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf("like" to "👍", "heart" to "❤️", "clap" to "👏", "fire" to "🔥").forEach { (reaction, emoji) ->
+                                androidx.compose.material3.OutlinedButton(
+                                    enabled = liveChatState.reactionBusy == null,
+                                    onClick = { liveChatViewModel.sendReaction(reaction) },
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                                ) {
+                                    androidx.compose.material3.Text(
+                                        "$emoji " + (liveChatState.reactionCounts[reaction] ?: 0),
+                                        style = androidx.compose.material3.MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            }
+                        }
+                        if (liveChatState.error.isNotBlank()) {
+                            androidx.compose.material3.Text(
+                                liveChatState.error,
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        if (liveChatState.reactionNotice.isNotBlank()) {
+                            androidx.compose.material3.Text(
+                                liveChatState.reactionNotice,
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
                 androidx.compose.material3.Card(androidx.compose.ui.Modifier.fillMaxWidth()) {
