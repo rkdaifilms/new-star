@@ -277,11 +277,15 @@ Deno.serve(async (req: Request) => {
       status: nextStatus, reviewed_by: user.id, reviewed_at: new Date().toISOString()
     }).eq("id", reportId).select("id,status,target_type,target_id").single();
     if (error) return fail("Could not update content report", 500);
-    await admin.schema("private").from("admin_audit_logs").insert({
+    const { error: auditError } = await admin.schema("private").from("admin_audit_logs").insert({
       actor_id: user.id, action: "content_report_reviewed", target_type: report.target_type,
       target_id: report.target_id, details: { report_id: report.id, status: nextStatus }
     });
-    return new Response(JSON.stringify({ ok: true, report }), { headers: cors });
+    return new Response(JSON.stringify({
+      ok: true, report: { ...report, reviewed_by: user.id },
+      audit_logged: !auditError,
+      audit_warning: auditError ? "Review saved, but audit logging needs administrator attention." : null
+    }), { headers: cors });
   }
 
   if (body.action === "claim_owner") {
