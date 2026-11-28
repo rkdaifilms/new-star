@@ -228,6 +228,7 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
     var editVideoVisibility by remember { mutableStateOf("public") }
     var confirmVideoDelete by remember { mutableStateOf(false) }
     var videoManagerNotice by remember { mutableStateOf("") }
+    var audioMixVideo by remember { mutableStateOf<JSONObject?>(null) }
 
     LaunchedEffect(videoManagerState.updatedVideo, videoManagerState.deletedVideoId, videoManagerState.message) {
         val updated = videoManagerState.updatedVideo
@@ -726,6 +727,15 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                         supportingText = { Text("अधिकतम 30 hashtags; # अपने आप जोड़ा जाएगा।") },
                         enabled = !videoManagerState.busy
                     )
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !videoManagerState.busy,
+                        onClick = {
+                            audioMixVideo = JSONObject(selected.toString())
+                            selectedVideoForManagement = null
+                            confirmVideoDelete = false
+                        }
+                    ) { Text("🎙️ Voice / Music Mix") }
                     Text("Video privacy", style = MaterialTheme.typography.titleSmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("public" to "Public", "unlisted" to "Unlisted", "private" to "Private").forEach { option ->
@@ -776,6 +786,23 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
                         }
                     ) { Text("Cancel") }
                 }
+            }
+        )
+    }
+
+    audioMixVideo?.let { mixVideo ->
+        NativeProfileVideoAudioMixerDialog(
+            session = session,
+            video = mixVideo,
+            onDismiss = { audioMixVideo = null },
+            onSaved = { changed ->
+                val changedId = changed.optString("id")
+                videos = videos.map { existing ->
+                    if (existing.optString("id") == changedId) changed else existing
+                }
+                audioMixVideo = null
+                videoManagerNotice = "Audio mix सेव हो गया।"
+                refresh++
             }
         )
     }
@@ -2803,7 +2830,7 @@ private fun stableConversationId(first: String, second: String): String {
 }
 
 @OptIn(UnstableApi::class)
-private object NativeVideoEditor {
+internal object NativeVideoEditor {
     private fun audioEffects(volume: Float): Effects {
         require(volume in 0f..1f) { "Audio volume 0 से 100% के बीच होना चाहिए।" }
         val channelMixer = ChannelMixingAudioProcessor()
@@ -2818,6 +2845,48 @@ private object NativeVideoEditor {
                 if (volume == 1f) C.TIME_END_OF_SOURCE else C.TIME_UNSET
         })
         return Effects(listOf(ToInt16PcmAudioProcessor(), channelMixer, gain), emptyList())
+    }
+
+
+    suspend fun remix(
+        context: Context,
+        input: Uri,
+        musicUri: Uri?,
+        voiceoverFile: File?,
+        onProgress: (Int) -> Unit
+    ): File {
+        require(musicUri != null || (voiceoverFile?.isFile == true && voiceoverFile.length() > 0L)) {
+            "Gallery audio चुनें या voice record करें।"
+        }
+        val durationMs = withContext(Dispatchers.IO) {
+            val retriever = MediaMetadataRetriever()
+            try {
+                retriever.setDataSource(context, input)
+                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+                    ?: error("Original video duration पढ़ी नहीं जा सकी।")
+            } finally {
+                retriever.release()
+            }
+        }
+        require(durationMs > 0L) { "Original video की duration अमान्य है।" }
+        return export(
+            context = context,
+            input = input,
+            startMs = 0L,
+            endMs = durationMs,
+            rotation = 0,
+            muteAudio = true,
+            filter = "none",
+            centerCrop = false,
+            speed = 1f,
+            overlayText = "",
+            sourceVolume = 0f,
+            musicUri = musicUri,
+            voiceoverFile = voiceoverFile,
+            musicVolume = 0.85f,
+            voiceVolume = 1f,
+            onProgress = onProgress
+        )
     }
 
     suspend fun export(
