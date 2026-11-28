@@ -6,7 +6,8 @@
 (function () {
   "use strict";
   var params = new URLSearchParams(window.location.search);
-  if (params.get("native_oauth") !== "1") return;
+  window.__NS_NATIVE_OAUTH_RETURN__ = params.get("native_oauth") === "1";
+  if (!window.__NS_NATIVE_OAUTH_RETURN__) return;
   var code = params.get("code");
   var state = params.get("oauth_state");
   if (!code || !state) return;
@@ -487,10 +488,30 @@ function setCover(url){
 
 function showAuth(message){
  user=null;
- $("auth").classList.remove("hidden");
  $("app").classList.add("hidden");
  $("videoGrid").replaceChildren();
  $("profileMenu").classList.add("hidden");
+
+ // A native OAuth return belongs to the installed app. Never fall back to
+ // this web profile's compact login form, which would create a second login UI.
+ if(window.__NS_NATIVE_OAUTH_RETURN__){
+  $("auth").classList.add("hidden");
+  let status=document.getElementById("nativeOAuthReturnStatus");
+  if(!status){
+   status=document.createElement("section");
+   status.id="nativeOAuthReturnStatus";
+   status.className="card";
+   status.style.maxWidth="390px";
+   status.style.margin="24px auto";
+   status.style.padding="24px";
+   status.style.textAlign="center";
+   document.body.appendChild(status);
+  }
+  status.textContent=message||"Google Login पूरा नहीं हुआ। New Star Android ऐप में वापस जाकर दोबारा कोशिश करें।";
+  return;
+ }
+
+ $("auth").classList.remove("hidden");
  if(message)authMsg(message);
 }
 
