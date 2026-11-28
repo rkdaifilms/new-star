@@ -1,0 +1,321 @@
+package com.newstar.live
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+
+@Composable
+internal fun NativeLiveGuestSeatPanel(
+    roomId: String,
+    session: NativeSession,
+    seatCapacity: Int
+) {
+    var participants by remember(roomId) { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var loading by remember(roomId) { mutableStateOf(true) }
+    var error by remember(roomId) { mutableStateOf("") }
+    var notice by remember(roomId) { mutableStateOf("") }
+    var busyParticipantId by remember(roomId) { mutableStateOf("") }
+    var searchQuery by remember(roomId) { mutableStateOf("") }
+    var searchBusy by remember(roomId) { mutableStateOf(false) }
+    var searchError by remember(roomId) { mutableStateOf("") }
+    var searchResults by remember(roomId) { mutableStateOf<List<NativeLiveCreator>>(emptyList()) }
+    var refreshKey by remember(roomId) { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+
+    suspend fun reloadParticipants() {
+        try {
+            participants = NativeLiveRepository.listParticipants(roomId, session)
+            error = ""
+        } catch (e: Exception) {
+            error = e.message ?: "LIVE guest list लोड नहीं हुई।"
+        } finally {
+            loading = false
+        }
+    }
+
+    LaunchedEffect(roomId, refreshKey) {
+        loading = participants.isEmpty()
+        reloadParticipants()
+    }
+
+    LaunchedEffect(roomId) {
+        while (true) {
+            delay(5_000)
+            reloadParticipants()
+        }
+    }
+
+    val requested = participants.filter { it.optString("status") == "requested" }
+    val admitted = participants.filter { it.optString("status") == "admitted" }
+    val occupiedSeats = admitted.mapNotNull { participant ->
+        participant.optInt("seat_number", -1).takeIf { it > 0 }
+    }.toSet()
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("LIVE guest seats", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "${admitted.size}/${(seatCapacity - 1).coerceAtLeast(0)} guest seats occupied · ${requested.size} requests",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                OutlinedButton(onClick = { refreshKey++ }, enabled = !loading) {
+                    Text("Refresh")
+                }
+            }
+
+            if (loading) LinearProgressIndicatorForGuestSeats()
+            if (error.isNotBlank()) {
+                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            if (notice.isNotBlank()) {
+                Text(notice, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            }
+
+            Text("Seat occupancy", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                (2..seatCapacity.coerceAtLeast(1)).forEach { seat ->
+                    val occupant = admitted.firstOrNull { it.optInt("seat_number", -1) == seat }
+                    Card(Modifier.weight(1f)) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Text("Seat $seat", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                if (occupant == null) "Open" else occupant.optString("display_name").ifBlank { "Guest" },
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 2
+                            )
+                        }
+                    }
+                }
+            }
+
+            Text("Guest requests", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            if (!loading && requested.isEmpty()) {
+                Text("अभी कोई guest seat request नहीं है।", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            requested.forEach { participant ->
+                val participantId = participant.optString("id")
+                Card(Modifier.fillMaxWidth()) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                participant.optString("display_name").ifBlank { "New Star Creator" },
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text("Waiting for host approval", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Button(
+                            enabled = busyParticipantId.isBlank() && participantId.isNotBlank() && admitted.size < (seatCapacity - 1).coerceAtLeast(0),
+                            onClick = {
+                                busyParticipantId = participantId
+                                notice = ""
+                                scope.launch {
+                                    try {
+                                        NativeLiveRepository.admitGuest(roomId, participantId, session)
+                                        notice = "Guest को seat ${(2..seatCapacity).firstOrNull { it !in occupiedSeats } ?: ""} assign की गई।"
+                                        reloadParticipants()
+                                    } catch (e: Exception) {
+                                        notice = e.message ?: "Guest admit नहीं हुआ।"
+                                    } finally {
+                                        busyParticipantId = ""
+                                    }
+                                }
+                            }
+                        ) {
+                            if (busyParticipantId == participantId) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            else Text("Admit")
+                        }
+                        OutlinedButton(
+                            enabled = busyParticipantId.isBlank() && participantId.isNotBlank(),
+                            onClick = {
+                                busyParticipantId = participantId
+                                notice = ""
+                                scope.launch {
+                                    try {
+                                        NativeLiveRepository.removeGuest(roomId, participantId, session)
+                                        notice = "Guest request हटा दी गई।"
+                                        reloadParticipants()
+                                    } catch (e: Exception) {
+                                        notice = e.message ?: "Request हटाई नहीं जा सकी।"
+                                    } finally {
+                                        busyParticipantId = ""
+                                    }
+                                }
+                            }
+                        ) { Text("Decline") }
+                    }
+                }
+            }
+
+            Text("Admitted guests", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            if (!loading && admitted.isEmpty()) {
+                Text("अभी कोई guest seat पर नहीं है।", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            admitted.forEach { participant ->
+                val participantId = participant.optString("id")
+                Card(Modifier.fillMaxWidth()) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                participant.optString("display_name").ifBlank { "New Star Creator" },
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "Seat ${participant.optInt("seat_number")} · ${participant.optString("role").ifBlank { "guest" }}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        OutlinedButton(
+                            enabled = busyParticipantId.isBlank() && participantId.isNotBlank(),
+                            onClick = {
+                                busyParticipantId = participantId
+                                notice = ""
+                                scope.launch {
+                                    try {
+                                        NativeLiveRepository.removeGuest(roomId, participantId, session)
+                                        notice = "Guest LIVE seat से हटा दिया गया।"
+                                        reloadParticipants()
+                                    } catch (e: Exception) {
+                                        notice = e.message ?: "Guest remove नहीं हुआ।"
+                                    } finally {
+                                        busyParticipantId = ""
+                                    }
+                                }
+                            }
+                        ) {
+                            if (busyParticipantId == participantId) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            else Text("Remove")
+                        }
+                    }
+                }
+            }
+
+            Text("Invite a creator", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it.take(60); searchError = ""; searchResults = emptyList() },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Creator username or name") },
+                singleLine = true
+            )
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !searchBusy && searchQuery.trim().length >= 2,
+                onClick = {
+                    searchBusy = true
+                    searchError = ""
+                    searchResults = emptyList()
+                    scope.launch {
+                        try {
+                            searchResults = NativeLiveRepository.searchCreators(searchQuery, session.userId, session)
+                        } catch (e: Exception) {
+                            searchError = e.message ?: "Creator search नहीं हो सकी।"
+                        } finally {
+                            searchBusy = false
+                        }
+                    }
+                }
+            ) {
+                if (searchBusy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                else Text("Search creators")
+            }
+            if (searchError.isNotBlank()) {
+                Text(searchError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            searchResults.forEach { creator ->
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(creator.displayName, fontWeight = FontWeight.SemiBold)
+                        if (creator.username.isNotBlank()) {
+                            Text("@${creator.username}", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    OutlinedButton(
+                        enabled = !searchBusy,
+                        onClick = {
+                            searchBusy = true
+                            searchError = ""
+                            scope.launch {
+                                try {
+                                    NativeLiveRepository.createInvite(roomId, creator.userId, session)
+                                    searchError = ""
+                                    notice = "LIVE invitation ${creator.displayName} को भेज दी गई।"
+                                } catch (e: Exception) {
+                                    searchError = e.message ?: "LIVE invitation नहीं भेजी गई।"
+                                } finally {
+                                    searchBusy = false
+                                }
+                            }
+                        }
+                    ) { Text("Invite") }
+                }
+            }
+            if (occupiedSeats.size >= (seatCapacity - 1).coerceAtLeast(0) && seatCapacity > 1) {
+                Text("सभी guest seats भरी हुई हैं। नया guest admit करने से पहले एक seat खाली करें।",
+                    color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LinearProgressIndicatorForGuestSeats() {
+    androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+}
