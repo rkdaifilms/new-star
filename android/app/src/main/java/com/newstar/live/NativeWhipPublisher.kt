@@ -28,6 +28,14 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+internal interface NativeLivePublisher {
+    override fun setMicrophoneEnabled(enabled: Boolean)
+    override fun setCameraEnabled(enabled: Boolean)
+    fun attachPreview(renderer: org.webrtc.SurfaceViewRenderer)
+    fun detachPreview(renderer: org.webrtc.SurfaceViewRenderer)
+    override suspend fun stop()
+}
+
 internal class NativeWhipPublisher private constructor(
     private val factory: PeerConnectionFactory,
     private val egl: EglBase,
@@ -39,14 +47,14 @@ internal class NativeWhipPublisher private constructor(
     private val audioTrack: AudioTrack?,
     private val peer: PeerConnection,
     private val resourceUrl: String
-) {
+) : NativeLivePublisher {
     private val stopped = AtomicBoolean(false)
     @Volatile private var previewRenderer: SurfaceViewRenderer? = null
 
     fun setMicrophoneEnabled(enabled: Boolean) { audioTrack?.setEnabled(enabled) }
     fun setCameraEnabled(enabled: Boolean) { videoTrack.setEnabled(enabled) }
 
-    fun attachPreview(renderer: SurfaceViewRenderer) {
+    override fun attachPreview(renderer: SurfaceViewRenderer) {
         check(!stopped.get()) { "LIVE publisher बंद हो चुका है।" }
         if (previewRenderer === renderer) return
         previewRenderer?.let { videoTrack.removeSink(it) }
@@ -57,7 +65,7 @@ internal class NativeWhipPublisher private constructor(
         previewRenderer = renderer
     }
 
-    fun detachPreview(renderer: SurfaceViewRenderer) {
+    override fun detachPreview(renderer: SurfaceViewRenderer) {
         if (previewRenderer === renderer) {
             runCatching { videoTrack.removeSink(renderer) }
             previewRenderer = null
