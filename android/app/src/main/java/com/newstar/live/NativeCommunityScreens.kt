@@ -201,7 +201,11 @@ internal fun NativeLiveHostControls(session: NativeSession) {
     var sfuConfigured by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Boolean?>(null) }
     var sfuMessage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("SFU configuration अभी check नहीं हुई है।") }
     var sfuBusy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var sfuSubscriber by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<NativeSfuSubscriber?>(null) }
+    var subscriberBusy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var subscriberNotice by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     val currentPublisher by androidx.compose.runtime.rememberUpdatedState(publisher)
+    val currentSubscriber by androidx.compose.runtime.rememberUpdatedState(sfuSubscriber)
     val currentRoomId by androidx.compose.runtime.rememberUpdatedState(roomId)
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
@@ -299,6 +303,7 @@ internal fun NativeLiveHostControls(session: NativeSession) {
             if (activePublisher != null || activeRoom != null) {
                 kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
                     runCatching { activePublisher?.stop() }
+                    runCatching { currentSubscriber?.stop() }
                     if (activeRoom != null) runCatching {
                         NativeSupabase.invokeFunction("cloudflare-live",
                             org.json.JSONObject().put("action", "stop").put("room_id", activeRoom), session)
@@ -478,11 +483,82 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                         }
                     }
                 }
+                if (sfuConfigured == true) {
+                    androidx.compose.material3.Card(androidx.compose.ui.Modifier.fillMaxWidth()) {
+                        androidx.compose.foundation.layout.Column(
+                            androidx.compose.ui.Modifier.padding(12.dp),
+                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                        ) {
+                            androidx.compose.material3.Text("Native SFU remote viewer", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                            androidx.compose.material3.Text(
+                                "इस receiving session में LIVE room के active camera और microphone publications subscribe होंगे। Audio native WebRTC से route होगा।",
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                            )
+                            sfuSubscriber?.let { activeSubscriber ->
+                                NativeSfuSubscriberPreview(
+                                    subscriber = activeSubscriber,
+                                    modifier = androidx.compose.ui.Modifier.fillMaxWidth().height(230.dp)
+                                )
+                            }
+                            androidx.compose.material3.Button(
+                                enabled = !subscriberBusy,
+                                onClick = {
+                                    subscriberBusy = true
+                                    subscriberNotice = ""
+                                    scope.launch {
+                                        try {
+                                            sfuSubscriber?.stop()
+                                            sfuSubscriber = null
+                                            sfuSubscriber = NativeSfuSubscriber.start(context, roomId!!, session)
+                                            subscriberNotice = "Remote SFU media connected."
+                                        } catch (e: Exception) {
+                                            subscriberNotice = e.message ?: "SFU remote media connect नहीं हुआ।"
+                                        } finally {
+                                            subscriberBusy = false
+                                        }
+                                    }
+                                },
+                                modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+                            ) {
+                                if (subscriberBusy) androidx.compose.material3.CircularProgressIndicator(
+                                    modifier = androidx.compose.ui.Modifier.size(18.dp), strokeWidth = 2.dp
+                                ) else androidx.compose.material3.Text(if (sfuSubscriber == null) "Connect remote SFU media" else "Reconnect remote SFU media")
+                            }
+                            if (sfuSubscriber != null) {
+                                androidx.compose.material3.OutlinedButton(
+                                    enabled = !subscriberBusy,
+                                    onClick = {
+                                        subscriberBusy = true
+                                        scope.launch {
+                                            try {
+                                                sfuSubscriber?.stop()
+                                                sfuSubscriber = null
+                                                subscriberNotice = "Remote SFU viewer disconnected."
+                                            } catch (e: Exception) {
+                                                subscriberNotice = e.message ?: "SFU viewer disconnect नहीं हुआ।"
+                                            } finally { subscriberBusy = false }
+                                        }
+                                    },
+                                    modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+                                ) { androidx.compose.material3.Text("Disconnect remote viewer") }
+                            }
+                            if (subscriberNotice.isNotBlank()) androidx.compose.material3.Text(
+                                subscriberNotice,
+                                color = if (subscriberNotice.contains("नहीं") || subscriberNotice.contains("failed", true))
+                                    androidx.compose.material3.MaterialTheme.colorScheme.error
+                                else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
                 androidx.compose.material3.Button(
                     enabled = !busy, onClick = {
                         scope.launch {
                             busy = true
                             try {
+                                sfuSubscriber?.stop()
+                                sfuSubscriber = null
                                 publisher?.stop()
                                 val r = NativeSupabase.invokeFunction("cloudflare-live",
                                     org.json.JSONObject().put("action", "stop").put("room_id", roomId), session)
@@ -506,3 +582,35 @@ internal fun NativeLiveHostControls(session: NativeSession) {
     }
 }
 
+
+
+@androidx.compose.runtime.Composable
+private fun NativeSfuSubscriberPreview(
+    subscriber: NativeSfuSubscriber,
+    modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier
+) {
+    var renderer by androidx.compose.runtime.remember(subscriber) {
+        androidx.compose.runtime.mutableStateOf<org.webrtc.SurfaceViewRenderer?>(null)
+    }
+    androidx.compose.ui.viewinterop.AndroidView(
+        factory = { viewContext ->
+            org.webrtc.SurfaceViewRenderer(viewContext).also { view ->
+                renderer = view
+                subscriber.attachRenderer(view)
+            }
+        },
+        update = { view ->
+            if (renderer !== view) renderer = view
+            subscriber.attachRenderer(view)
+        },
+        modifier = modifier
+    )
+    androidx.compose.runtime.DisposableEffect(subscriber, renderer) {
+        onDispose {
+            renderer?.let { view ->
+                subscriber.detachRenderer()
+                runCatching { view.release() }
+            }
+        }
+    }
+}
