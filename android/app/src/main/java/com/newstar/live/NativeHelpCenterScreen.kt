@@ -7,9 +7,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -21,17 +25,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -127,9 +131,23 @@ fun NativeHelpCenterScreen(session: NativeSession) {
     val vm: NativeHelpCenterViewModel = viewModel(key = "help-center-${session.userId}")
     val state = vm.uiState
     var draft by remember(session.userId) { mutableStateOf("") }
+    val messageListState = rememberLazyListState()
+
+    fun sendDraft() {
+        val question = draft.trim()
+        if (question.isNotBlank() && !state.isLoading) {
+            vm.send(session, question)
+            draft = ""
+        }
+    }
+
+    LaunchedEffect(state.messages.size, state.isLoading) {
+        val visibleItems = state.messages.size + if (state.isLoading) 1 else 0
+        if (visibleItems > 0) messageListState.animateScrollToItem(visibleItems - 1)
+    }
 
     Column(
-        Modifier.fillMaxSize().padding(12.dp),
+        Modifier.fillMaxSize().imePadding().padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -167,6 +185,7 @@ fun NativeHelpCenterScreen(session: NativeSession) {
             }
         }
         LazyColumn(
+            state = messageListState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -215,14 +234,12 @@ fun NativeHelpCenterScreen(session: NativeSession) {
             label = { Text("Account या app support के बारे में पूछें") },
             minLines = 2,
             maxLines = 4,
-            enabled = !state.isLoading
+            enabled = !state.isLoading,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { sendDraft() })
         )
         Button(
-            onClick = {
-                val question = draft.trim()
-                vm.send(session, question)
-                if (question.isNotBlank()) draft = ""
-            },
+            onClick = { sendDraft() },
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.isLoading && draft.isNotBlank()
         ) {
