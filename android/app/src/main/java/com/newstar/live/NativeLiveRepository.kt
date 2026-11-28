@@ -146,6 +146,77 @@ internal object NativeLiveRepository {
         return result
     }
 
+    suspend fun createSfuSession(roomId: String, role: String, session: NativeSession): String {
+        require(roomId.isNotBlank() && role in setOf("publisher", "subscriber"))
+        val result = invokeSfuAction(
+            JSONObject().put("action", "sfu-create-session").put("room_id", roomId).put("role", role),
+            session
+        )
+        return result.optString("session_id").also { require(it.isNotBlank()) { "Cloudflare SFU session ID नहीं मिला।" } }
+    }
+
+    suspend fun publishSfuTracks(
+        roomId: String,
+        sessionId: String,
+        offerSdp: String,
+        tracks: JSONArray,
+        session: NativeSession
+    ): JSONObject = invokeSfuAction(
+        JSONObject().put("action", "sfu-publish").put("room_id", roomId)
+            .put("session_id", sessionId)
+            .put("session_description", JSONObject().put("type", "offer").put("sdp", offerSdp))
+            .put("tracks", tracks),
+        session
+    )
+
+    suspend fun listSfuPublications(roomId: String, session: NativeSession): JSONArray =
+        invokeSfuAction(
+            JSONObject().put("action", "sfu-list-pubs").put("room_id", roomId),
+            session
+        ).optJSONArray("publications") ?: JSONArray()
+
+    suspend fun subscribeSfuTracks(
+        roomId: String,
+        sessionId: String,
+        tracks: JSONArray,
+        session: NativeSession
+    ): JSONObject = invokeSfuAction(
+        JSONObject().put("action", "sfu-subscribe").put("room_id", roomId)
+            .put("session_id", sessionId).put("tracks", tracks),
+        session
+    )
+
+    suspend fun renegotiateSfuSession(
+        roomId: String,
+        sessionId: String,
+        answerSdp: String,
+        session: NativeSession
+    ): JSONObject = invokeSfuAction(
+        JSONObject().put("action", "sfu-renegotiate").put("room_id", roomId)
+            .put("session_id", sessionId)
+            .put("session_description", JSONObject().put("type", "answer").put("sdp", answerSdp)),
+        session
+    )
+
+    suspend fun closeSfuSession(
+        roomId: String,
+        sessionId: String,
+        mids: JSONArray,
+        session: NativeSession
+    ): JSONObject = invokeSfuAction(
+        JSONObject().put("action", "sfu-close").put("room_id", roomId)
+            .put("session_id", sessionId).put("tracks", mids),
+        session
+    )
+
+    private suspend fun invokeSfuAction(body: JSONObject, session: NativeSession): JSONObject {
+        val result = NativeSupabase.invokeFunction("cloudflare-live", body, session)
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "Cloudflare SFU operation पूरी नहीं हुई।"))
+        }
+        return result
+    }
+
     suspend fun joinPkQueue(roomId: String, session: NativeSession): JSONObject =
         invokePkAction(JSONObject().put("action", "pk-join-queue").put("room_id", roomId), session)
 
