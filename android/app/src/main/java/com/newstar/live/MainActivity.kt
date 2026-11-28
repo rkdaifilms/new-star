@@ -1663,6 +1663,7 @@ private fun NativeHome(
     var loadingMore by remember { mutableStateOf(false) }
     var canLoadMore by remember { mutableStateOf(false) }
     var pageError by remember { mutableStateOf<String?>(null) }
+    var pageRetry by remember { mutableIntStateOf(0) }
     var error by remember { mutableStateOf<String?>(null) }
     var refresh by remember { mutableIntStateOf(0) }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -1693,7 +1694,7 @@ private fun NativeHome(
         } finally { loading = false }
     }
 
-    LaunchedEffect(feedPagerState.currentPage, feed.size, canLoadMore, loading, loadingMore, feedMode, category, session?.userId) {
+    LaunchedEffect(feedPagerState.currentPage, feed.size, canLoadMore, loading, loadingMore, pageRetry, feedMode, category, session?.userId) {
         val current = session
         val nearEnd = feed.isNotEmpty() && feedPagerState.currentPage >= feed.size - 3
         if (!nearEnd || !canLoadMore || loading || loadingMore ||
@@ -1915,18 +1916,44 @@ private fun NativeHome(
                 visibleFeed.isEmpty() -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
                     Text("इस खोज में कोई वीडियो नहीं मिला।")
                 }
-                else -> VerticalPager(
-                    state = feedPagerState,
-                    modifier = Modifier.fillMaxSize(),
-                    key = { page -> visibleFeed[page].id }
-                ) { page ->
-                    val video = visibleFeed[page]
-                    NativeVideoCard(
-                        video = video,
-                        session = session,
-                        isActive = feedPagerState.currentPage == page && feedPagerState.isScrollInProgress.not(),
-                        immersive = true
-                    )
+                else -> Box(Modifier.fillMaxSize()) {
+                    VerticalPager(
+                        state = feedPagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        key = { page -> visibleFeed[page].id }
+                    ) { page ->
+                        val video = visibleFeed[page]
+                        NativeVideoCard(
+                            video = video,
+                            session = session,
+                            isActive = feedPagerState.currentPage == page && feedPagerState.isScrollInProgress.not(),
+                            immersive = true
+                        )
+                    }
+                    if (loadingMore) {
+                        Surface(
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter).padding(12.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+                        ) {
+                            Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(10.dp))
+                                Text("अगले वीडियो लोड हो रहे हैं…")
+                            }
+                        }
+                    } else if (pageError != null && canLoadMore) {
+                        Surface(
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter).padding(12.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                Text(pageError.orEmpty(), modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.error)
+                                TextButton(onClick = { pageRetry++ }) { Text("फिर कोशिश करें") }
+                            }
+                        }
+                    }
                 }
             }
             }
