@@ -27,7 +27,13 @@ data class NativeGamingUiState(
     val chatLoading: Boolean = false,
     val chatSending: Boolean = false,
     val reactionBusy: Boolean = false,
-    val chatError: String = ""
+    val chatError: String = "",
+    val pkStatus: String = "idle",
+    val pkMatchId: String = "",
+    val pkOpponentName: String = "",
+    val pkOwnScore: Int = 0,
+    val pkOpponentScore: Int = 0,
+    val pkBusy: Boolean = false
 )
 
 class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
@@ -36,6 +42,8 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
     private val refreshMutex = Mutex()
     private var pollingJob: Job? = null
     private var pollingRoomId: String? = null
+    private var pkPollingJob: Job? = null
+    private var pkPollingRoomId: String? = null
 
     fun setTitle(value: String) {
         mutableState.update { it.copy(title = value) }
@@ -152,8 +160,98 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
         }
     }
 
+    fun joinPkQueue(roomId: String) {
+        if (roomId.isBlank() || mutableState.value.pkBusy || mutableState.value.pkStatus != "idle") return
+        mutableState.update { it.copy(pkBusy = true, chatError = "") }
+        viewModelScope.launch {
+            try {
+                val response = NativeLiveRepository.joinPkQueue(roomId, session)
+                val returnedStatus = response.optString("status").takeIf { it in setOf("waiting", "matched") } ?: "waiting"
+                mutableState.update { it.copy(pkStatus = returnedStatus, chatError = "") }
+                startPkPolling(roomId)
+                refreshPkStatus(roomId)
+            } catch (error: Exception) {
+                mutableState.update { it.copy(chatError = error.message ?: "PK matchmaking में शामिल नहीं हो सके।") }
+            } finally {
+                mutableState.update { it.copy(pkBusy = false) }
+            }
+        }
+    }
+
+    private fun startPkPolling(roomId: String) {
+        if (roomId.isBlank() || pkPollingRoomId == roomId && pkPollingJob?.isActive == true) return
+        stopPkPolling()
+        pkPollingRoomId = roomId
+        pkPollingJob = viewModelScope.launch {
+            while (true) {
+                refreshPkStatus(roomId)
+                if (mutableState.value.pkStatus == "idle") break
+                delay(3_500)
+            }
+            pkPollingJob = null
+            pkPollingRoomId = null
+        }
+    }
+
+    private suspend fun refreshPkStatus(roomId: String) {
+        try {
+            val result = NativeLiveRepository.getPkStatus(roomId, session)
+            val status = result.optString("status").takeIf { it in setOf("waiting", "matched") } ?: "idle"
+            mutableState.update {
+                it.copy(
+                    pkStatus = status,
+                    pkMatchId = if (status == "matched") result.optString("match_id") else "",
+                    pkOpponentName = if (status == "matched") result.optString("opponent_name", "LIVE creator") else "",
+                    pkOwnScore = if (status == "matched") result.optInt("own_score") else 0,
+                    pkOpponentScore = if (status == "matched") result.optInt("opponent_score") else 0,
+                    chatError = ""
+                )
+            }
+        } catch (error: Exception) {
+            mutableState.update { it.copy(chatError = error.message ?: "PK battle status लोड नहीं हुआ।") }
+        }
+    }
+
+    fun cancelPk() {
+        if (mutableState.value.pkBusy) return
+        val current = mutableState.value
+        if (current.pkStatus == "idle") return
+        mutableState.update { it.copy(pkBusy = true, chatError = "") }
+        viewModelScope.launch {
+            try {
+                if (current.pkStatus == "matched" && current.pkMatchId.isNotBlank()) {
+                    NativeLiveRepository.finishPkMatch(current.pkMatchId, session)
+                } else {
+                    NativeLiveRepository.leavePkQueue(session)
+                }
+                stopPkPolling()
+                mutableState.update {
+                    it.copy(
+                        pkStatus = "idle",
+                        pkMatchId = "",
+                        pkOpponentName = "",
+                        pkOwnScore = 0,
+                        pkOpponentScore = 0,
+                        chatError = ""
+                    )
+                }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(chatError = error.message ?: "PK search या battle बंद नहीं हुई।") }
+            } finally {
+                mutableState.update { it.copy(pkBusy = false) }
+            }
+        }
+    }
+
+    private fun stopPkPolling() {
+        pkPollingJob?.cancel()
+        pkPollingJob = null
+        pkPollingRoomId = null
+    }
+
     fun resetAfterStop() {
         stopPolling()
+        stopPkPolling()
         mutableState.update {
             it.copy(
                 preparing = false,
@@ -165,13 +263,20 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 chatLoading = false,
                 chatSending = false,
                 reactionBusy = false,
-                chatError = ""
+                chatError = "",
+                pkStatus = "idle",
+                pkMatchId = "",
+                pkOpponentName = "",
+                pkOwnScore = 0,
+                pkOpponentScore = 0,
+                pkBusy = false
             )
         }
     }
 
     override fun onCleared() {
         stopPolling()
+        stopPkPolling()
         super.onCleared()
     }
 
