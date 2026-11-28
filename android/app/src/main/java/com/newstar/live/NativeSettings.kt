@@ -66,24 +66,6 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
     var busy by remember { mutableStateOf(false) }
     var autoSyncJob by remember { mutableStateOf<Job?>(null) }
 
-    fun localSave() {
-        local.edit().putString("language", language).putString("theme", theme)
-            .putString("textScale", textScale).putBoolean("reducedMotion", reduceMotion)
-            .putBoolean("highContrast", highContrast).putBoolean("notifyFollow", notifyFollow)
-            .putBoolean("notifyLike", notifyLike).putBoolean("notifyComment", notifyComment)
-            .putBoolean("notifyMessage", notifyMessage)
-            .putString("_updatedAt", java.time.Instant.now().toString()).apply()
-        autoSyncJob?.cancel()
-        autoSyncJob = scope.launch {
-            delay(750)
-            try {
-                syncPreferences()
-                status = "Settings अपने account के साथ sync हो गईं।"
-            } catch (e: Exception) {
-                status = e.message ?: "Cloud sync असफल रही; local settings सुरक्षित हैं।"
-            }
-        }
-    }
 
     fun currentPreferencesDocument(): JSONObject {
         val document = JSONObject()
@@ -122,6 +104,25 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
             .putBoolean("notifyMessage", notifyMessage)
             .putString("_updatedAt", document.optString("_updatedAt").takeIf { it.isNotBlank() })
             .apply()
+    }
+
+    fun localSave() {
+        local.edit().putString("language", language).putString("theme", theme)
+            .putString("textScale", textScale).putBoolean("reducedMotion", reduceMotion)
+            .putBoolean("highContrast", highContrast).putBoolean("notifyFollow", notifyFollow)
+            .putBoolean("notifyLike", notifyLike).putBoolean("notifyComment", notifyComment)
+            .putBoolean("notifyMessage", notifyMessage)
+            .putString("_updatedAt", java.time.Instant.now().toString()).apply()
+        autoSyncJob?.cancel()
+        autoSyncJob = scope.launch {
+            delay(750)
+            try {
+                syncPreferences()
+                status = "Settings अपने account के साथ sync हो गईं।"
+            } catch (e: Exception) {
+                status = e.message ?: "Cloud sync असफल रही; local settings सुरक्षित हैं।"
+            }
+        }
     }
 
     suspend fun syncPreferences() {
