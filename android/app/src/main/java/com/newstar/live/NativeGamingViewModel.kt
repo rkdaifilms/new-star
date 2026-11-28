@@ -56,6 +56,7 @@ data class NativeGamingUiState(
     val guestMicrophoneAllowed: Boolean = false,
     val guestPublisherReady: Boolean = false,
     val guestPublisherStarting: Boolean = false,
+    val guestPublisherCameraEnabled: Boolean = true,
     val guestPublisherMicEnabled: Boolean = false,
     val guestPublisherError: String = ""
 )
@@ -448,6 +449,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 mutableState.update {
                     it.copy(
                         guestPublisherReady = true,
+                        guestPublisherCameraEnabled = true,
                         guestPublisherMicEnabled = micOn,
                         guestPublisherError = "आपका camera LIVE seat पर publish हो रहा है।"
                     )
@@ -476,6 +478,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
 
     fun setGuestCameraEnabled(enabled: Boolean) {
         guestPublisher?.setCameraEnabled(enabled)
+        mutableState.update { it.copy(guestPublisherCameraEnabled = enabled) }
     }
 
     fun setGuestMicrophoneEnabled(enabled: Boolean) {
@@ -495,6 +498,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
         mutableState.update {
             it.copy(
                 guestPublisherReady = false,
+                guestPublisherCameraEnabled = false,
                 guestPublisherMicEnabled = false,
                 guestPublisherStarting = false
             )
@@ -679,6 +683,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 guestMicrophoneAllowed = false,
                 guestPublisherReady = false,
                 guestPublisherStarting = false,
+                guestPublisherCameraEnabled = false,
                 guestPublisherMicEnabled = false,
                 guestPublisherError = ""
             )
