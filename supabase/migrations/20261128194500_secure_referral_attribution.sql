@@ -78,6 +78,13 @@ begin
     if current_user_id is null or p_referrer_id is null or current_user_id = p_referrer_id then
         return false;
     end if;
+    if not exists (
+        select 1 from auth.users u
+        where u.id = current_user_id
+          and u.created_at >= now() - interval '24 hours'
+    ) then
+        return false;
+    end if;
     if not exists (select 1 from auth.users u where u.id = p_referrer_id) then
         return false;
     end if;
