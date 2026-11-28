@@ -3158,13 +3158,10 @@ fun NativeGamingScreen(
         }
 
         OutlinedButton(
-            onClick = {
-                onStop()
-                gamingViewModel.resetAfterStop()
-            },
-            enabled = state.preparing || state.streaming || !roomId.isNullOrBlank(),
+            onClick = { gamingViewModel.stopLive(onStop) },
+            enabled = !state.pkBusy && (state.preparing || state.streaming || !roomId.isNullOrBlank()),
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Stop Gaming LIVE") }
+        ) { Text(if (state.pkBusy) "Stopping LIVE…" else "Stop Gaming LIVE") }
         Text(state.statusMessage)
         Text(
             "Game/system audio अलग से capture और WebRTC में mix नहीं किया गया है; उपलब्धता Android version और device restrictions पर निर्भर करती है।",
