@@ -198,6 +198,9 @@ internal fun NativeLiveHostControls(session: NativeSession) {
     var pkOpponentScore by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var pkBusy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var pkNotice by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var sfuConfigured by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Boolean?>(null) }
+    var sfuMessage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("SFU configuration अभी check नहीं हुई है।") }
+    var sfuBusy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     val currentPublisher by androidx.compose.runtime.rememberUpdatedState(publisher)
     val currentRoomId by androidx.compose.runtime.rememberUpdatedState(roomId)
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -410,6 +413,52 @@ internal fun NativeLiveHostControls(session: NativeSession) {
                             color = if (pkNotice.startsWith("Battle status")) androidx.compose.material3.MaterialTheme.colorScheme.error else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                             style = androidx.compose.material3.MaterialTheme.typography.bodySmall
                         )
+                    }
+                }
+                androidx.compose.material3.Card(androidx.compose.ui.Modifier.fillMaxWidth()) {
+                    androidx.compose.foundation.layout.Column(
+                        androidx.compose.ui.Modifier.padding(12.dp),
+                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(7.dp)
+                    ) {
+                        androidx.compose.material3.Text("Cloudflare Realtime SFU readiness", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                        androidx.compose.material3.Text(
+                            when (sfuConfigured) {
+                                true -> "SFU App ID और App Secret server पर मौजूद हैं। अगला चरण native SDP/media negotiation है।"
+                                false -> "SFU credentials server पर configure नहीं हैं। Stream token इन credentials की जगह नहीं ले सकता।"
+                                null -> sfuMessage
+                            },
+                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                        )
+                        androidx.compose.material3.Button(
+                            enabled = !sfuBusy,
+                            onClick = {
+                                sfuBusy = true
+                                scope.launch {
+                                    try {
+                                        val health = NativeLiveRepository.getSfuHealth(session)
+                                        sfuConfigured = health.optBoolean("configured")
+                                        sfuMessage = health.optString("message", "SFU status प्राप्त हुआ।")
+                                    } catch (e: Exception) {
+                                        sfuConfigured = null
+                                        sfuMessage = e.message ?: "SFU status जाँचा नहीं जा सका।"
+                                    } finally {
+                                        sfuBusy = false
+                                    }
+                                }
+                            },
+                            modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+                        ) {
+                            if (sfuBusy) androidx.compose.material3.CircularProgressIndicator(
+                                modifier = androidx.compose.ui.Modifier.size(18.dp), strokeWidth = 2.dp
+                            ) else androidx.compose.material3.Text("Check SFU server configuration")
+                        }
+                        if (sfuConfigured == false) {
+                            androidx.compose.material3.Text(
+                                "Server owner को Supabase Edge Function secrets में CLOUDFLARE_SFU_APP_ID (32 hex) और CLOUDFLARE_SFU_APP_SECRET (64 hex) जोड़ने होंगे। Secret values Android app में कभी न रखें।",
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
                 androidx.compose.material3.Button(
