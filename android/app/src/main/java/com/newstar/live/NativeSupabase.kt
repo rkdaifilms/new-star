@@ -396,6 +396,26 @@ object NativeSupabase {
     suspend fun delete(path: String, session: NativeSession): String =
         withContext(Dispatchers.IO) { request("DELETE", path, token = session.accessToken) }
 
+    suspend fun deleteReturning(path: String, session: NativeSession): String =
+        withContext(Dispatchers.IO) {
+            request(
+                "DELETE", path, token = session.accessToken,
+                extraHeaders = mapOf("Prefer" to "return=representation")
+            )
+        }
+
+    suspend fun removeVideoObject(path: String, session: NativeSession) = withContext(Dispatchers.IO) {
+        require(path.startsWith("${session.userId}/") && !path.split("/").any { it == ".." || it.isBlank() }) {
+            "Video storage path owner से match नहीं करता।"
+        }
+        request(
+            "POST",
+            "/storage/v1/object/videos",
+            JSONObject().put("prefixes", JSONArray().put(path)),
+            session.accessToken
+        )
+    }
+
     suspend fun deleteSession(context: Context, session: NativeSession) = withContext(Dispatchers.IO) {
         try { request("POST", "/auth/v1/logout", token = session.accessToken) } finally {
             NativeSessionStore.clear(context)
