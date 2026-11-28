@@ -60,8 +60,7 @@ internal object NativePreferencesSync {
 
     suspend fun synchronize(session: NativeSession, localPreferences: JSONObject): JSONObject {
         val localDocument = JSONObject(localPreferences.toString())
-        val localUpdatedAt = localDocument.optString("_updatedAt").takeIf { it.isNotBlank() }
-            ?: Instant.now().toString().also { localDocument.put("_updatedAt", it) }
+        val localUpdatedAt = localDocument.optString("_updatedAt").takeIf { it.isNotBlank() }.orEmpty()
         val rows = NativeSupabase.get(
             "/rest/v1/user_preferences?select=preferences,updated_at&user_id=eq.${Uri.encode(session.userId)}&limit=1",
             session
@@ -74,9 +73,11 @@ internal object NativePreferencesSync {
             restored.put("_updatedAt", remoteUpdatedAt)
             return restored
         }
-        val timestamp = if (row == null) localUpdatedAt else {
-            if (timestampMillis(localUpdatedAt) > timestampMillis(remoteUpdatedAt)) localUpdatedAt
-            else Instant.now().toString()
+        val timestamp = if (localUpdatedAt.isNotBlank() &&
+            timestampMillis(localUpdatedAt) > timestampMillis(remoteUpdatedAt)) {
+            localUpdatedAt
+        } else {
+            Instant.now().toString()
         }
         localDocument.put("_updatedAt", timestamp)
         NativeSupabase.upsert(
