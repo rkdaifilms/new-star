@@ -302,6 +302,24 @@ internal object NativeLiveRepository {
         return result
     }
 
+    suspend fun listLiveChat(roomId: String, session: NativeSession): List<JSONObject> {
+        require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
+        val result = NativeSupabase.invokeFunction("cloudflare-live",
+            JSONObject().put("action", "live-chat-list").put("room_id", roomId), session)
+        if (!result.optBoolean("ok")) throw IllegalStateException(result.optString("error", "LIVE chat लोड नहीं हुई।"))
+        val rows = result.optJSONArray("messages") ?: JSONArray()
+        return (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+    }
+
+    suspend fun sendLiveChatMessage(roomId: String, message: String, session: NativeSession): JSONObject {
+        val text = message.trim()
+        require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
+        require(text.isNotEmpty() && text.length <= 500) { "Message 1 से 500 characters का होना चाहिए।" }
+        val result = NativeSupabase.invokeFunction("cloudflare-live",
+            JSONObject().put("action", "live-chat-send").put("room_id", roomId).put("message", text), session)
+        if (!result.optBoolean("ok")) throw IllegalStateException(result.optString("error", "LIVE message भेजा नहीं गया।"))
+        return result.optJSONObject("message") ?: throw IllegalStateException("Server ने LIVE message की पुष्टि नहीं की।")
+    }
     suspend fun getReactionCounts(roomId: String, session: NativeSession): Map<String, Int> {
         require(roomId.isNotBlank()) { "LIVE room ID आवश्यक है।" }
         val result = NativeSupabase.invokeFunction(
