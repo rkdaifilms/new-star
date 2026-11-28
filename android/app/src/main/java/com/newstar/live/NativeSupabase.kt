@@ -322,11 +322,21 @@ object NativeSupabase {
     suspend fun post(path: String, body: JSONObject, session: NativeSession): String =
         withContext(Dispatchers.IO) { request("POST", path, body, session.accessToken, mapOf("Prefer" to "return=representation")) }
 
-    suspend fun upsert(path: String, body: JSONObject, session: NativeSession): String =
-        withContext(Dispatchers.IO) {
-            request("POST", path, body, session.accessToken,
-                mapOf("Prefer" to "resolution=merge-duplicates,return=representation"))
-        }
+    suspend fun upsert(
+        path: String,
+        body: JSONObject,
+        session: NativeSession,
+        ignoreDuplicates: Boolean = false
+    ): String = withContext(Dispatchers.IO) {
+        val resolution = if (ignoreDuplicates) "ignore-duplicates" else "merge-duplicates"
+        request(
+            "POST",
+            path,
+            body,
+            session.accessToken,
+            mapOf("Prefer" to "resolution=$resolution,return=representation")
+        )
+    }
 
     suspend fun patch(path: String, body: JSONObject, session: NativeSession): String =
         withContext(Dispatchers.IO) { request("PATCH", path, body, session.accessToken, mapOf("Prefer" to "return=representation")) }
