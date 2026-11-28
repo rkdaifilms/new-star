@@ -256,7 +256,7 @@ Deno.serve(async (req: Request) => {
     let query = admin.from("live_room_participants")
       .select("id,user_id,display_name,role,status,seat_number,camera_enabled,microphone_enabled,camera_allowed,microphone_allowed")
       .eq("room_id", room.id).order("created_at", { ascending: true });
-    if (!isHost) query = query.eq("status", "admitted");
+    if (!isHost) query = query.or("status.eq.admitted,user_id.eq." + creatorId);
     const { data, error } = await query.limit(20);
     if (error) return json({ error: "Could not load LIVE participants." }, 503, headers);
     return json({ ok: true, participants: data || [], seat_capacity: (await admin.from("live_rooms").select("seat_capacity").eq("id", room.id).single()).data?.seat_capacity || 1 }, 200, headers);
