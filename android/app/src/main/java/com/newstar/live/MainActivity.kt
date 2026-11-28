@@ -551,7 +551,11 @@ private fun NativeApp(
                     )
                     page = "Offline Playback"
                 }
-                "Monetization" -> NativeMonetizationScreen(session!!) { page = "Wallet" }
+                "Monetization" -> NativeMonetizationScreen(
+                    session = session!!,
+                    onOpenWallet = { page = "Wallet" },
+                    onOpenFanSupport = { page = "Fan Support" }
+                )
                 "Fan Support" -> NativeFanSupportScreen(session!!) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
                 "Campaigns" -> NativeCampaignScreen(session!!)
                 "About" -> NativeInfoScreen("About")
