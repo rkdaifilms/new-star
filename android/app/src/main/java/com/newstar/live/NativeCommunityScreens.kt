@@ -589,26 +589,61 @@ private fun NativeSfuSubscriberPreview(
     subscriber: NativeSfuSubscriber,
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier
 ) {
-    var renderer by androidx.compose.runtime.remember(subscriber) {
+    val mids by subscriber.remoteVideoMids.collectAsState()
+    if (mids.isEmpty()) {
+        androidx.compose.foundation.layout.Box(
+            modifier = modifier.heightIn(min = 180.dp, max = 230.dp),
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
+            androidx.compose.material3.Text(
+                "SFU connected — remote camera tracks आने का इंतज़ार है।",
+                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+            columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(if (mids.size == 1) 1 else 2),
+            modifier = modifier.heightIn(min = 180.dp, max = 460.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(2.dp),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
+        ) {
+            items(items = mids, key = { it }) { mid ->
+                NativeSfuSubscriberVideoTile(subscriber, mid)
+            }
+        }
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun NativeSfuSubscriberVideoTile(
+    subscriber: NativeSfuSubscriber,
+    mid: String
+) {
+    var renderer by androidx.compose.runtime.remember(subscriber, mid) {
         androidx.compose.runtime.mutableStateOf<org.webrtc.SurfaceViewRenderer?>(null)
     }
     androidx.compose.ui.viewinterop.AndroidView(
         factory = { viewContext ->
             org.webrtc.SurfaceViewRenderer(viewContext).also { view ->
                 renderer = view
-                subscriber.attachRenderer(view)
+                subscriber.attachRenderer(mid, view)
             }
         },
         update = { view ->
             if (renderer !== view) renderer = view
-            subscriber.attachRenderer(view)
+            subscriber.attachRenderer(mid, view)
         },
-        modifier = modifier
+        modifier = androidx.compose.ui.Modifier
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
     )
-    androidx.compose.runtime.DisposableEffect(subscriber, renderer) {
+    androidx.compose.runtime.DisposableEffect(subscriber, mid, renderer) {
         onDispose {
             renderer?.let { view ->
-                subscriber.detachRenderer()
+                subscriber.detachRenderer(mid, view)
                 runCatching { view.release() }
             }
         }
