@@ -114,7 +114,11 @@ import androidx.work.WorkInfo
 import androidx.compose.runtime.livedata.observeAsState
 
 @Composable
-fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit, onGoogleSignIn: () -> Unit) {
+fun NativeAuthScreen(
+    onSignedIn: (NativeSession) -> Unit,
+    onGoogleSignIn: () -> Unit,
+    referrerId: String? = null
+) {
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -126,6 +130,9 @@ fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit, onGoogleSignIn: () -> 
         Text("🌟 New Star", style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.height(10.dp))
         Text(if (signup) "नया अकाउंट बनाएँ" else "अपने अकाउंट में Login करें")
+        if (!referrerId.isNullOrBlank()) {
+            Text("आपको New Star invite link से आमंत्रित किया गया है।", color = MaterialTheme.colorScheme.secondary)
+        }
         Spacer(Modifier.height(18.dp))
         OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(), label = { Text("Email") }, singleLine = true)
         Spacer(Modifier.height(8.dp))
@@ -140,7 +147,7 @@ fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit, onGoogleSignIn: () -> 
                 scope.launch {
                     try {
                         if (signup) {
-                            val result = NativeSupabase.signUp(email.trim(), password)
+                            val result = NativeSupabase.signUp(email.trim(), password, referrerId)
                             val access = result.optString("access_token")
                             if (access.isBlank()) message = "Account बन गया। Email confirmation के बाद Login करें।"
                             else {
