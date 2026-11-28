@@ -453,6 +453,18 @@ Deno.serve(async (req: Request) => {
         .eq("user_id", creatorId).eq("match_id", queue.match_id);
       return json({ ok: true, status: "idle" }, 200, headers);
     }
+    const { data: rooms, error: roomStateError } = await admin.from("live_rooms")
+      .select("id,is_live").in("id", [match.room_a_id, match.room_b_id]);
+    if (roomStateError) return json({ error: "Could not verify both LIVE rooms." }, 503, headers);
+    if (!rooms || rooms.length !== 2 || rooms.some((room: { is_live: boolean | null }) => room.is_live !== true)) {
+      await admin.from("live_pk_matches").update({
+        status: "completed", ended_at: new Date().toISOString()
+      }).eq("id", match.id).eq("status", "active");
+      await admin.from("live_pk_queue").update({
+        status: "cancelled", updated_at: new Date().toISOString()
+      }).eq("match_id", match.id).eq("status", "matched");
+      return json({ ok: true, status: "idle" }, 200, headers);
+    }
     const ownIsA = match.creator_a_id === creatorId;
     const opponentId = ownIsA ? match.creator_b_id : match.creator_a_id;
     const opponentRoom = ownIsA ? match.room_b_id : match.room_a_id;
