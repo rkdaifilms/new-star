@@ -404,6 +404,39 @@ object NativeSupabase {
             )
         }
 
+
+    suspend fun uploadVideoFile(path: String, file: java.io.File, session: NativeSession): String =
+        withContext(Dispatchers.IO) {
+            require(path.startsWith("${session.userId}/") && path.split("/").none { it.isBlank() || it == "." || it == ".." }) {
+                "Video upload path owner से match नहीं करता।"
+            }
+            require(file.isFile && file.length() > 0L) { "Exported video file उपलब्ध नहीं है।" }
+            val safePath = path.split("/").joinToString("/") { Uri.encode(it) }
+            val connection = (URL("$SUPABASE_URL/storage/v1/object/videos/$safePath").openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 30000
+                readTimeout = 600000
+                doOutput = true
+                setFixedLengthStreamingMode(file.length())
+                setRequestProperty("apikey", SUPABASE_KEY)
+                setRequestProperty("Authorization", "Bearer ${session.accessToken}")
+                setRequestProperty("Content-Type", "video/mp4")
+                setRequestProperty("x-upsert", "false")
+            }
+            try {
+                file.inputStream().use { input ->
+                    connection.outputStream.use { output -> input.copyTo(output, 1024 * 1024) }
+                }
+                val code = connection.responseCode
+                val response = (if (code in 200..299) connection.inputStream else connection.errorStream)
+                    ?.bufferedReader()?.use { it.readText() }.orEmpty()
+                if (code !in 200..299) throw IllegalStateException("Video upload failed ($code): ${response.take(240)}")
+            } finally {
+                connection.disconnect()
+            }
+            "storage://videos/$path"
+        }
+
     suspend fun removeVideoObject(path: String, session: NativeSession) = withContext(Dispatchers.IO) {
         require(path.startsWith("${session.userId}/") && !path.split("/").any { it == ".." || it.isBlank() }) {
             "Video storage path owner से match नहीं करता।"
