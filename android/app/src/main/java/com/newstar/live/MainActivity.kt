@@ -2442,6 +2442,8 @@ private fun NativeVideoCard(
             }
         }
     }
+    var playerError by remember(video.id) { mutableStateOf<String?>(null) }
+    var playerRetry by remember(video.id) { mutableIntStateOf(0) }
     val exoPlayer = remember(video.url, offlineSaved) {
         val sourceFactory = if (offlineSaved) {
             NativeOfflineDownloads.offlineDataSourceFactory(context)
@@ -2451,18 +2453,39 @@ private fun NativeVideoCard(
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(sourceFactory))
             .build().apply {
-                setMediaItem(MediaItem.fromUri(video.url)); prepare(); playWhenReady = false
+                setMediaItem(MediaItem.fromUri(video.url))
+                prepare()
+                playWhenReady = false
             }
     }
-    DisposableEffect(exoPlayer) { onDispose { exoPlayer.release() } }
-    LaunchedEffect(isActive) {
-        if (isActive) {
-            if (exoPlayer.playbackState == androidx.media3.common.Player.STATE_IDLE) exoPlayer.prepare()
-            exoPlayer.playWhenReady = true
-            exoPlayer.play()
-        } else {
-            exoPlayer.pause()
-            exoPlayer.playWhenReady = false
+    DisposableEffect(exoPlayer) {
+        val listener = object : androidx.media3.common.Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                playerError = error.localizedMessage ?: "वीडियो चल नहीं सका। नेटवर्क जाँचकर दोबारा कोशिश करें।"
+            }
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == androidx.media3.common.Player.STATE_READY) playerError = null
+            }
+        }
+        exoPlayer.addListener(listener)
+        onDispose {
+            exoPlayer.removeListener(listener)
+            exoPlayer.release()
+        }
+    }
+    LaunchedEffect(isActive, playerRetry) {
+        try {
+            if (isActive) {
+                if (exoPlayer.playbackState == androidx.media3.common.Player.STATE_IDLE ||
+                    exoPlayer.playbackState == androidx.media3.common.Player.STATE_ENDED) exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+                exoPlayer.play()
+            } else {
+                exoPlayer.pause()
+                exoPlayer.playWhenReady = false
+            }
+        } catch (error: Exception) {
+            playerError = error.localizedMessage ?: "वीडियो प्लेयर शुरू नहीं हो सका।"
         }
     }
     val watchTracker = remember(exoPlayer, video.id, session?.userId, session?.accessToken) {
@@ -2478,15 +2501,43 @@ private fun NativeVideoCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column {
-            AndroidView(
+            Box(
                 modifier = if (immersive) Modifier.fillMaxWidth().weight(1f)
-                    else Modifier.fillMaxWidth().height(if (video.type == "long") 235.dp else 500.dp),
-                factory = { ctx -> PlayerView(ctx).apply {
-                    player = exoPlayer; useController = true
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                } },
-                update = { it.player = exoPlayer }
-            )
+                    else Modifier.fillMaxWidth().height(if (video.type == "long") 235.dp else 500.dp)
+            ) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { ctx -> PlayerView(ctx).apply {
+                        player = exoPlayer
+                        // Feed swipes should not be intercepted by playback controls.
+                        useController = !immersive
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    } },
+                    update = { view ->
+                        if (view.player !== exoPlayer) view.player = exoPlayer
+                        view.useController = !immersive
+                    }
+                )
+                if (playerError != null) {
+                    Surface(
+                        modifier = Modifier.align(androidx.compose.ui.Alignment.Center).padding(20.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+                    ) {
+                        Column(
+                            Modifier.padding(16.dp),
+                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                        ) {
+                            Text(playerError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                            Spacer(Modifier.height(8.dp))
+                            TextButton(onClick = {
+                                playerError = null
+                                playerRetry++
+                            }) { Text("वीडियो फिर चलाएँ") }
+                        }
+                    }
+                }
+            }
             Column(Modifier.fillMaxWidth().padding(14.dp)) {
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Text(
