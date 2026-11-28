@@ -3684,6 +3684,10 @@ fun NativeWalletScreen(session: NativeSession) {
     var withdrawals by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var packages by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var packagesError by remember { mutableStateOf("") }
+    var earningsError by remember { mutableStateOf("") }
+    var ledgerError by remember { mutableStateOf("") }
+    var ordersError by remember { mutableStateOf("") }
+    var withdrawalsError by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
@@ -3707,32 +3711,58 @@ fun NativeWalletScreen(session: NativeSession) {
             } while (pageSize == 500)
             coinBalance = balanceTotal
 
-            val ledgerRows = NativeSupabase.get(
-                "/rest/v1/wallet_ledger?select=entry_type,coin_delta,amount_minor,currency,created_at&user_id=eq.$userId&order=created_at.desc&limit=30",
-                session
-            )
-            ledger = (0 until ledgerRows.length()).mapNotNull { ledgerRows.optJSONObject(it) }
+            try {
+                val ledgerRows = NativeSupabase.get(
+                    "/rest/v1/wallet_ledger?select=entry_type,coin_delta,amount_minor,currency,created_at&user_id=eq.$userId&order=created_at.desc&limit=30",
+                    session
+                )
+                ledger = (0 until ledgerRows.length()).mapNotNull { ledgerRows.optJSONObject(it) }
+                ledgerError = ""
+            } catch (failure: Exception) {
+                ledger = emptyList()
+                ledgerError = failure.message ?: "Coin ledger history उपलब्ध नहीं है।"
+            }
 
-            val earningsRows = NativeSupabase.get(
-                "/rest/v1/creator_gift_earnings?select=coins,gross_coins,platform_fee_coins&creator_id=eq.$userId",
-                session
-            )
-            val earnings = (0 until earningsRows.length()).mapNotNull { earningsRows.optJSONObject(it) }
-            giftGross = earnings.sumOf { it.optLong("gross_coins", it.optLong("coins")) }
-            giftNet = earnings.sumOf { it.optLong("coins") }
-            giftFee = earnings.sumOf { it.optLong("platform_fee_coins") }
+            try {
+                val earningsRows = NativeSupabase.get(
+                    "/rest/v1/creator_gift_earnings?select=coins,gross_coins,platform_fee_coins&creator_id=eq.$userId",
+                    session
+                )
+                val earnings = (0 until earningsRows.length()).mapNotNull { earningsRows.optJSONObject(it) }
+                giftGross = earnings.sumOf { it.optLong("gross_coins", it.optLong("coins")) }
+                giftNet = earnings.sumOf { it.optLong("coins") }
+                giftFee = earnings.sumOf { it.optLong("platform_fee_coins") }
+                earningsError = ""
+            } catch (failure: Exception) {
+                giftGross = 0L
+                giftNet = 0L
+                giftFee = 0L
+                earningsError = failure.message ?: "Gift earnings अभी उपलब्ध नहीं हैं।"
+            }
 
-            val orderRows = NativeSupabase.get(
-                "/rest/v1/payment_orders?select=id,provider,amount_minor,currency,status,created_at&user_id=eq.$userId&order=created_at.desc&limit=20",
-                session
-            )
-            orders = (0 until orderRows.length()).mapNotNull { orderRows.optJSONObject(it) }
+            try {
+                val orderRows = NativeSupabase.get(
+                    "/rest/v1/payment_orders?select=id,provider,amount_minor,currency,status,created_at&user_id=eq.$userId&order=created_at.desc&limit=20",
+                    session
+                )
+                orders = (0 until orderRows.length()).mapNotNull { orderRows.optJSONObject(it) }
+                ordersError = ""
+            } catch (failure: Exception) {
+                orders = emptyList()
+                ordersError = failure.message ?: "Payment order history उपलब्ध नहीं है।"
+            }
 
-            val withdrawalRows = NativeSupabase.get(
-                "/rest/v1/withdrawal_requests?select=id,amount,currency,country_code,payout_method,status,created_at&creator_id=eq.$userId&order=created_at.desc&limit=20",
-                session
-            )
-            withdrawals = (0 until withdrawalRows.length()).mapNotNull { withdrawalRows.optJSONObject(it) }
+            try {
+                val withdrawalRows = NativeSupabase.get(
+                    "/rest/v1/withdrawal_requests?select=id,amount,currency,country_code,payout_method,status,created_at&creator_id=eq.$userId&order=created_at.desc&limit=20",
+                    session
+                )
+                withdrawals = (0 until withdrawalRows.length()).mapNotNull { withdrawalRows.optJSONObject(it) }
+                withdrawalsError = ""
+            } catch (failure: Exception) {
+                withdrawals = emptyList()
+                withdrawalsError = failure.message ?: "Withdrawal history उपलब्ध नहीं है।"
+            }
 
             try {
                 val packageRows = NativeSupabase.get(
@@ -3765,6 +3795,7 @@ fun NativeWalletScreen(session: NativeSession) {
                 Text(coinBalance.toString() + " Coins", style = MaterialTheme.typography.headlineMedium)
                 Spacer(Modifier.height(12.dp))
                 Text("Creator gift earnings", style = MaterialTheme.typography.titleMedium)
+                if (earningsError.isNotBlank()) Text("Gift earnings unavailable: $earningsError", color = MaterialTheme.colorScheme.error)
                 Text("Gross: $giftGross Coins")
                 Text("Your recorded net: $giftNet Coins")
                 Text("Platform fee: $giftFee Coins")
@@ -3803,6 +3834,7 @@ fun NativeWalletScreen(session: NativeSession) {
             }
         }
         Text("Coin Ledger", style = MaterialTheme.typography.titleLarge)
+        if (ledgerError.isNotBlank()) Text(ledgerError, color = MaterialTheme.colorScheme.error)
         LazyColumn(
             Modifier.weight(1f, fill = true),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -3822,6 +3854,7 @@ fun NativeWalletScreen(session: NativeSession) {
                 Text("अभी कोई verified Coin Ledger entry नहीं है।")
             }
             item { Text("Payment Orders", style = MaterialTheme.typography.titleLarge) }
+            if (ordersError.isNotBlank()) item { Text(ordersError, color = MaterialTheme.colorScheme.error) }
             items(orders) { order ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
@@ -3834,6 +3867,7 @@ fun NativeWalletScreen(session: NativeSession) {
             }
             if (orders.isEmpty() && !loading) item { Text("अभी कोई Payment Order नहीं है।") }
             item { Text("Withdrawal History", style = MaterialTheme.typography.titleLarge) }
+            if (withdrawalsError.isNotBlank()) item { Text(withdrawalsError, color = MaterialTheme.colorScheme.error) }
             items(withdrawals) { request ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
