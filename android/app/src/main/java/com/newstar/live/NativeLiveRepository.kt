@@ -216,6 +216,17 @@ internal object NativeLiveRepository {
             session
         )
 
+    suspend fun unsubscribeSfuTracks(
+        roomId: String,
+        sessionId: String,
+        mids: JSONArray,
+        session: NativeSession
+    ): JSONObject = invokeSfuAction(
+        JSONObject().put("action", "sfu-unsubscribe").put("room_id", roomId)
+            .put("session_id", sessionId).put("tracks", mids),
+        session
+    )
+
     suspend fun closeSfuSession(
         roomId: String,
         sessionId: String,
