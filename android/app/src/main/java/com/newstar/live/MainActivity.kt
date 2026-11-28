@@ -595,6 +595,7 @@ private fun NativeApp(
                 "Settings" -> NativeSettingsScreen(
                     session = session!!,
                     onOpenDeveloperReports = { page = "Developer Reports" },
+                    onOpenHelpCenter = { page = "Help Center" },
                     onLogout = {
                         val current = session
                         if (current != null) scope.launch {
@@ -661,6 +662,7 @@ private fun NativeApp(
                 "Terms" -> NativeInfoScreen("Terms")
                 "Privacy" -> NativeInfoScreen("Privacy")
                 "Creator AI" -> NativeCreatorAiScreen(session!!, initialPrompt = aiInitialPrompt)
+                "Help Center" -> NativeHelpCenterScreen(session!!)
                 "Live" -> NativeLiveDiscoveryScreen(session!!)
                 "Gaming" -> NativeGamingScreen(
                     session = session!!,
@@ -2089,6 +2091,7 @@ private fun NativeHome(
                                     "My Profile" to "Profile",
                                     "Settings" to "Settings",
                                     "Creator Studio AI" to "Creator AI",
+                                    "Help Center AI" to "Help Center",
                                     "Upload Video" to "Upload",
                                     "Inbox / Messages" to "Inbox",
                                     "Notifications" to "Notifications",
