@@ -14,6 +14,26 @@ data class NativeContentReportUiState(
     val error: String? = null
 )
 
+internal object NativeContentReportPolicy {
+    private val targetTypes = setOf("video", "comment", "user")
+    private val reasons = setOf(
+        "copyright", "harassment", "spam", "scam",
+        "nudity_or_sexual_content", "violence", "dangerous_content",
+        "child_safety", "privacy", "other"
+    )
+
+    fun validate(targetType: String, targetId: String, reason: String, details: String?) {
+        require(targetType in targetTypes) { "Report target type अमान्य है।" }
+        require(targetId.isNotBlank() && targetId.length <= 240) {
+            "Report target उपलब्ध नहीं है।"
+        }
+        require(reason in reasons) { "Report reason अमान्य है।" }
+        require(details == null || details.length <= 1200) {
+            "अतिरिक्त जानकारी 1,200 अक्षरों से कम रखें।"
+        }
+    }
+}
+
 class NativeContentReportRepository {
     suspend fun submit(
         session: NativeSession,
@@ -22,20 +42,7 @@ class NativeContentReportRepository {
         reason: String,
         details: String?
     ) {
-        require(targetType in setOf("video", "comment", "user")) {
-            "Report target type अमान्य है।"
-        }
-        require(targetId.isNotBlank() && targetId.length <= 240) {
-            "Report target उपलब्ध नहीं है।"
-        }
-        require(reason in setOf(
-            "copyright", "harassment", "spam", "scam",
-            "nudity_or_sexual_content", "violence", "dangerous_content",
-            "child_safety", "privacy", "other"
-        )) { "Report reason अमान्य है।" }
-        require(details == null || details.length <= 1200) {
-            "अतिरिक्त जानकारी 1,200 अक्षरों से कम रखें।"
-        }
+        NativeContentReportPolicy.validate(targetType, targetId, reason, details)
         NativeSupabase.post(
             "/rest/v1/content_reports",
             JSONObject()
