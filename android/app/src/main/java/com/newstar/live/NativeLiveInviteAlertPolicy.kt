@@ -1,17 +1,15 @@
 package com.newstar.live
 
-import org.json.JSONObject
-
 /**
- * Deduplicates pending LIVE invite alerts per signed-in account.
- * The persisted set is deliberately bounded so it cannot grow indefinitely.
+ * Pure ID-only policy for deduplicating pending LIVE invite alerts.
+ * Keeping Android's org.json classes out of this policy makes its unit tests
+ * runnable on the regular JVM without Android runtime stubs.
  */
 internal object NativeLiveInviteAlertPolicy {
-    fun unseen(invitations: List<JSONObject>, seenIds: Set<String>): List<JSONObject> =
-        invitations.filter { invite ->
-            val id = invite.optString("id")
-            id.isNotBlank() && id !in seenIds
-        }
+    fun unseenIds(inviteIds: List<String>, seenIds: Set<String>): Set<String> =
+        inviteIds.asSequence()
+            .filter { it.isNotBlank() && it !in seenIds }
+            .toCollection(LinkedHashSet())
 
     fun mergeSeenIds(existing: Set<String>, newIds: List<String>, maxEntries: Int = 300): Set<String> {
         require(maxEntries in 1..1000)
