@@ -324,7 +324,10 @@ private fun NativeApp(
                 )
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!, inboxTargetId)
-                "Notifications" -> NativeNotificationsScreen(session!!)
+                "Notifications" -> NativeNotificationsScreen(session!!) { creatorId ->
+                    selectedCreatorId = creatorId
+                    page = "Creator"
+                }
                 "Wallet" -> NativeWalletScreen(session!!)
                 "Monetization" -> NativeMonetizationScreen(session!!) { page = "Wallet" }
                 "Fan Support" -> NativeFanSupportScreen(session!!) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
