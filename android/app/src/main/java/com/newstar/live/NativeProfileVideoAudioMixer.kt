@@ -65,12 +65,19 @@ internal class NativeProfileAudioMixerRepository(private val application: Applic
         val videoId = video.optString("id")
         require(videoId.isNotBlank()) { "Video ID उपलब्ध नहीं है।" }
         val videoUrl = video.optString("video_url")
-        require(videoUrl.startsWith("https://") || videoUrl.startsWith("http://")) {
-            "Original video का सुरक्षित playback URL उपलब्ध नहीं है। Profile refresh करके दोबारा कोशिश करें।"
+        val sourceUrl = if (videoUrl.startsWith("storage://videos/")) {
+            val originalPath = NativeProfileVideoPolicy.storagePath(videoUrl, session.userId)
+                ?: error("Original video का storage path owner से match नहीं करता।")
+            NativeSupabase.createSignedObjectUrl("videos", originalPath, session)
+        } else {
+            require(videoUrl.startsWith("https://") || videoUrl.startsWith("http://")) {
+                "Original video का सुरक्षित playback URL उपलब्ध नहीं है। Profile refresh करके दोबारा कोशिश करें।"
+            }
+            videoUrl
         }
         val rendered = NativeVideoEditor.remix(
             application,
-            Uri.parse(videoUrl),
+            Uri.parse(sourceUrl),
             audioUri,
             voiceFile,
             progress
