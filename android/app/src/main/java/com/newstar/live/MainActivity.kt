@@ -509,8 +509,12 @@ private fun NativeApp(
                                 )
                                 val key = "seen_${current.userId}"
                                 val seen = NativeLiveInviteAlertPolicy.decode(preferences.getString(key, null))
-                                val fresh = NativeLiveInviteAlertPolicy.unseen(invitations, seen)
-                                fresh.forEach { NativeSystemNotifications.showLiveInvite(context, it) }
+                                val freshIds = NativeLiveInviteAlertPolicy.unseenIds(
+                                    invitations.map { it.optString("id") },
+                                    seen
+                                )
+                                invitations.filter { it.optString("id") in freshIds }
+                                    .forEach { NativeSystemNotifications.showLiveInvite(context, it) }
                                 val updated = NativeLiveInviteAlertPolicy.mergeSeenIds(
                                     seen,
                                     invitations.map { it.optString("id") }
@@ -2479,9 +2483,7 @@ private fun NativeVideoCard(
                     else Modifier.fillMaxWidth().height(if (video.type == "long") 235.dp else 500.dp),
                 factory = { ctx -> PlayerView(ctx).apply {
                     player = exoPlayer; useController = true
-                    resizeMode = if (immersive && video.type != "long")
-                        AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    else AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                 } },
                 update = { it.player = exoPlayer }
             )
