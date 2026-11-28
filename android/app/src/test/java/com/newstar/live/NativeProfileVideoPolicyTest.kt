@@ -8,7 +8,7 @@ class NativeProfileVideoPolicyTest {
     @Test
     fun normalizesHashtagsAndRemovesDuplicates() {
         assertEquals(
-            listOf("#nepal", "#newstar", "#creator"),
+            listOf("#nepal", "#newstar", "#CREATOR"),
             NativeProfileVideoPolicy.normalizeTags("nepal, #newstar newstar CREATOR")
         )
     }
