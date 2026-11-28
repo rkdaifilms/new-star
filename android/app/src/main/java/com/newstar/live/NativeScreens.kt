@@ -2868,7 +2868,7 @@ private object NativeVideoUploader {
     }
 
     private fun readTusOffset(client: OkHttpClient, uploadUrl: URL, expectedSize: Long): Long {
-        val request = Request.Builder().url(resolvedUploadUrl)
+        val request = Request.Builder().url(uploadUrl)
             .header("Tus-Resumable", "1.0.0")
             .head()
             .build()
