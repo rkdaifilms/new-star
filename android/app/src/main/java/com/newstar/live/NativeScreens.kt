@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
@@ -1796,6 +1797,9 @@ fun NativeUploadScreen(session: NativeSession) {
     var overlayTextSize by remember { mutableIntStateOf(24) }
     var overlayTextColor by remember { mutableStateOf("#FFFFFF") }
     var overlayTextPosition by remember { mutableStateOf("center") }
+    var overlayTextX by remember { mutableFloatStateOf(0f) }
+    var overlayTextY by remember { mutableFloatStateOf(0f) }
+    var previewTextSize by remember { mutableStateOf(IntSize.Zero) }
     var splitAtSeconds by remember { mutableStateOf("") }
     var splitParts by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var musicUri by remember { mutableStateOf<Uri?>(null) }
@@ -1848,6 +1852,8 @@ fun NativeUploadScreen(session: NativeSession) {
             overlayTextSize = 24
             overlayTextColor = "#FFFFFF"
             overlayTextPosition = "center"
+            overlayTextX = 0f
+            overlayTextY = 0f
             editing = true
             status = if (source == "camera") "Camera recording मिल गई। Native editor में बदलाव करके Publish करें।" else "वीडियो चुना गया। Trim, rotate या mute सेट करके Apply edits दबाएँ।"
         } catch (e: Exception) {
@@ -2027,7 +2033,7 @@ fun NativeUploadScreen(session: NativeSession) {
             Text("Video Info · ${sourceWidth} × ${sourceHeight} · ${sourceDurationSeconds}s")
         }
         if (previewPlayer != null) {
-            Box(Modifier.fillMaxWidth().height(240.dp)) {
+            Box(Modifier.fillMaxWidth().height(240.dp).onSizeChanged { previewTextSize = it }) {
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
                     factory = { viewContext ->
@@ -2040,13 +2046,19 @@ fun NativeUploadScreen(session: NativeSession) {
                     update = { it.player = previewPlayer }
                 )
                 if (editing && overlayText.isNotBlank()) {
-                    val previewAlignment = when (overlayTextPosition) {
-                        "top" -> Alignment.TopCenter
-                        "bottom" -> Alignment.BottomCenter
-                        else -> Alignment.Center
-                    }
                     Surface(
-                        modifier = Modifier.align(previewAlignment),
+                        modifier = Modifier.align(Alignment.Center)
+                            .offset { IntOffset((overlayTextX * previewTextSize.width / 2f).toInt(), (overlayTextY * previewTextSize.height / 2f).toInt()) }
+                            .pointerInput(previewTextSize) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    if (previewTextSize.width > 0 && previewTextSize.height > 0) {
+                                        overlayTextX = (overlayTextX + dragAmount.x / (previewTextSize.width / 2f)).coerceIn(-0.85f, 0.85f)
+                                        overlayTextY = (overlayTextY + dragAmount.y / (previewTextSize.height / 2f)).coerceIn(-0.85f, 0.85f)
+                                        overlayTextPosition = "custom"
+                                    }
+                                }
+                            },
                         color = androidx.compose.ui.graphics.Color(android.graphics.Color.argb(170, 0, 0, 0)),
                         shape = RoundedCornerShape(8.dp)
                     ) {
@@ -2083,6 +2095,7 @@ fun NativeUploadScreen(session: NativeSession) {
                             context, input, start * 1000L, split * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
                             textSizePx = overlayTextSize, textColorHex = overlayTextColor, textPosition = overlayTextPosition,
+                            textPositionX = overlayTextX, textPositionY = overlayTextY,
                             sourceVolume = originalAudioVolume,
                             onProgress = { value -> editingProgress = (value / 2).coerceIn(0, 49) }
                         )
@@ -2091,6 +2104,7 @@ fun NativeUploadScreen(session: NativeSession) {
                             context, input, split * 1000L, end * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
                             textSizePx = overlayTextSize, textColorHex = overlayTextColor, textPosition = overlayTextPosition,
+                            textPositionX = overlayTextX, textPositionY = overlayTextY,
                             sourceVolume = originalAudioVolume,
                             onProgress = { value -> editingProgress = (50 + value / 2).coerceIn(50, 99) }
                         )
@@ -2139,6 +2153,8 @@ fun NativeUploadScreen(session: NativeSession) {
                     overlayTextSize = 24
                     overlayTextColor = "#FFFFFF"
                     overlayTextPosition = "center"
+                    overlayTextX = 0f
+                    overlayTextY = 0f
                     status = "Editor settings reset हो गईं।"
                 }, enabled = !uploading) { Text("Reset") }
             }
@@ -2282,10 +2298,10 @@ fun NativeUploadScreen(session: NativeSession) {
                     FilterChip(selected = overlayTextColor == hex, onClick = { overlayTextColor = hex }, enabled = !uploading, label = { Text(label) })
                 }
             }
-            Text("Text Position", style = MaterialTheme.typography.labelLarge)
+            Text("Text Position · preview text को drag करके कहीं भी रखें", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("top" to "Top", "center" to "Center", "bottom" to "Bottom").forEach { (value, label) ->
-                    FilterChip(selected = overlayTextPosition == value, onClick = { overlayTextPosition = value }, enabled = !uploading, label = { Text(label) })
+                    FilterChip(selected = overlayTextPosition == value, onClick = { overlayTextPosition = value; overlayTextY = NativeVideoEditorPolicy.textPositionAnchorY(value); overlayTextX = 0f }, enabled = !uploading, label = { Text(label) })
                 }
             }
             Text("Color filter", style = MaterialTheme.typography.labelLarge)
@@ -2315,6 +2331,7 @@ fun NativeUploadScreen(session: NativeSession) {
                             context, input, start * 1000L, end * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
                             textSizePx = overlayTextSize, textColorHex = overlayTextColor, textPosition = overlayTextPosition,
+                            textPositionX = overlayTextX, textPositionY = overlayTextY,
                             sourceVolume = originalAudioVolume,
                             musicUri = musicUri, voiceoverFile = voiceoverFile,
                             musicVolume = musicVolume, voiceVolume = voiceVolume,
@@ -2525,6 +2542,8 @@ private object NativeVideoEditor {
         textSizePx: Int = 24,
         textColorHex: String = "#FFFFFF",
         textPosition: String = "center",
+        textPositionX: Float = 0f,
+        textPositionY: Float = 0f,
         sourceVolume: Float = 1f,
         musicUri: Uri? = null,
         voiceoverFile: File? = null,
@@ -2551,13 +2570,13 @@ private object NativeVideoEditor {
         }
         if (overlayText.isNotBlank()) {
             NativeVideoEditorPolicy.requireTextStyle(textSizePx, textColorHex, textPosition)
+            NativeVideoEditorPolicy.requireTextCoordinates(textPositionX, textPositionY)
             val text = SpannableString(overlayText.trim().take(100))
             text.setSpan(ForegroundColorSpan(Color.parseColor(textColorHex)), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             text.setSpan(BackgroundColorSpan(Color.argb(170, 0, 0, 0)), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             text.setSpan(AbsoluteSizeSpan(textSizePx), 0, text.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            val anchorY = NativeVideoEditorPolicy.textPositionAnchorY(textPosition)
             val overlaySettings = StaticOverlaySettings.Builder()
-                .setBackgroundFrameAnchor(0f, anchorY)
+                .setBackgroundFrameAnchor(textPositionX, textPositionY)
                 .setOverlayFrameAnchor(0f, 0f)
                 .build()
             videoEffects.add(OverlayEffect(listOf(TextOverlay.createStaticTextOverlay(text, overlaySettings))))
