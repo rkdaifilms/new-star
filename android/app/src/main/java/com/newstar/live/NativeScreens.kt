@@ -3038,6 +3038,10 @@ fun NativeGamingScreen(
         }
     }
 
+    LaunchedEffect(roomId, state.streaming) {
+        if (!roomId.isNullOrBlank() && state.streaming) gamingViewModel.refreshMembers(roomId)
+    }
+
     Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Native Gaming LIVE", style = MaterialTheme.typography.headlineSmall)
         Text("यह स्क्रीन Android MediaProjection और native GamingStreamService का उपयोग करती है। LIVE eligibility server पर जाँची जाएगी।")
@@ -3151,6 +3155,75 @@ fun NativeGamingScreen(
                                 else if (state.pkStatus == "matched") "End friendly battle"
                                 else "Cancel search"
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (state.streaming && !roomId.isNullOrBlank() &&
+            (state.actorRole == "host" || state.actorRole == "moderator" || state.moderationError.isNotBlank())
+        ) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Gaming LIVE moderation", style = MaterialTheme.typography.titleMedium)
+                        TextButton(
+                            enabled = !state.moderationLoading && state.moderationBusyUserId.isBlank(),
+                            onClick = { gamingViewModel.refreshMembers(roomId) }
+                        ) { Text(if (state.moderationLoading) "Loading…" else "Refresh") }
+                    }
+                    if (state.moderationError.isNotBlank()) {
+                        Text(state.moderationError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (state.members.isEmpty() && !state.moderationLoading) {
+                        Text("अभी कोई requested या admitted participant नहीं है।", style = MaterialTheme.typography.bodySmall)
+                    }
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 320.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(state.members, key = { it.optString("user_id") }) { member ->
+                            val memberId = member.optString("user_id")
+                            val role = member.optString("role", "guest")
+                            val canManage = role != "host" && (state.actorRole == "host" || role != "moderator")
+                            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text(
+                                    "${member.optString("display_name", "Guest")} · $role · ${member.optString("status")}",
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                                Text(
+                                    "Camera ${if (member.optBoolean("camera_allowed")) "allowed" else "blocked"} · Mic ${if (member.optBoolean("microphone_allowed")) "allowed" else "blocked"} · ${if (member.optBoolean("sfu_connected")) "connected" else "not connected"}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                if (canManage) {
+                                    val busy = state.moderationBusyUserId.isNotBlank()
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        OutlinedButton(
+                                            enabled = !busy,
+                                            modifier = Modifier.weight(1f),
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                            onClick = { gamingViewModel.setMemberCamera(roomId, member) }
+                                        ) { Text(if (member.optBoolean("camera_allowed")) "Block camera" else "Allow camera") }
+                                        OutlinedButton(
+                                            enabled = !busy,
+                                            modifier = Modifier.weight(1f),
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                            onClick = { gamingViewModel.setMemberMicrophone(roomId, member) }
+                                        ) { Text(if (member.optBoolean("microphone_allowed")) "Block mic" else "Allow mic") }
+                                    }
+                                    if (state.actorRole == "host" && member.optString("status") == "admitted") {
+                                        OutlinedButton(
+                                            enabled = !busy,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            onClick = { gamingViewModel.toggleMemberModerator(roomId, member) }
+                                        ) { Text(if (role == "moderator") "Remove moderator" else "Make moderator") }
+                                    }
+                                    OutlinedButton(
+                                        enabled = !busy,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        onClick = { gamingViewModel.removeMember(roomId, member) }
+                                    ) { Text(if (state.moderationBusyUserId == memberId) "Updating…" else "Remove participant") }
+                                }
+                            }
+                            HorizontalDivider()
                         }
                     }
                 }
