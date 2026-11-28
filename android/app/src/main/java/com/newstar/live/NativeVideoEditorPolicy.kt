@@ -40,6 +40,31 @@ internal object NativeVideoEditorPolicy {
         }
     }
 
+    fun videoQualityLabel(width: Int, height: Int): String {
+        require(width > 0 && height > 0) { "Video resolution positive होनी चाहिए।" }
+        return when {
+            width >= 3840 || height >= 3840 -> "4K / UHD"
+            width >= 2560 || height >= 2560 -> "1440p / QHD"
+            width >= 1920 || height >= 1920 -> "1080p / Full HD"
+            width >= 1280 || height >= 1280 -> "720p / HD"
+            else -> "SD"
+        }
+    }
+
+    fun videoAspectRatioLabel(width: Int, height: Int): String {
+        require(width > 0 && height > 0) { "Video resolution positive होनी चाहिए।" }
+        val ratio = width.toDouble() / height.toDouble()
+        return when {
+            ratio in 0.55..0.58 -> "9:16 · Vertical"
+            ratio in 0.74..0.76 -> "3:4 · Portrait"
+            ratio in 0.99..1.01 -> "1:1 · Square"
+            ratio in 1.32..1.35 -> "4:3 · Landscape"
+            ratio in 1.76..1.79 -> "16:9 · Widescreen"
+            ratio > 1.0 -> "Landscape · " + "%.2f".format(java.util.Locale.ROOT, ratio) + ":1"
+            else -> "Portrait · 1:" + "%.2f".format(java.util.Locale.ROOT, 1.0 / ratio)
+        }
+    }
+
     fun requireTextCoordinates(x: Float, y: Float) {
         require(x.isFinite() && y.isFinite() && x in -0.85f..0.85f && y in -0.85f..0.85f) {
             "Text coordinates preview bounds के अंदर होने चाहिए।"
