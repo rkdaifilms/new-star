@@ -656,7 +656,80 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
     var searchingCreators by remember(roomId) { mutableStateOf(false) }
     var busy by remember(roomId) { mutableStateOf(false) }
     var notice by remember(roomId) { mutableStateOf("") }
+    var guestPublisher by remember(roomId) { mutableStateOf<NativeLivePublisher?>(null) }
+    var guestMicEnabled by remember(roomId) { mutableStateOf(false) }
+    var guestCameraEnabled by remember(roomId) { mutableStateOf(true) }
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val currentGuestPublisher by rememberUpdatedState(guestPublisher)
+    val guestPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val cameraGranted = permissions[android.Manifest.permission.CAMERA] == true ||
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        val micGranted = permissions[android.Manifest.permission.RECORD_AUDIO] == true ||
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!cameraGranted) {
+            notice = "Guest camera शुरू करने के लिए Android Camera permission आवश्यक है।"
+        } else {
+            scope.launch {
+                busy = true
+                var created: NativeLivePublisher? = null
+                try {
+                    val active = NativeSfuPublisher.start(context, roomId, session, micGranted)
+                    created = active
+                    guestPublisher = active
+                    guestMicEnabled = micGranted
+                    guestCameraEnabled = true
+                    notice = if (micGranted) "आपका camera और microphone LIVE room में publish हो रहा है।"
+                        else "आपका camera LIVE room में publish हो रहा है। Microphone permission उपलब्ध नहीं है।"
+                } catch (e: Exception) {
+                    runCatching { created?.stop() }
+                    notice = e.message ?: "Guest media publishing शुरू नहीं हुआ।"
+                } finally {
+                    busy = false
+                }
+            }
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(roomId, guestPublisher) {
+        if (guestPublisher != null) {
+            while (guestPublisher != null) {
+                delay(3_000)
+                try {
+                    val fresh = NativeLiveRepository.listParticipants(roomId, session)
+                    val mineNow = fresh.firstOrNull { it.optString("user_id") == session.userId }
+                    if (mineNow == null || mineNow.optString("status") != "admitted" ||
+                        !mineNow.optBoolean("camera_allowed", true)) {
+                        guestPublisher?.stop()
+                        guestPublisher = null
+                        notice = "Host ने guest camera permission हटाई या seat बंद हुई; publishing रोक दी गई।"
+                        break
+                    }
+                    if (!mineNow.optBoolean("microphone_allowed", true)) {
+                        guestPublisher?.setMicrophoneEnabled(false)
+                        guestMicEnabled = false
+                    }
+                } catch (_: Exception) {
+                    // Keep an established media session during a transient status request failure.
+                }
+            }
+        }
+    }
+
+    androidx.compose.runtime.DisposableEffect(roomId) {
+        onDispose {
+            val active = currentGuestPublisher
+            if (active != null) {
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
+                    runCatching { active.stop() }
+                }
+            }
+        }
+    }
 
     suspend fun reloadParticipants() {
         val current = NativeLiveRepository.listParticipants(roomId, session)
@@ -690,21 +763,66 @@ private fun NativeLiveGuestControls(session: NativeSession, roomId: String, isHo
                 busy = true
                 scope.launch {
                     try {
-                        NativeLiveRepository.requestSeat(roomId, session)
-                        notice = "Seat request भेज दी गई।"
+                        val response = NativeLiveRepository.requestSeat(roomId, session)
+                        val requested = response.optJSONObject("participant")
+                        if (requested != null) participants = listOf(requested)
+                        notice = "Seat request भेज दी गई। Host की मंज़ूरी का इंतज़ार करें।"
                         reloadParticipants()
                     } catch (e: Exception) { notice = e.message ?: "Request failed" }
                     finally { busy = false }
                 }
             }) { Text("Request guest seat") }
             val mine = participants.firstOrNull { it.optString("user_id") == session.userId }
-            if (mine?.optString("status") == "admitted") {
+            val admitted = mine?.optString("status") == "admitted"
+            val cameraAllowed = mine?.optBoolean("camera_allowed", true) == true
+            val microphoneAllowed = mine?.optBoolean("microphone_allowed", true) == true
+            when {
+                mine?.optString("status") == "requested" -> Text(
+                    "Seat request भेज दी गई है। Host के admit करने के बाद camera विकल्प खुलेगा।",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                admitted && !cameraAllowed -> Text(
+                    "आप admitted हैं, लेकिन Host ने camera permission अभी नहीं दी है। Host से camera अनुमति माँगें।",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                admitted && guestPublisher == null -> OutlinedButton(
+                    enabled = !busy && cameraAllowed,
+                    onClick = {
+                        val permissions = mutableListOf(android.Manifest.permission.CAMERA)
+                        if (microphoneAllowed) permissions.add(android.Manifest.permission.RECORD_AUDIO)
+                        guestPermissionLauncher.launch(permissions.toTypedArray())
+                    }
+                ) { Text("Start guest camera") }
+            }
+            guestPublisher?.let { active ->
+                NativeLiveCameraPreview(active, Modifier.fillMaxWidth().height(190.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = {
+                        guestMicEnabled = !guestMicEnabled
+                        active.setMicrophoneEnabled(guestMicEnabled && microphoneAllowed)
+                    }, enabled = microphoneAllowed) {
+                        Text(if (guestMicEnabled) "Mic ON" else "Mic OFF")
+                    }
+                    OutlinedButton(onClick = {
+                        guestCameraEnabled = !guestCameraEnabled
+                        active.setCameraEnabled(guestCameraEnabled)
+                    }) { Text(if (guestCameraEnabled) "Camera ON" else "Camera OFF") }
+                }
+                Text("आपका native WebRTC guest media इस LIVE room में भेजा जा रहा है।",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary)
+            }
+            if (admitted) {
                 OutlinedButton(enabled = !busy, onClick = {
                     busy = true
                     scope.launch {
                         try {
+                            guestPublisher?.stop()
+                            guestPublisher = null
                             NativeLiveRepository.leaveSeat(roomId, session)
-                            notice = "आप LIVE seat से निकल गए।"
+                            notice = "आप LIVE seat से निकल गए और camera/microphone publishing बंद कर दी गई।"
                             reloadParticipants()
                         } catch (e: Exception) { notice = e.message ?: "Leave failed" }
                         finally { busy = false }
