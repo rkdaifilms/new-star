@@ -2436,6 +2436,28 @@ private object NativeVideoEditor {
         }
     }
 }
+private object NativeUploadDraftStore {
+    private const val PREFS = "newstar_native_upload_drafts"
+
+    fun load(context: Context, userId: String): JSONObject? {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(userId, null) ?: return null
+        return runCatching { JSONObject(raw) }.getOrNull()
+    }
+
+    fun save(context: Context, userId: String, draft: JSONObject) {
+        check(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(userId, draft.toString()).commit()) {
+            "Upload recovery state डिवाइस पर सुरक्षित नहीं हो सकी।"
+        }
+    }
+
+    fun clear(context: Context, userId: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().remove(userId).commit()
+    }
+}
+
 private object NativeVideoUploader {
     suspend fun upload(
         context: Context, uri: Uri, session: NativeSession, title: String, description: String,
@@ -2481,41 +2503,89 @@ private object NativeVideoUploader {
             "name " + b64(name.take(180)),
             "filetype " + b64(context.contentResolver.getType(uri) ?: "video/mp4")
         ).joinToString(",")
-        val create = (URL("https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy").openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"; connectTimeout = 20000; readTimeout = 60000
-            setRequestProperty("apikey", "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr")
-            setRequestProperty("Authorization", "Bearer ${session.accessToken}")
-            setRequestProperty("Origin", "https://new-star-delta.vercel.app")
-            setRequestProperty("Tus-Resumable", "1.0.0")
-            setRequestProperty("Upload-Length", size.toString())
-            setRequestProperty("Upload-Metadata", metadata)
-            setRequestProperty("Cache-Control", "no-store")
+        val savedDraft = NativeUploadDraftStore.load(context, session.userId)?.takeIf {
+            it.optString("uri") == uri.toString() && it.optLong("size") == size &&
+                it.optString("user_id") == session.userId
         }
-        val code = create.responseCode
-        if (code !in 200..299) {
-            val error = (create.errorStream ?: create.inputStream)?.bufferedReader()?.use { it.readText() }.orEmpty()
-            create.disconnect()
-            throw IllegalStateException("Upload session नहीं बनी ($code): ${error.take(500)}")
-        }
-        val locationHeader = create.getHeaderField("Location")
-        val streamId = create.getHeaderField("stream-media-id")
-        create.disconnect()
-        require(!locationHeader.isNullOrBlank()) { "Cloudflare upload location नहीं मिली।" }
-        require(!streamId.isNullOrBlank()) { "Cloudflare Stream ID नहीं मिली।" }
+        val finalizedVideoId = savedDraft?.optString("video_id").orEmpty()
         val createUrl = URL("https://uzsusgoetrkujmofxcmb.supabase.co/functions/v1/cloudflare-tus-proxy")
-        val uploadUrl = URL(createUrl, locationHeader)
-        require(uploadUrl.protocol == "https" && uploadUrl.host.isNotBlank()) { "Cloudflare upload URL सुरक्षित HTTPS नहीं है।" }
-        require(uploadUrl.host == "api.cloudflare.com" || uploadUrl.host.endsWith(".cloudflarestream.com") ||
-            uploadUrl.host.endsWith(".videodelivery.net")) { "Cloudflare ने असुरक्षित या अपरिचित upload host लौटाया।" }
+        var streamId = savedDraft?.optString("stream_id").orEmpty()
+        var uploadUrl: URL? = savedDraft?.optString("upload_url")?.takeIf { it.isNotBlank() }?.let(::URL)
+        if (savedDraft == null) {
+            NativeUploadDraftStore.clear(context, session.userId)
+            val create = (createUrl.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"; connectTimeout = 20000; readTimeout = 60000
+                setRequestProperty("apikey", "sb_publishable_Zz2hljevMsXBcK8c33UvFw_wuc2itVr")
+                setRequestProperty("Authorization", "Bearer ${session.accessToken}")
+                setRequestProperty("Origin", "https://new-star-delta.vercel.app")
+                setRequestProperty("Tus-Resumable", "1.0.0")
+                setRequestProperty("Upload-Length", size.toString())
+                setRequestProperty("Upload-Metadata", metadata)
+                setRequestProperty("Cache-Control", "no-store")
+            }
+            val code = create.responseCode
+            if (code !in 200..299) {
+                val error = (create.errorStream ?: create.inputStream)?.bufferedReader()?.use { it.readText() }.orEmpty()
+                create.disconnect()
+                throw IllegalStateException("Upload session नहीं बनी ($code): ${error.take(500)}")
+            }
+            val locationHeader = create.getHeaderField("Location")
+            streamId = create.getHeaderField("stream-media-id").orEmpty()
+            create.disconnect()
+            require(!locationHeader.isNullOrBlank()) { "Cloudflare upload location नहीं मिली।" }
+            require(streamId.isNotBlank()) { "Cloudflare Stream ID नहीं मिली।" }
+            uploadUrl = URL(createUrl, locationHeader)
+        } else {
+            withContext(Dispatchers.Main) { onStatus("पिछला अधूरा upload मिला। Cloudflare से सुरक्षित offset जाँचा जा रहा है…") }
+        }
+        val resolvedUploadUrl = requireNotNull(uploadUrl) { "Cloudflare upload URL उपलब्ध नहीं है।" }
+        require(resolvedUploadUrl.protocol == "https" && resolvedUploadUrl.host.isNotBlank()) { "Cloudflare upload URL सुरक्षित HTTPS नहीं है।" }
+        require(resolvedUploadUrl.host == "api.cloudflare.com" || resolvedUploadUrl.host.endsWith(".cloudflarestream.com") ||
+            resolvedUploadUrl.host.endsWith(".videodelivery.net")) { "Cloudflare ने असुरक्षित या अपरिचित upload host लौटाया।" }
 
         val client = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)
             .build()
-        var offset = 0L
+        val draft = savedDraft ?: JSONObject().apply {
+            put("user_id", session.userId)
+            put("uri", uri.toString())
+            put("size", size)
+            put("upload_url", resolvedUploadUrl.toString())
+            put("stream_id", streamId)
+            put("offset", 0L)
+            put("title", title)
+            put("description", description)
+            put("category", category)
+            put("visibility", visibility)
+            put("audience_type", audienceType)
+            put("media_kind", mediaKind)
+            put("affiliate_link", affiliateLink)
+            put("location", location ?: JSONObject.NULL)
+            put("location_visibility", locationVisibility)
+            put("duration", duration)
+            put("width", width)
+            put("height", height)
+            put("file_name", name)
+        }
+        if (savedDraft == null) NativeUploadDraftStore.save(context, session.userId, draft)
+        var offset = if (finalizedVideoId.isNotBlank()) size else readTusOffset(client, resolvedUploadUrl, size)
+        require(offset in 0L..size) { "Cloudflare ने upload का अमान्य resume offset दिया।" }
+        draft.put("offset", offset)
+        NativeUploadDraftStore.save(context, session.userId, draft)
+        if (finalizedVideoId.isBlank()) {
         context.contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "वीडियो फ़ाइल पढ़ नहीं सकी।" }
+            var skipped = 0L
+            while (skipped < offset) {
+                val count = input.skip(offset - skipped)
+                if (count <= 0L) {
+                    val consumed = input.read()
+                    if (consumed < 0) throw IllegalStateException("Resume offset तक वीडियो फ़ाइल नहीं पढ़ सके।")
+                    skipped++
+                } else skipped += count
+            }
             val chunkSize = 8 * 1024 * 1024
             while (offset < size) {
                 val wanted = minOf(chunkSize.toLong(), size - offset).toInt()
@@ -2533,7 +2603,7 @@ private object NativeVideoUploader {
                 var lastFailure: Exception? = null
                 while (!accepted && retry < 4) {
                     try {
-                        val request = Request.Builder().url(uploadUrl)
+                        val request = Request.Builder().url(resolvedUploadUrl)
                             .header("Tus-Resumable", "1.0.0")
                             .header("Upload-Offset", offset.toString())
                             .patch(chunk.toRequestBody("application/offset+octet-stream".toMediaType()))
@@ -2563,7 +2633,7 @@ private object NativeVideoUploader {
 
                     if (!accepted) {
                         val serverOffset = try {
-                            readTusOffset(client, uploadUrl, size)
+                            readTusOffset(client, resolvedUploadUrl, size)
                         } catch (headError: Exception) {
                             lastFailure = IllegalStateException(
                                 "Upload connection और server offset दोनों verify नहीं हुए: ${headError.message ?: "network error"}",
@@ -2599,9 +2669,12 @@ private object NativeVideoUploader {
                         lastFailure
                     )
                 }
+                draft.put("offset", offset)
+                NativeUploadDraftStore.save(context, session.userId, draft)
                 val percent = ((offset * 100) / size).toInt()
                 withContext(Dispatchers.Main) { onProgress(percent) }
             }
+        }
         }
         val username = runCatching {
             val profileRows = NativeSupabase.get(
@@ -2636,9 +2709,14 @@ private object NativeVideoUploader {
             put("mapbox_place_id", location?.optString("id")?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
             put("location_visibility", if (locationVisibility == "hidden") "hidden" else "public")
         }
-        val savedRows = JSONArray(NativeSupabase.post("/rest/v1/videos", row, session))
-        val videoId = savedRows.optJSONObject(0)?.optString("id").orEmpty()
-        require(videoId.isNotBlank()) { "वीडियो Cloudflare पर upload हुआ, लेकिन Supabase ने Video ID नहीं लौटाई। Stream ID: $streamId" }
+        val videoId = if (finalizedVideoId.isNotBlank()) finalizedVideoId else {
+            val savedRows = JSONArray(NativeSupabase.post("/rest/v1/videos", row, session))
+            val createdId = savedRows.optJSONObject(0)?.optString("id").orEmpty()
+            require(createdId.isNotBlank()) { "वीडियो Cloudflare पर upload हुआ, लेकिन Supabase ने Video ID नहीं लौटाई। Stream ID: $streamId" }
+            draft.put("video_id", createdId)
+            NativeUploadDraftStore.save(context, session.userId, draft)
+            createdId
+        }
         withContext(Dispatchers.Main) { onStatus("वीडियो upload हो गया। Cloudflare processing status जाँचा जा रहा है…") }
         var finalStatus = "वीडियो upload हो गया। Cloudflare processing जारी है; तैयार होने पर वीडियो प्रोफ़ाइल में दिखेगा।"
         for (attempt in 0 until 6) {
@@ -2671,11 +2749,12 @@ private object NativeVideoUploader {
             }
             if (attempt < 5) kotlinx.coroutines.delay(5000)
         }
+        NativeUploadDraftStore.clear(context, session.userId)
         withContext(Dispatchers.Main) { onStatus(finalStatus) }
     }
 
     private fun readTusOffset(client: OkHttpClient, uploadUrl: URL, expectedSize: Long): Long {
-        val request = Request.Builder().url(uploadUrl)
+        val request = Request.Builder().url(resolvedUploadUrl)
             .header("Tus-Resumable", "1.0.0")
             .head()
             .build()
