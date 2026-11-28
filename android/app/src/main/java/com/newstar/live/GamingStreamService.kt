@@ -44,12 +44,24 @@ class GamingStreamService : Service() {
         if (intent?.action == SET_MIC) {
             val requested = intent.getBooleanExtra(MIC_ENABLED, false)
             val track = audioTrack
+            val permissionGranted = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
             if (track == null) {
                 emit("error", "इस Gaming LIVE session में microphone track उपलब्ध नहीं है।")
+            } else if (requested && !permissionGranted) {
+                track.setEnabled(false)
+                includeMic = false
+                emit("error", "Microphone permission उपलब्ध नहीं है। Android Settings में अनुमति देने के बाद नया Gaming LIVE शुरू करें।")
             } else {
                 track.setEnabled(requested)
                 includeMic = requested
-                emit("connected", if (requested) "Gaming screen और microphone चालू हैं।" else "Gaming screen चालू है; microphone mute है।")
+                emit(
+                    "connected",
+                    if (requested) "Gaming screen और microphone चालू हैं।"
+                    else "Gaming screen चालू है; microphone mute है।"
+                )
             }
             return START_NOT_STICKY
         }
