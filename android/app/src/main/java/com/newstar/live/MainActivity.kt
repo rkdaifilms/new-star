@@ -2211,8 +2211,15 @@ private fun NativeVideoCard(
         }
     }
     LaunchedEffect(video.id) {
-        offlineSaved = withContext(Dispatchers.IO) {
-            NativeOfflineDownloads.isDownloaded(context, video.id)
+        while (true) {
+            val completed = withContext(Dispatchers.IO) {
+                NativeOfflineDownloads.isDownloaded(context, video.id)
+            }
+            if (completed) {
+                offlineSaved = true
+                break
+            }
+            kotlinx.coroutines.delay(5_000)
         }
     }
     val exoPlayer = remember(video.url, offlineSaved) {
