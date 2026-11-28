@@ -25,7 +25,10 @@ internal object NativePreferencesSync {
     }
 
     fun validTextScale(source: JSONObject): String? {
-        val value = source.opt("textScale")?.toString() ?: return null
+        val raw = source.opt("textScale")?.toString() ?: return null
+        val value = raw.toDoubleOrNull()?.let { number ->
+            if (number % 1.0 == 0.0) number.toInt().toString() else number.toString()
+        } ?: raw
         return value.takeIf { it in textScales }
     }
 
