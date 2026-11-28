@@ -44,7 +44,8 @@ internal class NativeSfuPublisher private constructor(
     private val audioSource: AudioSource?,
     private val audioTrack: AudioTrack?,
     private val peer: PeerConnection,
-    private val trackMids: JSONArray
+    private val trackMids: JSONArray,
+    private val onConnectionState: (String) -> Unit
 ) : NativeLivePublisher {
     private val stopped = AtomicBoolean(false)
     val hasMicrophoneTrack: Boolean get() = audioTrack != null
@@ -179,6 +180,7 @@ internal class NativeSfuPublisher private constructor(
                 peer = factory.createPeerConnection(config, object : PeerConnection.Observer {
                     override fun onSignalingChange(state: PeerConnection.SignalingState) {}
                     override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {
+                        onConnectionState(state.name)
                         when (state) {
                             PeerConnection.IceConnectionState.CONNECTED,
                             PeerConnection.IceConnectionState.COMPLETED -> if (!connected.isCompleted) connected.complete(Unit)
@@ -199,7 +201,9 @@ internal class NativeSfuPublisher private constructor(
                     override fun onDataChannel(channel: org.webrtc.DataChannel) {}
                     override fun onRenegotiationNeeded() {}
                     override fun onAddTrack(receiver: org.webrtc.RtpReceiver, streams: Array<out org.webrtc.MediaStream>) {}
-                    override fun onConnectionChange(state: PeerConnection.PeerConnectionState) {}
+                    override fun onConnectionChange(state: PeerConnection.PeerConnectionState) {
+                        onConnectionState(state.name)
+                    }
                     override fun onSelectedCandidatePairChanged(event: org.webrtc.CandidatePairChangeEvent) {}
                 }) ?: throw IllegalStateException("SFU PeerConnection create नहीं हुआ।")
                 val videoTransceiver = peer.addTransceiver(
@@ -231,7 +235,7 @@ internal class NativeSfuPublisher private constructor(
                     roomId, session, sfuSessionId, factory, egl, capturer, texture,
                     videoSource, videoTrack, audioSource, audioTrack, peer, JSONArray().apply {
                         for (i in 0 until tracks.length()) put(JSONObject().put("mid", tracks.getJSONObject(i).getString("mid")))
-                    }
+                    }, onConnectionState
                 )
             } catch (error: Exception) {
                 runCatching { capturer.stopCapture() }
