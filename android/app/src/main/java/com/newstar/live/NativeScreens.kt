@@ -54,9 +54,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -2025,17 +2027,39 @@ fun NativeUploadScreen(session: NativeSession) {
             Text("Video Info · ${sourceWidth} × ${sourceHeight} · ${sourceDurationSeconds}s")
         }
         if (previewPlayer != null) {
-            AndroidView(
-                modifier = Modifier.fillMaxWidth().height(240.dp),
-                factory = { viewContext ->
-                    PlayerView(viewContext).apply {
-                        player = previewPlayer
-                        useController = true
-                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            Box(Modifier.fillMaxWidth().height(240.dp)) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { viewContext ->
+                        PlayerView(viewContext).apply {
+                            player = previewPlayer
+                            useController = true
+                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
+                    },
+                    update = { it.player = previewPlayer }
+                )
+                if (editing && overlayText.isNotBlank()) {
+                    val previewAlignment = when (overlayTextPosition) {
+                        "top" -> Alignment.TopCenter
+                        "bottom" -> Alignment.BottomCenter
+                        else -> Alignment.Center
                     }
-                },
-                update = { it.player = previewPlayer }
-            )
+                    Surface(
+                        modifier = Modifier.align(previewAlignment),
+                        color = androidx.compose.ui.graphics.Color(android.graphics.Color.argb(170, 0, 0, 0)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            overlayText,
+                            color = androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(overlayTextColor)),
+                            fontSize = overlayTextSize.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            maxLines = 2
+                        )
+                    }
+                }
+            }
         }
         if (editing && selected != null) {
             Text("Native editor · कुल अवधि $sourceDurationSeconds सेकंड", style = MaterialTheme.typography.titleSmall)
