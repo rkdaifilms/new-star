@@ -346,12 +346,20 @@ fun NativeProfileScreen(session: NativeSession, onLogout: () -> Unit) {
             isPrivate = profile?.optBoolean("is_private") ?: false
             locationVisibility = profile?.optString("creator_location_visibility").takeUnless { it.isNullOrBlank() || it == "null" } ?: "hidden"
             locationQuery = profile?.optString("creator_location_name").orEmpty()
-            selectedLocation = if (locationQuery.isNotBlank()) JSONObject()
-                .put("id", profile?.optString("creator_mapbox_place_id").orEmpty())
-                .put("name", locationQuery)
-                .put("latitude", profile?.optDouble("creator_location_latitude") ?: Double.NaN)
-                .put("longitude", profile?.optDouble("creator_location_longitude") ?: Double.NaN)
-                else null
+            selectedLocation = if (locationQuery.isNotBlank()) {
+                // org.json rejects NaN/Infinity in put(); older profiles may have a
+                // location name without saved coordinates. Keep those fields absent.
+                val location = JSONObject()
+                    .put("id", profile?.optString("creator_mapbox_place_id").orEmpty())
+                    .put("name", locationQuery)
+                val latitude = profile?.takeIf { !it.isNull("creator_location_latitude") }
+                    ?.optDouble("creator_location_latitude")
+                val longitude = profile?.takeIf { !it.isNull("creator_location_longitude") }
+                    ?.optDouble("creator_location_longitude")
+                if (latitude != null && latitude.isFinite()) location.put("latitude", latitude)
+                if (longitude != null && longitude.isFinite()) location.put("longitude", longitude)
+                location
+            } else null
             val user = NativeSupabase.currentUser(session)
             val metadata = user.optJSONObject("user_metadata") ?: JSONObject()
             val extrasRows = NativeSupabase.get(
