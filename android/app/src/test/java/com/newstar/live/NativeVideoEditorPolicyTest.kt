@@ -44,4 +44,33 @@ class NativeVideoEditorPolicyTest {
             NativeVideoEditorPolicy.requireSpeed(Float.POSITIVE_INFINITY)
         }
     }
+    @Test
+    fun acceptsSupportedTextStylesAndPositions() {
+        NativeVideoEditorPolicy.requireTextStyle(14, "#FFFFFF", "top")
+        NativeVideoEditorPolicy.requireTextStyle(42, "#25F4EE", "center")
+        NativeVideoEditorPolicy.requireTextStyle(70, "#FF4D8D", "bottom")
+        assertEquals(0.72f, NativeVideoEditorPolicy.textPositionAnchorY("top"), 0f)
+        assertEquals(0f, NativeVideoEditorPolicy.textPositionAnchorY("center"), 0f)
+        assertEquals(-0.72f, NativeVideoEditorPolicy.textPositionAnchorY("bottom"), 0f)
+    }
+
+    @Test
+    fun rejectsInvalidTextStylesAndPositions() {
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.requireTextStyle(13, "#FFFFFF", "top")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.requireTextStyle(71, "#FFFFFF", "center")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.requireTextStyle(24, "white", "center")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.requireTextStyle(24, "#GGGGGG", "center")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.textPositionAnchorY("middle")
+        }
+    }
+
 }
