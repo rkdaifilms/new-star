@@ -2,10 +2,11 @@ package com.newstar.live
 
 import android.net.Uri
 import org.json.JSONObject
+import java.time.Instant
 
 /**
- * Reads the signed-in user's last synced preference document.
- * The local settings remain the immediate source of truth while the request is in flight.
+ * Keeps the native settings document in sync with the same user_preferences
+ * row used by preferences.js. The most recently edited document wins.
  */
 internal object NativePreferencesSync {
     val languages = setOf(
@@ -47,12 +48,45 @@ internal object NativePreferencesSync {
         }
     }
 
-    suspend fun load(session: NativeSession): JSONObject? {
+    fun timestampMillis(value: String?): Long {
+        if (value.isNullOrBlank()) return 0L
+        return try { Instant.parse(value).toEpochMilli() } catch (_: Exception) { 0L }
+    }
+
+    fun shouldRestoreRemote(localUpdatedAt: String?, remoteUpdatedAt: String?): Boolean {
+        val remoteTime = timestampMillis(remoteUpdatedAt)
+        return remoteTime > 0L && remoteTime > timestampMillis(localUpdatedAt)
+    }
+
+    suspend fun synchronize(session: NativeSession, localPreferences: JSONObject): JSONObject {
+        val localDocument = JSONObject(localPreferences.toString())
+        val localUpdatedAt = localDocument.optString("_updatedAt").takeIf { it.isNotBlank() }
+            ?: Instant.now().toString().also { localDocument.put("_updatedAt", it) }
         val rows = NativeSupabase.get(
-            "/rest/v1/user_preferences?select=preferences&user_id=eq.${Uri.encode(session.userId)}&limit=1",
+            "/rest/v1/user_preferences?select=preferences,updated_at&user_id=eq.${Uri.encode(session.userId)}&limit=1",
             session
         )
-        if (rows.length() == 0) return null
-        return rows.optJSONObject(0)?.optJSONObject("preferences")
+        val row = rows.optJSONObject(0)
+        val remotePreferences = row?.optJSONObject("preferences")
+        val remoteUpdatedAt = row?.optString("updated_at")
+        if (remotePreferences != null && shouldRestoreRemote(localUpdatedAt, remoteUpdatedAt)) {
+            val restored = JSONObject(remotePreferences.toString())
+            restored.put("_updatedAt", remoteUpdatedAt)
+            return restored
+        }
+        val timestamp = if (row == null) localUpdatedAt else {
+            if (timestampMillis(localUpdatedAt) > timestampMillis(remoteUpdatedAt)) localUpdatedAt
+            else Instant.now().toString()
+        }
+        localDocument.put("_updatedAt", timestamp)
+        NativeSupabase.upsert(
+            "/rest/v1/user_preferences",
+            JSONObject()
+                .put("user_id", session.userId)
+                .put("preferences", localDocument)
+                .put("updated_at", timestamp),
+            session
+        )
+        return localDocument
     }
 }
