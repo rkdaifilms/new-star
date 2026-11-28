@@ -2073,7 +2073,7 @@ fun NativeUploadScreen(session: NativeSession) {
             Text("Video Info · ${sourceWidth} × ${sourceHeight} · ${sourceDurationSeconds}s")
         }
         if (selected != null) {
-            OutlinedButton(onClick = { inspectSelectedVideo(selected!!) }, enabled = !uploading, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = { if (videoInfoExpanded) videoInfoExpanded = false else inspectSelectedVideo(selected!!) }, enabled = !uploading, modifier = Modifier.fillMaxWidth()) {
                 Text(if (videoInfoExpanded) "Hide Video Info" else "Inspect Video Information")
             }
             if (videoInfoExpanded) {
@@ -2389,6 +2389,7 @@ fun NativeUploadScreen(session: NativeSession) {
                         )
                         val previousSelection = input
                         selected = Uri.fromFile(output)
+                        videoInfoExpanded = false
                         if (previousSelection != selected) deleteNativeEditorTemp(context, previousSelection)
                         val editedMetadata = MediaMetadataRetriever()
                         try {
