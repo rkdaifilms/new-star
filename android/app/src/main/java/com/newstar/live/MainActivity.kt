@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
@@ -2275,9 +2276,8 @@ private fun NativeVideoCard(
     var reportTargetId by remember(video.id) { mutableStateOf(video.id) }
     var reportReason by remember(video.id) { mutableStateOf("spam") }
     var reportDetails by remember(video.id) { mutableStateOf("") }
-    var reportBusy by remember(video.id) { mutableStateOf(false) }
-    var reportError by remember(video.id) { mutableStateOf<String?>(null) }
-    var reportSuccess by remember(video.id) { mutableStateOf(false) }
+    val reportViewModel: NativeContentReportViewModel = viewModel(key = "content-report-${video.id}")
+    val reportState = reportViewModel.uiState
     val scope = rememberCoroutineScope()
     LaunchedEffect(session?.userId) {
         val current = session ?: return@LaunchedEffect
@@ -2583,14 +2583,14 @@ private fun NativeVideoCard(
                         }
                     ) { Text("Copy link") }
                     TextButton(
-                        enabled = session != null && !reportBusy,
+                        enabled = session != null && !reportState.isSubmitting,
                         onClick = {
                             reportTargetType = "video"
                             reportTargetId = video.id
                             reportReason = "spam"
                             reportDetails = ""
-                            reportError = null
-                            reportSuccess = false
+                            reportViewModel.reset()
+                            reportViewModel.reset()
                             reportDialogOpen = true
                         }
                     ) { Text("Report") }
@@ -2635,14 +2635,14 @@ private fun NativeVideoCard(
             "other" to "Other"
         )
         AlertDialog(
-            onDismissRequest = { if (!reportBusy) reportDialogOpen = false },
-            title = { Text(if (reportSuccess) "Report submitted" else "Report content") },
+            onDismissRequest = { if (!reportState.isSubmitting) reportDialogOpen = false },
+            title = { Text(if (reportState.isSubmitted) "Report submitted" else "Report content") },
             text = {
                 Column(
                     Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (reportSuccess) {
+                    if (reportState.isSubmitted) {
                         Text("आपकी report सुरक्षित रूप से भेज दी गई है। हमारी moderation team इसकी समीक्षा करेगी।")
                     } else {
                         Text("आप किसकी report करना चाहते हैं?")
@@ -2650,13 +2650,13 @@ private fun NativeVideoCard(
                             FilterChip(
                                 selected = reportTargetType == "video",
                                 onClick = { reportTargetType = "video" },
-                                enabled = !reportBusy,
+                                enabled = !reportState.isSubmitting,
                                 label = { Text("Video") }
                             )
                             FilterChip(
                                 selected = reportTargetType == "user",
                                 onClick = { reportTargetType = "user" },
-                                enabled = !reportBusy && video.userId.isNotBlank(),
+                                enabled = !reportState.isSubmitting && video.userId.isNotBlank(),
                                 label = { Text("Creator") }
                             )
                             if (reportTargetType == "comment") {
@@ -2676,7 +2676,7 @@ private fun NativeVideoCard(
                             items(reasons) { item ->
                                 val (value, label) = item
                                 Row(
-                                    Modifier.fillMaxWidth().clickable(enabled = !reportBusy) {
+                                    Modifier.fillMaxWidth().clickable(enabled = !reportState.isSubmitting) {
                                         reportReason = value
                                     }.padding(vertical = 5.dp),
                                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
@@ -2684,7 +2684,7 @@ private fun NativeVideoCard(
                                     RadioButton(
                                         selected = reportReason == value,
                                         onClick = { reportReason = value },
-                                        enabled = !reportBusy
+                                        enabled = !reportState.isSubmitting
                                     )
                                     Text(label, modifier = Modifier.padding(start = 8.dp))
                                 }
@@ -2697,20 +2697,20 @@ private fun NativeVideoCard(
                             label = { Text("अतिरिक्त जानकारी (वैकल्पिक)") },
                             minLines = 2,
                             maxLines = 4,
-                            enabled = !reportBusy
+                            enabled = !reportState.isSubmitting
                         )
-                        if (reportError != null) {
-                            Text(reportError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                        if (reportState.error != null) {
+                            Text(reportState.error.orEmpty(), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
             },
             confirmButton = {
-                if (reportSuccess) {
+                if (reportState.isSubmitted) {
                     TextButton(onClick = { reportDialogOpen = false }) { Text("Done") }
                 } else {
                     TextButton(
-                        enabled = current != null && !reportBusy &&
+                        enabled = current != null && !reportState.isSubmitting &&
                             (reportTargetType != "user" || video.userId.isNotBlank()),
                         onClick = {
                             val reporter = current ?: return@TextButton
@@ -2719,38 +2719,20 @@ private fun NativeVideoCard(
                                 "comment" -> reportTargetId
                                 else -> video.id
                             }
-                            if (targetId.isBlank()) {
-                                reportError = "Report target उपलब्ध नहीं है।"
-                                return@TextButton
-                            }
-                            reportBusy = true
-                            reportError = null
-                            scope.launch {
-                                try {
-                                    NativeSupabase.post(
-                                        "/rest/v1/content_reports",
-                                        JSONObject()
-                                            .put("reporter_id", reporter.userId)
-                                            .put("target_type", reportTargetType)
-                                            .put("target_id", targetId)
-                                            .put("reason", reportReason)
-                                            .put("details", reportDetails.trim().takeIf { it.isNotBlank() }),
-                                        reporter
-                                    )
-                                    reportSuccess = true
-                                } catch (e: Exception) {
-                                    reportError = e.message ?: "Report भेजी नहीं जा सकी। कृपया फिर कोशिश करें।"
-                                } finally {
-                                    reportBusy = false
-                                }
-                            }
+                            reportViewModel.submit(
+                                reporter,
+                                reportTargetType,
+                                targetId,
+                                reportReason,
+                                reportDetails.trim().takeIf { it.isNotBlank() }
+                            )
                         }
-                    ) { Text(if (reportBusy) "Sending…" else "Submit report") }
+                    ) { Text(if (reportState.isSubmitting) "Sending…" else "Submit report") }
                 }
             },
             dismissButton = {
-                if (!reportSuccess) {
-                    TextButton(onClick = { reportDialogOpen = false }, enabled = !reportBusy) {
+                if (!reportState.isSubmitted) {
+                    TextButton(onClick = { reportDialogOpen = false }, enabled = !reportState.isSubmitting) {
                         Text("Cancel")
                     }
                 }
@@ -2839,14 +2821,14 @@ private fun NativeVideoCard(
                                 ) {
                                     Text(row.optString("created_at"), style = MaterialTheme.typography.labelSmall)
                                     TextButton(
-                                        enabled = session != null && !reportBusy,
+                                        enabled = session != null && !reportState.isSubmitting,
                                         onClick = {
                                             reportTargetType = "comment"
                                             reportTargetId = row.optString("id")
                                             reportReason = "harassment"
                                             reportDetails = ""
-                                            reportError = null
-                                            reportSuccess = false
+                                            reportViewModel.reset()
+                                            reportViewModel.reset()
                                             reportDialogOpen = true
                                         }
                                     ) { Text("Report comment") }
