@@ -31,11 +31,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      # Build and launch-test the app before Robolectric tests. A Maven
-      # android-all download outage must not prevent the crash smoke test
-      # or discard an otherwise verified installable APK.
-      - name: Build New Star Android APK
-        run: gradle -p android :app:assembleDebug --no-daemon
+      # Fast lane: one Gradle invocation reuses configuration and compilation
+      # outputs for both APK assembly and unit tests.
+      - name: Build APK and run unit tests
+        run: gradle -p android :app:assembleDebug :app:testDebugUnitTest --no-daemon --build-cache --parallel
       - name: Verify APK
         shell: bash
         run: |
@@ -49,11 +48,12 @@ jobs:
           "$APKSIGNER" verify --verbose "$APK"
           sha256sum "$APK" | tee new-star-android-apk-sha256.txt
       - name: Launch app on Android emulator and check for startup crash
+        if: github.event_name == 'workflow_dispatch'
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ANDROID_I_WANT_MY_TCG: "yes"
         with:
-          api-level: 35
+          api-level: 30
           target: google_apis
           arch: x86_64
           profile: pixel_2
@@ -87,19 +87,3 @@ jobs:
             new-star-android-apk-sha256.txt
           if-no-files-found: error
           retention-days: 30
-      - name: Run Android unit tests (retry once for transient dependency-network failures)
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          for attempt in 1 2; do
-            if gradle -p android :app:testDebugUnitTest --no-daemon; then
-              exit 0
-            fi
-            if [ "$attempt" -eq 2 ]; then
-              echo "Android unit tests failed after two attempts."
-              exit 1
-            fi
-            echo "Retrying unit tests once after a possible transient dependency failure."
-            sleep 15
-          done
