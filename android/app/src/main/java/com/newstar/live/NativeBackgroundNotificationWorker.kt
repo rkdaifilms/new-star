@@ -17,17 +17,20 @@ import java.util.concurrent.TimeUnit
 
 object NativeBackgroundNotificationWork {
     private const val UNIQUE_WORK = "new_star_background_notifications"
+    private const val PREFS_NAME = "newstar_background_notification_cursor"
 
     fun schedule(context: Context, userId: String) {
         require(userId.isNotBlank())
-        val cursorPreferences = context.getSharedPreferences(
-            "newstar_background_notification_cursor",
-            Context.MODE_PRIVATE
-        )
+        val cursorPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val cursorKey = "cursor_$userId"
         if (cursorPreferences.getString(cursorKey, null).isNullOrBlank()) {
             cursorPreferences.edit()
-                .putString(cursorKey, Instant.now().toString())
+                .putString(cursorKey, NativeBackgroundNotificationCursor.encode(
+                    NativeBackgroundNotificationCursor.Cursor(
+                        createdAt = Instant.now().toString(),
+                        id = NativeBackgroundNotificationCursor.MIN_UUID
+                    )
+                ))
                 .putString("seen_$userId", "[]")
                 .apply()
         }
@@ -53,6 +56,39 @@ object NativeBackgroundNotificationWork {
 }
 
 internal object NativeBackgroundNotificationCursor {
+    const val MIN_UUID = "00000000-0000-0000-0000-000000000000"
+
+    data class Cursor(val createdAt: String, val id: String)
+
+    fun decode(encoded: String?): Cursor? {
+        if (encoded.isNullOrBlank()) return null
+        return try {
+            val json = JSONObject(encoded)
+            val timestamp = json.optString("created_at")
+            val id = json.optString("id")
+            if (timestamp.isBlank() || id.isBlank()) null else Cursor(timestamp, id)
+        } catch (_: Exception) {
+            if (encoded.startsWith("{")) null
+            else Cursor(encoded, MIN_UUID)
+        }
+    }
+
+    fun encode(cursor: Cursor): String =
+        JSONObject().put("created_at", cursor.createdAt).put("id", cursor.id).toString()
+
+    fun filter(cursor: Cursor): String {
+        val timestamp = cursor.createdAt
+        val expression =
+            "(created_at.gt.$timestamp,and(created_at.eq.$timestamp,id.gt.${cursor.id}))"
+        return "or=${Uri.encode(expression)}"
+    }
+
+    fun fromRow(row: JSONObject): Cursor? {
+        val timestamp = row.optString("created_at")
+        val id = row.optString("id")
+        return if (timestamp.isBlank() || id.isBlank()) null else Cursor(timestamp, id)
+    }
+
     fun parseSeenIds(encoded: String): LinkedHashSet<String> {
         val result = LinkedHashSet<String>()
         runCatching {
@@ -99,11 +135,16 @@ class NativeBackgroundNotificationWorker(
             )
             val cursorKey = "cursor_$expectedUserId"
             val seenKey = "seen_$expectedUserId"
-            var cursor = preferences.getString(cursorKey, null)
-            if (cursor.isNullOrBlank()) {
-                // First run establishes a baseline; it never replays old notifications.
+            val storedCursor = preferences.getString(cursorKey, null)
+            var pageCursor = NativeBackgroundNotificationCursor.decode(storedCursor)
+            if (pageCursor == null) {
+                // Establish a baseline for first install or a corrupted cursor; do not replay history.
+                pageCursor = NativeBackgroundNotificationCursor.Cursor(
+                    createdAt = Instant.now().toString(),
+                    id = NativeBackgroundNotificationCursor.MIN_UUID
+                )
                 preferences.edit()
-                    .putString(cursorKey, Instant.now().toString())
+                    .putString(cursorKey, NativeBackgroundNotificationCursor.encode(pageCursor))
                     .putString(seenKey, "[]")
                     .apply()
                 return Result.success()
@@ -114,27 +155,31 @@ class NativeBackgroundNotificationWorker(
                 preferences.getString(seenKey, "[]").orEmpty()
             )
             val allRows = ArrayList<JSONObject>()
-            var offset = 0
+
+            // Keyset pagination avoids offset drift while new rows arrive and handles equal timestamps.
             for (page in 0 until MAX_PAGES) {
-                val rows = NativeSupabase.getRange(
+                val rows = NativeSupabase.get(
                     "/rest/v1/notifications?select=id,user_id,actor_id,type,message,is_read,created_at" +
                         "&user_id=eq.${Uri.encode(session.userId)}" +
-                        "&created_at=gte.${Uri.encode(cursor)}" +
+                        "&${NativeBackgroundNotificationCursor.filter(pageCursor)}" +
                         "&order=created_at.asc,id.asc&limit=$PAGE_SIZE",
-                    session,
-                    offset,
-                    offset + PAGE_SIZE - 1
+                    session
                 )
-                for (index in 0 until rows.length()) {
-                    rows.optJSONObject(index)?.let(allRows::add)
+                val pageRows = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                if (pageRows.isEmpty()) break
+                allRows.addAll(pageRows)
+                val nextCursor = NativeBackgroundNotificationCursor.fromRow(pageRows.last())
+                    ?: throw IllegalStateException("Notification row is missing its cursor fields.")
+                if (nextCursor == pageCursor) {
+                    throw IllegalStateException("Notification pagination did not advance.")
                 }
-                if (rows.length() < PAGE_SIZE) break
-                offset += PAGE_SIZE
+                pageCursor = nextCursor
+                if (pageRows.size < PAGE_SIZE) break
             }
 
-            val unseen = NativeBackgroundNotificationCursor.unseen(allRows, seenIds)
-            if (unseen.isEmpty()) return Result.success()
+            if (allRows.isEmpty()) return Result.success()
 
+            val unseen = NativeBackgroundNotificationCursor.unseen(allRows, seenIds)
             val unreadEnabled = unseen.filter { row ->
                 !row.optBoolean("is_read", false) &&
                     NativeNotificationPreferences.isEnabled(applicationContext, row)
@@ -163,15 +208,13 @@ class NativeBackgroundNotificationWorker(
                 NativeSystemNotifications.show(applicationContext, notification, actorName)
             }
 
-            val latestTimestamp = allRows.lastOrNull()?.optString("created_at")
-                ?.takeIf { it.isNotBlank() }
             val updatedSeen = NativeBackgroundNotificationCursor.mergeSeenIds(
                 seenIds,
-                unseen.map { it.optString("id") }
+                allRows.map { it.optString("id") }
             )
             preferences.edit().apply {
                 putString(seenKey, updatedSeen)
-                if (latestTimestamp != null) putString(cursorKey, latestTimestamp)
+                putString(cursorKey, NativeBackgroundNotificationCursor.encode(pageCursor))
             }.apply()
             Result.success()
         } catch (cancelled: CancellationException) {
