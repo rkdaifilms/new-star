@@ -31,6 +31,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+      - name: Run Android unit tests
+        run: gradle -p android :app:testDebugUnitTest --no-daemon
       - name: Build New Star Android APK
         run: gradle -p android :app:assembleDebug --no-daemon
       - name: Verify APK
