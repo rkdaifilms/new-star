@@ -249,6 +249,29 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
         pkPollingRoomId = null
     }
 
+    fun stopLive(onStop: () -> Unit) {
+        if (mutableState.value.pkBusy) return
+        mutableState.update { it.copy(pkBusy = true) }
+        viewModelScope.launch {
+            try {
+                val current = mutableState.value
+                when (current.pkStatus) {
+                    "matched" -> if (current.pkMatchId.isNotBlank()) {
+                        NativeLiveRepository.finishPkMatch(current.pkMatchId, session)
+                    }
+                    "waiting" -> NativeLiveRepository.leavePkQueue(session)
+                }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(chatError = error.message ?: "PK cleanup पूरा नहीं हुआ; LIVE बंद किया जा रहा है।") }
+            } finally {
+                stopPolling()
+                stopPkPolling()
+                onStop()
+                resetAfterStop()
+            }
+        }
+    }
+
     fun resetAfterStop() {
         stopPolling()
         stopPkPolling()
