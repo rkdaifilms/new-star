@@ -667,6 +667,7 @@ internal fun NativeLiveSfuViewer(session: NativeSession, roomId: String) {
     var loading by remember(roomId) { mutableStateOf(true) }
     var busy by remember(roomId) { mutableStateOf(false) }
     var error by remember(roomId) { mutableStateOf("") }
+    var publicationSignature by remember(roomId) { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     val currentSubscriber by rememberUpdatedState(subscriber)
@@ -675,13 +676,34 @@ internal fun NativeLiveSfuViewer(session: NativeSession, roomId: String) {
         val rows = NativeLiveRepository.listSfuPublications(roomId, session)
         val loaded = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
             .filter { it.optString("track_name") == "camera" && it.optString("user_id").isNotBlank() }
-        publications = loaded.distinctBy { it.optString("session_id") }
+            .distinctBy { it.optString("session_id") }
+        val nextSignature = loaded.map { it.optString("session_id") }.sorted().joinToString("|")
+        val changed = publicationSignature.isNotEmpty() && nextSignature != publicationSignature
+        publications = loaded
         profiles = NativeLiveRepository.getCreatorProfiles(loaded.map { it.optString("user_id") }, session)
+        publicationSignature = nextSignature
+
+        // Cloudflare Calls subscription offers are created from a fixed track list.
+        // Reconnect the active subscriber when that list changes so new guest cameras
+        // are included without requiring the viewer to press Reconnect manually.
+        val active = subscriber
+        if (changed && active != null && !busy) {
+            busy = true
+            try {
+                active.stop()
+                if (subscriber === active) subscriber = null
+                if (loaded.isNotEmpty()) subscriber = NativeSfuSubscriber.start(context, roomId, session)
+            } catch (e: Exception) {
+                error = e.message ?: "नए LIVE guest से reconnect नहीं हो पाया।"
+            } finally {
+                busy = false
+            }
+        }
     }
 
     LaunchedEffect(roomId, session.userId) {
         while (true) {
-            try { refreshPublications(); error = "" }
+            try { refreshPublications(); if (!busy) error = "" }
             catch (e: Exception) { error = e.message ?: "LIVE camera publications लोड नहीं हुए।" }
             finally { loading = false }
             delay(8_000)
