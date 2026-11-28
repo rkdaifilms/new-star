@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjection
+import org.webrtc.audio.AudioRecordDataCallback
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -34,6 +35,10 @@ class GamingStreamService : Service() {
     private var includeMic = false
     private var texture: SurfaceTextureHelper? = null
     private var audioDeviceModule: JavaAudioDeviceModule? = null
+    private var pcmMixer: GamingPcmMixer? = null
+    private var gameAudioCapture: GamingPlaybackAudioCapture? = null
+    @Volatile private var gameAudioAvailable = false
+    @Volatile private var gameAudioEnabled = true
     private var whipResource: String? = null
     private val stopped = AtomicBoolean(false)
 
@@ -41,6 +46,18 @@ class GamingStreamService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == STOP) { stopStreaming(); return START_NOT_STICKY }
+        if (intent?.action == SET_GAME_AUDIO) {
+            val requested = intent.getBooleanExtra(GAME_AUDIO_ENABLED, false)
+            val mixer = pcmMixer
+            if (mixer == null || !gameAudioAvailable) {
+                emit("error", "इस Android version या game app में system audio capture उपलब्ध नहीं है।")
+            } else {
+                gameAudioEnabled = requested
+                mixer.gameAudioEnabled = requested
+                emit("connected", if (requested) "Game/system audio चालू है।" else "Game/system audio mute है।")
+            }
+            return START_NOT_STICKY
+        }
         if (intent?.action == SET_MIC) {
             val requested = intent.getBooleanExtra(MIC_ENABLED, false)
             val track = audioTrack
@@ -51,11 +68,11 @@ class GamingStreamService : Service() {
             if (track == null) {
                 emit("error", "इस Gaming LIVE session में microphone track उपलब्ध नहीं है।")
             } else if (requested && !permissionGranted) {
-                track.setEnabled(false)
+                pcmMixer?.microphoneEnabled = false
                 includeMic = false
                 emit("error", "Microphone permission उपलब्ध नहीं है। Android Settings में अनुमति देने के बाद नया Gaming LIVE शुरू करें।")
             } else {
-                track.setEnabled(requested)
+                pcmMixer?.microphoneEnabled = requested
                 includeMic = requested
                 emit(
                     "connected",
@@ -92,7 +109,17 @@ class GamingStreamService : Service() {
             .setVideoEncoderFactory(DefaultVideoEncoderFactory(egl!!.eglBaseContext, true, true))
             .setVideoDecoderFactory(DefaultVideoDecoderFactory(egl!!.eglBaseContext))
         if (includeMic) {
-            audioDeviceModule = JavaAudioDeviceModule.builder(applicationContext).createAudioDeviceModule()
+            pcmMixer = GamingPcmMixer().apply {
+                microphoneEnabled = true
+                gameAudioEnabled = true
+            }
+            val mixer = pcmMixer!!
+            audioDeviceModule = JavaAudioDeviceModule.builder(applicationContext)
+                .setInputSampleRate(GamingPcmMixer.SAMPLE_RATE)
+                .setAudioRecordDataCallback(AudioRecordDataCallback { audioFormat, channelCount, sampleRate, audioBuffer ->
+                    mixer.mix(audioBuffer, audioFormat, channelCount, sampleRate)
+                })
+                .createAudioDeviceModule()
             factoryBuilder.setAudioDeviceModule(audioDeviceModule!!)
         }
         factory = factoryBuilder.createPeerConnectionFactory()
@@ -104,6 +131,36 @@ class GamingStreamService : Service() {
         })
         capturer!!.initialize(texture!!, applicationContext, source!!.capturerObserver)
         capturer!!.startCapture(1920, 1080, 30)
+        if (includeMic) {
+            val projection = capturer!!.mediaProjection
+            if (projection != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val capture = GamingPlaybackAudioCapture(projection, pcmMixer!!) { message ->
+                    gameAudioAvailable = false
+                    gameAudioEnabled = false
+                    pcmMixer?.gameAudioEnabled = false
+                    emit("warning", message)
+                }
+                try {
+                    gameAudioAvailable = capture.start()
+                    gameAudioCapture = if (gameAudioAvailable) capture else null
+                    if (!gameAudioAvailable) {
+                        capture.close()
+                        emit("warning", "Android 10+ पर game/system audio capture उपलब्ध नहीं है; microphone अलग से चल सकता है।")
+                    }
+                } catch (error: Exception) {
+                    capture.close()
+                    gameAudioAvailable = false
+                    gameAudioEnabled = false
+                    pcmMixer?.gameAudioEnabled = false
+                    emit("warning", error.message ?: "Game/system audio capture शुरू नहीं हो सका।")
+                }
+            } else {
+                gameAudioAvailable = false
+                gameAudioEnabled = false
+                pcmMixer?.gameAudioEnabled = false
+                emit("warning", "Game/system audio के लिए Android 10+ आवश्यक है।")
+            }
+        }
         track = factory!!.createVideoTrack("newstar-screen", source)
         if (includeMic) {
             audioSource = factory!!.createAudioSource(MediaConstraints())
@@ -162,8 +219,11 @@ class GamingStreamService : Service() {
         if (!connected.await(20, TimeUnit.SECONDS)) error("Cloudflare accepted WHIP, but the WebRTC media connection did not become active.")
         emit(
             "connected",
-            if (includeMic) "Gaming screen and microphone are connected to Cloudflare."
-            else "Gaming screen connected to Cloudflare. Microphone is off.",
+            when {
+                includeMic && gameAudioAvailable -> "Gaming screen, microphone और game/system audio Cloudflare से connected हैं।"
+                includeMic -> "Gaming screen और microphone Cloudflare से connected हैं। इस app का system audio capture उपलब्ध नहीं है।"
+                else -> "Gaming screen Cloudflare से connected है। Microphone और system audio बंद हैं।"
+            },
             whipResource ?: ""
         )
     }
@@ -211,6 +271,12 @@ class GamingStreamService : Service() {
                 c.responseCode; c.disconnect()
             }
         }
+        runCatching { gameAudioCapture?.close() }
+        gameAudioCapture = null
+        gameAudioAvailable = false
+        gameAudioEnabled = false
+        pcmMixer?.clear()
+        pcmMixer = null
         runCatching { capturer?.stopCapture() }
         runCatching { peer?.close() }
         runCatching { track?.dispose() }
@@ -238,7 +304,16 @@ class GamingStreamService : Service() {
     }
 
     private fun emit(status: String, message: String, resource: String = "") {
-        sendBroadcast(Intent(STATUS).setPackage(packageName).putExtra("status", status).putExtra("message", message).putExtra("resource", resource).putExtra("mic_available", audioTrack != null).putExtra("mic_enabled", audioTrack?.enabled() == true))
+        sendBroadcast(
+            Intent(STATUS).setPackage(packageName)
+                .putExtra("status", status)
+                .putExtra("message", message)
+                .putExtra("resource", resource)
+                .putExtra("mic_available", audioTrack != null)
+                .putExtra("mic_enabled", audioTrack != null && pcmMixer?.microphoneEnabled == true)
+                .putExtra("game_audio_available", gameAudioAvailable)
+                .putExtra("game_audio_enabled", gameAudioAvailable && gameAudioEnabled)
+        )
     }
 
     override fun onDestroy() { stopStreaming(); super.onDestroy() }
@@ -248,6 +323,8 @@ class GamingStreamService : Service() {
         const val STOP = "com.newstar.live.STOP"
         const val SET_MIC = "com.newstar.live.SET_MIC"
         const val MIC_ENABLED = "mic_enabled"
+        const val SET_GAME_AUDIO = "com.newstar.live.SET_GAME_AUDIO"
+        const val GAME_AUDIO_ENABLED = "game_audio_enabled"
         const val STATUS = "com.newstar.live.STATUS"
         const val RESULT_CODE = "result_code"
         const val RESULT_DATA = "result_data"
