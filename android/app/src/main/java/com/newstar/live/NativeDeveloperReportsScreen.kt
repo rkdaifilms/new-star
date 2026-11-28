@@ -126,7 +126,13 @@ class NativeDeveloperReportsViewModel(
                 state = state.copy(
                     reports = reports,
                     busyReportId = null,
-                    message = "Report status '@{status}' सेव हो गया और server audit दर्ज कर चुका है।"
+                    message = if (updated.optBoolean("audit_logged")) {
+                        "Report status '${status}' सेव हुआ और audit log दर्ज है।"
+                    } else {
+                        updated.optString("audit_warning").ifBlank {
+                            "Report status सेव हुआ, लेकिन audit log की जाँच जरूरी है।"
+                        }
+                    }
                 )
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -144,7 +150,7 @@ class NativeDeveloperReportsViewModel(
 fun NativeDeveloperReportsScreen(
     session: NativeSession,
     onBack: () -> Unit,
-    viewModel: NativeDeveloperReportsViewModel = viewModel(key = "developer-reports-@{session.userId}")
+    viewModel: NativeDeveloperReportsViewModel = viewModel(key = "developer-reports-${session.userId}")
 ) {
     val state = viewModel.state
     LaunchedEffect(session.userId) { viewModel.load(session) }
@@ -168,7 +174,7 @@ fun NativeDeveloperReportsScreen(
         state.message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
         if (!state.loading && state.isOwner) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("@{state.reports.size} recent reports", style = MaterialTheme.typography.titleMedium)
+                Text("${state.reports.size} recent reports", style = MaterialTheme.typography.titleMedium)
                 OutlinedButton(onClick = { viewModel.load(session) }, enabled = state.busyReportId == null) {
                     Text("Refresh")
                 }
@@ -186,15 +192,15 @@ fun NativeDeveloperReportsScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                "@{report.optString("target_type")} · @{report.optString("reason")}",
+                                "${report.optString("target_type")} · ${report.optString("reason")}",
                                 style = MaterialTheme.typography.titleMedium
                             )
-                            Text("Target: @{report.optString("target_id")}", style = MaterialTheme.typography.bodySmall)
-                            Text("Status: @{report.optString("status")}", style = MaterialTheme.typography.labelLarge)
+                            Text("Target: ${report.optString("target_id")}", style = MaterialTheme.typography.bodySmall)
+                            Text("Status: ${report.optString("status")}", style = MaterialTheme.typography.labelLarge)
                             val details = report.optString("details")
                             if (details.isNotBlank() && details != "null") Text(details)
-                            Text("Reporter: @{report.optString("reporter_id")}", style = MaterialTheme.typography.bodySmall)
-                            Text("Submitted: @{report.optString("created_at")}", style = MaterialTheme.typography.bodySmall)
+                            Text("Reporter: ${report.optString("reporter_id")}", style = MaterialTheme.typography.bodySmall)
+                            Text("Submitted: ${report.optString("created_at")}", style = MaterialTheme.typography.bodySmall)
                             if (busy) {
                                 CircularProgressIndicator()
                             } else {
