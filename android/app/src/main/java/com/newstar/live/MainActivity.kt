@@ -1933,6 +1933,12 @@ private fun NativeVideoCard(video: NativeVideo, session: NativeSession?) {
         }
     }
     DisposableEffect(exoPlayer) { onDispose { exoPlayer.release() } }
+    val watchTracker = remember(exoPlayer, video.id, session?.userId, session?.accessToken) {
+        NativeVideoWatchTracker(session, video.id, exoPlayer)
+    }
+    DisposableEffect(watchTracker) {
+        onDispose { watchTracker.close() }
+    }
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
         shape = RoundedCornerShape(16.dp),
