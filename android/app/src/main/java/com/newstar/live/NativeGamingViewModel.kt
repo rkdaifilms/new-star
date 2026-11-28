@@ -423,7 +423,15 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                     }
                 }
             } catch (error: Exception) {
-                mutableState.update { it.copy(guestPublisherError = error.message ?: "Guest seat status refresh नहीं हुआ।") }
+                val message = error.message ?: "Guest seat status refresh नहीं हुआ।"
+                if (message.contains("Active LIVE room not found", ignoreCase = true)) {
+                    stopGuestPublisherInternal()
+                    mutableState.update {
+                        it.copy(guestSeatStatus = "ended", guestPublisherError = "Host की LIVE समाप्त हो गई है।")
+                    }
+                } else {
+                    mutableState.update { it.copy(guestPublisherError = message) }
+                }
             } finally {
                 guestSeatRefreshBusy = false
             }
@@ -503,6 +511,11 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 guestPublisherStarting = false
             )
         }
+    }
+
+    fun stopGuestPublisher() {
+        if (guestPublisher == null) return
+        viewModelScope.launch { stopGuestPublisherInternal() }
     }
 
     fun leaveGuestSeat(roomId: String) {
@@ -693,11 +706,6 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
     override fun onCleared() {
         stopPolling()
         stopPkPolling()
-        val publisher = guestPublisher
-        guestPublisher = null
-        if (publisher != null) {
-            runCatching { publisher.stop() }
-        }
         super.onCleared()
     }
 
