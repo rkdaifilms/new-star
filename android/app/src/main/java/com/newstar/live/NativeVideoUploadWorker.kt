@@ -115,7 +115,7 @@ object NativeVideoUploadWork {
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentTitle("New Star · Video upload")
             .setContentText(message.take(120))
-            .setProgress(100, safeProgress, safeProgress == 0 || safeProgress == 100)
+            .setProgress(100, safeProgress, safeProgress == 0)
             .setOngoing(safeProgress < 100)
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
@@ -202,7 +202,7 @@ class NativeVideoUploadWorker(
                     )
                 }
             )
-            Result.success(workDataOf("progress" to 100, "message" to "वीडियो upload पूरा हुआ।"))
+            Result.success(workDataOf("progress" to 100, "message" to latestMessage))
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
