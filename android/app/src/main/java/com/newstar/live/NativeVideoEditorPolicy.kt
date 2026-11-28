@@ -39,4 +39,10 @@ internal object NativeVideoEditorPolicy {
             else -> 0f
         }
     }
+
+    fun requireTextCoordinates(x: Float, y: Float) {
+        require(x.isFinite() && y.isFinite() && x in -0.85f..0.85f && y in -0.85f..0.85f) {
+            "Text coordinates preview bounds के अंदर होने चाहिए।"
+        }
+    }
 }
