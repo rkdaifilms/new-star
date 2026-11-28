@@ -314,8 +314,14 @@ Deno.serve(async (req: Request) => {
 
     if (action === "set-member-permissions") {
       const updates: Record<string, boolean> = {};
-      if (typeof body.camera_allowed === "boolean") updates.camera_allowed = body.camera_allowed;
-      if (typeof body.microphone_allowed === "boolean") updates.microphone_allowed = body.microphone_allowed;
+      if (typeof body.camera_allowed === "boolean") {
+        updates.camera_allowed = body.camera_allowed;
+        if (!body.camera_allowed) updates.camera_enabled = false;
+      }
+      if (typeof body.microphone_allowed === "boolean") {
+        updates.microphone_allowed = body.microphone_allowed;
+        if (!body.microphone_allowed) updates.microphone_enabled = false;
+      }
       if (!Object.keys(updates).length) return json({ error: "Choose a camera or microphone permission to change." }, 400, headers);
       const { error } = await admin.from("live_room_participants").update(updates)
         .eq("id", target.id).eq("room_id", room.id).in("status", ["requested", "admitted"]);
@@ -674,7 +680,13 @@ Deno.serve(async (req: Request) => {
         const { error: updateError } = await admin.from("live_sfu_sessions")
           .update({ published_tracks: published, updated_at: new Date().toISOString() }).eq("id", session.id);
         if (updateError) return json({ error: "Tracks were negotiated but publication state could not be saved. Reconnect the publisher." }, 503, headers);
-        if (member) await admin.from("live_room_participants").update({ sfu_connected: true }).eq("id", member.id);
+        if (member) {
+          await admin.from("live_room_participants").update({
+            sfu_connected: true,
+            camera_enabled: requested.some(t => t.trackName === "camera"),
+            microphone_enabled: requested.some(t => t.trackName === "microphone"),
+          }).eq("id", member.id);
+        }
         return json({ ok: true, ...result }, 200, headers);
       }
 
@@ -771,8 +783,10 @@ Deno.serve(async (req: Request) => {
         }).eq("id", session.id);
         if (abandonError) return json({ error: "Could not mark the failed SFU session for cleanup." }, 503, headers);
         if (session.role === "publisher" && member) {
-          await admin.from("live_room_participants").update({ sfu_connected: false, sfu_session_id: null })
-            .eq("id", member.id).eq("sfu_session_id", sessionId);
+          await admin.from("live_room_participants").update({
+            sfu_connected: false, sfu_session_id: null,
+            camera_enabled: false, microphone_enabled: false,
+          }).eq("id", member.id).eq("sfu_session_id", sessionId);
         }
         return json({ ok: true }, 200, headers);
       }
@@ -790,8 +804,10 @@ Deno.serve(async (req: Request) => {
         }).eq("id", session.id);
         if (closeError) return json({ error: "Media closed but session state cleanup failed." }, 503, headers);
         if (session.role === "publisher" && member) {
-          await admin.from("live_room_participants").update({ sfu_connected: false, sfu_session_id: null })
-            .eq("id", member.id).eq("sfu_session_id", sessionId);
+          await admin.from("live_room_participants").update({
+            sfu_connected: false, sfu_session_id: null,
+            camera_enabled: false, microphone_enabled: false,
+          }).eq("id", member.id).eq("sfu_session_id", sessionId);
         }
         return json({ ok: true, ...result }, 200, headers);
       }
