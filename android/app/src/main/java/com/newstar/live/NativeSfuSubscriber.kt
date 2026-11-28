@@ -27,6 +27,8 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+internal data class NativeSfuTrackOwner(val userId: String, val trackName: String)
+
 internal class NativeSfuSubscriber private constructor(
     private val roomId: String,
     private val session: NativeSession,
@@ -42,6 +44,8 @@ internal class NativeSfuSubscriber private constructor(
     private val renderers = LinkedHashMap<String, SurfaceViewRenderer>()
     private val _remoteVideoMids = MutableStateFlow<List<String>>(emptyList())
     val remoteVideoMids: StateFlow<List<String>> = _remoteVideoMids.asStateFlow()
+    private val _remoteVideoOwners = MutableStateFlow<Map<String, NativeSfuTrackOwner>>(emptyMap())
+    val remoteVideoOwners: StateFlow<Map<String, NativeSfuTrackOwner>> = _remoteVideoOwners.asStateFlow()
 
     fun attachRenderer(mid: String, target: SurfaceViewRenderer) {
         require(mid.isNotBlank()) { "Remote video MID उपलब्ध नहीं है।" }
@@ -90,6 +94,7 @@ internal class NativeSfuSubscriber private constructor(
             renderers.clear()
             remoteVideos.clear()
             _remoteVideoMids.value = emptyList()
+            _remoteVideoOwners.value = emptyMap()
         }
         runCatching {
             if (trackMids.length() > 0) {
@@ -266,6 +271,18 @@ internal class NativeSfuSubscriber private constructor(
                 val subscriber = NativeSfuSubscriber(
                     roomId, session, sfuSessionId, createdFactory, createdEgl, createdPeer, mids
                 )
+                val owners = LinkedHashMap<String, NativeSfuTrackOwner>()
+                for (index in 0 until returnedTracks.length()) {
+                    val returned = returnedTracks.optJSONObject(index) ?: continue
+                    val mid = returned.optString("mid")
+                    val requestedTrack = unique.values.elementAtOrNull(index) ?: continue
+                    val userId = requestedTrack.optString("user_id")
+                    val trackName = requestedTrack.optString("track_name")
+                    if (mid.isNotBlank() && userId.isNotBlank() && trackName == "camera") {
+                        owners[mid] = NativeSfuTrackOwner(userId, trackName)
+                    }
+                }
+                subscriber._remoteVideoOwners.value = owners
                 subscriberRef.set(subscriber)
                 pendingTracks.forEach { (mid, track) -> subscriber.onRemoteTrack(mid, track) }
                 return@withContext subscriber
