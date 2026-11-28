@@ -2445,11 +2445,10 @@ private fun NativeVideoCard(
     var playerError by remember(video.id) { mutableStateOf<String?>(null) }
     var playerRetry by remember(video.id) { mutableIntStateOf(0) }
     val exoPlayer = remember(video.url, offlineSaved) {
-        val sourceFactory = if (offlineSaved) {
-            NativeOfflineDownloads.offlineDataSourceFactory(context)
-        } else {
-            NativeVideoCache.dataSourceFactory(context)
-        }
+        // Offline cache/index can be unavailable after storage cleanup or an
+        // interrupted download. Fall back to the normal network source instead
+        // of letting player construction crash the feed composition.
+        val sourceFactory = NativeVideoCache.playbackDataSourceFactory(context, offlineSaved)
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(sourceFactory))
             .build().apply {
