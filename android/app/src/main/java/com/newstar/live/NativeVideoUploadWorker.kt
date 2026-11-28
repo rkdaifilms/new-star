@@ -77,8 +77,8 @@ object NativeVideoUploadWork {
         return request.id
     }
 
-    fun cancel(context: Context, userId: String) {
-        WorkManager.getInstance(context).cancelUniqueWork(uniqueName(userId))
+    fun cancel(context: Context, userId: String): androidx.work.Operation {
+        return WorkManager.getInstance(context).cancelUniqueWork(uniqueName(userId))
     }
 
     internal fun foregroundInfo(context: Context, progress: Int, message: String): ForegroundInfo {
