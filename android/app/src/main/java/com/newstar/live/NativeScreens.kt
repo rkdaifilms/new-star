@@ -1742,6 +1742,7 @@ fun NativeUploadScreen(session: NativeSession) {
                     progress = 100
                     hasRecoverableUpload = false
                     status = info.outputData.getString("message") ?: "वीडियो upload पूरा हुआ।"
+                    NativeUploadDraftStore.clear(context, session.userId)
                     deleteNativeEditorTemp(context, selected)
                     selected = null
                 }
@@ -1838,7 +1839,10 @@ fun NativeUploadScreen(session: NativeSession) {
     }
     LaunchedEffect(session.userId) {
         val draft = NativeUploadDraftStore.load(context, session.userId)
-        if (draft != null) {
+        if (draft != null && draft.optBoolean("upload_complete")) {
+            NativeUploadDraftStore.clear(context, session.userId)
+            status = "पिछला वीडियो सफलतापूर्वक upload हो चुका है।"
+        } else if (draft != null) {
             try {
                 val draftUri = Uri.parse(draft.optString("uri"))
                 context.contentResolver.openFileDescriptor(draftUri, "r")?.use { }
@@ -2950,7 +2954,11 @@ internal object NativeVideoUploader {
             }
             if (attempt < 5) kotlinx.coroutines.delay(5000)
         }
-        NativeUploadDraftStore.clear(context, session.userId)
+        // Keep a completion marker until WorkManager commits SUCCEEDED.
+        // If Android kills the process in this tiny interval, the retry sees
+        // video_id + upload_complete and cannot create another Cloudflare upload.
+        draft.put("upload_complete", true)
+        NativeUploadDraftStore.save(context, session.userId, draft)
         withContext(Dispatchers.Main) { onStatus(finalStatus) }
     }
 
