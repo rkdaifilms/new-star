@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
     private var queuedGamingSession: NativeSession? = null
     private var queuedGamingTitle: String? = null
     private val oauthSession = mutableStateOf<NativeSession?>(null)
+    private val notificationCreatorId = mutableStateOf<String?>(null)
 
     private val microphonePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val session = queuedGamingSession
@@ -143,11 +144,14 @@ class MainActivity : ComponentActivity() {
             ContextCompat.registerReceiver(this, receiver, IntentFilter(GamingStreamService.STATUS),
                 ContextCompat.RECEIVER_NOT_EXPORTED)
         }
+        handleNotificationIntent(intent)
         handleOAuthCallback(intent)
         setContent {
             NewStarNativeTheme {
                 NativeApp(
                     googleSession = oauthSession.value,
+                    notificationCreatorId = notificationCreatorId.value,
+                    onNotificationIntentHandled = { notificationCreatorId.value = null },
                     onGoogleSignIn = { NativeGoogleOAuth.launch(this) },
                     onStartGaming = ::prepareGaming,
                     onStopGaming = ::stopGaming
@@ -165,7 +169,13 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handleNotificationIntent(intent)
         handleOAuthCallback(intent)
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        if (intent?.action != NativeSystemNotifications.ACTION_OPEN_CREATOR) return
+        notificationCreatorId.value = intent.getStringExtra(NativeSystemNotifications.EXTRA_CREATOR_ID)
     }
 
     private fun handleOAuthCallback(intent: Intent?) {
@@ -244,6 +254,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun NativeApp(
     googleSession: NativeSession?,
+    notificationCreatorId: String?,
+    onNotificationIntentHandled: () -> Unit,
     onGoogleSignIn: () -> Unit,
     onStartGaming: (NativeSession, String) -> Unit,
     onStopGaming: (NativeSession) -> Unit
@@ -265,6 +277,14 @@ private fun NativeApp(
         if (googleSession != null) {
             session = googleSession
             page = "Home"
+        }
+    }
+    LaunchedEffect(notificationCreatorId, session?.userId) {
+        val creatorId = notificationCreatorId
+        if (!creatorId.isNullOrBlank() && session != null) {
+            selectedCreatorId = creatorId
+            page = "Creator"
+            onNotificationIntentHandled()
         }
     }
     LaunchedEffect(session?.refreshToken) {
