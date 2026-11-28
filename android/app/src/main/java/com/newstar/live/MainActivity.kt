@@ -547,6 +547,7 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
                         } else {
                             Text("इस Live room का playback अभी उपलब्ध नहीं है।")
                         }
+                        NativeLiveSfuViewer(session, room.optString("id"))
                         NativeLiveGuestControls(session, room.optString("id"), room.optString("creator_id") == session.userId)
                         NativeLiveRoomChat(session, room.optString("id"))
                     }
