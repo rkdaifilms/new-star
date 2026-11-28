@@ -449,7 +449,7 @@ private fun NativeApp(
                     }
                 )
                 "Upload" -> NativeUploadScreen(session!!)
-                "Inbox" -> NativeInboxScreen(session!!, inboxTargetId)
+                "Inbox" -> NativeInboxScreen(session!!, inboxTargetId) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
                 "Notifications" -> NativeNotificationsScreen(session!!, notificationRefreshCounter, notificationRealtimeStatus) { creatorId ->
                     selectedCreatorId = creatorId
                     page = "Creator"
