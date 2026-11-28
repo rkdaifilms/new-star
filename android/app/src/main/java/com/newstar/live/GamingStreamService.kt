@@ -41,6 +41,18 @@ class GamingStreamService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == STOP) { stopStreaming(); return START_NOT_STICKY }
+        if (intent?.action == SET_MIC) {
+            val requested = intent.getBooleanExtra(MIC_ENABLED, false)
+            val track = audioTrack
+            if (track == null) {
+                emit("error", "इस Gaming LIVE session में microphone track उपलब्ध नहीं है।")
+            } else {
+                track.setEnabled(requested)
+                includeMic = requested
+                emit("connected", if (requested) "Gaming screen और microphone चालू हैं।" else "Gaming screen चालू है; microphone mute है।")
+            }
+            return START_NOT_STICKY
+        }
         if (intent?.action == START) {
             includeMic = intent.getBooleanExtra(INCLUDE_MIC, false) &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
@@ -214,7 +226,7 @@ class GamingStreamService : Service() {
     }
 
     private fun emit(status: String, message: String, resource: String = "") {
-        sendBroadcast(Intent(STATUS).setPackage(packageName).putExtra("status", status).putExtra("message", message).putExtra("resource", resource))
+        sendBroadcast(Intent(STATUS).setPackage(packageName).putExtra("status", status).putExtra("message", message).putExtra("resource", resource).putExtra("mic_available", audioTrack != null).putExtra("mic_enabled", audioTrack?.enabled() == true))
     }
 
     override fun onDestroy() { stopStreaming(); super.onDestroy() }
@@ -222,6 +234,8 @@ class GamingStreamService : Service() {
     companion object {
         const val START = "com.newstar.live.START"
         const val STOP = "com.newstar.live.STOP"
+        const val SET_MIC = "com.newstar.live.SET_MIC"
+        const val MIC_ENABLED = "mic_enabled"
         const val STATUS = "com.newstar.live.STATUS"
         const val RESULT_CODE = "result_code"
         const val RESULT_DATA = "result_data"
