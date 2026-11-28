@@ -308,6 +308,7 @@ private fun NativeApp(
     var page by remember { mutableStateOf("Home") }
     var selectedCreatorId by remember { mutableStateOf<String?>(null) }
     var selectedSharedVideoId by remember { mutableStateOf<String?>(null) }
+    var selectedOfflineVideo by remember { mutableStateOf<NativeVideo?>(null) }
     var inboxTargetId by remember { mutableStateOf<String?>(null) }
     var aiInitialPrompt by remember { mutableStateOf("") }
     var lastForegroundNotificationId by remember(session?.userId) { mutableStateOf<String?>(null) }
@@ -452,7 +453,19 @@ private fun NativeApp(
         return
     }
 
-    if (page == "Shared Video" && !selectedSharedVideoId.isNullOrBlank()) {
+    if (page == "Offline Playback" && selectedOfflineVideo != null) {
+        Column(Modifier.fillMaxSize()) {
+            TextButton(onClick = { selectedOfflineVideo = null; page = "Offline Library" }) {
+                Text("← Offline Library")
+            }
+            NativeVideoCard(
+                video = selectedOfflineVideo!!,
+                session = session,
+                isActive = true,
+                immersive = true
+            )
+        }
+    } else if (page == "Shared Video" && !selectedSharedVideoId.isNullOrBlank()) {
         NativeSharedVideoScreen(
             videoId = selectedSharedVideoId!!,
             session = session,
@@ -500,9 +513,18 @@ private fun NativeApp(
                     page = "Creator"
                 }
                 "Wallet" -> NativeWalletScreen(session!!)
-                "Offline Library" -> NativeOfflineLibraryScreen { videoId ->
-                    selectedSharedVideoId = videoId
-                    page = "Shared Video"
+                "Offline Library" -> NativeOfflineLibraryScreen { videoId, mediaUri ->
+                    selectedOfflineVideo = NativeVideo(
+                        id = videoId,
+                        url = mediaUri,
+                        caption = "Offline video",
+                        username = "Saved video",
+                        category = "",
+                        likes = 0,
+                        views = 0,
+                        type = "long"
+                    )
+                    page = "Offline Playback"
                 }
                 "Monetization" -> NativeMonetizationScreen(session!!) { page = "Wallet" }
                 "Fan Support" -> NativeFanSupportScreen(session!!) { creatorId -> selectedCreatorId = creatorId; page = "Creator" }
