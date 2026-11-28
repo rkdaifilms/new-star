@@ -695,25 +695,83 @@ private fun NativeLiveInvitations(session: NativeSession) {
     var busyId by remember(session.userId) { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
+    var realtimeStatus by remember(session.userId) { mutableStateOf("LIVE invitation Realtime connecting…") }
+    var refreshBusy by remember(session.userId) { mutableStateOf(false) }
+
     suspend fun refreshInvites() {
-        val result = NativeSupabase.invokeFunction("cloudflare-live",
-            JSONObject().put("action", "live-invites-list"), session)
-        if (!result.optBoolean("ok")) throw IllegalStateException(result.optString("error", "Invitations load नहीं हुए।"))
-        val array = result.optJSONArray("invitations") ?: org.json.JSONArray()
-        invitations = (0 until array.length()).mapNotNull { array.optJSONObject(it) }
+        invitations = NativeLiveRepository.listInvitations(session)
+    }
+
+    LaunchedEffect(session.userId) {
+        refreshBusy = true
+        try {
+            refreshInvites()
+            notice = ""
+        } catch (e: Exception) {
+            notice = e.message ?: "Invitations load नहीं हुए।"
+        } finally {
+            refreshBusy = false
+        }
+    }
+
+    DisposableEffect(session.userId, session.accessToken) {
+        val observer = NativeRealtimeMessages(
+            accessToken = session.accessToken,
+            userId = session.userId,
+            includeLiveInvites = true,
+            onChange = {
+                scope.launch {
+                    try {
+                        refreshInvites()
+                        notice = ""
+                    } catch (e: Exception) {
+                        notice = e.message ?: "LIVE invitations refresh नहीं हुईं।"
+                    }
+                }
+            },
+            onStatus = { status -> realtimeStatus = status }
+        )
+        observer.connect()
+        onDispose { observer.close() }
     }
 
     LaunchedEffect(session.userId) {
         while (true) {
-            try { refreshInvites() } catch (e: Exception) { notice = e.message ?: "Invitations load नहीं हुए।" }
-            delay(15_000)
+            delay(30_000)
+            try {
+                refreshInvites()
+                if (notice.isNotBlank()) notice = ""
+            } catch (e: Exception) {
+                notice = e.message ?: "Invitations load नहीं हुए।"
+            }
         }
     }
 
     if (invitations.isNotEmpty() || notice.isNotBlank()) {
         Card(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("LIVE Invitations", style = MaterialTheme.typography.titleMedium)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text("LIVE Invitations", style = MaterialTheme.typography.titleMedium)
+                    TextButton(
+                        enabled = !refreshBusy,
+                        onClick = {
+                            refreshBusy = true
+                            scope.launch {
+                                try {
+                                    refreshInvites()
+                                    notice = ""
+                                } catch (e: Exception) {
+                                    notice = e.message ?: "Invitations refresh नहीं हुईं।"
+                                } finally {
+                                    refreshBusy = false
+                                }
+                            }
+                        }
+                    ) { Text(if (refreshBusy) "Loading…" else "Refresh") }
+                }
+                Text(realtimeStatus, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 invitations.forEach { invite ->
                     val id = invite.optString("id")
                     Row(
@@ -748,10 +806,7 @@ private fun NativeLiveInvitations(session: NativeSession) {
                             busyId = id
                             scope.launch {
                                 try {
-                                    val r = NativeSupabase.invokeFunction("cloudflare-live",
-                                        JSONObject().put("action", "live-invite-respond")
-                                            .put("invite_id", id).put("message", "accept"), session)
-                                    if (!r.optBoolean("ok")) throw IllegalStateException(r.optString("error", "Invitation accept नहीं हुई।"))
+                                    NativeLiveRepository.respondToInvitation(id, accept = true, session = session)
                                     notice = "Invitation accepted. Host से seat admit करवाएँ।"
                                     refreshInvites()
                                 } catch (e: Exception) { notice = e.message ?: "Accept failed" }
@@ -762,10 +817,7 @@ private fun NativeLiveInvitations(session: NativeSession) {
                             busyId = id
                             scope.launch {
                                 try {
-                                    val r = NativeSupabase.invokeFunction("cloudflare-live",
-                                        JSONObject().put("action", "live-invite-respond")
-                                            .put("invite_id", id).put("message", "decline"), session)
-                                    if (!r.optBoolean("ok")) throw IllegalStateException(r.optString("error", "Invitation decline नहीं हुई।"))
+                                    NativeLiveRepository.respondToInvitation(id, accept = false, session = session)
                                     notice = "Invitation declined."
                                     refreshInvites()
                                 } catch (e: Exception) { notice = e.message ?: "Decline failed" }
