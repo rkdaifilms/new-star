@@ -33,7 +33,12 @@ data class NativeGamingUiState(
     val pkOpponentName: String = "",
     val pkOwnScore: Int = 0,
     val pkOpponentScore: Int = 0,
-    val pkBusy: Boolean = false
+    val pkBusy: Boolean = false,
+    val members: List<JSONObject> = emptyList(),
+    val actorRole: String = "viewer",
+    val moderationLoading: Boolean = false,
+    val moderationBusyUserId: String = "",
+    val moderationError: String = ""
 )
 
 class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
@@ -156,6 +161,95 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 mutableState.update { it.copy(chatError = error.message ?: "Reaction भेजा नहीं गया।") }
             } finally {
                 mutableState.update { it.copy(reactionBusy = false) }
+            }
+        }
+    }
+
+    fun refreshMembers(roomId: String) {
+        if (roomId.isBlank() || mutableState.value.moderationLoading) return
+        mutableState.update { it.copy(moderationLoading = true, moderationError = "") }
+        viewModelScope.launch {
+            try {
+                val result = NativeLiveRepository.listMembers(roomId, session)
+                val rows = result.optJSONArray("members")
+                val members = if (rows == null) emptyList() else
+                    (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                mutableState.update {
+                    it.copy(
+                        members = members,
+                        actorRole = result.optString("actor_role", "viewer"),
+                        moderationError = ""
+                    )
+                }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(moderationError = error.message ?: "LIVE participants लोड नहीं हुए।") }
+            } finally {
+                mutableState.update { it.copy(moderationLoading = false) }
+            }
+        }
+    }
+
+    fun setMemberCamera(roomId: String, member: JSONObject) {
+        updateMember(roomId, member) {
+            NativeLiveRepository.setMemberPermissions(
+                roomId = roomId,
+                targetUserId = member.optString("user_id"),
+                cameraAllowed = !member.optBoolean("camera_allowed"),
+                session = session
+            )
+        }
+    }
+
+    fun setMemberMicrophone(roomId: String, member: JSONObject) {
+        updateMember(roomId, member) {
+            NativeLiveRepository.setMemberPermissions(
+                roomId = roomId,
+                targetUserId = member.optString("user_id"),
+                microphoneAllowed = !member.optBoolean("microphone_allowed"),
+                session = session
+            )
+        }
+    }
+
+    fun toggleMemberModerator(roomId: String, member: JSONObject) {
+        updateMember(roomId, member) {
+            NativeLiveRepository.setModerator(
+                roomId = roomId,
+                targetUserId = member.optString("user_id"),
+                moderator = member.optString("role") != "moderator",
+                session = session
+            )
+        }
+    }
+
+    fun removeMember(roomId: String, member: JSONObject) {
+        updateMember(roomId, member) {
+            NativeLiveRepository.removeMember(roomId, member.optString("user_id"), session)
+        }
+    }
+
+    private fun updateMember(roomId: String, member: JSONObject, action: suspend () -> JSONObject) {
+        val userId = member.optString("user_id")
+        if (roomId.isBlank() || userId.isBlank() || mutableState.value.moderationBusyUserId.isNotBlank()) return
+        mutableState.update { it.copy(moderationBusyUserId = userId, moderationError = "") }
+        viewModelScope.launch {
+            try {
+                action()
+                val result = NativeLiveRepository.listMembers(roomId, session)
+                val rows = result.optJSONArray("members")
+                val updated = if (rows == null) emptyList() else
+                    (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                mutableState.update {
+                    it.copy(
+                        members = updated,
+                        actorRole = result.optString("actor_role", it.actorRole),
+                        moderationError = ""
+                    )
+                }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(moderationError = error.message ?: "LIVE moderation action पूरी नहीं हुई।") }
+            } finally {
+                mutableState.update { it.copy(moderationBusyUserId = "") }
             }
         }
     }
@@ -292,7 +386,12 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 pkOpponentName = "",
                 pkOwnScore = 0,
                 pkOpponentScore = 0,
-                pkBusy = false
+                pkBusy = false,
+                members = emptyList(),
+                actorRole = "viewer",
+                moderationLoading = false,
+                moderationBusyUserId = "",
+                moderationError = ""
             )
         }
     }
