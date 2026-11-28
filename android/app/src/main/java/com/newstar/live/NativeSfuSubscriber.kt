@@ -91,6 +91,10 @@ internal class NativeSfuSubscriber private constructor(
         }
     }
 
+    fun isConnectionFailed(): Boolean =
+        peer.iceConnectionState() == PeerConnection.IceConnectionState.FAILED ||
+            peer.connectionState() == PeerConnection.PeerConnectionState.FAILED
+
     suspend fun refreshPublications(): Int = refreshMutex.withLock {
         if (stopped.get()) return@withLock 0
         val publications = NativeLiveRepository.listSfuPublications(roomId, session)
