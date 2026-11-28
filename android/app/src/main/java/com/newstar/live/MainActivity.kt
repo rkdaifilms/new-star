@@ -2711,7 +2711,8 @@ private fun NativeVideoCard(
                 } else {
                     TextButton(
                         enabled = current != null && !reportState.isSubmitting &&
-                            (reportTargetType != "user" || video.userId.isNotBlank()),
+                            (reportTargetType != "user" || video.userId.isNotBlank()) &&
+                            (reportTargetType != "comment" || reportTargetId.isNotBlank()),
                         onClick = {
                             val reporter = current ?: return@TextButton
                             val targetId = when (reportTargetType) {
