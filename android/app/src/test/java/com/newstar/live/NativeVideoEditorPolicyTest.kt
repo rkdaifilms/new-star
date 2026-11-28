@@ -115,4 +115,30 @@ class NativeVideoEditorPolicyTest {
         }
     }
 
+    @Test
+    fun mapsSubtitleWindowToTrimmedClipTimeline() {
+        assertEquals(1_000L to 4_000L, NativeVideoEditorPolicy.subtitleWindow(3, 6, 2_000L, 7_000L))
+        assertEquals(0L to 2_000L, NativeVideoEditorPolicy.subtitleWindow(1, 4, 2_000L, 7_000L))
+        assertEquals(3_000L to 5_000L, NativeVideoEditorPolicy.subtitleWindow(5, 9, 2_000L, 7_000L))
+    }
+
+    @Test
+    fun returnsNoSubtitleWhenItDoesNotOverlapTrim() {
+        assertEquals(null, NativeVideoEditorPolicy.subtitleWindow(0, 1, 2_000L, 7_000L))
+        assertEquals(null, NativeVideoEditorPolicy.subtitleWindow(8, 9, 2_000L, 7_000L))
+    }
+
+    @Test
+    fun rejectsInvalidSubtitleAndTrimIntervals() {
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.subtitleWindow(4, 4, 0L, 10_000L)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.subtitleWindow(0, 4, -1L, 10_000L)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeVideoEditorPolicy.subtitleWindow(0, 4, 10_000L, 10_000L)
+        }
+    }
+
 }
