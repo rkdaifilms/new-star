@@ -1893,6 +1893,7 @@ private fun NativePublicCreatorScreen(creatorId: String, session: NativeSession,
                             error = e.message ?: "Follow update नहीं हुआ।"
                         } finally { busy = false }
                     }
+                    }
                     ) {
                         Text(
                             when {
