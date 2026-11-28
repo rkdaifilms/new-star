@@ -1722,12 +1722,12 @@ fun NativeUploadScreen(session: NativeSession) {
     LaunchedEffect(uploadWorkInfos) {
         val info = uploadWorkInfos.firstOrNull()
         if (info != null) {
-            val inputUri = info.inputData.getString(NativeVideoUploadWork.KEY_URI)
-            if (selected == null && !inputUri.isNullOrBlank()) {
-                selected = Uri.parse(inputUri)
-                title = info.inputData.getString(NativeVideoUploadWork.KEY_TITLE).orEmpty()
-                description = info.inputData.getString(NativeVideoUploadWork.KEY_DESCRIPTION).orEmpty()
-                category = info.inputData.getString(NativeVideoUploadWork.KEY_CATEGORY) ?: "General"
+            val savedDraft = NativeUploadDraftStore.load(context, session.userId)
+            if (selected == null && savedDraft != null) {
+                selected = Uri.parse(savedDraft.optString("uri"))
+                title = savedDraft.optString("title")
+                description = savedDraft.optString("description")
+                category = savedDraft.optString("category", "General")
             }
             when (info.state) {
                 WorkInfo.State.ENQUEUED, WorkInfo.State.RUNNING, WorkInfo.State.BLOCKED -> {
@@ -1750,7 +1750,7 @@ fun NativeUploadScreen(session: NativeSession) {
                     val error = info.outputData.getString("error") ?: "Background upload असफल हुआ।"
                     status = error
                     val draft = NativeUploadDraftStore.load(context, session.userId)
-                    hasRecoverableUpload = draft?.optString("uri") == inputUri
+                    hasRecoverableUpload = draft != null
                     if (draft != null) {
                         val total = draft.optLong("size")
                         progress = if (total > 0L) ((draft.optLong("offset") * 100L) / total).toInt().coerceIn(0, 100) else 0
