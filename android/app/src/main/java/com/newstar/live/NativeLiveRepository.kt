@@ -134,6 +134,18 @@ internal object NativeLiveRepository {
     }
 
 
+    suspend fun getSfuHealth(session: NativeSession): JSONObject {
+        val result = NativeSupabase.invokeFunction(
+            "cloudflare-live",
+            JSONObject().put("action", "sfu-health"),
+            session
+        )
+        if (!result.optBoolean("ok")) {
+            throw IllegalStateException(result.optString("error", "SFU configuration status नहीं मिला।"))
+        }
+        return result
+    }
+
     suspend fun joinPkQueue(roomId: String, session: NativeSession): JSONObject =
         invokePkAction(JSONObject().put("action", "pk-join-queue").put("room_id", roomId), session)
 
