@@ -24,8 +24,8 @@ internal object NativeVideoEditorPolicy {
         require(Regex("^#[0-9A-Fa-f]{6}$").matches(colorHex)) {
             "Text color valid #RRGGBB format में होना चाहिए।"
         }
-        require(position in setOf("top", "center", "bottom")) {
-            "Text position top, center या bottom होनी चाहिए।"
+        require(position in setOf("top", "center", "bottom", "custom")) {
+            "Text position top, center, bottom या custom होनी चाहिए।"
         }
     }
 
