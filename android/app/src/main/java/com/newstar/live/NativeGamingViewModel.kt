@@ -58,6 +58,7 @@ data class NativeGamingUiState(
     val guestPublisherStarting: Boolean = false,
     val guestPublisherCameraEnabled: Boolean = true,
     val guestPublisherMicEnabled: Boolean = false,
+    val guestMediaUpdating: Boolean = false,
     val guestPublisherError: String = ""
 )
 
@@ -485,18 +486,63 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
     }
 
     fun setGuestCameraEnabled(enabled: Boolean) {
-        guestPublisher?.setCameraEnabled(enabled)
-        mutableState.update { it.copy(guestPublisherCameraEnabled = enabled) }
+        val current = mutableState.value
+        val roomId = current.guestRoomId
+        if (roomId.isBlank() || guestPublisher == null || current.guestMediaUpdating ||
+            current.guestPublisherCameraEnabled == enabled
+        ) return
+        mutableState.update { it.copy(guestMediaUpdating = true, guestPublisherError = "") }
+        viewModelScope.launch {
+            try {
+                NativeLiveRepository.updateGuestMediaState(
+                    roomId = roomId,
+                    cameraEnabled = enabled,
+                    session = session
+                )
+                guestPublisher?.setCameraEnabled(enabled)
+                mutableState.update {
+                    it.copy(guestPublisherCameraEnabled = enabled, guestPublisherError = "")
+                }
+            } catch (error: Exception) {
+                mutableState.update {
+                    it.copy(guestPublisherError = error.message ?: "Camera state सेव नहीं हुई।")
+                }
+            } finally {
+                mutableState.update { it.copy(guestMediaUpdating = false) }
+            }
+        }
     }
 
     fun setGuestMicrophoneEnabled(enabled: Boolean) {
         val current = mutableState.value
+        val roomId = current.guestRoomId
         if (enabled && !current.guestMicrophoneAllowed) {
             mutableState.update { it.copy(guestPublisherError = "Host ने microphone permission नहीं दी है।") }
             return
         }
-        guestPublisher?.setMicrophoneEnabled(enabled)
-        mutableState.update { it.copy(guestPublisherMicEnabled = enabled) }
+        if (roomId.isBlank() || guestPublisher == null || current.guestMediaUpdating ||
+            current.guestPublisherMicEnabled == enabled
+        ) return
+        mutableState.update { it.copy(guestMediaUpdating = true, guestPublisherError = "") }
+        viewModelScope.launch {
+            try {
+                NativeLiveRepository.updateGuestMediaState(
+                    roomId = roomId,
+                    microphoneEnabled = enabled,
+                    session = session
+                )
+                guestPublisher?.setMicrophoneEnabled(enabled)
+                mutableState.update {
+                    it.copy(guestPublisherMicEnabled = enabled, guestPublisherError = "")
+                }
+            } catch (error: Exception) {
+                mutableState.update {
+                    it.copy(guestPublisherError = error.message ?: "Microphone state सेव नहीं हुई।")
+                }
+            } finally {
+                mutableState.update { it.copy(guestMediaUpdating = false) }
+            }
+        }
     }
 
     private suspend fun stopGuestPublisherInternal() {
@@ -508,6 +554,7 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
                 guestPublisherReady = false,
                 guestPublisherCameraEnabled = false,
                 guestPublisherMicEnabled = false,
+                guestMediaUpdating = false,
                 guestPublisherStarting = false
             )
         }
