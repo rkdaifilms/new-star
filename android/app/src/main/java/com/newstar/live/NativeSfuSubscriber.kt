@@ -208,7 +208,6 @@ internal class NativeSfuSubscriber private constructor(
                             (transceiver.receiver.track() as? VideoTrack)?.let { track -> remoteVideo.set(track); remoteTrackConsumer.get()?.invoke(track) }
                         }
                         override fun onConnectionChange(state: PeerConnection.PeerConnectionState) {}
-                        override fun onSelectedCandidatePairChanged(event: PeerConnection.CandidatePairChangeEvent) {}
                     }
                 ) ?: throw IllegalStateException("SFU subscriber PeerConnection create नहीं हुआ।")
                 peer = createdPeer
