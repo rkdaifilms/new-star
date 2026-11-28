@@ -1,6 +1,7 @@
 package com.newstar.live
 
 import android.net.Uri
+import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -42,14 +44,26 @@ fun NativeNotificationsScreen(session: NativeSession, onOpenCreator: (String) ->
     var error by remember(session.userId) { mutableStateOf("") }
     var refresh by remember(session.userId) { mutableIntStateOf(0) }
     var realtimeStatus by remember(session.userId) { mutableStateOf("Realtime connecting…") }
+    var knownNotificationIds by remember(session.userId) { mutableStateOf<Set<String>?>(null) }
+    var pendingRealtimeAlert by remember(session.userId) { mutableStateOf(false) }
+    val context = LocalContext.current
+    var notificationPermissionGranted by remember { mutableStateOf(NativeSystemNotifications.hasPermission(context)) }
+    val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted -> notificationPermissionGranted = granted }
     val scope = rememberCoroutineScope()
+
+    DisposableEffect(context) {
+        NativeSystemNotifications.createChannel(context)
+        onDispose { }
+    }
     val unreadCount = notifications.count { !it.optBoolean("is_read", false) }
 
     DisposableEffect(session.userId, session.accessToken) {
         val realtime = NativeRealtimeMessages(
             accessToken = session.accessToken,
             userId = session.userId,
-            onChange = { scope.launch { refresh++ } },
+            onChange = { scope.launch { pendingRealtimeAlert = true; refresh++ } },
             onStatus = { status -> scope.launch { realtimeStatus = status } }
         )
         realtime.connect()
@@ -77,6 +91,27 @@ fun NativeNotificationsScreen(session: NativeSession, onOpenCreator: (String) ->
                 (0 until profiles.length()).mapNotNull { profiles.optJSONObject(it) }
                     .associateBy { it.optString("user_id") }
             }
+            val currentIds = loaded.map { it.optString("id") }.filter { it.isNotBlank() }.toSet()
+            val previousIds = knownNotificationIds
+            if (previousIds == null) {
+                knownNotificationIds = currentIds
+            } else {
+                if (pendingRealtimeAlert && notificationPermissionGranted) {
+                    loaded.asSequence()
+                        .filter { it.optString("id") !in previousIds }
+                        .filter { !it.optBoolean("is_read", false) }
+                        .take(3)
+                        .toList()
+                        .forEach { notification ->
+                            val actor = actorProfiles[notification.optString("actor_id")]
+                            val actorName = actor?.optString("full_name").orEmpty()
+                                .ifBlank { actor?.optString("username").orEmpty() }
+                            NativeSystemNotifications.show(context, notification, actorName)
+                        }
+                }
+                knownNotificationIds = currentIds
+            }
+            pendingRealtimeAlert = false
         } catch (e: Exception) {
             error = e.message ?: "Notifications लोड नहीं हुईं।"
         } finally {
@@ -121,6 +156,14 @@ fun NativeNotificationsScreen(session: NativeSession, onOpenCreator: (String) ->
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column {
+                if (Build.VERSION.SDK_INT >= 33 && !notificationPermissionGranted) {
+                    OutlinedButton(
+                        onClick = {
+                            notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        },
+                        enabled = !busy
+                    ) { Text("Enable alerts") }
+                }
                 OutlinedButton(onClick = { refresh++ }, enabled = !loading && !busy) { Text("Refresh") }
                 Button(
                     onClick = {
