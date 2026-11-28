@@ -68,65 +68,59 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
             .putString("textScale", textScale).putBoolean("reducedMotion", reduceMotion)
             .putBoolean("highContrast", highContrast).putBoolean("notifyFollow", notifyFollow)
             .putBoolean("notifyLike", notifyLike).putBoolean("notifyComment", notifyComment)
-            .putBoolean("notifyMessage", notifyMessage).apply()
+            .putBoolean("notifyMessage", notifyMessage)
+            .putString("_updatedAt", java.time.Instant.now().toString()).apply()
     }
 
-    suspend fun syncPreferences() {
-        val now = java.time.Instant.now().toString()
-        val prefs = JSONObject()
+    fun currentPreferencesDocument(): JSONObject {
+        val document = JSONObject()
             .put("language", language).put("theme", theme)
             .put("accessibility", JSONObject().put("textScale", textScale.toDouble())
                 .put("reducedMotion", reduceMotion).put("highContrast", highContrast))
             .put("notifications", JSONObject().put("follows", notifyFollow).put("likes", notifyLike)
                 .put("comments", notifyComment).put("messages", notifyMessage))
-            .put("_updatedAt", now)
-        localSave()
-        val result = NativeSupabase.upsert(
-            "/rest/v1/user_preferences",
-            JSONObject().put("user_id", session.userId).put("preferences", prefs).put("updated_at", now),
-            session
-        )
-        if (result.isBlank() || result == "[]") {
-            throw IllegalStateException("Account preferences सेव नहीं हुईं।")
+        local.getString("_updatedAt", null)?.let { document.put("_updatedAt", it) }
+        return document
+    }
+
+    fun applySyncedPreferences(document: JSONObject) {
+        NativePreferencesSync.validString(document, "language", NativePreferencesSync.languages)?.let { language = it }
+        NativePreferencesSync.validString(document, "theme", NativePreferencesSync.themes)?.let { theme = it }
+        document.optJSONObject("accessibility")?.let { values ->
+            NativePreferencesSync.validTextScale(values)?.let { textScale = it }
+            NativePreferencesSync.validBoolean(values, "reducedMotion")?.let { reduceMotion = it }
+            NativePreferencesSync.validBoolean(values, "highContrast")?.let { highContrast = it }
         }
+        document.optJSONObject("notifications")?.let { values ->
+            NativePreferencesSync.validBoolean(values, "follows")?.let { notifyFollow = it }
+            NativePreferencesSync.validBoolean(values, "likes")?.let { notifyLike = it }
+            NativePreferencesSync.validBoolean(values, "comments")?.let { notifyComment = it }
+            NativePreferencesSync.validBoolean(values, "messages")?.let { notifyMessage = it }
+        }
+        local.edit()
+            .putString("language", language)
+            .putString("theme", theme)
+            .putString("textScale", textScale)
+            .putBoolean("reducedMotion", reduceMotion)
+            .putBoolean("highContrast", highContrast)
+            .putBoolean("notifyFollow", notifyFollow)
+            .putBoolean("notifyLike", notifyLike)
+            .putBoolean("notifyComment", notifyComment)
+            .putBoolean("notifyMessage", notifyMessage)
+            .putString("_updatedAt", document.optString("_updatedAt").takeIf { it.isNotBlank() })
+            .apply()
+    }
+
+    suspend fun syncPreferences() {
+        val synced = NativePreferencesSync.synchronize(session, currentPreferencesDocument())
+        applySyncedPreferences(synced)
     }
 
     LaunchedEffect(session.userId) {
         try {
-            try {
-                val remote = NativePreferencesSync.load(session)
-                if (remote != null) {
-                    NativePreferencesSync.validString(remote, "language", NativePreferencesSync.languages)?.let { language = it }
-                    NativePreferencesSync.validString(remote, "theme", NativePreferencesSync.themes)?.let { theme = it }
-                    val accessibility = remote.optJSONObject("accessibility")
-                    accessibility?.let { values ->
-                        NativePreferencesSync.validTextScale(values)?.let { textScale = it }
-                        NativePreferencesSync.validBoolean(values, "reducedMotion")?.let { reduceMotion = it }
-                        NativePreferencesSync.validBoolean(values, "highContrast")?.let { highContrast = it }
-                    }
-                    val notifications = remote.optJSONObject("notifications")
-                    notifications?.let { values ->
-                        NativePreferencesSync.validBoolean(values, "follows")?.let { notifyFollow = it }
-                        NativePreferencesSync.validBoolean(values, "likes")?.let { notifyLike = it }
-                        NativePreferencesSync.validBoolean(values, "comments")?.let { notifyComment = it }
-                        NativePreferencesSync.validBoolean(values, "messages")?.let { notifyMessage = it }
-                    }
-                    local.edit()
-                        .putString("language", language)
-                        .putString("theme", theme)
-                        .putString("textScale", textScale)
-                        .putBoolean("reducedMotion", reduceMotion)
-                        .putBoolean("highContrast", highContrast)
-                        .putBoolean("notifyFollow", notifyFollow)
-                        .putBoolean("notifyLike", notifyLike)
-                        .putBoolean("notifyComment", notifyComment)
-                        .putBoolean("notifyMessage", notifyMessage)
-                        .apply()
-                    status = "आपकी cloud preferences इस device पर restore हो गईं।"
-                }
-            } catch (preferenceError: Exception) {
-                status = preferenceError.message ?: "Cloud preferences restore नहीं हो सकीं; इस device की saved settings जारी हैं।"
-            }
+            val synced = NativePreferencesSync.synchronize(session, currentPreferencesDocument())
+            applySyncedPreferences(synced)
+            status = "आपकी settings account के साथ sync हो गईं।"
             val rows = NativeSupabase.get(
                 "/rest/v1/profiles?select=is_private&user_id=eq.${session.userId}", session
             )
@@ -150,7 +144,9 @@ fun NativeSettingsScreen(session: NativeSession, onLogout: () -> Unit, onLogoutA
                     }
                 }
             }
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            status = e.message ?: "Settings load या sync नहीं हो सकीं।"
+        }
     }
 
     Column(
