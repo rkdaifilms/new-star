@@ -120,7 +120,7 @@ internal class NativeOfflineLibraryViewModel(context: Context) : ViewModel() {
 }
 
 @Composable
-fun NativeOfflineLibraryScreen(onOpenVideo: (String) -> Unit) {
+fun NativeOfflineLibraryScreen(onOpenVideo: (String, String) -> Unit) {
     val context = LocalContext.current
     val model: NativeOfflineLibraryViewModel = viewModel(
         factory = NativeOfflineLibraryViewModel.Factory(context)
@@ -203,7 +203,7 @@ fun NativeOfflineLibraryScreen(onOpenVideo: (String) -> Unit) {
                     OfflineDownloadCard(
                         entry = entry,
                         removing = state.removingId == entry.id,
-                        onPlay = { onOpenVideo(entry.id) },
+                        onPlay = { onOpenVideo(entry.id, entry.uri) },
                         onRemove = { model.remove(entry.id) }
                     )
                 }
