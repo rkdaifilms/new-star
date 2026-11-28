@@ -270,6 +270,8 @@ private fun NativeApp(
     var lastForegroundNotificationId by remember(session?.userId) { mutableStateOf<String?>(null) }
     var notificationBaselineReady by remember(session?.userId) { mutableStateOf(false) }
     var notificationCheckInProgress by remember(session?.userId) { mutableStateOf(false) }
+    var notificationRefreshCounter by remember(session?.userId) { mutableIntStateOf(0) }
+    var notificationRealtimeStatus by remember(session?.userId) { mutableStateOf("Realtime connecting…") }
     val scope = rememberCoroutineScope()
 
     DisposableEffect(context) {
@@ -314,6 +316,7 @@ private fun NativeApp(
                                     latestId != lastForegroundNotificationId
                                 ) {
                                     lastForegroundNotificationId = latestId
+                                    notificationRefreshCounter++
                                     if (!latest.optBoolean("is_read", false) &&
                                         NativeSystemNotifications.hasPermission(context)
                                     ) {
@@ -337,7 +340,7 @@ private fun NativeApp(
                         }
                     }
                 },
-                onStatus = {}
+                onStatus = { status -> scope.launch { notificationRealtimeStatus = status } }
             )
             observer.connect()
             onDispose { observer.close() }
@@ -419,7 +422,7 @@ private fun NativeApp(
                 )
                 "Upload" -> NativeUploadScreen(session!!)
                 "Inbox" -> NativeInboxScreen(session!!, inboxTargetId)
-                "Notifications" -> NativeNotificationsScreen(session!!) { creatorId ->
+                "Notifications" -> NativeNotificationsScreen(session!!, notificationRefreshCounter, notificationRealtimeStatus) { creatorId ->
                     selectedCreatorId = creatorId
                     page = "Creator"
                 }
