@@ -2272,6 +2272,7 @@ private fun NativeVideoCard(
     var downloadRequested by remember(video.id) { mutableStateOf(false) }
     var reportDialogOpen by remember(video.id) { mutableStateOf(false) }
     var reportTargetType by remember(video.id) { mutableStateOf("video") }
+    var reportTargetId by remember(video.id) { mutableStateOf(video.id) }
     var reportReason by remember(video.id) { mutableStateOf("spam") }
     var reportDetails by remember(video.id) { mutableStateOf("") }
     var reportBusy by remember(video.id) { mutableStateOf(false) }
@@ -2585,6 +2586,7 @@ private fun NativeVideoCard(
                         enabled = session != null && !reportBusy,
                         onClick = {
                             reportTargetType = "video"
+                            reportTargetId = video.id
                             reportReason = "spam"
                             reportDetails = ""
                             reportError = null
@@ -2657,6 +2659,14 @@ private fun NativeVideoCard(
                                 enabled = !reportBusy && video.userId.isNotBlank(),
                                 label = { Text("Creator") }
                             )
+                            if (reportTargetType == "comment") {
+                                FilterChip(
+                                    selected = true,
+                                    onClick = { },
+                                    enabled = false,
+                                    label = { Text("Comment") }
+                                )
+                            }
                         }
                         Text("कारण चुनें")
                         LazyColumn(
@@ -2704,7 +2714,11 @@ private fun NativeVideoCard(
                             (reportTargetType != "user" || video.userId.isNotBlank()),
                         onClick = {
                             val reporter = current ?: return@TextButton
-                            val targetId = if (reportTargetType == "user") video.userId else video.id
+                            val targetId = when (reportTargetType) {
+                                "user" -> video.userId
+                                "comment" -> reportTargetId
+                                else -> video.id
+                            }
                             if (targetId.isBlank()) {
                                 reportError = "Report target उपलब्ध नहीं है।"
                                 return@TextButton
@@ -2818,7 +2832,25 @@ private fun NativeVideoCard(
                                 Text("@${row.optString("username").ifBlank { "creator" }}",
                                     style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                 Text(row.optString("comment"))
-                                Text(row.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                ) {
+                                    Text(row.optString("created_at"), style = MaterialTheme.typography.labelSmall)
+                                    TextButton(
+                                        enabled = session != null && !reportBusy,
+                                        onClick = {
+                                            reportTargetType = "comment"
+                                            reportTargetId = row.optString("id")
+                                            reportReason = "harassment"
+                                            reportDetails = ""
+                                            reportError = null
+                                            reportSuccess = false
+                                            reportDialogOpen = true
+                                        }
+                                    ) { Text("Report comment") }
+                                }
                             }
                             Divider()
                         }
