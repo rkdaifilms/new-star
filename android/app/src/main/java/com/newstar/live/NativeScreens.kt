@@ -1794,6 +1794,9 @@ fun NativeUploadScreen(session: NativeSession) {
     var centerCrop by remember { mutableStateOf(false) }
     var exportSpeed by remember { mutableFloatStateOf(1f) }
     var overlayText by remember { mutableStateOf("") }
+    var subtitleStartSeconds by remember { mutableStateOf("0") }
+    var subtitleEndSeconds by remember { mutableStateOf("0") }
+    var previewPositionMs by remember { mutableLongStateOf(0L) }
     var overlayTextSize by remember { mutableIntStateOf(24) }
     var overlayTextColor by remember { mutableStateOf("#FFFFFF") }
     var overlayTextPosition by remember { mutableStateOf("center") }
@@ -1879,6 +1882,9 @@ fun NativeUploadScreen(session: NativeSession) {
             }
             trimStartSeconds = "0"
             trimEndSeconds = sourceDurationSeconds.toString()
+            subtitleStartSeconds = "0"
+            subtitleEndSeconds = sourceDurationSeconds.toString()
+            previewPositionMs = 0L
             splitAtSeconds = ""
             rotationDegrees = 0
             muteOriginalAudio = false
@@ -2056,6 +2062,12 @@ fun NativeUploadScreen(session: NativeSession) {
     DisposableEffect(previewPlayer) {
         onDispose { previewPlayer?.release() }
     }
+    LaunchedEffect(previewPlayer) {
+        while (true) {
+            previewPositionMs = previewPlayer?.currentPosition?.coerceAtLeast(0L) ?: 0L
+            delay(100)
+        }
+    }
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Native Video Upload", style = MaterialTheme.typography.headlineSmall)
         if (cameraStudioOpen) {
@@ -2095,7 +2107,10 @@ fun NativeUploadScreen(session: NativeSession) {
                     },
                     update = { it.player = previewPlayer }
                 )
-                if (editing && overlayText.isNotBlank()) {
+                val subtitleStartMsForPreview = subtitleStartSeconds.toLongOrNull()?.times(1000L)
+                val subtitleEndMsForPreview = subtitleEndSeconds.toLongOrNull()?.times(1000L)
+                val subtitleVisible = subtitleStartMsForPreview != null && subtitleEndMsForPreview != null && previewPositionMs in subtitleStartMsForPreview..subtitleEndMsForPreview && subtitleEndMsForPreview > subtitleStartMsForPreview
+                if (editing && overlayText.isNotBlank() && subtitleVisible) {
                     Surface(
                         modifier = Modifier.align(Alignment.Center)
                             .offset { IntOffset((overlayTextX * previewTextSize.width / 2f).toInt(), (overlayTextY * previewTextSize.height / 2f).toInt()) }
@@ -2141,20 +2156,32 @@ fun NativeUploadScreen(session: NativeSession) {
                 scope.launch {
                     val created = mutableListOf<java.io.File>()
                     try {
+                        val firstSubtitleWindow = NativeVideoEditorPolicy.subtitleWindow(
+                            subtitleStartSeconds.toIntOrNull() ?: 0, subtitleEndSeconds.toIntOrNull() ?: sourceDurationSeconds,
+                            start * 1000L, split * 1000L
+                        )
                         val first = NativeVideoEditor.export(
                             context, input, start * 1000L, split * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
                             textSizePx = overlayTextSize, textColorHex = overlayTextColor, textPosition = overlayTextPosition,
                             textPositionX = overlayTextX, textPositionY = overlayTextY,
+                            subtitleStartMs = firstSubtitleWindow?.first ?: 0L,
+                            subtitleEndMs = firstSubtitleWindow?.second ?: 0L,
                             sourceVolume = originalAudioVolume,
                             onProgress = { value -> editingProgress = (value / 2).coerceIn(0, 49) }
                         )
                         created.add(first)
+                        val secondSubtitleWindow = NativeVideoEditorPolicy.subtitleWindow(
+                            subtitleStartSeconds.toIntOrNull() ?: 0, subtitleEndSeconds.toIntOrNull() ?: sourceDurationSeconds,
+                            split * 1000L, end * 1000L
+                        )
                         val second = NativeVideoEditor.export(
                             context, input, split * 1000L, end * 1000L, rotationDegrees,
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
                             textSizePx = overlayTextSize, textColorHex = overlayTextColor, textPosition = overlayTextPosition,
                             textPositionX = overlayTextX, textPositionY = overlayTextY,
+                            subtitleStartMs = secondSubtitleWindow?.first ?: 0L,
+                            subtitleEndMs = secondSubtitleWindow?.second ?: 0L,
                             sourceVolume = originalAudioVolume,
                             onProgress = { value -> editingProgress = (50 + value / 2).coerceIn(50, 99) }
                         )
@@ -2200,6 +2227,8 @@ fun NativeUploadScreen(session: NativeSession) {
                     exportSpeed = 1f
                     originalAudioVolume = 1f
                     overlayText = ""
+                    subtitleStartSeconds = "0"
+                    subtitleEndSeconds = sourceDurationSeconds.toString()
                     overlayTextSize = 24
                     overlayTextColor = "#FFFFFF"
                     overlayTextPosition = "center"
@@ -2340,6 +2369,26 @@ fun NativeUploadScreen(session: NativeSession) {
                 maxLines = 2,
                 enabled = !uploading
             )
+            Text("Subtitle Timing · preview और exported MP4 में समय लागू होगा", style = MaterialTheme.typography.titleSmall)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = subtitleStartSeconds,
+                    onValueChange = { subtitleStartSeconds = it.filter(Char::isDigit).take(6) },
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Show from (sec)") },
+                    singleLine = true,
+                    enabled = !uploading && overlayText.isNotBlank()
+                )
+                OutlinedTextField(
+                    value = subtitleEndSeconds,
+                    onValueChange = { subtitleEndSeconds = it.filter(Char::isDigit).take(6) },
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Hide at (sec)") },
+                    singleLine = true,
+                    enabled = !uploading && overlayText.isNotBlank()
+                )
+            }
+            Text("Subtitle preview: ${previewPositionMs / 1000f}s · समय चुने हुए source video के अनुसार है।", style = MaterialTheme.typography.bodySmall)
             Text("Text Size · $overlayTextSize px", style = MaterialTheme.typography.labelLarge)
             Slider(value = overlayTextSize.toFloat(), onValueChange = { overlayTextSize = it.toInt().coerceIn(14, 70) }, valueRange = 14f..70f, enabled = !uploading && overlayText.isNotBlank())
             Text("Text Color", style = MaterialTheme.typography.labelLarge)
@@ -2372,6 +2421,13 @@ fun NativeUploadScreen(session: NativeSession) {
                     status = "Trim समय सही रखें: Start 0 से शुरू हो और End, Start से बड़ा तथा वीडियो अवधि के अंदर हो।"
                     return@Button
                 }
+                val subtitleStart = subtitleStartSeconds.toIntOrNull()
+                val subtitleEnd = subtitleEndSeconds.toIntOrNull()
+                if (overlayText.isNotBlank() && (subtitleStart == null || subtitleEnd == null || subtitleStart < 0 || subtitleEnd <= subtitleStart || subtitleEnd > sourceDurationSeconds)) {
+                    status = "Subtitle का समय सही रखें: Start, End से छोटा हो और दोनों वीडियो की अवधि के अंदर हों।"
+                    return@Button
+                }
+                val subtitleWindow = if (overlayText.isNotBlank()) NativeVideoEditorPolicy.subtitleWindow(subtitleStart ?: 0, subtitleEnd ?: sourceDurationSeconds, start * 1000L, end * 1000L) else null
                 uploading = true
                 editingProgress = 0
                 status = "वीडियो edit/export हो रहा है…"
@@ -2382,6 +2438,8 @@ fun NativeUploadScreen(session: NativeSession) {
                             muteOriginalAudio, selectedFilter, centerCrop, exportSpeed, overlayText,
                             textSizePx = overlayTextSize, textColorHex = overlayTextColor, textPosition = overlayTextPosition,
                             textPositionX = overlayTextX, textPositionY = overlayTextY,
+                            subtitleStartMs = subtitleWindow?.first ?: 0L,
+                            subtitleEndMs = subtitleWindow?.second ?: 0L,
                             sourceVolume = originalAudioVolume,
                             musicUri = musicUri, voiceoverFile = voiceoverFile,
                             musicVolume = musicVolume, voiceVolume = voiceVolume,
@@ -2408,6 +2466,8 @@ fun NativeUploadScreen(session: NativeSession) {
                         originalAudioVolume = 1f
                         exportSpeed = 1f
                         overlayText = ""
+                        subtitleStartSeconds = "0"
+                        subtitleEndSeconds = sourceDurationSeconds.toString()
                         editing = false
                         editingProgress = 100
                         val mixedAudio = musicUri != null || voiceoverFile != null
@@ -2595,6 +2655,8 @@ private object NativeVideoEditor {
         textPosition: String = "center",
         textPositionX: Float = 0f,
         textPositionY: Float = 0f,
+        subtitleStartMs: Long = 0L,
+        subtitleEndMs: Long = Long.MAX_VALUE,
         sourceVolume: Float = 1f,
         musicUri: Uri? = null,
         voiceoverFile: File? = null,
@@ -2619,7 +2681,7 @@ private object NativeVideoEditor {
             "none" -> Unit
             else -> error("Unsupported video filter.")
         }
-        if (overlayText.isNotBlank()) {
+        if (overlayText.isNotBlank() && subtitleEndMs > subtitleStartMs) {
             NativeVideoEditorPolicy.requireTextStyle(textSizePx, textColorHex, textPosition)
             NativeVideoEditorPolicy.requireTextCoordinates(textPositionX, textPositionY)
             val text = SpannableString(overlayText.trim().take(100))
@@ -2630,7 +2692,13 @@ private object NativeVideoEditor {
                 .setBackgroundFrameAnchor(textPositionX, textPositionY)
                 .setOverlayFrameAnchor(0f, 0f)
                 .build()
-            videoEffects.add(OverlayEffect(listOf(TextOverlay.createStaticTextOverlay(text, overlaySettings))))
+            val timedTextOverlay = object : TextOverlay() {
+                override fun getText(presentationTimeUs: Long): SpannableString {
+                    val timeMs = presentationTimeUs / 1000L
+                    return if (timeMs in subtitleStartMs..subtitleEndMs) text else SpannableString("")
+                }
+            }
+            videoEffects.add(OverlayEffect(listOf(timedTextOverlay)))
         }
         NativeVideoEditorPolicy.requireSpeed(speed)
         val speedProvider = object : SpeedProvider {
