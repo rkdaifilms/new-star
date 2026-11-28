@@ -42,6 +42,7 @@ object NativeSystemNotifications {
 
     fun show(context: Context, notification: JSONObject, actorName: String) {
         if (!hasPermission(context)) return
+        if (!NativeNotificationPreferences.isEnabled(context, notification)) return
         createChannel(context)
         val creatorId = notification.optString("actor_id")
         val openIntent = Intent(context, MainActivity::class.java).apply {
