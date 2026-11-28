@@ -100,6 +100,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
+import androidx.work.WorkManager
+import androidx.work.WorkInfo
+import androidx.work.getWorkInfosForUniqueWorkFlow
+import kotlinx.coroutines.flow.collect
 
 @Composable
 fun NativeAuthScreen(onSignedIn: (NativeSession) -> Unit, onGoogleSignIn: () -> Unit) {
@@ -1709,6 +1713,58 @@ fun NativeUploadScreen(session: NativeSession) {
     var status by remember { mutableStateOf("3 घंटे तक का वीडियो चुनें। अधिकतम आकार 5 GiB है।") }
     var uploading by remember { mutableStateOf(false) }
     var hasRecoverableUpload by remember { mutableStateOf(false) }
+    val uploadWorkName = remember(session.userId) { NativeVideoUploadWork.uniqueName(session.userId) }
+    val uploadWorkInfos by remember(uploadWorkName) {
+        WorkManager.getInstance(context).getWorkInfosForUniqueWorkFlow(uploadWorkName)
+    }.collectAsState(initial = emptyList())
+    val activeUploadWork = uploadWorkInfos.firstOrNull {
+        it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.BLOCKED
+    }
+    LaunchedEffect(uploadWorkInfos) {
+        val info = uploadWorkInfos.firstOrNull()
+        if (info != null) {
+            val inputUri = info.inputData.getString(NativeVideoUploadWork.KEY_URI)
+            if (selected == null && !inputUri.isNullOrBlank()) {
+                selected = Uri.parse(inputUri)
+                title = info.inputData.getString(NativeVideoUploadWork.KEY_TITLE).orEmpty()
+                description = info.inputData.getString(NativeVideoUploadWork.KEY_DESCRIPTION).orEmpty()
+                category = info.inputData.getString(NativeVideoUploadWork.KEY_CATEGORY) ?: "General"
+            }
+            when (info.state) {
+                WorkInfo.State.ENQUEUED, WorkInfo.State.RUNNING, WorkInfo.State.BLOCKED -> {
+                    uploading = true
+                    hasRecoverableUpload = true
+                    progress = info.progress.getInt("progress", progress).coerceIn(0, 100)
+                    status = info.progress.getString("message") ?: "Background upload queue में है।"
+                }
+                WorkInfo.State.SUCCEEDED -> {
+                    uploading = false
+                    progress = 100
+                    hasRecoverableUpload = false
+                    status = info.outputData.getString("message") ?: "वीडियो upload पूरा हुआ।"
+                    deleteNativeEditorTemp(context, selected)
+                    selected = null
+                }
+                WorkInfo.State.FAILED -> {
+                    uploading = false
+                    val error = info.outputData.getString("error") ?: "Background upload असफल हुआ।"
+                    status = error
+                    val draft = NativeUploadDraftStore.load(context, session.userId)
+                    hasRecoverableUpload = draft?.optString("uri") == inputUri
+                    if (draft != null) {
+                        val total = draft.optLong("size")
+                        progress = if (total > 0L) ((draft.optLong("offset") * 100L) / total).toInt().coerceIn(0, 100) else 0
+                    }
+                }
+                WorkInfo.State.CANCELLED -> {
+                    uploading = false
+                    val draft = NativeUploadDraftStore.load(context, session.userId)
+                    hasRecoverableUpload = draft != null
+                    status = if (draft != null) "Upload रोक दिया गया। Resume Upload दबाकर वहीं से जारी करें।" else "Upload रद्द किया गया।"
+                }
+            }
+        }
+    }
     var cameraStudioOpen by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     var trimStartSeconds by remember { mutableStateOf("0") }
@@ -2302,36 +2358,45 @@ fun NativeUploadScreen(session: NativeSession) {
         }
         LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth())
         Text("$progress%")
-        Button(enabled = selected != null && !uploading && !voiceRecording, onClick = {
+        Button(enabled = selected != null && !uploading && activeUploadWork == null && !voiceRecording, onClick = {
             val uri = selected ?: return@Button
-            uploading = true; progress = 0
-            scope.launch {
-                try {
-                    NativeVideoUploader.upload(
-                        context, uri, session, title, description, category, visibility,
-                        audienceType, mediaKind, affiliateLink, selectedLocation, locationVisibility,
-                        onProgress = { progress = it },
-                        onStatus = { message -> status = message }
-                    )
-                    progress = 100
-                    deleteNativeEditorTemp(context, uri)
-                    splitParts.forEach { deleteNativeEditorTemp(context, it) }
-                    splitParts = emptyList()
-                    selected = null
-                    editing = false
-                    hasRecoverableUpload = false
-                    status = "वीडियो अपलोड हो गया। Processing के बाद दिखाई देगा।"
-                } catch (e: Exception) {
-                    status = e.message ?: "Upload असफल हुआ।"
-                    val pending = NativeUploadDraftStore.load(context, session.userId)
-                    hasRecoverableUpload = pending?.optString("uri") == uri.toString()
-                    if (hasRecoverableUpload && pending != null) {
-                        val total = pending.optLong("size")
-                        progress = if (total > 0L) ((pending.optLong("offset") * 100L) / total).toInt().coerceIn(0, 100) else 0
+            try {
+                if (uri.scheme == "content") {
+                    runCatching {
+                        context.contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
                     }
-                } finally { uploading = false }
+                }
+                NativeVideoUploadWork.enqueue(
+                    context,
+                    uri,
+                    session.userId,
+                    title,
+                    description,
+                    category,
+                    visibility,
+                    audienceType,
+                    mediaKind,
+                    affiliateLink,
+                    selectedLocation?.toString(),
+                    locationVisibility
+                )
+                uploading = true
+                hasRecoverableUpload = true
+                progress = 0
+                status = "Background upload शुरू हो गया। App की दूसरी screen खोलने पर भी upload जारी रहेगा।"
+            } catch (error: Exception) {
+                uploading = false
+                status = error.message ?: "Background upload शुरू नहीं हो सका।"
             }
-        }) { Text(if (uploading) "Uploading…" else if (hasRecoverableUpload) "Resume Upload" else "Publish Video") }
+        }) { Text(if (uploading) "Uploading in background…" else if (hasRecoverableUpload) "Resume Upload" else "Publish Video") }
+        if (activeUploadWork != null && !uploading) {
+            TextButton(onClick = { NativeVideoUploadWork.cancel(context, session.userId) }) {
+                Text("Cancel background upload")
+            }
+        }
         if (hasRecoverableUpload && !uploading) {
             TextButton(onClick = {
                 NativeUploadDraftStore.clear(context, session.userId)
