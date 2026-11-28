@@ -1395,7 +1395,7 @@ private fun NativeLiveRoomChat(session: NativeSession, roomId: String) {
     DisposableEffect(chatViewModel, roomId) {
         onDispose { chatViewModel.stop() }
     }
-    LaunchedEffect(chatState.messages.size) {
+    LaunchedEffect(chatState.messages.lastOrNull()?.optString("id")) {
         if (chatState.messages.isNotEmpty()) {
             listState.animateScrollToItem(chatState.messages.lastIndex)
         }
