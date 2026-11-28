@@ -956,11 +956,7 @@ private fun NativeLiveDiscoveryScreen(session: NativeSession) {
                                 factory = { viewContext ->
                                     PlayerView(viewContext).apply {
                                         useController = true
-                                        resizeMode = if (immersive && video.type.equals("short", true)) {
-                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                        } else {
-                            AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        }
+                                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                                         this.player = player
                                     }
                                 },
@@ -2594,7 +2590,11 @@ private fun NativeVideoCard(
                         player = exoPlayer
                         // Feed swipes should not be intercepted by playback controls.
                         useController = !immersive
-                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        resizeMode = if (immersive && video.type.equals("short", true)) {
+                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        } else {
+                            AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
                     } },
                     update = { view ->
                         if (view.player !== exoPlayer) view.player = exoPlayer
