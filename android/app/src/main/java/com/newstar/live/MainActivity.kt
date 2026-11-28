@@ -1666,10 +1666,10 @@ private fun NativeHome(
                     val current = session ?: throw IllegalStateException("इस Feed को देखने के लिए Login करें।")
                     NativeFeed.loadFollowing(current)
                 }
-                "Shorts", "Reels" -> NativeFeed.load(category, "short")
-                "Long videos" -> NativeFeed.load(category, "long")
-                "Discover", "For You" -> NativeFeed.load(category)
-                else -> NativeFeed.load(category)
+                "Shorts", "Reels" -> NativeFeed.load(category, "short", session)
+                "Long videos" -> NativeFeed.load(category, "long", session)
+                "Discover", "For You" -> NativeFeed.load(category, session = session)
+                else -> NativeFeed.load(category, session = session)
             }
             if (feed.isEmpty()) error = if (feedMode == "Following" || feedMode == "Friends") "आप जिन Creators को Follow करते हैं, उनकी अभी कोई सार्वजनिक वीडियो नहीं है।" else "अभी कोई सार्वजनिक वीडियो उपलब्ध नहीं है।"
         } catch (e: Exception) {
@@ -2204,18 +2204,65 @@ private object NativeFeed {
         }
     }
 
-    suspend fun load(category: String, videoType: String? = null): List<NativeVideo> = withContext(Dispatchers.IO) {
+    suspend fun load(
+        category: String,
+        videoType: String? = null,
+        session: NativeSession? = null
+    ): List<NativeVideo> = withContext(Dispatchers.IO) {
         val args = JSONObject().put("p_limit", 50).put("p_offset", 0)
             .put("p_video_type", videoType ?: JSONObject.NULL)
             .put("p_category", if (category == "All") JSONObject.NULL else category)
-        val rows = post("$API_BASE/rest/v1/rpc/get_recommended_video_feed", args) as? JSONArray
-            ?: throw IllegalStateException("Feed response invalid.")
+        var sourceRows = emptyList<JSONObject>()
+        var rpcFailure: Exception? = null
+
+        try {
+            val response = post("$API_BASE/rest/v1/rpc/get_recommended_video_feed", args) as? JSONArray
+                ?: throw IllegalStateException("Feed response invalid.")
+            sourceRows = (0 until response.length()).mapNotNull { response.optJSONObject(it) }
+        } catch (error: Exception) {
+            rpcFailure = error
+        }
+
+        // Match the web feed's recovery path: a failed or empty recommendation RPC
+        // falls back to published, public, all-audience videos instead of blanking Home.
+        if (sourceRows.isEmpty()) {
+            val fields = "id,caption,username,category,likes_count,views_count,video_type,user_id,created_at"
+            val filters = "&or=${Uri.encode("(processing_status.eq.published,processing_status.is.null)")}" +
+                "&or=${Uri.encode("(visibility.eq.public,visibility.is.null)")}" +
+                "&or=${Uri.encode("(audience_type.eq.all,audience_type.is.null)")}"
+            try {
+                val direct = NativeSupabase.get(
+                    "/rest/v1/videos?select=$fields$filters&order=created_at.desc&limit=50",
+                    session
+                )
+                sourceRows = (0 until direct.length()).mapNotNull { direct.optJSONObject(it) }
+                    .filter { row ->
+                        val matchesCategory = category == "All" ||
+                            row.optString("category").equals(category, ignoreCase = true)
+                        val type = row.optString("video_type").ifBlank { "short" }
+                        val matchesType = videoType == null || type.equals(videoType, ignoreCase = true)
+                        matchesCategory && matchesType
+                    }
+            } catch (directError: Exception) {
+                if (rpcFailure != null) {
+                    throw IllegalStateException(
+                        "Recommended feed unavailable: ${rpcFailure.message}. Direct feed fallback failed: ${directError.message}",
+                        directError
+                    )
+                }
+                throw directError
+            }
+        }
+
+        if (sourceRows.isEmpty()) return@withContext emptyList()
         val byId = LinkedHashMap<String, JSONObject>()
         val ids = JSONArray()
-        for (i in 0 until rows.length()) {
-            val row = rows.optJSONObject(i) ?: continue
+        for (row in sourceRows) {
             val id = row.optString("id")
-            if (id.isNotBlank()) { byId[id] = row; ids.put(id) }
+            if (id.isNotBlank() && !byId.containsKey(id)) {
+                byId[id] = row
+                ids.put(id)
+            }
         }
         if (ids.length() == 0) return@withContext emptyList()
         val resolved = post("$API_BASE/functions/v1/video-url", JSONObject().put("video_ids", ids)) as? JSONObject
@@ -2229,7 +2276,7 @@ private object NativeFeed {
                 row.optString("category").takeUnless { it == "null" }.orEmpty(),
                 row.optInt("likes_count"), row.optInt("views_count"),
                 row.optString("video_type").ifBlank { "short" })
-        }.toList()
+        }
     }
 
     suspend fun loadFollowing(session: NativeSession): List<NativeVideo> = withContext(Dispatchers.IO) {
