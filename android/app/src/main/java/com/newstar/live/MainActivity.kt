@@ -2161,6 +2161,7 @@ private fun NativeVideoCard(
     var followBusy by remember(video.id, session?.userId) { mutableStateOf(false) }
     var followError by remember(video.id, session?.userId) { mutableStateOf<String?>(null) }
     var downloadBusy by remember(video.id) { mutableStateOf(false) }
+    var offlineSaved by remember(video.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(session?.userId) {
         val current = session ?: return@LaunchedEffect
@@ -2209,9 +2210,19 @@ private fun NativeVideoCard(
             }
         }
     }
-    val exoPlayer = remember(video.url) {
+    LaunchedEffect(video.id) {
+        offlineSaved = withContext(Dispatchers.IO) {
+            NativeOfflineDownloads.isDownloaded(context, video.id)
+        }
+    }
+    val exoPlayer = remember(video.url, offlineSaved) {
+        val sourceFactory = if (offlineSaved) {
+            NativeOfflineDownloads.offlineDataSourceFactory(context)
+        } else {
+            NativeVideoCache.dataSourceFactory(context)
+        }
         ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(NativeVideoCache.dataSourceFactory(context)))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(sourceFactory))
             .build().apply {
                 setMediaItem(MediaItem.fromUri(video.url)); prepare(); playWhenReady = false
             }
@@ -2385,7 +2396,7 @@ private fun NativeVideoCard(
                         }
                     ) { Text("Share") }
                     TextButton(
-                        enabled = !downloadBusy,
+                        enabled = !downloadBusy && !offlineSaved,
                         onClick = {
                             downloadBusy = true
                             try {
@@ -2401,7 +2412,7 @@ private fun NativeVideoCard(
                                 downloadBusy = false
                             }
                         }
-                    ) { Text(if (downloadBusy) "Starting…" else "Download") }
+                    ) { Text(if (downloadBusy) "Starting…" else if (offlineSaved) "Saved offline" else "Download") }
                     TextButton(
                         onClick = {
                             try {
