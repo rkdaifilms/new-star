@@ -73,6 +73,7 @@ object NativeSystemNotifications {
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
             .setContentIntent(pendingIntent)
         NotificationManagerCompat.from(context).notify(notificationId, builder.build())
     }
