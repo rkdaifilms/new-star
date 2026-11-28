@@ -104,7 +104,7 @@ class NativeBackgroundNotificationWorker(
             )
             val allRows = ArrayList<JSONObject>()
             var offset = 0
-            repeat(MAX_PAGES) {
+            for (page in 0 until MAX_PAGES) {
                 val rows = NativeSupabase.getRange(
                     "/rest/v1/notifications?select=id,user_id,actor_id,type,message,is_read,created_at" +
                         "&user_id=eq.${Uri.encode(session.userId)}" +
@@ -117,7 +117,7 @@ class NativeBackgroundNotificationWorker(
                 for (index in 0 until rows.length()) {
                     rows.optJSONObject(index)?.let(allRows::add)
                 }
-                if (rows.length() < PAGE_SIZE) return@repeat
+                if (rows.length() < PAGE_SIZE) break
                 offset += PAGE_SIZE
             }
 
