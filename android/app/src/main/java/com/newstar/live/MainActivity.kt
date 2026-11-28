@@ -2598,26 +2598,16 @@ private fun NativeVideoCard(
                         player = exoPlayer
                         // Feed swipes should not be intercepted by playback controls.
                         useController = !immersive
-                        resizeMode = if (immersive && video.type.equals("short", true)) {
-                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                        } else {
-                            AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        }
+                        // Always preserve the complete source frame. ZOOM crops portrait
+                        // videos on some devices and makes the subject appear cut off.
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     } },
                     update = { view ->
                         if (view.player !== exoPlayer) view.player = exoPlayer
                         view.useController = !immersive
-                        // Keep FIT applied after recomposition as well as creation;
-                        // ZOOM would crop portrait/landscape frames on some devices.
-                        // Short videos in the immersive feed should use the available
-                        // screen width instead of appearing as a narrow pillar-boxed strip.
-                        // Long-form landscape videos and all non-immersive cards retain FIT
-                        // so their complete frame remains visible.
-                        view.resizeMode = if (immersive && video.type.equals("short", true)) {
-                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                        } else {
-                            AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        }
+                        // Keep the whole encoded frame visible after every recomposition.
+                        // FIT letterboxes when necessary rather than cropping the video.
+                        view.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     }
                 )
                 if (playerError != null) {
