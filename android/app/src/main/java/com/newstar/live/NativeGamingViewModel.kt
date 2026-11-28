@@ -198,6 +198,34 @@ class NativeGamingViewModel(private val session: NativeSession) : ViewModel() {
         }
     }
 
+    fun admitGuestSeat(roomId: String, member: JSONObject) {
+        val participantId = member.optString("id")
+        if (roomId.isBlank() || participantId.isBlank() || mutableState.value.moderationBusyUserId.isNotBlank()) return
+        mutableState.update { it.copy(moderationBusyUserId = member.optString("user_id"), moderationError = "") }
+        viewModelScope.launch {
+            try {
+                NativeLiveRepository.admitGuest(roomId, participantId, session)
+                val result = NativeLiveRepository.listMembers(roomId, session)
+                val rows = result.optJSONArray("members")
+                val updated = if (rows == null) emptyList() else
+                    (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                mutableState.update {
+                    it.copy(
+                        members = updated,
+                        actorRole = result.optString("actor_role", it.actorRole),
+                        moderationError = ""
+                    )
+                }
+            } catch (error: Exception) {
+                mutableState.update {
+                    it.copy(moderationError = error.message ?: "Guest seat assign नहीं हो सकी।")
+                }
+            } finally {
+                mutableState.update { it.copy(moderationBusyUserId = "") }
+            }
+        }
+    }
+
     fun setMemberCamera(roomId: String, member: JSONObject) {
         updateMember(roomId, member) {
             NativeLiveRepository.setMemberPermissions(
