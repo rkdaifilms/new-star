@@ -207,6 +207,7 @@ class MainActivity : ComponentActivity() {
         val candidate = uri.getQueryParameter("ref") ?: return
         if (candidate.matches(Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))) {
             referralId.value = candidate
+            NativeSessionStore.savePendingReferral(this, candidate)
         }
     }
 
@@ -241,7 +242,9 @@ class MainActivity : ComponentActivity() {
             }
             try {
                 val signedIn = NativeSupabase.exchangeCode(this@MainActivity, code, pending.second)
-                referralId.value?.let { referrer ->
+                val pendingReferrer = NativeSessionStore.consumePendingReferral(this@MainActivity)
+                    ?: referralId.value
+                pendingReferrer?.let { referrer ->
                     runCatching {
                         NativeSupabase.post("/rest/v1/rpc/record_referral_attribution",
                             JSONObject().put("p_referrer_id", referrer), signedIn)
