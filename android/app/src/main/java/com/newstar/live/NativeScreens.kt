@@ -3531,10 +3531,23 @@ fun NativeGamingScreen(
         }
     }
 
+    DisposableEffect(session.userId, session.accessToken, gamingViewModel) {
+        val invitationRealtime = NativeRealtimeMessages(
+            accessToken = session.accessToken,
+            userId = session.userId,
+            onChange = {},
+            onStatus = {},
+            includeLiveInvites = true,
+            onLiveInvite = { gamingViewModel.refreshInvitations() }
+        )
+        invitationRealtime.connect()
+        onDispose { invitationRealtime.close() }
+    }
+
     LaunchedEffect(session.userId) {
         gamingViewModel.refreshInvitations()
         while (true) {
-            delay(12_000)
+            delay(60_000)
             gamingViewModel.refreshInvitations()
         }
     }
