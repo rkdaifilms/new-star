@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.media3.common.MimeTypes
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.offline.Download
@@ -62,6 +63,22 @@ internal object NativeOfflineDownloads {
             maxParallelDownloads = 2
             minRetryCount = 3
         }
+    }
+
+    fun isDownloaded(context: Context, videoId: String): Boolean {
+        val safeId = videoId.replace(Regex("[^A-Za-z0-9_-]"), "").take(100)
+        if (safeId.isBlank()) return false
+        return runCatching {
+            manager(context).downloadIndex.getDownload(safeId)?.state == Download.STATE_COMPLETED
+        }.getOrDefault(false)
+    }
+
+    fun offlineDataSourceFactory(context: Context): CacheDataSource.Factory {
+        manager(context)
+        val mediaCache = checkNotNull(cache) { "Offline media cache अभी तैयार नहीं है।" }
+        return CacheDataSource.Factory()
+            .setCache(mediaCache)
+            .setFlags(CacheDataSource.FLAG_BLOCK_ON_CACHE)
     }
 
     fun enqueue(context: Context, videoId: String, url: String) {
