@@ -2562,12 +2562,12 @@ private object NativeUploadDraftStore {
     }
 }
 
-private object NativeVideoUploader {
+internal object NativeVideoUploader {
     suspend fun upload(
         context: Context, uri: Uri, session: NativeSession, title: String, description: String,
         category: String, visibility: String, audienceType: String, mediaKind: String, affiliateLink: String,
         location: JSONObject?, locationVisibility: String,
-        onProgress: (Int) -> Unit, onStatus: (String) -> Unit
+        onProgress: suspend (Int) -> Unit, onStatus: suspend (String) -> Unit
     ) = withContext(Dispatchers.IO) {
         val queriedSize = runCatching {
             context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
