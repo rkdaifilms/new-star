@@ -2270,6 +2270,13 @@ private fun NativeVideoCard(
     var downloadBusy by remember(video.id) { mutableStateOf(false) }
     var offlineSaved by remember(video.id) { mutableStateOf(false) }
     var downloadRequested by remember(video.id) { mutableStateOf(false) }
+    var reportDialogOpen by remember(video.id) { mutableStateOf(false) }
+    var reportTargetType by remember(video.id) { mutableStateOf("video") }
+    var reportReason by remember(video.id) { mutableStateOf("spam") }
+    var reportDetails by remember(video.id) { mutableStateOf("") }
+    var reportBusy by remember(video.id) { mutableStateOf(false) }
+    var reportError by remember(video.id) { mutableStateOf<String?>(null) }
+    var reportSuccess by remember(video.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(session?.userId) {
         val current = session ?: return@LaunchedEffect
@@ -2575,6 +2582,17 @@ private fun NativeVideoCard(
                         }
                     ) { Text("Copy link") }
                     TextButton(
+                        enabled = session != null && !reportBusy,
+                        onClick = {
+                            reportTargetType = "video"
+                            reportReason = "spam"
+                            reportDetails = ""
+                            reportError = null
+                            reportSuccess = false
+                            reportDialogOpen = true
+                        }
+                    ) { Text("Report") }
+                    TextButton(
                         enabled = session != null && !giftBusy,
                         onClick = {
                             giftDialogOpen = true
@@ -2599,6 +2617,131 @@ private fun NativeVideoCard(
                 }
             }
         }
+    }
+    if (reportDialogOpen) {
+        val current = session
+        val reasons = listOf(
+            "copyright" to "Copyright",
+            "harassment" to "Harassment or bullying",
+            "spam" to "Spam",
+            "scam" to "Scam or misleading content",
+            "nudity_or_sexual_content" to "Sexual content",
+            "violence" to "Violence",
+            "dangerous_content" to "Dangerous content",
+            "child_safety" to "Child safety",
+            "privacy" to "Privacy violation",
+            "other" to "Other"
+        )
+        AlertDialog(
+            onDismissRequest = { if (!reportBusy) reportDialogOpen = false },
+            title = { Text(if (reportSuccess) "Report submitted" else "Report content") },
+            text = {
+                Column(
+                    Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (reportSuccess) {
+                        Text("आपकी report सुरक्षित रूप से भेज दी गई है। हमारी moderation team इसकी समीक्षा करेगी।")
+                    } else {
+                        Text("आप किसकी report करना चाहते हैं?")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = reportTargetType == "video",
+                                onClick = { reportTargetType = "video" },
+                                enabled = !reportBusy,
+                                label = { Text("Video") }
+                            )
+                            FilterChip(
+                                selected = reportTargetType == "user",
+                                onClick = { reportTargetType = "user" },
+                                enabled = !reportBusy && video.userId.isNotBlank(),
+                                label = { Text("Creator") }
+                            )
+                        }
+                        Text("कारण चुनें")
+                        LazyColumn(
+                            Modifier.heightIn(max = 210.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            items(reasons) { item ->
+                                val (value, label) = item
+                                Row(
+                                    Modifier.fillMaxWidth().clickable(enabled = !reportBusy) {
+                                        reportReason = value
+                                    }.padding(vertical = 5.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = reportReason == value,
+                                        onClick = { reportReason = value },
+                                        enabled = !reportBusy
+                                    )
+                                    Text(label, modifier = Modifier.padding(start = 8.dp))
+                                }
+                            }
+                        }
+                        OutlinedTextField(
+                            value = reportDetails,
+                            onValueChange = { reportDetails = it.take(1200) },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("अतिरिक्त जानकारी (वैकल्पिक)") },
+                            minLines = 2,
+                            maxLines = 4,
+                            enabled = !reportBusy
+                        )
+                        if (reportError != null) {
+                            Text(reportError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (reportSuccess) {
+                    TextButton(onClick = { reportDialogOpen = false }) { Text("Done") }
+                } else {
+                    TextButton(
+                        enabled = current != null && !reportBusy &&
+                            (reportTargetType != "user" || video.userId.isNotBlank()),
+                        onClick = {
+                            val reporter = current ?: return@TextButton
+                            val targetId = if (reportTargetType == "user") video.userId else video.id
+                            if (targetId.isBlank()) {
+                                reportError = "Report target उपलब्ध नहीं है।"
+                                return@TextButton
+                            }
+                            reportBusy = true
+                            reportError = null
+                            scope.launch {
+                                try {
+                                    NativeSupabase.post(
+                                        "/rest/v1/content_reports",
+                                        JSONObject()
+                                            .put("reporter_id", reporter.userId)
+                                            .put("target_type", reportTargetType)
+                                            .put("target_id", targetId)
+                                            .put("reason", reportReason)
+                                            .put("details", reportDetails.trim().takeIf { it.isNotBlank() }),
+                                        reporter
+                                    )
+                                    reportSuccess = true
+                                } catch (e: Exception) {
+                                    reportError = e.message ?: "Report भेजी नहीं जा सकी। कृपया फिर कोशिश करें।"
+                                } finally {
+                                    reportBusy = false
+                                }
+                            }
+                        }
+                    ) { Text(if (reportBusy) "Sending…" else "Submit report") }
+                }
+            },
+            dismissButton = {
+                if (!reportSuccess) {
+                    TextButton(onClick = { reportDialogOpen = false }, enabled = !reportBusy) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
     }
     if (giftDialogOpen) {
         val giftOptions = listOf(
